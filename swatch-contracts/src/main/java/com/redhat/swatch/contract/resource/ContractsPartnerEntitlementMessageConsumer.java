@@ -24,7 +24,6 @@ import static com.redhat.swatch.contract.config.Channels.CONTRACTS_FROM_GATEWAY;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
-import com.redhat.swatch.contract.utils.MessageUtils;
 import io.smallrye.common.annotation.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -39,21 +38,13 @@ public class PartnerEntitlementKafkaMessageConsumer {
 
   @Blocking
   @Incoming(CONTRACTS_FROM_GATEWAY)
-  public void consumeMessage(Object dtoContract) {
+  public void consumeMessage(String dtoContract) {
     log.debug("IT Partner Kafka consumer was called");
     if (dtoContract == null) {
       return;
     }
 
-    String dtoContractString = MessageUtils.toString(dtoContract);
-    if (dtoContractString == null) {
-      log.error(
-          "Unsupported message type: {}. Expected byte[] or String",
-          dtoContract.getClass().getName());
-      return;
-    }
-
-    consumeContract(dtoContractString);
+    consumeContract(dtoContract);
   }
 
   public void consumeContract(String dtoContract) {

@@ -31,9 +31,6 @@ import io.smallrye.reactive.messaging.memory.InMemoryConnector;
 import io.smallrye.reactive.messaging.memory.InMemorySource;
 import jakarta.enterprise.inject.Any;
 import jakarta.inject.Inject;
-import java.io.ByteArrayOutputStream;
-import java.io.ObjectOutputStream;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -75,25 +72,7 @@ class PartnerEntitlementKafkaMessageConsumerTest {
     assertMessageIsProcessed();
   }
 
-  @Test
-  void shouldProcessUtf8ByteArrayMessage() {
-    byte[] messageBytes = VALID_JSON_MESSAGE.getBytes(StandardCharsets.UTF_8);
-
-    whenSendMessage(messageBytes);
-
-    assertMessageIsProcessed();
-  }
-
-  @Test
-  void shouldProcessSerializedObjectMessage() throws Exception {
-    byte[] serializedBytes = serializeString(VALID_JSON_MESSAGE);
-
-    whenSendMessage(serializedBytes);
-
-    assertMessageIsProcessed();
-  }
-
-  private void whenSendMessage(Object message) {
+  private void whenSendMessage(String message) {
     contractsKafkaChannel.send(message);
   }
 
