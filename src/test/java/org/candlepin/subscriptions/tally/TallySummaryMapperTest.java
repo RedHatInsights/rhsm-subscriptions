@@ -64,17 +64,17 @@ class TallySummaryMapperTest {
     TallySnapshot rosa =
         buildSnapshot(
             org,
-            "ROSA",
+            "rosa",
             Granularity.HOURLY,
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
             BillingProvider.AWS,
-            "Storage-gibibytes",
+            MetricIdUtils.getInstanceHours().getValue(),
             2);
     TallySnapshot rhel =
         buildSnapshot(
             org,
-            "RHEL",
+            "RHEL for x86",
             Granularity.HOURLY,
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
@@ -88,11 +88,11 @@ class TallySummaryMapperTest {
     List<org.candlepin.subscriptions.json.TallySnapshot> summarySnaps = summary.getTallySnapshots();
     assertEquals(snapshots.size(), summarySnaps.size());
 
-    var mappedRosaOptional = findSnapshot(summary, "ROSA");
+    var mappedRosaOptional = findSnapshot(summary, "rosa");
     assertTrue(mappedRosaOptional.isPresent());
     assertMappedSnapshot(rosa, mappedRosaOptional.get());
 
-    var mappedRhelOptional = findSnapshot(summary, "RHEL");
+    var mappedRhelOptional = findSnapshot(summary, "RHEL for x86");
     assertTrue(mappedRhelOptional.isPresent());
     assertMappedSnapshot(rhel, mappedRhelOptional.get());
   }
@@ -180,5 +180,57 @@ class TallySummaryMapperTest {
     return summary.getTallySnapshots().stream()
         .filter(s -> product.equalsIgnoreCase(s.getProductId()))
         .findFirst();
+  }
+
+  @Test
+  void testFilterInvalidMeasurements() {
+    String org = "O1";
+
+    // Create a snapshot with both valid and invalid measurements
+    Map<TallyMeasurementKey, Double> measurements = new HashMap<>();
+
+    // Valid measurement for rosa: Instance-hours
+    String validMetric = MetricIdUtils.getInstanceHours().getValue();
+    buildMeasurement(measurements, HardwareMeasurementType.PHYSICAL, validMetric, 10.0);
+    buildMeasurement(measurements, HardwareMeasurementType.TOTAL, validMetric, 10.0);
+
+    // Invalid measurement for rosa: Sockets (this is a RHEL metric, not ROSA)
+    String invalidMetric = MetricIdUtils.getSockets().getValue();
+    var invalidKey1 = new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, invalidMetric);
+    var invalidKey2 = new TallyMeasurementKey(HardwareMeasurementType.TOTAL, invalidMetric);
+    measurements.put(invalidKey1, 5.0);
+    measurements.put(invalidKey2, 5.0);
+
+    TallySnapshot snapshot =
+        TallySnapshot.builder()
+            .orgId(org)
+            .productId("rosa")
+            .snapshotDate(OffsetDateTime.now())
+            .tallyMeasurements(measurements)
+            .granularity(Granularity.HOURLY)
+            .serviceLevel(ServiceLevel.PREMIUM)
+            .usage(Usage.PRODUCTION)
+            .billingProvider(BillingProvider.AWS)
+            .build();
+
+    // Map the snapshot
+    TallySummary summary = mapper.mapSnapshots(org, List.of(snapshot));
+
+    // Verify the summary
+    assertEquals(org, summary.getOrgId());
+    assertEquals(1, summary.getTallySnapshots().size());
+
+    var mappedSnapshot = summary.getTallySnapshots().getFirst();
+    assertEquals("rosa", mappedSnapshot.getProductId());
+
+    // Should only have 2 measurements (PHYSICAL and TOTAL for Instance-hours)
+    // The invalid Sockets measurements should be filtered out
+    assertEquals(2, mappedSnapshot.getTallyMeasurements().size());
+
+    // Verify all measurements are for the valid metric (in uppercase format)
+    String expectedMetricId = MetricIdUtils.toUpperCaseFormatted(validMetric);
+    mappedSnapshot
+        .getTallyMeasurements()
+        .forEach(m -> assertEquals(expectedMetricId, m.getMetricId()));
   }
 }

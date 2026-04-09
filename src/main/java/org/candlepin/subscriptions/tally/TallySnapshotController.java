@@ -190,7 +190,7 @@ public class TallySnapshotController {
           summaryProducer.produceTallySummaryMessages(
               totalSnapshots,
               List.of(Granularity.HOURLY),
-              SnapshotSummaryProducer.hourlySnapFilter);
+              SnapshotSummaryProducer.HOURLY_SNAP_FILTER);
         }
 
         log.debug("Finished producing {} hourly snapshots for orgId {}", serviceType, orgId);

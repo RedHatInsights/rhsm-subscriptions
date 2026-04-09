@@ -20,7 +20,11 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.util.MetricIdUtils;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
@@ -81,7 +85,16 @@ public class TallySummaryMapper {
   }
 
   private List<TallyMeasurement> mapMeasurements(TallySnapshot snapshot) {
+    Set<String> applicableMetricIds =
+        MetricIdUtils.getMetricIdsFromConfigForTag(snapshot.getProductId())
+            .map(MetricId::toString)
+            .collect(Collectors.toSet());
+
     return snapshot.getTallyMeasurements().entrySet().stream()
+        .filter(
+            entry ->
+                applicableMetricIds.contains(
+                    MetricId.tryGetValueFromString(entry.getKey().getMetricId())))
         .map(
             entry ->
                 new TallyMeasurement()
