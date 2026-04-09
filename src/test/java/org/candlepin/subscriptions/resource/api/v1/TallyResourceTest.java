@@ -51,7 +51,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
-import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.configuration.FeatureFlags;
 import org.candlepin.subscriptions.contracts.ContractsCapacityController;
 import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
@@ -76,7 +76,6 @@ import org.candlepin.subscriptions.utilization.api.v1.model.TallyReportData;
 import org.candlepin.subscriptions.utilization.api.v1.model.TallyReportDataPoint;
 import org.candlepin.subscriptions.utilization.api.v1.model.TallyReportTotalMonthly;
 import org.candlepin.subscriptions.utilization.api.v1.model.UsageType;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -89,7 +88,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @SuppressWarnings("linelength")
 @SpringBootTest
@@ -107,13 +105,12 @@ class TallyResourceTest {
       ProductId.fromString("OpenShift-dedicated-metrics");
   public static final ProductId RHEL_FOR_X86 = RHEL_PRODUCT_ID;
   private static final MetricId METRIC_ID_CORES = MetricIdUtils.getCores();
-  public Object originalApplicationProperites = null;
 
   @MockitoBean TallySnapshotRepository repository;
   @MockitoBean PageLinkCreator pageLinkCreator;
   @MockitoBean OrgConfigRepository orgConfigRepository;
   @MockitoBean ContractsCapacityController capacityController;
-  @MockitoBean ApplicationProperties applicationProperties;
+  @MockitoBean FeatureFlags featureFlags;
   @Autowired TallyResource resource;
   @Autowired ApplicationClock applicationClock;
 
@@ -129,16 +126,7 @@ class TallyResourceTest {
   class WithPrimaryRowSearchesEnabled {
     @BeforeEach
     void setup() {
-      when(applicationProperties.isEnablePrimaryRowSearches()).thenReturn(true);
-      originalApplicationProperites =
-          ReflectionTestUtils.getField(resource, "applicationProperties");
-      ReflectionTestUtils.setField(resource, "applicationProperties", applicationProperties);
-    }
-
-    @AfterEach
-    void tearDown() {
-      ReflectionTestUtils.setField(
-          resource, "applicationProperties", originalApplicationProperites);
+      when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(true);
     }
 
     @Test
@@ -880,16 +868,7 @@ class TallyResourceTest {
   class WithPrimaryRowSearchesDisabled {
     @BeforeEach
     void setup() {
-      when(applicationProperties.isEnablePrimaryRowSearches()).thenReturn(false);
-      originalApplicationProperites =
-          ReflectionTestUtils.getField(resource, "applicationProperties");
-      ReflectionTestUtils.setField(resource, "applicationProperties", applicationProperties);
-    }
-
-    @AfterEach
-    void tearDown() {
-      ReflectionTestUtils.setField(
-          resource, "applicationProperties", originalApplicationProperites);
+      when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(false);
     }
 
     @Test

@@ -25,7 +25,14 @@ rhsm-subscriptions:
   hourly-tally-offset: ${HOURLY_TALLY_OFFSET:60m}
   metric-lookup-range-duration: ${METRIC_LOOKUP_RANGE:1h}
   enable-synchronous-operations: ${ENABLE_SYNCHRONOUS_OPERATIONS:false}
-  enable-primary-row-searches: ${ENABLE_PRIMARY_ROW_SEARCHES:true}
+
+io:
+  getunleash:
+    app-name: ${UNLEASH_APP_NAME:swatch-tally}
+    instance-id: ${UNLEASH_INSTANCE_ID:swatch-tally}
+    environment: ${UNLEASH_ENVIRONMENT:production}
+    api-url: ${UNLEASH_API_URL:http://localhost:4242/api}
+    api-token: ${UNLEASH_API_TOKEN:default:development.unleash-insecure-api-token}
 management:
   health:
     jms:

@@ -127,11 +127,11 @@
             "createdAt": "2024-01-10T20:20:42.531Z"
         },
         {
-            "name": "rhsm-subscriptions.enable-primary-row-searches",
+            "name": "swatch.swatch-tally.enable-primary-row-searches",
             "description": "Enable the use of the primary row search for snapshots and buckets.",
             "type": "operational",
             "project": "default",
-            "enabled": true,
+            "enabled": false,
             "stale": false,
             "strategies": [
                 {

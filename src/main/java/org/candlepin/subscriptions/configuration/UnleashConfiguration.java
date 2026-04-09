@@ -18,27 +18,25 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package api;
+package org.candlepin.subscriptions.configuration;
 
-import com.redhat.swatch.component.tests.api.UnleashService;
-import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
+import io.getunleash.Unleash;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
-public class TallyUnleashService extends UnleashService {
-  private static final String ENABLE_PRIMARY_ROW_SEARCHES =
-      "swatch.swatch-tally.enable-primary-row-searches";
+/** Configuration class for Unleash feature flags. */
+@Configuration
+public class UnleashConfiguration {
 
-  public void enablePrimaryRowSearches() {
-    enableFlag(ENABLE_PRIMARY_ROW_SEARCHES);
-    waitForFlagToBe(true);
-  }
-
-  public void disablePrimaryRowSearches() {
-    disableFlag(ENABLE_PRIMARY_ROW_SEARCHES);
-    waitForFlagToBe(false);
-  }
-
-  private void waitForFlagToBe(boolean expectedState) {
-    AwaitilityUtils.until(
-        () -> isFlagEnabled(ENABLE_PRIMARY_ROW_SEARCHES), enabled -> enabled == expectedState);
+  /**
+   * Creates the FeatureFlags bean for managing feature toggles.
+   *
+   * @param unleash the Unleash client instance (optional)
+   * @return FeatureFlags service
+   */
+  @Bean
+  public FeatureFlags featureFlags(@Autowired(required = false) Unleash unleash) {
+    return new FeatureFlags(unleash);
   }
 }

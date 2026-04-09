@@ -36,6 +36,7 @@ import jakarta.validation.Validator;
 import org.candlepin.subscriptions.actuator.CertInfoContributor;
 import org.candlepin.subscriptions.clowder.KafkaSslBeanPostProcessor;
 import org.candlepin.subscriptions.clowder.RdsSslBeanPostProcessor;
+import org.candlepin.subscriptions.configuration.UnleashConfiguration;
 import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
 import org.candlepin.subscriptions.resource.ApiConfiguration;
 import org.candlepin.subscriptions.security.AuthProperties;
@@ -66,6 +67,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
   RhsmSubscriptionsDataSourceConfiguration.class,
   LiquibaseUpdateOnlyConfiguration.class,
   UtilConfiguration.class,
+  UnleashConfiguration.class,
 })
 public class ApplicationConfiguration implements WebMvcConfigurer {
   @Bean
