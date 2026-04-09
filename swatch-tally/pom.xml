@@ -71,6 +71,10 @@
       <artifactId>spring-boot-configuration-processor</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.getunleash</groupId>
+      <artifactId>springboot-unleash-starter</artifactId>
+    </dependency>
+    <dependency>
       <groupId>io.micrometer</groupId>
       <artifactId>micrometer-registry-prometheus</artifactId>
     </dependency>
