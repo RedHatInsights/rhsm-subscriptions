@@ -75,6 +75,26 @@ public class ContractUMBMessageConsumer {
       PartnerEntitlementContract contract =
           mapper.readValue(dtoContract, PartnerEntitlementContract.class);
 
+      String awsCustomerAccountId = null;
+      String productCode = null;
+      String azureResourceId = null;
+
+      if (contract.getCloudIdentifiers() != null) {
+        awsCustomerAccountId = contract.getCloudIdentifiers().getAwsCustomerAccountId();
+        productCode = contract.getCloudIdentifiers().getProductCode();
+        azureResourceId = contract.getCloudIdentifiers().getAzureResourceId();
+      }
+
+      log.info(
+          "IT Partner message consumed: source=umb, action={}, "
+              + "awsCustomerAccountId={}, productCode={}, azureResourceId={}, "
+              + "redHatSubscriptionNumber={}",
+          contract.getAction(),
+          awsCustomerAccountId,
+          productCode,
+          azureResourceId,
+          contract.getRedHatSubscriptionNumber());
+
       return service.createPartnerContract(PartnerEntitlementsRequest.from(contract));
     } catch (Exception e) {
       log.warn("Unable to read UMB message from JSON.", e);
