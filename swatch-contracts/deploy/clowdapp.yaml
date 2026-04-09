@@ -106,6 +106,10 @@ parameters:
     value: '3'
   - name: KAFKA_UTILIZATION_PARTITIONS
     value: '3'
+  - name: KAFKA_PARTNER_GATEWAY_REPLICAS
+    value: '3'
+  - name: KAFKA_PARTNER_GATEWAY_PARTITIONS
+    value: '3'
   - name: CURL_CRON_IMAGE
     value: registry.access.redhat.com/ubi8/ubi-minimal
   - name: CURL_CRON_IMAGE_TAG
@@ -177,6 +181,12 @@ objects:
         - replicas: ${{KAFKA_UTILIZATION_REPLICAS}}
           partitions: ${{KAFKA_UTILIZATION_PARTITIONS}}
           topicName: platform.rhsm-subscriptions.utilization
+        - replicas: ${{KAFKA_PARTNER_GATEWAY_REPLICAS}}
+          partitions: ${{KAFKA_PARTNER_GATEWAY_PARTITIONS}}
+          topicName: partner-integration.entitlement-gateway.partner-entitlement.protected
+        - replicas: ${{KAFKA_PARTNER_GATEWAY_REPLICAS}}
+          partitions: ${{KAFKA_PARTNER_GATEWAY_PARTITIONS}}
+          topicName: stage.partner-integration.entitlement-gateway.partner-entitlement.protected
 
       deployments:
         - name: service
