@@ -32,7 +32,7 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 
 @ApplicationScoped
 @Slf4j
-public class PartnerEntitlementKafkaMessageConsumer {
+public class ContractsPartnerEntitlementMessageConsumer {
 
   @Inject ObjectMapper mapper;
 

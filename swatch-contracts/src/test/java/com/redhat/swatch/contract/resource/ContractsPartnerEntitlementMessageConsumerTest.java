@@ -36,7 +36,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
-class PartnerEntitlementKafkaMessageConsumerTest {
+class ContractsPartnerEntitlementMessageConsumerTest {
 
   private static final String VALID_JSON_MESSAGE =
       """
@@ -57,7 +57,7 @@ class PartnerEntitlementKafkaMessageConsumerTest {
 
   @Inject @Any InMemoryConnector connector;
 
-  @InjectSpy PartnerEntitlementKafkaMessageConsumer consumer;
+  @InjectSpy ContractsPartnerEntitlementMessageConsumer consumer;
 
   private InMemorySource<Object> contractsKafkaChannel;
 
@@ -80,13 +80,5 @@ class PartnerEntitlementKafkaMessageConsumerTest {
     await()
         .atMost(Duration.ofMillis(500))
         .untilAsserted(() -> verify(consumer).consumeContract(anyString()));
-  }
-
-  private byte[] serializeString(String str) throws Exception {
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    ObjectOutputStream oos = new ObjectOutputStream(baos);
-    oos.writeObject(str);
-    oos.flush();
-    return baos.toByteArray();
   }
 }
