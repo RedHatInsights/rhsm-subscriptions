@@ -157,7 +157,7 @@ public class TallySnapshotSpecifications {
       OffsetDateTime beginning,
       OffsetDateTime ending) {
 
-    return Specification.where(isPrimary(isPrimary))
+    return isPrimary(isPrimary)
         .and(hasOrgId(orgId))
         .and(hasProductId(productId))
         .and(hasGranularity(granularity))
@@ -211,7 +211,7 @@ public class TallySnapshotSpecifications {
       OffsetDateTime beginning,
       OffsetDateTime ending) {
 
-    return Specification.where(isPrimary(isPrimary))
+    return isPrimary(isPrimary)
         .and(hasOrgId(orgId))
         .and(hasProductId(productId))
         .and(hasGranularity(granularity))

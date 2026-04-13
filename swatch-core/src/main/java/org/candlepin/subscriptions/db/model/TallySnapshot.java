@@ -108,6 +108,7 @@ public class TallySnapshot implements Serializable, TallyMeasurement {
   of a CollectionTable.  Mapping the column there would require converting tally_snapshots to be
   mapped to tally_measurements with a @OneToMany -->
   */
+  @Builder.Default
   private Instant lastModified = null;
 
   @ElementCollection(fetch = FetchType.EAGER)

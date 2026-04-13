@@ -225,7 +225,7 @@ public class ApiSecurityConfiguration {
         .authorizeHttpRequests(
             requests -> {
               for (String url : URLS_PERMITTED_WITHOUT_AUTH) {
-                requests.requestMatchers(new AntPathRequestMatcher(url)).permitAll();
+                requests.requestMatchers(url).permitAll();
               }
               requests.requestMatchers(this::isDummyRequest).permitAll();
               requests
@@ -241,10 +241,10 @@ public class ApiSecurityConfiguration {
                * applied to the defined path ("//metrics") rather than the de facto path ("/metrics").
                * Accordingly, I've put in a custom rule in the security config to allow for access to "/metrics"
                */
-              requests.requestMatchers(new AntPathRequestMatcher("/metrics")).permitAll();
+              requests.requestMatchers("/metrics").permitAll();
               // Intentionally not prefixed with "ROLE_"
               requests
-                  .requestMatchers(new AntPathRequestMatcher("/**/internal/**"))
+                  .requestMatchers(AntPathRequestMatcher.antMatcher("/**/internal/**"))
                   .hasRole("INTERNAL");
               /* For Spring Security 6, we can use
                * .access(
@@ -253,10 +253,10 @@ public class ApiSecurityConfiguration {
                */
               requests
                   .requestMatchers(
-                      new AntPathRequestMatcher("/**/capacity/**"),
-                      new AntPathRequestMatcher("/**/tally/**"),
-                      new AntPathRequestMatcher("/**/hosts/**"),
-                      new AntPathRequestMatcher("/**/instances/**"))
+                      AntPathRequestMatcher.antMatcher("/**/capacity/**"),
+                      AntPathRequestMatcher.antMatcher("/**/tally/**"),
+                      AntPathRequestMatcher.antMatcher("/**/hosts/**"),
+                      AntPathRequestMatcher.antMatcher("/**/instances/**"))
                   .access(
                       (auth, req) ->
                           new AuthorizationDecision(optInChecker.checkAccess(auth.get())));

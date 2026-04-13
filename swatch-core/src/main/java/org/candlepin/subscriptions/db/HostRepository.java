@@ -490,10 +490,8 @@ public interface HostRepository
       String month,
       MetricId referenceMetricId) {
 
-    /* The where call allows us to build a Specification object to operate on even if the
-     * first specification method we call returns null (it won't be null in this case, but it's
-     * good practice to handle it) */
-    var searchCriteria = Specification.where(setJoinCriteria(month));
+    /* Use the specification directly since modern Spring Data JPA handles null specifications */
+    var searchCriteria = setJoinCriteria(month);
 
     if (Objects.nonNull(orgId)) {
       searchCriteria = searchCriteria.and(orgEquals(orgId));

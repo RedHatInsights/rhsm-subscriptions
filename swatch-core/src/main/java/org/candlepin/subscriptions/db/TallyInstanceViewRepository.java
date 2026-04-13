@@ -284,10 +284,8 @@ public class TallyInstanceViewRepository {
   @SuppressWarnings("java:S107")
   public static <T extends TallyInstanceView> Specification<T> buildSearchSpecification(
       TallyInstancesDbReportCriteria criteria) {
-    var searchCriteria = Specification.<T>where(null);
-    searchCriteria =
-        searchCriteria.and(
-            socketsAndCoresGreaterThanOrEqualTo(criteria.getMinCores(), criteria.getMinSockets()));
+    Specification<T> searchCriteria =
+        socketsAndCoresGreaterThanOrEqualTo(criteria.getMinCores(), criteria.getMinSockets());
 
     if (Objects.nonNull(criteria.getOrgId())) {
       searchCriteria = searchCriteria.and(orgEquals(criteria.getOrgId()));
