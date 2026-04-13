@@ -18,24 +18,21 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource.api;
+package org.candlepin.subscriptions.conduit.resource.api;
 
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
 import java.util.stream.Stream;
-import org.candlepin.subscriptions.security.ApiSecurityConfiguration;
+import org.candlepin.subscriptions.ConduitBaseTest;
+import org.candlepin.subscriptions.conduit.security.ApiSecurityConfiguration;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.client.RestTestClient;
 
 /**
@@ -44,12 +41,7 @@ import org.springframework.test.web.servlet.client.RestTestClient;
  * The assertion is that requests do not return 401 Unauthorized; some URLs may return redirects,
  * 404s, or other non-auth-related responses depending on whether the backing resource exists.
  */
-@AutoConfigureRestTestClient
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles({"api", "test"})
-class SwaggerTest {
-
-  private static final String LOCALHOST = "http://localhost:";
+class SwaggerTest extends ConduitBaseTest {
 
   /**
    * Maps wildcard patterns from URLS_PERMITTED_WITHOUT_AUTH to concrete URLs that should match
@@ -57,24 +49,17 @@ class SwaggerTest {
    */
   private static final Map<String, String> WILDCARD_TO_CONCRETE =
       Map.of(
-          "/api/rhsm-subscriptions/*openapi.yaml",
-              "/api/rhsm-subscriptions/internal-tally-openapi.yaml",
-          "/api/rhsm-subscriptions/*openapi.json",
-              "/api/rhsm-subscriptions/internal-tally-openapi.json",
-          "/api/rhsm-subscriptions/v1/*openapi.yaml", "/api/rhsm-subscriptions/v1/openapi.yaml",
-          "/api/rhsm-subscriptions/v1/*openapi.json", "/api/rhsm-subscriptions/v1/openapi.json",
-          "/api-docs/**", "/api-docs/index.html",
-          "/api/rhsm-subscriptions/*spec.yaml",
-              "/api/rhsm-subscriptions/generated-tally-api-spec.yaml",
+          "/api/rhsm-subscriptions/v1/*openapi.yaml",
+              "/api/rhsm-subscriptions/v1/internal-organizations-sync-openapi.yaml",
+          "/api/rhsm-subscriptions/v1/*openapi.json",
+              "/api/rhsm-subscriptions/v1/internal-organizations-sync-openapi.json",
           "/webjars/**", "/webjars/swagger-ui/index.css");
-
-  @LocalServerPort int port;
 
   private RestTestClient restClient;
 
   @BeforeEach
   void setup() {
-    restClient = RestTestClient.bindToServer().baseUrl(LOCALHOST + port).build();
+    restClient = RestTestClient.bindToServer().baseUrl(basePath()).build();
   }
 
   static Stream<Arguments> urlsPermittedWithoutAuth() {
@@ -98,7 +83,7 @@ class SwaggerTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"swatch-tally"})
+  @ValueSource(strings = {"swatch-system-conduit"})
   void testSwaggerPage(String app) {
     restClient
         .get()
@@ -114,8 +99,8 @@ class SwaggerTest {
   @ParameterizedTest
   @ValueSource(
       strings = {
-        "/api/swatch-tally/internal/swagger-ui",
-        "/api/swatch-tally/internal/swagger-ui/",
+        "/api/swatch-system-conduit/internal/swagger-ui",
+        "/api/swatch-system-conduit/internal/swagger-ui/",
       })
   void testSwaggerRedirects(String url) {
     restClient.get().uri(url).exchange().expectStatus().is3xxRedirection();

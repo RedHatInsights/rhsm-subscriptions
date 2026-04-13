@@ -79,7 +79,7 @@ public class ApiSecurityConfiguration {
 
   @Autowired protected ManagementServerProperties actuatorProps;
 
-  private static final String[] URLS_PERMITTED_WITHOUT_AUTH =
+  public static final String[] URLS_PERMITTED_WITHOUT_AUTH =
       new String[] {
         // Internal tally API specs (e.g. /api/rhsm-subscriptions/internal-tally-openapi.yaml):
         "/api/rhsm-subscriptions/*openapi.yaml",
@@ -88,13 +88,16 @@ public class ApiSecurityConfiguration {
         "/api/rhsm-subscriptions/v1/*openapi.yaml",
         "/api/rhsm-subscriptions/v1/*openapi.json",
         "/api/rhsm-subscriptions/v1/version",
-        "/error",
         "/api-docs/**",
         "/api/rhsm-subscriptions/*spec.yaml",
         // Swagger UI (static resources, not under the JAX-RS ApplicationPath):
         "/api/swatch-tally/internal/swagger-ui",
         "/api/swatch-tally/internal/swagger-ui/",
         "/api/swatch-tally/internal/swagger-ui/index.html",
+        // Permit /error and favicon.ico so that requests to permitted-but-nonexistent resources
+        // return 404 instead of 401. Without these, the servlet forwards to /error which triggers
+        // a second pass through the security filter chain and gets rejected.
+        "/error",
         "/api/swatch-tally/internal/favicon.ico",
         "/webjars/**",
       };

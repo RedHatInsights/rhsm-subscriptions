@@ -89,7 +89,7 @@ public class ApiSecurityConfiguration {
 
   @Autowired protected ManagementServerProperties actuatorProps;
 
-  private static final String[] URLS_PERMITTED_WITHOUT_AUTH =
+  public static final String[] URLS_PERMITTED_WITHOUT_AUTH =
       new String[] {
         "/api/rhsm-subscriptions/v1/*openapi.yaml",
         "/api/rhsm-subscriptions/v1/*openapi.json",
@@ -97,6 +97,10 @@ public class ApiSecurityConfiguration {
         "/api/swatch-system-conduit/internal/swagger-ui",
         "/api/swatch-system-conduit/internal/swagger-ui/",
         "/api/swatch-system-conduit/internal/swagger-ui/index.html",
+        // Permit /error and favicon.ico so that requests to permitted-but-nonexistent resources
+        // return 404 instead of 401. Without these, the servlet forwards to /error which triggers
+        // a second pass through the security filter chain and gets rejected.
+        "/error",
         "/api/swatch-system-conduit/internal/favicon.ico",
         "/webjars/**",
       };
