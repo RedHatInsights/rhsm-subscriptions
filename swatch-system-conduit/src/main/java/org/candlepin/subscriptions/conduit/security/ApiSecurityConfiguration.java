@@ -38,8 +38,8 @@ import org.candlepin.subscriptions.security.RestAuthenticationEntryPoint;
 import org.candlepin.subscriptions.security.SecurityProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
 import org.springframework.boot.actuate.autoconfigure.web.server.ManagementServerProperties;
+import org.springframework.boot.security.autoconfigure.actuate.web.servlet.EndpointRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -53,7 +53,7 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.csrf.CsrfFilter;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 
 /**
  * Configuration class for Spring Security.
@@ -89,18 +89,19 @@ public class ApiSecurityConfiguration {
 
   @Autowired protected ManagementServerProperties actuatorProps;
 
-  private static final String[] URLS_PERMITTED_WITHOUT_AUTH =
+  public static final String[] URLS_PERMITTED_WITHOUT_AUTH =
       new String[] {
-        "/**/*openapi.yaml",
-        "/**/*openapi.json",
-        "/**/version",
-        "/**/error",
-        "/api-docs/**",
-        "/**/*spec.yaml",
-        // Swagger UI:
-        "/**/swagger-ui",
-        "/**/swagger-ui/index.html",
-        "/**/favicon.ico",
+        "/api/rhsm-subscriptions/v1/*openapi.yaml",
+        "/api/rhsm-subscriptions/v1/*openapi.json",
+        // Swagger UI (static resources, not under the JAX-RS ApplicationPath):
+        "/api/swatch-system-conduit/internal/swagger-ui",
+        "/api/swatch-system-conduit/internal/swagger-ui/",
+        "/api/swatch-system-conduit/internal/swagger-ui/index.html",
+        // Permit /error and favicon.ico so that requests to permitted-but-nonexistent resources
+        // return 404 instead of 401. Without these, the servlet forwards to /error which triggers
+        // a second pass through the security filter chain and gets rejected.
+        "/error",
+        "/api/swatch-system-conduit/internal/favicon.ico",
         "/webjars/**",
       };
 
@@ -231,7 +232,7 @@ public class ApiSecurityConfiguration {
         .authorizeHttpRequests(
             requests -> {
               for (String url : URLS_PERMITTED_WITHOUT_AUTH) {
-                requests.requestMatchers(new AntPathRequestMatcher(url)).permitAll();
+                requests.requestMatchers(PathPatternRequestMatcher.pathPattern(url)).permitAll();
               }
               requests.requestMatchers(this::isDummyRequest).permitAll();
 
@@ -247,10 +248,14 @@ public class ApiSecurityConfiguration {
                * applied to the defined path ("//metrics") rather than the de facto path ("/metrics").
                * Accordingly, I've put in a custom rule in the security config to allow for access to "/metrics"
                */
-              requests.requestMatchers(new AntPathRequestMatcher("/metrics")).permitAll();
+              requests
+                  .requestMatchers(PathPatternRequestMatcher.pathPattern("/metrics"))
+                  .permitAll();
               // Intentionally not prefixed with "ROLE_"
               requests
-                  .requestMatchers(new AntPathRequestMatcher("/**/internal/**"))
+                  .requestMatchers(
+                      PathPatternRequestMatcher.pathPattern(
+                          "/api/rhsm-subscriptions/v1/internal/**"))
                   .hasRole("INTERNAL");
               requests.anyRequest().authenticated();
             })

@@ -22,7 +22,7 @@ package org.candlepin.subscriptions.task.queue.kafka;
 
 import org.candlepin.subscriptions.task.JsonTaskMessage;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
+import org.springframework.boot.kafka.autoconfigure.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;

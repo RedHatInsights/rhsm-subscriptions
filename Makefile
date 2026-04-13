@@ -15,6 +15,7 @@ SHELL=/bin/bash
 	build \
 	format \
 	install \
+	test \
 	clean \
 	rollback \
 	status
@@ -74,9 +75,13 @@ format:
 clean:
 	./mvnw clean
 
+# E.g. make install PL=swatch-core
 install: clean
-	./mvnw install -DskipTests
+	./mvnw install -DskipTests $(if $(PL),-pl $(PL) -am)
 
+# E.g. make test PL=swatch-tally TEST=TallyRetentionControllerTest,TallySnapshotControllerTest
+test:
+	./mvnw test $(if $(PL),-pl $(PL) -am) $(if $(TEST),-Dtest=$(TEST) -Dsurefire.failIfNoSpecifiedTests=false)
 
 # Empty target for build flag
 build:

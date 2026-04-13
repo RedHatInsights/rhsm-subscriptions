@@ -23,8 +23,8 @@ package org.candlepin.subscriptions.clowder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import org.apache.commons.logging.Log;
+import org.springframework.boot.EnvironmentPostProcessor;
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.env.EnvironmentPostProcessor;
 import org.springframework.boot.logging.DeferredLogFactory;
 import org.springframework.core.Ordered;
 import org.springframework.core.env.ConfigurableEnvironment;
@@ -34,7 +34,7 @@ import org.springframework.core.io.ResourceLoader;
 import org.springframework.util.StringUtils;
 
 /**
- * An {@link org.springframework.boot.env.EnvironmentPostProcessor} that inserts a {@link
+ * An {@link org.springframework.boot.EnvironmentPostProcessor} that inserts a {@link
  * ClowderJsonPropertySource} into the list of property sources.
  */
 public class ClowderJsonEnvironmentPostProcessor implements EnvironmentPostProcessor, Ordered {

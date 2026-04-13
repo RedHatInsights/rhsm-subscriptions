@@ -84,17 +84,15 @@
         <version>2.3.0</version>
       </dependency>
       <dependency>
+        <!-- TODO Switch from RestEasy ASAP as we have to implement some ugly hacks to get it
+        working with Spring Boot 4 -->
         <groupId>org.jboss.resteasy</groupId>
-        <artifactId>resteasy-servlet-spring-boot-starter</artifactId>
+        <artifactId>resteasy-spring-boot-starter-common</artifactId>
         <version>6.3.0.Final</version>
         <exclusions>
           <exclusion>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>*</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>org.jboss</groupId>
-            <artifactId>jandex</artifactId>
+            <groupId>org.jboss.resteasy</groupId>
+            <artifactId>resteasy-servlet-spring-boot-starter</artifactId>
           </exclusion>
         </exclusions>
       </dependency>
@@ -143,8 +141,8 @@
       </dependency>
       <dependency>
         <groupId>org.webjars</groupId>
-        <artifactId>webjars-locator</artifactId>
-        <version>0.52</version>
+        <artifactId>webjars-locator-lite</artifactId>
+        <version>1.1.3</version>
       </dependency>
       <dependency>
         <groupId>io.swagger</groupId>
@@ -155,6 +153,18 @@
         <groupId>org.webjars</groupId>
         <artifactId>swagger-ui</artifactId>
         <version>${swagger-ui.version}</version>
+      </dependency>
+      <!-- TODO This is deprecated.  Switch to Spring 7 resilience classes ASAP -->
+      <dependency>
+        <groupId>org.springframework.retry</groupId>
+        <artifactId>spring-retry</artifactId>
+        <version>2.0.12</version>
+      </dependency>
+      <!-- TODO This is deprecated.  Switch to Jackson 3 ASAP -->
+      <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-jackson2</artifactId>
+        <version>${spring.boot.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

@@ -23,21 +23,20 @@ package org.candlepin.subscriptions.resteasy;
 import static org.apache.commons.codec.binary.Base64.encodeBase64;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.candlepin.subscriptions.security.IdentityHeaderAuthenticationFilter.RH_IDENTITY_HEADER;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.charset.StandardCharsets;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalManagementPort;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.servlet.client.RestTestClient;
 
+@AutoConfigureRestTestClient
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = {
@@ -59,7 +58,14 @@ class HttpServerMetricsTest {
 
   @LocalManagementPort private int mgt;
 
-  @Autowired private TestRestTemplate restTemplate;
+  private RestTestClient restClient;
+  private RestTestClient mgmtRestClient;
+
+  @BeforeEach
+  void setup() {
+    restClient = RestTestClient.bindToServer().baseUrl(apiBasePath()).build();
+    mgmtRestClient = RestTestClient.bindToServer().baseUrl(managementBasePath()).build();
+  }
 
   @Test
   void testShouldProduceHttpMetrics() {
@@ -84,29 +90,24 @@ class HttpServerMetricsTest {
   }
 
   private void whenUsingTheServerApi() {
-    ResponseEntity<String> response =
-        restTemplate.exchange(
-            apiBasePath() + "/api/rhsm-subscriptions/v1/opt-in",
-            HttpMethod.PUT,
-            request(),
-            String.class);
-    assertTrue(
-        response.getStatusCode().is2xxSuccessful(),
-        () -> "Unexpected response status: " + response.getStatusCode());
+    restClient
+        .put()
+        .uri("/api/rhsm-subscriptions/v1/opt-in")
+        .header(RH_IDENTITY_HEADER, user())
+        .exchange()
+        .expectStatus()
+        .is2xxSuccessful()
+        .expectBody(String.class);
   }
 
   private void whenUsingTheServerApiWithError() {
-    ResponseEntity<String> response =
-        restTemplate.exchange(
-            apiBasePath() + "/api/rhsm-subscriptions/v1/opt-in",
-            HttpMethod.PUT,
-            // this causes the server API to fail because we're
-            // not sending the identity header
-            new HttpEntity<Void>(new HttpHeaders()),
-            String.class);
-    assertTrue(
-        response.getStatusCode().is4xxClientError(),
-        () -> "Unexpected response status: " + response.getStatusCode());
+    restClient
+        .put()
+        .uri("/api/rhsm-subscriptions/v1/opt-in")
+        .exchange()
+        .expectStatus()
+        .is4xxClientError()
+        .expectBody(String.class);
   }
 
   private void assertMetricIsFoundWithSuccess() {
@@ -142,9 +143,15 @@ class HttpServerMetricsTest {
   }
 
   private String getMetrics() {
-    return restTemplate
-        .exchange(managementBasePath() + "/metrics", HttpMethod.GET, request(), String.class)
-        .getBody();
+    var result =
+        mgmtRestClient
+            .get()
+            .uri("/metrics")
+            .header(RH_IDENTITY_HEADER, user())
+            .exchange()
+            .expectBody(String.class)
+            .returnResult();
+    return result.getResponseBody();
   }
 
   private String apiBasePath() {

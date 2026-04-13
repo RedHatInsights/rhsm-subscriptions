@@ -32,7 +32,6 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationModule;
 import io.micrometer.core.aop.TimedAspect;
 import io.micrometer.core.instrument.MeterRegistry;
-import jakarta.validation.Validator;
 import org.candlepin.subscriptions.actuator.CertInfoContributor;
 import org.candlepin.subscriptions.clowder.KafkaSslBeanPostProcessor;
 import org.candlepin.subscriptions.clowder.RdsSslBeanPostProcessor;
@@ -51,7 +50,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
-import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
@@ -130,11 +128,6 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
    */
 
   @Bean
-  public Validator validator() {
-    return new LocalValidatorFactoryBean();
-  }
-
-  @Bean
   public TimedAspect timedAspect(MeterRegistry registry) {
     return new TimedAspect(registry);
   }
@@ -149,12 +142,12 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
    * @return a KafkaJaasBeanPostProcessor object
    */
   @Bean
-  public KafkaSslBeanPostProcessor kafkaJaasBeanPostProcessor() {
+  public static KafkaSslBeanPostProcessor kafkaJaasBeanPostProcessor() {
     return new KafkaSslBeanPostProcessor();
   }
 
   @Bean
-  public RdsSslBeanPostProcessor rdsSslBeanPostProcessor(Environment env) {
+  public static RdsSslBeanPostProcessor rdsSslBeanPostProcessor(Environment env) {
     return new RdsSslBeanPostProcessor(env);
   }
 

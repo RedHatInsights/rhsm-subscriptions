@@ -63,9 +63,11 @@ import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.test.ExtendWithEmbeddedKafka;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.retry.RetryCallback;
@@ -77,6 +79,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 @SpringBootTest
+@ExtendWith(MockitoExtension.class)
 @ActiveProfiles({"worker", "test"})
 class TallySnapshotControllerTest implements ExtendWithEmbeddedKafka {
 

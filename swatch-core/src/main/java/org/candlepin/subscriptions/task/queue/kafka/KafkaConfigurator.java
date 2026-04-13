@@ -26,7 +26,7 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.candlepin.subscriptions.task.JsonTaskMessage;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
+import org.springframework.boot.kafka.autoconfigure.KafkaProperties;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.config.KafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
@@ -53,7 +53,7 @@ public class KafkaConfigurator {
 
   public ConsumerFactory<String, JsonTaskMessage> defaultConsumerFactory(
       KafkaProperties kafkaProperties) {
-    Map<String, Object> consumerConfig = kafkaProperties.buildConsumerProperties(null);
+    Map<String, Object> consumerConfig = kafkaProperties.buildConsumerProperties();
 
     // Task messages should be manually committed once they have been processed.
     consumerConfig.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);

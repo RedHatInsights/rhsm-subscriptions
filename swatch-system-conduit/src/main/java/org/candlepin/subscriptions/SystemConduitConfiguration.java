@@ -43,7 +43,7 @@ public class SystemConduitConfiguration {
    * @return a KafkaJaasBeanPostProcessor object
    */
   @Bean
-  public KafkaSslBeanPostProcessor kafkaJaasBeanPostProcessor() {
+  public static KafkaSslBeanPostProcessor kafkaJaasBeanPostProcessor() {
     return new KafkaSslBeanPostProcessor();
   }
 
