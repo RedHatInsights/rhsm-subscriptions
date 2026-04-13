@@ -43,6 +43,7 @@
     <swagger-ui.version>5.32.2</swagger-ui.version>
     <splunk-otel-javaagent.version>2.26.1</splunk-otel-javaagent.version>
     <insights-notification-schemas-java.version>1.1.0</insights-notification-schemas-java.version>
+    <okhttp.version>4.12.0</okhttp.version>
 
     <!-- Plugins -->
     <compiler-plugin.version>3.15.0</compiler-plugin.version>
@@ -310,6 +311,11 @@
         <groupId>com.redhat.cloud.common</groupId>
         <artifactId>insights-notification-schemas-java</artifactId>
         <version>${insights-notification-schemas-java.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.squareup.okhttp3</groupId>
+        <artifactId>okhttp</artifactId>
+        <version>${okhttp.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
