@@ -82,3 +82,6 @@ pytest_swatch/*
 # maven
 .mvn/wrapper/maven-wrapper.jar
 **/*.dot
+
+# claude
+.claude/settings.local.json
