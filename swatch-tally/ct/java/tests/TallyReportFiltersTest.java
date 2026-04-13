@@ -1258,6 +1258,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
     AwaitilityUtils.untilAsserted(
         () -> {
           service.performHourlyTallyForOrg(orgId);
+          service.tallyOrg(orgId); // Run nightly tally to create daily snapshots
           assertAll(
               () -> thenDailyReportContainsValue(beginning, ending, billingAccount1, 5.0),
               () -> thenDailyReportContainsValue(beginning, ending, null, 5.0));
@@ -1270,6 +1271,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
     AwaitilityUtils.untilAsserted(
         () -> {
           service.performHourlyTallyForOrg(orgId);
+          service.tallyOrg(orgId); // Run nightly tally to create daily snapshots
           assertAll(
               () -> thenDailyReportContainsValue(beginning, ending, billingAccount1, 5.0),
               () -> thenDailyReportContainsValue(beginning, ending, billingAccount2, 8.0),
