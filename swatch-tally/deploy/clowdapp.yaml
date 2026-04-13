@@ -235,6 +235,10 @@ parameters:
     name: FLOORIST_BUCKET_SECRET_NAME
     required: true
     value: egress-s3
+  - description: bucket secret name for dev
+    name: FLOORIST_BUCKET_SECRET_NAME_DEV
+    required: true
+    value: egress-s3
   - name: FLOORIST_LOGLEVEL
     description: Floorist loglevel config
     value: 'DEBUG'
