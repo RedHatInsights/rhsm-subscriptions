@@ -51,9 +51,8 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.json.Event;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 public class TallyReportFiltersTest extends BaseTallyComponentTest {
 
@@ -66,14 +65,23 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
   private static final String TEST_BILLING_ACCOUNT_ID =
       String.valueOf(100000000000L + (long) (Math.random() * 900000000000L));
 
-  @BeforeAll
-  static void enablePrimaryRowSearchesFlag() {
-    unleash.enablePrimaryRowSearches();
-  }
+  private void setupFeatureFlagAndWaitForServiceSync(boolean enablePrimaryRowSearches) {
+    // Toggle the Unleash flag
+    if (enablePrimaryRowSearches) {
+      unleash.enablePrimaryRowSearches();
+    } else {
+      unleash.disablePrimaryRowSearches();
+    }
 
-  @AfterAll
-  static void disablePrimaryRowSearchesFlag() {
-    unleash.disablePrimaryRowSearches();
+    // Wait for the swatch-tally service to poll Unleash and pick up the change
+    // Unleash SDK client typically polls every 10-15 seconds by default
+    // We wait at least 5 seconds to allow the service to pick up the flag change
+    long startTime = System.currentTimeMillis();
+    AwaitilityUtils.until(
+        () -> System.currentTimeMillis() - startTime,
+        elapsed -> elapsed >= 5000, // Wait at least 5 seconds
+        com.redhat.swatch.component.tests.utils.AwaitilitySettings.usingTimeout(
+            java.time.Duration.ofSeconds(10)));
   }
 
   private void givenTwoEventsPublished(
@@ -161,9 +169,13 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
     return response.getMeta();
   }
 
-  @Test
+  @ParameterizedTest(name = "with primaryRowSearches={0}")
+  @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-TC001")
-  public void shouldReturnDailyReportWithAllFilters() {
+  public void shouldReturnDailyReportWithAllFilters(boolean enablePrimaryRowSearches) {
+    // Setup feature flag and wait for service to pick up the change
+    setupFeatureFlagAndWaitForServiceSync(enablePrimaryRowSearches);
+
     // Given: An org with opt-in config and daily granularity query parameters with all filters
     service.createOptInConfig(orgId);
 
@@ -204,9 +216,13 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
         "Billing account ID should match request");
   }
 
-  @Test
+  @ParameterizedTest(name = "with primaryRowSearches={0}")
+  @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-TC002")
-  public void shouldFilterHourlyReportBySla() {
+  public void shouldFilterHourlyReportBySla(boolean enablePrimaryRowSearches) {
+    // Setup feature flag and wait for service to pick up the change
+    setupFeatureFlagAndWaitForServiceSync(enablePrimaryRowSearches);
+
     // Given: Events with different SLAs (PREMIUM and STANDARD)
     service.createOptInConfig(orgId);
 
@@ -229,9 +245,13 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
     thenResponseContainsOnlyValue(response, 20.0, "Should only include STANDARD SLA event value");
   }
 
-  @Test
+  @ParameterizedTest(name = "with primaryRowSearches={0}")
+  @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-TC003")
-  public void shouldFilterHourlyReportByUsage() {
+  public void shouldFilterHourlyReportByUsage(boolean enablePrimaryRowSearches) {
+    // Setup feature flag and wait for service to pick up the change
+    setupFeatureFlagAndWaitForServiceSync(enablePrimaryRowSearches);
+
     // Given: Events with different usage types (PRODUCTION and DEVELOPMENT)
     service.createOptInConfig(orgId);
 
@@ -254,9 +274,13 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
         response, 10.0, "Should only include PRODUCTION usage event value");
   }
 
-  @Test
+  @ParameterizedTest(name = "with primaryRowSearches={0}")
+  @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-TC004")
-  public void shouldFilterHourlyReportByBillingProvider() {
+  public void shouldFilterHourlyReportByBillingProvider(boolean enablePrimaryRowSearches) {
+    // Setup feature flag and wait for service to pick up the change
+    setupFeatureFlagAndWaitForServiceSync(enablePrimaryRowSearches);
+
     // Given: Events with different billing providers (AWS and AZURE)
     service.createOptInConfig(orgId);
 
@@ -286,9 +310,13 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
         response, 20.0, "Should only include AZURE billing provider event value");
   }
 
-  @Test
+  @ParameterizedTest(name = "with primaryRowSearches={0}")
+  @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-TC005")
-  public void shouldFilterHourlyReportByBillingAccountId() {
+  public void shouldFilterHourlyReportByBillingAccountId(boolean enablePrimaryRowSearches) {
+    // Setup feature flag and wait for service to pick up the change
+    setupFeatureFlagAndWaitForServiceSync(enablePrimaryRowSearches);
+
     // Given: Events with different billing account IDs
     service.createOptInConfig(orgId);
 
@@ -317,9 +345,13 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
         response, 20.0, "Should only include account2 billing account event value");
   }
 
-  @Test
+  @ParameterizedTest(name = "with primaryRowSearches={0}")
+  @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-TC006")
-  public void shouldReturnDailyReportWithPartialFilters() {
+  public void shouldReturnDailyReportWithPartialFilters(boolean enablePrimaryRowSearches) {
+    // Setup feature flag and wait for service to pick up the change
+    setupFeatureFlagAndWaitForServiceSync(enablePrimaryRowSearches);
+
     // Given: An org with opt-in config and daily granularity query parameters with partial filters
     service.createOptInConfig(orgId);
 
@@ -359,9 +391,13 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
     assertNull(meta.getBillingAcountId(), "Billing account ID should not be present");
   }
 
-  @Test
+  @ParameterizedTest(name = "with primaryRowSearches={0}")
+  @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-TC007")
-  public void shouldReturnHourlyReportWithAllFilters() {
+  public void shouldReturnHourlyReportWithAllFilters(boolean enablePrimaryRowSearches) {
+    // Setup feature flag and wait for service to pick up the change
+    setupFeatureFlagAndWaitForServiceSync(enablePrimaryRowSearches);
+
     // Given: An org with opt-in config and hourly granularity query parameters with all filters
     service.createOptInConfig(orgId);
 
@@ -402,9 +438,13 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
         "Billing account ID should match request");
   }
 
-  @Test
+  @ParameterizedTest(name = "with primaryRowSearches={0}")
+  @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-TC008")
-  public void shouldReturnBadRequestWithoutGranularity() {
+  public void shouldReturnBadRequestWithoutGranularity(boolean enablePrimaryRowSearches) {
+    // Setup feature flag and wait for service to pick up the change
+    setupFeatureFlagAndWaitForServiceSync(enablePrimaryRowSearches);
+
     // Given: An org with opt-in config and query parameters missing granularity
     service.createOptInConfig(orgId);
 
@@ -428,9 +468,13 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
         "Error message should indicate granularity is required");
   }
 
-  @Test
+  @ParameterizedTest(name = "with primaryRowSearches={0}")
+  @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-TC009")
-  public void shouldAggregateMultipleEventsWithSameFilters() {
+  public void shouldAggregateMultipleEventsWithSameFilters(boolean enablePrimaryRowSearches) {
+    // Setup feature flag and wait for service to pick up the change
+    setupFeatureFlagAndWaitForServiceSync(enablePrimaryRowSearches);
+
     // Given: Multiple events with the same filter values in the same hour
     service.createOptInConfig(orgId);
 
@@ -492,9 +536,13 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
         response, 50.0, "Should aggregate all three PREMIUM SLA event values (15+25+10)");
   }
 
-  @Test
+  @ParameterizedTest(name = "with primaryRowSearches={0}")
+  @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-TC010")
-  public void shouldFilterWithThreeDistinctSlaValues() {
+  public void shouldFilterWithThreeDistinctSlaValues(boolean enablePrimaryRowSearches) {
+    // Setup feature flag and wait for service to pick up the change
+    setupFeatureFlagAndWaitForServiceSync(enablePrimaryRowSearches);
+
     // Given: Events with three different SLA values in the same hour
     service.createOptInConfig(orgId);
 
@@ -558,9 +606,13 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
         response, 30.0, "Should only include SELF_SUPPORT SLA event value");
   }
 
-  @Test
+  @ParameterizedTest(name = "with primaryRowSearches={0}")
+  @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-TC016")
-  public void shouldReturnAllDataWhenNoOptionalFiltersApplied() {
+  public void shouldReturnAllDataWhenNoOptionalFiltersApplied(boolean enablePrimaryRowSearches) {
+    // Setup feature flag and wait for service to pick up the change
+    setupFeatureFlagAndWaitForServiceSync(enablePrimaryRowSearches);
+
     // Given: Events with different filter attributes in the same hour
     service.createOptInConfig(orgId);
 
@@ -627,9 +679,13 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
         response, 60.0, "Should aggregate all events when no filters applied (10+20+30)");
   }
 
-  @Test
+  @ParameterizedTest(name = "with primaryRowSearches={0}")
+  @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-TC017")
-  public void shouldFilterDailyReportBySlaAfterNightlyTally() {
+  public void shouldFilterDailyReportBySlaAfterNightlyTally(boolean enablePrimaryRowSearches) {
+    // Setup feature flag and wait for service to pick up the change
+    setupFeatureFlagAndWaitForServiceSync(enablePrimaryRowSearches);
+
     // Given: Events with different SLAs processed through hourly then nightly tally
     service.createOptInConfig(orgId);
 
@@ -703,9 +759,13 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
         response, 20.0, "Should only include STANDARD SLA event value from daily snapshot");
   }
 
-  @Test
+  @ParameterizedTest(name = "with primaryRowSearches={0}")
+  @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-TC018")
-  public void shouldFilterDailyReportByUsageAfterNightlyTally() {
+  public void shouldFilterDailyReportByUsageAfterNightlyTally(boolean enablePrimaryRowSearches) {
+    // Setup feature flag and wait for service to pick up the change
+    setupFeatureFlagAndWaitForServiceSync(enablePrimaryRowSearches);
+
     // Given: Events with different usage types processed through hourly then nightly tally
     service.createOptInConfig(orgId);
 
@@ -771,9 +831,13 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
         response, 10.0, "Should only include PRODUCTION usage event value from daily snapshot");
   }
 
-  @Test
+  @ParameterizedTest(name = "with primaryRowSearches={0}")
+  @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-TC019")
-  public void shouldFilterDailyReportByBillingProviderAfterNightlyTally() {
+  public void shouldFilterDailyByBillingProviderAfterNightly(boolean enablePrimaryRowSearches) {
+    // Setup feature flag and wait for service to pick up the change
+    setupFeatureFlagAndWaitForServiceSync(enablePrimaryRowSearches);
+
     // Given: Events with different billing providers processed through hourly then nightly tally
     service.createOptInConfig(orgId);
 
@@ -845,9 +909,13 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
         "Should only include AZURE billing provider event value from daily snapshot");
   }
 
-  @Test
+  @ParameterizedTest(name = "with primaryRowSearches={0}")
+  @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-TC020")
-  public void shouldFilterDailyReportByBillingAccountIdAfterNightlyTally() {
+  public void shouldFilterDailyByBillingAccountAfterNightly(boolean enablePrimaryRowSearches) {
+    // Setup feature flag and wait for service to pick up the change
+    setupFeatureFlagAndWaitForServiceSync(enablePrimaryRowSearches);
+
     // Given: Events with different billing account IDs processed through hourly then nightly tally
     service.createOptInConfig(orgId);
 
@@ -922,9 +990,13 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
         "Should only include daily-account-456 billing account event value from daily snapshot");
   }
 
-  @Test
+  @ParameterizedTest(name = "with primaryRowSearches={0}")
+  @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-TC011")
-  public void shouldReturnBadRequestWithoutBeginning() {
+  public void shouldReturnBadRequestWithoutBeginning(boolean enablePrimaryRowSearches) {
+    // Setup feature flag and wait for service to pick up the change
+    setupFeatureFlagAndWaitForServiceSync(enablePrimaryRowSearches);
+
     // Given: An org with opt-in config and query parameters missing beginning timestamp
     service.createOptInConfig(orgId);
 
@@ -945,9 +1017,13 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
         "Error message should indicate beginning is required");
   }
 
-  @Test
+  @ParameterizedTest(name = "with primaryRowSearches={0}")
+  @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-TC012")
-  public void shouldReturnBadRequestWithoutEnding() {
+  public void shouldReturnBadRequestWithoutEnding(boolean enablePrimaryRowSearches) {
+    // Setup feature flag and wait for service to pick up the change
+    setupFeatureFlagAndWaitForServiceSync(enablePrimaryRowSearches);
+
     // Given: An org with opt-in config and query parameters missing ending timestamp
     service.createOptInConfig(orgId);
 
@@ -968,9 +1044,13 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
         "Error message should indicate ending is required");
   }
 
-  @Test
+  @ParameterizedTest(name = "with primaryRowSearches={0}")
+  @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-TC013")
-  public void shouldReturnNullMetadataWhenFiltersOmitted() {
+  public void shouldReturnNullMetadataWhenFiltersOmitted(boolean enablePrimaryRowSearches) {
+    // Setup feature flag and wait for service to pick up the change
+    setupFeatureFlagAndWaitForServiceSync(enablePrimaryRowSearches);
+
     // Given: An org with opt-in config and query with only required parameters
     service.createOptInConfig(orgId);
 
@@ -999,9 +1079,13 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
     assertEquals(TEST_METRIC_ID, meta.getMetricId(), "Metric ID should match request");
   }
 
-  @Test
+  @ParameterizedTest(name = "with primaryRowSearches={0}")
+  @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-TC014")
-  public void shouldReflectEmptyFilterInMetadata() {
+  public void shouldReflectEmptyFilterInMetadata(boolean enablePrimaryRowSearches) {
+    // Setup feature flag and wait for service to pick up the change
+    setupFeatureFlagAndWaitForServiceSync(enablePrimaryRowSearches);
+
     // Given: An org with opt-in config and query with EMPTY filter value
     service.createOptInConfig(orgId);
 
@@ -1034,9 +1118,13 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
     assertNull(meta.getBillingProvider(), "Billing provider should be null when not filtered");
   }
 
-  @Test
+  @ParameterizedTest(name = "with primaryRowSearches={0}")
+  @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-TC015")
-  public void shouldIndicateDataGapsWithHasDataField() {
+  public void shouldIndicateDataGapsWithHasDataField(boolean enablePrimaryRowSearches) {
+    // Setup feature flag and wait for service to pick up the change
+    setupFeatureFlagAndWaitForServiceSync(enablePrimaryRowSearches);
+
     // Given: An org with events only in specific hours within a multi-hour range
     service.createOptInConfig(orgId);
 
@@ -1107,9 +1195,10 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
     // This test verifies the field is present and populated
   }
 
-  @Test
+  @ParameterizedTest(name = "with primaryRowSearches={0}")
+  @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-TC021")
-  public void shouldReturnMonthlyReportWithAllFilters() {
+  public void shouldReturnMonthlyReportWithAllFilters(boolean enablePrimaryRowSearches) {
     OffsetDateTime beginning =
         OffsetDateTime.now(ZoneOffset.UTC)
             .minusMonths(2)
@@ -1121,9 +1210,10 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
         "Monthly", GranularityType.MONTHLY, beginning, ending);
   }
 
-  @Test
+  @ParameterizedTest(name = "with primaryRowSearches={0}")
+  @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-TC022")
-  public void shouldReturnQuarterlyReportWithAllFilters() {
+  public void shouldReturnQuarterlyReportWithAllFilters(boolean enablePrimaryRowSearches) {
     OffsetDateTime beginning = calculateQuarterStart();
     OffsetDateTime ending = beginning.plusMonths(3).minusNanos(1);
 
@@ -1131,9 +1221,10 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
         "Quarterly", GranularityType.QUARTERLY, beginning, ending);
   }
 
-  @Test
+  @ParameterizedTest(name = "with primaryRowSearches={0}")
+  @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-TC023")
-  public void shouldReturnYearlyReportWithAllFilters() {
+  public void shouldReturnYearlyReportWithAllFilters(boolean enablePrimaryRowSearches) {
     OffsetDateTime beginning =
         OffsetDateTime.now(ZoneOffset.UTC)
             .minusYears(1)
@@ -1144,9 +1235,13 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
     thenGranularityReportWithAllFiltersIsValid("Yearly", GranularityType.YEARLY, beginning, ending);
   }
 
-  @Test
+  @ParameterizedTest(name = "with primaryRowSearches={0}")
+  @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-TC024")
-  public void shouldTrackBillingAccountChangeForSameInstance() {
+  public void shouldTrackBillingAccountChangeForSameInstance(boolean enablePrimaryRowSearches) {
+    // Setup feature flag and wait for service to pick up the change
+    setupFeatureFlagAndWaitForServiceSync(enablePrimaryRowSearches);
+
     // Given: An org with opt-in config and an instance that will change billing accounts
     service.createOptInConfig(orgId);
     String instanceId = UUID.randomUUID().toString();
@@ -1163,6 +1258,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
     AwaitilityUtils.untilAsserted(
         () -> {
           service.performHourlyTallyForOrg(orgId);
+          service.tallyOrg(orgId); // Run nightly tally to create daily snapshots
           assertAll(
               () -> thenDailyReportContainsValue(beginning, ending, billingAccount1, 5.0),
               () -> thenDailyReportContainsValue(beginning, ending, null, 5.0));
@@ -1175,6 +1271,7 @@ public class TallyReportFiltersTest extends BaseTallyComponentTest {
     AwaitilityUtils.untilAsserted(
         () -> {
           service.performHourlyTallyForOrg(orgId);
+          service.tallyOrg(orgId); // Run nightly tally to create daily snapshots
           assertAll(
               () -> thenDailyReportContainsValue(beginning, ending, billingAccount1, 5.0),
               () -> thenDailyReportContainsValue(beginning, ending, billingAccount2, 8.0),

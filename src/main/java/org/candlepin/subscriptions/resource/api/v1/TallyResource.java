@@ -42,7 +42,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
-import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.configuration.FeatureFlags;
 import org.candlepin.subscriptions.contracts.ContractsCapacityController;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
@@ -91,7 +91,7 @@ public class TallyResource implements TallyApi {
   private final PageLinkCreator pageLinkCreator;
   private final ApplicationClock clock;
   private final ContractsCapacityController capacityController;
-  private final ApplicationProperties applicationProperties;
+  private final FeatureFlags featureFlags;
 
   @Context private UriInfo uriInfo;
 
@@ -102,13 +102,13 @@ public class TallyResource implements TallyApi {
       PageLinkCreator pageLinkCreator,
       ApplicationClock clock,
       ContractsCapacityController capacityController,
-      ApplicationProperties applicationProperties) {
+      FeatureFlags featureFlags) {
     this.mapper = mapper;
     this.repository = repository;
     this.pageLinkCreator = pageLinkCreator;
     this.clock = clock;
     this.capacityController = capacityController;
-    this.applicationProperties = applicationProperties;
+    this.featureFlags = featureFlags;
   }
 
   @Override
@@ -168,7 +168,7 @@ public class TallyResource implements TallyApi {
 
     List<TallyMeasurement> measurements;
     Page<? extends TallyMeasurement> page;
-    if (applicationProperties.isEnablePrimaryRowSearches()) {
+    if (featureFlags.isPrimaryRowSearchesEnabled()) {
       HardwareMeasurementType hardwareMeasurementType = HardwareMeasurementType.TOTAL;
       if (Objects.nonNull(reportCriteria.getReportCategory())) {
         hardwareMeasurementType =

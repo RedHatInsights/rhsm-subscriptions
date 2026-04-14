@@ -388,6 +388,8 @@ objects:
     testing:
       iqePlugin: rhsm-subscriptions
 
+    featureFlags: true
+
     kafkaTopics:
       - replicas: ${{KAFKA_TALLY_REPLICAS}}
         partitions: ${{KAFKA_TALLY_PARTITIONS}}

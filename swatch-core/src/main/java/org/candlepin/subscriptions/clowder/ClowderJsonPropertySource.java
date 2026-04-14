@@ -78,6 +78,7 @@ public class ClowderJsonPropertySource extends PropertySource<ClowderJson>
   private static final String KAFKA_TOPICS = "kafka.topics";
   private static final String ENDPOINTS = "endpoints";
   private static final String PRIVATE_ENDPOINTS = "privateEndpoints";
+  private static final String FEATURE_FLAGS = "featureFlags";
   private static final String ENDPOINT_TLS_PORT_PROPERTY = "tlsPort";
   private static final Integer PORT_NOT_SET = 0;
 
@@ -126,7 +127,9 @@ public class ClowderJsonPropertySource extends PropertySource<ClowderJson>
           ENDPOINTS,
           this::getEndpointProperty,
           PRIVATE_ENDPOINTS,
-          this::getEndpointProperty);
+          this::getEndpointProperty,
+          FEATURE_FLAGS,
+          this::getFeatureFlagProperty);
 
   private static final String SERVLET_ENVIRONMENT_CLASS =
       "org.springframework.web.context.support.StandardServletEnvironment";
@@ -253,6 +256,21 @@ public class ClowderJsonPropertySource extends PropertySource<ClowderJson>
       if (name.endsWith(entry.getKey())) {
         return determineEndpointConfig(name, entry.getValue());
       }
+    }
+
+    return null;
+  }
+
+  private Object getFeatureFlagProperty(String name) {
+    String featureFlagProperty = name.substring(FEATURE_FLAGS.length());
+
+    // Handle feature flags configuration from clowder
+    // clowder.featureFlags.hostname -> featureFlags.hostname
+    // clowder.featureFlags.port -> featureFlags.port
+    // clowder.featureFlags.clientAccessToken -> featureFlags.clientAccessToken
+    var value = source.getNode(FEATURE_FLAGS + featureFlagProperty);
+    if (value != null) {
+      return value.asText();
     }
 
     return null;
