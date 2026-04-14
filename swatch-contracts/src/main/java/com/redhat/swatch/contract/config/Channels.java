@@ -24,7 +24,6 @@ public final class Channels {
 
   public static final String CAPACITY_RECONCILE = "capacity-reconcile";
   public static final String CAPACITY_RECONCILE_TASK = "capacity-reconcile-task";
-  public static final String CONTRACTS_FROM_GATEWAY = "contracts-from-gateway";
   public static final String ENABLED_ORGS = "enabled-orgs";
   public static final String SUBSCRIPTION_SYNC_TASK_TOPIC = "subscription-sync-task";
   public static final String SUBSCRIPTION_SYNC_TASK_UMB = "subscription-sync-umb";
