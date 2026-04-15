@@ -32,7 +32,7 @@ RUN ./mvnw ${MAVEN_TASKS} -pl swatch-system-conduit -am -DskipTests ${MAVEN_BUIL
 RUN (cd /stage/swatch-system-conduit && exec jar -xf ./target/*.jar)
 RUN ls -al /stage/swatch-system-conduit
 
-FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:1.24-2.1775561370
+FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:1.24-2.1776048101
 
 ARG VERSION=1.0.0
 
