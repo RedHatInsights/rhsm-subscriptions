@@ -40,6 +40,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import java.io.Serializable;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -51,6 +52,8 @@ import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.Generated;
 
 /**
  * Represents a reported Host from inventory. This entity stores normalized facts for a Host
@@ -156,6 +159,16 @@ public class Host implements Serializable {
   @MapKeyColumn(name = "service_type")
   @Column(name = "last_applied_event_record_date")
   private Map<String, OffsetDateTime> lastAppliedEventRecordDateByServiceType = new HashMap<>();
+
+  @Column(name = "last_modified", insertable = false, updatable = false)
+  @ColumnDefault("CURRENT_TIMESTAMP")
+  @Generated
+  /* A last_modified column also exists in the instance_measurements table; however, it is unmapped
+  in Hibernate since the records in instance_measurements are not their own entities.  They're
+  members of a CollectionTable.  Mapping the column there would require converting
+  hosts to be mapped to instance_measurements with a @OneToMany -->
+  */
+  private Instant lastModified = null;
 
   public Host() {}
 
