@@ -81,6 +81,14 @@ variable (defaults to 5%).
 over-usage detection entirely for that product. This is useful for products that shouldn't generate
 over-usage alerts.
 
+**Organization-level preferences (database)**: The service uses the shared Subscription Watch
+PostgreSQL database (via Clowder) with table `org_utilization_preference`. Each row
+stores optional per-organization settings: `org_id` (primary key), `custom_threshold` (integer
+percentage points, e.g. 5 for 5%), and `last_updated`. Schema is owned by Liquibase;
+the `OrgUtilizationPreferenceRepository` exposes persistence through Hibernate Panache.
+Application code can later read this table to override product defaults per org without
+redeploying configuration.
+
 ### Granularity Filtering
 The service processes utilization summaries regardless of their granularity (HOURLY, DAILY, MONTHLY).
 All granularities are checked for over-usage, allowing the service to detect capacity issues at
