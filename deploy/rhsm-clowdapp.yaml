@@ -113,3 +113,17 @@ objects:
     data:
       # dummy-token for testing purposes only
       token: ZHVtbXktdG9rZW4=
+
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: swatch-managed-kafka
+    type: Opaque
+    data:
+      ## dummy credentials for testing purposes only
+      # dummy-username
+      username: ZHVtbXktdXNlcm5hbWU=
+      # dummy-password
+      password: ZHVtbXktcGFzc3dvcmQ=
+      # dummy-web-name:dummy-web-client:13345
+      servers: ZHVtbXktd2ViLW5hbWU6ZHVtbXktd2ViLWNsaWVudDoxMzM0NQ==

@@ -184,9 +184,6 @@ objects:
         - replicas: ${{KAFKA_PARTNER_GATEWAY_REPLICAS}}
           partitions: ${{KAFKA_PARTNER_GATEWAY_PARTITIONS}}
           topicName: partner-integration.entitlement-gateway.partner-entitlement.protected
-        - replicas: ${{KAFKA_PARTNER_GATEWAY_REPLICAS}}
-          partitions: ${{KAFKA_PARTNER_GATEWAY_PARTITIONS}}
-          topicName: stage.partner-integration.entitlement-gateway.partner-entitlement.protected
 
       deployments:
         - name: service
@@ -353,6 +350,21 @@ objects:
                   secretKeyRef:
                     name: tls
                     key: keystore_password
+              - name: IT_MANAGED_KAFKA_USERNAME
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-managed-kafka
+                    key: username
+              - name: IT_MANAGED_KAFKA_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-managed-kafka
+                    key: password
+              - name: IT_MANAGED_KAFKA_SERVERS
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-managed-kafka
+                    key: servers
               - name: SUBSCRIPTION_SYNC_ENABLED
                 value: ${SUBSCRIPTION_SYNC_ENABLED}
               - name: SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN
