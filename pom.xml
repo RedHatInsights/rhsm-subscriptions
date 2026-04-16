@@ -22,7 +22,7 @@
     <quarkus.platform.version>3.34.3</quarkus.platform.version>
     <spring.boot.version>3.5.13</spring.boot.version>
     <spring.boot.version>4.0.5</spring.boot.version>
-    <resteasy.version>7.0.0.Final</resteasy.version>
+    <resteasy.version>7.0.2.Final</resteasy.version>
     <!-- Only use as provided in the common dependencies.
     Spring and Quarkus already provides the compatible Jackson versions -->
     <jackson.version>2.21.2</jackson.version>
