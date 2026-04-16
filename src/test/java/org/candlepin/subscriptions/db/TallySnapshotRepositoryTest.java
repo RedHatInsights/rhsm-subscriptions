@@ -46,6 +46,8 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageRequest;
@@ -611,8 +613,9 @@ class TallySnapshotRepositoryTest {
     return tally;
   }
 
-  @Test
-  void testFindMonthlyTotal() {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void testFindMonthlyTotal(boolean isPrimaryRowSearch) {
     //    List<TallySnapshot> tallySnapshots = new ArrayList<>();
     String expectedOrgId = "Acme Inc.";
     String expectedProduct = "rocket-skates";
@@ -624,7 +627,7 @@ class TallySnapshotRepositoryTest {
     HardwareMeasurementType expectedMeasurementType = HardwareMeasurementType.AWS;
     MetricId expectedMetricId = MetricIdUtils.getInstanceHours();
 
-    loadIgnoredSequencedSnapshots();
+    loadIgnoredSequencedSnapshots(isPrimaryRowSearch);
 
     double testMeasurementValue = 2.0;
     List<TallySnapshot> snapshots =
@@ -636,29 +639,43 @@ class TallySnapshotRepositoryTest {
             expectedGranularity,
             expectedMeasurementType,
             expectedMetricId,
-            testMeasurementValue);
+            testMeasurementValue,
+            isPrimaryRowSearch);
 
     OffsetDateTime beginning = NOWISH;
     OffsetDateTime ending = NOWISH.plusHours(snapshots.size());
     TallyMeasurementKey key =
         new TallyMeasurementKey(expectedMeasurementType, expectedMetricId.getValue());
     Double monthlyTotal =
-        repository.sumMeasurementValueForPeriod(
-            expectedOrgId,
-            expectedProduct,
-            expectedGranularity,
-            expectedServiceLevel,
-            expectedUsage,
-            expectedBillingProvider,
-            expectedBillingAccountId,
-            beginning,
-            ending,
-            key);
+        isPrimaryRowSearch
+            ? repository.sumMeasurementValueForPeriodWithPrimary(
+                expectedOrgId,
+                expectedProduct,
+                expectedGranularity,
+                expectedServiceLevel,
+                expectedUsage,
+                expectedBillingProvider,
+                expectedBillingAccountId,
+                beginning,
+                ending,
+                key)
+            : repository.sumMeasurementValueForPeriod(
+                expectedOrgId,
+                expectedProduct,
+                expectedGranularity,
+                expectedServiceLevel,
+                expectedUsage,
+                expectedBillingProvider,
+                expectedBillingAccountId,
+                beginning,
+                ending,
+                key);
     assertEquals(snapshots.size() * testMeasurementValue, monthlyTotal);
   }
 
-  @Test
-  void testFindMonthlyTotalForDateRange() {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void testFindMonthlyTotalForDateRange(boolean isPrimaryRowSearch) {
     String expectedOrgId = "Acme Inc.";
     String expectedProduct = "rocket-skates";
     Granularity expectedGranularity = Granularity.HOURLY;
@@ -669,7 +686,7 @@ class TallySnapshotRepositoryTest {
     HardwareMeasurementType expectedMeasurementType = HardwareMeasurementType.AWS;
     MetricId expectedMetricId = MetricIdUtils.getInstanceHours();
 
-    loadIgnoredSequencedSnapshots();
+    loadIgnoredSequencedSnapshots(isPrimaryRowSearch);
 
     double testMeasurementValue = 2.0;
     List<TallySnapshot> snapshots =
@@ -681,7 +698,8 @@ class TallySnapshotRepositoryTest {
             expectedGranularity,
             expectedMeasurementType,
             expectedMetricId,
-            testMeasurementValue);
+            testMeasurementValue,
+            isPrimaryRowSearch);
 
     OffsetDateTime beginning = NOWISH;
     // Don't include the last snapshot.
@@ -690,17 +708,29 @@ class TallySnapshotRepositoryTest {
         new TallyMeasurementKey(
             HardwareMeasurementType.AWS, MetricIdUtils.getInstanceHours().getValue());
     Double monthlyTotal =
-        repository.sumMeasurementValueForPeriod(
-            expectedOrgId,
-            expectedProduct,
-            expectedGranularity,
-            expectedServiceLevel,
-            expectedUsage,
-            expectedBillingProvider,
-            expectedBillingAccountId,
-            beginning,
-            ending,
-            key);
+        isPrimaryRowSearch
+            ? repository.sumMeasurementValueForPeriodWithPrimary(
+                expectedOrgId,
+                expectedProduct,
+                expectedGranularity,
+                expectedServiceLevel,
+                expectedUsage,
+                expectedBillingProvider,
+                expectedBillingAccountId,
+                beginning,
+                ending,
+                key)
+            : repository.sumMeasurementValueForPeriod(
+                expectedOrgId,
+                expectedProduct,
+                expectedGranularity,
+                expectedServiceLevel,
+                expectedUsage,
+                expectedBillingProvider,
+                expectedBillingAccountId,
+                beginning,
+                ending,
+                key);
     assertEquals((snapshots.size() - 1) * testMeasurementValue, monthlyTotal);
   }
 
@@ -722,6 +752,19 @@ class TallySnapshotRepositoryTest {
             NOWISH,
             NOWISH.plusHours(1),
             key));
+    assertEquals(
+        0.0,
+        repository.sumMeasurementValueForPeriodWithPrimary(
+            "org1",
+            "p1",
+            Granularity.DAILY,
+            ServiceLevel.STANDARD,
+            Usage.DEVELOPMENT_TEST,
+            BillingProvider.AWS,
+            "sa",
+            NOWISH,
+            NOWISH.plusHours(1),
+            key));
   }
 
   private List<TallySnapshot> createSequencedSnapshots(
@@ -732,11 +775,13 @@ class TallySnapshotRepositoryTest {
       Granularity granularity,
       HardwareMeasurementType measurementType,
       MetricId measurementMetricId,
-      Double measurementValue) {
+      Double measurementValue,
+      boolean isPrimary) {
     List<TallySnapshot> snaps = new ArrayList<>();
     OffsetDateTime next = start;
     for (int i = 1; i <= numOfSnaps; i++) {
       TallySnapshot snap = createUnpersisted(orgId, product, granularity, 1, 2, 3, next);
+      snap.setPrimary(isPrimary);
       snap.setMeasurement(HardwareMeasurementType.PHYSICAL, MetricIdUtils.getCores(), 1.0);
       snap.setMeasurement(measurementType, measurementMetricId, measurementValue);
       snaps.add(snap);
@@ -747,7 +792,7 @@ class TallySnapshotRepositoryTest {
     return snaps;
   }
 
-  private void loadIgnoredSequencedSnapshots() {
+  private void loadIgnoredSequencedSnapshots(boolean isPrimary) {
     createSequencedSnapshots(
         NOWISH,
         5,
@@ -756,7 +801,8 @@ class TallySnapshotRepositoryTest {
         Granularity.HOURLY,
         HardwareMeasurementType.AWS,
         MetricIdUtils.getCores(),
-        2.0);
+        2.0,
+        isPrimary);
   }
 
   @Test
