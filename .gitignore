@@ -23,23 +23,13 @@
 
 **/prometheumultiprocess
 
-# Spring Boot reads local configuration out of a directory named config.
-# However, Gradle also looks for project configurations - most notably
-# Checkstyle configuration - in the config directory.  This section hides
-# everything directly under the config directory except what Gradle is
-# going to use or files used for developer deployment (certificates and key)
-config/*
-!config/artemis
-!config/codestyle
-!config/checkstyle
-!config/kafka
-!config/otel
-!config/rabbitmq
-!config/splunk
-!config/export-service
-!config/wiremock
-!config/moto
-!config/prometheus
+# Spring Boot reads local configuration from application.properties out of the
+# "config" directory under the working directory for a Spring Boot project.
+# We set these to ignore so each developer can control application settings as
+# they see fit.
+swatch-tally/config/application.properties
+swatch-system-conduit/config/application.properties
+
 config/export-service/tmp
 
 #VS Code
