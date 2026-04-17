@@ -6,5 +6,5 @@ ENABLE_SYNCHRONOUS_OPERATIONS: true
 DEV_MODE: true
 RHSM_CONTRACTS_URL: http://localhost:8011
 UNLEASH_ENVIRONMENT: development
-UNLEASH_API_URL: http://localhost:4242/api
+UNLEASH_URL: http://localhost:4242/api
 UNLEASH_API_TOKEN: default:development.unleash-insecure-api-token
