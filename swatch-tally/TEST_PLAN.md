@@ -237,6 +237,31 @@ Test cases should be testable locally and in deployed environments.
 
 ## Report Granularity and Filtering
 
+### Test Organization
+
+The tally report filtering test cases are organized into three component test files:
+
+- **TallyReportFiltersPaygTest.java** - Contains 20 test cases (TC001-TC023, excluding TC009, TC010, TC015, TC024) covering PAYG (Pay-As-You-Go) scenarios:
+  - TC001-TC008: Basic filtering by granularity, SLA, usage, billing provider, and billing account ID
+  - TC011-TC014: Validation errors and metadata verification
+  - TC016-TC023: Daily granularity filtering, monthly/quarterly/yearly granularity support
+  - Product: RHEL for x86 ELS PAYG (supports hourly granularity)
+
+- **TallyReportFiltersEdgeCaseTest.java** - Contains 4 test cases for edge cases requiring special event patterns:
+  - TC009: Multiple events aggregation with same filter attributes
+  - TC010: Three distinct SLA values filtering
+  - TC015: Data gaps with hasData field
+  - TC024: Billing account change for same instance
+  - Product: RHEL for x86 ELS PAYG (supports hourly granularity)
+
+- **TallyReportFiltersNonPaygTest.java** - Contains 17 test cases (tally-report-nonpayg-TC001 through TC017) covering non-PAYG product scenarios:
+  - Daily, monthly, quarterly, and yearly granularity filtering
+  - SLA and usage filters for traditional (non-PAYG) products
+  - Metadata and validation behavior for non-PAYG reports
+  - Product: RHEL for x86 (standard/non-PAYG, supports daily granularity and above)
+
+All test files use `@BeforeAll` to create test data once and share it across all test methods. Each test is parameterized with `@ValueSource(booleans = {true, false})` to verify behavior with both the legacy query path and the primary row searches feature flag enabled.
+
 **tally-report-filters-TC001 - Daily granularity with all filters**
 
 - **Description**: Verify that tally report API returns daily granularity data with all filter parameters

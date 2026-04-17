@@ -388,6 +388,106 @@ public class TallyTestHelpers {
         kafkaBridge);
   }
 
+  /**
+   * Polls for nightly tally sync and waits for expected Kafka messages with custom retry
+   * configuration.
+   *
+   * <p>This method repeatedly attempts to run nightly tally and wait for the expected number of
+   * messages, retrying on failure up to maxAttempts times with the specified poll interval.
+   *
+   * @param testOrgId the organization ID to sync
+   * @param productId the product ID to match
+   * @param metricId the metric ID to match
+   * @param granularity the granularity to match
+   * @param expectedMessageCount the expected number of messages
+   * @param maxAttempts maximum number of retry attempts
+   * @param pollInterval delay between retry attempts
+   * @param awaitTimeout timeout for waiting for Kafka messages per attempt
+   * @param service the tally service
+   * @param kafkaBridge the Kafka bridge service
+   * @return list of matching TallySummary messages
+   * @throws RuntimeException if nightly tally fails after all retry attempts
+   */
+  public List<TallySummary> pollForNightlyTallySyncAndMessages(
+      String testOrgId,
+      String productId,
+      String metricId,
+      Granularity granularity,
+      int expectedMessageCount,
+      int maxAttempts,
+      Duration pollInterval,
+      Duration awaitTimeout,
+      TallySwatchService service,
+      KafkaBridgeService kafkaBridge) {
+    int attempts = 0;
+    Exception lastException = null;
+
+    AwaitilitySettings kafkaConsumerTimeout =
+        AwaitilitySettings.using(Duration.ofMillis(500), awaitTimeout);
+
+    while (attempts < maxAttempts) {
+      attempts++;
+      try {
+        service.tallyOrg(testOrgId);
+
+        return kafkaBridge.waitForKafkaMessage(
+            TALLY,
+            MessageValidators.tallySummaryMatches(testOrgId, productId, metricId, granularity),
+            expectedMessageCount,
+            kafkaConsumerTimeout);
+      } catch (Exception e) {
+        lastException = e;
+        if (attempts < maxAttempts) {
+          try {
+            Thread.sleep(pollInterval.toMillis());
+          } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Polling interrupted", ie);
+          }
+        }
+      }
+    }
+
+    throw new RuntimeException(
+        String.format("Failed to run nightly tally after %d attempts", maxAttempts), lastException);
+  }
+
+  /**
+   * Polls for nightly tally sync and waits for expected Kafka messages with default retry
+   * configuration.
+   *
+   * <p>Uses default values: 10 max attempts, 2 second poll interval, 3 second await timeout.
+   *
+   * @param testOrgId the organization ID to sync
+   * @param productId the product ID to match
+   * @param metricId the metric ID to match
+   * @param granularity the granularity to match
+   * @param expectedMessageCount the expected number of messages
+   * @param service the tally service
+   * @param kafkaBridge the Kafka bridge service
+   * @return list of matching TallySummary messages
+   */
+  public List<TallySummary> pollForNightlyTallySyncAndMessages(
+      String testOrgId,
+      String productId,
+      String metricId,
+      Granularity granularity,
+      int expectedMessageCount,
+      TallySwatchService service,
+      KafkaBridgeService kafkaBridge) {
+    return pollForNightlyTallySyncAndMessages(
+        testOrgId,
+        productId,
+        metricId,
+        granularity,
+        expectedMessageCount,
+        10,
+        Duration.ofSeconds(2),
+        Duration.ofSeconds(3),
+        service,
+        kafkaBridge);
+  }
+
   // --- Then helper methods: Retrieve and verify test results ---
 
   /** Extracts and sums tally measurement values by SLA value only. */

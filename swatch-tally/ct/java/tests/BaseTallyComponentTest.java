@@ -77,4 +77,21 @@ public class BaseTallyComponentTest {
   void setUp() {
     orgId = RandomUtils.generateRandom();
   }
+
+  // --- Protected helper methods ---
+
+  protected void givenFeatureFlagIsConfigured(boolean enablePrimaryRowSearches) {
+    if (enablePrimaryRowSearches) {
+      unleash.enablePrimaryRowSearches();
+    } else {
+      unleash.disablePrimaryRowSearches();
+    }
+
+    long startTime = System.currentTimeMillis();
+    com.redhat.swatch.component.tests.utils.AwaitilityUtils.until(
+        () -> System.currentTimeMillis() - startTime,
+        elapsed -> elapsed >= 5000,
+        com.redhat.swatch.component.tests.utils.AwaitilitySettings.usingTimeout(
+            java.time.Duration.ofSeconds(10)));
+  }
 }
