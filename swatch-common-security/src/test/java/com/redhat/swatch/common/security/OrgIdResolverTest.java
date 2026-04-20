@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.contract.resource;
+package com.redhat.swatch.common.security;
 
 import static com.redhat.swatch.common.security.RhIdentityHeaderAuthenticationMechanism.RH_IDENTITY_HEADER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -26,13 +26,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.redhat.swatch.common.security.PskPrincipal;
-import com.redhat.swatch.common.security.RhIdentityPrincipalFactory;
-import com.redhat.swatch.contract.security.RhIdentityUtils;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.SecurityContext;
 import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
 import java.security.Principal;
+import java.util.Base64;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -72,8 +71,7 @@ class OrgIdResolverTest {
   @Test
   void shouldExtractOrgIdFromIdentityHeaderWhenPskPrincipal() {
     when(securityContext.getUserPrincipal()).thenReturn(new PskPrincipal());
-    when(httpHeaders.getHeaderString(RH_IDENTITY_HEADER))
-        .thenReturn(RhIdentityUtils.CUSTOMER_IDENTITY_HEADER);
+    when(httpHeaders.getHeaderString(RH_IDENTITY_HEADER)).thenReturn(customerIdentityHeader());
 
     String orgId = orgIdResolver.getOrgId(securityContext, httpHeaders);
 
@@ -98,5 +96,19 @@ class OrgIdResolverTest {
     String orgId = orgIdResolver.getOrgId(securityContext, httpHeaders);
 
     assertEquals(SERVICE_ACCOUNT, orgId);
+  }
+
+  private static String customerIdentityHeader() {
+    String json =
+        """
+            {
+              "identity": {
+                "type": "User",
+                "org_id": "org123"
+              }
+            }
+            """;
+    return new String(
+        Base64.getEncoder().encode(json.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
   }
 }
