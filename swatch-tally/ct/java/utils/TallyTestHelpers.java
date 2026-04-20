@@ -389,6 +389,7 @@ public class TallyTestHelpers {
         kafkaBridge);
   }
 
+  // --- Then helper methods: Retrieve and verify test results ---
   /** Extracts and sums tally measurement values by SLA value only. */
   public double getTallySummaryValueWithSla(
       List<TallySummary> tallySummaries,
