@@ -39,6 +39,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.candlepin.subscriptions.json.Event;
@@ -49,10 +50,10 @@ import org.junit.jupiter.params.provider.ValueSource;
 /**
  * PAYG product tests with 4 events covering multiple filter combinations.
  *
- * <p>Event Setup (created once in @BeforeAll): - Event 1: sla=Premium, usage=Production, bp=AWS,
- * baccid=123, vCPUs=4 - Event 2: sla=Standard, usage=Development, bp=AWS, baccid=123, vCPUs=6 -
- * Event 3: sla=Standard, usage=Production, bp=AWS, baccid=123, vCPUs=8 - Event 4: sla=Standard,
- * usage=Production, bp=AWS, baccid=223, vCPUs=1
+ * <p>Event Data: - Event 1: sla=Premium, usage=Production, bp=AWS, baccid=123, vCPUs=4 - Event 2:
+ * sla=Standard, usage=Development, bp=AWS, baccid=123, vCPUs=6 - Event 3: sla=Standard,
+ * usage=Production, bp=AWS, baccid=123, vCPUs=8 - Event 4: sla=Standard, usage=Production, bp=AWS,
+ * baccid=223, vCPUs=1
  *
  * <p>Expected totals for various filters: - No filters: 19 - sla=Premium: 4 - sla=Standard: 15 -
  * usage=Production: 13 - usage=Development: 6 - billing_provider=AWS: 19 - billing_account_id=123:
@@ -63,96 +64,87 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
   private static final String PRODUCT_ID = RHEL_FOR_X86_ELS_PAYG.productId();
   private static final String PRODUCT_TAG = RHEL_FOR_X86_ELS_PAYG.productTag();
   private static final String METRIC_ID = RHEL_FOR_X86_ELS_PAYG.metricIds().get(0); // vCPUs
+
+  record PaygEventConfig(
+      Event.Sla sla,
+      Event.Usage usage,
+      Event.BillingProvider billingProvider,
+      String billingAccountId,
+      float value) {}
+
+  record TimeRanges(
+      OffsetDateTime testDate,
+      OffsetDateTime hourlyBeginning,
+      OffsetDateTime hourlyEnding,
+      OffsetDateTime dailyBeginning,
+      OffsetDateTime dailyEnding,
+      OffsetDateTime monthlyBeginning,
+      OffsetDateTime monthlyEnding) {}
+
   private static final String BILLING_ACCOUNT_123 = UUID.randomUUID().toString();
   private static final String BILLING_ACCOUNT_223 = UUID.randomUUID().toString();
-
-  private static OffsetDateTime testDate;
-  private static OffsetDateTime hourlyBeginning;
-  private static OffsetDateTime hourlyEnding;
-  private static OffsetDateTime dailyBeginning;
-  private static OffsetDateTime dailyEnding;
-  private static OffsetDateTime monthlyBeginning;
-  private static OffsetDateTime monthlyEnding;
+  private static TimeRanges timeRanges;
 
   @BeforeAll
   static void setupPaygEvents() {
     testOrgId = String.valueOf(10000 + (int) (Math.random() * 90000));
     service.createOptInConfig(testOrgId);
 
-    testDate = OffsetDateTime.now(ZoneOffset.UTC).minusHours(2);
-    hourlyBeginning = testDate.truncatedTo(ChronoUnit.HOURS);
-    hourlyEnding = hourlyBeginning.plusHours(1).minusNanos(1);
-    dailyBeginning = testDate.truncatedTo(ChronoUnit.DAYS);
-    dailyEnding = dailyBeginning.plusDays(1).minusNanos(1);
-    monthlyBeginning = testDate.truncatedTo(ChronoUnit.DAYS).withDayOfMonth(1);
-    monthlyEnding = monthlyBeginning.plusMonths(1).minusNanos(1);
+    OffsetDateTime testDate = OffsetDateTime.now(ZoneOffset.UTC).minusHours(2);
+    timeRanges =
+        new TimeRanges(
+            testDate,
+            testDate.truncatedTo(ChronoUnit.HOURS),
+            testDate.truncatedTo(ChronoUnit.HOURS).plusHours(1).minusNanos(1),
+            testDate.truncatedTo(ChronoUnit.DAYS),
+            testDate.truncatedTo(ChronoUnit.DAYS).plusDays(1).minusNanos(1),
+            testDate.truncatedTo(ChronoUnit.DAYS).withDayOfMonth(1),
+            testDate.truncatedTo(ChronoUnit.DAYS).withDayOfMonth(1).plusMonths(1).minusNanos(1));
 
-    // Event 1: sla=Premium, usage=Production, bp=AWS, baccid=123, vCPUs=4
-    publishPaygEvent(
-        testOrgId,
-        testDate,
-        Event.Sla.PREMIUM,
-        Event.Usage.PRODUCTION,
-        Event.BillingProvider.AWS,
-        BILLING_ACCOUNT_123,
-        4.0f);
+    List.of(
+            new PaygEventConfig(
+                Event.Sla.PREMIUM,
+                Event.Usage.PRODUCTION,
+                Event.BillingProvider.AWS,
+                BILLING_ACCOUNT_123,
+                4.0f),
+            new PaygEventConfig(
+                Event.Sla.STANDARD,
+                Event.Usage.DEVELOPMENT_TEST,
+                Event.BillingProvider.AWS,
+                BILLING_ACCOUNT_123,
+                6.0f),
+            new PaygEventConfig(
+                Event.Sla.STANDARD,
+                Event.Usage.PRODUCTION,
+                Event.BillingProvider.AWS,
+                BILLING_ACCOUNT_123,
+                8.0f),
+            new PaygEventConfig(
+                Event.Sla.STANDARD,
+                Event.Usage.PRODUCTION,
+                Event.BillingProvider.AWS,
+                BILLING_ACCOUNT_223,
+                1.0f))
+        .forEach(config -> publishEvent(timeRanges.testDate(), config));
 
-    // Event 2: sla=Standard, usage=Development, bp=AWS, baccid=123, vCPUs=6
-    publishPaygEvent(
-        testOrgId,
-        testDate,
-        Event.Sla.STANDARD,
-        Event.Usage.DEVELOPMENT_TEST,
-        Event.BillingProvider.AWS,
-        BILLING_ACCOUNT_123,
-        6.0f);
-
-    // Event 3: sla=Standard, usage=Production, bp=AWS, baccid=123, vCPUs=8
-    publishPaygEvent(
-        testOrgId,
-        testDate,
-        Event.Sla.STANDARD,
-        Event.Usage.PRODUCTION,
-        Event.BillingProvider.AWS,
-        BILLING_ACCOUNT_123,
-        8.0f);
-
-    // Event 4: sla=Standard, usage=Production, bp=AWS, baccid=223, vCPUs=1
-    publishPaygEvent(
-        testOrgId,
-        testDate,
-        Event.Sla.STANDARD,
-        Event.Usage.PRODUCTION,
-        Event.BillingProvider.AWS,
-        BILLING_ACCOUNT_223,
-        1.0f);
-
-    // Tally once: hourly then nightly
     service.performHourlyTallyForOrg(testOrgId);
-    service.tallyOrg(testOrgId);
+    // service.tallyOrg(testOrgId);
   }
 
-  private static void publishPaygEvent(
-      String orgId,
-      OffsetDateTime timestamp,
-      Event.Sla sla,
-      Event.Usage usage,
-      Event.BillingProvider billingProvider,
-      String billingAccountId,
-      float value) {
-
+  private static void publishEvent(OffsetDateTime timestamp, PaygEventConfig config) {
     Event event =
         helpers.createPaygEventWithTimestamp(
-            orgId,
+            testOrgId,
             UUID.randomUUID().toString(),
             timestamp.toString(),
             UUID.randomUUID().toString(),
             METRIC_ID,
-            value,
-            sla,
-            usage,
-            billingProvider,
-            billingAccountId,
+            config.value(),
+            config.sla(),
+            config.usage(),
+            config.billingProvider(),
+            config.billingAccountId(),
             Event.HardwareType.CLOUD,
             PRODUCT_ID,
             PRODUCT_TAG);
@@ -208,9 +200,9 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
             "granularity",
             "Daily",
             "beginning",
-            dailyBeginning.toString(),
+            timeRanges.dailyBeginning().toString(),
             "ending",
-            dailyEnding.toString(),
+            timeRanges.dailyEnding().toString(),
             "sla",
             ServiceLevelType.PREMIUM,
             "usage",
@@ -250,8 +242,8 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
             PRODUCT_TAG,
             METRIC_ID,
             "Hourly",
-            hourlyBeginning,
-            hourlyEnding,
+            timeRanges.hourlyBeginning(),
+            timeRanges.hourlyEnding(),
             Map.of("sla", ServiceLevelType.PREMIUM.toString()));
 
     double standardTotal =
@@ -260,8 +252,8 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
             PRODUCT_TAG,
             METRIC_ID,
             "Hourly",
-            hourlyBeginning,
-            hourlyEnding,
+            timeRanges.hourlyBeginning(),
+            timeRanges.hourlyEnding(),
             Map.of("sla", ServiceLevelType.STANDARD.toString()));
 
     // Then: Totals match expected values for each SLA
@@ -283,8 +275,8 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
             PRODUCT_TAG,
             METRIC_ID,
             "Hourly",
-            hourlyBeginning,
-            hourlyEnding,
+            timeRanges.hourlyBeginning(),
+            timeRanges.hourlyEnding(),
             Map.of("usage", UsageType.PRODUCTION.toString()));
 
     double developmentTotal =
@@ -293,8 +285,8 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
             PRODUCT_TAG,
             METRIC_ID,
             "Hourly",
-            hourlyBeginning,
-            hourlyEnding,
+            timeRanges.hourlyBeginning(),
+            timeRanges.hourlyEnding(),
             Map.of("usage", UsageType.DEVELOPMENT_TEST.toString()));
 
     // Then: Totals match expected values for each usage type
@@ -316,8 +308,8 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
             PRODUCT_TAG,
             METRIC_ID,
             "Hourly",
-            hourlyBeginning,
-            hourlyEnding,
+            timeRanges.hourlyBeginning(),
+            timeRanges.hourlyEnding(),
             Map.of("billing_provider", BillingProviderType.AWS.toString()));
 
     // Then: Total matches all events for the billing provider
@@ -338,8 +330,8 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
             PRODUCT_TAG,
             METRIC_ID,
             "Hourly",
-            hourlyBeginning,
-            hourlyEnding,
+            timeRanges.hourlyBeginning(),
+            timeRanges.hourlyEnding(),
             Map.of("billing_account_id", BILLING_ACCOUNT_123));
 
     double account223Total =
@@ -348,8 +340,8 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
             PRODUCT_TAG,
             METRIC_ID,
             "Hourly",
-            hourlyBeginning,
-            hourlyEnding,
+            timeRanges.hourlyBeginning(),
+            timeRanges.hourlyEnding(),
             Map.of("billing_account_id", BILLING_ACCOUNT_223));
 
     // Then: Totals match expected values for each billing account
@@ -371,8 +363,8 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
             PRODUCT_TAG,
             METRIC_ID,
             "Daily",
-            dailyBeginning,
-            dailyEnding,
+            timeRanges.dailyBeginning(),
+            timeRanges.dailyEnding(),
             Map.of(
                 "sla",
                 ServiceLevelType.STANDARD.toString(),
@@ -400,7 +392,13 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
 
     double total =
         getReportSum(
-            testOrgId, PRODUCT_TAG, METRIC_ID, "Hourly", hourlyBeginning, hourlyEnding, filters);
+            testOrgId,
+            PRODUCT_TAG,
+            METRIC_ID,
+            "Hourly",
+            timeRanges.hourlyBeginning(),
+            timeRanges.hourlyEnding(),
+            filters);
 
     // Then: Total matches event that satisfies all filters
     assertEquals(8.0, total, 0.0001, "All filters combined should total 8 (Event 3 only)");
@@ -415,7 +413,11 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
 
     // When: Querying report without required granularity parameter
     Map<String, Object> queryParams =
-        Map.of("beginning", dailyBeginning.toString(), "ending", dailyEnding.toString());
+        Map.of(
+            "beginning",
+            timeRanges.dailyBeginning().toString(),
+            "ending",
+            timeRanges.dailyEnding().toString());
 
     Response response =
         service.getTallyReportDataRaw(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams);
@@ -434,7 +436,7 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
 
     // When: Querying report without required beginning parameter
     Map<String, Object> queryParams =
-        Map.of("granularity", "Daily", "ending", dailyEnding.toString());
+        Map.of("granularity", "Daily", "ending", timeRanges.dailyEnding().toString());
 
     Response response =
         service.getTallyReportDataRaw(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams);
@@ -452,7 +454,7 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
 
     // When: Querying report without required ending parameter
     Map<String, Object> queryParams =
-        Map.of("granularity", "Daily", "beginning", dailyBeginning.toString());
+        Map.of("granularity", "Daily", "beginning", timeRanges.dailyBeginning().toString());
 
     Response response =
         service.getTallyReportDataRaw(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams);
@@ -472,8 +474,8 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
     Map<String, Object> queryParams =
         Map.of(
             "granularity", "Daily",
-            "beginning", dailyBeginning.toString(),
-            "ending", dailyEnding.toString());
+            "beginning", timeRanges.dailyBeginning().toString(),
+            "ending", timeRanges.dailyEnding().toString());
 
     TallyReportData response =
         service.getTallyReportData(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams);
@@ -498,8 +500,8 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
     Map<String, Object> queryParams =
         Map.of(
             "granularity", "Daily",
-            "beginning", dailyBeginning.toString(),
-            "ending", dailyEnding.toString(),
+            "beginning", timeRanges.dailyBeginning().toString(),
+            "ending", timeRanges.dailyEnding().toString(),
             "sla", "",
             "usage", "");
 
@@ -520,7 +522,14 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
 
     // When: Querying report without any optional filters
     double total =
-        getReportSum(testOrgId, PRODUCT_TAG, METRIC_ID, "Daily", dailyBeginning, dailyEnding, null);
+        getReportSum(
+            testOrgId,
+            PRODUCT_TAG,
+            METRIC_ID,
+            "Daily",
+            timeRanges.dailyBeginning(),
+            timeRanges.dailyEnding(),
+            null);
 
     // Then: All events are included in the total
     assertEquals(19.0, total, 0.0001, "Total without filters should be 19 (4+6+8+1)");
@@ -540,8 +549,8 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
             PRODUCT_TAG,
             METRIC_ID,
             "Daily",
-            dailyBeginning,
-            dailyEnding,
+            timeRanges.dailyBeginning(),
+            timeRanges.dailyEnding(),
             Map.of("sla", ServiceLevelType.PREMIUM.toString()));
 
     double standardTotal =
@@ -550,8 +559,8 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
             PRODUCT_TAG,
             METRIC_ID,
             "Daily",
-            dailyBeginning,
-            dailyEnding,
+            timeRanges.dailyBeginning(),
+            timeRanges.dailyEnding(),
             Map.of("sla", ServiceLevelType.STANDARD.toString()));
 
     // Then: Daily totals match expected values for each SLA
@@ -573,8 +582,8 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
             PRODUCT_TAG,
             METRIC_ID,
             "Daily",
-            dailyBeginning,
-            dailyEnding,
+            timeRanges.dailyBeginning(),
+            timeRanges.dailyEnding(),
             Map.of("usage", UsageType.PRODUCTION.toString()));
 
     double developmentTotal =
@@ -583,8 +592,8 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
             PRODUCT_TAG,
             METRIC_ID,
             "Daily",
-            dailyBeginning,
-            dailyEnding,
+            timeRanges.dailyBeginning(),
+            timeRanges.dailyEnding(),
             Map.of("usage", UsageType.DEVELOPMENT_TEST.toString()));
 
     // Then: Daily totals match expected values for each usage type
@@ -606,8 +615,8 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
             PRODUCT_TAG,
             METRIC_ID,
             "Daily",
-            dailyBeginning,
-            dailyEnding,
+            timeRanges.dailyBeginning(),
+            timeRanges.dailyEnding(),
             Map.of("billing_provider", BillingProviderType.AWS.toString()));
 
     // Then: Daily total matches all events for the billing provider
@@ -628,8 +637,8 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
             PRODUCT_TAG,
             METRIC_ID,
             "Daily",
-            dailyBeginning,
-            dailyEnding,
+            timeRanges.dailyBeginning(),
+            timeRanges.dailyEnding(),
             Map.of("billing_account_id", BILLING_ACCOUNT_123));
 
     double account223Total =
@@ -638,8 +647,8 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
             PRODUCT_TAG,
             METRIC_ID,
             "Daily",
-            dailyBeginning,
-            dailyEnding,
+            timeRanges.dailyBeginning(),
+            timeRanges.dailyEnding(),
             Map.of("billing_account_id", BILLING_ACCOUNT_223));
 
     // Then: Daily totals match expected values for each billing account
@@ -659,8 +668,8 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
     Map<String, Object> queryParams =
         Map.of(
             "granularity", "Monthly",
-            "beginning", monthlyBeginning.toString(),
-            "ending", monthlyEnding.toString());
+            "beginning", timeRanges.monthlyBeginning().toString(),
+            "ending", timeRanges.monthlyEnding().toString());
 
     TallyReportData response =
         service.getTallyReportData(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams);

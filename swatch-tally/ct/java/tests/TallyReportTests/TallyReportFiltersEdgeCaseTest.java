@@ -125,19 +125,14 @@ public class TallyReportFiltersEdgeCaseTest extends BaseTallyComponentTest {
 
     publishEvent(threeSlaTest.timestamp(), threeSlaTest.premiumValue(), Event.Sla.PREMIUM);
     publishEvent(threeSlaTest.timestamp(), threeSlaTest.standardValue(), Event.Sla.STANDARD);
-    publishEvent(
-        threeSlaTest.timestamp(), threeSlaTest.selfSupportValue(), Event.Sla.SELF_SUPPORT);
+    publishEvent(threeSlaTest.timestamp(), threeSlaTest.selfSupportValue(), Event.Sla.SELF_SUPPORT);
 
     // TC015: Data gaps with hasData field
     OffsetDateTime gapBaseTime =
         OffsetDateTime.now(ZoneOffset.UTC).minusHours(10).truncatedTo(ChronoUnit.HOURS);
     dataGapTest =
         new DataGapScenario(
-            gapBaseTime,
-            gapBaseTime,
-            gapBaseTime.plusHours(4).minusNanos(1),
-            10.0f,
-            20.0f);
+            gapBaseTime, gapBaseTime, gapBaseTime.plusHours(4).minusNanos(1), 10.0f, 20.0f);
 
     publishEvent(dataGapTest.baseTime(), dataGapTest.valueAtHour0(), Event.Sla.PREMIUM);
     publishEvent(
