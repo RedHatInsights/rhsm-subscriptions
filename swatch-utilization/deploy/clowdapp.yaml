@@ -101,6 +101,7 @@ objects:
     dependencies:
       - ${DB_POD}
       - swatch-contracts
+      - rbac
 
     kafkaTopics:
       - replicas: ${{KAFKA_UTILIZATION_REPLICAS}}

@@ -1,0 +1,74 @@
+---
+openapi: 3.0.2
+info:
+  title: Swatch Utilization API
+  version: 1.0.0
+  description: Subscription Watch utilization HTTP APIs
+  contact:
+    name: SWATCH Dev
+    url: https://github.com/RedHatInsights/rhsm-subscriptions
+tags:
+  - name: OrgPreferences
+    description: Organization-level utilization preferences
+paths:
+  /api/rhsm-subscriptions/v1/utilization/org-preferences:
+    post:
+      tags:
+        - OrgPreferences
+      operationId: updateOrgPreferences
+      summary: Update organization utilization preferences
+      description: >-
+        Accepts organization utilization preferences (for example custom over-usage threshold)
+        and persists them for the organization resolved from the authenticated x-rh-identity header.
+      parameters:
+        - name: x-rh-identity
+          in: header
+          required: true
+          schema:
+            type: string
+          description: >-
+            Base64-encoded JSON identity document for x-rh-identity (must include org_id for User
+            and ServiceAccount identities, per the authenticated principal).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrgPreferencesRequest"
+      responses:
+        "200":
+          description: Preferences were applied successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrgPreferencesResponse"
+        "400":
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/BadRequest"
+        "403":
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/Forbidden"
+        "500":
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
+components:
+  schemas:
+    OrgPreferencesRequest:
+      type: object
+      required:
+        - custom_threshold
+      properties:
+        custom_threshold:
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 100
+          description: Over-usage threshold margin as a whole-number percentage (e.g. 5 means 5%).
+    OrgPreferencesResponse:
+      type: object
+      required:
+        - custom_threshold
+      properties:
+        custom_threshold:
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 100
+          description: Persisted over-usage threshold margin as a whole-number percentage.
