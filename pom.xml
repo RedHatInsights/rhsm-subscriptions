@@ -332,6 +332,12 @@
   <build>
     <pluginManagement>
       <plugins>
+        <plugin>
+          <groupId>org.liquibase</groupId>
+          <artifactId>liquibase-maven-plugin</artifactId>
+          <version>${liquibase.version}</version>
+        </plugin>
+
         <!-- Required to start spring services in dev mode from the Maven command -->
         <plugin>
           <groupId>org.springframework.boot</groupId>
