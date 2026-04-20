@@ -21,16 +21,19 @@
 package tests;
 
 import static api.MessageValidators.matchesOrgId;
+import static api.MessageValidators.matchesOverageNotification;
 import static com.redhat.swatch.component.tests.utils.Topics.NOTIFICATIONS;
 import static com.redhat.swatch.component.tests.utils.Topics.UTILIZATION;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import com.redhat.swatch.utilization.test.model.UtilizationSummary;
+import domain.Severity;
 import java.time.Duration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -192,6 +195,29 @@ public class UtilizationOverUsageComponentTest extends BaseUtilizationComponentT
     // Then: Notification event created (usage now exceeds reduced capacity + threshold)
     thenNotificationShouldBeSent(
         utilizationSummary.getProductId(), metricId, USAGE_SIGNIFICANTLY_ABOVE_THRESHOLD, 100.0);
+  }
+
+  @TestPlanName("utilization-overusage-TC009")
+  @Test
+  void shouldEmitImportantSeverity_onOverusageNotification() {
+    // Given: Usage exceeds threshold for metric A of product B
+    MetricId metricId = MetricIdUtils.getCores();
+    givenMeasurement(
+        utilizationSummary, metricId, 110.0, STANDARD_CAPACITY, false); // 10% over capacity
+
+    // When: Trigger utilization calculation process
+    kafkaBridge.produceKafkaMessage(UTILIZATION, utilizationSummary);
+
+    // Then: Notification declares IMPORTANT severity
+    var notification =
+        kafkaBridge.waitForKafkaMessage(
+            NOTIFICATIONS,
+            matchesOverageNotification(
+                orgId, utilizationSummary.getProductId(), metricId.getValue()));
+    assertEquals(
+        Severity.IMPORTANT.name(),
+        notification.getSeverity(),
+        "Over-usage notification should declare IMPORTANT severity");
   }
 
   // Helper methods - Then
