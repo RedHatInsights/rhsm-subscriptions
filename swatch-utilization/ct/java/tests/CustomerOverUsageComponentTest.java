@@ -29,6 +29,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.redhat.cloud.notifications.ingress.Action;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
@@ -38,6 +39,7 @@ import com.redhat.swatch.utilization.test.model.Measurement;
 import com.redhat.swatch.utilization.test.model.UtilizationSummary;
 import com.redhat.swatch.utilization.test.model.UtilizationSummary.Granularity;
 import domain.Product;
+import domain.Severity;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -132,7 +134,8 @@ public class CustomerOverUsageComponentTest extends BaseUtilizationComponentTest
         USAGE_EXCEEDING_THRESHOLD,
         BASELINE_CAPACITY,
         "Premium",
-        "Production");
+        "Production",
+        Severity.IMPORTANT);
   }
 
   /** Verify over-usage counter is not incremented when usage is below threshold. */
@@ -288,6 +291,10 @@ public class CustomerOverUsageComponentTest extends BaseUtilizationComponentTest
   void thenNotificationShouldBeSent() {
     Action notification = kafkaBridge.waitForKafkaMessage(NOTIFICATIONS, matchesOrgId(orgId));
     assertThat("Notification should be sent", notification, notNullValue());
+    assertEquals(
+        "IMPORTANT",
+        notification.getSeverity(),
+        "Over-usage notification should declare IMPORTANT severity");
 
     // Verify context contains expected product_id and metric_id
     var context = notification.getContext();

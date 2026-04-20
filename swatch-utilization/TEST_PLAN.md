@@ -50,6 +50,7 @@ Kafka messages can be injected for event-driven testing.
     - Verify notification payload
 - **Expected Result**:
     - Notification event contains correct information (org_id, product_id, metric_id and utilization_percentage)
+    - Notification action `severity` is `IMPORTANT`
     - Record timestamp reflects current calculation time
 
 **utilization-overusage-TC002 - No overusage when usage is below capacity**
@@ -155,6 +156,21 @@ Kafka messages can be injected for event-driven testing.
     - Notification event created (usage now exceeds reduced capacity + threshold)
     - Notification event contains correct information (org_id, product_id, metric_id and utilization_percentage)
     - Record timestamp reflects current calculation time
+
+**utilization-overusage-TC009 - Overusage notification severity**
+
+- **Description**: Verify that overusage notifications declare severity `IMPORTANT`.
+- **Setup**:
+    - An organization has capacity for the metric A of the product B
+    - Conditions allow sending notifications (global flag or org allowlist as applicable)
+- **Action**:
+    - Generate enough usage to exceed the threshold for the metric A of the product B
+    - Trigger utilization calculation process
+- **Verification**:
+    - Wait for notification message on notifications topic
+    - Verify `severity` on the notification action
+- **Expected Result**:
+    - Notification action `severity` is `IMPORTANT` (string name of the utilization severity enum)
 
 ## Multi-Resource Processing
 
