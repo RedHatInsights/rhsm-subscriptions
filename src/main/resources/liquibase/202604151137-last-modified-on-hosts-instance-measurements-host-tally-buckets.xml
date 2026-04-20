@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+  <!--
+  Why are we using triggers here?  Especially since Hibernate's @CurrentTimestamp(source=DB)
+  annotation offers this ability?  The catch with the annotation is it requires an extra round-trip
+  to the database to fetch the current time.  We want the last_modified column to use the
+  CURRENT_TIMESTAMP from the database since these timestamps are later referenced by jobs that
+  run in different environments (not in the JVM).  We want the DB to be the final authority on
+  what time it is.  However, high performance for these tables is critical, so we don't want any
+  additional overhead that we can avoid.  Using a trigger and
+
+  @Column(name = "last_modified", insertable = false, updatable = false)
+  @ColumnDefault("CURRENT_TIMESTAMP")
+  @Generated
+  private Instant lastModified;
+
+  will populate the entity correctly using a RETURNING clause after an UPDATE or INSERT which
+  avoids a round-trip while keeping timestamp generation on the DB.
+
+  The procedure itself is created in 202601301404-last-modified-on-snapshots-and-measurements.xml
+  and marked runOnChange="true" so that any changes to the procedure in
+  procedures/update_last_modified_column.sql will automatically be applied.
+  -->
+  <changeSet id="202604151137-01" author="awood">
+    <addColumn tableName="hosts">
+      <column name="last_modified" type="TIMESTAMP WITH TIME ZONE"/>
+    </addColumn>
+  </changeSet>
+
+  <changeSet id="202604151137-02" author="awood">
+    <addColumn tableName="host_tally_buckets">
+      <column name="last_modified" type="TIMESTAMP WITH TIME ZONE"/>
+    </addColumn>
+  </changeSet>
+
+  <changeSet id="202604151137-03" author="awood">
+    <!-- This column is unmapped in Hibernate since the records in instance_measurements are not
+    their own entities.  They're members of a CollectionTable.  Mapping this column would require
+    converting instance_measurements to be mapped to hosts with a @OneToMany -->
+    <addColumn tableName="instance_measurements">
+      <column name="last_modified" type="TIMESTAMP WITH TIME ZONE"/>
+    </addColumn>
+  </changeSet>
+
+  <changeSet id="202604151137-04" author="awood" dbms="postgresql">
+    <sql>
+      CREATE OR REPLACE TRIGGER trg_hosts_last_modified
+        BEFORE INSERT OR UPDATE
+        ON hosts
+        FOR EACH ROW
+      EXECUTE FUNCTION update_last_modified_column();
+    </sql>
+    <rollback>
+      DROP TRIGGER IF EXISTS trg_hosts_last_modified ON hosts;
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202604151137-05" author="awood" dbms="postgresql">
+    <sql>
+      CREATE OR REPLACE TRIGGER trg_host_tally_buckets_last_modified
+        BEFORE INSERT OR UPDATE
+        ON host_tally_buckets
+        FOR EACH ROW
+      EXECUTE FUNCTION update_last_modified_column();
+    </sql>
+    <rollback>
+      DROP TRIGGER IF EXISTS trg_host_tally_buckets_last_modified ON host_tally_buckets;
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202604151137-06" author="awood" dbms="postgresql">
+    <sql>
+      CREATE OR REPLACE TRIGGER trg_instance_measurements_last_modified
+        BEFORE INSERT OR UPDATE
+        ON instance_measurements
+        FOR EACH ROW
+      EXECUTE FUNCTION update_last_modified_column();
+    </sql>
+    <rollback>
+      DROP TRIGGER IF EXISTS trg_instance_measurements_last_modified ON instance_measurements;
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202604151137-07" author="awood" dbms="hsqldb">
+    <sql splitStatements="false">
+      CREATE TRIGGER trg_hosts_last_modified_create
+        BEFORE INSERT
+        ON hosts
+        REFERENCING NEW AS newrow
+        FOR EACH ROW
+      BEGIN
+        ATOMIC
+        SET newrow.last_modified = CURRENT_TIMESTAMP;
+      END
+    </sql>
+    <sql splitStatements="false">
+      CREATE TRIGGER trg_hosts_last_modified_update
+        BEFORE UPDATE
+        ON hosts
+        REFERENCING NEW AS newrow
+        FOR EACH ROW
+      BEGIN
+        ATOMIC
+        SET newrow.last_modified = CURRENT_TIMESTAMP;
+      END
+    </sql>
+    <rollback>
+      DROP TRIGGER IF EXISTS trg_hosts_last_modified_create;
+      DROP TRIGGER IF EXISTS trg_hosts_last_modified_update;
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202604151137-08" author="awood" dbms="hsqldb">
+    <sql splitStatements="false">
+      CREATE TRIGGER trg_host_tally_buckets_last_modified_create
+        BEFORE INSERT
+        ON host_tally_buckets
+        REFERENCING NEW AS newrow
+        FOR EACH ROW
+      BEGIN
+        ATOMIC
+        SET newrow.last_modified = CURRENT_TIMESTAMP;
+      END
+    </sql>
+    <sql splitStatements="false">
+      CREATE TRIGGER trg_host_tally_buckets_last_modified_update
+        BEFORE UPDATE
+        ON host_tally_buckets
+        REFERENCING NEW AS newrow
+        FOR EACH ROW
+      BEGIN
+        ATOMIC
+        SET newrow.last_modified = CURRENT_TIMESTAMP;
+      END
+    </sql>
+    <rollback>
+      DROP TRIGGER IF EXISTS trg_host_tally_buckets_last_modified_create;
+      DROP TRIGGER IF EXISTS trg_host_tally_buckets_last_modified_update;
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202604151137-09" author="awood" dbms="hsqldb">
+    <sql splitStatements="false">
+      CREATE TRIGGER trg_instance_measurements_last_modified_create
+        BEFORE INSERT
+        ON instance_measurements
+        REFERENCING NEW AS newrow
+        FOR EACH ROW
+      BEGIN
+        ATOMIC
+        SET newrow.last_modified = CURRENT_TIMESTAMP;
+      END
+    </sql>
+    <sql splitStatements="false">
+      CREATE TRIGGER trg_instance_measurements_last_modified_update
+        BEFORE UPDATE
+        ON instance_measurements
+        REFERENCING NEW AS newrow
+        FOR EACH ROW
+      BEGIN
+        ATOMIC
+        SET newrow.last_modified = CURRENT_TIMESTAMP;
+      END
+    </sql>
+    <rollback>
+      DROP TRIGGER IF EXISTS trg_instance_measurements_last_modified_create;
+      DROP TRIGGER IF EXISTS trg_instance_measurements_last_modified_update;
+    </rollback>
+  </changeSet>
+</databaseChangeLog>

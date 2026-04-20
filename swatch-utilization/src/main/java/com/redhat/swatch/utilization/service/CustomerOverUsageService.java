@@ -34,6 +34,7 @@ import com.redhat.swatch.configuration.registry.MetricType;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.utilization.configuration.FeatureFlags;
 import com.redhat.swatch.utilization.model.Measurement;
+import com.redhat.swatch.utilization.model.Severity;
 import com.redhat.swatch.utilization.model.UtilizationSummary;
 import com.redhat.swatch.utilization.model.UtilizationSummary.BillingProvider;
 import io.micrometer.core.instrument.Counter;
@@ -312,6 +313,7 @@ public class CustomerOverUsageService {
     action.setEvents(List.of(buildEvent(utilizationPercent)));
     action.setContext(buildContext(payload, metricId));
     action.setRecipients(List.of(buildRecipient()));
+    action.setSeverity(Severity.IMPORTANT.name());
 
     return action;
   }

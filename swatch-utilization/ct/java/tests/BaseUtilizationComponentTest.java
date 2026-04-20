@@ -26,6 +26,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import api.UtilizationUnleashService;
 import com.redhat.cloud.notifications.ingress.Action;
@@ -40,6 +41,7 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.utilization.test.model.Measurement;
 import com.redhat.swatch.utilization.test.model.UtilizationSummary;
 import domain.Product;
+import domain.Severity;
 import java.util.ArrayList;
 import org.junit.jupiter.api.BeforeEach;
 
@@ -159,7 +161,7 @@ public class BaseUtilizationComponentTest {
   /** Verifies notification is sent with correct product, metric, and utilization percentage. */
   protected void thenNotificationShouldBeSent(
       String productId, MetricId metricId, double usageValue, double capacity) {
-    thenNotificationShouldBeSent(productId, metricId, usageValue, capacity, null, null);
+    thenNotificationShouldBeSent(productId, metricId, usageValue, capacity, null, null, null);
   }
 
   /**
@@ -172,7 +174,8 @@ public class BaseUtilizationComponentTest {
       double usageValue,
       double capacity,
       String expectedServiceLevel,
-      String expectedUsage) {
+      String expectedUsage,
+      Severity expectedSeverity) {
     Action notification =
         kafkaBridge.waitForKafkaMessage(
             NOTIFICATIONS, matchesOverageNotification(orgId, productId, metricId.getValue()));
@@ -192,6 +195,12 @@ public class BaseUtilizationComponentTest {
     if (expectedUsage != null) {
       assertThat(
           "Context should contain expected usage", props.get("usage"), equalTo(expectedUsage));
+    }
+    if (expectedSeverity != null) {
+      assertEquals(
+          expectedSeverity.name(),
+          notification.getSeverity(),
+          "Over-usage notification should declare severity " + expectedSeverity);
     }
 
     var events = notification.getEvents();

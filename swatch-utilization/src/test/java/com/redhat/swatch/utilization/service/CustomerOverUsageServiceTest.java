@@ -22,6 +22,7 @@ package com.redhat.swatch.utilization.service;
 
 import static com.redhat.swatch.utilization.service.CustomerOverUsageService.OVER_USAGE_METRIC;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -33,6 +34,7 @@ import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import com.redhat.swatch.utilization.configuration.FeatureFlags;
 import com.redhat.swatch.utilization.model.Measurement;
+import com.redhat.swatch.utilization.model.Severity;
 import com.redhat.swatch.utilization.model.UtilizationSummary;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.search.Search;
@@ -234,6 +236,27 @@ class CustomerOverUsageServiceTest {
 
     // Then
     verify(notificationsProducer, times(1)).produce(any(Action.class));
+  }
+
+  @Test
+  void shouldSendOverusageNotification_withImportantSeverity() {
+    // Given
+    when(featureFlags.sendNotifications()).thenReturn(true);
+    UtilizationSummary summary =
+        givenUtilizationSummary(PRODUCT_ID, METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
+
+    // When
+    whenCheckSummary(summary);
+
+    // Then
+    var captor = ArgumentCaptor.forClass(Action.class);
+    verify(notificationsProducer, times(1)).produce(captor.capture());
+    Action action = captor.getValue();
+    assertNotNull(action.getSeverity(), "Notification action should define severity");
+    assertEquals(
+        Severity.IMPORTANT.name(),
+        action.getSeverity(),
+        "Over-usage notifications should use IMPORTANT severity");
   }
 
   @Test

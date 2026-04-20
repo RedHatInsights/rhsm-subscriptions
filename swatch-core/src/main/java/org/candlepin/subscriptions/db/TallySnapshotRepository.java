@@ -198,6 +198,68 @@ public interface TallySnapshotRepository
   }
 
   @SuppressWarnings("java:S107")
+  @QueryHints(
+      value = {
+        @QueryHint(name = HINT_FETCH_SIZE, value = "1024"),
+        @QueryHint(name = HINT_READ_ONLY, value = "true")
+      })
+  @Query(
+      value =
+          """
+      select coalesce(sum(m.value), 0.0) from tally_snapshots s
+      left join tally_measurements m on m.snapshot_id=s.id
+      where s.is_primary = true and
+        s.org_id = :orgId and
+        s.product_id = :productId and
+        s.granularity = :granularity and
+        s.sla = :serviceLevel and
+        s.usage = :usage and
+        s.billing_provider = :billingProvider and
+        s.billing_account_id = :billingAcctId and
+        s.snapshot_date >= :beginning and s.snapshot_date <= :ending and
+        m.measurement_type != 'TOTAL' and m.metric_id = :metricId
+      """,
+      nativeQuery = true)
+  Double sumMeasurementValueForPeriodWithPrimary(
+      @Param("orgId") String orgId,
+      @Param("productId") String productId,
+      @Param("granularity") String granularity,
+      @Param("serviceLevel") String serviceLevel,
+      @Param("usage") String usage,
+      @Param("billingProvider") String billingProvider,
+      @Param("billingAcctId") String billingAccountId,
+      @Param("beginning") OffsetDateTime beginning,
+      @Param("ending") OffsetDateTime ending,
+      @Param("metricId") String metricId);
+
+  // Provided to allow passing enums instead of strings. Native queries need the String values
+  // of enums, so this is a common place to do the required name vs value conversion.
+  @SuppressWarnings("java:S107")
+  default Double sumMeasurementValueForPeriodWithPrimary(
+      @Param("orgId") String orgId,
+      @Param("productId") String productId,
+      @Param("granularity") Granularity granularity,
+      @Param("serviceLevel") ServiceLevel serviceLevel,
+      @Param("usage") Usage usage,
+      @Param("billingProvider") BillingProvider billingProvider,
+      @Param("billingAcctId") String billingAccountId,
+      @Param("beginning") OffsetDateTime beginning,
+      @Param("ending") OffsetDateTime ending,
+      @Param("measurementKey") TallyMeasurementKey measurementKey) {
+    return this.sumMeasurementValueForPeriodWithPrimary(
+        orgId,
+        productId,
+        granularity.name(),
+        serviceLevel.getValue(),
+        usage.getValue(),
+        billingProvider.getValue(),
+        billingAccountId,
+        beginning,
+        ending,
+        measurementKey.getMetricId());
+  }
+
+  @SuppressWarnings("java:S107")
   @Query(
       value =
           """

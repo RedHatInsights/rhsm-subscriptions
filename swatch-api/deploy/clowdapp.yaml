@@ -120,6 +120,7 @@ objects:
         - swatch-tally
         - rbac
         - swatch-contracts
+        - swatch-utilization
 
       database:
         sharedDbAppName: ${DB_POD}
@@ -420,6 +421,9 @@ objects:
           upstream swatch-contracts {
             server swatch-contracts-service:8000;
           }
+          upstream swatch-utilization {
+            server swatch-utilization-service:8000;
+          }
 
           server {
             # TODO: Replace syslog with filelog once Clowder supports volumeMounts in sidecars:
@@ -454,6 +458,10 @@ objects:
     
             location /api/rhsm-subscriptions/v1/capacity/products {
               proxy_pass http://swatch-contracts;
+            }
+
+            location /api/rhsm-subscriptions/v1/utilization/org-preferences {
+              proxy_pass http://swatch-utilization;
             }
 
             location ^~/ {
