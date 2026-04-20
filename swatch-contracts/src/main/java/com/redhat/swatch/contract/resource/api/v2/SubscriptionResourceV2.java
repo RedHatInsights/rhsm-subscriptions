@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.contract.resource.api.v2;
 
+import com.redhat.swatch.common.security.OrgIdResolver;
 import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.contract.openapi.model.BillingProviderType;
 import com.redhat.swatch.contract.openapi.model.ReportCategory;
@@ -29,7 +30,6 @@ import com.redhat.swatch.contract.openapi.model.SkuCapacityReportV2;
 import com.redhat.swatch.contract.openapi.model.SortDirection;
 import com.redhat.swatch.contract.openapi.model.UsageType;
 import com.redhat.swatch.contract.openapi.resource.SubscriptionsV2Api;
-import com.redhat.swatch.contract.resource.OrgIdResolver;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;

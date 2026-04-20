@@ -17,7 +17,6 @@ SHELL=/bin/bash
 	install \
 	test \
 	clean \
-	rollback \
 	status
 
 # Add a profile(s) to use like so:
@@ -126,19 +125,6 @@ swatch-utilization:
 swatch-api:
 	$(eval override PROFILES+=api)
 	$(call SPRING_PROXY,swatch-tally,8019)
-
-rollback:
-	@echo "Select database context:"
-	@echo "1. Core context"
-	@echo "2. Contracts context"
-	@read -p "Enter context choice (1-2): " context; \
-	case $$context in \
-		1) CONTEXT="core" ;; \
-		2) CONTEXT="contracts" ;; \
-		*) echo "Invalid context choice"; exit 1 ;; \
-	esac; \
-	read -p "Enter number of changesets: " count; \
-	./mvnw -f swatch-database/pom.xml exec:java -Dexec.args="$$CONTEXT rollbackCountSql --count=$$count"
 
 # $1 = service name, $2 = port
 define CHECK_SERVICE_STATUS
