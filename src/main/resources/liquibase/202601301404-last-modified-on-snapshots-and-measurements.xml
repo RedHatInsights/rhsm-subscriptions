@@ -23,20 +23,12 @@
   avoids a round-trip while keeping timestamp generation on the DB.
   -->
 
-  <changeSet id="202601301404-01" author="awood" dbms="postgresql">
-    <createProcedure>
-      CREATE OR REPLACE FUNCTION update_last_modified_column()
-        RETURNS TRIGGER AS
-      $$
-      BEGIN
-        NEW.last_modified = CURRENT_TIMESTAMP;
-        RETURN NEW;
-      END;
-      $$ LANGUAGE plpgsql;
-    </createProcedure>
-    <rollback>
-      DROP FUNCTION IF EXISTS update_last_modified_column();
-    </rollback>
+  <changeSet id="202601301404-01" author="awood" dbms="postgresql" runOnChange="true">
+    <sqlFile path="liquibase/procedures/update_last_modified_column.sql"
+      splitStatements="false"
+    />
+    <!-- No rollback provided as other changesets rely on this stored procedure -->
+    <rollback/>
   </changeSet>
 
   <changeSet id="202601301404-02" author="awood">
@@ -82,8 +74,8 @@
       END
     </sql>
     <rollback>
-      DROP TRIGGER IF EXISTS trg_tally_snapshots_last_modified_create
-      DROP TRIGGER IF EXISTS trg_tally_snapshots_last_modified_update
+      DROP TRIGGER IF EXISTS trg_tally_snapshots_last_modified_create;
+      DROP TRIGGER IF EXISTS trg_tally_snapshots_last_modified_update;
     </rollback>
   </changeSet>
 
@@ -133,8 +125,8 @@
       END
     </sql>
     <rollback>
-      DROP TRIGGER IF EXISTS trg_tally_measurements_last_modified_create
-      DROP TRIGGER IF EXISTS trg_tally_measurements_last_modified_update
+      DROP TRIGGER IF EXISTS trg_tally_measurements_last_modified_create;
+      DROP TRIGGER IF EXISTS trg_tally_measurements_last_modified_update;
     </rollback>
   </changeSet>
 </databaseChangeLog>

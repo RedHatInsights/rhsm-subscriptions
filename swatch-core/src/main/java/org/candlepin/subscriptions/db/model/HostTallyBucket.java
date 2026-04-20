@@ -32,11 +32,14 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import jakarta.persistence.Version;
 import java.io.Serializable;
+import java.time.Instant;
 import java.util.Objects;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.Generated;
 
 /** Represents a bucket that this host contributes to. */
 @ToString
@@ -65,6 +68,11 @@ public class HostTallyBucket implements Serializable {
 
   // Version to enable optimistic locking
   @Version @Column private Integer version;
+
+  @Column(name = "last_modified", insertable = false, updatable = false)
+  @ColumnDefault("CURRENT_TIMESTAMP")
+  @Generated
+  private Instant lastModified = null;
 
   @SuppressWarnings("java:S107")
   public HostTallyBucket(
