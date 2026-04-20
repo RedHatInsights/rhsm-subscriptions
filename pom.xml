@@ -19,7 +19,7 @@
     <codegen.skipIfSpecIsUnchanged>true</codegen.skipIfSpecIsUnchanged>
 
     <!-- Dependencies -->
-    <quarkus.platform.version>3.34.3</quarkus.platform.version>
+    <quarkus.platform.version>3.34.5</quarkus.platform.version>
     <spring.boot.version>3.5.13</spring.boot.version>
     <spring.boot.version>4.0.5</spring.boot.version>
     <resteasy.version>7.0.0.Final</resteasy.version>
@@ -31,7 +31,7 @@
     <jakarta.ws.rs-api.version>4.0.0</jakarta.ws.rs-api.version>
     <jakarta.persistence-api.version>3.2.0</jakarta.persistence-api.version>
     <opentelemetry-api.version>1.61.0</opentelemetry-api.version>
-    <awssdk-bom.version>2.42.35</awssdk-bom.version>
+    <awssdk-bom.version>2.42.36</awssdk-bom.version>
     <guava.version>33.6.0-jre</guava.version>
     <liquibase.version>5.0.2</liquibase.version>
     <postgresql.version>42.7.10</postgresql.version>
