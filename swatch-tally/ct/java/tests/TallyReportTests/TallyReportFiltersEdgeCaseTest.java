@@ -33,7 +33,7 @@ import com.redhat.swatch.tally.test.model.TallyReportData;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.candlepin.subscriptions.json.Event;
@@ -54,27 +54,43 @@ public class TallyReportFiltersEdgeCaseTest extends BaseTallyComponentTest {
   private static final String PRODUCT_TAG = RHEL_FOR_X86_ELS_PAYG.productTag();
   private static final String METRIC_ID = RHEL_FOR_X86_ELS_PAYG.metricIds().get(0);
 
-  // TC009: Aggregation test data
-  private static OffsetDateTime tc009Timestamp;
-  private static OffsetDateTime tc009Beginning;
-  private static OffsetDateTime tc009Ending;
+  // Test scenario data structures
+  record AggregationScenario(
+      OffsetDateTime timestamp,
+      OffsetDateTime beginning,
+      OffsetDateTime ending,
+      List<Float> valuesToAggregate) {}
 
-  // TC010: Three SLA values test data
-  private static OffsetDateTime tc010Timestamp;
-  private static OffsetDateTime tc010Beginning;
-  private static OffsetDateTime tc010Ending;
+  record ThreeSlaScenario(
+      OffsetDateTime timestamp,
+      OffsetDateTime beginning,
+      OffsetDateTime ending,
+      float premiumValue,
+      float standardValue,
+      float selfSupportValue) {}
 
-  // TC015: Data gaps test data
-  private static OffsetDateTime tc015BaseTime;
-  private static OffsetDateTime tc015Beginning;
-  private static OffsetDateTime tc015Ending;
+  record DataGapScenario(
+      OffsetDateTime baseTime,
+      OffsetDateTime beginning,
+      OffsetDateTime ending,
+      float valueAtHour0,
+      float valueAtHour2) {}
 
-  // TC024: Billing account change test data
-  private static String tc024InstanceId;
-  private static String tc024BillingAccount1;
-  private static String tc024BillingAccount2;
-  private static OffsetDateTime tc024Beginning;
-  private static OffsetDateTime tc024Ending;
+  record BillingAccountChangeScenario(
+      String instanceId,
+      String billingAccount1,
+      String billingAccount2,
+      OffsetDateTime beginning,
+      OffsetDateTime ending,
+      OffsetDateTime firstEventTime,
+      OffsetDateTime secondEventTime,
+      float firstEventValue,
+      float secondEventValue) {}
+
+  private static AggregationScenario aggregationTest;
+  private static ThreeSlaScenario threeSlaTest;
+  private static DataGapScenario dataGapTest;
+  private static BillingAccountChangeScenario billingChangeTest;
 
   @BeforeAll
   static void setupEdgeCaseEvents() {
@@ -82,171 +98,132 @@ public class TallyReportFiltersEdgeCaseTest extends BaseTallyComponentTest {
     service.createOptInConfig(testOrgId);
 
     // TC009: Multiple events with same filter attributes (aggregation)
-    tc009Timestamp = OffsetDateTime.now(ZoneOffset.UTC).minusHours(5).truncatedTo(ChronoUnit.HOURS);
-    tc009Beginning = tc009Timestamp.truncatedTo(ChronoUnit.HOURS);
-    tc009Ending = tc009Beginning.plusHours(1).minusNanos(1);
+    OffsetDateTime aggregationTime =
+        OffsetDateTime.now(ZoneOffset.UTC).minusHours(5).truncatedTo(ChronoUnit.HOURS);
+    aggregationTest =
+        new AggregationScenario(
+            aggregationTime,
+            aggregationTime,
+            aggregationTime.plusHours(1).minusNanos(1),
+            List.of(15.0f, 25.0f, 10.0f));
 
-    for (float value : new float[] {15.0f, 25.0f, 10.0f}) {
-      Event event =
-          helpers.createPaygEventWithTimestamp(
-              testOrgId,
-              UUID.randomUUID().toString(),
-              tc009Timestamp.toString(),
-              UUID.randomUUID().toString(),
-              METRIC_ID,
-              value,
-              Event.Sla.PREMIUM,
-              Event.HardwareType.CLOUD,
-              PRODUCT_ID,
-              PRODUCT_TAG);
-      kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event);
+    for (float value : aggregationTest.valuesToAggregate()) {
+      publishEvent(aggregationTest.timestamp(), value, Event.Sla.PREMIUM);
     }
 
     // TC010: Three distinct SLA values
-    tc010Timestamp = OffsetDateTime.now(ZoneOffset.UTC).minusHours(4).truncatedTo(ChronoUnit.HOURS);
-    tc010Beginning = tc010Timestamp.truncatedTo(ChronoUnit.HOURS);
-    tc010Ending = tc010Beginning.plusHours(1).minusNanos(1);
-
-    Event tc010Event1 =
-        helpers.createPaygEventWithTimestamp(
-            testOrgId,
-            UUID.randomUUID().toString(),
-            tc010Timestamp.toString(),
-            UUID.randomUUID().toString(),
-            METRIC_ID,
+    OffsetDateTime threeSlaTime =
+        OffsetDateTime.now(ZoneOffset.UTC).minusHours(4).truncatedTo(ChronoUnit.HOURS);
+    threeSlaTest =
+        new ThreeSlaScenario(
+            threeSlaTime,
+            threeSlaTime,
+            threeSlaTime.plusHours(1).minusNanos(1),
             10.0f,
-            Event.Sla.PREMIUM,
-            Event.HardwareType.CLOUD,
-            PRODUCT_ID,
-            PRODUCT_TAG);
-    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, tc010Event1);
-
-    Event tc010Event2 =
-        helpers.createPaygEventWithTimestamp(
-            testOrgId,
-            UUID.randomUUID().toString(),
-            tc010Timestamp.toString(),
-            UUID.randomUUID().toString(),
-            METRIC_ID,
             20.0f,
-            Event.Sla.STANDARD,
-            Event.HardwareType.CLOUD,
-            PRODUCT_ID,
-            PRODUCT_TAG);
-    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, tc010Event2);
+            30.0f);
 
-    Event tc010Event3 =
-        helpers.createPaygEventWithTimestamp(
-            testOrgId,
-            UUID.randomUUID().toString(),
-            tc010Timestamp.toString(),
-            UUID.randomUUID().toString(),
-            METRIC_ID,
-            30.0f,
-            Event.Sla.SELF_SUPPORT,
-            Event.HardwareType.CLOUD,
-            PRODUCT_ID,
-            PRODUCT_TAG);
-    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, tc010Event3);
+    publishEvent(threeSlaTest.timestamp(), threeSlaTest.premiumValue(), Event.Sla.PREMIUM);
+    publishEvent(threeSlaTest.timestamp(), threeSlaTest.standardValue(), Event.Sla.STANDARD);
+    publishEvent(
+        threeSlaTest.timestamp(), threeSlaTest.selfSupportValue(), Event.Sla.SELF_SUPPORT);
 
     // TC015: Data gaps with hasData field
-    tc015BaseTime = OffsetDateTime.now(ZoneOffset.UTC).minusHours(10).truncatedTo(ChronoUnit.HOURS);
-    tc015Beginning = tc015BaseTime.truncatedTo(ChronoUnit.HOURS);
-    tc015Ending = tc015Beginning.plusHours(4).minusNanos(1);
-
-    // Event for first hour
-    Event tc015Event1 =
-        helpers.createPaygEventWithTimestamp(
-            testOrgId,
-            UUID.randomUUID().toString(),
-            tc015BaseTime.toString(),
-            UUID.randomUUID().toString(),
-            METRIC_ID,
+    OffsetDateTime gapBaseTime =
+        OffsetDateTime.now(ZoneOffset.UTC).minusHours(10).truncatedTo(ChronoUnit.HOURS);
+    dataGapTest =
+        new DataGapScenario(
+            gapBaseTime,
+            gapBaseTime,
+            gapBaseTime.plusHours(4).minusNanos(1),
             10.0f,
-            Event.Sla.PREMIUM,
-            Event.HardwareType.CLOUD,
-            PRODUCT_ID,
-            PRODUCT_TAG);
-    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, tc015Event1);
+            20.0f);
 
-    // Event for third hour (skip hour 2 - creates gap)
-    Event tc015Event2 =
-        helpers.createPaygEventWithTimestamp(
-            testOrgId,
-            UUID.randomUUID().toString(),
-            tc015BaseTime.plusHours(2).toString(),
-            UUID.randomUUID().toString(),
-            METRIC_ID,
-            20.0f,
-            Event.Sla.PREMIUM,
-            Event.HardwareType.CLOUD,
-            PRODUCT_ID,
-            PRODUCT_TAG);
-    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, tc015Event2);
+    publishEvent(dataGapTest.baseTime(), dataGapTest.valueAtHour0(), Event.Sla.PREMIUM);
+    publishEvent(
+        dataGapTest.baseTime().plusHours(2), dataGapTest.valueAtHour2(), Event.Sla.PREMIUM);
 
     // TC024: Billing account change for same instance
-    tc024InstanceId = UUID.randomUUID().toString();
-    tc024BillingAccount1 = UUID.randomUUID().toString();
-    tc024BillingAccount2 = UUID.randomUUID().toString();
-    OffsetDateTime tc024Now = OffsetDateTime.now(ZoneOffset.UTC).minusHours(3);
-    tc024Beginning = tc024Now.truncatedTo(ChronoUnit.DAYS);
-    tc024Ending = tc024Beginning.plusDays(1).minusNanos(1);
-
-    // First event with billing account 1
-    Event tc024Event1 =
-        helpers.createPaygEventWithTimestamp(
-            testOrgId,
-            tc024InstanceId,
-            tc024Now.minusHours(1).toString(),
+    OffsetDateTime changeTime = OffsetDateTime.now(ZoneOffset.UTC).minusHours(3);
+    billingChangeTest =
+        new BillingAccountChangeScenario(
             UUID.randomUUID().toString(),
-            METRIC_ID,
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString(),
+            changeTime.truncatedTo(ChronoUnit.DAYS),
+            changeTime.truncatedTo(ChronoUnit.DAYS).plusDays(1).minusNanos(1),
+            changeTime.minusHours(1),
+            changeTime,
             5.0f,
-            Event.Sla.PREMIUM,
-            Event.HardwareType.CLOUD,
-            PRODUCT_ID,
-            PRODUCT_TAG);
-    tc024Event1.setBillingAccountId(java.util.Optional.of(tc024BillingAccount1));
-    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, tc024Event1);
+            8.0f);
 
-    // Second event with billing account 2 (same instance)
-    Event tc024Event2 =
-        helpers.createPaygEventWithTimestamp(
-            testOrgId,
-            tc024InstanceId,
-            tc024Now.toString(),
-            UUID.randomUUID().toString(),
-            METRIC_ID,
-            8.0f,
-            Event.Sla.PREMIUM,
-            Event.HardwareType.CLOUD,
-            PRODUCT_ID,
-            PRODUCT_TAG);
-    tc024Event2.setBillingAccountId(java.util.Optional.of(tc024BillingAccount2));
-    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, tc024Event2);
+    publishEvent(
+        billingChangeTest.instanceId(),
+        billingChangeTest.firstEventTime(),
+        billingChangeTest.firstEventValue(),
+        Event.Sla.PREMIUM,
+        billingChangeTest.billingAccount1());
 
-    // Tally all edge case events once
+    publishEvent(
+        billingChangeTest.instanceId(),
+        billingChangeTest.secondEventTime(),
+        billingChangeTest.secondEventValue(),
+        Event.Sla.PREMIUM,
+        billingChangeTest.billingAccount2());
+
     service.performHourlyTallyForOrg(testOrgId);
     service.tallyOrg(testOrgId);
+  }
+
+  // Overloaded publishEvent methods - basic case with random instance, no billing account
+  private static void publishEvent(OffsetDateTime timestamp, float value, Event.Sla sla) {
+    publishEvent(UUID.randomUUID().toString(), timestamp, value, sla, null);
+  }
+
+  // With specific instance ID and billing account
+  private static void publishEvent(
+      String instanceId,
+      OffsetDateTime timestamp,
+      float value,
+      Event.Sla sla,
+      String billingAccountId) {
+
+    Event event =
+        helpers.createPaygEventWithTimestamp(
+            testOrgId,
+            instanceId,
+            timestamp.toString(),
+            UUID.randomUUID().toString(),
+            METRIC_ID,
+            value,
+            sla,
+            Event.HardwareType.CLOUD,
+            PRODUCT_ID,
+            PRODUCT_TAG);
+
+    if (billingAccountId != null) {
+      event.setBillingAccountId(java.util.Optional.of(billingAccountId));
+    }
+
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event);
   }
 
   @ParameterizedTest(name = "with primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-TC009")
   void shouldAggregateMultipleEventsWithSameFilters(boolean enablePrimaryRowSearches) {
-    // Given: Feature flag is configured and multiple events with same filter attributes exist
     givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
 
-    // When: Querying hourly report with Premium SLA filter
-    Map<String, Object> queryParams = new HashMap<>();
-    queryParams.put("granularity", "Hourly");
-    queryParams.put("beginning", tc009Beginning.toString());
-    queryParams.put("ending", tc009Ending.toString());
-    queryParams.put("sla", ServiceLevelType.PREMIUM.toString());
+    Map<String, Object> queryParams =
+        Map.of(
+            "granularity", "Hourly",
+            "beginning", aggregationTest.beginning().toString(),
+            "ending", aggregationTest.ending().toString(),
+            "sla", ServiceLevelType.PREMIUM.toString());
 
     TallyReportData response =
         service.getTallyReportData(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams);
 
-    // Then: All events with matching filters are aggregated
     double total =
         response.getData() == null
             ? 0.0
@@ -259,20 +236,18 @@ public class TallyReportFiltersEdgeCaseTest extends BaseTallyComponentTest {
   @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-TC010")
   void shouldFilterWithThreeDistinctSlaValues(boolean enablePrimaryRowSearches) {
-    // Given: Feature flag is configured and events with three different SLA values exist
     givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
 
-    // When: Querying hourly report filtered by Self-Support SLA
-    Map<String, Object> queryParams = new HashMap<>();
-    queryParams.put("granularity", "Hourly");
-    queryParams.put("beginning", tc010Beginning.toString());
-    queryParams.put("ending", tc010Ending.toString());
-    queryParams.put("sla", ServiceLevelType.SELF_SUPPORT.toString());
+    Map<String, Object> queryParams =
+        Map.of(
+            "granularity", "Hourly",
+            "beginning", threeSlaTest.beginning().toString(),
+            "ending", threeSlaTest.ending().toString(),
+            "sla", ServiceLevelType.SELF_SUPPORT.toString());
 
     TallyReportData response =
         service.getTallyReportData(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams);
 
-    // Then: Only Self-Support SLA events are returned
     double total =
         response.getData() == null
             ? 0.0
@@ -285,22 +260,19 @@ public class TallyReportFiltersEdgeCaseTest extends BaseTallyComponentTest {
   @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-TC015")
   void shouldIndicateDataGapsWithHasDataField(boolean enablePrimaryRowSearches) {
-    // Given: Feature flag is configured and events exist with time gaps
     givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
 
-    // When: Querying hourly report across time range with data gaps
     Map<String, Object> queryParams =
         Map.of(
             "granularity", "Hourly",
-            "beginning", tc015Beginning.toString(),
-            "ending", tc015Ending.toString());
+            "beginning", dataGapTest.beginning().toString(),
+            "ending", dataGapTest.ending().toString());
 
     TallyReportData response =
         AwaitilityUtils.until(
             () -> service.getTallyReportData(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams),
             data -> data.getData() != null && !data.getData().isEmpty());
 
-    // Then: Data points indicate presence of data with hasData field
     assertNotNull(response.getData(), "Response data should not be null");
 
     long pointsWithData =
@@ -317,16 +289,14 @@ public class TallyReportFiltersEdgeCaseTest extends BaseTallyComponentTest {
   @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-TC024")
   void shouldTrackBillingAccountChangeForSameInstance(boolean enablePrimaryRowSearches) {
-    // Given: Feature flag is configured and same instance has events with different billing
-    // accounts
     givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
 
-    // When: Querying daily reports filtered by each billing account
-    Map<String, Object> queryParams1 = new HashMap<>();
-    queryParams1.put("granularity", "Daily");
-    queryParams1.put("beginning", tc024Beginning.toString());
-    queryParams1.put("ending", tc024Ending.toString());
-    queryParams1.put("billing_account_id", tc024BillingAccount1);
+    Map<String, Object> queryParams1 =
+        Map.of(
+            "granularity", "Daily",
+            "beginning", billingChangeTest.beginning().toString(),
+            "ending", billingChangeTest.ending().toString(),
+            "billing_account_id", billingChangeTest.billingAccount1());
 
     TallyReportData response1 =
         service.getTallyReportData(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams1);
@@ -336,11 +306,12 @@ public class TallyReportFiltersEdgeCaseTest extends BaseTallyComponentTest {
             ? 0.0
             : response1.getData().stream().mapToInt(d -> d.getValue()).sum();
 
-    Map<String, Object> queryParams2 = new HashMap<>();
-    queryParams2.put("granularity", "Daily");
-    queryParams2.put("beginning", tc024Beginning.toString());
-    queryParams2.put("ending", tc024Ending.toString());
-    queryParams2.put("billing_account_id", tc024BillingAccount2);
+    Map<String, Object> queryParams2 =
+        Map.of(
+            "granularity", "Daily",
+            "beginning", billingChangeTest.beginning().toString(),
+            "ending", billingChangeTest.ending().toString(),
+            "billing_account_id", billingChangeTest.billingAccount2());
 
     TallyReportData response2 =
         service.getTallyReportData(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams2);
@@ -350,7 +321,6 @@ public class TallyReportFiltersEdgeCaseTest extends BaseTallyComponentTest {
             ? 0.0
             : response2.getData().stream().mapToInt(d -> d.getValue()).sum();
 
-    // Then: Each billing account shows correct totals for its events
     assertEquals(5.0, account1Total, 0.0001, "Billing account 1 should total 5");
     assertEquals(8.0, account2Total, 0.0001, "Billing account 2 should total 8");
   }
