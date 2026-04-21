@@ -27,12 +27,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import com.redhat.cloud.notifications.ingress.Action;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
-import com.redhat.swatch.utilization.configuration.FeatureFlags;
 import com.redhat.swatch.utilization.model.Measurement;
 import com.redhat.swatch.utilization.model.Severity;
 import com.redhat.swatch.utilization.model.UtilizationSummary;
@@ -62,8 +60,6 @@ class CustomerOverUsageServiceTest {
   @Inject MeterRegistry meterRegistry;
 
   @InjectMock NotificationsProducer notificationsProducer;
-
-  @InjectMock FeatureFlags featureFlags;
 
   static MockedStatic<SubscriptionDefinition> subscriptionDefinition;
 
@@ -121,7 +117,6 @@ class CustomerOverUsageServiceTest {
   @Test
   void shouldIncrementCounter_whenUsageExceedsThreshold() {
     // Given
-    when(featureFlags.sendNotifications()).thenReturn(true);
     UtilizationSummary summary =
         givenUtilizationSummary(PRODUCT_ID, METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
 
@@ -150,7 +145,6 @@ class CustomerOverUsageServiceTest {
   @Test
   void shouldIncrementCounterOnce_forEachMeasurementExceedingThreshold() {
     // Given - two measurements, both exceeding threshold
-    when(featureFlags.sendNotifications()).thenReturn(true);
     UtilizationSummary summary =
         new UtilizationSummary()
             .withOrgId(ORG_ID)
@@ -188,7 +182,6 @@ class CustomerOverUsageServiceTest {
   @Test
   void shouldIncrementCounterSelectively_whenMixedMeasurements() {
     // Given
-    when(featureFlags.sendNotifications()).thenReturn(true);
     UtilizationSummary summary =
         new UtilizationSummary()
             .withOrgId(ORG_ID)
@@ -225,9 +218,8 @@ class CustomerOverUsageServiceTest {
   }
 
   @Test
-  void shouldSendNotification_whenUsageExceedsThresholdAndFeatureFlagEnabled() {
+  void shouldInvokeNotificationsProducer_whenUsageExceedsThreshold() {
     // Given
-    when(featureFlags.sendNotifications()).thenReturn(true);
     UtilizationSummary summary =
         givenUtilizationSummary(PRODUCT_ID, METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
 
@@ -241,7 +233,6 @@ class CustomerOverUsageServiceTest {
   @Test
   void shouldSendOverusageNotification_withImportantSeverity() {
     // Given
-    when(featureFlags.sendNotifications()).thenReturn(true);
     UtilizationSummary summary =
         givenUtilizationSummary(PRODUCT_ID, METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
 
@@ -260,23 +251,8 @@ class CustomerOverUsageServiceTest {
   }
 
   @Test
-  void shouldNotSendNotification_whenUsageExceedsThresholdButFeatureFlagDisabled() {
-    // Given
-    when(featureFlags.sendNotifications()).thenReturn(false);
-    UtilizationSummary summary =
-        givenUtilizationSummary(PRODUCT_ID, METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
-
-    // When
-    whenCheckSummary(summary);
-
-    // Then
-    verify(notificationsProducer, never()).produce(any(Action.class));
-  }
-
-  @Test
   void shouldNotSendNotification_whenUsageBelowThreshold() {
     // Given
-    when(featureFlags.sendNotifications()).thenReturn(true);
     UtilizationSummary summary =
         givenUtilizationSummary(PRODUCT_ID, METRIC_ID, CAPACITY, USAGE_BELOW_THRESHOLD);
 
@@ -290,7 +266,6 @@ class CustomerOverUsageServiceTest {
   @Test
   void shouldSendMultipleNotifications_whenMultipleMeasurementsExceedThreshold() {
     // Given
-    when(featureFlags.sendNotifications()).thenReturn(true);
     UtilizationSummary summary =
         new UtilizationSummary()
             .withOrgId(ORG_ID)
@@ -346,7 +321,6 @@ class CustomerOverUsageServiceTest {
     subscriptionDefinition
         .when(() -> SubscriptionDefinition.getOverUsageThreshold(PRODUCT_ID))
         .thenReturn(null);
-    when(featureFlags.sendNotifications()).thenReturn(true);
 
     UtilizationSummary summary =
         givenUtilizationSummary(PRODUCT_ID, METRIC_ID, CAPACITY, USAGE_ABOVE_DEFAULT_THRESHOLD);
@@ -362,50 +336,6 @@ class CustomerOverUsageServiceTest {
         "Counter should be incremented when using default threshold");
 
     // Verify the static method was called and notification was sent
-    verify(notificationsProducer, times(1)).produce(any(Action.class));
-  }
-
-  @Test
-  void shouldSendNotification_whenOrgIsAllowlistedAndGlobalFlagDisabled() {
-    // Given - the global flag disabled but org is in allowlist
-    when(featureFlags.sendNotifications()).thenReturn(false);
-    when(featureFlags.isOrgAllowlistedForNotifications(ORG_ID)).thenReturn(true);
-    UtilizationSummary summary =
-        givenUtilizationSummary(PRODUCT_ID, METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
-
-    // When
-    whenCheckSummary(summary);
-
-    // Then - notification should be sent because org is allowlisted
-    verify(notificationsProducer, times(1)).produce(any(Action.class));
-  }
-
-  @Test
-  void shouldNotSendNotification_whenOrgIsNotAllowlistedAndGlobalFlagDisabled() {
-    // Given - global flag disabled and org NOT in allowlist
-    when(featureFlags.sendNotifications()).thenReturn(false);
-    when(featureFlags.isOrgAllowlistedForNotifications(ORG_ID)).thenReturn(false);
-    UtilizationSummary summary =
-        givenUtilizationSummary(PRODUCT_ID, METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
-
-    // When
-    whenCheckSummary(summary);
-
-    // Then - no notification because global flag is off and org is not allowlisted
-    verify(notificationsProducer, never()).produce(any(Action.class));
-  }
-
-  @Test
-  void shouldSendNotification_whenOrgIsAllowlistedAndGlobalFlagEnabled() {
-    // Given - both global flag and allowlist allow sending
-    when(featureFlags.sendNotifications()).thenReturn(true);
-    UtilizationSummary summary =
-        givenUtilizationSummary(PRODUCT_ID, METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
-
-    // When
-    whenCheckSummary(summary);
-
-    // Then - notification sent (global flag takes priority, no need to check allowlist)
     verify(notificationsProducer, times(1)).produce(any(Action.class));
   }
 
@@ -474,7 +404,6 @@ class CustomerOverUsageServiceTest {
       String expectedServiceLevel,
       String expectedUsage) {
     // Given
-    when(featureFlags.sendNotifications()).thenReturn(true);
     UtilizationSummary summary =
         givenUtilizationSummary(PRODUCT_ID, METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD)
             .withSla(sla)
@@ -501,7 +430,6 @@ class CustomerOverUsageServiceTest {
   void shouldUseValue_forGaugeMetric_nonPaygProduct() {
     // RHEL for x86 / Sockets is a gauge metric on a non-PAYG product.
     // value=1 socket (below 2 capacity), currentTotal=31 (meaningless sum of daily gauges)
-    when(featureFlags.sendNotifications()).thenReturn(true);
     UtilizationSummary summary =
         new UtilizationSummary()
             .withOrgId(ORG_ID)
@@ -523,7 +451,6 @@ class CustomerOverUsageServiceTest {
 
   @Test
   void shouldTriggerNotification_forGaugeMetric_whenValueExceedsCapacity() {
-    when(featureFlags.sendNotifications()).thenReturn(true);
     UtilizationSummary summary =
         new UtilizationSummary()
             .withOrgId(ORG_ID)
@@ -547,7 +474,6 @@ class CustomerOverUsageServiceTest {
   void shouldUseCurrentTotal_forCounterMetric_paygProduct() {
     // rosa / Cores is a counter metric on a PAYG product.
     // value=4 (hourly increment), currentTotal=110 (MTD cumulative, exceeds 100 capacity)
-    when(featureFlags.sendNotifications()).thenReturn(true);
     UtilizationSummary summary =
         new UtilizationSummary()
             .withOrgId(ORG_ID)
@@ -571,7 +497,6 @@ class CustomerOverUsageServiceTest {
   void shouldUseValue_forGaugeMetric_onPaygProduct() {
     // ansible-aap-managed / Managed-nodes is a gauge metric on a PAYG product.
     // value=5 (below 10 capacity), currentTotal=150 (meaningless sum of daily gauges)
-    when(featureFlags.sendNotifications()).thenReturn(true);
     UtilizationSummary summary =
         new UtilizationSummary()
             .withOrgId(ORG_ID)
@@ -595,7 +520,6 @@ class CustomerOverUsageServiceTest {
   void shouldUseCurrentTotal_forCounterMetric_onSamePaygProduct() {
     // ansible-aap-managed / Instance-hours is a counter metric on the same PAYG product.
     // value=4 (hourly increment), currentTotal=110 (MTD cumulative, exceeds 100 capacity)
-    when(featureFlags.sendNotifications()).thenReturn(true);
     UtilizationSummary summary =
         new UtilizationSummary()
             .withOrgId(ORG_ID)
@@ -618,7 +542,6 @@ class CustomerOverUsageServiceTest {
   @Test
   void shouldFallBackToValue_forUnknownMetricOnKnownProduct() {
     // Known product but unrecognized metric → defaults to GAUGE → uses value
-    when(featureFlags.sendNotifications()).thenReturn(true);
     UtilizationSummary summary =
         new UtilizationSummary()
             .withOrgId(ORG_ID)
@@ -641,7 +564,6 @@ class CustomerOverUsageServiceTest {
   @Test
   void shouldFallBackToValue_forUnknownProduct() {
     // Unknown product → lookupSubscriptionByTag returns empty → defaults to GAUGE → uses value
-    when(featureFlags.sendNotifications()).thenReturn(true);
     UtilizationSummary summary =
         new UtilizationSummary()
             .withOrgId(ORG_ID)
