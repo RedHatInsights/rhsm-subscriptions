@@ -29,18 +29,28 @@ import com.redhat.swatch.hbi.model.FlushResponse;
 import com.redhat.swatch.hbi.model.FlushResponse.StatusEnum;
 import org.junit.jupiter.api.Test;
 
-class SimpleSwatchMetricsHbiTest extends BaseSMHBIComponentTest {
+class MetricsHbiApiComponentTest extends BaseSMHBIComponentTest {
 
   @TestPlanName("metrics-hbi-api-TC001")
   @Test
   void testServiceIsUpAndRunning() {
+    // Given: Service is running in component test environment
+
+    // When: Checking if service is running
+
+    // Then: Service should report as running
     assertTrue(service.isRunning());
   }
 
   @TestPlanName("metrics-hbi-api-TC002")
   @Test
   void testFlushApi() {
+    // Given: Outbox is ready to be flushed
+
+    // When: Calling the synchronous outbox flush API
     FlushResponse body = service.flushOutboxSynchronously();
+
+    // Then: Flush should succeed with synchronous mode
     assertEquals(StatusEnum.SUCCESS, body.getStatus());
     assertFalse(body.getAsync());
   }
@@ -48,9 +58,18 @@ class SimpleSwatchMetricsHbiTest extends BaseSMHBIComponentTest {
   @TestPlanName("metrics-hbi-api-TC003")
   @Test
   void testUnleashFlagToggling() {
+    // Given: Unleash service is available
+
+    // When: Enabling the EMIT_EVENTS flag
     unleash.enableFlag(EMIT_EVENTS);
+
+    // Then: Flag should be enabled
     assertTrue(unleash.isFlagEnabled(EMIT_EVENTS));
+
+    // When: Disabling the EMIT_EVENTS flag
     unleash.disableFlag(EMIT_EVENTS);
+
+    // Then: Flag should be disabled
     assertFalse(unleash.isFlagEnabled(EMIT_EVENTS));
   }
 }

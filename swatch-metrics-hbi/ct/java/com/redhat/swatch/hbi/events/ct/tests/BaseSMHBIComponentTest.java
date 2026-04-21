@@ -48,11 +48,6 @@ public class BaseSMHBIComponentTest {
 
   protected static final String EMIT_EVENTS = "swatch.swatch-metrics-hbi.emit-events";
 
-  /**
-   * Wait for the expected Swatch events to appear in Kafka, flushing the outbox as needed.
-   *
-   * @param expectedMessages the message validators for the expected Swatch events
-   */
   @SafeVarargs
   protected final void waitForSwatchEvents(DefaultMessageValidator<Event>... expectedMessages) {
     AwaitilitySettings settings =
