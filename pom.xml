@@ -31,7 +31,7 @@
     <jakarta.ws.rs-api.version>4.0.0</jakarta.ws.rs-api.version>
     <jakarta.persistence-api.version>3.2.0</jakarta.persistence-api.version>
     <opentelemetry-api.version>1.61.0</opentelemetry-api.version>
-    <awssdk-bom.version>2.42.36</awssdk-bom.version>
+    <awssdk-bom.version>2.42.37</awssdk-bom.version>
     <guava.version>33.6.0-jre</guava.version>
     <liquibase.version>5.0.2</liquibase.version>
     <postgresql.version>42.7.10</postgresql.version>
@@ -44,7 +44,6 @@
     <swagger-ui.version>5.32.4</swagger-ui.version>
     <splunk-otel-javaagent.version>2.26.1</splunk-otel-javaagent.version>
     <insights-notification-schemas-java.version>1.1.0</insights-notification-schemas-java.version>
-    <okhttp.version>4.12.0</okhttp.version>
     <rest-assured.version>6.0.0</rest-assured.version>
 
     <!-- Plugins -->
@@ -58,7 +57,7 @@
     <checkstyle.version>3.6.0</checkstyle.version>
     <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
     <maven-antrun-plugin.version>3.2.0</maven-antrun-plugin.version>
-    <sonar-maven-plugin.version>5.5.0.6356</sonar-maven-plugin.version>
+    <sonar-maven-plugin.version>5.6.0.6792</sonar-maven-plugin.version>
     <swagger-codegen-maven-plugin.version>3.0.78</swagger-codegen-maven-plugin.version>
 
     <!-- Sonar configuration -->
@@ -264,6 +263,14 @@
         <artifactId>splunk-library-javalogging</artifactId>
         <version>1.11.10</version>
       </dependency>
+      <!-- There is a conflict with splunk-library-javalogging and kubernetes-httpclient-okhttp having transitive dependencies
+            on different versions of okhttp. This explicit declaration is required to resolve the conflict where
+            splunk-library-javalogging is used -->
+      <dependency>
+        <groupId>com.squareup.okhttp3</groupId>
+        <artifactId>okhttp</artifactId>
+        <version>4.12.0</version>
+      </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-api</artifactId>
@@ -313,11 +320,6 @@
         <groupId>com.redhat.cloud.common</groupId>
         <artifactId>insights-notification-schemas-java</artifactId>
         <version>${insights-notification-schemas-java.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.squareup.okhttp3</groupId>
-        <artifactId>okhttp</artifactId>
-        <version>${okhttp.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
