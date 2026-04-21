@@ -20,12 +20,6 @@
  */
 package tests;
 
-import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
-
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.tally.test.model.BillingProviderType;
 import com.redhat.swatch.tally.test.model.GranularityType;
@@ -35,6 +29,11 @@ import com.redhat.swatch.tally.test.model.TallyReportDataMeta;
 import com.redhat.swatch.tally.test.model.TallyReportDataPoint;
 import com.redhat.swatch.tally.test.model.UsageType;
 import io.restassured.response.Response;
+import org.candlepin.subscriptions.json.Event;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
@@ -42,10 +41,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.candlepin.subscriptions.json.Event;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+
+import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
 
 /**
  * PAYG product tests with 4 events covering multiple filter combinations.
@@ -129,7 +130,6 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
         .forEach(config -> publishEvent(timeRanges.testDate(), config));
 
     service.performHourlyTallyForOrg(testOrgId);
-    // service.tallyOrg(testOrgId);
   }
 
   private static void publishEvent(OffsetDateTime timestamp, PaygEventConfig config) {

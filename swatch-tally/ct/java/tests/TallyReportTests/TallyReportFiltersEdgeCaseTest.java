@@ -20,26 +20,27 @@
  */
 package tests;
 
-import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
-
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.tally.test.model.ServiceLevelType;
 import com.redhat.swatch.tally.test.model.TallyReportData;
+import org.candlepin.subscriptions.json.Event;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.candlepin.subscriptions.json.Event;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+
+import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
 
 /**
  * Edge case tests requiring special event patterns.
@@ -104,7 +105,7 @@ public class TallyReportFiltersEdgeCaseTest extends BaseTallyComponentTest {
         new AggregationScenario(
             aggregationTime,
             aggregationTime,
-            aggregationTime.plusHours(1).minusNanos(1),
+            aggregationTime, // Query for exact hour only (BETWEEN is inclusive)
             List.of(15.0f, 25.0f, 10.0f));
 
     for (float value : aggregationTest.valuesToAggregate()) {
@@ -118,7 +119,7 @@ public class TallyReportFiltersEdgeCaseTest extends BaseTallyComponentTest {
         new ThreeSlaScenario(
             threeSlaTime,
             threeSlaTime,
-            threeSlaTime.plusHours(1).minusNanos(1),
+            threeSlaTime, // Query for exact hour only (BETWEEN is inclusive)
             10.0f,
             20.0f,
             30.0f);
@@ -167,7 +168,6 @@ public class TallyReportFiltersEdgeCaseTest extends BaseTallyComponentTest {
         billingChangeTest.billingAccount2());
 
     service.performHourlyTallyForOrg(testOrgId);
-    service.tallyOrg(testOrgId);
   }
 
   // Overloaded publishEvent methods - basic case with random instance, no billing account
@@ -219,11 +219,20 @@ public class TallyReportFiltersEdgeCaseTest extends BaseTallyComponentTest {
     TallyReportData response =
         service.getTallyReportData(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams);
 
+    // Debug: Print response data to understand what we're getting
+    if (response.getData() != null) {
+      System.out.println("Response data points: " + response.getData().size());
+      response
+          .getData()
+          .forEach(d -> System.out.println("  Date: " + d.getDate() + ", Value: " + d.getValue()));
+    }
+
     double total =
         response.getData() == null
             ? 0.0
             : response.getData().stream().mapToInt(d -> d.getValue()).sum();
 
+    System.out.println("Total: " + total + ", Expected: 50.0");
     assertEquals(50.0, total, 0.0001, "Should aggregate all three PREMIUM events (15+25+10)");
   }
 
