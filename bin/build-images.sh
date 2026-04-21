@@ -8,7 +8,6 @@ valid_artifacts=('rhsm-subscriptions'
   'swatch-metrics'
   'swatch-billable-usage'
   'swatch-metrics-hbi'
-  'swatch-database'
   'swatch-utilization')
 
 function build_failed() {
