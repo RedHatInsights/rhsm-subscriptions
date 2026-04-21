@@ -33,43 +33,43 @@ class MetricsHbiApiComponentTest extends BaseSMHBIComponentTest {
 
   @TestPlanName("metrics-hbi-api-TC001")
   @Test
-  void testServiceIsUpAndRunning() {
+  void shouldReportServiceAsRunning() {
     // Given: Service is running in component test environment
 
     // When: Checking if service is running
 
     // Then: Service should report as running
-    assertTrue(service.isRunning());
+    assertTrue(service.isRunning(), "Service should be running");
   }
 
   @TestPlanName("metrics-hbi-api-TC002")
   @Test
-  void testFlushApi() {
+  void shouldFlushOutboxSynchronously() {
     // Given: Outbox is ready to be flushed
 
     // When: Calling the synchronous outbox flush API
     FlushResponse body = service.flushOutboxSynchronously();
 
     // Then: Flush should succeed with synchronous mode
-    assertEquals(StatusEnum.SUCCESS, body.getStatus());
-    assertFalse(body.getAsync());
+    assertEquals(StatusEnum.SUCCESS, body.getStatus(), "Flush status should be SUCCESS");
+    assertFalse(body.getAsync(), "Flush should be synchronous");
   }
 
   @TestPlanName("metrics-hbi-api-TC003")
   @Test
-  void testUnleashFlagToggling() {
+  void shouldToggleUnleashFlagCorrectly() {
     // Given: Unleash service is available
 
     // When: Enabling the EMIT_EVENTS flag
     unleash.enableFlag(EMIT_EVENTS);
 
     // Then: Flag should be enabled
-    assertTrue(unleash.isFlagEnabled(EMIT_EVENTS));
+    assertTrue(unleash.isFlagEnabled(EMIT_EVENTS), "EMIT_EVENTS flag should be enabled");
 
     // When: Disabling the EMIT_EVENTS flag
     unleash.disableFlag(EMIT_EVENTS);
 
     // Then: Flag should be disabled
-    assertFalse(unleash.isFlagEnabled(EMIT_EVENTS));
+    assertFalse(unleash.isFlagEnabled(EMIT_EVENTS), "EMIT_EVENTS flag should be disabled");
   }
 }

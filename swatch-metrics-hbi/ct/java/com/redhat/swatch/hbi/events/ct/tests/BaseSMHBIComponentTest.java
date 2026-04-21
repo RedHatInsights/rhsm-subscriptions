@@ -49,7 +49,7 @@ public class BaseSMHBIComponentTest {
   protected static final String EMIT_EVENTS = "swatch.swatch-metrics-hbi.emit-events";
 
   @SafeVarargs
-  protected final void waitForSwatchEvents(DefaultMessageValidator<Event>... expectedMessages) {
+  protected final void thenSwatchEventsAppear(DefaultMessageValidator<Event>... expectedMessages) {
     AwaitilitySettings settings =
         AwaitilitySettings.using(Duration.ofSeconds(2), Duration.ofSeconds(30))
             .timeoutMessage(
@@ -58,10 +58,7 @@ public class BaseSMHBIComponentTest {
 
     AwaitilityUtils.untilAsserted(
         () -> {
-          // Flush the outbox to ensure events are sent to Kafka
           service.flushOutboxSynchronously();
-
-          // Verify each expected message appears in Kafka
           for (var expectedMessage : expectedMessages) {
             kafkaBridge.waitForKafkaMessage(
                 Topics.SWATCH_SERVICE_INSTANCE_INGRESS, expectedMessage, 1);

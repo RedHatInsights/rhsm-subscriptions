@@ -51,9 +51,9 @@ class MetricsHbiDeleteComponentTest extends BaseSMHBIComponentTest {
 
   @TestPlanName("metrics-hbi-delete-TC001")
   @Test
-  void testHbiDeletePhysicalRhsmHostEvent() {
+  void shouldProduceDeleteEventForPhysicalRhsmHost() {
     // Given: An existing physical RHEL host
-    HbiHostCreateUpdateEvent hbiEvent = getExistingHostEvent();
+    HbiHostCreateUpdateEvent hbiEvent = givenExistingHostEvent();
 
     HbiHostDeleteEvent hbiDeleteEvent =
         HbiEventHelper.getDeletedHostEvent(
@@ -70,14 +70,14 @@ class MetricsHbiDeleteComponentTest extends BaseSMHBIComponentTest {
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hbiDeleteEvent);
 
     // Then: Corresponding SWatch delete event should be produced
-    waitForSwatchEvents(MessageValidators.swatchEventEquals(swatchEvent));
+    thenSwatchEventsAppear(MessageValidators.swatchEventEquals(swatchEvent));
   }
 
   @TestPlanName("metrics-hbi-delete-TC002")
   @Test
-  void testHbiDeleteHypervisorHost() {
+  void shouldProduceDeleteEventForHypervisorAndUpdateGuest() {
     // Given: An existing hypervisor with a mapped guest
-    List<HbiHostCreateUpdateEvent> hbiEvents = getExistingHypervisorAndGuestEvents();
+    List<HbiHostCreateUpdateEvent> hbiEvents = givenExistingHypervisorAndGuestEvents();
 
     HbiHostCreateUpdateEvent hypervisorEvent = hbiEvents.get(0);
     HbiHostCreateUpdateEvent guestEvent = hbiEvents.get(1);
@@ -100,16 +100,16 @@ class MetricsHbiDeleteComponentTest extends BaseSMHBIComponentTest {
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hbiDeleteEvent);
 
     // Then: Two SWatch events should be produced (delete hypervisor, update guest to unmapped)
-    waitForSwatchEvents(
+    thenSwatchEventsAppear(
         MessageValidators.swatchEventEquals(swatchEventHypervisor),
         MessageValidators.swatchEventEquals(swatchEventGuest));
   }
 
   @TestPlanName("metrics-hbi-delete-TC003")
   @Test
-  void testHbiDeleteMappedGuestHost() {
+  void shouldProduceDeleteEventForMappedGuestAndUpdateHypervisor() {
     // Given: An existing hypervisor with a mapped guest
-    List<HbiHostCreateUpdateEvent> hbiEvents = getExistingHypervisorAndGuestEvents();
+    List<HbiHostCreateUpdateEvent> hbiEvents = givenExistingHypervisorAndGuestEvents();
 
     HbiHostCreateUpdateEvent hypervisorEvent = hbiEvents.get(0);
     HbiHostCreateUpdateEvent guestEvent = hbiEvents.get(1);
@@ -133,14 +133,14 @@ class MetricsHbiDeleteComponentTest extends BaseSMHBIComponentTest {
 
     // Then: Two SWatch events should be produced (delete guest, update hypervisor to
     // non-hypervisor)
-    waitForSwatchEvents(
+    thenSwatchEventsAppear(
         MessageValidators.swatchEventEquals(swatchEventGuest),
         MessageValidators.swatchEventEquals(swatchEventHypervisor));
   }
 
   @TestPlanName("metrics-hbi-delete-TC004")
   @Test
-  void testHbiDeleteEventWhenGuestHostHasNotBeenSeen() {
+  void shouldProduceDeleteEventForUnseenHost() {
     // Given: A delete event for an unseen host
     HbiHostDeleteEvent hbiDeleteEvent =
         HbiEventHelper.getDeletedHostEvent(
@@ -157,10 +157,10 @@ class MetricsHbiDeleteComponentTest extends BaseSMHBIComponentTest {
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hbiDeleteEvent);
 
     // Then: SWatch delete event should be produced with minimal metadata
-    waitForSwatchEvents(MessageValidators.swatchEventEquals(swatchEvent));
+    thenSwatchEventsAppear(MessageValidators.swatchEventEquals(swatchEvent));
   }
 
-  private HbiHostCreateUpdateEvent getExistingHostEvent() {
+  private HbiHostCreateUpdateEvent givenExistingHostEvent() {
     HbiHostCreateUpdateEvent hbiEvent =
         HbiEventHelper.getRhsmHostEvent(
             "created",
@@ -183,12 +183,12 @@ class MetricsHbiDeleteComponentTest extends BaseSMHBIComponentTest {
 
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hbiEvent);
 
-    waitForSwatchEvents(MessageValidators.swatchEventEquals(swatchEvent));
+    thenSwatchEventsAppear(MessageValidators.swatchEventEquals(swatchEvent));
 
     return hbiEvent;
   }
 
-  private List<HbiHostCreateUpdateEvent> getExistingHypervisorAndGuestEvents() {
+  private List<HbiHostCreateUpdateEvent> givenExistingHypervisorAndGuestEvents() {
     List<HbiHostCreateUpdateEvent> hbiEvents =
         HbiEventHelper.getHypervisorAndGuestEvents(
             "created",
@@ -217,7 +217,7 @@ class MetricsHbiDeleteComponentTest extends BaseSMHBIComponentTest {
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hypervisorEvent);
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, guestEvent);
 
-    waitForSwatchEvents(
+    thenSwatchEventsAppear(
         MessageValidators.swatchEventEquals(swatchEventHypervisor),
         MessageValidators.swatchEventEquals(swatchEventMappedGuest),
         MessageValidators.swatchEventEquals(swatchEventUpdatedHypervisor));
