@@ -116,7 +116,8 @@ class MetricsHbiCreateUpdateComponentTest extends BaseSMHBIComponentTest {
   @TestPlanName("metrics-hbi-create-update-TC003")
   @ParameterizedTest
   @CsvSource({"created, INSTANCE_CREATED", "updated, INSTANCE_UPDATED"})
-  void shouldProduceSwatchEventForUnmappedGuestFromCpus(String hbiEventType, String swatchEventType) {
+  void shouldProduceSwatchEventForUnmappedGuestFromCpus(
+      String hbiEventType, String swatchEventType) {
     // Given: A virtual RHEL unmapped guest with CPUs set
     HbiHostCreateUpdateEvent hbiEvent =
         HbiEventHelper.getRhsmHostEvent(
@@ -254,8 +255,7 @@ class MetricsHbiCreateUpdateComponentTest extends BaseSMHBIComponentTest {
   @TestPlanName("metrics-hbi-create-update-TC007")
   @ParameterizedTest
   @CsvSource({"created, INSTANCE_CREATED", "updated, INSTANCE_UPDATED"})
-  void shouldTransitionUnmappedGuestToMappedGuest(
-      String hbiEventType, String swatchEventType) {
+  void shouldTransitionUnmappedGuestToMappedGuest(String hbiEventType, String swatchEventType) {
     // Given: A virtual unmapped guest and a hypervisor host
     List<HbiHostCreateUpdateEvent> hbiEvents =
         HbiEventHelper.getHypervisorAndGuestEvents(
@@ -296,8 +296,7 @@ class MetricsHbiCreateUpdateComponentTest extends BaseSMHBIComponentTest {
   @TestPlanName("metrics-hbi-create-update-TC008")
   @ParameterizedTest
   @CsvSource({"created, INSTANCE_CREATED", "updated, INSTANCE_UPDATED"})
-  void shouldRemapGuestFromOneHypervisorToAnother(
-      String hbiEventType, String swatchEventType) {
+  void shouldRemapGuestFromOneHypervisorToAnother(String hbiEventType, String swatchEventType) {
     // Given: Hypervisor A with mapped guest, and hypervisor B with no guests
     OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
 
