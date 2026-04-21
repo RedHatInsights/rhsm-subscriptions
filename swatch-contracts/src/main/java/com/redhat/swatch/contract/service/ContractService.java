@@ -140,11 +140,6 @@ public class ContractService {
     return response;
   }
 
-  @Transactional
-  public List<String> getOrgIdUsedInContracts() {
-    return contractRepository.getDistinctOrgIds();
-  }
-
   /**
    * Build Specifications based on provided parameters if not null and use to query the database
    * based on specifications.

@@ -1,4 +1,4 @@
-# ADR-001: Remove pre-cleanup from the global contract sync
+# ADR-001: Remove pre-cleanup from contracts sync all
 
 **Status:** Accepted  
 **Deciders:** @karshah @tlencion
@@ -14,16 +14,16 @@ The per-org sync endpoint (`/internal/rpc/sync/contracts/{org_id}`) accepts an o
 the upstream partner API. The intent is to let operators clean up incomplete records that
 were partially written and never fully populated.
 
-The global sync endpoint (`/internal/rpc/syncAllContracts`) was hardcoding this flag to
+The contracts sync all endpoint (`/api/swatch-contracts/internal/rpc/contracts/sync`) was hardcoding this flag to
 `true` for every org it processed.
 
 ---
 
 ## Problem
 
-Hardcoding `is_pre_cleanup=true` in the global sync creates two risks:
+Hardcoding `is_pre_cleanup=true` in contracts sync all creates two risks:
 
-1. **Unnecessary data deletion.** The global sync is a routine reconciliation job, not a
+1. **Unnecessary data deletion.** Contracts sync all is a routine reconciliation job, not a
    repair tool. Deleting records before every upsert is a side effect that is not needed
    for correct reconciliation — the upsert logic already handles existing records by
    matching on `start_date` and provider-specific IDs.
@@ -41,15 +41,15 @@ Hardcoding `is_pre_cleanup=true` in the global sync creates two risks:
 `syncAllContracts` passes `isPreCleanup=false` to the per-org sync for every org it visits.
 
 The pre-cleanup capability remains available on the per-org endpoint as an opt-in parameter
-for operators who need to repair a specific org's data. It is not applied globally.
+for operators who need to repair a specific org's data. It is not applied across all orgs.
 
 ---
 
 ## Consequences
 
-- The global sync is purely additive/updating — it never deletes before upserting.
+- Contracts sync all is purely additive/updating — it never deletes before upserting.
 - Contracts with incomplete data (null `billing_provider_id` or null `end_date`) are not
-  automatically cleaned up by the global sync; an operator must explicitly call the per-org
+  automatically cleaned up by contracts sync all; an operator must explicitly call the per-org
   endpoint with `is_pre_cleanup=true` to repair them.
-- Idempotency of the global sync is improved: running it multiple times on the same data
+- Idempotency of contracts sync all is improved: running it multiple times on the same data
   produces the same result with no risk of accidental deletion.

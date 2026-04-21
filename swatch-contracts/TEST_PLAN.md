@@ -573,7 +573,7 @@ Test cases should be testable locally and in an ephemeral environment.
 **contracts-sync-TC003 - Sync all contracts across all organizations**  
 - **Description**: Verify syncAllContracts triggers sync for all orgs with contracts.  
 - **Setup**: Have multiple orgs with contracts.  
-- **Action**: POST `/internal/rpc/syncAllContracts`.  
+- **Action**: POST `/api/swatch-contracts/internal/rpc/contracts/sync`.  
 - **Verification**: Monitor sync progress.  
 - **Expected Result**:  
   - HTTP 200 OK
@@ -598,29 +598,29 @@ Test cases should be testable locally and in an ephemeral environment.
   - HTTP 204 No Content
   - No contracts remain for the org
 
-**contracts-sync-TC006 - Running the global sync twice does not create duplicate contracts**
-- **Description**: Verify that the global sync is idempotent.
+**contracts-sync-TC006 - Running contracts sync all twice does not create duplicate contracts**
+- **Description**: Verify that contracts sync all is idempotent.
 - **Setup**: An org has one contract created and stubbed upstream.
-- **Action**: POST `/internal/rpc/syncAllContracts` twice.
+- **Action**: POST `/api/swatch-contracts/internal/rpc/contracts/sync` twice.
 - **Verification**: Query contracts after each call.
 - **Expected Result**:
   - Contract count stays at 1 after both calls
   - Contract UUID is the same after both calls
   - Billing provider is unchanged
 
-**contracts-sync-TC007 - Global sync preserves all contracts for an org with multiple providers**
-- **Description**: Verify that when an org has both an AWS and an Azure contract, running the global sync leaves both intact.
+**contracts-sync-TC007 - Contracts sync all preserves all contracts for an org with multiple providers**
+- **Description**: Verify that when an org has both an AWS and an Azure contract, running contracts sync all leaves both intact.
 - **Setup**: An org has one AWS contract and one Azure contract.
-- **Action**: POST `/internal/rpc/syncAllContracts`.
+- **Action**: POST `/api/swatch-contracts/internal/rpc/contracts/sync`.
 - **Verification**: Query contracts for the org.
 - **Expected Result**:
   - Both the AWS and Azure contracts still exist
   - UUIDs of both contracts are unchanged
 
-**contracts-sync-TC008 - Global sync after a per-org sync does not add extra records**
-- **Description**: Verify that running the global sync on top of an already-synced org does not accumulate additional rows in any of the four related tables (contracts, contract metrics, subscriptions, subscription measurements).
+**contracts-sync-TC008 - Contracts sync all after a per-org sync does not add extra records**
+- **Description**: Verify that running contracts sync all on top of an already-synced org does not accumulate additional rows in any of the four related tables (contracts, contract metrics, subscriptions, subscription measurements).
 - **Setup**: An org is fully synced via the per-org endpoint; record counts and IDs across all four tables are captured as a baseline.
-- **Action**: POST `/internal/rpc/syncAllContracts`.
+- **Action**: POST `/api/swatch-contracts/internal/rpc/contracts/sync`.
 - **Verification**: Re-query all four tables.
 - **Expected Result**:
   - Contract count, UUID, and metric count are unchanged
@@ -653,7 +653,7 @@ Test cases should be testable locally and in an ephemeral environment.
 
 ## Contract Termination During Sync
 
-This section verifies the automatic contract termination behavior when contracts are missing from upstream during synchronization. Contracts are soft-deleted (endDate set to current timestamp) rather than hard-deleted to preserve historical records for audit and billing purposes. This behavior applies to both individual contract sync and global sync operations.
+This section verifies the automatic contract termination behavior when contracts are missing from upstream during synchronization. Contracts are soft-deleted (endDate set to current timestamp) rather than hard-deleted to preserve historical records for audit and billing purposes. This behavior applies to both individual contract sync and contracts sync all operations.
 
 **contracts-sync-TC011 - Contract missing from upstream is terminated (not deleted)**
 - **Description**: Verify that when a contract exists in SWATCH but is no longer returned by the upstream partner API during sync, it is terminated (endDate set) rather than deleted.

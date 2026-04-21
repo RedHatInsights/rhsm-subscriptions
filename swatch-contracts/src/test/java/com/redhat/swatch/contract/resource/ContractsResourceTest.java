@@ -25,8 +25,11 @@ import static com.redhat.swatch.contract.resource.ContractsResource.FEATURE_NOT_
 import static com.redhat.swatch.contract.security.RhIdentityUtils.CUSTOMER_IDENTITY_HEADER;
 import static com.redhat.swatch.contract.service.UsageContextSubscriptionProvider.AMBIGUOUS_SUBSCRIPTIONS_COUNTER_NAME;
 import static com.redhat.swatch.contract.service.UsageContextSubscriptionProvider.MISSING_SUBSCRIPTIONS_COUNTER_NAME;
+import static com.redhat.swatch.resteasy.client.SwatchPskHeaderFilter.SWATCH_PSK_HEADER;
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -52,6 +55,7 @@ import com.redhat.swatch.contract.openapi.model.UsageType;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.repository.SubscriptionRepository;
 import com.redhat.swatch.contract.service.ContractService;
+import com.redhat.swatch.contract.service.ContractSyncService;
 import com.redhat.swatch.contract.service.EnabledOrgsProducer;
 import com.redhat.swatch.contract.service.OfferingProductTagLookupService;
 import com.redhat.swatch.contract.service.OfferingSyncService;
@@ -83,7 +87,12 @@ class ContractsResourceTest {
   private static final String ORG_ID = "org123";
   private static final String ANOTHER_ORG_ID = "org456";
   private static final String ROSA = "rosa";
-  private static final String SYNC_ALL_CONTRACTS_ENDPOINT = "/internal/rpc/syncAllContracts";
+  private static final String SYNC_ALL_CONTRACTS_ENDPOINT =
+      "/api/swatch-contracts/internal/rpc/contracts/sync";
+
+  /** Must match %test.SWATCH_SELF_PSK (application.properties). */
+  private static final String PLACEHOLDER_PSK = "placeholder";
+
   private final OffsetDateTime defaultEndDate =
       OffsetDateTime.of(2022, 7, 22, 8, 0, 0, 0, ZoneOffset.UTC);
   private final OffsetDateTime defaultLookUpDate =
@@ -91,6 +100,7 @@ class ContractsResourceTest {
 
   @InjectMock ApplicationConfiguration applicationConfiguration;
   @InjectMock ContractService contractService;
+  @InjectMock ContractSyncService contractSyncService;
   @InjectMock EnabledOrgsProducer enabledOrgsProducer;
   @InjectMock OfferingSyncService offeringSyncService;
   @InjectMock OfferingProductTagLookupService offeringProductTagLookupService;
@@ -519,37 +529,68 @@ class ContractsResourceTest {
 
   @Test
   void testSyncAllContractsWhenNoActiveContracts() {
-    when(contractService.getOrgIdUsedInContracts()).thenReturn(Collections.emptyList());
+    when(contractSyncService.enqueueContractSyncForAllOrgs()).thenReturn(0L);
 
     StatusResponse response = whenSyncAllContractsRequest();
 
     assertEquals("No active contract found for the orgIds", response.getStatus());
-    verify(contractService).getOrgIdUsedInContracts();
+    verify(contractSyncService).enqueueContractSyncForAllOrgs();
     verify(contractService, times(0)).syncContractsByOrgId(any());
   }
 
   @Test
-  void testSyncAllContractsWithContractsExist() {
-    when(contractService.getOrgIdUsedInContracts()).thenReturn(List.of(ORG_ID));
+  void testSyncAllContractsEnqueuesOrgs() {
+    when(contractSyncService.enqueueContractSyncForAllOrgs()).thenReturn(1L);
 
     StatusResponse response = whenSyncAllContractsRequest();
 
-    assertEquals("All Contract are Synced", response.getStatus());
-    verify(contractService).getOrgIdUsedInContracts();
-    verify(contractService).syncContractsByOrgId(ORG_ID);
+    assertEquals("Enqueued 1 org(s) for contract sync", response.getStatus());
+    verify(contractSyncService).enqueueContractSyncForAllOrgs();
   }
 
   @Test
-  void testSyncAllContractsCallsPerOrgSync() {
-    // Global sync calls per-org sync for each org with contracts.
-    // Per ADR-0004, isPreCleanup has been removed - contracts missing from upstream
-    // are now terminated (not deleted) to preserve historical records.
-    when(contractService.getOrgIdUsedInContracts()).thenReturn(List.of(ORG_ID, ANOTHER_ORG_ID));
+  void testSyncAllContractsEnqueuesMultipleOrgs() {
+    when(contractSyncService.enqueueContractSyncForAllOrgs()).thenReturn(2L);
 
-    whenSyncAllContractsRequest();
+    StatusResponse response = whenSyncAllContractsRequest();
 
-    verify(contractService).syncContractsByOrgId(ORG_ID);
-    verify(contractService).syncContractsByOrgId(ANOTHER_ORG_ID);
+    assertEquals("Enqueued 2 org(s) for contract sync", response.getStatus());
+    verify(contractSyncService).enqueueContractSyncForAllOrgs();
+  }
+
+  /**
+   * Contracts sync all nightly CronJob uses {@link
+   * com.redhat.swatch.resteasy.client.SwatchPskHeaderFilter#SWATCH_PSK_HEADER} only. With RBAC
+   * disabled in tests, PSK principals still receive the service role via RolesAugmentor; production
+   * RBAC does not call the RBAC API for PskPrincipal.
+   */
+  @Test
+  void testSyncAllContractsWithPskHeaderOnly() {
+    when(contractSyncService.enqueueContractSyncForAllOrgs()).thenReturn(1L);
+
+    StatusResponse response =
+        given()
+            .header(SWATCH_PSK_HEADER, PLACEHOLDER_PSK)
+            .post(SYNC_ALL_CONTRACTS_ENDPOINT)
+            .then()
+            .statusCode(HttpStatus.SC_OK)
+            .extract()
+            .as(StatusResponse.class);
+
+    assertEquals("Enqueued 1 org(s) for contract sync", response.getStatus());
+    verify(contractSyncService).enqueueContractSyncForAllOrgs();
+  }
+
+  @Test
+  void testSyncAllContractsWithoutAuthIsRejected() {
+    given()
+        .header(SWATCH_PSK_HEADER, "invalid-psk")
+        .post(SYNC_ALL_CONTRACTS_ENDPOINT)
+        .then()
+        .statusCode(anyOf(is(HttpStatus.SC_UNAUTHORIZED), is(HttpStatus.SC_FORBIDDEN)));
+
+    verify(contractSyncService, times(0)).enqueueContractSyncForAllOrgs();
+    verify(contractService, times(0)).syncContractsByOrgId(any());
   }
 
   private StatusResponse whenSyncAllContractsRequest() {

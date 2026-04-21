@@ -76,6 +76,10 @@ parameters:
     value: 'true'
   - name: OFFERING_SYNC_SCHEDULE
     value: 0 2 * * *
+  # Nightly sync of all contracts from IT Partner Gateway (POST .../internal/rpc/contracts/sync).
+  # Default 03:30 UTC — after offering-sync (02:00), before subscription-sync (10:00). Not overlapping hourly tally.
+  - name: CONTRACTS_SYNC_SCHEDULE
+    value: 30 3 * * *
   - name: SUBSCRIPTION_SYNC_SCHEDULE
     value: 0 10 * * *
   - name: KAFKA_ENABLED_ORGS_REPLICAS
@@ -89,6 +93,10 @@ parameters:
   - name: KAFKA_CAPACITY_RECONCILE_REPLICAS
     value: '3'
   - name: KAFKA_CAPACITY_RECONCILE_PARTITIONS
+    value: '3'
+  - name: KAFKA_CONTRACT_SYNC_REPLICAS
+    value: '3'
+  - name: KAFKA_CONTRACT_SYNC_PARTITIONS
     value: '3'
   - name: KAFKA_OFFERING_SYNC_REPLICAS
     value: '3'
@@ -166,6 +174,9 @@ objects:
         - replicas: ${{KAFKA_SUBSCRIPTION_SYNC_TASK_REPLICAS}}
           partitions: ${{KAFKA_SUBSCRIPTION_SYNC_TASK_PARTITIONS}}
           topicName: platform.rhsm-subscriptions.subscription-sync-task
+        - replicas: ${{KAFKA_CONTRACT_SYNC_REPLICAS}}
+          partitions: ${{KAFKA_CONTRACT_SYNC_PARTITIONS}}
+          topicName: platform.rhsm-subscriptions.contract-sync
         - replicas: ${{KAFKA_CAPACITY_RECONCILE_REPLICAS}}
           partitions: ${{KAFKA_CAPACITY_RECONCILE_PARTITIONS}}
           topicName: platform.rhsm-subscriptions.capacity-reconcile
@@ -461,6 +472,30 @@ objects:
                 cpu: ${CURL_CRON_CPU_LIMIT}
                 memory: ${CURL_CRON_MEMORY_LIMIT}
 
+        - name: contracts-sync
+          schedule: ${CONTRACTS_SYNC_SCHEDULE}
+          successfulJobsHistoryLimit: 2
+          restartPolicy: Never
+          podSpec:
+            image: ${CURL_CRON_IMAGE}:${CURL_CRON_IMAGE_TAG}
+            command:
+              - /usr/bin/bash
+              - -c
+              - >
+                /usr/bin/curl --fail -H "Origin: https://swatch-contracts-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X POST "http://swatch-contracts-service:8000/api/swatch-contracts/internal/rpc/contracts/sync"
+            env:
+              - name: SWATCH_SELF_PSK
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-psks
+                    key: self
+            resources:
+              requests:
+                cpu: ${CURL_CRON_CPU_REQUEST}
+                memory: ${CURL_CRON_MEMORY_REQUEST}
+              limits:
+                cpu: ${CURL_CRON_CPU_LIMIT}
+                memory: ${CURL_CRON_MEMORY_LIMIT}
 
   - apiVersion: v1
     kind: Secret

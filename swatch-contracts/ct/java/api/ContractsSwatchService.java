@@ -73,7 +73,7 @@ public class ContractsSwatchService extends SwatchService {
       ENDPOINT_PREFIX + "/subscriptions/terminate/{subscription_id}";
   private static final String SYNC_CONTRACTS_BY_ORG_ENDPOINT =
       ENDPOINT_PREFIX + "/rpc/sync/contracts/%s";
-  private static final String SYNC_ALL_CONTRACTS_ENDPOINT = "/internal/rpc/syncAllContracts";
+  private static final String SYNC_ALL_CONTRACTS_ENDPOINT = ENDPOINT_PREFIX + "/rpc/contracts/sync";
   private static final String SYNC_ALL_SUBSCRIPTIONS_ENDPOINT =
       ENDPOINT_PREFIX + "/rpc/subscriptions/sync";
   private static final String SUBSCRIPTIONS_UMB_ENDPOINT = ENDPOINT_PREFIX + "/subscriptions/umb";

@@ -28,7 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 /**
- * Resteasy client filter that adds x-rh-swatch-psk to requests based on the value of the
+ * Resteasy client filter that adds {@link #SWATCH_PSK_HEADER} to requests based on the value of the
  * SWATCH_SELF_PSK property/environment variable.
  *
  * <p>Use by configuring as a provider on a rest client instance, e.g. <code>
@@ -42,11 +42,14 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 @ApplicationScoped
 public class SwatchPskHeaderFilter implements ClientRequestFilter {
 
+  /** HTTP header name for Swatch service-to-service PSK authentication. */
+  public static final String SWATCH_PSK_HEADER = "x-rh-swatch-psk";
+
   @ConfigProperty(name = "SWATCH_SELF_PSK")
   String psk;
 
   @Override
   public void filter(ClientRequestContext requestContext) {
-    requestContext.getHeaders().add("x-rh-swatch-psk", psk);
+    requestContext.getHeaders().add(SWATCH_PSK_HEADER, psk);
   }
 }

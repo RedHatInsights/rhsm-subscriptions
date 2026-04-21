@@ -28,6 +28,8 @@ public final class Channels {
   public static final String ENABLED_ORGS = "enabled-orgs";
   public static final String SUBSCRIPTION_SYNC_TASK_TOPIC = "subscription-sync-task";
   public static final String SUBSCRIPTION_SYNC_TASK_UMB = "subscription-sync-umb";
+  public static final String CONTRACT_SYNC = "contract-sync";
+  public static final String CONTRACT_SYNC_TASK = "contract-sync-task";
   public static final String OFFERING_SYNC = "offering-sync";
   public static final String OFFERING_SYNC_TASK_TOPIC = "offering-sync-task";
   public static final String OFFERING_SYNC_TASK_SERVICE_UMB = "offering-sync-service-umb";
