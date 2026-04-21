@@ -79,7 +79,7 @@ public class NotificationsProducer {
   }
 
   private boolean canSendNotification(Action action) {
-    return featureFlags.sendNotifications()
+    return featureFlags.sendNotifications(action.getEventType())
         || featureFlags.isOrgAllowlistedForNotifications(action.getOrgId());
   }
 }

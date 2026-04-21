@@ -37,9 +37,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
+@SuppressWarnings("unchecked")
 class NotificationsProducerTest {
 
   private static final String ORG_ID = "org123";
+  private static final String EVENT_TYPE = "exceeded-utilization-threshold";
 
   @Mock FeatureFlags featureFlags;
 
@@ -62,9 +64,10 @@ class NotificationsProducerTest {
 
   @Test
   void shouldEmit_whenSendNotificationsFlagEnabled() {
-    when(featureFlags.sendNotifications()).thenReturn(true);
+    when(featureFlags.sendNotifications(any())).thenReturn(true);
     Action action = new Action();
     action.setOrgId(ORG_ID);
+    action.setEventType(EVENT_TYPE);
 
     producer.produce(action);
 
@@ -73,10 +76,11 @@ class NotificationsProducerTest {
 
   @Test
   void shouldEmit_whenOrgIsAllowlistedAndGlobalSendNotificationsDisabled() {
-    when(featureFlags.sendNotifications()).thenReturn(false);
+    when(featureFlags.sendNotifications(any())).thenReturn(false);
     when(featureFlags.isOrgAllowlistedForNotifications(ORG_ID)).thenReturn(true);
     Action action = new Action();
     action.setOrgId(ORG_ID);
+    action.setEventType(EVENT_TYPE);
 
     producer.produce(action);
 
@@ -85,10 +89,11 @@ class NotificationsProducerTest {
 
   @Test
   void shouldNotEmit_whenOrgIsNotAllowlistedAndGlobalSendNotificationsDisabled() {
-    when(featureFlags.sendNotifications()).thenReturn(false);
+    when(featureFlags.sendNotifications(any())).thenReturn(false);
     when(featureFlags.isOrgAllowlistedForNotifications(ORG_ID)).thenReturn(false);
     Action action = new Action();
     action.setOrgId(ORG_ID);
+    action.setEventType(EVENT_TYPE);
 
     producer.produce(action);
 

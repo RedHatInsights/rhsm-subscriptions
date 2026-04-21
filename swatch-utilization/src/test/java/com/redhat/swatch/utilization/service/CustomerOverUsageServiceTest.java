@@ -83,7 +83,6 @@ class CustomerOverUsageServiceTest {
 
   // Threshold test constants
   private static final double PRODUCT_SPECIFIC_THRESHOLD = 8.0; // 8% threshold for specific product
-  private static final double DEFAULT_THRESHOLD = 5.0; // 5% default threshold
   private static final double NEGATIVE_THRESHOLD = -1.0; // Disables detection
 
   // Usage calculation constants
