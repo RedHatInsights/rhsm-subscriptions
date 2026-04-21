@@ -20,27 +20,26 @@
  */
 package tests;
 
+import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
+
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.tally.test.model.ServiceLevelType;
 import com.redhat.swatch.tally.test.model.TallyReportData;
-import org.candlepin.subscriptions.json.Event;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
-import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
+import org.candlepin.subscriptions.json.Event;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /**
  * Edge case tests requiring special event patterns.
