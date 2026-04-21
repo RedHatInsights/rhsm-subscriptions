@@ -57,14 +57,22 @@ class MetricsHbiApiComponentTest extends BaseSMHBIComponentTest {
 
   @TestPlanName("metrics-hbi-api-TC003")
   @Test
-  void shouldToggleUnleashFlagCorrectly() {
-    // Given: Unleash service is available
+  void shouldEnableUnleashFlag() {
+    // Given: Unleash service is available and EMIT_EVENTS flag is disabled
+    unleash.disableFlag(EMIT_EVENTS);
 
     // When: Enabling the EMIT_EVENTS flag
     unleash.enableFlag(EMIT_EVENTS);
 
     // Then: Flag should be enabled
     assertTrue(unleash.isFlagEnabled(EMIT_EVENTS), "EMIT_EVENTS flag should be enabled");
+  }
+
+  @TestPlanName("metrics-hbi-api-TC003")
+  @Test
+  void shouldDisableUnleashFlag() {
+    // Given: Unleash service is available and EMIT_EVENTS flag is enabled
+    unleash.enableFlag(EMIT_EVENTS);
 
     // When: Disabling the EMIT_EVENTS flag
     unleash.disableFlag(EMIT_EVENTS);
