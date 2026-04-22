@@ -183,11 +183,7 @@
         <groupId>org.jsonschema2pojo</groupId>
         <artifactId>jsonschema2pojo-maven-plugin</artifactId>
         <configuration>
-          <sourceDirectory>${maven.multiModuleProjectDirectory}/swatch-core/schemas</sourceDirectory>
           <targetPackage>com.redhat.swatch.utilization.model</targetPackage>
-          <includes>
-            <include>utilization_summary.yaml</include>
-          </includes>
           <includeAdditionalProperties>false</includeAdditionalProperties>
           <includeJsr303Annotations>true</includeJsr303Annotations>
           <initializeCollections>false</initializeCollections>
@@ -198,6 +194,32 @@
           <includeSetters>false</includeSetters>
           <useJakartaValidation>true</useJakartaValidation>
         </configuration>
+        <executions>
+          <execution>
+            <id>utilization-summary-from-swatch-core</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <sourceDirectory>${maven.multiModuleProjectDirectory}/swatch-core/schemas</sourceDirectory>
+              <sourcePaths>
+                <sourcePath>utilization_summary.yaml</sourcePath>
+              </sourcePaths>
+            </configuration>
+          </execution>
+          <execution>
+            <id>send-notification-variant-payload</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <sourceDirectory>${project.basedir}/schemas</sourceDirectory>
+              <sourcePaths>
+                <sourcePath>send_notification_variant_payload.yaml</sourcePath>
+              </sourcePaths>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>

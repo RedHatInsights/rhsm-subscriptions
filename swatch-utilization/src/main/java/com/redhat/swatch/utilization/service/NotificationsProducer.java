@@ -24,6 +24,7 @@ import static com.redhat.swatch.utilization.configuration.Channels.NOTIFICATIONS
 
 import com.redhat.cloud.notifications.ingress.Action;
 import com.redhat.swatch.kafka.EmitterService;
+import com.redhat.swatch.utilization.configuration.FeatureFlags;
 import jakarta.enterprise.context.ApplicationScoped;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.reactive.messaging.Channel;
@@ -40,9 +41,12 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 @ApplicationScoped
 public class NotificationsProducer {
 
+  private final FeatureFlags featureFlags;
   private final EmitterService<Action> emitter;
 
-  public NotificationsProducer(@Channel(NOTIFICATIONS_OUT) Emitter<Action> emitter) {
+  public NotificationsProducer(
+      FeatureFlags featureFlags, @Channel(NOTIFICATIONS_OUT) Emitter<Action> emitter) {
+    this.featureFlags = featureFlags;
     this.emitter = new EmitterService<>(emitter);
   }
 
@@ -56,6 +60,15 @@ public class NotificationsProducer {
       log.debug("Skipping notification; action is null.");
       return;
     }
+    if (!canSendNotification(action)) {
+      log.info(
+          "Notification not sent for orgId={} content='{}' - feature flag '{}' is disabled and org is not allowlisted",
+          action.getOrgId(),
+          action,
+          FeatureFlags.SEND_NOTIFICATIONS);
+      return;
+    }
+
     log.info(
         "Sending notification to platform.notifications.ingress for orgId={} bundle={} application={} eventType={}",
         action.getOrgId(),
@@ -63,5 +76,10 @@ public class NotificationsProducer {
         action.getApplication(),
         action.getEventType());
     emitter.send(Message.of(action));
+  }
+
+  private boolean canSendNotification(Action action) {
+    return featureFlags.sendNotifications(action.getEventType())
+        || featureFlags.isOrgAllowlistedForNotifications(action.getOrgId());
   }
 }

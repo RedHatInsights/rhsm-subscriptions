@@ -20,28 +20,62 @@
  */
 package com.redhat.swatch.utilization.configuration;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.redhat.swatch.utilization.model.SendNotificationVariantPayload;
 import io.getunleash.Unleash;
 import io.getunleash.variant.Variant;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @ApplicationScoped
+@AllArgsConstructor
 public class FeatureFlags {
   public static final String SEND_NOTIFICATIONS = "swatch.swatch-notifications.send-notifications";
+  public static final String SEND_NOTIFICATIONS_CONFIG_VARIANT = "send-notifications-config";
   public static final String SEND_NOTIFICATIONS_ORGS_ALLOWLIST =
       "swatch.swatch-notifications.send-notifications-orgs-allowlist";
   public static final String ORGS_VARIANT = "orgs";
 
   private final Unleash unleash;
+  private final ObjectMapper mapper;
 
-  public FeatureFlags(Unleash unleash) {
-    this.unleash = unleash;
-  }
+  /**
+   * Whether the {@value #SEND_NOTIFICATIONS} toggle allows sending for the given notification event
+   * type.
+   *
+   * <p>When the toggle is disabled, returns {@code false}. When enabled, an optional variant may
+   * supply a JSON object with an {@code event_types_denylist} array; if the event type is in that
+   * list, returns {@code false}. If the variant is absent, invalid, or the event type is not
+   * listed, returns {@code true}.
+   */
+  public boolean sendNotifications(String eventType) {
+    if (!unleash.isEnabled(SEND_NOTIFICATIONS)) {
+      return false;
+    }
 
-  public boolean sendNotifications() {
-    return unleash.isEnabled(FeatureFlags.SEND_NOTIFICATIONS);
+    Variant variant = unleash.getVariant(SEND_NOTIFICATIONS);
+    if (!SEND_NOTIFICATIONS_CONFIG_VARIANT.equals(variant.getName())) {
+      log.debug("Feature flag '{}' with no valid variant '{}'", SEND_NOTIFICATIONS, variant);
+      return true;
+    }
+
+    if (!variant.isEnabled()) {
+      return true;
+    }
+
+    return mapToSendNotificationPayload(variant)
+        .map(
+            p -> {
+              List<String> denylist = p.getEventTypesDenylist();
+              return denylist == null || !denylist.contains(eventType);
+            })
+        .orElse(true);
   }
 
   public boolean isOrgAllowlistedForNotifications(String orgId) {
@@ -70,5 +104,25 @@ public class FeatureFlags {
         value);
 
     return Arrays.stream(value.split(",")).map(String::trim).anyMatch(orgId::equals);
+  }
+
+  private Optional<SendNotificationVariantPayload> mapToSendNotificationPayload(Variant variant) {
+    var payload = variant.getPayload();
+    if (payload.isEmpty()) {
+      return Optional.empty();
+    }
+
+    String payloadValue = payload.get().getValue();
+    try {
+      return Optional.ofNullable(
+          mapper.readValue(payloadValue, SendNotificationVariantPayload.class));
+    } catch (JsonProcessingException e) {
+      log.warn(
+          "Failed to parse the payload '{}' for feature flag '{}'",
+          payloadValue,
+          SEND_NOTIFICATIONS,
+          e);
+      return Optional.empty();
+    }
   }
 }

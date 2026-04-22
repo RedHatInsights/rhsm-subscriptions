@@ -120,6 +120,19 @@
               </sourcePaths>
             </configuration>
           </execution>
+          <execution>
+            <id>send-notification-variant-from-module-schemas</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <sourceDirectory>${project.basedir}/../schemas</sourceDirectory>
+              <sourcePaths>
+                <sourcePath>send_notification_variant_payload.yaml</sourcePath>
+              </sourcePaths>
+              <targetPackage>com.redhat.swatch.utilization.model</targetPackage>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
     </plugins>

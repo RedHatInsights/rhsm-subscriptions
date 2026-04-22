@@ -285,11 +285,14 @@ Kafka messages can be injected for event-driven testing.
     - No notification event created
     - No increment on either counter series
 
-## Org Allowlist for Notifications
+## Notification feature flags (Unleash)
 
-**utilization-allowlist-TC001 - Allowlisted org receives notification even when the global flag is disabled**
+Additional cases can be added under the same `utilization-notifications-featureflags-TC0XX` prefix.
+
+**utilization-notifications-featureflags-TC001 - Allowlisted org receives notification even when the global flag is disabled**
 
 - **Description**: Verify that when the global send-notifications flag is disabled but the org is in the allowlist, notifications are still sent.
+- **Feature flags covered**: `swatch.swatch-notifications.send-notifications` (disabled); `swatch.swatch-notifications.send-notifications-orgs-allowlist` (enabled; Unleash variant name `orgs`).
 - **Setup**:
     - The global `swatch.swatch-notifications.send-notifications` flag is disabled
     - The `swatch.swatch-notifications.send-notifications-orgs-allowlist` flag is enabled with the org ID in its variant payload
@@ -303,9 +306,10 @@ Kafka messages can be injected for event-driven testing.
 - **Expected Result**:
     - Notification event contains correct information (org_id, product_id, metric_id and utilization_percentage)
 
-**utilization-allowlist-TC002 - Non-allowlisted org does not receive notification when the global flag is disabled**
+**utilization-notifications-featureflags-TC002 - Non-allowlisted org does not receive notification when the global flag is disabled**
 
 - **Description**: Verify that when the global send-notifications flag is disabled and the org is NOT in the allowlist, no notification is sent.
+- **Feature flags covered**: `swatch.swatch-notifications.send-notifications` (disabled); `swatch.swatch-notifications.send-notifications-orgs-allowlist` (enabled; Unleash variant name `orgs`).
 - **Setup**:
     - The global `swatch.swatch-notifications.send-notifications` flag is disabled
     - The `swatch.swatch-notifications.send-notifications-orgs-allowlist` flag is enabled with different org IDs in its variant payload
@@ -318,9 +322,10 @@ Kafka messages can be injected for event-driven testing.
 - **Expected Result**:
     - No notification event created
 
-**utilization-allowlist-TC003 - Empty allowlist does not affect behavior**
+**utilization-notifications-featureflags-TC003 - Empty allowlist does not affect behavior**
 
 - **Description**: Verify that when the allowlist flag is enabled but the variant payload is empty, behavior falls back to the global flag.
+- **Feature flags covered**: `swatch.swatch-notifications.send-notifications` (disabled); `swatch.swatch-notifications.send-notifications-orgs-allowlist` (enabled; Unleash variant name `orgs`).
 - **Setup**:
     - The global `swatch.swatch-notifications.send-notifications` flag is disabled
     - The `swatch.swatch-notifications.send-notifications-orgs-allowlist` flag is enabled with an empty variant payload
@@ -332,4 +337,57 @@ Kafka messages can be injected for event-driven testing.
     - Check absence of notification message on notifications topic
 - **Expected Result**:
     - No notification event created
+
+**utilization-notifications-featureflags-TC004 - Denylisted event type suppressed when the global flag is enabled**
+
+- **Description**: Verify that when `swatch.swatch-notifications.send-notifications` is enabled with the `send-notifications-config` variant and a JSON payload listing the over-usage notification event type in `event_types_denylist`, no notification is emitted for that event type (and the org is not on the org allowlist).
+- **Feature flags covered**: `swatch.swatch-notifications.send-notifications` (enabled; Unleash variant name `send-notifications-config` with payload property `event_types_denylist`). `swatch.swatch-notifications.send-notifications-orgs-allowlist` is not used to bypass for the test org.
+- **Setup**:
+    - The global `swatch.swatch-notifications.send-notifications` flag is enabled
+    - The toggle exposes variant `send-notifications-config` with payload `{"event_types_denylist":["exceeded-utilization-threshold"]}`
+    - The org allowlist flag is not used to bypass suppression for the test org
+    - An organization has capacity for the metric A of the product B
+- **Action**:
+    - Generate enough usage to exceed the threshold for the metric A of the product B
+    - Trigger utilization calculation process
+- **Verification**:
+    - Check absence of notification message on the notifications topic
+- **Expected Result**:
+    - No notification event created
+
+**utilization-notifications-featureflags-TC005 - Non-denylisted event types are not suppressed**
+
+- **Description**: Verify that when the denylist contains other event types only, over-usage notifications are still sent.
+- **Feature flags covered**: `swatch.swatch-notifications.send-notifications` (enabled; Unleash variant name `send-notifications-config` with payload property `event_types_denylist`).
+- **Setup**:
+    - The global `swatch.swatch-notifications.send-notifications` flag is enabled
+    - Variant `send-notifications-config` with payload `{"event_types_denylist":["some-other-event-type"]}`
+    - An organization has capacity for the metric A of the product B
+- **Action**:
+    - Generate enough usage to exceed the threshold for the metric A of the product B
+    - Trigger utilization calculation process
+- **Verification**:
+    - Wait for notification message on notifications topic
+    - Verify notification payload
+- **Expected Result**:
+    - Notification event contains correct information (org_id, product_id, metric_id and utilization_percentage)
+
+**utilization-notifications-featureflags-TC006 - Allowlisted vs non-allowlisted orgs under the same denylist**
+
+- **Description**: With the over-usage event type on the denylist and the org allowlist containing a **single** org ID, verify the contrast: that allowlisted org still receives a notification, and a **second** org (not in the allowlist) does not, under the same denylist configuration.
+- **Feature flags covered**: `swatch.swatch-notifications.send-notifications` (enabled; Unleash variant name `send-notifications-config` with payload property `event_types_denylist`); `swatch.swatch-notifications.send-notifications-orgs-allowlist` (enabled; Unleash variant name `orgs`).
+- **Setup**:
+    - The global `swatch.swatch-notifications.send-notifications` flag is enabled
+    - Variant `send-notifications-config` denies `exceeded-utilization-threshold`
+    - The org allowlist has exactly one org ID in the `orgs` variant (the org for the “in allowlist” path)
+    - A different org ID is not on the allowlist
+- **Action**:
+    - For the allowlisted org: exceed threshold and trigger utilization
+    - For the non-allowlisted org: exceed threshold and trigger utilization (separate utilization event)
+- **Verification**:
+    - Allowlisted org: wait for a notification and verify the payload
+    - Non-allowlisted org: confirm the notification is not sent (e.g. service log) with the same denylist active
+- **Expected Result**:
+    - Allowlisted org: notification event with correct (org_id, product_id, metric_id, utilization_percentage)
+    - Non-allowlisted org: no notification event
 

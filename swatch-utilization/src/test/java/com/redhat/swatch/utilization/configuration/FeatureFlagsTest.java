@@ -20,35 +20,70 @@
  */
 package com.redhat.swatch.utilization.configuration;
 
+import static com.redhat.swatch.utilization.configuration.FeatureFlags.SEND_NOTIFICATIONS_CONFIG_VARIANT;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.getunleash.Unleash;
 import io.getunleash.variant.Payload;
 import io.getunleash.variant.Variant;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class FeatureFlagsTest {
 
-  @Mock Unleash unleash;
-  @InjectMocks FeatureFlags featureFlags;
+  private static final String EVENT_TYPE = "exceeded-utilization-threshold";
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-  @Test
-  void shouldReturnTrue_whenSendNotificationsFlagIsEnabled() {
-    when(unleash.isEnabled(FeatureFlags.SEND_NOTIFICATIONS)).thenReturn(true);
-    assertTrue(featureFlags.sendNotifications());
+  @Mock Unleash unleash;
+  FeatureFlags featureFlags;
+
+  @BeforeEach
+  void setUp() {
+    featureFlags = new FeatureFlags(unleash, OBJECT_MAPPER);
   }
 
   @Test
-  void shouldReturnFalse_whenSendNotificationsFlagIsDisabled() {
+  void shouldReturnFalse_whenSendNotificationsDisabled() {
     when(unleash.isEnabled(FeatureFlags.SEND_NOTIFICATIONS)).thenReturn(false);
-    assertFalse(featureFlags.sendNotifications());
+
+    assertFalse(featureFlags.sendNotifications(EVENT_TYPE));
+  }
+
+  @Test
+  void shouldReturnTrue_whenByEventTypesPayloadOmitsEventType() {
+    givenSendNotificationsEnabledWithByEventTypesPayload(
+        "{\"event_types_denylist\":[\"other-event\"]}");
+
+    assertTrue(featureFlags.sendNotifications(EVENT_TYPE));
+  }
+
+  @Test
+  void shouldReturnFalse_whenByEventTypesPayloadDisablesEventType() {
+    givenSendNotificationsEnabledWithByEventTypesPayload(
+        "{\"event_types_denylist\":[\"" + EVENT_TYPE + "\"]}");
+
+    assertFalse(featureFlags.sendNotifications(EVENT_TYPE));
+  }
+
+  @Test
+  void shouldReturnTrue_whenByEventTypesVariantHasEmptyPayloadValue() {
+    givenSendNotificationsEnabledWithByEventTypesPayload("");
+
+    assertTrue(featureFlags.sendNotifications(EVENT_TYPE));
+  }
+
+  @Test
+  void shouldReturnTrue_whenByEventTypesVariantHasInvalidJsonPayloadValue() {
+    givenSendNotificationsEnabledWithByEventTypesPayload("{invalid");
+
+    assertTrue(featureFlags.sendNotifications(EVENT_TYPE));
   }
 
   @Test
@@ -91,6 +126,16 @@ class FeatureFlagsTest {
     givenAllowlistFlagEnabledForOrgs("org1");
 
     assertTrue(featureFlags.isOrgAllowlistedForNotifications("org1"));
+  }
+
+  private void givenSendNotificationsEnabledWithByEventTypesPayload(String json) {
+    givenSendNotificationsEnabledWithByEventTypesVariant(new Payload("json", json));
+  }
+
+  private void givenSendNotificationsEnabledWithByEventTypesVariant(Payload payload) {
+    when(unleash.isEnabled(FeatureFlags.SEND_NOTIFICATIONS)).thenReturn(true);
+    Variant variant = new Variant(SEND_NOTIFICATIONS_CONFIG_VARIANT, payload, true, "any", true);
+    when(unleash.getVariant(FeatureFlags.SEND_NOTIFICATIONS)).thenReturn(variant);
   }
 
   private void givenAllowlistFlagEnabledForOrgs(String... orgIds) {
