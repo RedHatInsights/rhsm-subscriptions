@@ -20,14 +20,11 @@
  */
 package com.redhat.swatch.contract.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.contract.model.ContractSyncTask;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,13 +35,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class ContractSyncTaskConsumerTest {
 
   @Mock private ContractService contractService;
-  private MeterRegistry meterRegistry;
   private ContractSyncTaskConsumer consumer;
 
   @BeforeEach
   void setUp() {
-    meterRegistry = new SimpleMeterRegistry();
-    consumer = new ContractSyncTaskConsumer(contractService, meterRegistry);
+    consumer = new ContractSyncTaskConsumer(contractService);
   }
 
   @Test
@@ -55,14 +50,10 @@ class ContractSyncTaskConsumerTest {
     consumer.consumeFromTopic(new ContractSyncTask("org123"));
 
     verify(contractService).syncContractsByOrgId("org123");
-    assertEquals(
-        1.0, meterRegistry.counter("swatch_contract_sync_task", "outcome", "success").count());
-    assertEquals(
-        0.0, meterRegistry.counter("swatch_contract_sync_task", "outcome", "failure").count());
   }
 
   @Test
-  void testConsumeIncrementsFailureOnFailedStatus() {
+  void testConsumeOnFailedStatus() {
     when(contractService.syncContractsByOrgId("org456"))
         .thenReturn(
             new StatusResponse().status(ContractService.FAILURE_MESSAGE).message("upstream error"));
@@ -70,22 +61,14 @@ class ContractSyncTaskConsumerTest {
     consumer.consumeFromTopic(new ContractSyncTask("org456"));
 
     verify(contractService).syncContractsByOrgId("org456");
-    assertEquals(
-        0.0, meterRegistry.counter("swatch_contract_sync_task", "outcome", "success").count());
-    assertEquals(
-        1.0, meterRegistry.counter("swatch_contract_sync_task", "outcome", "failure").count());
   }
 
   @Test
-  void testConsumeIncrementsFailureOnException() {
+  void testConsumeOnException() {
     when(contractService.syncContractsByOrgId("org789")).thenThrow(new RuntimeException("boom"));
 
     consumer.consumeFromTopic(new ContractSyncTask("org789"));
 
     verify(contractService).syncContractsByOrgId("org789");
-    assertEquals(
-        0.0, meterRegistry.counter("swatch_contract_sync_task", "outcome", "success").count());
-    assertEquals(
-        1.0, meterRegistry.counter("swatch_contract_sync_task", "outcome", "failure").count());
   }
 }
