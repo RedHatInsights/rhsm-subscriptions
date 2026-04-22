@@ -54,6 +54,9 @@ import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.repository.SubscriptionRepository;
 import com.redhat.swatch.contract.utils.ContractMessageProcessingResult;
 import com.redhat.swatch.panache.Specification;
+import io.micrometer.core.annotation.Timed;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -99,6 +102,7 @@ public class ContractService {
   @Inject @RestClient protected PartnerApi partnerApi;
   @Inject protected Validator validator;
   private final List<BasePartnerEntitlementsProvider> partnerEntitlementsProviders;
+  private final Timer contractOrgSyncTimer;
 
   ContractService(
       ContractRepository contractRepository,
@@ -106,13 +110,15 @@ public class ContractService {
       SubscriptionRepository subscriptionRepository,
       MeasurementMetricIdTransformer measurementMetricIdTransformer,
       AwsPartnerEntitlementsProvider awsPartnerEntitlementsProvider,
-      AzurePartnerEntitlementsProvider azurePartnerEntitlementsProvider) {
+      AzurePartnerEntitlementsProvider azurePartnerEntitlementsProvider,
+      MeterRegistry meterRegistry) {
     this.contractRepository = contractRepository;
     this.contractMetricRepository = contractMetricRepository;
     this.subscriptionRepository = subscriptionRepository;
     this.measurementMetricIdTransformer = measurementMetricIdTransformer;
     this.partnerEntitlementsProviders =
         List.of(awsPartnerEntitlementsProvider, azurePartnerEntitlementsProvider);
+    this.contractOrgSyncTimer = meterRegistry.timer("swatch_contract_sync");
   }
 
   @Transactional
@@ -456,39 +462,62 @@ public class ContractService {
   }
 
   @Transactional
+  @Timed("swatch_contracts_sync_contracts_by_org")
   public StatusResponse syncContractsByOrgId(String contractOrgSync) {
-    StatusResponse statusResponse = new StatusResponse();
-
+    Timer.Sample syncTime = Timer.start();
     try {
-      Set<String> upstreamBillingProviderIds = new HashSet<>();
-      int totalPages = 1;
-      for (int pageNumber = 0; pageNumber < totalPages; pageNumber++) {
-        var result = syncContractsByOrgId(contractOrgSync, pageNumber, upstreamBillingProviderIds);
-        if (result.getPage() != null && result.getPage().getTotalPages() != null) {
-          totalPages = result.getPage().getTotalPages();
-        }
-      }
-
+      var upstreamBillingProviderIds = fetchUpstreamBillingProviderIdsForOrg(contractOrgSync);
       terminateContractsOrphanedByBillingProviders(contractOrgSync, upstreamBillingProviderIds);
-
-      if (!upstreamBillingProviderIds.isEmpty()) {
-        statusResponse.setMessage("Contracts Synced for " + contractOrgSync);
-        statusResponse.setStatus(SUCCESS_MESSAGE);
-      } else {
-        statusResponse.setMessage("No contracts found in upstream for the org " + contractOrgSync);
-        statusResponse.setStatus(FAILURE_MESSAGE);
-      }
+      return buildContractSyncStatusForOrg(contractOrgSync, upstreamBillingProviderIds);
     } catch (NumberFormatException e) {
       log.error(e.getMessage());
-      statusResponse.setStatus(FAILURE_MESSAGE);
-      statusResponse.setMessage("An Error occurred while reconciling contract");
-      return statusResponse;
+      return buildContractReconcileErrorStatus();
     } catch (ProcessingException | ApiException e) {
       log.error(e.getMessage());
-      statusResponse.setStatus(FAILURE_MESSAGE);
-      statusResponse.setMessage("An Error occurred while calling Partner Api");
+      return buildPartnerApiErrorStatus();
+    } finally {
+      syncTime.stop(contractOrgSyncTimer);
+    }
+  }
+
+  private Set<String> fetchUpstreamBillingProviderIdsForOrg(String contractOrgSync)
+      throws ApiException {
+    Set<String> upstreamBillingProviderIds = new HashSet<>();
+    int totalPages = 1;
+    for (int pageNumber = 0; pageNumber < totalPages; pageNumber++) {
+      var result = syncContractsByOrgId(contractOrgSync, pageNumber, upstreamBillingProviderIds);
+      if (result.getPage() != null && result.getPage().getTotalPages() != null) {
+        totalPages = result.getPage().getTotalPages();
+      }
+    }
+    return upstreamBillingProviderIds;
+  }
+
+  private static StatusResponse buildContractSyncStatusForOrg(
+      String contractOrgSync, Set<String> upstreamBillingProviderIds) {
+    StatusResponse statusResponse = new StatusResponse();
+    if (!upstreamBillingProviderIds.isEmpty()) {
+      statusResponse.setMessage("Contracts Synced for " + contractOrgSync);
+      statusResponse.setStatus(SUCCESS_MESSAGE);
       return statusResponse;
     }
+
+    statusResponse.setMessage("No contracts found in upstream for the org " + contractOrgSync);
+    statusResponse.setStatus(FAILURE_MESSAGE);
+    return statusResponse;
+  }
+
+  private static StatusResponse buildContractReconcileErrorStatus() {
+    StatusResponse statusResponse = new StatusResponse();
+    statusResponse.setStatus(FAILURE_MESSAGE);
+    statusResponse.setMessage("An Error occurred while reconciling contract");
+    return statusResponse;
+  }
+
+  private static StatusResponse buildPartnerApiErrorStatus() {
+    StatusResponse statusResponse = new StatusResponse();
+    statusResponse.setStatus(FAILURE_MESSAGE);
+    statusResponse.setMessage("An Error occurred while calling Partner Api");
     return statusResponse;
   }
 
