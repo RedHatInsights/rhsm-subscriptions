@@ -22,8 +22,8 @@ package tests;
 
 import static api.PartnerApiStubs.PartnerSubscriptionsStubRequest.forContractsInOrgId;
 import static java.util.Collections.disjoint;
-import static java.util.stream.Collectors.toSet;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -34,6 +34,7 @@ import static utils.DateUtils.assertDatesAreEqual;
 
 import api.PartnerApiStubs;
 import com.redhat.swatch.component.tests.api.TestPlanName;
+import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.contract.test.model.SkuCapacitySubscription;
 import domain.BillingProvider;
@@ -42,16 +43,14 @@ import io.restassured.response.Response;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.Test;
 
 public class ContractsSyncComponentTest extends BaseContractComponentTest {
 
-  // Status message constants
   private static final String STATUS_SUCCESS = "SUCCESS";
-  private static final String STATUS_ALL_CONTRACTS_SYNCED = "All Contract are Synced";
+  private static final String STATUS_ENQUEUED_PREFIX = "Enqueued";
   private static final String STATUS_NO_CONTRACTS_FOUND = "No active contract found for the orgIds";
 
   @TestPlanName("contracts-sync-TC001")
@@ -156,7 +155,7 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
     var initialSubscriptionIds =
         initialSkuCapacity.get().getSubscriptions().stream()
             .map(SkuCapacitySubscription::getId)
-            .collect(toSet());
+            .collect(Collectors.toSet());
 
     // Setup new upstream contracts (different from existing - same SKU, different provider)
     Contract newContract =
@@ -193,7 +192,7 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
       var remainingSubscriptionIds =
           finalSkuCapacity.get().getSubscriptions().stream()
               .map(SkuCapacitySubscription::getId)
-              .collect(toSet());
+              .collect(Collectors.toSet());
 
       // Verify none of the old AWS subscription IDs remain
       assertTrue(
@@ -238,27 +237,11 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
     givenContractIsCreated(secondOrgContract);
 
     // When: Sync all contracts
-    Response syncResponse = service.syncAllContracts();
+    whenSyncAllContracts();
 
-    // Then: Verify sync succeeded
-    assertThat(
-        "Sync all contracts should succeed", syncResponse.statusCode(), is(HttpStatus.SC_OK));
-    syncResponse.then().body("status", equalTo(STATUS_ALL_CONTRACTS_SYNCED));
-
-    // Verify contracts still exist for both orgs after sync
-    var firstOrgContracts = service.getContractsByOrgId(firstOrg);
-    assertEquals(1, firstOrgContracts.size(), "First org should have one contract after sync");
-    assertEquals(
-        BillingProvider.AWS.toApiModel(),
-        firstOrgContracts.get(0).getBillingProvider(),
-        "First org contract should be AWS");
-
-    var secondOrgContracts = service.getContractsByOrgId(secondOrg);
-    assertEquals(1, secondOrgContracts.size(), "Second org should have one contract after sync");
-    assertEquals(
-        BillingProvider.AZURE.toApiModel(),
-        secondOrgContracts.get(0).getBillingProvider(),
-        "Second org contract should be Azure");
+    // Then: Verify contracts
+    thenOrgHasSingleContractWithProvider(firstOrg, BillingProvider.AWS);
+    thenOrgHasSingleContractWithProvider(secondOrg, BillingProvider.AZURE);
   }
 
   @TestPlanName("contracts-sync-TC004")
@@ -307,35 +290,21 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
     var contractsBefore = service.getContractsByOrgId(orgId);
     assertEquals(1, contractsBefore.size(), "Should have exactly one contract before sync");
 
-    // When: Run syncAllContracts the first time
-    Response firstSync = service.syncAllContracts();
-    assertThat("First sync should succeed", firstSync.statusCode(), is(HttpStatus.SC_OK));
-    firstSync.then().body("status", equalTo(STATUS_ALL_CONTRACTS_SYNCED));
+    // When: Run syncAllContracts the first time (async)
+    whenSyncAllContracts();
 
-    var contractsAfterFirst = service.getContractsByOrgId(orgId);
-    assertEquals(
-        1, contractsAfterFirst.size(), "Should still have exactly one contract after first sync");
-    String uuidAfterFirst = contractsAfterFirst.get(0).getUuid();
+    // Wait for async processing, then capture state
+    String uuidAfterFirst =
+        AwaitilityUtils.until(
+                () -> service.getContractsByOrgId(orgId), contracts -> contracts.size() == 1)
+            .get(0)
+            .getUuid();
 
     // When: Run syncAllContracts a second time (same upstream data — idempotency check)
-    Response secondSync = service.syncAllContracts();
-    assertThat("Second sync should succeed", secondSync.statusCode(), is(HttpStatus.SC_OK));
-    secondSync.then().body("status", equalTo(STATUS_ALL_CONTRACTS_SYNCED));
+    whenSyncAllContracts();
 
-    // Then: No duplicate contracts created; record count is still exactly 1
-    var contractsAfterSecond = service.getContractsByOrgId(orgId);
-    assertEquals(1, contractsAfterSecond.size(), "Repeat sync must not create duplicate contracts");
-
-    // UUID must be stable — upsert finds the existing record and leaves it unchanged
-    String uuidAfterSecond = contractsAfterSecond.get(0).getUuid();
-    assertEquals(
-        uuidAfterFirst,
-        uuidAfterSecond,
-        "Contract UUID must remain stable across repeat syncAllContracts calls");
-    assertEquals(
-        contractsAfterFirst.get(0).getBillingProvider(),
-        contractsAfterSecond.get(0).getBillingProvider(),
-        "Billing provider must not change across repeat runs");
+    // Then: Wait for async processing and verify no duplicates
+    thenSingleContractHasStableUuid(uuidAfterFirst);
   }
 
   @TestPlanName("contracts-sync-TC007")
@@ -367,43 +336,16 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
     var contractsBefore = service.getContractsByOrgId(orgId);
     assertEquals(2, contractsBefore.size(), "Should have two contracts before sync");
 
-    Set<String> uuidsBefore =
-        contractsBefore.stream()
-            .map(com.redhat.swatch.contract.test.model.Contract::getUuid)
-            .collect(Collectors.toSet());
+    String awsUuid = getContractUuidByProvider(orgId, BillingProvider.AWS);
+    String azureUuid = getContractUuidByProvider(orgId, BillingProvider.AZURE);
 
-    // When: syncAllContracts (will iterate this org twice since it has 2 contracts in DB)
-    Response syncResponse = service.syncAllContracts();
-    assertThat("Sync should succeed", syncResponse.statusCode(), is(HttpStatus.SC_OK));
-    syncResponse.then().body("status", equalTo(STATUS_ALL_CONTRACTS_SYNCED));
+    // When: syncAllContracts (async — enqueues one task for this org)
+    whenSyncAllContracts();
 
-    // Then: Both contracts still exist after the full loop
-    var contractsAfter = service.getContractsByOrgId(orgId);
-    assertEquals(
-        2,
-        contractsAfter.size(),
-        "Both AWS and Azure contracts must survive syncAllContracts loop iteration");
-
-    Set<String> providersAfter =
-        contractsAfter.stream()
-            .map(com.redhat.swatch.contract.test.model.Contract::getBillingProvider)
-            .collect(Collectors.toSet());
-    assertTrue(
-        providersAfter.contains(BillingProvider.AWS.toApiModel()),
-        "AWS contract must still exist after syncAllContracts");
-    assertTrue(
-        providersAfter.contains(BillingProvider.AZURE.toApiModel()),
-        "Azure contract must still exist after syncAllContracts");
-
-    // UUIDs should be stable — same records, not new UUIDs from re-creation
-    Set<String> uuidsAfter =
-        contractsAfter.stream()
-            .map(com.redhat.swatch.contract.test.model.Contract::getUuid)
-            .collect(Collectors.toSet());
-    assertEquals(
-        uuidsBefore,
-        uuidsAfter,
-        "Contract UUIDs must remain stable after syncAllContracts for multi-provider org");
+    // Then: both contracts survive and their UUIDs are stable
+    thenContractIsFound(awsUuid, BillingProvider.AWS);
+    thenContractIsFound(azureUuid, BillingProvider.AZURE);
+    thenContractsSizeAre(2);
   }
 
   @TestPlanName("contracts-sync-TC008")
@@ -426,35 +368,13 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
     String subIdAfterOrgSync = subsAfterOrgSync.get(0).getSubscriptionId();
     int measurementCountAfterOrgSync = subsAfterOrgSync.get(0).getMetrics().size();
 
-    // When: Run syncAllContracts on top of the already-synced state
-    Response globalSync = service.syncAllContracts();
-    assertThat("Global sync should succeed", globalSync.statusCode(), is(HttpStatus.SC_OK));
-    globalSync.then().body("status", equalTo(STATUS_ALL_CONTRACTS_SYNCED));
+    // When: Run syncAllContracts on top of the already-synced state (async)
+    whenSyncAllContracts();
 
-    // Then: No additional records in any table
-    var contractsAfterGlobalSync = service.getContractsByOrgId(orgId);
-    assertEquals(
-        1, contractsAfterGlobalSync.size(), "contracts: no duplicate rows after global sync");
-    assertEquals(
-        uuidAfterOrgSync,
-        contractsAfterGlobalSync.get(0).getUuid(),
-        "contracts: UUID must be stable after global sync");
-    assertEquals(
-        metricsCountAfterOrgSync,
-        contractsAfterGlobalSync.get(0).getMetrics().size(),
-        "contract_metrics: row count must be stable after global sync");
-
-    var subsAfterGlobalSync = service.getSubscriptionsByOrgId(orgId);
-    assertEquals(
-        1, subsAfterGlobalSync.size(), "subscriptions: no duplicate rows after global sync");
-    assertEquals(
-        subIdAfterOrgSync,
-        subsAfterGlobalSync.get(0).getSubscriptionId(),
-        "subscriptions: subscription_id must be stable after global sync");
-    assertEquals(
-        measurementCountAfterOrgSync,
-        subsAfterGlobalSync.get(0).getMetrics().size(),
-        "subscription_measurements: row count must be stable after global sync");
+    // Then: Wait for async processing, no additional records in any table
+    thenSingleContractHasStableUuidAndMetrics(uuidAfterOrgSync, metricsCountAfterOrgSync);
+    thenSingleSubscriptionHasStableIdAndMeasurements(
+        subIdAfterOrgSync, measurementCountAfterOrgSync);
   }
 
   @TestPlanName("contracts-sync-TC009")
@@ -484,98 +404,24 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
     assertEquals(1, contracts.size(), "Exactly one contract row must exist");
 
     var c = contracts.get(0);
-    assertNotNull(c.getUuid(), "contracts.uuid must be set");
-    assertEquals(orgId, c.getOrgId(), "contracts.org_id must match");
-    assertEquals(sku, c.getSku(), "contracts.sku must match");
-    assertEquals(
-        BillingProvider.AWS.toApiModel(), c.getBillingProvider(), "contracts.billing_provider");
-    assertNotNull(
-        c.getBillingProviderId(),
-        "contracts.billing_provider_id must be populated (pre-cleanup key)");
-    assertFalse(
-        c.getBillingProviderId().isBlank(), "contracts.billing_provider_id must not be blank");
-    assertNotNull(c.getBillingAccountId(), "contracts.billing_account_id must be set");
-    assertEquals(
-        contract.getBillingAccountId(),
-        c.getBillingAccountId(),
-        "contracts.billing_account_id must match upstream value");
-    assertNotNull(c.getStartDate(), "contracts.start_date must be set");
-    assertNotNull(c.getEndDate(), "contracts.end_date must be set");
-    assertEquals(
-        contract.getSubscriptionNumber(),
-        c.getSubscriptionNumber(),
-        "contracts.subscription_number must match upstream");
-    assertFalse(c.getProductTags().isEmpty(), "contracts.product_tags must not be empty");
-
-    // ── contract_metrics table ────────────────────────────────────────────
-    var metrics = c.getMetrics();
-    assertFalse(metrics.isEmpty(), "contract_metrics must have at least one row");
-
-    for (var metric : metrics) {
-      assertNotNull(metric.getMetricId(), "contract_metrics.metric_id must not be null");
-      assertFalse(metric.getMetricId().isBlank(), "contract_metrics.metric_id must not be blank");
-      assertNotNull(metric.getValue(), "contract_metrics.value must not be null");
-      assertTrue(metric.getValue() > 0, "contract_metrics.value must be positive");
-    }
-
-    // No duplicate metric_ids on the same contract
-    var metricIds =
-        metrics.stream()
-            .map(com.redhat.swatch.contract.test.model.Metric::getMetricId)
-            .collect(Collectors.toList());
-    assertEquals(
-        metricIds.size(),
-        metricIds.stream().distinct().count(),
-        "contract_metrics must not contain duplicate metric_id values for the same contract");
+    verifyContractFields(contract, c);
+    verifyContractMetricsAreValid(c.getMetrics());
 
     // ── subscriptions table ───────────────────────────────────────────────
     var subscriptions = service.getSubscriptionsByOrgId(orgId);
     assertEquals(1, subscriptions.size(), "Exactly one subscription row must exist");
 
     var sub = subscriptions.get(0);
-    assertNotNull(sub.getSubscriptionId(), "subscriptions.subscription_id must be set");
-    assertEquals(orgId, sub.getOrgId(), "subscriptions.org_id must match");
-    assertEquals(sku, sub.getSku(), "subscriptions.sku must match");
-    assertEquals(
-        BillingProvider.AWS.toApiModel(),
-        sub.getBillingProvider().toLowerCase(),
-        "subscriptions.billing_provider must match");
-    assertNotNull(
-        sub.getBillingProviderId(), "subscriptions.billing_provider_id must be populated");
-    assertNotNull(sub.getBillingAccountId(), "subscriptions.billing_account_id must be set");
-    assertNotNull(sub.getStartDate(), "subscriptions.start_date must be set");
-    assertNotNull(sub.getEndDate(), "subscriptions.end_date must be set");
-
-    // ── subscription_measurements table ───────────────────────────────────
-    var measurements = sub.getMetrics();
-    assertNotNull(measurements, "subscription_measurements must not be null");
-    assertFalse(measurements.isEmpty(), "subscription_measurements must have at least one row");
-
-    for (var m : measurements) {
-      assertNotNull(m.getMetricId(), "subscription_measurements.metric_id must not be null");
-      assertNotNull(m.getValue(), "subscription_measurements.value must not be null");
-      assertTrue(m.getValue() > 0, "subscription_measurements.value must be positive");
-      assertNotNull(
-          m.getMeasurementType(), "subscription_measurements.measurement_type must not be null");
-      assertFalse(
-          m.getMeasurementType().isBlank(),
-          "subscription_measurements.measurement_type must not be blank");
-    }
+    verifySubscriptionFields(contract, sub);
 
     // ── cross-table consistency ───────────────────────────────────────────
-    // contract.subscription_number == subscription.subscription_number
     assertEquals(
         c.getSubscriptionNumber(),
         sub.getSubscriptionNumber(),
         "contracts.subscription_number must equal subscriptions.subscription_number");
-
-    // Both tables must have the same number of distinct metric entries for this
-    // contract/subscription
-    // (contract_metrics and subscription_measurements use different ID representations — e.g.
-    // "four_vcpu_hour" vs "Cores" — so we compare counts, not names)
     assertEquals(
-        metrics.size(),
-        measurements.size(),
+        c.getMetrics().size(),
+        sub.getMetrics().size(),
         "contract_metrics and subscription_measurements must have the same number of metric entries");
   }
 
@@ -816,6 +662,186 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
         endDateBefore,
         contractsAfter.get(0).getEndDate(),
         "Azure contract end_date should be unchanged (not terminated)");
+  }
+
+  protected String getContractUuidByProvider(String orgId, BillingProvider provider) {
+    var contracts =
+        service.getContractsByOrgId(orgId).stream()
+            .filter(c -> c.getBillingProvider().equals(provider.toApiModel()))
+            .toList();
+    assertEquals(
+        1,
+        contracts.size(),
+        "Expected exactly one contract with provider " + provider + " for org " + orgId);
+    return contracts.get(0).getUuid();
+  }
+
+  protected void verifyContractFields(
+      Contract expected, com.redhat.swatch.contract.test.model.Contract actual) {
+    assertNotNull(actual.getUuid(), "contracts.uuid must be set");
+    assertEquals(expected.getOrgId(), actual.getOrgId(), "contracts.org_id must match");
+    assertEquals(expected.getOffering().getSku(), actual.getSku(), "contracts.sku must match");
+    assertEquals(
+        expected.getBillingProvider().toApiModel(),
+        actual.getBillingProvider(),
+        "contracts.billing_provider");
+    assertNotNull(
+        actual.getBillingProviderId(),
+        "contracts.billing_provider_id must be populated (pre-cleanup key)");
+    assertFalse(
+        actual.getBillingProviderId().isBlank(), "contracts.billing_provider_id must not be blank");
+    assertNotNull(actual.getBillingAccountId(), "contracts.billing_account_id must be set");
+    assertEquals(
+        expected.getBillingAccountId(),
+        actual.getBillingAccountId(),
+        "contracts.billing_account_id must match upstream value");
+    assertNotNull(actual.getStartDate(), "contracts.start_date must be set");
+    assertNotNull(actual.getEndDate(), "contracts.end_date must be set");
+    assertEquals(
+        expected.getSubscriptionNumber(),
+        actual.getSubscriptionNumber(),
+        "contracts.subscription_number must match upstream");
+    assertFalse(actual.getProductTags().isEmpty(), "contracts.product_tags must not be empty");
+    assertNotNull(actual.getMetrics(), "contract_metrics must not be null");
+  }
+
+  protected void verifyContractMetricsAreValid(
+      List<com.redhat.swatch.contract.test.model.Metric> metrics) {
+    assertFalse(metrics.isEmpty(), "contract_metrics must have at least one row");
+    for (var metric : metrics) {
+      assertNotNull(metric.getMetricId(), "contract_metrics.metric_id must not be null");
+      assertFalse(metric.getMetricId().isBlank(), "contract_metrics.metric_id must not be blank");
+      assertNotNull(metric.getValue(), "contract_metrics.value must not be null");
+      assertTrue(metric.getValue() > 0, "contract_metrics.value must be positive");
+    }
+    long distinctCount =
+        metrics.stream()
+            .map(com.redhat.swatch.contract.test.model.Metric::getMetricId)
+            .distinct()
+            .count();
+    assertEquals(
+        (long) metrics.size(),
+        distinctCount,
+        "contract_metrics must not contain duplicate metric_id values for the same contract");
+  }
+
+  protected void verifySubscriptionFields(
+      Contract expected, com.redhat.swatch.contract.test.model.Subscription actual) {
+    assertNotNull(actual.getSubscriptionId(), "subscriptions.subscription_id must be set");
+    assertEquals(expected.getOrgId(), actual.getOrgId(), "subscriptions.org_id must match");
+    assertEquals(expected.getOffering().getSku(), actual.getSku(), "subscriptions.sku must match");
+    assertEquals(
+        expected.getBillingProvider().toApiModel(),
+        actual.getBillingProvider().toLowerCase(),
+        "subscriptions.billing_provider must match");
+    assertNotNull(
+        actual.getBillingProviderId(), "subscriptions.billing_provider_id must be populated");
+    assertNotNull(actual.getBillingAccountId(), "subscriptions.billing_account_id must be set");
+    assertNotNull(actual.getStartDate(), "subscriptions.start_date must be set");
+    assertNotNull(actual.getEndDate(), "subscriptions.end_date must be set");
+    var measurements = actual.getMetrics();
+    assertNotNull(measurements, "subscription_measurements must not be null");
+    assertFalse(measurements.isEmpty(), "subscription_measurements must have at least one row");
+    for (var m : measurements) {
+      assertNotNull(m.getMetricId(), "subscription_measurements.metric_id must not be null");
+      assertNotNull(m.getValue(), "subscription_measurements.value must not be null");
+      assertTrue(m.getValue() > 0, "subscription_measurements.value must be positive");
+      assertNotNull(
+          m.getMeasurementType(), "subscription_measurements.measurement_type must not be null");
+      assertFalse(
+          m.getMeasurementType().isBlank(),
+          "subscription_measurements.measurement_type must not be blank");
+    }
+  }
+
+  @FunctionalInterface
+  interface Condition {
+    void verify(List<com.redhat.swatch.contract.test.model.Contract> contracts);
+  }
+
+  private void whenSyncAllContracts() {
+    Response sync = service.syncAllContracts();
+    assertThat("Sync all contracts should succeed", sync.statusCode(), is(HttpStatus.SC_OK));
+    sync.then().body("status", containsString(STATUS_ENQUEUED_PREFIX));
+  }
+
+  private void thenAssertContractsForOrg(Condition condition) {
+    thenAssertContractsForOrg(orgId, condition);
+  }
+
+  private void thenAssertContractsForOrg(String orgId, Condition condition) {
+    AwaitilityUtils.untilAsserted(() -> condition.verify(service.getContractsByOrgId(orgId)));
+  }
+
+  private void thenContractIsFound(String contractUuid, BillingProvider provider) {
+    thenAssertContractsForOrg(
+        contracts -> {
+          boolean found =
+              contracts.stream()
+                  .anyMatch(
+                      c ->
+                          c.getUuid().equals(contractUuid)
+                              && c.getBillingProvider().equals(provider.toApiModel()));
+          assertTrue(
+              found,
+              "Expected contract uuid=" + contractUuid + " provider=" + provider + " to exist");
+        });
+  }
+
+  private void thenSingleContractHasStableUuid(String uuid) {
+    thenAssertContractsForOrg(
+        contracts -> {
+          assertEquals(1, contracts.size(), "contracts: no duplicate rows");
+          assertEquals(uuid, contracts.get(0).getUuid(), "contracts: UUID must be stable");
+        });
+  }
+
+  private void thenSingleContractHasStableUuidAndMetrics(String uuid, int expectedMetricsCount) {
+    thenAssertContractsForOrg(
+        contracts -> {
+          assertEquals(1, contracts.size(), "contracts: no duplicate rows");
+          assertEquals(uuid, contracts.get(0).getUuid(), "contracts: UUID must be stable");
+          assertEquals(
+              expectedMetricsCount,
+              contracts.get(0).getMetrics().size(),
+              "contract_metrics: row count must be stable");
+        });
+  }
+
+  private void thenSingleSubscriptionHasStableIdAndMeasurements(
+      String subId, int expectedMeasurementsCount) {
+    AwaitilityUtils.untilAsserted(
+        () -> {
+          var subs = service.getSubscriptionsByOrgId(orgId);
+          assertEquals(1, subs.size(), "subscriptions: no duplicate rows");
+          assertEquals(
+              subId,
+              subs.get(0).getSubscriptionId(),
+              "subscriptions: subscription_id must be stable");
+          assertEquals(
+              expectedMeasurementsCount,
+              subs.get(0).getMetrics().size(),
+              "subscription_measurements: row count must be stable");
+        });
+  }
+
+  private void thenContractsSizeAre(int expected) {
+    thenAssertContractsForOrg(
+        contracts ->
+            assertEquals(
+                expected, contracts.size(), "Expected " + expected + " contract(s) for org"));
+  }
+
+  private void thenOrgHasSingleContractWithProvider(String orgId, BillingProvider provider) {
+    thenAssertContractsForOrg(
+        orgId,
+        contracts -> {
+          assertEquals(1, contracts.size(), "Org " + orgId + " should have exactly one contract");
+          assertEquals(
+              provider.toApiModel(),
+              contracts.get(0).getBillingProvider(),
+              "Contract billing provider should be " + provider);
+        });
   }
 
   private void givenRosaContractsAreStubbed(int count) {
