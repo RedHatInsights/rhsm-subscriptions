@@ -71,6 +71,8 @@ parameters:
     value: token
   - name: CUSTOMER_OVER_USAGE_DEFAULT_THRESHOLD_PERCENT
     value: '5.0'
+  - name: ORG_PREFERENCE_DEFAULT_THRESHOLD
+    value: '80'
   - name: LOGGING_SHOW_SQL_QUERIES
     value: 'false'
   # allow overriding to support independent deploy with bonfire
@@ -200,6 +202,8 @@ objects:
               value: ${OTEL_DISABLED}
             - name: CUSTOMER_OVER_USAGE_DEFAULT_THRESHOLD_PERCENT
               value: ${CUSTOMER_OVER_USAGE_DEFAULT_THRESHOLD_PERCENT}
+            - name: ORG_PREFERENCE_DEFAULT_THRESHOLD
+              value: ${ORG_PREFERENCE_DEFAULT_THRESHOLD}
             - name: LOGGING_SHOW_SQL_QUERIES
               value: ${LOGGING_SHOW_SQL_QUERIES}
             - name: DATABASE_HOST
