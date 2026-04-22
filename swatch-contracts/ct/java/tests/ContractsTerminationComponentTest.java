@@ -27,9 +27,10 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -316,12 +317,17 @@ public class ContractsTerminationComponentTest extends BaseContractComponentTest
         nextEventDate.toLocalDate(),
         equalTo(tomorrow.toLocalDate()));
 
-    // Verify it's at the end of the day (allowing for timezone differences)
-    // The hour could be 22 or 23 depending on timezone conversion
+    // Verify it's at the end of the day (allowing for timezone and daylight saving time
+    // differences).
+    // Depending on offset conversions, this can be 21, 22, or 23.
     assertThat(
-        "next_event_date hour should be near end of day (22 or 23)",
+        "next_event_date hour should be near end of day (21, 22, or 23)",
         nextEventDate.getHour(),
-        is(greaterThan(21)));
+        is(greaterThanOrEqualTo(21)));
+    assertThat(
+        "next_event_date hour should not be after end of day",
+        nextEventDate.getHour(),
+        is(lessThanOrEqualTo(23)));
     assertThat("next_event_date minute should be 59", nextEventDate.getMinute(), equalTo(59));
     assertThat("next_event_date second should be 59", nextEventDate.getSecond(), equalTo(59));
   }

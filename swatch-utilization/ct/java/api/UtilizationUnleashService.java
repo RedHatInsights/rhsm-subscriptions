@@ -21,9 +21,13 @@
 package api;
 
 import com.redhat.swatch.component.tests.api.UnleashService;
+import com.redhat.swatch.component.tests.utils.JsonUtils;
+import com.redhat.swatch.utilization.model.SendNotificationVariantPayload;
+import java.util.List;
 
 public class UtilizationUnleashService extends UnleashService {
   private static final String SEND_NOTIFICATIONS = "swatch.swatch-notifications.send-notifications";
+  private static final String SEND_NOTIFICATIONS_CONFIG_VARIANT = "send-notifications-config";
   private static final String SEND_NOTIFICATIONS_ORGS_ALLOWLIST =
       "swatch.swatch-notifications.send-notifications-orgs-allowlist";
   private static final String ORGS_VARIANT = "orgs";
@@ -48,6 +52,31 @@ public class UtilizationUnleashService extends UnleashService {
     clearVariants(SEND_NOTIFICATIONS_ORGS_ALLOWLIST);
     disableFlag(SEND_NOTIFICATIONS_ORGS_ALLOWLIST);
     waitForUnleashPropagation();
+  }
+
+  public void enableSendNotificationsWithEventTypesDenylist(String... eventTypes) {
+    enableFlag(SEND_NOTIFICATIONS);
+    String json = buildEventTypesDenylistJson(eventTypes);
+    setVariant(
+        SEND_NOTIFICATIONS,
+        SEND_NOTIFICATIONS_CONFIG_VARIANT,
+        escapeForUnleashVariantStringValue(json));
+    waitForUnleashPropagation();
+  }
+
+  public void clearSendNotificationsVariants() {
+    clearVariants(SEND_NOTIFICATIONS);
+    waitForUnleashPropagation();
+  }
+
+  private static String buildEventTypesDenylistJson(String... eventTypes) {
+    var payload = new SendNotificationVariantPayload();
+    payload.setEventTypesDenylist(List.of(eventTypes));
+    return JsonUtils.toJson(payload);
+  }
+
+  private static String escapeForUnleashVariantStringValue(String value) {
+    return value.replace("\\", "\\\\").replace("\"", "\\\"");
   }
 
   private void waitForUnleashPropagation() {

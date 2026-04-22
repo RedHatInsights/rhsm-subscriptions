@@ -50,6 +50,7 @@ import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.service.AccountResetService;
 import com.redhat.swatch.contract.service.CapacityReconciliationService;
 import com.redhat.swatch.contract.service.ContractService;
+import com.redhat.swatch.contract.service.ContractSyncService;
 import com.redhat.swatch.contract.service.EnabledOrgsProducer;
 import com.redhat.swatch.contract.service.OfferingProductTagLookupService;
 import com.redhat.swatch.contract.service.OfferingSyncService;
@@ -94,6 +95,7 @@ public class ContractsResource implements DefaultApi {
   private final SubscriptionSyncService subscriptionSyncService;
   private final UsageContextSubscriptionProvider usageContextSubscriptionProvider;
   private final MetricMapper metricMapper;
+  private final ContractSyncService contractSyncService;
 
   /**
    * Create contract record in database from provided contract dto payload
@@ -147,21 +149,20 @@ public class ContractsResource implements DefaultApi {
   }
 
   @Override
-  @Transactional
-  @RolesAllowed({"test", "support"})
+  @RolesAllowed({"test", "support", "service"})
   public StatusResponse syncAllContracts() throws ProcessingException {
-    log.info("Syncing All Contracts");
+    log.info("Starting contracts sync all");
 
-    var orgIds = service.getOrgIdUsedInContracts();
+    long count = contractSyncService.enqueueContractSyncForAllOrgs();
 
-    if (orgIds.isEmpty()) {
+    if (count == 0) {
+      log.info("Contracts sync all: no orgs with contracts in database");
       return new StatusResponse().status("No active contract found for the orgIds");
     }
 
-    for (String orgId : orgIds) {
-      service.syncContractsByOrgId(orgId);
-    }
-    return new StatusResponse().status("All Contract are Synced");
+    log.info("Contracts sync all: enqueued {} org(s)", count);
+    return new StatusResponse()
+        .status(String.format("Enqueued %d org(s) for contract sync", count));
   }
 
   @Override

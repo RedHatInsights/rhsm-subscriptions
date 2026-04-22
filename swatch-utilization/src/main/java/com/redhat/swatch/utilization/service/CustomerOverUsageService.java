@@ -32,7 +32,6 @@ import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.MetricType;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
-import com.redhat.swatch.utilization.configuration.FeatureFlags;
 import com.redhat.swatch.utilization.model.Measurement;
 import com.redhat.swatch.utilization.model.Severity;
 import com.redhat.swatch.utilization.model.UtilizationSummary;
@@ -96,19 +95,15 @@ public class CustomerOverUsageService {
 
   private final MeterProvider<Counter> overUsageCounter;
   private final NotificationsProducer notificationsProducer;
-  private final FeatureFlags featureFlags;
 
   @ConfigProperty(name = "CUSTOMER_OVER_USAGE_DEFAULT_THRESHOLD_PERCENT")
   Double defaultThresholdPercent;
 
   @Inject
   public CustomerOverUsageService(
-      MeterRegistry meterRegistry,
-      NotificationsProducer notificationsProducer,
-      FeatureFlags featureFlags) {
+      MeterRegistry meterRegistry, NotificationsProducer notificationsProducer) {
     this.overUsageCounter = Counter.builder(OVER_USAGE_METRIC).withRegistry(meterRegistry);
     this.notificationsProducer = notificationsProducer;
-    this.featureFlags = featureFlags;
   }
 
   /**
@@ -281,23 +276,9 @@ public class CustomerOverUsageService {
 
   private void sendNotification(
       UtilizationSummary payload, MetricId metricId, double utilizationPercent) {
-    if (!canSendNotification(payload.getOrgId())) {
-      log.info(
-          "Notification not sent for orgId={} productId={} metricId={} - feature flag '{}' is disabled and org is not allowlisted",
-          payload.getOrgId(),
-          payload.getProductId(),
-          metricId,
-          FeatureFlags.SEND_NOTIFICATIONS);
-      return;
-    }
-
     Action action = buildNotificationAction(payload, metricId, utilizationPercent);
     incrementOverUsageCounter(payload, metricId);
     notificationsProducer.produce(action);
-  }
-
-  private boolean canSendNotification(String orgId) {
-    return featureFlags.sendNotifications() || featureFlags.isOrgAllowlistedForNotifications(orgId);
   }
 
   private Action buildNotificationAction(

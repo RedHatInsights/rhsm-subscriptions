@@ -175,6 +175,29 @@ paths:
         - support: [ ]
         - test: [ ]
       operationId: syncSubscriptionsForContractsByOrg
+  /api/swatch-contracts/internal/rpc/contracts/sync:
+    description: "Trigger a sync for all orgs that have contracts in the upstream database."
+    post:
+      summary: "Sync all contracts."
+      operationId: syncAllContracts
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+              examples:
+                status response:
+                  value:
+                    status: 'Success'
+                    message: "All contracts Synced"
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+      security:
+        - support: []
+        - test: []
+        - service: []
   /api/swatch-contracts/internal/rpc/reset/{org_id}:
     description: "Clear all contracts and subscriptions for a given org ID. "
     delete:
@@ -194,26 +217,6 @@ paths:
         - test: [ ]
         - service: [ ]
       operationId: deleteDataForOrg
-  /internal/rpc/syncAllContracts:
-    description: "Trigger a sync for all contracts"
-    post:
-      summary: "Sync all contracts."
-      operationId: syncAllContracts
-      responses:
-        '202':
-          description: "The request for syncing all contracts is successfully running."
-          content:
-            application/vnd.api+json:
-              schema:
-                $ref: "#/components/schemas/StatusResponse"
-              examples:
-                status response:
-                  value:
-                    status: 'Success'
-                    message: "All contracts Synced"
-      security:
-        - support: []
-        - test: []
   '/api/swatch-contracts/internal/rpc/partner/contracts':
     post:
       operationId: createPartnerEntitlementContract

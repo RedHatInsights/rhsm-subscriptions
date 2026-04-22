@@ -48,9 +48,9 @@ public class ContractRepository implements PanacheSpecificationSupport<ContractE
     return find("uuid", uuid).firstResult();
   }
 
-  public List<String> getDistinctOrgIds() {
+  public Stream<String> getDistinctOrgIds() {
     return getEntityManager()
         .createQuery("SELECT DISTINCT c.orgId FROM ContractEntity c", String.class)
-        .getResultList();
+        .getResultStream();
   }
 }
