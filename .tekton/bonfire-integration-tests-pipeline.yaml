@@ -914,9 +914,15 @@ spec:
               #!/bin/bash
               set -ex
 
-              export ARTIFACTS_DIR="$(workspaces.artifacts.path)"
-              echo "Copying files to S3"
-              upload-to-s3.sh | tee "$(results.ARTIFACTS_URL.path)"
+              ARTIFACTS_DIR="$(workspaces.artifacts.path)"
+              mkdir -p "$ARTIFACTS_DIR"
+              bucket="${BUCKET:-rh-artifacts-bucket}"
+              artifacts_key="${ARTIFACTS_KEY:?ARTIFACTS_KEY required}"
+              region="${AWS_DEFAULT_REGION:-us-east-1}"
+              echo "Copying files to S3 from $ARTIFACTS_DIR"
+              aws s3 cp --recursive "$ARTIFACTS_DIR" "s3://${bucket}/${artifacts_key}" --quiet
+              url="https://s3.console.aws.amazon.com/s3/buckets/${bucket}?region=${region}&prefix=${artifacts_key}/&showversions=false"
+              echo -n "$url" | tee "$(results.ARTIFACTS_URL.path)"
 
   finally:
     - name: check-test-results
