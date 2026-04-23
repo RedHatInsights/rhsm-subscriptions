@@ -19,65 +19,22 @@ POD_NAME="${HOSTNAME}"
 # --- S3 configuration ---
 
 S3_ENABLED=false
-S3_ENDPOINT_ARGS=()
+S3_PREFIX="${HEAP_DUMP_S3_PREFIX:-swatch-utilization/heapdumps}"
 
 if [ "$HEAP_DUMP_UPLOAD_S3" = "true" ]; then
-  S3_PREFIX="${HEAP_DUMP_S3_PREFIX:-swatch-utilization/heapdumps}"
-
-  # Try Clowder config first (ephemeral/MinIO), then fall back to mounted secret (stage/prod)
-  if [ -n "${ACG_CONFIG:-}" ] && [ -f "${ACG_CONFIG:-}" ] && command -v jq >/dev/null 2>&1; then
-    obj_store=$(jq -r '.objectStore // empty' "$ACG_CONFIG" 2>/dev/null)
-    if [ -n "$obj_store" ]; then
-      export AWS_ACCESS_KEY_ID=$(jq -r '.objectStore.accessKey' "$ACG_CONFIG")
-      export AWS_SECRET_ACCESS_KEY=$(jq -r '.objectStore.secretKey' "$ACG_CONFIG")
-      export AWS_DEFAULT_REGION=${AWS_REGION:-"us-east-1"}
-
-      obj_host=$(jq -r '.objectStore.hostname' "$ACG_CONFIG")
-      obj_port=$(jq -r '.objectStore.port' "$ACG_CONFIG")
-      obj_tls=$(jq -r '.objectStore.tls // false' "$ACG_CONFIG")
-      if [ "$obj_tls" = "true" ]; then
-        S3_ENDPOINT="https://${obj_host}:${obj_port}"
-      else
-        S3_ENDPOINT="http://${obj_host}:${obj_port}"
-      fi
-      S3_ENDPOINT_ARGS=(--endpoint-url "$S3_ENDPOINT")
-
-      requested_bucket="${HEAP_DUMP_S3_BUCKET_NAME:-swatch-utilization-heapdumps}"
-      S3_BUCKET=$(jq -r --arg req "$requested_bucket" \
-        '.objectStore.buckets[] | select(.requestedName == $req) | .name' \
-        "$ACG_CONFIG" 2>/dev/null)
-      if [ -z "$S3_BUCKET" ]; then
-        S3_BUCKET=$(jq -r '.objectStore.buckets[0].name // empty' "$ACG_CONFIG" 2>/dev/null)
-      fi
-
-      if [ -n "$S3_BUCKET" ]; then
-        S3_ENABLED=true
-        echo "[heap-monitor] S3 upload enabled via Clowder (endpoint: ${S3_ENDPOINT}, bucket: ${S3_BUCKET})"
-      else
-        echo "[heap-monitor] WARNING: No S3 buckets in Clowder config."
-      fi
-    fi
-  fi
-
-  # Fallback: mounted secret from app-interface (stage/prod)
-  if [ "$S3_ENABLED" = false ] && [ -f /aws/aws_access_key_id ]; then
+  # Only check for mounted secret (stage/prod)
+  if [ -f /aws/aws_access_key_id ]; then
     export AWS_ACCESS_KEY_ID=$(cat /aws/aws_access_key_id)
     export AWS_SECRET_ACCESS_KEY=$(cat /aws/aws_secret_access_key)
     S3_BUCKET=$(cat /aws/bucket)
     export AWS_DEFAULT_REGION=$(cat /aws/aws_region 2>/dev/null || echo "us-east-1")
-    endpoint=$(cat /aws/endpoint 2>/dev/null || echo "")
-    if [ -n "$endpoint" ]; then
-      S3_ENDPOINT_ARGS=(--endpoint-url "https://${endpoint}")
-    fi
     S3_ENABLED=true
-    echo "[heap-monitor] S3 upload enabled via mounted secret (bucket: ${S3_BUCKET})"
-  fi
-
-  if [ "$S3_ENABLED" = false ]; then
-    echo "[heap-monitor] WARNING: S3 upload requested but no credentials found. Upload disabled."
+    echo "[heap-monitor] S3 upload enabled (bucket: ${S3_BUCKET})"
+  else
+    echo "[heap-monitor] S3 upload disabled: secret not mounted (ephemeral - use 'oc cp' to retrieve dumps)"
   fi
 else
-  echo "[heap-monitor] S3 upload disabled"
+  echo "[heap-monitor] S3 upload disabled by configuration"
 fi
 
 # --- Thresholds ---
@@ -112,7 +69,7 @@ upload_file_to_s3() {
   local fname s3_path
   fname=$(basename "$file")
   s3_path="s3://${S3_BUCKET}/${S3_PREFIX}/${POD_NAME}/${fname}"
-  aws s3 cp "$file" "$s3_path" "${S3_ENDPOINT_ARGS[@]}" --quiet || \
+  aws s3 cp "$file" "$s3_path" --quiet || \
     echo "[heap-monitor] ERROR: Failed to upload ${fname}"
 }
 

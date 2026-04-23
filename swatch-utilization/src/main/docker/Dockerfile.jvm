@@ -130,25 +130,13 @@ USER root
 RUN microdnf \
     --disablerepo=* \
     --enablerepo=ubi-9-baseos-rpms \
-    install -y tar rsync gzip
-RUN microdnf \
-  --disablerepo=* \
-  --enablerepo=ubi-9-appstream-rpms \
-  --enablerepo=ubi-9-baseos-rpms \
-  install -y jq && \
+    install -y tar rsync gzip && \
   microdnf \
   --disablerepo=* \
   --enablerepo=ubi-9-appstream-rpms \
   --enablerepo=ubi-9-baseos-rpms \
-  update -y
-
-# Install AWS CLI for S3 uploads
-RUN microdnf install -y unzip && \
-    curl -sL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip && \
-    unzip -q /tmp/awscliv2.zip -d /tmp && \
-    /tmp/aws/install && \
-    rm -rf /tmp/aws* && \
-    microdnf clean all
+  update -y && \
+  microdnf clean all
 
 # Copy heap monitor scripts
 COPY --chown=default:root --chmod=755 swatch-utilization/src/main/docker/heap-monitor.sh /opt/heap-monitor.sh
