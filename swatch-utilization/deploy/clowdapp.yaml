@@ -94,14 +94,12 @@ parameters:
   - name: ENABLE_HEAP_MONITOR
     value: 'true'
   - name: HEAP_DUMP_UPLOAD_S3
-    value: 'true'
+    value: 'false'
   - name: HEAP_DUMP_S3_PREFIX
     value: swatch-utilization/heapdumps
   - name: HEAP_DUMP_S3_BUCKET_NAME
     value: swatch-utilization-heapdumps
   - name: HEAP_DUMP_S3_SECRET_NAME
-    # Secret name for S3 credentials (stage/prod: 'heapdump-s3' from app-interface)
-    # Mount is optional - ephemeral uses Clowder objectStore instead
     value: heapdump-s3
 
 objects:
@@ -127,9 +125,6 @@ objects:
       - replicas: ${{KAFKA_UTILIZATION_REPLICAS}}
         partitions: ${{KAFKA_UTILIZATION_PARTITIONS}}
         topicName: platform.notifications.ingress
-
-    objectStore:
-      - swatch-utilization-heapdumps
 
     pullSecrets:
       name: ${IMAGE_PULL_SECRET}
