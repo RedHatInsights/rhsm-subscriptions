@@ -848,59 +848,313 @@ All test files use `@BeforeAll` to create test data once and share it across all
     - One summary per event hour
     - TOTAL measurements are excluded
 
-## Instance Reporting
+## Instance Reporting for Billing Account IDs
 
-**tally-instances-TC001 - Billing account IDs exclude old month data**
+**tally-instances-billing-account-TC001 - Billing account IDs exclude old month data**
 
 - **Description**: Verify that the billing account IDs endpoint only returns accounts with activity in the current month
 - **Setup**:
-    - Organization is opted in
-    - Host with billing account ID created with last_seen date from 35 days ago (previous month)
+  - Organization is opted in
+  - Host with billing account ID created with last_seen date from 35 days ago (previous month)
 - **Action**:
-    - Call get billing account IDs endpoint
+  - Call get billing account IDs endpoint
 - **Verification**:
-    - Response does not contain the billing account from last month
-    - Only current month billing accounts are included
+  - Response does not contain the billing account from last month
+  - Only current month billing accounts are included
 - **Expected Result**:
-    - Service filters billing accounts by current month boundary
-    - Old billing account data is excluded from response
+  - Service filters billing accounts by current month boundary
+  - Old billing account data is excluded from response
 
-**tally-instances-TC002 - Multiple billing account IDs returned**
+**tally-instances-billing-account-TC002 - Multiple billing account IDs returned**
 
-- **Description**: Verify that the billing account IDs endpoint returns all active billing accounts
+- **Description**: Verify that the billing account IDs endpoint returns distinct billing accounts after PAYG events are ingested and tallied
 - **Setup**:
-    - Organization is opted in
-    - Two hosts created with different billing account IDs
-    - Both hosts associated with AWS billing provider
+  - Organization is opted in
+  - Two PAYG instance events produced to ingress with different billing account IDs
+  - Same product tag and AWS billing provider on both events
 - **Action**:
-    - Call get billing account IDs endpoint
+  - Perform hourly tally until materialized
+  - Call get billing account IDs endpoint
 - **Verification**:
-    - Response contains exactly 2 billing account entries
-    - Both billing account IDs are present in response
-    - Each entry has correct org_id, product_tag, and billing_provider fields
-    - Billing provider is set to "aws"
+  - Response contains exactly 2 billing account entries
+  - Both billing account IDs are present in response
+  - Each entry has correct org_id, product_tag, and billing_provider fields
+  - Billing provider is set to "aws"
 - **Expected Result**:
-    - All active billing accounts are returned
-    - Response structure includes all required fields
-    - Multiple billing accounts are properly differentiated
+  - Each distinct billing account from tallied activity appears once in the list
+  - Response structure includes all required fields
+  - Multiple billing accounts are properly differentiated
 
-**tally-instances-TC003 - PAYG instances metered by month boundary**
+**tally-instances-billing-account-TC003 - Billing account IDs: three distinct accounts**
+
+- **Description**: Verify the billing_account_ids endpoint with three tuples
+- **Setup**:
+  - Three PAYG events with distinct billing account IDs, same provider/product
+- **Action**:
+  - Hourly tally; call billing account IDs
+- **Verification**:
+  - Three entries; each id present with correct org, product_tag, provider
+- **Expected Result**:
+  - Endpoint scales to multiple accounts beyond the pair in TC002
+
+**tally-instances-billing-account-TC004 - Billing account IDs: duplicate billing account across instances**
+
+- **Description**: Verify behavior when two instance events share the same billing account ID
+- **Setup**:
+  - Two events, same billing account ID, different instance IDs
+- **Action**:
+  - Call billing account IDs endpoint
+- **Verification**:
+  - Response reflects one logical account entry or two, per product rules
+- **Expected Result**:
+  - Duplicate account handling is stable and documented
+
+**tally-instances-billing-account-TC005 - Billing account IDs: mixed billing providers**
+
+- **Description**: Verify entries include distinct billing_provider values
+- **Setup**:
+  - Events with different billing_provider values
+- **Action**:
+  - Call billing account IDs
+- **Verification**:
+  - Each returned tuple has the expected provider field per event
+- **Expected Result**:
+  - Provider dimension is visible in the billing account list
+
+## Instance Reporting with Parameters for PAYG Products
+
+**tally-instances-payg-TC001 - PAYG instances metered by month boundary**
 
 - **Description**: Verify that PAYG instances are metered and reported based on the month boundary of the event timestamp
 - **Setup**:
-    - Organization is opted in
-    - Event created with timestamp from first day of previous month
-    - Event includes billing account ID and AWS provider information
+  - Organization is opted in
+  - Event created with timestamp from first day of previous month
+  - Event includes billing account ID and AWS provider information
 - **Action**:
-    - Produce event to Kafka
-    - Perform hourly tally
-    - Query instances for current month
-    - Query instances for previous month
+  - Produce event to Kafka
+  - Perform hourly tally
+  - Query instances for current month
+  - Query instances for previous month
 - **Verification**:
-    - Current month instances report shows 0 metered value
-    - Previous month instances report shows metered value > 0
-    - Metered values are attributed to the month of the event
+  - Current month instances report shows 0 metered value
+  - Previous month instances report shows metered value > 0
+  - Metered values are attributed to the month of the event
 - **Expected Result**:
-    - Service assigns metered values to the appropriate month
-    - Month boundaries are respected for PAYG billing
-    - Instance data is segregated by month
+  - Service assigns metered values to the appropriate month
+  - Month boundaries are respected for PAYG billing
+  - Instance data is segregated by month
+
+**tally-instances-payg-TC002 - Instances report filtered by SLA**
+
+- **Description**: Verify that SLA query parameter restricts rows to hosts matching that service level when two instances differ only by SLA
+- **Setup**:
+  - Organization is opted in
+  - Two PAYG events in the same time window with distinct SLA values
+- **Action**:
+  - Hourly tally; query instances by product with SLA value set to first host’s SLA
+  - Repeat with SLA value set to second host’s SLA
+- **Verification**:
+  - Each query returns only the matching instance (or equivalent count)
+  - Query with a non-existent SLA combination returns no matching rows
+- **Expected Result**:
+  - SLA filter is applied consistently on the instances API
+
+**tally-instances-payg-TC003 - Instances report filtered by usage**
+
+- **Description**: Verify that usage query parameter restricts rows when two instances differ only by usage type
+- **Setup**:
+  - Organization is opted in
+  - Two PAYG events in the same window with distinct usage values
+- **Action**:
+  - Query instances with usage matching each event in turn
+- **Verification**:
+  - Only the matching usage row appears per query
+- **Expected Result**:
+  - Usage filter behaves as documented for instances
+
+**tally-instances-payg-TC004 - Instances report filtered by billing provider**
+
+- **Description**: Verify that billing_provider restricts rows when instances differ only by provider
+- **Setup**:
+  - Organization is opted in
+  - Two events with different billing providers, same product and window
+- **Action**:
+  - Query instances with each billing_provider value
+- **Verification**:
+  - Each query returns only instances for that provider
+- **Expected Result**:
+  - Billing provider filter is enforced on the instances report
+
+**tally-instances-payg-TC005 - Instances report excludes wrong billing account**
+
+- **Description**: Verify that querying with a non-matching billing_account_id returns no instance rows
+- **Setup**:
+  - Organization is opted in
+  - One PAYG event with a known billing account ID
+- **Action**:
+  - Hourly tally; query instances with billing_account_id set to a different UUID than the event
+- **Verification**:
+  - Response has no data rows (or zero measurements) for the mismatched account
+- **Expected Result**:
+  - Billing account filter rejects non-matching accounts
+
+**tally-instances-payg-TC006 - Instances report with all optional filters and meta**
+
+- **Description**: Verify response meta echoes sla, usage, billing_provider, and billing_account_id when all are supplied
+- **Setup**:
+  - One event whose attributes align with all filter values
+- **Action**:
+  - Query with every optional filter set to that event’s values
+- **Verification**:
+  - Meta fields reflect the query parameters; data includes the instance
+- **Expected Result**:
+  - Full filter surface is consistent for a single matching host
+
+**tally-instances-payg-TC007- Partial filters return multiple billing accounts**
+
+- **Description**: Verify that omitting billing_account_id returns both instances when they share SLA and usage but differ by billing account
+- **Setup**:
+  - Two instances: same SLA and usage, different billing_account_id
+- **Action**:
+  - Query with sla and usage only (no billing account filter)
+- **Verification**:
+  - Two rows (or meta.count reflects both)
+- **Expected Result**:
+  - Partial filters do not over-restrict when account is omitted
+
+**tally-instances-payg-TC008 - Partial filters narrow to one billing account**
+
+- **Description**: Verify combining sla, usage, and billing_account_id returns a single row
+- **Setup**:
+  - Two instances: same SLA and usage, different billing_account_id
+- **Action**:
+  - Query with all three dimensions set to one host’s values
+- **Verification**:
+  - Exactly one instance in the result set
+- **Expected Result**:
+  - Account filter distinguishes otherwise identical rows
+
+**tally-instances-payg-TC009 - No optional filters returns full in-range set**
+
+- **Description**: Verify that only beginning, ending, and product identify all tallied instances in range (no SLA/usage/provider/account params)
+- **Setup**:
+  - Multiple instances in the same valid time range
+- **Action**:
+  - Query without optional filters
+- **Verification**:
+  - All seeded instances appear; meta.count matches
+- **Expected Result**:
+  - Default query path returns complete in-window population
+
+**tally-instances-payg-TC010 - Two events in different months; current month query**
+
+- **Description**: Verify month discrimination when two events exist: one instance active last month, one this month; querying current month returns only the current-month instance
+- **Setup**:
+  - Two PAYG events with different instance IDs and timestamps in adjacent months
+- **Action**:
+  - Query instances with beginning/ending covering current month only
+- **Verification**:
+  - Only the current-month instance id is present
+  - Last month’s is absent
+- **Expected Result**:
+  - Multi-event orgs do not leak prior-month instances into the current window
+
+**tally-instances-payg-TC011 - PAYG instances API rejects cross-month beginning/ending**
+
+- **Description**: Verify that beginning and ending for a PAYG product must fall in the same calendar month; otherwise the API returns HTTP 400 Bad Request
+- **Setup**:
+  - Organization is opted in (shared PAYG instances fixture)
+- **Action**:
+  - Call instances by product with beginning in one month and ending in the next month (e.g. 10th 12:00 UTC to following month 10th 12:00 UTC)
+- **Verification**:
+  - Response status is 400
+  - Error payload references the same-month restriction
+- **Expected Result**:
+  - Invalid date ranges are rejected before instance data is returned
+
+**tally-instances-payg-TC012 - PAYG instances report over full UTC calendar month**
+
+- **Description**: Verify instances can be queried with beginning at the first instant of the month and ending at the last instant of that month (full calendar span), not only [firstOfMonth, now] partial windows used elsewhere
+- **Setup**:
+  - Shared PAYG instances fixture; filter by a billing_account_id known to have current-month metered rows (TC004 billing account)
+- **Action**:
+  - Query instances for the product with month start 00:00:00 UTC through month end 23:59:59.999 UTC and billing_account_id set
+- **Verification**:
+  - At least one data row
+  - Summed metered measurements > 0
+- **Expected Result**:
+  - Full-month same-month windows return expected PAYG instance rows for the fixture
+
+## Instance Reporting based on Pagination and Sorting
+
+**tally-instances-sorting-TC001 - Pagination limit and offset**
+
+- **Description**: Verify limit and offset slice results while meta.count reflects total matches
+- **Setup**:
+    - At least three instances matching the same filter bucket
+- **Action**:
+    - Query with limit=2, offset=0; then offset=2
+- **Verification**:
+    - First page has two rows; second page has remainder; total count unchanged
+- **Expected Result**:
+    - Pagination parameters behave per API contract
+
+**tally-instances-sorting-TC002 - Pagination links when offset or limit present**
+
+- **Description**: Verify links object when pagination query params are used (complements TC013 row counts)
+- **Setup**:
+    - At least three instances matching the same filter bucket
+- **Action**:
+    - Issue requests with and without pagination params
+- **Verification**:
+    - Links present when offset or limit set; meta.count stable across pages
+- **Expected Result**:
+    - Pagination navigation is populated as implemented
+
+**tally-instances-sorting-TC003 - Sort by last_seen ascending and descending**
+
+- **Description**: Verify sort and dir change ordering (e.g. last_seen or display_name)
+- **Setup**:
+    - Two instances with distinguishable last_seen or names
+- **Action**:
+    - Query with sort + dir=asc and dir=desc
+- **Verification**:
+    - Order reverses between calls
+- **Expected Result**:
+    - Sort parameters affect instance list ordering
+
+**tally-instances-sorting-TC004- Sort by display_name**
+
+- **Description**: Verify substring match on host display name
+- **Setup**:
+    - Two instances with different display names
+- **Action**:
+    - Query with display_nam matching one name only
+- **Verification**:
+    - Single matching row; non-matching substring returns empty
+- **Expected Result**:
+    - Display name sorting is applied and shows expected results
+
+**tally-instances-sorting-TC005 - Sort by metric_id**
+
+- **Description**: Verify metric_id restricts rows when instances differ by billable metric (e.g. cores vs sockets), aligned with server-side measurement logic
+- **Setup**:
+    - Two instances contributing under different metric IDs where the product supports both
+- **Action**:
+    - Query with each metric_id
+- **Verification**:
+    - Only the relevant instance appears per metric filter
+- **Expected Result**:
+    - Metric sorting works and shows expected results
+
+**tally-instances-sorting-TC006 - Sort by report category**
+
+- **Description**: Verify category (report category / hardware measurement grouping) when instances differ by category
+- **Setup**:
+    - Events or hosts that map to distinct categories for the product
+- **Action**:
+    - Query with each category value
+- **Verification**:
+    - Only matching category rows return
+- **Expected Result**:
+    - Category sorting works and shows expected results

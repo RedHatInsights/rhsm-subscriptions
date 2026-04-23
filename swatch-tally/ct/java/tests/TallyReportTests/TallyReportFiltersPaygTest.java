@@ -42,6 +42,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.apache.http.HttpStatus;
 import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -423,7 +424,9 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
 
     // Then: API returns 400 Bad Request
     assertEquals(
-        400, response.getStatusCode(), "Should return 400 Bad Request without granularity");
+        HttpStatus.SC_BAD_REQUEST,
+        response.getStatusCode(),
+        "Should return 400 Bad Request without granularity");
   }
 
   @ParameterizedTest(name = "with primaryRowSearches={0}")
@@ -441,7 +444,10 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
         service.getTallyReportDataRaw(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams);
 
     // Then: API returns 400 Bad Request
-    assertEquals(400, response.getStatusCode(), "Should return 400 Bad Request without beginning");
+    assertEquals(
+        HttpStatus.SC_BAD_REQUEST,
+        response.getStatusCode(),
+        "Should return 400 Bad Request without beginning");
   }
 
   @ParameterizedTest(name = "with primaryRowSearches={0}")
@@ -459,7 +465,10 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
         service.getTallyReportDataRaw(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams);
 
     // Then: API returns 400 Bad Request
-    assertEquals(400, response.getStatusCode(), "Should return 400 Bad Request without ending");
+    assertEquals(
+        HttpStatus.SC_BAD_REQUEST,
+        response.getStatusCode(),
+        "Should return 400 Bad Request without ending");
   }
 
   @ParameterizedTest(name = "with primaryRowSearches={0}")

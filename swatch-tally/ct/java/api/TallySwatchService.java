@@ -223,15 +223,7 @@ public class TallySwatchService extends SwatchService {
       params.putAll(queryParams);
     }
 
-    Response response =
-        given()
-            .header(X_RH_IDENTITY_HEADER, SwatchUtils.createUserIdentityHeader(orgId))
-            .queryParams(params)
-            // Use path params so product IDs with spaces are safely encoded.
-            .get(API_PATH + "/instances/products/{productId}", productId)
-            .then()
-            .extract()
-            .response();
+    Response response = getInstancesByProductRaw(orgId, productId, beginning, ending, queryParams);
 
     assertEquals(
         HttpStatus.SC_OK,
@@ -249,6 +241,38 @@ public class TallySwatchService extends SwatchService {
         response.getBody().asString());
 
     return response.as(InstanceResponse.class);
+  }
+
+  /**
+   * Retrieves instances report without asserting HTTP status (for negative tests).
+   *
+   * @param orgId the organization ID
+   * @param productId the product ID (path)
+   * @param beginning the start of the time range
+   * @param ending the end of the time range
+   * @param queryParams optional extra query parameters
+   * @return the raw HTTP response
+   */
+  public Response getInstancesByProductRaw(
+      String orgId,
+      String productId,
+      OffsetDateTime beginning,
+      OffsetDateTime ending,
+      Map<String, ?> queryParams) {
+    Map<String, Object> params = new HashMap<>();
+    params.put("beginning", beginning.toString());
+    params.put("ending", ending.toString());
+    if (queryParams != null) {
+      params.putAll(queryParams);
+    }
+
+    return given()
+        .header(X_RH_IDENTITY_HEADER, SwatchUtils.createUserIdentityHeader(orgId))
+        .queryParams(params)
+        .get(API_PATH + "/instances/products/{productId}", productId)
+        .then()
+        .extract()
+        .response();
   }
 
   public Response getBillingAccountIds(String orgId, Map<String, ?> queryParams) {
