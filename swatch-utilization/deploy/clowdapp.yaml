@@ -89,10 +89,14 @@ parameters:
   - name: EGRESS_IMAGE_TAG
     value: latest
   - name: USER_JAVA_OPTS
-    # Heap dumps triggered by heap monitor at 75% threshold
+    # Heap dumps triggered by heap monitor at 75% threshold (leaves headroom for compression + upload)
     value: '-Xmx150m -XX:MaxDirectMemorySize=32m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/heapdumps/ -XX:NativeMemoryTracking=summary'
   - name: ENABLE_HEAP_MONITOR
     value: 'true'
+  - name: HEAP_MONITOR_THRESHOLD_PERCENT
+    value: '60'
+  - name: HEAP_MONITOR_RESET_PERCENT
+    value: '55'
   - name: HEAP_DUMP_UPLOAD_S3
     value: 'false'
   - name: HEAP_DUMP_S3_PREFIX
@@ -100,6 +104,7 @@ parameters:
   - name: HEAP_DUMP_S3_BUCKET_NAME
     value: swatch-utilization-heapdumps
   - name: HEAP_DUMP_S3_SECRET_NAME
+    # Secret name for S3 credentials (stage/prod: 'heapdump-s3' from app-interface)
     value: heapdump-s3
 
 objects:
@@ -248,6 +253,10 @@ objects:
               value: ${USER_JAVA_OPTS}
             - name: ENABLE_HEAP_MONITOR
               value: ${ENABLE_HEAP_MONITOR}
+            - name: HEAP_MONITOR_THRESHOLD_PERCENT
+              value: ${HEAP_MONITOR_THRESHOLD_PERCENT}
+            - name: HEAP_MONITOR_RESET_PERCENT
+              value: ${HEAP_MONITOR_RESET_PERCENT}
             - name: HEAP_DUMP_UPLOAD_S3
               value: ${HEAP_DUMP_UPLOAD_S3}
             - name: HEAP_DUMP_S3_PREFIX

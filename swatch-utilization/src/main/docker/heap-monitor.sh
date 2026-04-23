@@ -7,34 +7,44 @@
 
 POLL_INTERVAL_SEC=10
 COMPRESSION_TIMEOUT_SEC=60
-RESET_PERCENT=60
-RESET_MINUTES=5
 
-HEAP_DUMP_UPLOAD_S3="${HEAP_DUMP_UPLOAD_S3:-true}"
+# Configurable thresholds (can be overridden via env vars in clowdapp.yaml)
 THRESHOLD_PERCENT="${HEAP_MONITOR_THRESHOLD_PERCENT:-75}"
+RESET_PERCENT="${HEAP_MONITOR_RESET_PERCENT:-65}"
+RESET_MINUTES="${HEAP_MONITOR_RESET_MINUTES:-5}"
 PERIODIC_INTERVAL="${HEAP_MONITOR_PERIODIC_INTERVAL:-900}"
 METRICS_PORT="${HEAP_MONITOR_METRICS_PORT:-9000}"
+
+HEAP_DUMP_UPLOAD_S3="${HEAP_DUMP_UPLOAD_S3:-true}"
 POD_NAME="${HOSTNAME}"
 
 # --- S3 configuration ---
 
 S3_ENABLED=false
-S3_PREFIX="${HEAP_DUMP_S3_PREFIX:-swatch-utilization/heapdumps}"
+S3_ENDPOINT=""
 
 if [ "$HEAP_DUMP_UPLOAD_S3" = "true" ]; then
-  # Only check for mounted secret (stage/prod)
+  S3_PREFIX="${HEAP_DUMP_S3_PREFIX:-swatch-utilization/heapdumps}"
+
+  # Read credentials from mounted secret (stage/prod via app-interface)
   if [ -f /aws/aws_access_key_id ]; then
     export AWS_ACCESS_KEY_ID=$(cat /aws/aws_access_key_id)
     export AWS_SECRET_ACCESS_KEY=$(cat /aws/aws_secret_access_key)
     S3_BUCKET=$(cat /aws/bucket)
     export AWS_DEFAULT_REGION=$(cat /aws/aws_region 2>/dev/null || echo "us-east-1")
+    endpoint=$(cat /aws/endpoint 2>/dev/null || echo "")
+    if [ -n "$endpoint" ]; then
+      S3_ENDPOINT="https://${endpoint}"
+    fi
     S3_ENABLED=true
-    echo "[heap-monitor] S3 upload enabled (bucket: ${S3_BUCKET})"
-  else
-    echo "[heap-monitor] S3 upload disabled: secret not mounted (ephemeral - use 'oc cp' to retrieve dumps)"
+    echo "[heap-monitor] S3 upload enabled via mounted secret (bucket: ${S3_BUCKET})"
+  fi
+
+  if [ "$S3_ENABLED" = false ]; then
+    echo "[heap-monitor] WARNING: S3 upload requested but no credentials found. Upload disabled."
   fi
 else
-  echo "[heap-monitor] S3 upload disabled by configuration"
+  echo "[heap-monitor] S3 upload disabled"
 fi
 
 # --- Thresholds ---
@@ -66,10 +76,17 @@ echo "[heap-monitor] Started. Container limit: ${MEMORY_LIMIT_BYTES} bytes, thre
 upload_file_to_s3() {
   local file="$1"
   [ -f "$file" ] || return 0
-  local fname s3_path
+  local fname s3_key
   fname=$(basename "$file")
-  s3_path="s3://${S3_BUCKET}/${S3_PREFIX}/${POD_NAME}/${fname}"
-  aws s3 cp "$file" "$s3_path" --quiet || \
+  s3_key="${S3_PREFIX}/${POD_NAME}/${fname}"
+
+  # Use Java S3Uploader (no AWS CLI needed - uses Quarkus AWS SDK)
+  java -cp "/deployments/app/*:/deployments/lib/boot/*:/deployments/lib/main/*:/deployments/quarkus-run.jar" \
+    com.redhat.swatch.utilization.S3Uploader \
+    "$file" \
+    "$S3_BUCKET" \
+    "$s3_key" \
+    "${S3_ENDPOINT:-}" || \
     echo "[heap-monitor] ERROR: Failed to upload ${fname}"
 }
 
