@@ -24,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -67,12 +66,12 @@ class TallySnapshotSummaryConsumerTest {
   @InjectMock SubscriptionCapacityService capacityService;
   @InjectMock UtilizationSummaryProducer utilizationProducer;
 
-  private InMemorySource<List<TallySummary>> tallyInChannel;
+  private InMemorySource<TallySummary> tallyInChannel;
 
   @BeforeEach
   public void setup() {
     tallyInChannel = connector.source(Channels.TALLY_IN);
-    when(utilizationProducer.send(anyList())).thenReturn(Uni.createFrom().voidItem());
+    when(utilizationProducer.send(any())).thenReturn(Uni.createFrom().voidItem());
   }
 
   @Test
@@ -309,8 +308,8 @@ class TallySnapshotSummaryConsumerTest {
     thenUtilizationSummaryHasProductId("ansible-aap-managed");
   }
 
-  private void whenReceiveTallySummary(TallySummary... tallySummaries) {
-    tallyInChannel.send(List.of(tallySummaries));
+  private void whenReceiveTallySummary(TallySummary tallySummary) {
+    tallyInChannel.send(tallySummary);
   }
 
   private TallySummary givenTallySummaryWithCriteria(
@@ -455,17 +454,17 @@ class TallySnapshotSummaryConsumerTest {
 
   private void givenCapacityServiceReturns(
       Map<TallySnapshot, List<SubscriptionCapacityView>> capacityViews) {
-    when(capacityService.getCapacityForTallySummaries(any())).thenReturn(capacityViews);
+    when(capacityService.getCapacityForTallySummary(any())).thenReturn(capacityViews);
   }
 
   private void givenCapacityServiceReturns(
       TallySnapshot snapshot, List<SubscriptionCapacityView> capacityViews) {
-    when(capacityService.getCapacityForTallySummaries(any()))
+    when(capacityService.getCapacityForTallySummary(any()))
         .thenReturn(Map.of(snapshot, capacityViews));
   }
 
   private void givenCapacityServiceReturnsEmpty() {
-    when(capacityService.getCapacityForTallySummaries(any())).thenReturn(Map.of());
+    when(capacityService.getCapacityForTallySummary(any())).thenReturn(Map.of());
   }
 
   private void thenUtilizationSummariesSent(int expectedCount) {

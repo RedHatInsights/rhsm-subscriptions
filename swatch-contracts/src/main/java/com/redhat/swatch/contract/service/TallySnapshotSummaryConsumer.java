@@ -42,8 +42,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 
 /**
- * Consumer for tally snapshot summaries that processes them in batches and enriches them with
- * capacity data.
+ * Consumes one {@link TallySummary} at a time from the channel, enriches each TallySnapshot with
+ * capacity from the subscription view, and emits the corresponding {@link UtilizationSummary}
+ * messages.
  */
 @Slf4j
 @ApplicationScoped
@@ -61,42 +62,22 @@ public class TallySnapshotSummaryConsumer {
 
   @Blocking
   @Incoming(TALLY_IN)
-  public Uni<Void> process(List<TallySummary> tallySummaries) {
-    log.info("Processing batch of {} tally messages", tallySummaries.size());
-
-    // Get capacity data for all tally messages in batch
-    var capacities = capacityService.getCapacityForTallySummaries(tallySummaries);
-    log.debug("Retrieved {} capacity records for batch", capacities.size());
-
-    // Calculate the utilization summary messages
-    var utilizationSummaries = createUtilizationSummaries(tallySummaries, capacities);
-
-    // And send
+  public Uni<Void> process(TallySummary tallySummary) {
+    var capacities = capacityService.getCapacityForTallySummary(tallySummary);
+    var utilizationSummaries = createUtilizationSummaries(tallySummary, capacities);
     return utilizationProducer.send(utilizationSummaries);
   }
 
   private List<UtilizationSummary> createUtilizationSummaries(
-      List<TallySummary> tallySummaries,
-      Map<TallySnapshot, List<SubscriptionCapacityView>> capacities) {
+      TallySummary tallySummary, Map<TallySnapshot, List<SubscriptionCapacityView>> capacities) {
     List<UtilizationSummary> utilizationSummaries = new ArrayList<>();
-    for (TallySummary tallySummary : tallySummaries) {
-      for (TallySnapshot snapshot : tallySummary.getTallySnapshots()) {
-        utilizationSummaries.add(createUtilizationSummary(tallySummary, snapshot, capacities));
-      }
+    for (TallySnapshot snapshot : tallySummary.getTallySnapshots()) {
+      utilizationSummaries.add(createUtilizationSummary(tallySummary, snapshot, capacities));
     }
 
     return utilizationSummaries;
   }
 
-  /**
-   * Creates a UtilizationSummary from a TallySummary and TallySnapshot, enriching measurements with
-   * capacity data from matching subscriptions.
-   *
-   * @param tallyMessage the tally summary containing org info
-   * @param snapshot the tally snapshot containing product and measurement data
-   * @param capacities all capacity data retrieved for the batch
-   * @return enriched utilization summary
-   */
   private UtilizationSummary createUtilizationSummary(
       TallySummary tallyMessage,
       TallySnapshot snapshot,
