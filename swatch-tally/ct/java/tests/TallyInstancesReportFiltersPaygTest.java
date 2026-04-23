@@ -54,7 +54,7 @@ import org.junit.jupiter.api.Test;
 public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest {
 
   private static String testOrgId;
-  private static OffsetDateTime anchor;
+  private static OffsetDateTime start;
   private static OffsetDateTime firstOfCurrentMonth;
   private static OffsetDateTime firstOfPreviousMonth;
   private static OffsetDateTime eventHour;
@@ -114,19 +114,16 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
   private static String billingTc012Prev;
   private static String billingTc012Curr;
 
-  /**
-   * Distinct instance rows expected in [firstOfCurrentMonth, anchor] for this fixture (TC003 prev).
-   */
   private static final int EXPECTED_CURRENT_MONTH_INSTANCE_ROWS = 16;
 
   @BeforeAll
   static void setupSharedFixture() {
     testOrgId = RandomUtils.generateRandom();
-    anchor = OffsetDateTime.now(ZoneOffset.UTC);
+    start = OffsetDateTime.now(ZoneOffset.UTC);
     firstOfCurrentMonth =
-        anchor.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+        start.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
     firstOfPreviousMonth = firstOfCurrentMonth.minusMonths(1);
-    eventHour = anchor.minusHours(2).truncatedTo(ChronoUnit.HOURS);
+    eventHour = start.minusHours(2).truncatedTo(ChronoUnit.HOURS);
     metricId = RHEL_FOR_X86_ELS_PAYG.metricIds().get(0);
 
     billingTc003 = UUID.randomUUID().toString();
@@ -184,10 +181,10 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
     billingTc012Curr = UUID.randomUUID().toString();
 
     OffsetDateTime tc003EventTime = firstOfPreviousMonth.plusHours(1);
-    OffsetDateTime tc007EventTime = anchor.minusHours(1);
-    OffsetDateTime tc008EventTime = anchor.minusHours(1);
+    OffsetDateTime tc007EventTime = start.minusHours(1);
+    OffsetDateTime tc008EventTime = start.minusHours(1);
     OffsetDateTime tc012PrevTime = firstOfPreviousMonth.plusHours(3);
-    OffsetDateTime tc012CurrTime = anchor.minusHours(1);
+    OffsetDateTime tc012CurrTime = start.minusHours(1);
 
     List<Event> events = new ArrayList<>();
     events.add(
@@ -455,7 +452,7 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
         () -> {
           InstanceResponse r =
               service.getInstancesByProduct(
-                  testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfCurrentMonth, anchor, null);
+                  testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfCurrentMonth, start, null);
           return r.getData() != null && r.getData().size() >= EXPECTED_CURRENT_MONTH_INSTANCE_ROWS;
         },
         events.toArray(Event[]::new));
@@ -467,11 +464,7 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
     Map<String, Object> queryParams = Map.of("billing_account_id", billingTc003);
     InstanceResponse currentMonthResponse =
         service.getInstancesByProduct(
-            testOrgId,
-            RHEL_FOR_X86_ELS_PAYG.productTag(),
-            firstOfCurrentMonth,
-            anchor,
-            queryParams);
+            testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfCurrentMonth, start, queryParams);
 
     assertEquals(
         0.0,
@@ -504,7 +497,7 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
             testOrgId,
             RHEL_FOR_X86_ELS_PAYG.productTag(),
             firstOfCurrentMonth,
-            anchor,
+            start,
             standardParams);
     assertNotNull(standardOnly.getData());
     assertEquals(1, standardOnly.getData().size(), "STANDARD SLA filter should return one row");
@@ -524,7 +517,7 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
             testOrgId,
             RHEL_FOR_X86_ELS_PAYG.productTag(),
             firstOfCurrentMonth,
-            anchor,
+            start,
             premiumParams);
     assertNotNull(premiumOnly.getData());
     assertEquals(1, premiumOnly.getData().size());
@@ -543,7 +536,7 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
             testOrgId,
             RHEL_FOR_X86_ELS_PAYG.productTag(),
             firstOfCurrentMonth,
-            anchor,
+            start,
             productionParams);
     assertNotNull(productionOnly.getData());
     assertEquals(1, productionOnly.getData().size());
@@ -558,7 +551,7 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
             testOrgId,
             RHEL_FOR_X86_ELS_PAYG.productTag(),
             firstOfCurrentMonth,
-            anchor,
+            start,
             developmentParams);
     assertNotNull(developmentOnly.getData());
     assertEquals(1, developmentOnly.getData().size());
@@ -574,11 +567,7 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
     azureParams.put("billing_account_id", billingTc006Azure);
     InstanceResponse azureOnly =
         service.getInstancesByProduct(
-            testOrgId,
-            RHEL_FOR_X86_ELS_PAYG.productTag(),
-            firstOfCurrentMonth,
-            anchor,
-            azureParams);
+            testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfCurrentMonth, start, azureParams);
     assertNotNull(azureOnly.getData());
     assertEquals(1, azureOnly.getData().size());
     assertEquals(instanceTc006Azure, azureOnly.getData().get(0).getInstanceId());
@@ -589,7 +578,7 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
     awsParams.put("billing_account_id", billingTc006Aws);
     InstanceResponse awsOnly =
         service.getInstancesByProduct(
-            testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfCurrentMonth, anchor, awsParams);
+            testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfCurrentMonth, start, awsParams);
     assertNotNull(awsOnly.getData());
     assertEquals(1, awsOnly.getData().size());
     assertEquals(instanceTc006Aws, awsOnly.getData().get(0).getInstanceId());
@@ -605,7 +594,7 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
             testOrgId,
             RHEL_FOR_X86_ELS_PAYG.productTag(),
             firstOfCurrentMonth,
-            anchor,
+            start,
             wrongAccount);
     assertEquals(
         0.0,
@@ -619,7 +608,7 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
             testOrgId,
             RHEL_FOR_X86_ELS_PAYG.productTag(),
             firstOfCurrentMonth,
-            anchor,
+            start,
             correctAccount);
     assertTrue(
         sumMeteredValues(match) > 0.0, "Matching billing_account_id should return metered data");
@@ -636,7 +625,7 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
 
     InstanceResponse response =
         service.getInstancesByProduct(
-            testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfCurrentMonth, anchor, allFilters);
+            testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfCurrentMonth, start, allFilters);
     assertNotNull(response.getData());
     assertEquals(1, response.getData().size());
     InstanceData row = response.getData().get(0);
@@ -658,7 +647,7 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
 
     InstanceResponse response =
         service.getInstancesByProduct(
-            testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfCurrentMonth, anchor, partial);
+            testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfCurrentMonth, start, partial);
     assertNotNull(response.getData());
     Set<String> ids =
         response.getData() == null
@@ -689,7 +678,7 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
 
     InstanceResponse response =
         service.getInstancesByProduct(
-            testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfCurrentMonth, anchor, narrowed);
+            testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfCurrentMonth, start, narrowed);
     assertNotNull(response.getData());
     assertEquals(1, response.getData().size());
     assertEquals(instanceTc010a, response.getData().get(0).getInstanceId());
@@ -700,7 +689,7 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
   public void shouldReturnInstancesReportWithNoOptionalFilters() {
     InstanceResponse response =
         service.getInstancesByProduct(
-            testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfCurrentMonth, anchor, null);
+            testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfCurrentMonth, start, null);
     assertNotNull(response.getData());
     Set<String> returned =
         response.getData() == null
@@ -727,7 +716,7 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
   public void shouldReturnInstancesReportWithTwoEventsInDifferentMonths() {
     InstanceResponse response =
         service.getInstancesByProduct(
-            testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfCurrentMonth, anchor, null);
+            testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfCurrentMonth, start, null);
     Set<String> ids =
         response.getData() == null
             ? Set.of()
@@ -746,8 +735,7 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
   @TestPlanName("tally-instances-payg-TC011")
   public void shouldRejectCrossMonthInstancesQuery() {
     OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
-    OffsetDateTime beginning =
-        now.withDayOfMonth(10).truncatedTo(ChronoUnit.DAYS).withHour(12);
+    OffsetDateTime beginning = now.withDayOfMonth(10).truncatedTo(ChronoUnit.DAYS).withHour(12);
     OffsetDateTime ending = beginning.plusMonths(1).withDayOfMonth(10).withHour(12);
 
     Response response =
@@ -769,12 +757,9 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
   public void shouldReturnMeteredInstancesForFullCalendarMonthWindow() {
     ZoneOffset utc = ZoneOffset.UTC;
     OffsetDateTime monthStart =
-        anchor.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+        start.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
     OffsetDateTime monthEnd =
-        YearMonth.from(anchor)
-            .atEndOfMonth()
-            .atTime(23, 59, 59, 999_000_000)
-            .atOffset(utc);
+        YearMonth.from(start).atEndOfMonth().atTime(23, 59, 59, 999_000_000).atOffset(utc);
 
     Map<String, Object> filters = Map.of("billing_account_id", billingTc004);
 
