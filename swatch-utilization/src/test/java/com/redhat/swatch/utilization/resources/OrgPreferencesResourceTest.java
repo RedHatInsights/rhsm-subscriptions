@@ -55,6 +55,38 @@ class OrgPreferencesResourceTest {
   @InjectMock OrgPreferencesService orgPreferencesService;
 
   @Test
+  void getOrgPreferences_whenPreferencesExist_returnsPreferences() {
+    var expected = new OrgPreferencesResponse();
+    expected.setCustomThreshold(10);
+    when(orgPreferencesService.getOrgPreferences(ORG_ID)).thenReturn(expected);
+
+    var actual =
+        whenGetOrgPreferences()
+            .statusCode(HttpStatus.SC_OK)
+            .extract()
+            .as(OrgPreferencesResponse.class);
+
+    assertNotNull(actual);
+    assertEquals(expected.getCustomThreshold(), actual.getCustomThreshold());
+  }
+
+  @Test
+  void getOrgPreferences_whenPreferencesDoNotExist_returnsDefaultThreshold() {
+    var expected = new OrgPreferencesResponse();
+    expected.setCustomThreshold(80);
+    when(orgPreferencesService.getOrgPreferences(ORG_ID)).thenReturn(expected);
+
+    var actual =
+        whenGetOrgPreferences()
+            .statusCode(HttpStatus.SC_OK)
+            .extract()
+            .as(OrgPreferencesResponse.class);
+
+    assertNotNull(actual);
+    assertEquals(80, actual.getCustomThreshold());
+  }
+
+  @Test
   void updateOrgPreferences_whenPayloadValid_invokesServiceWithResolvedOrgId() {
     var expected = new OrgPreferencesResponse();
     expected.setCustomThreshold(4);
@@ -87,6 +119,14 @@ class OrgPreferencesResourceTest {
 
     verify(orgPreferencesService, never())
         .updateOrgPreferences(anyString(), any(OrgPreferencesRequest.class));
+  }
+
+  private static ValidatableResponse whenGetOrgPreferences() {
+    return given()
+        .header(RH_IDENTITY_HEADER, base64UserIdentity(ORG_ID))
+        .when()
+        .get(ORG_PREFERENCES_PATH)
+        .then();
   }
 
   private static ValidatableResponse whenUpdateOrgPreferencesTo(Integer customThreshold) {
