@@ -464,7 +464,6 @@ public class ContractService {
   @Transactional
   @Timed("swatch_contracts_sync_contracts_by_org")
   public StatusResponse syncContractsByOrgId(String contractOrgSync) {
-    Timer.Sample syncTime = Timer.start();
     try {
       var upstreamBillingProviderIds = fetchUpstreamBillingProviderIdsForOrg(contractOrgSync);
       terminateContractsOrphanedByBillingProviders(contractOrgSync, upstreamBillingProviderIds);
@@ -475,8 +474,6 @@ public class ContractService {
     } catch (ProcessingException | ApiException e) {
       log.error(e.getMessage());
       return buildPartnerApiErrorStatus();
-    } finally {
-      syncTime.stop(contractOrgSyncTimer);
     }
   }
 
