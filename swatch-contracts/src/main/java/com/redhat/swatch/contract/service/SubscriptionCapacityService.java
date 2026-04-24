@@ -20,6 +20,14 @@
  */
 package com.redhat.swatch.contract.service;
 
+import static com.redhat.swatch.contract.repository.SubscriptionCapacityViewRepository.hasBillingProviderId;
+import static com.redhat.swatch.contract.repository.SubscriptionCapacityViewRepository.orgIdEquals;
+import static com.redhat.swatch.contract.repository.SubscriptionCapacityViewRepository.productIdEquals;
+import static com.redhat.swatch.contract.repository.SubscriptionCapacityViewRepository.whereBillingAccountIdNullSafeEqual;
+import static com.redhat.swatch.contract.repository.SubscriptionCapacityViewRepository.whereBillingProviderNullSafeEqual;
+import static com.redhat.swatch.contract.repository.SubscriptionCapacityViewRepository.whereServiceLevelAnyOrEqualTo;
+import static com.redhat.swatch.contract.repository.SubscriptionCapacityViewRepository.whereUsageAnyOrEqualTo;
+
 import com.redhat.swatch.common.model.ServiceLevel;
 import com.redhat.swatch.common.model.Usage;
 import com.redhat.swatch.configuration.registry.ProductId;
@@ -36,8 +44,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 
@@ -52,143 +58,48 @@ public class SubscriptionCapacityService {
     this.capacityRepository = capacityRepository;
   }
 
-  /** Retrieves capacity data for a batch of tally summaries. */
   @Transactional
-  public Map<TallySnapshot, List<SubscriptionCapacityView>> getCapacityForTallySummaries(
-      List<TallySummary> tallyMessages) {
-    if (tallyMessages == null || tallyMessages.isEmpty()) {
-      return Map.of();
-    }
-
-    // Execute query and filter in stream
-    try (Stream<SubscriptionCapacityView> resultStream = streamCapacities(tallyMessages)) {
-      var capacities = new HashMap<TallySnapshot, List<SubscriptionCapacityView>>();
-      resultStream.forEach(
-          capacity -> {
-            findTallySnapshotsForCapacity(tallyMessages, capacity)
-                .forEach(
-                    matchedSnapshot -> {
-                      List<SubscriptionCapacityView> capacitiesBySnapshot =
-                          capacities.get(matchedSnapshot);
-                      if (capacitiesBySnapshot == null) {
-                        capacitiesBySnapshot = new ArrayList<>();
-                      }
-
-                      capacitiesBySnapshot.add(capacity);
-                      capacities.put(matchedSnapshot, capacitiesBySnapshot);
-                    });
-          });
-      log.debug("Query returned {} capacity records", capacities.size());
-
-      return capacities;
-    }
-  }
-
-  private Stream<SubscriptionCapacityView> streamCapacities(List<TallySummary> tallyMessages) {
-    // Collect all snapshots with their specifications and org IDs
-    List<Specification<SubscriptionCapacityView>> specifications = new ArrayList<>();
-    for (var tallySummary : tallyMessages) {
-      for (var snapshot : tallySummary.getTallySnapshots()) {
-        Specification<SubscriptionCapacityView> spec =
-            buildSpecificationForSnapshot(tallySummary.getOrgId(), snapshot);
-        specifications.add(spec);
+  public Map<TallySnapshot, List<SubscriptionCapacityView>> getCapacityForTallySummary(
+      TallySummary tallySummary) {
+    var capacities = new HashMap<TallySnapshot, List<SubscriptionCapacityView>>();
+    for (var tallySnapshot : tallySummary.getTallySnapshots()) {
+      try (Stream<SubscriptionCapacityView> resultStream =
+          streamCapacities(tallySummary, tallySnapshot)) {
+        resultStream.forEach(
+            capacity ->
+                capacities.computeIfAbsent(tallySnapshot, k -> new ArrayList<>()).add(capacity));
       }
     }
 
-    // Wrap each specification with cb.and() before combining with OR
-    Specification<SubscriptionCapacityView> criteria =
-        specifications.stream()
-            .map(
-                spec ->
-                    (Specification<SubscriptionCapacityView>)
-                        (root, query, cb) -> cb.and(spec.toPredicate(root, query, cb)))
-            .reduce(Specification::or)
-            .orElse(null);
+    return capacities;
+  }
 
-    // Execute single query with combined specification using repository
+  private Stream<SubscriptionCapacityView> streamCapacities(
+      TallySummary tallySummary, TallySnapshot tallySnapshot) {
+    Specification<SubscriptionCapacityView> criteria =
+        buildSpecificationForSnapshot(tallySummary.getOrgId(), tallySnapshot);
     return capacityRepository.streamBy(criteria);
   }
 
-  /** Builds a specification for a single snapshot using existing repository methods. */
   private Specification<SubscriptionCapacityView> buildSpecificationForSnapshot(
       String orgId, TallySnapshot snapshot) {
     ProductId productId = ProductId.fromString(snapshot.getProductId());
     BillingProvider billingProvider = mapBillingProvider(snapshot.getBillingProvider());
+    ServiceLevel serviceLevel = mapServiceLevel(snapshot.getSla());
+    Usage usage = mapUsage(snapshot.getUsage());
 
-    return SubscriptionCapacityViewRepository.buildSearchSpecification(
-        orgId,
-        productId,
-        null, // category
-        ServiceLevel._ANY,
-        Usage._ANY,
-        productId.isPayg() ? billingProvider : BillingProvider._ANY,
-        productId.isPayg() ? snapshot.getBillingAccountId() : null,
-        null // metricId
-        );
-  }
-
-  private List<TallySnapshot> findTallySnapshotsForCapacity(
-      List<TallySummary> tallyMessages, SubscriptionCapacityView capacity) {
-    List<TallySnapshot> matchedSnapshots = new ArrayList<>();
-    for (var tallySummary : tallyMessages) {
-      for (var snapshot : tallySummary.getTallySnapshots()) {
-        if (matchesSnapshot(capacity, tallySummary.getOrgId(), snapshot)) {
-          matchedSnapshots.add(snapshot);
-        }
-      }
+    Specification<SubscriptionCapacityView> spec = Specification.where(orgIdEquals(orgId));
+    spec = spec.and(productIdEquals(productId));
+    if (productId.isOnDemand()) {
+      spec = spec.and(hasBillingProviderId());
     }
-
-    return matchedSnapshots;
-  }
-
-  /** Matches capacity to snapshot for result grouping (more precise than just product tag). */
-  private boolean matchesSnapshot(
-      SubscriptionCapacityView capacity, String orgId, TallySnapshot snapshot) {
-    if (!Objects.equals(capacity.getOrgId(), orgId)) {
-      return false;
-    }
-
-    ProductId productId = ProductId.fromString(snapshot.getProductId());
-    if (!Objects.equals(capacity.getProductTag(), productId.getValue())) {
-      return false;
-    }
-
-    ServiceLevel snapshotServiceLevel = mapServiceLevel(snapshot.getSla());
-    ServiceLevel capacityServiceLevel = capacity.getServiceLevel();
-    if (isNotAnyOrEmpty(snapshotServiceLevel)
-        && isNotAnyOrEmpty(capacityServiceLevel)
-        && !snapshotServiceLevel.equals(capacityServiceLevel)) {
-      return false;
-    }
-
-    Usage snapshotUsage = mapUsage(snapshot.getUsage());
-    Usage capacityUsage = Optional.ofNullable(capacity.getUsage()).orElse(Usage._ANY);
-    if (isNotAnyOrEmpty(snapshotUsage)
-        && isNotAnyOrEmpty(capacityUsage)
-        && !snapshotUsage.equals(capacityUsage)) {
-      return false;
-    }
-
+    spec = spec.and(whereServiceLevelAnyOrEqualTo(serviceLevel));
+    spec = spec.and(whereUsageAnyOrEqualTo(usage));
     if (productId.isPayg()) {
-      BillingProvider billingProvider = mapBillingProvider(snapshot.getBillingProvider());
-      if (!Objects.equals(capacity.getBillingProvider(), billingProvider)) {
-        return false;
-      }
-
-      if (!Objects.equals(capacity.getBillingAccountId(), snapshot.getBillingAccountId())) {
-        return false;
-      }
+      spec = spec.and(whereBillingProviderNullSafeEqual(billingProvider));
+      spec = spec.and(whereBillingAccountIdNullSafeEqual(snapshot.getBillingAccountId()));
     }
-
-    return true;
-  }
-
-  private boolean isNotAnyOrEmpty(ServiceLevel level) {
-    return level != null && level != ServiceLevel._ANY && level != ServiceLevel.EMPTY;
-  }
-
-  private boolean isNotAnyOrEmpty(Usage usage) {
-    return usage != null && usage != Usage._ANY && usage != Usage.EMPTY;
+    return spec;
   }
 
   private ServiceLevel mapServiceLevel(TallySnapshot.Sla sla) {

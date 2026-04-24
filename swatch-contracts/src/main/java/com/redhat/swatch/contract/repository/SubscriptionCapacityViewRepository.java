@@ -185,4 +185,50 @@ public class SubscriptionCapacityViewRepository
     return (root, query, builder) ->
         builder.equal(root.get(SubscriptionCapacityView_.hasUnlimitedUsage), hasUnlimitedUsage);
   }
+
+  public static Specification<SubscriptionCapacityView> whereServiceLevelAnyOrEqualTo(
+      ServiceLevel requested) {
+    if (!hasConcreteServiceLevel(requested)) {
+      return (root, query, cb) -> cb.conjunction();
+    }
+    return (root, query, cb) -> {
+      var path = root.get(SubscriptionCapacityView_.serviceLevel);
+      return cb.or(cb.isNull(path), path.in(ServiceLevel._ANY, ServiceLevel.EMPTY, requested));
+    };
+  }
+
+  public static Specification<SubscriptionCapacityView> whereUsageAnyOrEqualTo(Usage requested) {
+    if (!hasConcreteUsage(requested)) {
+      return (root, query, cb) -> cb.conjunction();
+    }
+    return (root, query, cb) -> {
+      var path = root.get(SubscriptionCapacityView_.usage);
+      return cb.or(cb.isNull(path), path.in(Usage._ANY, Usage.EMPTY, requested));
+    };
+  }
+
+  public static Specification<SubscriptionCapacityView> whereBillingProviderNullSafeEqual(
+      BillingProvider expected) {
+    if (expected == null) {
+      return (root, q, cb) -> cb.isNull(root.get(SubscriptionCapacityView_.billingProvider));
+    }
+    return (root, q, cb) -> cb.equal(root.get(SubscriptionCapacityView_.billingProvider), expected);
+  }
+
+  public static Specification<SubscriptionCapacityView> whereBillingAccountIdNullSafeEqual(
+      String expected) {
+    if (expected == null) {
+      return (root, q, cb) -> cb.isNull(root.get(SubscriptionCapacityView_.billingAccountId));
+    }
+    return (root, q, cb) ->
+        cb.equal(root.get(SubscriptionCapacityView_.billingAccountId), expected);
+  }
+
+  private static boolean hasConcreteServiceLevel(ServiceLevel s) {
+    return s != null && s != ServiceLevel._ANY && s != ServiceLevel.EMPTY;
+  }
+
+  private static boolean hasConcreteUsage(Usage u) {
+    return u != null && u != Usage._ANY && u != Usage.EMPTY;
+  }
 }
