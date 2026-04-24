@@ -46,24 +46,31 @@ class ContractSyncTaskConsumerTest {
 
   @Test
   void shouldInvokeSyncContractsForOrgId() {
-    when(contractService.syncContractsByOrgId("org123"))
-        .thenReturn(new StatusResponse().status(ContractService.SUCCESS_MESSAGE));
+    var statusResponse = org.mockito.Mockito.mock(StatusResponse.class);
+    when(statusResponse.getStatus()).thenReturn(ContractService.SUCCESS_MESSAGE);
+    when(contractService.syncContractsByOrgId("org123")).thenReturn(statusResponse);
 
-    Assertions.assertDoesNotThrow(() -> consumer.consumeFromTopic(new ContractSyncTask("org123")));
+    consumer.consumeFromTopic(new ContractSyncTask("org123"));
 
     verify(contractService).syncContractsByOrgId("org123");
+    verify(statusResponse).getStatus();
+    verifyNoMoreInteractions(statusResponse);
     verifyNoMoreInteractions(contractService);
   }
 
   @Test
   void shouldNotThrowWhenSyncReturnsFailedStatus() {
-    when(contractService.syncContractsByOrgId("org456"))
-        .thenReturn(
-            new StatusResponse().status(ContractService.FAILURE_MESSAGE).message("upstream error"));
+    var statusResponse = org.mockito.Mockito.mock(StatusResponse.class);
+    when(statusResponse.getStatus()).thenReturn(ContractService.FAILURE_MESSAGE);
+    when(statusResponse.getMessage()).thenReturn("upstream error");
+    when(contractService.syncContractsByOrgId("org456")).thenReturn(statusResponse);
 
     Assertions.assertDoesNotThrow(() -> consumer.consumeFromTopic(new ContractSyncTask("org456")));
 
     verify(contractService).syncContractsByOrgId("org456");
+    verify(statusResponse).getStatus();
+    verify(statusResponse).getMessage();
+    verifyNoMoreInteractions(statusResponse);
     verifyNoMoreInteractions(contractService);
   }
 
