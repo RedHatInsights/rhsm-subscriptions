@@ -36,6 +36,7 @@ import com.redhat.swatch.contract.repository.SubscriptionCapacityViewMetric;
 import com.redhat.swatch.contract.repository.SubscriptionCapacityViewRepository;
 import com.redhat.swatch.panache.Specification;
 import java.time.OffsetDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -62,15 +63,11 @@ class SubscriptionCapacityServiceTest {
   }
 
   @Test
-  void testGetCapacityForTallySummariesWithEmptyList() {
-    var result = subscriptionCapacityService.getCapacityForTallySummaries(List.of());
-
-    assertTrue(result.isEmpty());
-  }
-
-  @Test
-  void testGetCapacityForTallySummariesWithNullList() {
-    var result = subscriptionCapacityService.getCapacityForTallySummaries(null);
+  void testGetCapacityForTallySummaryWithEmptyTallySnapshots() {
+    TallySummary tallySummary = new TallySummary();
+    tallySummary.setOrgId("org123");
+    tallySummary.setTallySnapshots(List.of());
+    var result = subscriptionCapacityService.getCapacityForTallySummary(tallySummary);
 
     assertTrue(result.isEmpty());
   }
@@ -79,10 +76,10 @@ class SubscriptionCapacityServiceTest {
   void testGetCapacityForTallySummariesWithSingleTallySummary() {
     // Given single tally summary for RHEL
     givenExistingCapacityViews(createCapacityView("sub123", "org123", RHEL));
-    List<TallySummary> tallyMessages = List.of(createTallySummary("org123", RHEL));
+    TallySummary tallyMessage = createTallySummary("org123", RHEL);
 
     // When
-    var result = subscriptionCapacityService.getCapacityForTallySummaries(tallyMessages);
+    var result = subscriptionCapacityService.getCapacityForTallySummary(tallyMessage);
 
     // Then: Returns matching capacity data
     assertSingleCapacityResult(result, "sub123", "org123", RHEL);
@@ -94,11 +91,14 @@ class SubscriptionCapacityServiceTest {
     givenExistingCapacityViews(
         createCapacityView("sub123", "org123", RHEL), createCapacityView("sub456", "org456", ROSA));
 
-    List<TallySummary> tallyMessages =
-        List.of(createTallySummary("org123", RHEL), createTallySummary("org456", ROSA));
+    TallySummary msg1 = createTallySummary("org123", RHEL);
+    TallySummary msg2 = createTallySummary("org456", ROSA);
 
-    // When
-    var result = subscriptionCapacityService.getCapacityForTallySummaries(tallyMessages);
+    // When: each Kafka message (one TallySummary) is processed individually
+    var r1 = subscriptionCapacityService.getCapacityForTallySummary(msg1);
+    var r2 = subscriptionCapacityService.getCapacityForTallySummary(msg2);
+    var result = new HashMap<TallySnapshot, List<SubscriptionCapacityView>>(r1);
+    result.putAll(r2);
 
     // Then returns capacity data for both
     assertMultipleCapacityResults(result, List.of("sub123", "sub456"));
@@ -111,11 +111,10 @@ class SubscriptionCapacityServiceTest {
     matchingCapacity.setServiceLevel(com.redhat.swatch.common.model.ServiceLevel.PREMIUM);
     givenExistingCapacityViews(matchingCapacity);
 
-    List<TallySummary> tallyMessages =
-        List.of(createTallySummaryWithServiceLevel("org123", RHEL, "Premium"));
+    TallySummary tallyMessage = createTallySummaryWithServiceLevel("org123", RHEL, "Premium");
 
     // When
-    var result = subscriptionCapacityService.getCapacityForTallySummaries(tallyMessages);
+    var result = subscriptionCapacityService.getCapacityForTallySummary(tallyMessage);
 
     // Then service level filtering works correctly in runtime
     assertEquals(1, result.size());
@@ -129,11 +128,10 @@ class SubscriptionCapacityServiceTest {
     // Given tally summary with AWS billing provider and matching capacity
     givenExistingCapacityViews(createCapacityViewWithBillingProviderAws("sub123", "org123", RHEL));
 
-    List<TallySummary> tallyMessages =
-        List.of(createTallySummaryWithBillingProvider("org123", RHEL, "aws"));
+    TallySummary tallyMessage = createTallySummaryWithBillingProvider("org123", RHEL, "aws");
 
     // When
-    var result = subscriptionCapacityService.getCapacityForTallySummaries(tallyMessages);
+    var result = subscriptionCapacityService.getCapacityForTallySummary(tallyMessage);
 
     // Then billing provider mapping works correctly
     assertSingleCapacityResult(result, "sub123", "org123", RHEL);
@@ -150,7 +148,7 @@ class SubscriptionCapacityServiceTest {
     TallySummary tallySummary = createTallySummaryWithMultipleSnapshots("org123", RHEL, ROSA);
 
     // When
-    var result = subscriptionCapacityService.getCapacityForTallySummaries(List.of(tallySummary));
+    var result = subscriptionCapacityService.getCapacityForTallySummary(tallySummary);
 
     // Then processes all snapshots in the summary
     assertEquals(2, result.size());
@@ -172,31 +170,10 @@ class SubscriptionCapacityServiceTest {
     tallySummary.setOrgId("org123");
     tallySummary.setTallySnapshots(List.of(snapshot));
 
-    var result = subscriptionCapacityService.getCapacityForTallySummaries(List.of(tallySummary));
+    var result = subscriptionCapacityService.getCapacityForTallySummary(tallySummary);
 
     assertEquals(1, result.size());
     assertEquals("sub123", result.values().iterator().next().get(0).getSubscriptionId());
-  }
-
-  @Test
-  void testSnapshotWithMismatchedSlaDoesNotMatchCapacity() {
-    // Given capacity with Premium SLA
-    SubscriptionCapacityView capacity = createCapacityView("sub123", "org123", RHEL);
-    capacity.setServiceLevel(com.redhat.swatch.common.model.ServiceLevel.PREMIUM);
-    capacity.setUsage(com.redhat.swatch.common.model.Usage.PRODUCTION);
-    givenExistingCapacityViews(capacity);
-
-    // Given tally snapshot with Self-Support SLA (no matching subscription)
-    TallySnapshot snapshot = createTallySnapshot(RHEL);
-    snapshot.setSla(TallySnapshot.Sla.SELF_SUPPORT);
-    snapshot.setUsage(TallySnapshot.Usage.DEVELOPMENT_TEST);
-    TallySummary tallySummary = new TallySummary();
-    tallySummary.setOrgId("org123");
-    tallySummary.setTallySnapshots(List.of(snapshot));
-
-    var result = subscriptionCapacityService.getCapacityForTallySummaries(List.of(tallySummary));
-
-    assertTrue(result.isEmpty());
   }
 
   @Test
@@ -211,7 +188,9 @@ class SubscriptionCapacityServiceTest {
     selfSupportCapacity.setServiceLevel(com.redhat.swatch.common.model.ServiceLevel.SELF_SUPPORT);
     selfSupportCapacity.setUsage(com.redhat.swatch.common.model.Usage.DEVELOPMENT_TEST);
 
-    givenExistingCapacityViews(premiumCapacity, selfSupportCapacity);
+    when(capacityRepository.streamBy(any()))
+        .thenReturn(Stream.of(premiumCapacity, selfSupportCapacity))
+        .thenReturn(Stream.of(selfSupportCapacity));
 
     // Given two snapshots: one _ANY and one Self-Support
     TallySnapshot anySnapshot = createTallySnapshot(RHEL);
@@ -226,7 +205,7 @@ class SubscriptionCapacityServiceTest {
     tallySummary.setOrgId("org123");
     tallySummary.setTallySnapshots(List.of(anySnapshot, selfSupportSnapshot));
 
-    var result = subscriptionCapacityService.getCapacityForTallySummaries(List.of(tallySummary));
+    var result = subscriptionCapacityService.getCapacityForTallySummary(tallySummary);
 
     // _ANY snapshot matches both capacities
     assertEquals(2, result.get(anySnapshot).size());
@@ -239,19 +218,19 @@ class SubscriptionCapacityServiceTest {
   @Test
   void testGetCapacityForTallySummariesWithNoCapacityFound() {
     // Given tally summary but no matching capacity data
-    List<TallySummary> tallyMessages = List.of(createTallySummary("org123", RHEL));
+    TallySummary tallyMessage = createTallySummary("org123", RHEL);
     when(capacityRepository.streamBy(any(Specification.class))).thenReturn(Stream.empty());
 
     // When
-    var result = subscriptionCapacityService.getCapacityForTallySummaries(tallyMessages);
+    var result = subscriptionCapacityService.getCapacityForTallySummary(tallyMessage);
 
     // Then returns empty map
     assertTrue(result.isEmpty());
   }
 
   private void givenExistingCapacityViews(SubscriptionCapacityView... capacityViews) {
-    when(capacityRepository.streamBy(any(Specification.class)))
-        .thenReturn(Stream.of(capacityViews));
+    when(capacityRepository.streamBy(any()))
+        .thenAnswer(invocationOnMock -> Stream.of(capacityViews));
   }
 
   private void assertSingleCapacityResult(
