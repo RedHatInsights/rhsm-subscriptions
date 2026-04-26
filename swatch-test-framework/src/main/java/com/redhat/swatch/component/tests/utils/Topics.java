@@ -31,6 +31,8 @@ public final class Topics {
   public static final String HBI_EVENT_IN = "platform.inventory.events";
   public static final String INVENTORY_HOST_INGRESS = "platform.inventory.host-ingress";
   public static final String TALLY = SUFFIX + "tally";
+  public static final String TASKS = SUFFIX + "tasks";
+  public static final String TALLY_HOURLY_TASKS = SUFFIX + "tally-hourly-tasks";
   public static final String CONDUIT_TASKS = "platform.rhsm-conduit.tasks";
   public static final String NOTIFICATIONS = "platform.notifications.ingress";
   public static final String ENABLED_ORGS = "platform.rhsm-subscriptions.enabled-orgs-for-tasks";

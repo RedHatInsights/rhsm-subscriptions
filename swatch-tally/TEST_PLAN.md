@@ -10,6 +10,7 @@ This document outlines the test plan for swatch-tally, including event processin
 
 * Event ingestion and processing
 * Hourly and nightly tally snapshot generation
+* Task queue isolation (hourly vs nightly Kafka topics)
 * Tally report generation with various filters
 * Instance report generation
 * Conflict handling and data persistence
@@ -847,6 +848,107 @@ All test files use `@BeforeAll` to create test data once and share it across all
     - Hourly tally produces HOURLY granularity summaries
     - One summary per event hour
     - TOTAL measurements are excluded
+
+## Task Queue Isolation
+
+**tally-task-queue-isolation-TC001 - Hourly snapshot tasks produced to tally-hourly-tasks topic**
+
+- **Description**: Verify that hourly snapshot tasks are produced to the dedicated tally-hourly-tasks Kafka topic so that hourly runs are not backed up behind the multi-hour nightly batch
+- **Setup**:
+    - Organization is opted in for tally
+- **Action**:
+    - Trigger hourly snapshot production for all configured orgs (PUT .../rpc/tally/snapshots)
+- **Verification**:
+    - UPDATE_HOURLY_SNAPSHOTS task is received on tally-hourly-tasks topic
+    - Task contains the opted-in org ID in args
+- **Expected Result**:
+    - Hourly tasks are enqueued to the dedicated topic
+    - Hourly tally runs independently of nightly batch
+
+**tally-task-queue-isolation-TC002 - Nightly snapshot tasks produced to main tasks topic**
+
+- **Description**: Verify that nightly snapshot tasks are produced to the main tasks Kafka topic
+- **Setup**:
+    - Organization is opted in
+    - Nightly tally host buckets are seeded for the org
+- **Action**:
+    - Trigger async tally for the org (enqueues UPDATE_SNAPSHOTS to main tasks topic)
+- **Verification**:
+    - UPDATE_SNAPSHOTS task is received on main tasks topic
+    - Task contains the org ID in args.orgs
+- **Expected Result**:
+    - Nightly tasks are enqueued to the main tasks topic
+    - Nightly and hourly tasks use separate Kafka topics
+
+**tally-task-queue-isolation-TC003 - Nightly snapshot idempotency under repeated processing**
+
+- **Description**: Verify that when the same org is tallied twice via async nightly (simulating Kafka redelivery or pod rollover), tally results do not double-count; reprocessing is idempotent
+- **Setup**:
+    - Organization is opted in
+    - Nightly tally host buckets are seeded for the org
+- **Action**:
+    - Trigger async tally for the org
+    - Wait for tally to complete and capture tally summary messages or report values
+    - Trigger async tally for the same org again
+    - Capture tally summary messages or report values again
+- **Verification**:
+    - Tally report/summary values after first run equal values after second run
+    - No double-counting of metrics
+- **Expected Result**:
+    - Nightly snapshot processing is idempotent
+    - Duplicate task processing (e.g. from Kafka redelivery) does not corrupt data
+
+**tally-task-queue-isolation-TC004 - Hourly snapshot idempotency under repeated processing**
+
+- **Description**: Verify that when hourly snapshots are triggered twice for the same org (simulating Kafka redelivery or pod rollover), tally results do not double-count
+- **Setup**:
+    - Organization is opted in
+    - Events for the relevant hours are created
+- **Action**:
+    - Trigger hourly snapshot production for all orgs
+    - Wait for processing to complete and capture tally summaries or report values
+    - Trigger hourly snapshot production for all orgs again
+    - Capture tally summaries or report values again
+- **Verification**:
+    - Tally values after first run equal values after second run
+    - No double-counting
+- **Expected Result**:
+    - Hourly snapshot processing is idempotent
+    - Duplicate task processing does not corrupt data
+
+**tally-task-queue-isolation-TC005 - No duplicate tally summaries on reprocessing**
+
+- **Description**: Verify that when nightly tally runs twice for the same org, tally summary messages sent to the tally topic do not cause downstream double-counting; document behavior for billing deduplication
+- **Setup**:
+    - Organization is opted in
+    - Nightly tally host buckets are seeded
+- **Action**:
+    - Trigger async tally for the org
+    - Capture tally summary messages (count and content)
+    - Trigger async tally for the same org again
+    - Capture tally summary messages again
+- **Verification**:
+    - Document whether additional summary messages are emitted on second run
+    - If duplicates are emitted, downstream (swatch-billable-usage) must deduplicate; test validates repeatability
+- **Expected Result**:
+    - Tally summary emission behavior is documented and understood
+    - Billing risk from duplicate summaries is assessed and mitigated
+
+**tally-task-queue-isolation-TC006 - No cross-topic leakage**
+
+- **Description**: Verify that hourly and nightly triggers produce tasks only on their respective topics; no accidental routing of hourly tasks to main topic or nightly tasks to hourly topic
+- **Setup**:
+    - Organization is opted in
+    - Test subscribes to both tally-hourly-tasks and main tasks topics
+- **Action**:
+    - Trigger hourly snapshot production for all orgs
+    - Observe messages on both topics for a short window
+- **Verification**:
+    - UPDATE_HOURLY_SNAPSHOTS task appears on tally-hourly-tasks topic
+    - No UPDATE_SNAPSHOTS task for the opted-in org appears on main tasks topic in the same window
+- **Expected Result**:
+    - Topic routing is correct
+    - No cross-contamination between hourly and nightly queues
 
 ## Instance Reporting
 

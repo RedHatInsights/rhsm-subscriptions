@@ -176,6 +176,18 @@ public class TallyWorkerConfiguration {
     return taskConsumerFactory.createTaskConsumer(taskFactory, taskQueueProperties);
   }
 
+  /** Consumer for hourly snapshot tasks only; keeps hourly tally from backing up behind nightly. */
+  @Bean
+  @Profile("kafka-queue")
+  public TaskConsumer tallyHourlyTaskProcessor(
+      @Qualifier("tallyHourlyTaskQueueProperties")
+          TaskQueueProperties tallyHourlyTaskQueueProperties,
+      KafkaTaskConsumerFactory taskConsumerFactory,
+      TallyTaskFactory taskFactory) {
+
+    return taskConsumerFactory.createTaskConsumer(taskFactory, tallyHourlyTaskQueueProperties);
+  }
+
   @Bean
   public ExecutorTaskProcessor syncTaskProcessorForTallyTaskProcessor(
       @Qualifier("tallyTaskQueueProperties") TaskQueueProperties taskQueueProperties,
