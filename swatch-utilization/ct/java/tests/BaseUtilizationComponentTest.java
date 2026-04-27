@@ -28,13 +28,13 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import api.UtilizationSwatchService;
 import api.UtilizationUnleashService;
 import com.redhat.cloud.notifications.ingress.Action;
 import com.redhat.swatch.component.tests.api.ComponentTest;
 import com.redhat.swatch.component.tests.api.KafkaBridge;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.api.Quarkus;
-import com.redhat.swatch.component.tests.api.SwatchService;
 import com.redhat.swatch.component.tests.api.Unleash;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.configuration.registry.MetricId;
@@ -61,7 +61,7 @@ public class BaseUtilizationComponentTest {
   @Unleash static UtilizationUnleashService unleash = new UtilizationUnleashService();
 
   @Quarkus(service = "swatch-utilization")
-  static SwatchService service = new SwatchService();
+  static UtilizationSwatchService service = new UtilizationSwatchService();
 
   protected String orgId;
 
