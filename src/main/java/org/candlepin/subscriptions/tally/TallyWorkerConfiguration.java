@@ -233,8 +233,10 @@ public class TallyWorkerConfiguration {
 
   @Bean
   public KafkaTemplate<String, Event> eventKafkaTemplate(
-      ProducerFactory<String, Event> eventProducerFactory) {
-    return new KafkaTemplate<>(eventProducerFactory);
+      ProducerFactory<String, Event> eventProducerFactory, KafkaProperties kafkaProperties) {
+    KafkaTemplate<String, Event> kafkaTemplate = new KafkaTemplate<>(eventProducerFactory);
+    kafkaTemplate.setObservationEnabled(kafkaProperties.getTemplate().isObservationEnabled());
+    return kafkaTemplate;
   }
 
   @Bean(name = "updatePrimaryTallySnapshotsTaskExecutor")
@@ -277,8 +279,12 @@ public class TallyWorkerConfiguration {
 
   @Bean
   public KafkaTemplate<String, String> eventDeadLetterKafkaTemplate(
-      ProducerFactory<String, String> eventDeadLetterProducerFactory) {
-    return new KafkaTemplate<>(eventDeadLetterProducerFactory);
+      ProducerFactory<String, String> eventDeadLetterProducerFactory,
+      KafkaProperties kafkaProperties) {
+    KafkaTemplate<String, String> kafkaTemplate =
+        new KafkaTemplate<>(eventDeadLetterProducerFactory);
+    kafkaTemplate.setObservationEnabled(kafkaProperties.getTemplate().isObservationEnabled());
+    return kafkaTemplate;
   }
 
   @Bean
@@ -331,6 +337,9 @@ public class TallyWorkerConfiguration {
     // hack to track the Kafka consumers, so SeekableKafkaConsumer can commit when needed
     factory.getContainerProperties().setConsumerRebalanceListener(registry);
     factory.setCommonErrorHandler(deadLetterErrorHandler);
+    factory
+        .getContainerProperties()
+        .setObservationEnabled(kafkaProperties.getTemplate().isObservationEnabled());
     return factory;
   }
 
@@ -376,8 +385,11 @@ public class TallyWorkerConfiguration {
   @Bean
   public KafkaTemplate<String, EnabledOrgsResponse> enabledOrgsKafkaTemplate(
       KafkaProperties kafkaProperties) {
-    return new KafkaTemplate<>(
-        new DefaultKafkaProducerFactory<>(getProducerProperties(kafkaProperties)));
+    KafkaTemplate<String, EnabledOrgsResponse> kafkaTemplate =
+        new KafkaTemplate<>(
+            new DefaultKafkaProducerFactory<>(getProducerProperties(kafkaProperties)));
+    kafkaTemplate.setObservationEnabled(kafkaProperties.getTemplate().isObservationEnabled());
+    return kafkaTemplate;
   }
 
   @Bean
@@ -401,6 +413,9 @@ public class TallyWorkerConfiguration {
     }
     // hack to track the Kafka consumers, so SeekableKafkaConsumer can commit when needed
     factory.getContainerProperties().setConsumerRebalanceListener(registry);
+    factory
+        .getContainerProperties()
+        .setObservationEnabled(kafkaProperties.getTemplate().isObservationEnabled());
     return factory;
   }
 }
