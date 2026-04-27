@@ -54,7 +54,9 @@ public class InventoryServiceKafkaConfigurator {
   }
 
   public KafkaTemplate<String, CreateUpdateHostMessage> taskMessageKafkaTemplate(
-      ProducerFactory<String, CreateUpdateHostMessage> factory) {
-    return new KafkaTemplate<>(factory);
+      ProducerFactory<String, CreateUpdateHostMessage> factory, KafkaProperties kafkaProperties) {
+    KafkaTemplate<String, CreateUpdateHostMessage> kafkaTemplate = new KafkaTemplate<>(factory);
+    kafkaTemplate.setObservationEnabled(kafkaProperties.getTemplate().isObservationEnabled());
+    return kafkaTemplate;
   }
 }
