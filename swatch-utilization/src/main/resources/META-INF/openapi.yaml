@@ -12,6 +12,34 @@ tags:
     description: Organization-level utilization preferences
 paths:
   /api/rhsm-subscriptions/v1/utilization/org-preferences:
+    get:
+      tags:
+        - OrgPreferences
+      operationId: getOrgPreferences
+      summary: Get organization utilization preferences
+      description: >-
+        Retrieves the organization utilization preferences for the organization resolved
+        from the authenticated x-rh-identity header.
+      parameters:
+        - name: x-rh-identity
+          in: header
+          required: true
+          schema:
+            type: string
+          description: >-
+            Base64-encoded JSON identity document for x-rh-identity (must include org_id for User
+            and ServiceAccount identities, per the authenticated principal).
+      responses:
+        "200":
+          description: Preferences retrieved successfully. Returns system default threshold if not configured.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrgPreferencesResponse"
+        "403":
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/Forbidden"
+        "500":
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
     post:
       tags:
         - OrgPreferences
