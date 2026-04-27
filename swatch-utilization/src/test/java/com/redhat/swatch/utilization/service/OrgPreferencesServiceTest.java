@@ -27,22 +27,42 @@ import static org.mockito.Mockito.when;
 import com.redhat.swatch.utilization.data.OrgUtilizationPreferenceEntity;
 import com.redhat.swatch.utilization.data.OrgUtilizationPreferenceRepository;
 import com.redhat.swatch.utilization.openapi.model.OrgPreferencesRequest;
+import io.quarkus.test.InjectMock;
+import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
-@ExtendWith(MockitoExtension.class)
+@QuarkusTest
 class OrgPreferencesServiceTest {
 
   private static final String ORG_ID = "org-456";
 
-  @Mock OrgUtilizationPreferenceRepository repository;
+  @InjectMock OrgUtilizationPreferenceRepository repository;
 
-  @InjectMocks OrgPreferencesService service;
+  @Inject OrgPreferencesService service;
+
+  @Test
+  void getOrgPreferences_whenPreferenceExists_returnsPreference() {
+    var entity = new OrgUtilizationPreferenceEntity();
+    entity.setOrgId(ORG_ID);
+    entity.setCustomThreshold(7);
+    when(repository.findByIdOptional(ORG_ID)).thenReturn(Optional.of(entity));
+
+    var response = service.getOrgPreferences(ORG_ID);
+
+    assertEquals(7, response.getCustomThreshold());
+  }
+
+  @Test
+  void getOrgPreferences_whenPreferenceDoesNotExist_returnsDefaultThreshold() {
+    when(repository.findByIdOptional(ORG_ID)).thenReturn(Optional.empty());
+
+    var response = service.getOrgPreferences(ORG_ID);
+
+    assertEquals(80, response.getCustomThreshold());
+  }
 
   @Test
   void whenNoExistingPreference_persistsNewEntity() {

@@ -19,9 +19,9 @@
     <codegen.skipIfSpecIsUnchanged>true</codegen.skipIfSpecIsUnchanged>
 
     <!-- Dependencies -->
-    <quarkus.platform.version>3.34.5</quarkus.platform.version>
+    <quarkus.platform.version>3.34.6</quarkus.platform.version>
     <spring.boot.version>3.5.13</spring.boot.version>
-    <spring.boot.version>4.0.5</spring.boot.version>
+    <spring.boot.version>4.0.6</spring.boot.version>
     <resteasy.version>7.0.0.Final</resteasy.version>
     <!-- Only use as provided in the common dependencies.
     Spring and Quarkus already provides the compatible Jackson versions -->
@@ -31,7 +31,7 @@
     <jakarta.ws.rs-api.version>4.0.0</jakarta.ws.rs-api.version>
     <jakarta.persistence-api.version>3.2.0</jakarta.persistence-api.version>
     <opentelemetry-api.version>1.61.0</opentelemetry-api.version>
-    <awssdk-bom.version>2.42.40</awssdk-bom.version>
+    <awssdk-bom.version>2.42.41</awssdk-bom.version>
     <guava.version>33.6.0-jre</guava.version>
     <liquibase.version>5.0.2</liquibase.version>
     <postgresql.version>42.7.10</postgresql.version>
@@ -42,7 +42,7 @@
     <hibernate-validator.version>9.1.0.Final</hibernate-validator.version>
     <swagger-parser.version>2.1.40</swagger-parser.version>
     <swagger-ui.version>5.32.4</swagger-ui.version>
-    <splunk-otel-javaagent.version>2.26.1</splunk-otel-javaagent.version>
+    <splunk-otel-javaagent.version>2.27.0</splunk-otel-javaagent.version>
     <insights-notification-schemas-java.version>1.1.0</insights-notification-schemas-java.version>
     <rest-assured.version>6.0.0</rest-assured.version>
 
@@ -58,7 +58,7 @@
     <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
     <maven-antrun-plugin.version>3.2.0</maven-antrun-plugin.version>
     <sonar-maven-plugin.version>5.6.0.6792</sonar-maven-plugin.version>
-    <swagger-codegen-maven-plugin.version>3.0.78</swagger-codegen-maven-plugin.version>
+    <swagger-codegen-maven-plugin.version>3.0.79</swagger-codegen-maven-plugin.version>
 
     <!-- Sonar configuration -->
     <sonar.host.url>https://sonarcloud.io</sonar.host.url>

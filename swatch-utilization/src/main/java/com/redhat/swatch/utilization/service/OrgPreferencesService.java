@@ -26,15 +26,38 @@ import com.redhat.swatch.utilization.openapi.model.OrgPreferencesRequest;
 import com.redhat.swatch.utilization.openapi.model.OrgPreferencesResponse;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @Slf4j
 @ApplicationScoped
-@AllArgsConstructor
 public class OrgPreferencesService {
 
   private final OrgUtilizationPreferenceRepository repository;
+
+  @ConfigProperty(name = "ORG_PREFERENCE_DEFAULT_THRESHOLD")
+  Integer defaultThreshold;
+
+  public OrgPreferencesService(OrgUtilizationPreferenceRepository repository) {
+    this.repository = repository;
+  }
+
+  /**
+   * Retrieves preferences for the given organization. Returns default threshold from
+   * ORG_PREFERENCE_DEFAULT_THRESHOLD property if not configured.
+   */
+  @Transactional
+  public OrgPreferencesResponse getOrgPreferences(String orgId) {
+    log.info("Retrieving utilization preference for orgId={}", orgId);
+    var entityOpt = repository.findByIdOptional(orgId);
+    var response = new OrgPreferencesResponse();
+    if (entityOpt.isEmpty()) {
+      response.setCustomThreshold(defaultThreshold);
+    } else {
+      response.setCustomThreshold(entityOpt.get().getCustomThreshold());
+    }
+    return response;
+  }
 
   /**
    * Persists {@link OrgPreferencesRequest#getCustomThreshold()} for the organization and returns

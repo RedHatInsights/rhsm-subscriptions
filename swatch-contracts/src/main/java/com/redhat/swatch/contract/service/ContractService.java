@@ -54,6 +54,7 @@ import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.repository.SubscriptionRepository;
 import com.redhat.swatch.contract.utils.ContractMessageProcessingResult;
 import com.redhat.swatch.panache.Specification;
+import io.micrometer.core.annotation.Timed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -456,6 +457,7 @@ public class ContractService {
   }
 
   @Transactional
+  @Timed("swatch_contract_sync")
   public StatusResponse syncContractsByOrgId(String contractOrgSync) {
     StatusResponse statusResponse = new StatusResponse();
 
