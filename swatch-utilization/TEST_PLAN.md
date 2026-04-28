@@ -391,3 +391,90 @@ Additional cases can be added under the same `utilization-notifications-featuref
     - Allowlisted org: notification event with correct (org_id, product_id, metric_id, utilization_percentage)
     - Non-allowlisted org: no notification event
 
+## Organization Preferences API
+
+**org-preferences-TC001 - Retrieve default threshold for organization without custom preferences**
+
+- **Description**: Verify that GET request returns system default threshold when org has not configured custom preferences.
+- **Setup**:
+    - An organization has not configured any custom preferences
+- **Action**:
+    - Call GET /api/rhsm-subscriptions/v1/utilization/org-preferences with valid x-rh-identity header
+- **Verification**:
+    - Verify response status code is 200
+    - Verify response contains custom_threshold field
+- **Expected Result**:
+    - HTTP 200 response
+    - Response contains custom_threshold matching system default (ORG_PREFERENCE_DEFAULT_THRESHOLD config property)
+
+**org-preferences-TC002 - Update organization threshold preferences**
+
+- **Description**: Verify that POST request successfully persists custom threshold for organization.
+- **Setup**:
+    - An organization has not configured any custom preferences
+- **Action**:
+    - Call POST /api/rhsm-subscriptions/v1/utilization/org-preferences with valid request body containing custom_threshold value
+- **Verification**:
+    - Verify response status code is 200
+    - Verify response contains the persisted custom_threshold value
+- **Expected Result**:
+    - HTTP 200 response
+    - Response custom_threshold matches the value from request body
+
+**org-preferences-TC003 - Retrieve custom threshold after update**
+
+- **Description**: Verify that GET request returns custom threshold after organization has configured preferences.
+- **Setup**:
+    - An organization has configured custom threshold via POST request
+- **Action**:
+    - Call POST /api/rhsm-subscriptions/v1/utilization/org-preferences to set custom threshold
+    - Call GET /api/rhsm-subscriptions/v1/utilization/org-preferences to retrieve preferences
+- **Verification**:
+    - Verify GET response status code is 200
+    - Verify GET response contains the previously configured custom_threshold
+- **Expected Result**:
+    - HTTP 200 response
+    - Response custom_threshold matches the value set in previous POST request (not the system default)
+
+**org-preferences-TC004 - Update existing custom threshold**
+
+- **Description**: Verify that POST request can update previously configured threshold.
+- **Setup**:
+    - An organization has already configured custom threshold
+- **Action**:
+    - Call POST /api/rhsm-subscriptions/v1/utilization/org-preferences with initial custom_threshold value
+    - Call POST /api/rhsm-subscriptions/v1/utilization/org-preferences again with different custom_threshold value
+    - Call GET /api/rhsm-subscriptions/v1/utilization/org-preferences to verify
+- **Verification**:
+    - Verify final GET response returns the updated threshold value
+- **Expected Result**:
+    - HTTP 200 response
+    - Response custom_threshold matches the second POST request value (not the first)
+
+**org-preferences-TC005 - Reject invalid threshold values**
+
+- **Description**: Verify that POST request rejects threshold values outside valid range (0-100).
+- **Setup**:
+    - An organization attempts to configure invalid threshold
+- **Action**:
+    - Call POST /api/rhsm-subscriptions/v1/utilization/org-preferences with custom_threshold value outside 0-100 range (e.g., -5 or 150)
+- **Verification**:
+    - Verify response status code is 400 Bad Request
+- **Expected Result**:
+    - HTTP 400 Bad Request response for threshold values < 0 or > 100
+
+**org-preferences-TC006 - Threshold value boundary validation**
+
+- **Description**: Verify that POST request accepts threshold values at boundaries (0 and 100).
+- **Setup**:
+    - An organization configures threshold at boundary values
+- **Action**:
+    - Call POST /api/rhsm-subscriptions/v1/utilization/org-preferences with custom_threshold = 0
+    - Call POST /api/rhsm-subscriptions/v1/utilization/org-preferences with custom_threshold = 100
+- **Verification**:
+    - Verify both requests return 200
+    - Verify responses contain the boundary values
+- **Expected Result**:
+    - HTTP 200 response for both 0 and 100 threshold values
+    - Response custom_threshold matches request value
+
