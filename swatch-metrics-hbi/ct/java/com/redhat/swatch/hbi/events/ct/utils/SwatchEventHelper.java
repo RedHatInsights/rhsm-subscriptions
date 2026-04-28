@@ -86,7 +86,7 @@ public class SwatchEventHelper {
         .withMeasurements(measurements);
   }
 
-  public List<Measurement> buildMeasurements(double cores, double sockets) {
+  public static List<Measurement> buildMeasurements(double cores, double sockets) {
     return List.of(
         new Measurement().withMetricId("cores").withValue(cores),
         new Measurement().withMetricId("sockets").withValue(sockets));
@@ -149,7 +149,7 @@ public class SwatchEventHelper {
         hypervisorUuid,
         productIds,
         tags,
-        new SwatchEventHelper().buildMeasurements(cores, sockets));
+        buildMeasurements(cores, sockets));
   }
 
   public static Event createExpectedDeletedEvent(
@@ -204,7 +204,7 @@ public class SwatchEventHelper {
         hypervisorUuid,
         productIds,
         tags,
-        new SwatchEventHelper().buildMeasurements(cores, sockets));
+        buildMeasurements(cores, sockets));
   }
 
   private static Event createExpectedDeletedEventFromUnseenHost(HbiHostDeleteEvent deleteEvent) {
