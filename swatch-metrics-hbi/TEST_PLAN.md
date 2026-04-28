@@ -65,22 +65,35 @@ Test cases should be testable locally and in deployed environments.
 - **Expected Result**:
     - Flush outbox API completes successfully and indicates a synchronous execution mode
 
-**metrics-hbi-api-TC003 \- Unleash flag toggles correctly**
+**metrics-hbi-api-TC003 \- Unleash flag can be enabled**
 
-- **Description**: Verify that the Unleash feature flag for the service can be enabled and disabled correctly.
+- **Description**: Verify that the Unleash feature flag for the service can be enabled correctly.
 - **Setup**:
     - Ensure the swatch-metrics-hbi component test environment is started
     - New Unleash service is created and available in component test base class
+    - `EMIT_EVENTS` flag is initially disabled
 - **Action**:
     - Enable the `EMIT_EVENTS` flag via Unleash
     - Check that the flag is reported as enabled
+- **Verification**:
+    - `isFlagEnabled(EMIT_EVENTS)` returns true after enabling the flag
+- **Expected Result**:
+    - The Unleash feature flag `EMIT_EVENTS` can be enabled reliably, and its enabled state is reflected correctly in the service
+
+**metrics-hbi-api-TC004 \- Unleash flag can be disabled**
+
+- **Description**: Verify that the Unleash feature flag for the service can be disabled correctly.
+- **Setup**:
+    - Ensure the swatch-metrics-hbi component test environment is started
+    - New Unleash service is created and available in component test base class
+    - `EMIT_EVENTS` flag is initially enabled
+- **Action**:
     - Disable the `EMIT_EVENTS` flag via Unleash
     - Check that the flag is reported as disabled
 - **Verification**:
-    - `isFlagEnabled(EMIT_EVENTS)` returns true after enabling the flag
     - `isFlagEnabled(EMIT_EVENTS)` returns false after disabling the flag
 - **Expected Result**:
-    - The Unleash feature flag `EMIT_EVENTS` can be toggled on and off reliably, and its state is reflected correctly in the service
+    - The Unleash feature flag `EMIT_EVENTS` can be disabled reliably, and its disabled state is reflected correctly in the service
 
 ## Create/Update HBI Event Ingestion
 

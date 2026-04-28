@@ -29,28 +29,55 @@ import com.redhat.swatch.hbi.model.FlushResponse;
 import com.redhat.swatch.hbi.model.FlushResponse.StatusEnum;
 import org.junit.jupiter.api.Test;
 
-class SimpleSwatchMetricsHbiTest extends BaseSMHBIComponentTest {
+class MetricsHbiApiComponentTest extends BaseSMHBIComponentTest {
 
   @TestPlanName("metrics-hbi-api-TC001")
   @Test
-  void testServiceIsUpAndRunning() {
-    assertTrue(service.isRunning());
+  void shouldReportServiceAsRunning() {
+    // Given: Service is running in component test environment
+
+    // When: Checking if service is running
+
+    // Then: Service should report as running
+    assertTrue(service.isRunning(), "Service should be running");
   }
 
   @TestPlanName("metrics-hbi-api-TC002")
   @Test
-  void testFlushApi() {
+  void shouldFlushOutboxSynchronously() {
+    // Given: Outbox is ready to be flushed
+
+    // When: Calling the synchronous outbox flush API
     FlushResponse body = service.flushOutboxSynchronously();
-    assertEquals(StatusEnum.SUCCESS, body.getStatus());
-    assertFalse(body.getAsync());
+
+    // Then: Flush should succeed with synchronous mode
+    assertEquals(StatusEnum.SUCCESS, body.getStatus(), "Flush status should be SUCCESS");
+    assertFalse(body.getAsync(), "Flush should be synchronous");
   }
 
   @TestPlanName("metrics-hbi-api-TC003")
   @Test
-  void testUnleashFlagToggling() {
-    unleash.enableFlag(EMIT_EVENTS);
-    assertTrue(unleash.isFlagEnabled(EMIT_EVENTS));
+  void shouldEnableUnleashFlag() {
+    // Given: Unleash service is available and EMIT_EVENTS flag is disabled
     unleash.disableFlag(EMIT_EVENTS);
-    assertFalse(unleash.isFlagEnabled(EMIT_EVENTS));
+
+    // When: Enabling the EMIT_EVENTS flag
+    unleash.enableFlag(EMIT_EVENTS);
+
+    // Then: Flag should be enabled
+    assertTrue(unleash.isFlagEnabled(EMIT_EVENTS), "EMIT_EVENTS flag should be enabled");
+  }
+
+  @TestPlanName("metrics-hbi-api-TC004")
+  @Test
+  void shouldDisableUnleashFlag() {
+    // Given: Unleash service is available and EMIT_EVENTS flag is enabled
+    unleash.enableFlag(EMIT_EVENTS);
+
+    // When: Disabling the EMIT_EVENTS flag
+    unleash.disableFlag(EMIT_EVENTS);
+
+    // Then: Flag should be disabled
+    assertFalse(unleash.isFlagEnabled(EMIT_EVENTS), "EMIT_EVENTS flag should be disabled");
   }
 }
