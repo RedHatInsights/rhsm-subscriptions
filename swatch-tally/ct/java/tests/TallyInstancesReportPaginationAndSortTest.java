@@ -51,32 +51,32 @@ import org.junit.jupiter.api.Test;
 
 public class TallyInstancesReportPaginationAndSortTest extends BaseTallyComponentTest {
 
+  private record PaginationFixture(String billingAccountId, List<String> instanceIds) {}
+
+  private record LastSeenSortFixture(
+      String billingAccountId, String earlyInstanceId, String laterInstanceId) {}
+
+  private record DisplayNameSortFixture(String billingAccountId, String nameZ, String nameA) {}
+
+  private record MetricSortFixture(
+      String billingAccountId, String smallMeterInstanceId, String largeMeterInstanceId) {}
+
+  private record CategorySortFixture(
+      String billingAccountId, String cloudInstanceId, String physicalInstanceId) {}
+
   private static String testOrgId;
+  private static String metricId;
 
   private static OffsetDateTime start;
   private static OffsetDateTime firstOfMonth;
-  private static String metricId;
 
-  private static String billingPage;
-  private static List<String> instanceIdsPage;
-
-  private static String billingLastSeen;
-  private static String instanceEarlier;
-  private static String instanceLater;
-  private static OffsetDateTime tEarly;
-  private static OffsetDateTime tLate;
-
-  private static String billingDisplay;
-  private static String instanceZ;
-  private static String instanceA;
-
-  private static String billingMetric;
-  private static String instanceSmall;
-  private static String instanceLarge;
-
-  private static String billingCategory;
-  private static String instanceCloud;
-  private static String instancePhysical;
+  private static PaginationFixture pagination;
+  private static LastSeenSortFixture lastSeen;
+  private static OffsetDateTime lastSeenTEarly;
+  private static OffsetDateTime lastSeenTLate;
+  private static DisplayNameSortFixture displayName;
+  private static MetricSortFixture metric;
+  private static CategorySortFixture category;
 
   @BeforeAll
   static void setupEvents() {
@@ -86,35 +86,42 @@ public class TallyInstancesReportPaginationAndSortTest extends BaseTallyComponen
     metricId = RHEL_FOR_X86_ELS_PAYG.metricIds().get(0);
     OffsetDateTime eventHour = start.minusHours(2).truncatedTo(ChronoUnit.HOURS);
 
-    billingPage = UUID.randomUUID().toString();
-    instanceIdsPage =
-        List.of(
+    pagination =
+        new PaginationFixture(
+            UUID.randomUUID().toString(),
+            List.of(
+                UUID.randomUUID().toString(),
+                UUID.randomUUID().toString(),
+                UUID.randomUUID().toString()));
+
+    lastSeen =
+        new LastSeenSortFixture(
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString());
+    lastSeenTEarly = firstOfMonth.plusHours(5);
+    lastSeenTLate = firstOfMonth.plusHours(10);
+
+    displayName =
+        new DisplayNameSortFixture(
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString());
+    metric =
+        new MetricSortFixture(
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString());
+    category =
+        new CategorySortFixture(
             UUID.randomUUID().toString(),
             UUID.randomUUID().toString(),
             UUID.randomUUID().toString());
 
-    billingLastSeen = UUID.randomUUID().toString();
-    instanceEarlier = UUID.randomUUID().toString();
-    instanceLater = UUID.randomUUID().toString();
-    tEarly = firstOfMonth.plusHours(5);
-    tLate = firstOfMonth.plusHours(10);
-
-    billingDisplay = UUID.randomUUID().toString();
-    instanceZ = UUID.randomUUID().toString();
-    instanceA = UUID.randomUUID().toString();
-
-    billingMetric = UUID.randomUUID().toString();
-    instanceSmall = UUID.randomUUID().toString();
-    instanceLarge = UUID.randomUUID().toString();
-
-    billingCategory = UUID.randomUUID().toString();
-    instanceCloud = UUID.randomUUID().toString();
-    instancePhysical = UUID.randomUUID().toString();
-
     Event eventZ =
         helpers.createPaygEventWithTimestamp(
             testOrgId,
-            instanceZ,
+            displayName.nameZ(),
             eventHour.toString(),
             UUID.randomUUID().toString(),
             metricId,
@@ -122,7 +129,7 @@ public class TallyInstancesReportPaginationAndSortTest extends BaseTallyComponen
             Event.Sla.PREMIUM,
             Event.Usage.PRODUCTION,
             Event.BillingProvider.AWS,
-            billingDisplay,
+            displayName.billingAccountId(),
             Event.HardwareType.CLOUD,
             RHEL_FOR_X86_ELS_PAYG.productId(),
             RHEL_FOR_X86_ELS_PAYG.productTag());
@@ -130,7 +137,7 @@ public class TallyInstancesReportPaginationAndSortTest extends BaseTallyComponen
     Event eventA =
         helpers.createPaygEventWithTimestamp(
             testOrgId,
-            instanceA,
+            displayName.nameA(),
             eventHour.toString(),
             UUID.randomUUID().toString(),
             metricId,
@@ -138,7 +145,7 @@ public class TallyInstancesReportPaginationAndSortTest extends BaseTallyComponen
             Event.Sla.PREMIUM,
             Event.Usage.PRODUCTION,
             Event.BillingProvider.AWS,
-            billingDisplay,
+            displayName.billingAccountId(),
             Event.HardwareType.CLOUD,
             RHEL_FOR_X86_ELS_PAYG.productId(),
             RHEL_FOR_X86_ELS_PAYG.productTag());
@@ -147,7 +154,7 @@ public class TallyInstancesReportPaginationAndSortTest extends BaseTallyComponen
     Event physical =
         helpers.createPaygEventWithTimestamp(
             testOrgId,
-            instancePhysical,
+            category.physicalInstanceId(),
             eventHour.toString(),
             UUID.randomUUID().toString(),
             metricId,
@@ -157,13 +164,13 @@ public class TallyInstancesReportPaginationAndSortTest extends BaseTallyComponen
             RHEL_FOR_X86_ELS_PAYG.productId(),
             RHEL_FOR_X86_ELS_PAYG.productTag());
     physical.setUsage(Event.Usage.PRODUCTION);
-    physical.setBillingAccountId(Optional.of(billingCategory));
+    physical.setBillingAccountId(Optional.of(category.billingAccountId()));
     physical.setBillingProvider(Event.BillingProvider.AWS);
 
     Event cloud =
         helpers.createPaygEventWithTimestamp(
             testOrgId,
-            instanceCloud,
+            category.cloudInstanceId(),
             eventHour.toString(),
             UUID.randomUUID().toString(),
             metricId,
@@ -171,16 +178,17 @@ public class TallyInstancesReportPaginationAndSortTest extends BaseTallyComponen
             Event.Sla.PREMIUM,
             Event.Usage.PRODUCTION,
             Event.BillingProvider.AWS,
-            billingCategory,
+            category.billingAccountId(),
             Event.HardwareType.CLOUD,
             RHEL_FOR_X86_ELS_PAYG.productId(),
             RHEL_FOR_X86_ELS_PAYG.productTag());
 
+    List<String> paged = pagination.instanceIds();
     List<Event> all =
         List.of(
             helpers.createPaygEventWithTimestamp(
                 testOrgId,
-                instanceIdsPage.get(0),
+                paged.get(0),
                 eventHour.toString(),
                 UUID.randomUUID().toString(),
                 metricId,
@@ -188,13 +196,13 @@ public class TallyInstancesReportPaginationAndSortTest extends BaseTallyComponen
                 Event.Sla.PREMIUM,
                 Event.Usage.PRODUCTION,
                 Event.BillingProvider.AWS,
-                billingPage,
+                pagination.billingAccountId(),
                 Event.HardwareType.CLOUD,
                 RHEL_FOR_X86_ELS_PAYG.productId(),
                 RHEL_FOR_X86_ELS_PAYG.productTag()),
             helpers.createPaygEventWithTimestamp(
                 testOrgId,
-                instanceIdsPage.get(1),
+                paged.get(1),
                 eventHour.toString(),
                 UUID.randomUUID().toString(),
                 metricId,
@@ -202,13 +210,13 @@ public class TallyInstancesReportPaginationAndSortTest extends BaseTallyComponen
                 Event.Sla.PREMIUM,
                 Event.Usage.PRODUCTION,
                 Event.BillingProvider.AWS,
-                billingPage,
+                pagination.billingAccountId(),
                 Event.HardwareType.CLOUD,
                 RHEL_FOR_X86_ELS_PAYG.productId(),
                 RHEL_FOR_X86_ELS_PAYG.productTag()),
             helpers.createPaygEventWithTimestamp(
                 testOrgId,
-                instanceIdsPage.get(2),
+                paged.get(2),
                 eventHour.toString(),
                 UUID.randomUUID().toString(),
                 metricId,
@@ -216,35 +224,35 @@ public class TallyInstancesReportPaginationAndSortTest extends BaseTallyComponen
                 Event.Sla.PREMIUM,
                 Event.Usage.PRODUCTION,
                 Event.BillingProvider.AWS,
-                billingPage,
+                pagination.billingAccountId(),
                 Event.HardwareType.CLOUD,
                 RHEL_FOR_X86_ELS_PAYG.productId(),
                 RHEL_FOR_X86_ELS_PAYG.productTag()),
             helpers.createPaygEventWithTimestamp(
                 testOrgId,
-                instanceEarlier,
-                tEarly.toString(),
+                lastSeen.earlyInstanceId(),
+                lastSeenTEarly.toString(),
                 UUID.randomUUID().toString(),
                 metricId,
                 1.0f,
                 Event.Sla.PREMIUM,
                 Event.Usage.PRODUCTION,
                 Event.BillingProvider.AWS,
-                billingLastSeen,
+                lastSeen.billingAccountId(),
                 Event.HardwareType.CLOUD,
                 RHEL_FOR_X86_ELS_PAYG.productId(),
                 RHEL_FOR_X86_ELS_PAYG.productTag()),
             helpers.createPaygEventWithTimestamp(
                 testOrgId,
-                instanceLater,
-                tLate.toString(),
+                lastSeen.laterInstanceId(),
+                lastSeenTLate.toString(),
                 UUID.randomUUID().toString(),
                 metricId,
                 1.0f,
                 Event.Sla.PREMIUM,
                 Event.Usage.PRODUCTION,
                 Event.BillingProvider.AWS,
-                billingLastSeen,
+                lastSeen.billingAccountId(),
                 Event.HardwareType.CLOUD,
                 RHEL_FOR_X86_ELS_PAYG.productId(),
                 RHEL_FOR_X86_ELS_PAYG.productTag()),
@@ -252,7 +260,7 @@ public class TallyInstancesReportPaginationAndSortTest extends BaseTallyComponen
             eventA,
             helpers.createPaygEventWithTimestamp(
                 testOrgId,
-                instanceSmall,
+                metric.smallMeterInstanceId(),
                 eventHour.toString(),
                 UUID.randomUUID().toString(),
                 metricId,
@@ -260,13 +268,13 @@ public class TallyInstancesReportPaginationAndSortTest extends BaseTallyComponen
                 Event.Sla.PREMIUM,
                 Event.Usage.PRODUCTION,
                 Event.BillingProvider.AWS,
-                billingMetric,
+                metric.billingAccountId(),
                 Event.HardwareType.CLOUD,
                 RHEL_FOR_X86_ELS_PAYG.productId(),
                 RHEL_FOR_X86_ELS_PAYG.productTag()),
             helpers.createPaygEventWithTimestamp(
                 testOrgId,
-                instanceLarge,
+                metric.largeMeterInstanceId(),
                 eventHour.toString(),
                 UUID.randomUUID().toString(),
                 metricId,
@@ -274,7 +282,7 @@ public class TallyInstancesReportPaginationAndSortTest extends BaseTallyComponen
                 Event.Sla.PREMIUM,
                 Event.Usage.PRODUCTION,
                 Event.BillingProvider.AWS,
-                billingMetric,
+                metric.billingAccountId(),
                 Event.HardwareType.CLOUD,
                 RHEL_FOR_X86_ELS_PAYG.productId(),
                 RHEL_FOR_X86_ELS_PAYG.productTag()),
@@ -286,7 +294,7 @@ public class TallyInstancesReportPaginationAndSortTest extends BaseTallyComponen
         kafkaBridge,
         testOrgId,
         () -> {
-          Map<String, Object> p = Map.of("billing_account_id", billingPage);
+          Map<String, Object> p = Map.of("billing_account_id", pagination.billingAccountId());
           InstanceResponse r =
               service.getInstancesByProduct(
                   testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfMonth, start, p);
@@ -301,7 +309,7 @@ public class TallyInstancesReportPaginationAndSortTest extends BaseTallyComponen
     Map<String, Object> page0 = new HashMap<>();
     page0.put("limit", 2);
     page0.put("offset", 0);
-    page0.put("billing_account_id", billingPage);
+    page0.put("billing_account_id", pagination.billingAccountId());
     InstanceResponse firstPage =
         service.getInstancesByProduct(
             testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfMonth, start, page0);
@@ -313,7 +321,7 @@ public class TallyInstancesReportPaginationAndSortTest extends BaseTallyComponen
     Map<String, Object> page1 = new HashMap<>();
     page1.put("limit", 2);
     page1.put("offset", 2);
-    page1.put("billing_account_id", billingPage);
+    page1.put("billing_account_id", pagination.billingAccountId());
     InstanceResponse secondPage =
         service.getInstancesByProduct(
             testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfMonth, start, page1);
@@ -332,7 +340,7 @@ public class TallyInstancesReportPaginationAndSortTest extends BaseTallyComponen
             : secondPage.getData().stream()
                 .map(InstanceData::getInstanceId)
                 .collect(Collectors.toSet()));
-    for (String id : instanceIdsPage) {
+    for (String id : pagination.instanceIds()) {
       assertTrue(union.contains(id));
     }
   }
@@ -346,13 +354,13 @@ public class TallyInstancesReportPaginationAndSortTest extends BaseTallyComponen
             RHEL_FOR_X86_ELS_PAYG.productTag(),
             firstOfMonth,
             start,
-            Map.of("billing_account_id", billingPage));
+            Map.of("billing_account_id", pagination.billingAccountId()));
     assertNull(withoutPagination.getLinks());
 
     Map<String, Object> withLimit = new HashMap<>();
     withLimit.put("limit", 2);
     withLimit.put("offset", 0);
-    withLimit.put("billing_account_id", billingPage);
+    withLimit.put("billing_account_id", pagination.billingAccountId());
     InstanceResponse withPagination =
         service.getInstancesByProduct(
             testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfMonth, start, withLimit);
@@ -366,76 +374,76 @@ public class TallyInstancesReportPaginationAndSortTest extends BaseTallyComponen
   @TestPlanName("tally-instances-sorting-TC003")
   public void shouldReturnInstancesReportWithSortByLastSeen() {
     Map<String, Object> asc = new HashMap<>();
-    asc.put("billing_account_id", billingLastSeen);
+    asc.put("billing_account_id", lastSeen.billingAccountId());
     asc.put("sort", "last_seen");
     asc.put("dir", SortDirection.ASC);
     InstanceResponse ascResp =
         service.getInstancesByProduct(
             testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfMonth, start, asc);
     assertEquals(2, ascResp.getData().size());
-    assertEquals(instanceEarlier, ascResp.getData().get(0).getInstanceId());
+    assertEquals(lastSeen.earlyInstanceId(), ascResp.getData().get(0).getInstanceId());
 
     Map<String, Object> desc = new HashMap<>();
-    desc.put("billing_account_id", billingLastSeen);
+    desc.put("billing_account_id", lastSeen.billingAccountId());
     desc.put("sort", "last_seen");
     desc.put("dir", SortDirection.DESC);
     InstanceResponse descResp =
         service.getInstancesByProduct(
             testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfMonth, start, desc);
-    assertEquals(instanceLater, descResp.getData().get(0).getInstanceId());
+    assertEquals(lastSeen.laterInstanceId(), descResp.getData().get(0).getInstanceId());
   }
 
   @Test
   @TestPlanName("tally-instances-sorting-TC004")
   public void shouldReturnInstancesReportWithSortByDisplayName() {
     Map<String, Object> asc = new HashMap<>();
-    asc.put("billing_account_id", billingDisplay);
+    asc.put("billing_account_id", displayName.billingAccountId());
     asc.put("sort", "display_name");
     asc.put("dir", SortDirection.ASC);
     InstanceResponse ascResp =
         service.getInstancesByProduct(
             testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfMonth, start, asc);
     assertEquals(2, ascResp.getData().size());
-    assertEquals(instanceA, ascResp.getData().get(0).getInstanceId());
+    assertEquals(displayName.nameA(), ascResp.getData().get(0).getInstanceId());
 
     Map<String, Object> desc = new HashMap<>();
-    desc.put("billing_account_id", billingDisplay);
+    desc.put("billing_account_id", displayName.billingAccountId());
     desc.put("sort", "display_name");
     desc.put("dir", SortDirection.DESC);
     InstanceResponse descResp =
         service.getInstancesByProduct(
             testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfMonth, start, desc);
-    assertEquals(instanceZ, descResp.getData().get(0).getInstanceId());
+    assertEquals(displayName.nameZ(), descResp.getData().get(0).getInstanceId());
   }
 
   @Test
   @TestPlanName("tally-instances-sorting-TC005")
   public void shouldReturnInstancesReportWithSortByMetricId() {
     Map<String, Object> asc = new HashMap<>();
-    asc.put("billing_account_id", billingMetric);
+    asc.put("billing_account_id", metric.billingAccountId());
     asc.put("sort", metricId);
     asc.put("dir", SortDirection.ASC);
     InstanceResponse ascResp =
         service.getInstancesByProduct(
             testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfMonth, start, asc);
     assertEquals(2, ascResp.getData().size());
-    assertEquals(instanceSmall, ascResp.getData().get(0).getInstanceId());
+    assertEquals(metric.smallMeterInstanceId(), ascResp.getData().get(0).getInstanceId());
 
     Map<String, Object> desc = new HashMap<>();
-    desc.put("billing_account_id", billingMetric);
+    desc.put("billing_account_id", metric.billingAccountId());
     desc.put("sort", metricId);
     desc.put("dir", SortDirection.DESC);
     InstanceResponse descResp =
         service.getInstancesByProduct(
             testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfMonth, start, desc);
-    assertEquals(instanceLarge, descResp.getData().get(0).getInstanceId());
+    assertEquals(metric.largeMeterInstanceId(), descResp.getData().get(0).getInstanceId());
   }
 
   @Test
   @TestPlanName("tally-instances-sorting-TC006")
   public void shouldReturnInstancesReportWithSortByCategory() {
     Map<String, Object> asc = new HashMap<>();
-    asc.put("billing_account_id", billingCategory);
+    asc.put("billing_account_id", category.billingAccountId());
     asc.put("sort", "category");
     asc.put("dir", SortDirection.ASC);
     InstanceResponse ascResp =
@@ -446,7 +454,7 @@ public class TallyInstancesReportPaginationAndSortTest extends BaseTallyComponen
         ascResp.getData().stream().map(InstanceData::getCategory).collect(Collectors.toList());
 
     Map<String, Object> desc = new HashMap<>();
-    desc.put("billing_account_id", billingCategory);
+    desc.put("billing_account_id", category.billingAccountId());
     desc.put("sort", "category");
     desc.put("dir", SortDirection.DESC);
     InstanceResponse descResp =

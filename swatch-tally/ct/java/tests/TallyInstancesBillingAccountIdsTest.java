@@ -44,16 +44,23 @@ import utils.TallyDbHostSeeder;
 
 public class TallyInstancesBillingAccountIdsTest extends BaseTallyComponentTest {
 
+  /** Two distinct rows after tally (distinguish-by-billing). */
+  private record DistinctBillings(String first, String second) {}
+
+  /** Three products of interest for the three-ID assertion. */
+  private record ThreeBillings(String a, String b, String c) {}
+
+  /** One billing_id shared by two different instance events. */
+  private record SharedByTwoEvents(String id) {}
+
+  private record MixedProviderBillings(String aws, String azure) {}
+
   private static String testOrgId;
 
-  private static String billingTc02a;
-  private static String billingTc02b;
-  private static String billingTc19a;
-  private static String billingTc19b;
-  private static String billingTc19c;
-  private static String billingTc20Shared;
-  private static String billingTc21Aws;
-  private static String billingTc21Azure;
+  private static DistinctBillings distinct;
+  private static ThreeBillings three;
+  private static SharedByTwoEvents shared;
+  private static MixedProviderBillings providers;
 
   @BeforeAll
   static void setupEvents() {
@@ -63,16 +70,17 @@ public class TallyInstancesBillingAccountIdsTest extends BaseTallyComponentTest 
     final OffsetDateTime eventHour =
         OffsetDateTime.now(ZoneOffset.UTC).minusHours(2).truncatedTo(ChronoUnit.HOURS);
 
-    billingTc02a = UUID.randomUUID().toString();
-    billingTc02b = UUID.randomUUID().toString();
-    billingTc19a = UUID.randomUUID().toString();
-    billingTc19b = UUID.randomUUID().toString();
-    billingTc19c = UUID.randomUUID().toString();
-    billingTc20Shared = UUID.randomUUID().toString();
-    billingTc21Aws = UUID.randomUUID().toString();
-    billingTc21Azure = UUID.randomUUID().toString();
+    distinct = new DistinctBillings(UUID.randomUUID().toString(), UUID.randomUUID().toString());
+    three =
+        new ThreeBillings(
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString());
+    shared = new SharedByTwoEvents(UUID.randomUUID().toString());
+    providers =
+        new MixedProviderBillings(UUID.randomUUID().toString(), UUID.randomUUID().toString());
 
-    Event eventTc21Azure =
+    Event eventAzure =
         helpers.createPaygEventWithTimestamp(
             testOrgId,
             UUID.randomUUID().toString(),
@@ -83,11 +91,11 @@ public class TallyInstancesBillingAccountIdsTest extends BaseTallyComponentTest 
             Event.Sla.PREMIUM,
             Event.Usage.PRODUCTION,
             Event.BillingProvider.AZURE,
-            billingTc21Azure,
+            providers.azure(),
             Event.HardwareType.CLOUD,
             RHEL_FOR_X86_ELS_PAYG.productId(),
             RHEL_FOR_X86_ELS_PAYG.productTag());
-    eventTc21Azure.setCloudProvider(Event.CloudProvider.AZURE);
+    eventAzure.setCloudProvider(Event.CloudProvider.AZURE);
 
     Event[] events =
         new Event[] {
@@ -101,7 +109,7 @@ public class TallyInstancesBillingAccountIdsTest extends BaseTallyComponentTest 
               Event.Sla.PREMIUM,
               Event.Usage.PRODUCTION,
               Event.BillingProvider.AWS,
-              billingTc02a,
+              distinct.first(),
               Event.HardwareType.CLOUD,
               RHEL_FOR_X86_ELS_PAYG.productId(),
               RHEL_FOR_X86_ELS_PAYG.productTag()),
@@ -115,7 +123,7 @@ public class TallyInstancesBillingAccountIdsTest extends BaseTallyComponentTest 
               Event.Sla.PREMIUM,
               Event.Usage.PRODUCTION,
               Event.BillingProvider.AWS,
-              billingTc02b,
+              distinct.second(),
               Event.HardwareType.CLOUD,
               RHEL_FOR_X86_ELS_PAYG.productId(),
               RHEL_FOR_X86_ELS_PAYG.productTag()),
@@ -129,7 +137,7 @@ public class TallyInstancesBillingAccountIdsTest extends BaseTallyComponentTest 
               Event.Sla.PREMIUM,
               Event.Usage.PRODUCTION,
               Event.BillingProvider.AWS,
-              billingTc19a,
+              three.a(),
               Event.HardwareType.CLOUD,
               RHEL_FOR_X86_ELS_PAYG.productId(),
               RHEL_FOR_X86_ELS_PAYG.productTag()),
@@ -143,7 +151,7 @@ public class TallyInstancesBillingAccountIdsTest extends BaseTallyComponentTest 
               Event.Sla.PREMIUM,
               Event.Usage.PRODUCTION,
               Event.BillingProvider.AWS,
-              billingTc19b,
+              three.b(),
               Event.HardwareType.CLOUD,
               RHEL_FOR_X86_ELS_PAYG.productId(),
               RHEL_FOR_X86_ELS_PAYG.productTag()),
@@ -157,7 +165,7 @@ public class TallyInstancesBillingAccountIdsTest extends BaseTallyComponentTest 
               Event.Sla.PREMIUM,
               Event.Usage.PRODUCTION,
               Event.BillingProvider.AWS,
-              billingTc19c,
+              three.c(),
               Event.HardwareType.CLOUD,
               RHEL_FOR_X86_ELS_PAYG.productId(),
               RHEL_FOR_X86_ELS_PAYG.productTag()),
@@ -171,7 +179,7 @@ public class TallyInstancesBillingAccountIdsTest extends BaseTallyComponentTest 
               Event.Sla.PREMIUM,
               Event.Usage.PRODUCTION,
               Event.BillingProvider.AWS,
-              billingTc20Shared,
+              shared.id(),
               Event.HardwareType.CLOUD,
               RHEL_FOR_X86_ELS_PAYG.productId(),
               RHEL_FOR_X86_ELS_PAYG.productTag()),
@@ -185,7 +193,7 @@ public class TallyInstancesBillingAccountIdsTest extends BaseTallyComponentTest 
               Event.Sla.PREMIUM,
               Event.Usage.PRODUCTION,
               Event.BillingProvider.AWS,
-              billingTc20Shared,
+              shared.id(),
               Event.HardwareType.CLOUD,
               RHEL_FOR_X86_ELS_PAYG.productId(),
               RHEL_FOR_X86_ELS_PAYG.productTag()),
@@ -199,11 +207,11 @@ public class TallyInstancesBillingAccountIdsTest extends BaseTallyComponentTest 
               Event.Sla.PREMIUM,
               Event.Usage.PRODUCTION,
               Event.BillingProvider.AWS,
-              billingTc21Aws,
+              providers.aws(),
               Event.HardwareType.CLOUD,
               RHEL_FOR_X86_ELS_PAYG.productId(),
               RHEL_FOR_X86_ELS_PAYG.productTag()),
-          eventTc21Azure,
+          eventAzure,
         };
 
     helpers.ingestPaygEventsAndSyncOnceForOrg(
@@ -268,15 +276,15 @@ public class TallyInstancesBillingAccountIdsTest extends BaseTallyComponentTest 
     List<String> billingAccountIds =
         ids.stream().map(item -> item.get("billing_account_id")).collect(Collectors.toList());
     assertTrue(
-        billingAccountIds.contains(billingTc02a),
-        "Response should contain billing account ID: " + billingTc02a);
+        billingAccountIds.contains(distinct.first()),
+        "Response should contain billing account ID: " + distinct.first());
     assertTrue(
-        billingAccountIds.contains(billingTc02b),
-        "Response should contain billing account ID: " + billingTc02b);
+        billingAccountIds.contains(distinct.second()),
+        "Response should contain billing account ID: " + distinct.second());
 
     for (Map<String, String> entry : ids) {
-      if (billingTc02a.equals(entry.get("billing_account_id"))
-          || billingTc02b.equals(entry.get("billing_account_id"))) {
+      if (distinct.first().equals(entry.get("billing_account_id"))
+          || distinct.second().equals(entry.get("billing_account_id"))) {
         assertEquals(testOrgId, entry.get("org_id"), "Entry should have correct org_id");
         assertEquals(RHEL_FOR_X86_ELS_PAYG.productTag(), entry.get("product_tag"));
         assertEquals("aws", entry.get("billing_provider"));
@@ -292,9 +300,9 @@ public class TallyInstancesBillingAccountIdsTest extends BaseTallyComponentTest 
     assertNotNull(ids);
     List<String> accounts =
         ids.stream().map(m -> m.get("billing_account_id")).collect(Collectors.toList());
-    assertTrue(accounts.contains(billingTc19a));
-    assertTrue(accounts.contains(billingTc19b));
-    assertTrue(accounts.contains(billingTc19c));
+    assertTrue(accounts.contains(three.a()));
+    assertTrue(accounts.contains(three.b()));
+    assertTrue(accounts.contains(three.c()));
   }
 
   @Test
@@ -304,7 +312,7 @@ public class TallyInstancesBillingAccountIdsTest extends BaseTallyComponentTest 
     List<Map<String, String>> ids = response.jsonPath().getList("ids");
     assertNotNull(ids);
     long rowsForShared =
-        ids.stream().filter(m -> billingTc20Shared.equals(m.get("billing_account_id"))).count();
+        ids.stream().filter(m -> shared.id().equals(m.get("billing_account_id"))).count();
     assertEquals(
         1,
         rowsForShared,
@@ -317,9 +325,9 @@ public class TallyInstancesBillingAccountIdsTest extends BaseTallyComponentTest 
     Response response = service.getBillingAccountIds(testOrgId, new HashMap<>());
     List<Map<String, String>> ids = response.jsonPath().getList("ids");
     assertNotNull(ids);
-    List<String> providers =
+    List<String> prov =
         ids.stream().map(m -> m.get("billing_provider")).sorted().collect(Collectors.toList());
-    assertTrue(providers.contains("aws"));
-    assertTrue(providers.contains("azure"));
+    assertTrue(prov.contains("aws"));
+    assertTrue(prov.contains("azure"));
   }
 }

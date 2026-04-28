@@ -45,13 +45,70 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.apache.http.HttpStatus;
 import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest {
+
+  private record PriorMonthInstance(String instanceId, String billingAccountId, String eventId) {}
+
+  private record SlaFilterRows(
+      String billingAccountId,
+      String premiumInstanceId,
+      String standardInstanceId,
+      String premiumEventId,
+      String standardEventId) {}
+
+  private record UsageFilterRows(
+      String billingAccountId,
+      String productionInstanceId,
+      String developmentInstanceId,
+      String productionEventId,
+      String developmentEventId) {}
+
+  private record CloudProviderPair(
+      String awsInstanceId,
+      String azureInstanceId,
+      String awsEventId,
+      String azureEventId,
+      String awsBillingAccountId,
+      String azureBillingAccountId) {}
+
+  private record BillingExclusion(
+      String matchingBillingAccountId,
+      String decoyBillingAccountId,
+      String instanceId,
+      String eventId) {}
+
+  private record AllOptionalFilters(String billingAccountId, String instanceId, String eventId) {}
+
+  private record PartialSlaUsagePair(
+      String firstInstanceId,
+      String secondInstanceId,
+      String firstBillingAccountId,
+      String secondBillingAccountId) {}
+
+  private record NarrowedBillingPair(
+      String matchInstanceId,
+      String siblingInstanceId,
+      String matchBillingAccountId,
+      String siblingBillingAccountId) {}
+
+  private record UnfilteredRowTriple(
+      String aInstanceId,
+      String bInstanceId,
+      String cInstanceId,
+      String aBilling,
+      String bBilling,
+      String cBilling) {}
+
+  private record CrossMonthPair(
+      String previousMonthInstanceId,
+      String currentMonthInstanceId,
+      String previousMonthBilling,
+      String currentMonthBilling) {}
 
   private static String testOrgId;
   private static OffsetDateTime start;
@@ -60,59 +117,16 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
   private static OffsetDateTime eventHour;
   private static String metricId;
 
-  private static String billingTc003;
-  private static String instanceTc003;
-  private static String eventIdTc003;
-
-  private static String instanceTc004Premium;
-  private static String instanceTc004Standard;
-  private static String eventIdTc004a;
-  private static String eventIdTc004b;
-  private static String billingTc004;
-
-  private static String instanceTc005Prod;
-  private static String instanceTc005Dev;
-  private static String eventIdTc005a;
-  private static String eventIdTc005b;
-  private static String billingTc005;
-
-  private static String instanceTc006Aws;
-  private static String instanceTc006Azure;
-  private static String eventIdTc006a;
-  private static String eventIdTc006b;
-  private static String billingTc006Aws;
-  private static String billingTc006Azure;
-
-  private static String billingTc007;
-  private static String wrongBillingTc007;
-  private static String instanceTc007;
-  private static String eventIdTc007;
-
-  private static String billingTc008;
-  private static String instanceTc008;
-  private static String eventIdTc008;
-
-  private static String instanceTc009a;
-  private static String instanceTc009b;
-  private static String billingTc009a;
-  private static String billingTc009b;
-
-  private static String instanceTc010a;
-  private static String instanceTc010b;
-  private static String billingTc010a;
-  private static String billingTc010b;
-
-  private static String instanceTc011a;
-  private static String instanceTc011b;
-  private static String instanceTc011c;
-  private static String billingTc011a;
-  private static String billingTc011b;
-  private static String billingTc011c;
-
-  private static String instanceTc012Prev;
-  private static String instanceTc012Curr;
-  private static String billingTc012Prev;
-  private static String billingTc012Curr;
+  private static PriorMonthInstance priorMonth;
+  private static SlaFilterRows sla;
+  private static UsageFilterRows usage;
+  private static CloudProviderPair cloudProviders;
+  private static BillingExclusion billingExclusion;
+  private static AllOptionalFilters allOptional;
+  private static PartialSlaUsagePair partialSlaUsage;
+  private static NarrowedBillingPair narrowedBilling;
+  private static UnfilteredRowTriple unfilteredTriple;
+  private static CrossMonthPair crossMonth;
 
   private static final int EXPECTED_CURRENT_MONTH_INSTANCE_ROWS = 16;
 
@@ -126,79 +140,99 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
     eventHour = start.minusHours(2).truncatedTo(ChronoUnit.HOURS);
     metricId = RHEL_FOR_X86_ELS_PAYG.metricIds().get(0);
 
-    billingTc003 = UUID.randomUUID().toString();
-    instanceTc003 = UUID.randomUUID().toString();
-    eventIdTc003 = UUID.randomUUID().toString();
+    priorMonth =
+        new PriorMonthInstance(
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString());
 
-    instanceTc004Premium = UUID.randomUUID().toString();
-    instanceTc004Standard = UUID.randomUUID().toString();
-    eventIdTc004a = UUID.randomUUID().toString();
-    eventIdTc004b = UUID.randomUUID().toString();
-    billingTc004 = UUID.randomUUID().toString();
+    sla =
+        new SlaFilterRows(
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString());
 
-    instanceTc005Prod = UUID.randomUUID().toString();
-    instanceTc005Dev = UUID.randomUUID().toString();
-    eventIdTc005a = UUID.randomUUID().toString();
-    eventIdTc005b = UUID.randomUUID().toString();
-    billingTc005 = UUID.randomUUID().toString();
+    usage =
+        new UsageFilterRows(
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString());
 
-    instanceTc006Aws = UUID.randomUUID().toString();
-    instanceTc006Azure = UUID.randomUUID().toString();
-    eventIdTc006a = UUID.randomUUID().toString();
-    eventIdTc006b = UUID.randomUUID().toString();
-    billingTc006Aws = UUID.randomUUID().toString();
-    billingTc006Azure = UUID.randomUUID().toString();
+    cloudProviders =
+        new CloudProviderPair(
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString());
 
-    billingTc007 = UUID.randomUUID().toString();
-    wrongBillingTc007 = UUID.randomUUID().toString();
-    instanceTc007 = UUID.randomUUID().toString();
-    eventIdTc007 = UUID.randomUUID().toString();
+    billingExclusion =
+        new BillingExclusion(
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString());
 
-    billingTc008 = UUID.randomUUID().toString();
-    instanceTc008 = UUID.randomUUID().toString();
-    eventIdTc008 = UUID.randomUUID().toString();
+    allOptional =
+        new AllOptionalFilters(
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString());
 
-    instanceTc009a = UUID.randomUUID().toString();
-    instanceTc009b = UUID.randomUUID().toString();
-    billingTc009a = UUID.randomUUID().toString();
-    billingTc009b = UUID.randomUUID().toString();
+    partialSlaUsage =
+        new PartialSlaUsagePair(
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString());
 
-    instanceTc010a = UUID.randomUUID().toString();
-    instanceTc010b = UUID.randomUUID().toString();
-    billingTc010a = UUID.randomUUID().toString();
-    billingTc010b = UUID.randomUUID().toString();
+    narrowedBilling =
+        new NarrowedBillingPair(
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString());
 
-    instanceTc011a = UUID.randomUUID().toString();
-    instanceTc011b = UUID.randomUUID().toString();
-    instanceTc011c = UUID.randomUUID().toString();
-    billingTc011a = UUID.randomUUID().toString();
-    billingTc011b = UUID.randomUUID().toString();
-    billingTc011c = UUID.randomUUID().toString();
+    unfilteredTriple =
+        new UnfilteredRowTriple(
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString());
 
-    instanceTc012Prev = UUID.randomUUID().toString();
-    instanceTc012Curr = UUID.randomUUID().toString();
-    billingTc012Prev = UUID.randomUUID().toString();
-    billingTc012Curr = UUID.randomUUID().toString();
+    crossMonth =
+        new CrossMonthPair(
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString(),
+            UUID.randomUUID().toString());
 
-    OffsetDateTime tc003EventTime = firstOfPreviousMonth.plusHours(1);
-    OffsetDateTime tc007EventTime = start.minusHours(1);
-    OffsetDateTime tc008EventTime = start.minusHours(1);
-    OffsetDateTime tc012PrevTime = firstOfPreviousMonth.plusHours(3);
-    OffsetDateTime tc012CurrTime = start.minusHours(1);
+    OffsetDateTime priorMonthEventTime = firstOfPreviousMonth.plusHours(1);
+    OffsetDateTime billingExclusionEventTime = start.minusHours(1);
+    OffsetDateTime allOptionalEventTime = start.minusHours(1);
+    OffsetDateTime previousMonthForCross = firstOfPreviousMonth.plusHours(3);
+    OffsetDateTime currentMonthForCross = start.minusHours(1);
 
     List<Event> events = new ArrayList<>();
     events.add(
         helpers.createPaygEventWithTimestamp(
             testOrgId,
-            instanceTc003,
-            tc003EventTime.toString(),
-            eventIdTc003,
+            priorMonth.instanceId(),
+            priorMonthEventTime.toString(),
+            priorMonth.eventId(),
             metricId,
             1.0f,
             Event.Sla.PREMIUM,
             Event.Usage.PRODUCTION,
             Event.BillingProvider.AWS,
-            billingTc003,
+            priorMonth.billingAccountId(),
             Event.HardwareType.CLOUD,
             RHEL_FOR_X86_ELS_PAYG.productId(),
             RHEL_FOR_X86_ELS_PAYG.productTag()));
@@ -206,30 +240,30 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
     events.add(
         helpers.createPaygEventWithTimestamp(
             testOrgId,
-            instanceTc004Premium,
+            sla.premiumInstanceId(),
             eventHour.toString(),
-            eventIdTc004a,
+            sla.premiumEventId(),
             metricId,
             1.0f,
             Event.Sla.PREMIUM,
             Event.Usage.PRODUCTION,
             Event.BillingProvider.AWS,
-            billingTc004,
+            sla.billingAccountId(),
             Event.HardwareType.CLOUD,
             RHEL_FOR_X86_ELS_PAYG.productId(),
             RHEL_FOR_X86_ELS_PAYG.productTag()));
     events.add(
         helpers.createPaygEventWithTimestamp(
             testOrgId,
-            instanceTc004Standard,
+            sla.standardInstanceId(),
             eventHour.toString(),
-            eventIdTc004b,
+            sla.standardEventId(),
             metricId,
             1.0f,
             Event.Sla.STANDARD,
             Event.Usage.PRODUCTION,
             Event.BillingProvider.AWS,
-            billingTc004,
+            sla.billingAccountId(),
             Event.HardwareType.CLOUD,
             RHEL_FOR_X86_ELS_PAYG.productId(),
             RHEL_FOR_X86_ELS_PAYG.productTag()));
@@ -237,30 +271,30 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
     events.add(
         helpers.createPaygEventWithTimestamp(
             testOrgId,
-            instanceTc005Prod,
+            usage.productionInstanceId(),
             eventHour.toString(),
-            eventIdTc005a,
+            usage.productionEventId(),
             metricId,
             1.0f,
             Event.Sla.PREMIUM,
             Event.Usage.PRODUCTION,
             Event.BillingProvider.AWS,
-            billingTc005,
+            usage.billingAccountId(),
             Event.HardwareType.CLOUD,
             RHEL_FOR_X86_ELS_PAYG.productId(),
             RHEL_FOR_X86_ELS_PAYG.productTag()));
     events.add(
         helpers.createPaygEventWithTimestamp(
             testOrgId,
-            instanceTc005Dev,
+            usage.developmentInstanceId(),
             eventHour.toString(),
-            eventIdTc005b,
+            usage.developmentEventId(),
             metricId,
             1.0f,
             Event.Sla.PREMIUM,
             Event.Usage.DEVELOPMENT_TEST,
             Event.BillingProvider.AWS,
-            billingTc005,
+            usage.billingAccountId(),
             Event.HardwareType.CLOUD,
             RHEL_FOR_X86_ELS_PAYG.productId(),
             RHEL_FOR_X86_ELS_PAYG.productTag()));
@@ -268,48 +302,48 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
     events.add(
         helpers.createPaygEventWithTimestamp(
             testOrgId,
-            instanceTc006Aws,
+            cloudProviders.awsInstanceId(),
             eventHour.toString(),
-            eventIdTc006a,
+            cloudProviders.awsEventId(),
             metricId,
             1.0f,
             Event.Sla.PREMIUM,
             Event.Usage.PRODUCTION,
             Event.BillingProvider.AWS,
-            billingTc006Aws,
+            cloudProviders.awsBillingAccountId(),
             Event.HardwareType.CLOUD,
             RHEL_FOR_X86_ELS_PAYG.productId(),
             RHEL_FOR_X86_ELS_PAYG.productTag()));
-    Event eventTc006Azure =
+    Event eventAzure =
         helpers.createPaygEventWithTimestamp(
             testOrgId,
-            instanceTc006Azure,
+            cloudProviders.azureInstanceId(),
             eventHour.toString(),
-            eventIdTc006b,
+            cloudProviders.azureEventId(),
             metricId,
             1.0f,
             Event.Sla.PREMIUM,
             Event.Usage.PRODUCTION,
             Event.BillingProvider.AZURE,
-            billingTc006Azure,
+            cloudProviders.azureBillingAccountId(),
             Event.HardwareType.CLOUD,
             RHEL_FOR_X86_ELS_PAYG.productId(),
             RHEL_FOR_X86_ELS_PAYG.productTag());
-    eventTc006Azure.setCloudProvider(Event.CloudProvider.AZURE);
-    events.add(eventTc006Azure);
+    eventAzure.setCloudProvider(Event.CloudProvider.AZURE);
+    events.add(eventAzure);
 
     events.add(
         helpers.createPaygEventWithTimestamp(
             testOrgId,
-            instanceTc007,
-            tc007EventTime.toString(),
-            eventIdTc007,
+            billingExclusion.instanceId(),
+            billingExclusionEventTime.toString(),
+            billingExclusion.eventId(),
             metricId,
             1.0f,
             Event.Sla.PREMIUM,
             Event.Usage.PRODUCTION,
             Event.BillingProvider.AWS,
-            billingTc007,
+            billingExclusion.matchingBillingAccountId(),
             Event.HardwareType.CLOUD,
             RHEL_FOR_X86_ELS_PAYG.productId(),
             RHEL_FOR_X86_ELS_PAYG.productTag()));
@@ -317,15 +351,15 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
     events.add(
         helpers.createPaygEventWithTimestamp(
             testOrgId,
-            instanceTc008,
-            tc008EventTime.toString(),
-            eventIdTc008,
+            allOptional.instanceId(),
+            allOptionalEventTime.toString(),
+            allOptional.eventId(),
             metricId,
             1.0f,
             Event.Sla.PREMIUM,
             Event.Usage.PRODUCTION,
             Event.BillingProvider.AWS,
-            billingTc008,
+            allOptional.billingAccountId(),
             Event.HardwareType.CLOUD,
             RHEL_FOR_X86_ELS_PAYG.productId(),
             RHEL_FOR_X86_ELS_PAYG.productTag()));
@@ -333,7 +367,7 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
     events.add(
         helpers.createPaygEventWithTimestamp(
             testOrgId,
-            instanceTc009a,
+            partialSlaUsage.firstInstanceId(),
             eventHour.toString(),
             UUID.randomUUID().toString(),
             metricId,
@@ -341,14 +375,14 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
             Event.Sla.PREMIUM,
             Event.Usage.PRODUCTION,
             Event.BillingProvider.AWS,
-            billingTc009a,
+            partialSlaUsage.firstBillingAccountId(),
             Event.HardwareType.CLOUD,
             RHEL_FOR_X86_ELS_PAYG.productId(),
             RHEL_FOR_X86_ELS_PAYG.productTag()));
     events.add(
         helpers.createPaygEventWithTimestamp(
             testOrgId,
-            instanceTc009b,
+            partialSlaUsage.secondInstanceId(),
             eventHour.toString(),
             UUID.randomUUID().toString(),
             metricId,
@@ -356,7 +390,7 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
             Event.Sla.PREMIUM,
             Event.Usage.PRODUCTION,
             Event.BillingProvider.AWS,
-            billingTc009b,
+            partialSlaUsage.secondBillingAccountId(),
             Event.HardwareType.CLOUD,
             RHEL_FOR_X86_ELS_PAYG.productId(),
             RHEL_FOR_X86_ELS_PAYG.productTag()));
@@ -364,7 +398,7 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
     events.add(
         helpers.createPaygEventWithTimestamp(
             testOrgId,
-            instanceTc010a,
+            narrowedBilling.matchInstanceId(),
             eventHour.toString(),
             UUID.randomUUID().toString(),
             metricId,
@@ -372,14 +406,14 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
             Event.Sla.PREMIUM,
             Event.Usage.PRODUCTION,
             Event.BillingProvider.AWS,
-            billingTc010a,
+            narrowedBilling.matchBillingAccountId(),
             Event.HardwareType.CLOUD,
             RHEL_FOR_X86_ELS_PAYG.productId(),
             RHEL_FOR_X86_ELS_PAYG.productTag()));
     events.add(
         helpers.createPaygEventWithTimestamp(
             testOrgId,
-            instanceTc010b,
+            narrowedBilling.siblingInstanceId(),
             eventHour.toString(),
             UUID.randomUUID().toString(),
             metricId,
@@ -387,60 +421,60 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
             Event.Sla.PREMIUM,
             Event.Usage.PRODUCTION,
             Event.BillingProvider.AWS,
-            billingTc010b,
+            narrowedBilling.siblingBillingAccountId(),
             Event.HardwareType.CLOUD,
             RHEL_FOR_X86_ELS_PAYG.productId(),
             RHEL_FOR_X86_ELS_PAYG.productTag()));
 
-    Stream.of(
-            new String[] {instanceTc011a, billingTc011a},
-            new String[] {instanceTc011b, billingTc011b},
-            new String[] {instanceTc011c, billingTc011c})
-        .forEach(
-            pair ->
-                events.add(
-                    helpers.createPaygEventWithTimestamp(
-                        testOrgId,
-                        pair[0],
-                        eventHour.toString(),
-                        UUID.randomUUID().toString(),
-                        metricId,
-                        1.0f,
-                        Event.Sla.PREMIUM,
-                        Event.Usage.PRODUCTION,
-                        Event.BillingProvider.AWS,
-                        pair[1],
-                        Event.HardwareType.CLOUD,
-                        RHEL_FOR_X86_ELS_PAYG.productId(),
-                        RHEL_FOR_X86_ELS_PAYG.productTag())));
+    for (String[] pair :
+        List.of(
+            new String[] {unfilteredTriple.aInstanceId(), unfilteredTriple.aBilling()},
+            new String[] {unfilteredTriple.bInstanceId(), unfilteredTriple.bBilling()},
+            new String[] {unfilteredTriple.cInstanceId(), unfilteredTriple.cBilling()})) {
+      events.add(
+          helpers.createPaygEventWithTimestamp(
+              testOrgId,
+              pair[0],
+              eventHour.toString(),
+              UUID.randomUUID().toString(),
+              metricId,
+              1.0f,
+              Event.Sla.PREMIUM,
+              Event.Usage.PRODUCTION,
+              Event.BillingProvider.AWS,
+              pair[1],
+              Event.HardwareType.CLOUD,
+              RHEL_FOR_X86_ELS_PAYG.productId(),
+              RHEL_FOR_X86_ELS_PAYG.productTag()));
+    }
 
     events.add(
         helpers.createPaygEventWithTimestamp(
             testOrgId,
-            instanceTc012Prev,
-            tc012PrevTime.toString(),
+            crossMonth.previousMonthInstanceId(),
+            previousMonthForCross.toString(),
             UUID.randomUUID().toString(),
             metricId,
             1.0f,
             Event.Sla.PREMIUM,
             Event.Usage.PRODUCTION,
             Event.BillingProvider.AWS,
-            billingTc012Prev,
+            crossMonth.previousMonthBilling(),
             Event.HardwareType.CLOUD,
             RHEL_FOR_X86_ELS_PAYG.productId(),
             RHEL_FOR_X86_ELS_PAYG.productTag()));
     events.add(
         helpers.createPaygEventWithTimestamp(
             testOrgId,
-            instanceTc012Curr,
-            tc012CurrTime.toString(),
+            crossMonth.currentMonthInstanceId(),
+            currentMonthForCross.toString(),
             UUID.randomUUID().toString(),
             metricId,
             1.0f,
             Event.Sla.PREMIUM,
             Event.Usage.PRODUCTION,
             Event.BillingProvider.AWS,
-            billingTc012Curr,
+            crossMonth.currentMonthBilling(),
             Event.HardwareType.CLOUD,
             RHEL_FOR_X86_ELS_PAYG.productId(),
             RHEL_FOR_X86_ELS_PAYG.productTag()));
@@ -461,7 +495,7 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
   @Test
   @TestPlanName("tally-instances-payg-TC001")
   public void shouldReportPaygInstancesOnlyInEventCalendarMonth() {
-    Map<String, Object> queryParams = Map.of("billing_account_id", billingTc003);
+    Map<String, Object> queryParams = Map.of("billing_account_id", priorMonth.billingAccountId());
     InstanceResponse currentMonthResponse =
         service.getInstancesByProduct(
             testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfCurrentMonth, start, queryParams);
@@ -491,7 +525,7 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
   public void shouldFilterInstancesReportBySla() {
     Map<String, Object> standardParams = new HashMap<>();
     standardParams.put("sla", ServiceLevelType.STANDARD);
-    standardParams.put("billing_account_id", billingTc004);
+    standardParams.put("billing_account_id", sla.billingAccountId());
     InstanceResponse standardOnly =
         service.getInstancesByProduct(
             testOrgId,
@@ -502,7 +536,7 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
     assertNotNull(standardOnly.getData());
     assertEquals(1, standardOnly.getData().size(), "STANDARD SLA filter should return one row");
     assertEquals(
-        instanceTc004Standard,
+        sla.standardInstanceId(),
         standardOnly.getData().get(0).getInstanceId(),
         "Row should be the STANDARD instance");
     assertEquals(1.0, sumMeteredValues(standardOnly), 0.001);
@@ -511,7 +545,7 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
 
     Map<String, Object> premiumParams = new HashMap<>();
     premiumParams.put("sla", ServiceLevelType.PREMIUM);
-    premiumParams.put("billing_account_id", billingTc004);
+    premiumParams.put("billing_account_id", sla.billingAccountId());
     InstanceResponse premiumOnly =
         service.getInstancesByProduct(
             testOrgId,
@@ -521,7 +555,7 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
             premiumParams);
     assertNotNull(premiumOnly.getData());
     assertEquals(1, premiumOnly.getData().size());
-    assertEquals(instanceTc004Premium, premiumOnly.getData().get(0).getInstanceId());
+    assertEquals(sla.premiumInstanceId(), premiumOnly.getData().get(0).getInstanceId());
     assertEquals(ServiceLevelType.PREMIUM, premiumOnly.getMeta().getServiceLevel());
   }
 
@@ -530,7 +564,7 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
   public void shouldFilterInstancesReportByUsage() {
     Map<String, Object> productionParams = new HashMap<>();
     productionParams.put("usage", UsageType.PRODUCTION);
-    productionParams.put("billing_account_id", billingTc005);
+    productionParams.put("billing_account_id", usage.billingAccountId());
     InstanceResponse productionOnly =
         service.getInstancesByProduct(
             testOrgId,
@@ -540,12 +574,12 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
             productionParams);
     assertNotNull(productionOnly.getData());
     assertEquals(1, productionOnly.getData().size());
-    assertEquals(instanceTc005Prod, productionOnly.getData().get(0).getInstanceId());
+    assertEquals(usage.productionInstanceId(), productionOnly.getData().get(0).getInstanceId());
     assertEquals(UsageType.PRODUCTION, productionOnly.getMeta().getUsage());
 
     Map<String, Object> developmentParams = new HashMap<>();
     developmentParams.put("usage", UsageType.DEVELOPMENT_TEST);
-    developmentParams.put("billing_account_id", billingTc005);
+    developmentParams.put("billing_account_id", usage.billingAccountId());
     InstanceResponse developmentOnly =
         service.getInstancesByProduct(
             testOrgId,
@@ -555,7 +589,7 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
             developmentParams);
     assertNotNull(developmentOnly.getData());
     assertEquals(1, developmentOnly.getData().size());
-    assertEquals(instanceTc005Dev, developmentOnly.getData().get(0).getInstanceId());
+    assertEquals(usage.developmentInstanceId(), developmentOnly.getData().get(0).getInstanceId());
     assertEquals(UsageType.DEVELOPMENT_TEST, developmentOnly.getMeta().getUsage());
   }
 
@@ -564,31 +598,32 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
   public void shouldFilterInstancesReportByBillingProvider() {
     Map<String, Object> azureParams = new HashMap<>();
     azureParams.put("billing_provider", BillingProviderType.AZURE);
-    azureParams.put("billing_account_id", billingTc006Azure);
+    azureParams.put("billing_account_id", cloudProviders.azureBillingAccountId());
     InstanceResponse azureOnly =
         service.getInstancesByProduct(
             testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfCurrentMonth, start, azureParams);
     assertNotNull(azureOnly.getData());
     assertEquals(1, azureOnly.getData().size());
-    assertEquals(instanceTc006Azure, azureOnly.getData().get(0).getInstanceId());
+    assertEquals(cloudProviders.azureInstanceId(), azureOnly.getData().get(0).getInstanceId());
     assertEquals(BillingProviderType.AZURE, azureOnly.getMeta().getBillingProvider());
 
     Map<String, Object> awsParams = new HashMap<>();
     awsParams.put("billing_provider", BillingProviderType.AWS);
-    awsParams.put("billing_account_id", billingTc006Aws);
+    awsParams.put("billing_account_id", cloudProviders.awsBillingAccountId());
     InstanceResponse awsOnly =
         service.getInstancesByProduct(
             testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfCurrentMonth, start, awsParams);
     assertNotNull(awsOnly.getData());
     assertEquals(1, awsOnly.getData().size());
-    assertEquals(instanceTc006Aws, awsOnly.getData().get(0).getInstanceId());
+    assertEquals(cloudProviders.awsInstanceId(), awsOnly.getData().get(0).getInstanceId());
     assertEquals(BillingProviderType.AWS, awsOnly.getMeta().getBillingProvider());
   }
 
   @Test
   @TestPlanName("tally-instances-payg-TC005")
   public void shouldExcludeInstancesWithNonMatchingBillingAccountId() {
-    Map<String, Object> wrongAccount = Map.of("billing_account_id", wrongBillingTc007);
+    Map<String, Object> wrongAccount =
+        Map.of("billing_account_id", billingExclusion.decoyBillingAccountId());
     InstanceResponse noMatch =
         service.getInstancesByProduct(
             testOrgId,
@@ -602,7 +637,8 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
         0.001,
         "Non-matching billing_account_id should yield no metered value");
 
-    Map<String, Object> correctAccount = Map.of("billing_account_id", billingTc007);
+    Map<String, Object> correctAccount =
+        Map.of("billing_account_id", billingExclusion.matchingBillingAccountId());
     InstanceResponse match =
         service.getInstancesByProduct(
             testOrgId,
@@ -621,7 +657,7 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
     allFilters.put("sla", ServiceLevelType.PREMIUM);
     allFilters.put("usage", UsageType.PRODUCTION);
     allFilters.put("billing_provider", BillingProviderType.AWS);
-    allFilters.put("billing_account_id", billingTc008);
+    allFilters.put("billing_account_id", allOptional.billingAccountId());
 
     InstanceResponse response =
         service.getInstancesByProduct(
@@ -629,14 +665,14 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
     assertNotNull(response.getData());
     assertEquals(1, response.getData().size());
     InstanceData row = response.getData().get(0);
-    assertEquals(instanceTc008, row.getInstanceId());
+    assertEquals(allOptional.instanceId(), row.getInstanceId());
     assertTrue(sumMeteredValues(response) > 0.0);
 
     assertNotNull(response.getMeta());
     assertEquals(ServiceLevelType.PREMIUM, response.getMeta().getServiceLevel());
     assertEquals(UsageType.PRODUCTION, response.getMeta().getUsage());
     assertEquals(BillingProviderType.AWS, response.getMeta().getBillingProvider());
-    assertEquals(billingTc008, response.getMeta().getBillingAccountId());
+    assertEquals(allOptional.billingAccountId(), response.getMeta().getBillingAccountId());
   }
 
   @Test
@@ -656,14 +692,15 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
                 .map(InstanceData::getInstanceId)
                 .collect(Collectors.toSet());
     assertTrue(
-        ids.contains(instanceTc009a) && ids.contains(instanceTc009b),
+        ids.contains(partialSlaUsage.firstInstanceId())
+            && ids.contains(partialSlaUsage.secondInstanceId()),
         "sla+usage filter should include both fixture instances with different billing accounts");
     long fixtureRows =
         response.getData().stream()
             .filter(
                 d ->
-                    instanceTc009a.equals(d.getInstanceId())
-                        || instanceTc009b.equals(d.getInstanceId()))
+                    partialSlaUsage.firstInstanceId().equals(d.getInstanceId())
+                        || partialSlaUsage.secondInstanceId().equals(d.getInstanceId()))
             .count();
     assertEquals(2, fixtureRows, "Each fixture instance should appear once under partial filters");
   }
@@ -674,14 +711,14 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
     Map<String, Object> narrowed = new HashMap<>();
     narrowed.put("sla", ServiceLevelType.PREMIUM);
     narrowed.put("usage", UsageType.PRODUCTION);
-    narrowed.put("billing_account_id", billingTc010a);
+    narrowed.put("billing_account_id", narrowedBilling.matchBillingAccountId());
 
     InstanceResponse response =
         service.getInstancesByProduct(
             testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfCurrentMonth, start, narrowed);
     assertNotNull(response.getData());
     assertEquals(1, response.getData().size());
-    assertEquals(instanceTc010a, response.getData().get(0).getInstanceId());
+    assertEquals(narrowedBilling.matchInstanceId(), response.getData().get(0).getInstanceId());
   }
 
   @Test
@@ -697,12 +734,17 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
             : response.getData().stream()
                 .map(InstanceData::getInstanceId)
                 .collect(Collectors.toSet());
-    for (String id : List.of(instanceTc011a, instanceTc011b, instanceTc011c)) {
+    for (String id :
+        List.of(
+            unfilteredTriple.aInstanceId(),
+            unfilteredTriple.bInstanceId(),
+            unfilteredTriple.cInstanceId())) {
       assertTrue(returned.contains(id), "Expected instance id " + id);
     }
     assertTrue(
         response.getData().size() >= 3,
-        "Unfiltered report should include at least the three TC011 instances");
+        "Unfiltered report should include at least the three instances used in the unfiltered-triple "
+            + "fixture");
     assertNotNull(response.getMeta());
     assertNotNull(response.getMeta().getCount());
     assertEquals(
@@ -724,10 +766,10 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
                 .map(InstanceData::getInstanceId)
                 .collect(Collectors.toSet());
     assertTrue(
-        ids.contains(instanceTc012Curr),
+        ids.contains(crossMonth.currentMonthInstanceId()),
         "Current-month instance should appear for current-month window");
     assertFalse(
-        ids.contains(instanceTc012Prev),
+        ids.contains(crossMonth.previousMonthInstanceId()),
         "Previous-month-only instance should not appear in current-month window");
   }
 
@@ -761,7 +803,7 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
     OffsetDateTime monthEnd =
         YearMonth.from(start).atEndOfMonth().atTime(23, 59, 59, 999_000_000).atOffset(utc);
 
-    Map<String, Object> filters = Map.of("billing_account_id", billingTc004);
+    Map<String, Object> filters = Map.of("billing_account_id", sla.billingAccountId());
 
     InstanceResponse response =
         service.getInstancesByProduct(
@@ -771,10 +813,8 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
     assertFalse(response.getData().isEmpty(), "Full-month window should return instance rows");
     assertTrue(
         sumMeteredValues(response) > 0.0,
-        "Metered total should be positive for TC004 fixture rows in the current month");
+        "Metered total should be positive for the SLA filter fixture rows in the current month");
   }
-
-  // --- Methods to simplify test assertions ---
 
   private double sumMeteredValues(InstanceResponse response) {
     if (response.getData() == null) {
