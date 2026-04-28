@@ -97,12 +97,12 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
       String siblingBillingAccountId) {}
 
   private record UnfilteredRowTriple(
-      String aInstanceId,
-      String bInstanceId,
-      String cInstanceId,
-      String aBilling,
-      String bBilling,
-      String cBilling) {}
+      String firstInstanceId,
+      String secondInstanceId,
+      String thirdInstanceId,
+      String firstBillingAccountId,
+      String secondBillingAccountId,
+      String thirdBillingAccountId) {}
 
   private record CrossMonthPair(
       String previousMonthInstanceId,
@@ -428,9 +428,15 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
 
     for (String[] pair :
         List.of(
-            new String[] {unfilteredTriple.aInstanceId(), unfilteredTriple.aBilling()},
-            new String[] {unfilteredTriple.bInstanceId(), unfilteredTriple.bBilling()},
-            new String[] {unfilteredTriple.cInstanceId(), unfilteredTriple.cBilling()})) {
+            new String[] {
+              unfilteredTriple.firstInstanceId(), unfilteredTriple.firstBillingAccountId()
+            },
+            new String[] {
+              unfilteredTriple.secondInstanceId(), unfilteredTriple.secondBillingAccountId()
+            },
+            new String[] {
+              unfilteredTriple.thirdInstanceId(), unfilteredTriple.thirdBillingAccountId()
+            })) {
       events.add(
           helpers.createPaygEventWithTimestamp(
               testOrgId,
@@ -736,9 +742,9 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
                 .collect(Collectors.toSet());
     for (String id :
         List.of(
-            unfilteredTriple.aInstanceId(),
-            unfilteredTriple.bInstanceId(),
-            unfilteredTriple.cInstanceId())) {
+            unfilteredTriple.firstInstanceId(),
+            unfilteredTriple.secondInstanceId(),
+            unfilteredTriple.thirdInstanceId())) {
       assertTrue(returned.contains(id), "Expected instance id " + id);
     }
     assertTrue(
