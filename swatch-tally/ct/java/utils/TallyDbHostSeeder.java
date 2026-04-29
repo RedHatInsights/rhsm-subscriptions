@@ -26,6 +26,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -81,7 +82,12 @@ public final class TallyDbHostSeeder {
       String billingProvider,
       String billingAccountId) {
     return insertHostWithBillingAccountAndDate(
-        orgId, inventoryId, productTag, billingProvider, billingAccountId, OffsetDateTime.now());
+        orgId,
+        inventoryId,
+        productTag,
+        billingProvider,
+        billingAccountId,
+        OffsetDateTime.now(ZoneOffset.UTC));
   }
 
   /**
@@ -188,7 +194,7 @@ public final class TallyDbHostSeeder {
 
     UUID hostId = UUID.randomUUID();
     String subManId = UUID.randomUUID().toString();
-    OffsetDateTime now = OffsetDateTime.now();
+    OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
 
     try (Connection conn = DriverManager.getConnection(jdbcUrl(), dbUser(), dbPassword())) {
       conn.setAutoCommit(false);

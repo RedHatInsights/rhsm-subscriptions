@@ -20,12 +20,14 @@
  */
 package utils;
 
+import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
 
 import api.MessageValidators;
 import api.TallySwatchService;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
+import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
 import com.redhat.swatch.tally.test.model.TallySummary;
 import java.time.Duration;
@@ -34,6 +36,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.BooleanSupplier;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Measurement;
@@ -386,6 +389,34 @@ public class TallyTestHelpers {
         Duration.ofSeconds(3),
         service,
         kafkaBridge);
+  }
+
+  /**
+   * Sends instance-ingress PAYG events for an org, then polls hourly tally until ready succeeds.
+   *
+   * @param service tally HTTP client
+   * @param kafkaBridge bridge subscribed to the instance ingress topic
+   * @param orgId organization id
+   * @param ready returns true when downstream data is observable for assertions
+   * @param events events to produce
+   */
+  public void ingestPaygEventsAndSyncOnceForOrg(
+      TallySwatchService service,
+      KafkaBridgeService kafkaBridge,
+      String orgId,
+      BooleanSupplier ready,
+      Event... events) {
+    service.createOptInConfig(orgId);
+    for (Event event : events) {
+      kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event);
+    }
+    AwaitilityUtils.untilAsserted(
+        () -> {
+          service.performHourlyTallyForOrg(orgId);
+          if (!ready.getAsBoolean()) {
+            throw new AssertionError("Data not yet materialized for org " + orgId);
+          }
+        });
   }
 
   // --- Then helper methods: Retrieve and verify test results ---
