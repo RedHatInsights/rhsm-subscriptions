@@ -920,6 +920,14 @@ This section verifies the automatic contract termination behavior when contracts
   - Product tag returned matches expected value for unlimited offering.
   - Offering synchronization completes without errors.
 
+**offering-sync-TC005: Upstream product service unavailable during offering sync**
+- **Description:** Verify that when the upstream product API returns HTTP 503 for the product tree, `syncOffering` returns the same HTTP status (503), not HTTP 404.
+- **Setup:** Stub the product tree endpoint (WireMock) to return 503 for the test SKU.
+- **Action:** Call internal sync offering for that SKU.
+- **Verification:** Response status matches upstream (503).
+- **Expected Result:**
+  - Callers can distinguish upstream unavailability from “offering not found”; status code reflects the product API response.
+
 ## Product Tag Management
 
 **offering-tags-TC001: Retrieve product tags for synchronized offering**

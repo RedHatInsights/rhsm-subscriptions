@@ -67,6 +67,8 @@ import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.InternalServerErrorException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.ProcessingException;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -384,7 +386,11 @@ public class ContractsResource implements DefaultApi {
       response.detail(String.format("%s for offeringSku=\"%s\".", result, sku));
     } catch (RuntimeException e) {
       if (e.getCause() instanceof ApiException apiException) {
-        switch (apiException.getResponse().getStatus()) {
+        int apiExceptionStatus = apiException.getResponse().getStatus();
+        if (apiExceptionStatus < 100 || apiExceptionStatus > 599) {
+          throw new InternalServerErrorException(apiException.getMessage());
+        }
+        switch (apiExceptionStatus) {
           case 400:
             throw new BadRequestException(apiException.getMessage());
           case 403:
@@ -392,7 +398,8 @@ public class ContractsResource implements DefaultApi {
           case 404:
             throw new NotFoundException(apiException.getMessage());
           default:
-            throw new InternalServerErrorException(apiException.getMessage());
+            throw new WebApplicationException(
+                Response.status(apiExceptionStatus).entity(apiException.getMessage()).build());
         }
       }
       throw new InternalServerErrorException(e.getMessage());

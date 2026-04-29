@@ -128,13 +128,17 @@ public class UpstreamProductData {
           .map(mid -> mid.fetchAndAddEngProdsIfExist(productDataSource))
           .map(UpstreamProductData::toOffering);
     } catch (ApiException e) {
+      int apiExceptionStatus = e.getResponse().getStatus();
+      Response.Status mappedStatus =
+          Optional.ofNullable(Response.Status.fromStatusCode(apiExceptionStatus))
+              .orElse(Response.Status.INTERNAL_SERVER_ERROR);
       throw new ServiceException(
           ErrorCode.REQUEST_PROCESSING_ERROR,
-          Response.Status.INTERNAL_SERVER_ERROR,
+          mappedStatus,
           "Unable to retrieve upstream offeringSku=" + sku,
           String.format(
               "Unable to retrieve upstream offeringSku=\"%s\". API returned status: %s, message: %s, and responseBody: %s",
-              sku, e.getResponse().getStatus(), e.getMessage(), e.getResponse().getEntity()),
+              sku, apiExceptionStatus, e.getMessage(), e.getResponse().getEntity()),
           e);
     }
   }
