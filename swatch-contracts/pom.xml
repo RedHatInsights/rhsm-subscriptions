@@ -137,6 +137,10 @@
       <artifactId>swatch-common-security</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.quarkiverse.unleash</groupId>
+      <artifactId>quarkus-unleash</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.redhat.cloud.common</groupId>
       <artifactId>clowder-quarkus-config-source</artifactId>
     </dependency>
@@ -343,6 +347,7 @@
                 <sourcePath>subscriptions_export_json.yaml</sourcePath>
                 <sourcePath>subscriptions_export_json_item.yaml</sourcePath>
                 <sourcePath>subscriptions_export_json_measurement.yaml</sourcePath>
+                <sourcePath>enable_partner_gateway_contracts_variant_payload.yaml</sourcePath>
               </sourcePaths>
             </configuration>
           </execution>

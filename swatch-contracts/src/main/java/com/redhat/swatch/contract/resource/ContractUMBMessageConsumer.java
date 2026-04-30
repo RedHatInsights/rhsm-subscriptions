@@ -22,6 +22,7 @@ package com.redhat.swatch.contract.resource;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.redhat.swatch.contract.config.FeatureFlags;
 import com.redhat.swatch.contract.exception.CreateContractException;
 import com.redhat.swatch.contract.model.PartnerEntitlementsRequest;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
@@ -41,6 +42,7 @@ public class ContractUMBMessageConsumer {
 
   @Inject ObjectMapper mapper;
   @Inject ContractService service;
+  @Inject FeatureFlags featureFlags;
 
   @ConfigProperty(name = "UMB_ENABLED")
   boolean umbEnabled;
@@ -49,6 +51,11 @@ public class ContractUMBMessageConsumer {
   @Incoming("contracts")
   public void consumeMessage(Object dtoContract) {
     log.info("Consumer was called");
+    if (!featureFlags.isPartnerGatewayContractsUmbConsumerEnabled()) {
+      log.debug("IT Partner UMB consumer for contracts is disabled by feature flag.");
+      return;
+    }
+
     if (umbEnabled && dtoContract != null) {
       try {
         String dtoContractString = MessageUtils.toString(dtoContract);

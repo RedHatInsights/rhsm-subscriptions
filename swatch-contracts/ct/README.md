@@ -7,7 +7,7 @@
 Start the required local services using Docker Compose:
 
 ```bash
-podman compose up -d kafka kafka-bridge kafka-setup amqp wiremock db
+podman compose up -d kafka kafka-bridge kafka-setup unleash amqp wiremock db
 ```
 
 This will start all necessary dependencies (databases, Kafka, etc.) required for the component tests.

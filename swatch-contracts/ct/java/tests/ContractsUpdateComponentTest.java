@@ -50,6 +50,8 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
   @TestPlanName("contracts-update-TC001")
   @Test
   void shouldUpdateExistingContractWhenReceivingAnUpdateEvent() {
+    unleash.enablePartnerGatewayContracts();
+
     // given: An initial contract is created via UMB message
     Contract initialContract = givenContractCreatedViaMessageBroker();
 
@@ -70,6 +72,8 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
   @TestPlanName("contracts-update-TC002")
   @Test
   void shouldProcessRedundantContractMessage() {
+    unleash.enablePartnerGatewayContracts();
+
     // given: An initial contract is created via UMB message
     Contract contract = givenContractCreatedViaMessageBroker();
 

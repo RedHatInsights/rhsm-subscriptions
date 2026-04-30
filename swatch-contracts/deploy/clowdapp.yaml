@@ -167,6 +167,8 @@ objects:
         - rbac
         - export-service
 
+      featureFlags: true
+
       kafkaTopics:
         - replicas: ${{KAFKA_ENABLED_ORGS_REPLICAS}}
           partitions: ${{KAFKA_ENABLED_ORGS_PARTITIONS}}
