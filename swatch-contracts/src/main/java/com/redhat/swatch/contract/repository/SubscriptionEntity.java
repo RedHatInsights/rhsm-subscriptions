@@ -37,6 +37,7 @@ import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Predicate;
 import java.io.Serializable;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -49,6 +50,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.Generated;
 
 /** SubscriptionEntity entities represent data from a Candlepin Pool */
 @Entity
@@ -106,6 +109,12 @@ public class SubscriptionEntity implements Serializable {
   @Column(name = "value")
   @ToString.Exclude
   private Map<SubscriptionMeasurementKey, Double> subscriptionMeasurements = new HashMap<>();
+
+  @Column(name = "last_modified", insertable = false, updatable = false)
+  @ColumnDefault("CURRENT_TIMESTAMP")
+  @Generated
+  // Not included in equals() as this doesn't affect logical equality
+  private Instant lastModified = null;
 
   public Double getSubscriptionMeasurement(String metricId, String measurementType) {
     return subscriptionMeasurements.get(new SubscriptionMeasurementKey(metricId, measurementType));

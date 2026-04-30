@@ -1,0 +1,432 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
+  <!--
+  Why are we using a trigger here?  Especially since Hibernate's @CurrentTimestamp(source=DB)
+  annotation offers this ability?  The catch with the annotation is it requires an extra round-trip
+  to the database to fetch the current time.  We want the last_modified column to use the
+  CURRENT_TIMESTAMP from the database since these timestamps are later referenced by jobs that
+  run in different environments (not in the JVM).  We want the DB to be the final authority on
+  what time it is.  However, high performance for these tables is critical, so we don't want any
+  additional overhead that we can avoid.  Using a trigger and
+
+  @Column(name = "last_modified", insertable = false, updatable = false)
+  @ColumnDefault("CURRENT_TIMESTAMP")
+  @Generated
+  private Instant lastModified;
+
+  will populate the entity correctly using a RETURNING clause after an UPDATE or INSERT which
+  avoids a round-trip while keeping timestamp generation on the DB.
+  -->
+
+  <changeSet id="202604301203-01" author="awood" dbms="postgresql" runOnChange="true">
+    <sqlFile path="db/procedures/update_last_modified_column.sql"
+      splitStatements="false"
+    />
+    <!-- No rollback provided as other changesets may rely on this stored procedure -->
+    <rollback/>
+  </changeSet>
+
+  <!-- subscription -->
+  <changeSet id="202604301203-02" author="awood">
+    <addColumn tableName="subscription">
+      <column name="last_modified" type="TIMESTAMP WITH TIME ZONE"/>
+    </addColumn>
+  </changeSet>
+
+  <changeSet id="202604301203-03" author="awood" dbms="postgresql">
+    <sql>
+      CREATE OR REPLACE TRIGGER trg_subscription_last_modified
+        BEFORE INSERT OR UPDATE
+        ON subscription
+        FOR EACH ROW
+      EXECUTE FUNCTION swatch_contracts_update_last_modified_column();
+    </sql>
+    <rollback>
+      DROP TRIGGER IF EXISTS trg_subscription_last_modified ON subscription;
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202604301203-04" author="awood" dbms="hsqldb">
+    <sql splitStatements="false">
+      CREATE TRIGGER trg_subscription_last_modified_create
+        BEFORE INSERT
+        ON subscription
+        REFERENCING NEW AS newrow
+        FOR EACH ROW
+      BEGIN
+        ATOMIC
+        SET newrow.last_modified = CURRENT_TIMESTAMP;
+      END
+    </sql>
+    <sql splitStatements="false">
+      CREATE TRIGGER trg_subscription_last_modified_update
+        BEFORE UPDATE
+        ON subscription
+        REFERENCING NEW AS newrow
+        FOR EACH ROW
+      BEGIN
+        ATOMIC
+        SET newrow.last_modified = CURRENT_TIMESTAMP;
+      END
+    </sql>
+    <rollback>
+      DROP TRIGGER IF EXISTS trg_subscription_last_modified_create;
+      DROP TRIGGER IF EXISTS trg_subscription_last_modified_update;
+    </rollback>
+  </changeSet>
+
+  <!-- subscription_measurements -->
+  <changeSet id="202604301203-05" author="awood">
+    <!-- This column is unmapped in Hibernate since the records in subscription_measurements are not
+    their own entities.  They're members of a CollectionTable. -->
+    <addColumn tableName="subscription_measurements">
+      <column name="last_modified" type="TIMESTAMP WITH TIME ZONE"/>
+    </addColumn>
+  </changeSet>
+
+  <changeSet id="202604301203-06" author="awood" dbms="postgresql">
+    <sql>
+      CREATE OR REPLACE TRIGGER trg_subscription_measurements_last_modified
+        BEFORE INSERT OR UPDATE
+        ON subscription_measurements
+        FOR EACH ROW
+      EXECUTE FUNCTION swatch_contracts_update_last_modified_column();
+    </sql>
+    <rollback>
+      DROP TRIGGER IF EXISTS trg_subscription_measurements_last_modified ON subscription_measurements;
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202604301203-07" author="awood" dbms="hsqldb">
+    <sql splitStatements="false">
+      CREATE TRIGGER trg_subscription_measurements_last_modified_create
+        BEFORE INSERT
+        ON subscription_measurements
+        REFERENCING NEW AS newrow
+        FOR EACH ROW
+      BEGIN
+        ATOMIC
+        SET newrow.last_modified = CURRENT_TIMESTAMP;
+      END
+    </sql>
+    <sql splitStatements="false">
+      CREATE TRIGGER trg_subscription_measurements_last_modified_update
+        BEFORE UPDATE
+        ON subscription_measurements
+        REFERENCING NEW AS newrow
+        FOR EACH ROW
+      BEGIN
+        ATOMIC
+        SET newrow.last_modified = CURRENT_TIMESTAMP;
+      END
+    </sql>
+    <rollback>
+      DROP TRIGGER IF EXISTS trg_subscription_measurements_last_modified_create;
+      DROP TRIGGER IF EXISTS trg_subscription_measurements_last_modified_update;
+    </rollback>
+  </changeSet>
+
+  <!-- offering -->
+  <changeSet id="202604301203-08" author="awood">
+    <addColumn tableName="offering">
+      <column name="last_modified" type="TIMESTAMP WITH TIME ZONE"/>
+    </addColumn>
+  </changeSet>
+
+  <changeSet id="202604301203-09" author="awood" dbms="postgresql">
+    <sql>
+      CREATE OR REPLACE TRIGGER trg_offering_last_modified
+        BEFORE INSERT OR UPDATE
+        ON offering
+        FOR EACH ROW
+      EXECUTE FUNCTION swatch_contracts_update_last_modified_column();
+    </sql>
+    <rollback>
+      DROP TRIGGER IF EXISTS trg_offering_last_modified ON offering;
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202604301203-10" author="awood" dbms="hsqldb">
+    <sql splitStatements="false">
+      CREATE TRIGGER trg_offering_last_modified_create
+        BEFORE INSERT
+        ON offering
+        REFERENCING NEW AS newrow
+        FOR EACH ROW
+      BEGIN
+        ATOMIC
+        SET newrow.last_modified = CURRENT_TIMESTAMP;
+      END
+    </sql>
+    <sql splitStatements="false">
+      CREATE TRIGGER trg_offering_last_modified_update
+        BEFORE UPDATE
+        ON offering
+        REFERENCING NEW AS newrow
+        FOR EACH ROW
+      BEGIN
+        ATOMIC
+        SET newrow.last_modified = CURRENT_TIMESTAMP;
+      END
+    </sql>
+    <rollback>
+      DROP TRIGGER IF EXISTS trg_offering_last_modified_create;
+      DROP TRIGGER IF EXISTS trg_offering_last_modified_update;
+    </rollback>
+  </changeSet>
+
+  <!-- sku_product_tag -->
+  <changeSet id="202604301203-11" author="awood">
+    <!-- This column is unmapped in Hibernate since the records in sku_product_tag are not
+    their own entities.  They're members of a CollectionTable. -->
+    <addColumn tableName="sku_product_tag">
+      <column name="last_modified" type="TIMESTAMP WITH TIME ZONE"/>
+    </addColumn>
+  </changeSet>
+
+  <changeSet id="202604301203-12" author="awood" dbms="postgresql">
+    <sql>
+      CREATE OR REPLACE TRIGGER trg_sku_product_tag_last_modified
+        BEFORE INSERT OR UPDATE
+        ON sku_product_tag
+        FOR EACH ROW
+      EXECUTE FUNCTION swatch_contracts_update_last_modified_column();
+    </sql>
+    <rollback>
+      DROP TRIGGER IF EXISTS trg_sku_product_tag_last_modified ON sku_product_tag;
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202604301203-13" author="awood" dbms="hsqldb">
+    <sql splitStatements="false">
+      CREATE TRIGGER trg_sku_product_tag_last_modified_create
+        BEFORE INSERT
+        ON sku_product_tag
+        REFERENCING NEW AS newrow
+        FOR EACH ROW
+      BEGIN
+        ATOMIC
+        SET newrow.last_modified = CURRENT_TIMESTAMP;
+      END
+    </sql>
+    <sql splitStatements="false">
+      CREATE TRIGGER trg_sku_product_tag_last_modified_update
+        BEFORE UPDATE
+        ON sku_product_tag
+        REFERENCING NEW AS newrow
+        FOR EACH ROW
+      BEGIN
+        ATOMIC
+        SET newrow.last_modified = CURRENT_TIMESTAMP;
+      END
+    </sql>
+    <rollback>
+      DROP TRIGGER IF EXISTS trg_sku_product_tag_last_modified_create;
+      DROP TRIGGER IF EXISTS trg_sku_product_tag_last_modified_update;
+    </rollback>
+  </changeSet>
+
+  <!-- sku_oid -->
+  <changeSet id="202604301203-14" author="awood">
+    <!-- This column is unmapped in Hibernate since the records in sku_oid are not
+    their own entities.  They're members of a CollectionTable. -->
+    <addColumn tableName="sku_oid">
+      <column name="last_modified" type="TIMESTAMP WITH TIME ZONE"/>
+    </addColumn>
+  </changeSet>
+
+  <changeSet id="202604301203-15" author="awood" dbms="postgresql">
+    <sql>
+      CREATE OR REPLACE TRIGGER trg_sku_oid_last_modified
+        BEFORE INSERT OR UPDATE
+        ON sku_oid
+        FOR EACH ROW
+      EXECUTE FUNCTION swatch_contracts_update_last_modified_column();
+    </sql>
+    <rollback>
+      DROP TRIGGER IF EXISTS trg_sku_oid_last_modified ON sku_oid;
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202604301203-16" author="awood" dbms="hsqldb">
+    <sql splitStatements="false">
+      CREATE TRIGGER trg_sku_oid_last_modified_create
+        BEFORE INSERT
+        ON sku_oid
+        REFERENCING NEW AS newrow
+        FOR EACH ROW
+      BEGIN
+        ATOMIC
+        SET newrow.last_modified = CURRENT_TIMESTAMP;
+      END
+    </sql>
+    <sql splitStatements="false">
+      CREATE TRIGGER trg_sku_oid_last_modified_update
+        BEFORE UPDATE
+        ON sku_oid
+        REFERENCING NEW AS newrow
+        FOR EACH ROW
+      BEGIN
+        ATOMIC
+        SET newrow.last_modified = CURRENT_TIMESTAMP;
+      END
+    </sql>
+    <rollback>
+      DROP TRIGGER IF EXISTS trg_sku_oid_last_modified_create;
+      DROP TRIGGER IF EXISTS trg_sku_oid_last_modified_update;
+    </rollback>
+  </changeSet>
+
+  <!-- sku_child_sku -->
+  <changeSet id="202604301203-17" author="awood">
+    <!-- This column is unmapped in Hibernate since the records in sku_child_sku are not
+    their own entities.  They're members of a CollectionTable. -->
+    <addColumn tableName="sku_child_sku">
+      <column name="last_modified" type="TIMESTAMP WITH TIME ZONE"/>
+    </addColumn>
+  </changeSet>
+
+  <changeSet id="202604301203-18" author="awood" dbms="postgresql">
+    <sql>
+      CREATE OR REPLACE TRIGGER trg_sku_child_sku_last_modified
+        BEFORE INSERT OR UPDATE
+        ON sku_child_sku
+        FOR EACH ROW
+      EXECUTE FUNCTION swatch_contracts_update_last_modified_column();
+    </sql>
+    <rollback>
+      DROP TRIGGER IF EXISTS trg_sku_child_sku_last_modified ON sku_child_sku;
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202604301203-19" author="awood" dbms="hsqldb">
+    <sql splitStatements="false">
+      CREATE TRIGGER trg_sku_child_sku_last_modified_create
+        BEFORE INSERT
+        ON sku_child_sku
+        REFERENCING NEW AS newrow
+        FOR EACH ROW
+      BEGIN
+        ATOMIC
+        SET newrow.last_modified = CURRENT_TIMESTAMP;
+      END
+    </sql>
+    <sql splitStatements="false">
+      CREATE TRIGGER trg_sku_child_sku_last_modified_update
+        BEFORE UPDATE
+        ON sku_child_sku
+        REFERENCING NEW AS newrow
+        FOR EACH ROW
+      BEGIN
+        ATOMIC
+        SET newrow.last_modified = CURRENT_TIMESTAMP;
+      END
+    </sql>
+    <rollback>
+      DROP TRIGGER IF EXISTS trg_sku_child_sku_last_modified_create;
+      DROP TRIGGER IF EXISTS trg_sku_child_sku_last_modified_update;
+    </rollback>
+  </changeSet>
+
+  <!-- contracts -->
+  <changeSet id="202604301203-20" author="awood">
+    <addColumn tableName="contracts">
+      <column name="last_modified" type="TIMESTAMP WITH TIME ZONE"/>
+    </addColumn>
+  </changeSet>
+
+  <changeSet id="202604301203-21" author="awood" dbms="postgresql">
+    <sql>
+      CREATE OR REPLACE TRIGGER trg_contracts_last_modified
+        BEFORE INSERT OR UPDATE
+        ON contracts
+        FOR EACH ROW
+      EXECUTE FUNCTION swatch_contracts_update_last_modified_column();
+    </sql>
+    <rollback>
+      DROP TRIGGER IF EXISTS trg_contracts_last_modified ON contracts;
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202604301203-22" author="awood" dbms="hsqldb">
+    <sql splitStatements="false">
+      CREATE TRIGGER trg_contracts_last_modified_create
+        BEFORE INSERT
+        ON contracts
+        REFERENCING NEW AS newrow
+        FOR EACH ROW
+      BEGIN
+        ATOMIC
+        SET newrow.last_modified = CURRENT_TIMESTAMP;
+      END
+    </sql>
+    <sql splitStatements="false">
+      CREATE TRIGGER trg_contracts_last_modified_update
+        BEFORE UPDATE
+        ON contracts
+        REFERENCING NEW AS newrow
+        FOR EACH ROW
+      BEGIN
+        ATOMIC
+        SET newrow.last_modified = CURRENT_TIMESTAMP;
+      END
+    </sql>
+    <rollback>
+      DROP TRIGGER IF EXISTS trg_contracts_last_modified_create;
+      DROP TRIGGER IF EXISTS trg_contracts_last_modified_update;
+    </rollback>
+  </changeSet>
+
+  <!-- contract_metrics -->
+  <changeSet id="202604301203-23" author="awood">
+    <addColumn tableName="contract_metrics">
+      <column name="last_modified" type="TIMESTAMP WITH TIME ZONE"/>
+    </addColumn>
+  </changeSet>
+
+  <changeSet id="202604301203-24" author="awood" dbms="postgresql">
+    <sql>
+      CREATE OR REPLACE TRIGGER trg_contract_metrics_last_modified
+        BEFORE INSERT OR UPDATE
+        ON contract_metrics
+        FOR EACH ROW
+      EXECUTE FUNCTION swatch_contracts_update_last_modified_column();
+    </sql>
+    <rollback>
+      DROP TRIGGER IF EXISTS trg_contract_metrics_last_modified ON contract_metrics;
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202604301203-25" author="awood" dbms="hsqldb">
+    <sql splitStatements="false">
+      CREATE TRIGGER trg_contract_metrics_last_modified_create
+        BEFORE INSERT
+        ON contract_metrics
+        REFERENCING NEW AS newrow
+        FOR EACH ROW
+      BEGIN
+        ATOMIC
+        SET newrow.last_modified = CURRENT_TIMESTAMP;
+      END
+    </sql>
+    <sql splitStatements="false">
+      CREATE TRIGGER trg_contract_metrics_last_modified_update
+        BEFORE UPDATE
+        ON contract_metrics
+        REFERENCING NEW AS newrow
+        FOR EACH ROW
+      BEGIN
+        ATOMIC
+        SET newrow.last_modified = CURRENT_TIMESTAMP;
+      END
+    </sql>
+    <rollback>
+      DROP TRIGGER IF EXISTS trg_contract_metrics_last_modified_create;
+      DROP TRIGGER IF EXISTS trg_contract_metrics_last_modified_update;
+    </rollback>
+  </changeSet>
+</databaseChangeLog>
