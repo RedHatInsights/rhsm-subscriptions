@@ -52,6 +52,9 @@ public class HostTallyBucket implements Serializable {
 
   @EmbeddedId private HostBucketKey key;
 
+  @Column(name = "is_primary")
+  private boolean isPrimary = false;
+
   private Integer cores;
   private Integer sockets;
 
