@@ -55,7 +55,7 @@ import lombok.ToString;
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor
-public class OfferingEntity implements Serializable {
+public class OfferingEntity extends ModificationTrackedEntity implements Serializable {
 
   private static final String MIGRATION_OFFERING = "MIGRATION_OFFERING";
 
