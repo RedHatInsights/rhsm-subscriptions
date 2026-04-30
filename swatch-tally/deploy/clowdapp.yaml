@@ -243,6 +243,10 @@ parameters:
     name: FLOORIST_BUCKET_SECRET_NAME_PREPROD
     required: true
     value: egress-s3
+  - description: bucket secret name for prod
+    name: FLOORIST_BUCKET_SECRET_NAME_PROD
+    required: true
+    value: egress-s3
   - name: FLOORIST_LOGLEVEL
     description: Floorist loglevel config
     value: 'DEBUG'
@@ -851,6 +855,14 @@ objects:
     <<: *floorplan_spec_base
     objectStore:
       secretName: ${FLOORIST_BUCKET_SECRET_NAME_PREPROD}
+- apiVersion: metrics.console.redhat.com/v1alpha1
+  kind: FloorPlan
+  metadata:
+    name: swatch-tally-prod
+  spec:
+    <<: *floorplan_spec_base
+    objectStore:
+      secretName: ${FLOORIST_BUCKET_SECRET_NAME_PROD}
 - apiVersion: cloud.redhat.com/v1alpha1
   kind: ClowdApp
   metadata:
