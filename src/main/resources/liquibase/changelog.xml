@@ -207,5 +207,6 @@
     <include file="liquibase/202602241326-add-org-prod-snap-date-idx.xml"/>
     <include file="liquibase/202601301404-last-modified-on-snapshots-and-measurements.xml"/>
     <include file="liquibase/202604151137-last-modified-on-hosts-instance-measurements-host-tally-buckets.xml"/>
+    <include file="liquibase/202604301200-add-is-primary-to-host-tally-buckets.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
