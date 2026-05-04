@@ -42,6 +42,8 @@ import io.restassured.response.Response;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.http.HttpStatus;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 public class ContractCreationComponentTest extends BaseContractComponentTest {
@@ -50,6 +52,16 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
   private static final double INSTANCE_HOURS_CAPACITY = 18.0;
 
   @Artemis static ContractsArtemisService artemis = new ContractsArtemisService();
+
+  @BeforeAll
+  static void enablePartnerGatewayContractsFeatureFlag() {
+    unleash.enablePartnerGatewayContracts();
+  }
+
+  @AfterAll
+  static void disablePartnerGatewayContractsFeatureFlag() {
+    unleash.disablePartnerGatewayContracts();
+  }
 
   @Test
   void shouldCreatePrepaidRosaContract_whenAllDataIsValid() {

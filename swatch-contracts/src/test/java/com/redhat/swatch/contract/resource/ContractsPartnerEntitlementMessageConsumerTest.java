@@ -23,8 +23,12 @@ package com.redhat.swatch.contract.resource;
 import static com.redhat.swatch.contract.config.Channels.CONTRACTS_FROM_GATEWAY;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import com.redhat.swatch.contract.config.FeatureFlags;
+import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectSpy;
 import io.smallrye.reactive.messaging.memory.InMemoryConnector;
@@ -57,6 +61,7 @@ class ContractsPartnerEntitlementMessageConsumerTest {
 
   @Inject @Any InMemoryConnector connector;
 
+  @InjectMock FeatureFlags featureFlags;
   @InjectSpy ContractsPartnerEntitlementMessageConsumer consumer;
 
   private InMemorySource<Object> contractsKafkaChannel;
@@ -64,12 +69,20 @@ class ContractsPartnerEntitlementMessageConsumerTest {
   @BeforeEach
   void setUp() {
     contractsKafkaChannel = connector.source(CONTRACTS_FROM_GATEWAY);
+    when(featureFlags.isPartnerGatewayContractsKafkaConsumerEnabled()).thenReturn(true);
   }
 
   @Test
   void shouldProcessStringMessage() {
     whenSendMessage(VALID_JSON_MESSAGE);
     assertMessageIsProcessed();
+  }
+
+  @Test
+  void shouldIgnoreMessagesWhenFeatureFlagIsDisabled() {
+    when(featureFlags.isPartnerGatewayContractsKafkaConsumerEnabled()).thenReturn(false);
+    whenSendMessage(VALID_JSON_MESSAGE);
+    assertMessageIsNotProcessed();
   }
 
   private void whenSendMessage(String message) {
@@ -80,5 +93,11 @@ class ContractsPartnerEntitlementMessageConsumerTest {
     await()
         .atMost(Duration.ofMillis(500))
         .untilAsserted(() -> verify(consumer).consumeContract(anyString()));
+  }
+
+  private void assertMessageIsNotProcessed() {
+    await()
+        .atMost(Duration.ofMillis(500))
+        .untilAsserted(() -> verify(consumer, never()).consumeContract(anyString()));
   }
 }
