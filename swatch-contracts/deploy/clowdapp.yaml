@@ -146,6 +146,77 @@ parameters:
     value: signalfx
   - name: OTEL_SIGNALFX_TOKEN_SECRET_KEY
     value: token
+  - name: FLOORIST_DB_SECRET_NAME
+    description: database secret name
+    value: swatch-db-ro
+    # FloorPlan swatch-contracts: Stage=dev, Prod=prod
+  - name: FLOORIST_BUCKET_SECRET_NAME
+    description: bucket secret name
+    required: true
+    value: egress-s3
+    # FloorPlan swatch-contracts-test: Stage=sandbox, Prod=preprod
+  - name: FLOORIST_BUCKET_SECRET_NAME_TEST
+    description: bucket secret name for preprod
+    required: true
+    value: egress-s3
+  - name: FLOORIST_LOGLEVEL
+    description: Floorist loglevel config
+    value: 'DEBUG'
+  - name: FLOORIST_SUSPEND
+    description: Disable Floorist cronjob execution
+    required: true
+    value: 'false'
+  - name: FLOORIST_S3_SNOWPIPE_PATH
+    description: Path for dataproduct in snowpipe s3 bucket
+    value: 'swatch'
+
+# Shared FloorPlan specification for all environments (sandbox, dev, preprod, prod)
+# Only objectStore differs per environment
+.floorplan_spec: &floorplan_spec_base
+  database:
+    secretName: ${FLOORIST_DB_SECRET_NAME}
+  logLevel: ${FLOORIST_LOGLEVEL}
+  suspend: ${{FLOORIST_SUSPEND}}
+  resources:
+    limits:
+      cpu: 400m
+      memory: 500Mi
+    requests:
+      cpu: 200m
+      memory: 250Mi
+  queries:
+  - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/subscription
+    chunksize: 50000
+    query: >-
+      select * from subscription;
+  - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/subscription_measurements
+    chunksize: 50000
+    query: >-
+      select * from subscription_measurements;
+  - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/offering
+    chunksize: 50000
+    query: >-
+      select * from offering;
+  - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/sku_oid
+    chunksize: 50000
+    query: >-
+      select * from sku_oid;
+  - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/sku_product_tag
+    chunksize: 50000
+    query: >-
+      select * from sku_product_tag;
+  - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/sku_child_sku
+    chunksize: 50000
+    query: >-
+      select * from sku_child_sku;
+  - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/contracts
+    chunksize: 50000
+    query: >-
+      select * from contracts;
+  - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/contract_metrics
+    chunksize: 50000
+    query: >-
+      select * from contract_metrics;
 
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
@@ -580,6 +651,24 @@ objects:
       name: export-psk
     data:
       export_psk: dGVzdGluZy1hLXBzaw==
+
+  - apiVersion: metrics.console.redhat.com/v1alpha1
+    kind: FloorPlan
+    metadata:
+      name: swatch-contracts
+    spec:
+      <<: *floorplan_spec_base
+      objectStore:
+        secretName: ${FLOORIST_BUCKET_SECRET_NAME}
+
+  - apiVersion: metrics.console.redhat.com/v1alpha1
+    kind: FloorPlan
+    metadata:
+      name: swatch-contracts-test
+    spec:
+      <<: *floorplan_spec_base
+      objectStore:
+        secretName: ${FLOORIST_BUCKET_SECRET_NAME_TEST}
 
   - apiVersion: v1
     kind: ConfigMap
