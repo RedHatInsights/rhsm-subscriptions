@@ -130,12 +130,17 @@ USER root
 RUN microdnf \
     --disablerepo=* \
     --enablerepo=ubi-9-baseos-rpms \
-    install -y tar rsync
-RUN microdnf \
+    install -y tar rsync gzip && \
+  microdnf \
   --disablerepo=* \
   --enablerepo=ubi-9-appstream-rpms \
   --enablerepo=ubi-9-baseos-rpms \
-  update -y
+  update -y && \
+  microdnf clean all
+
+# Copy heap monitor scripts
+COPY --chown=default:root --chmod=755 swatch-utilization/src/main/docker/heap-monitor.sh /opt/heap-monitor.sh
+COPY --chown=default:root --chmod=755 swatch-utilization/src/main/docker/entrypoint-wrapper.sh /opt/entrypoint-wrapper.sh
 
 # Used by Quarkus dev mode
 RUN chown default:root /deployments
@@ -164,3 +169,6 @@ ENV INTERNAL_OPTS_APPEND="-Dorg.apache.kafka.automatic.config.providers=none -XX
 ENV QUARKUS_OPTS_APPEND="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"
 ENV JAVA_OPTS_APPEND="$QUARKUS_OPTS_APPEND $INTERNAL_OPTS_APPEND $USER_OPTS_APPEND"
 ENV JAVA_APP_JAR="/deployments/quarkus-run.jar"
+
+# Use wrapper entrypoint to start heap threshold monitor
+ENTRYPOINT ["/opt/entrypoint-wrapper.sh"]
