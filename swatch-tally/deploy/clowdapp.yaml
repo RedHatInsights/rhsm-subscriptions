@@ -352,13 +352,6 @@ parameters:
       and usage!='_ANY'
       and sla!='_ANY'
     chunksize: 50000
-  - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/sku_product_tag
-    query: >-
-      select
-        sku,
-        product_tag
-      from sku_product_tag
-    chunksize: 50000
   - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/pg_stat_user_tables
     query: >-
       SELECT
