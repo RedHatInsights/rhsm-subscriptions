@@ -26,6 +26,7 @@ import static io.restassured.RestAssured.given;
 import static java.util.Objects.isNull;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.when;
@@ -759,5 +760,72 @@ class CapacityResourceV1Test {
         Arguments.of(RHEL_FOR_ARM, GranularityType.YEARLY),
         Arguments.of(BASILISK, GranularityType.YEARLY),
         Arguments.of(RHEL_FOR_ARM, GranularityType.DAILY));
+  }
+
+  @Test
+  void testReportByMetricIdShouldIncludeCapacityWhenSubscriptionStartsOnReportDay() {
+    // Given: A subscription starting exactly at the query date
+    OffsetDateTime queryDate = min.truncatedTo(ChronoUnit.DAYS);
+    var subscription = datedSubscription(queryDate, max);
+    subscription.setSubscriptionMeasurements(basicMeasurement());
+
+    when(subscriptionRepository.findByCriteria(
+            argThat(argument -> argument.getOrgId().equals("org123")), any(Sort.class)))
+        .thenReturn(List.of(subscription));
+
+    // When: Querying capacity at exactly the subscription start time
+    CapacityReportByMetricId report =
+        given()
+            .queryParams(
+                "granularity", GranularityType.DAILY.toString(),
+                "beginning", queryDate.toString(),
+                "ending", queryDate.toString())
+            .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
+            .get(
+                String.format(
+                    "/api/rhsm-subscriptions/v1/capacity/products/%s/%s",
+                    RHEL_FOR_ARM.getValue(), METRIC_ID_CORES.getValue()))
+            .then()
+            .statusCode(200)
+            .extract()
+            .as(CapacityReportByMetricId.class);
+
+    // Then: Subscription should be included (start boundary is inclusive)
+    CapacitySnapshotByMetricId snapshot = report.getData().get(0);
+    assertEquals(42, snapshot.getValue());
+  }
+
+  @Test
+  void testReportByMetricIdShouldIncludeCapacityWhenSubscriptionEndsOnReportDay() {
+    // Given: A subscription ending exactly at the query date
+    OffsetDateTime queryDate = max.truncatedTo(ChronoUnit.DAYS);
+    var subscription = datedSubscription(min, queryDate);
+    subscription.setSubscriptionMeasurements(basicMeasurement());
+
+    when(subscriptionRepository.findByCriteria(
+            argThat(argument -> argument.getOrgId().equals("org123")), any(Sort.class)))
+        .thenReturn(List.of(subscription));
+
+    // When: Querying capacity at exactly the subscription end time
+    CapacityReportByMetricId report =
+        given()
+            .queryParams(
+                "granularity", GranularityType.DAILY.toString(),
+                "beginning", queryDate.toString(),
+                "ending", queryDate.toString())
+            .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
+            .get(
+                String.format(
+                    "/api/rhsm-subscriptions/v1/capacity/products/%s/%s",
+                    RHEL_FOR_ARM.getValue(), METRIC_ID_CORES.getValue()))
+            .then()
+            .statusCode(200)
+            .extract()
+            .as(CapacityReportByMetricId.class);
+
+    // Then: Subscription should be included (end boundary is inclusive)
+    CapacitySnapshotByMetricId snapshot = report.getData().get(0);
+    assertTrue(snapshot.getHasData());
+    assertEquals(42, snapshot.getValue());
   }
 }

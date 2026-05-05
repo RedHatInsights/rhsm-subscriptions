@@ -266,7 +266,7 @@ public class CapacityResourceV1 implements CapacityApi {
     for (SubscriptionEntity subscription : subscriptions) {
       var begin = subscription.getStartDate();
       var end = subscription.getEndDate();
-      if (begin.isBefore(date) && (Objects.isNull(end) || end.isAfter(date))) {
+      if (!begin.isAfter(date) && (Objects.isNull(end) || !date.isAfter(end))) {
         hasData = true;
         for (var entry : subscription.getSubscriptionMeasurements().entrySet()) {
           var measurementKey = entry.getKey();
