@@ -231,16 +231,14 @@ parameters:
   - description: database secret name
     name: FLOORIST_DB_SECRET_NAME
     value: swatch-db-ro
+  # FloorPlan swatch-tally: Stage=dev, Prod=prod
   - description: bucket secret name
     name: FLOORIST_BUCKET_SECRET_NAME
     required: true
     value: egress-s3
-  - description: bucket secret name for dev
-    name: FLOORIST_BUCKET_SECRET_NAME_DEV
-    required: true
-    value: egress-s3
-  - description: bucket secret name for preprod
-    name: FLOORIST_BUCKET_SECRET_NAME_PREPROD
+  # FloorPlan swatch-tally-test: Stage=sandbox, Prod=preprod
+  - description: bucket secret name for test environment
+    name: FLOORIST_BUCKET_SECRET_NAME_TEST
     required: true
     value: egress-s3
   - name: FLOORIST_LOGLEVEL
@@ -248,14 +246,6 @@ parameters:
     value: 'DEBUG'
   - name: FLOORIST_SUSPEND
     description: Disable Floorist cronjob execution
-    required: true
-    value: 'false'
-  - name: FLOORIST_SUSPEND_DEV
-    description: Disable Floorist dev cronjob execution
-    required: true
-    value: 'false'
-  - name: FLOORIST_SUSPEND_PREPROD
-    description: Disable Floorist preprod cronjob execution
     required: true
     value: 'false'
   - name: FLOORIST_S3_SNOWPIPE_PATH
@@ -846,21 +836,11 @@ objects:
 - apiVersion: metrics.console.redhat.com/v1alpha1
   kind: FloorPlan
   metadata:
-    name: swatch-tally-dev
+    name: swatch-tally-test
   spec:
     <<: *floorplan_spec_base
-    suspend: ${{FLOORIST_SUSPEND_DEV}}
     objectStore:
-      secretName: ${FLOORIST_BUCKET_SECRET_NAME_DEV}
-- apiVersion: metrics.console.redhat.com/v1alpha1
-  kind: FloorPlan
-  metadata:
-    name: swatch-tally-preprod
-  spec:
-    <<: *floorplan_spec_base
-    suspend: ${{FLOORIST_SUSPEND_PREPROD}}
-    objectStore:
-      secretName: ${FLOORIST_BUCKET_SECRET_NAME_PREPROD}
+      secretName: ${FLOORIST_BUCKET_SECRET_NAME_TEST}
 - apiVersion: cloud.redhat.com/v1alpha1
   kind: ClowdApp
   metadata:
