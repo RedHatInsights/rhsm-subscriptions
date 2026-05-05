@@ -1,0 +1,82 @@
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
+  <profiles>
+    <profile>
+      <id>default-repositories</id>
+      <repositories>
+        <repository>
+          <id>maven-central</id>
+          <name>Maven Central</name>
+          <url>https://repo.maven.apache.org/maven2/</url>
+          <releases>
+            <enabled>true</enabled>
+          </releases>
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+        </repository>
+        <repository>
+          <id>sonatype-maven-org</id>
+          <name>Sonatype Maven Repository</name>
+          <url>https://repo.maven.apache.org/maven2/</url>
+          <releases>
+            <enabled>true</enabled>
+          </releases>
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+        </repository>
+        <repository>
+          <id>redhat-ga-repository</id>
+          <name>Red Hat GA Repository</name>
+          <url>https://maven.repository.redhat.com/ga/</url>
+          <releases>
+            <enabled>true</enabled>
+          </releases>
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+        </repository>
+      </repositories>
+      <pluginRepositories>
+        <pluginRepository>
+          <id>maven-central</id>
+          <name>Maven Central</name>
+          <url>https://repo.maven.apache.org/maven2/</url>
+          <releases>
+            <enabled>true</enabled>
+          </releases>
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+        </pluginRepository>
+        <pluginRepository>
+          <id>sonatype-maven-org</id>
+          <name>Sonatype Maven Repository</name>
+          <url>https://repo.maven.apache.org/maven2/</url>
+          <releases>
+            <enabled>true</enabled>
+          </releases>
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+        </pluginRepository>
+        <pluginRepository>
+          <id>redhat-ga-repository</id>
+          <name>Red Hat GA Repository</name>
+          <url>https://maven.repository.redhat.com/ga/</url>
+          <releases>
+            <enabled>true</enabled>
+          </releases>
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+        </pluginRepository>
+      </pluginRepositories>
+    </profile>
+  </profiles>
+  <activeProfiles>
+    <activeProfile>default-repositories</activeProfile>
+  </activeProfiles>
+</settings>

@@ -25,16 +25,25 @@ while [[ $# -gt 0 ]]; do
 done
 
 TMP="${TMPDIR:-/tmp}/rhsm-m2-repro-$$"
+MAVEN_CENTRAL_BASE_URL="https://repo.maven.apache.org/maven2/"
+MAVEN_REDHAT_GA_REPO_URL="https://maven.repository.redhat.com/ga/"
+MAVEN_NEXUS_REDHAT_REPO_URL="https://nexus.corp.redhat.com/repository/maven-central/"
 cleanup() { rm -rf "$TMP"; }
 trap cleanup EXIT
 mkdir -p "$TMP"
+
+MAVEN_SETTINGS_PATH="$ROOT/.mvn/mvn_settings.xml"
+if [[ ! -f "$MAVEN_SETTINGS_PATH" ]]; then
+  echo "Missing $MAVEN_SETTINGS_PATH" >&2
+  exit 1
+fi
 
 MVN_BIN="./mvnw"
 if command -v mvn >/dev/null 2>&1; then
   MVN_BIN="mvn"
 fi
 
-MVN_OFFLINE_CMD=("$MVN_BIN" -q -Dmaven.repo.local="$TMP" -DskipTests)
+MVN_OFFLINE_CMD=("$MVN_BIN" -s "$MAVEN_SETTINGS_PATH" -U -q -Dmaven.repo.local="$TMP" -DskipTests)
 if [[ -n "$PROJECT" ]]; then
   MVN_OFFLINE_CMD+=(-pl "$PROJECT" -am)
 fi
@@ -64,15 +73,23 @@ done
 
 WRAPPER_PROPS="$ROOT/.mvn/wrapper/maven-wrapper.properties"
 OUT_PATH="$ROOT/out/artifacts.lock.yaml"
-MAVEN_CENTRAL_BASE_URL="${MAVEN_CENTRAL_BASE_URL:-https://repo.maven.apache.org/maven2/}"
 
 repo_base_for() {
   case "$1" in
     central)
       printf '%s' "$MAVEN_CENTRAL_BASE_URL"
       ;;
+    maven-central)
+      printf '%s' "$MAVEN_CENTRAL_BASE_URL"
+      ;;
     sonatype-maven-org)
       printf '%s' "$MAVEN_CENTRAL_BASE_URL"
+      ;;
+    redhat-ga-repository)
+      printf '%s' "$MAVEN_REDHAT_GA_REPO_URL"
+      ;;
+    nexus-redhat-repository)
+      printf '%s' "$MAVEN_NEXUS_REDHAT_REPO_URL"
       ;;
     jboss-public-repository-group)
       printf '%s' 'https://repository.jboss.org/nexus/content/groups/public/'
