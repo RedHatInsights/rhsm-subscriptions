@@ -46,6 +46,9 @@ public class PublicCloudConduitComponentTest extends BaseConduitComponentTest {
   private static final String EXPECTED_UUID = "550e8400-e29b-41d4-a716-446655440000";
   private static final String EXPECTED_FQDN = "host1.openshift.test.com";
   private static final String EXPECTED_BIOS_UUID = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+  private static final String EXPECTED_OPENSHIFT_CLUSTER_ID = "test-cluster-1";
+  private static final String EXPECTED_OPENSHIFT_CLUSTER_UUID =
+      "5dd23807-2bf1-4670-9d6a-42364dc4fddb";
   private static final String EXPECTED_INSIGHTS_ID = "e7f8c9d0-1a2b-3c4d-5e6f-7890abcdef12";
   private static final List<String> EXPECTED_IP_ADDRESSES = List.of("192.168.1.10", "10.0.0.5");
   private static final List<String> EXPECTED_MAC_ADDRESSES = List.of("00:11:22:33:44:55");
@@ -110,8 +113,8 @@ public class PublicCloudConduitComponentTest extends BaseConduitComponentTest {
         EXPECTED_UUID,
         EXPECTED_FQDN,
         EXPECTED_BIOS_UUID,
-        null,
-        null,
+        EXPECTED_OPENSHIFT_CLUSTER_ID,
+        EXPECTED_OPENSHIFT_CLUSTER_UUID,
         EXPECTED_INSIGHTS_ID,
         EXPECTED_IP_ADDRESSES,
         EXPECTED_MAC_ADDRESSES,
@@ -157,8 +160,15 @@ public class PublicCloudConduitComponentTest extends BaseConduitComponentTest {
 
   private void verifyHbiHostIdentityFields(HbiHost data) {
     assertEquals(orgId, data.getOrgId(), "HbiHost orgId should match stubbed consumer");
-    assertEquals(
-        EXPECTED_DISPLAY_NAME, data.getDisplayName(), "Display name should match consumer name");
+    if (data.getOpenshiftClusterId() != null) {
+      assertEquals(
+          EXPECTED_OPENSHIFT_CLUSTER_UUID,
+          data.getDisplayName(),
+          "Display name should match openshift.cluster_uuid fact");
+    } else {
+      assertEquals(
+          EXPECTED_DISPLAY_NAME, data.getDisplayName(), "Display name should match consumer name");
+    }
     assertEquals(EXPECTED_FQDN, data.getFqdn(), "FQDN should match network.fqdn fact");
     assertEquals(
         EXPECTED_UUID,
@@ -167,6 +177,10 @@ public class PublicCloudConduitComponentTest extends BaseConduitComponentTest {
     assertEquals(EXPECTED_BIOS_UUID, data.getBiosUuid(), "BIOS UUID should match dmi.system.uuid");
     assertEquals(
         EXPECTED_INSIGHTS_ID, data.getInsightsId(), "Insights ID should match insights_id fact");
+    assertEquals(
+        EXPECTED_OPENSHIFT_CLUSTER_UUID,
+        data.getOpenshiftClusterId(),
+        "OpenShift cluster ID should match openshift.cluster_uuid fact");
   }
 
   private void verifyHbiHostReporterAndTimestamps(HbiHost data) {

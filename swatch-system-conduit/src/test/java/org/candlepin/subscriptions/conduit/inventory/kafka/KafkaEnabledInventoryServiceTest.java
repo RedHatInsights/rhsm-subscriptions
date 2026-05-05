@@ -113,6 +113,7 @@ class KafkaEnabledInventoryServiceTest {
     expectedFacts.setThreadsPerCore(THREADS_PER_CORE);
     expectedFacts.setProviderType(ConsumerInventory.ProviderTypeEnum.AZURE);
     expectedFacts.setProviderId(UUID.randomUUID().toString());
+    expectedFacts.setOpenshiftClusterId(UUID.randomUUID().toString());
 
     InventoryServiceProperties props = new InventoryServiceProperties();
     props.setKafkaHostIngressTopic("placeholder");
@@ -149,6 +150,7 @@ class KafkaEnabledInventoryServiceTest {
     assertEquals(THREADS_PER_CORE, message.getData().getSystemProfile().getThreadsPerCore());
     assertEquals(expectedFacts.getProviderId(), message.getData().getProviderId());
     assertEquals(expectedFacts.getProviderType(), message.getData().getProviderType());
+    assertEquals(expectedFacts.getOpenshiftClusterId(), message.getData().getOpenshiftClusterId());
   }
 
   @Test

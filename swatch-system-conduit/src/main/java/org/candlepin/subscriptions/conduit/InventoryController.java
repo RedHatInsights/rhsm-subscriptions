@@ -199,6 +199,7 @@ public class InventoryController {
     facts.setSysPurposeAddons(consumer.getSysPurposeAddons());
     facts.setSysPurposeUnits(rhsmFacts.get(OCM_UNITS));
     facts.setBillingModel(rhsmFacts.get(OCM_BILLING_MODEL));
+    facts.setOpenshiftClusterId(rhsmFacts.get(OPENSHIFT_CLUSTER_UUID));
     extractConversionsActivity(rhsmFacts, facts);
 
     extractNetworkFacts(consumer, rhsmFacts, facts);
