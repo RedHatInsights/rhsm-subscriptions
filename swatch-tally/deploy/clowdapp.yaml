@@ -250,6 +250,14 @@ parameters:
     description: Disable Floorist cronjob execution
     required: true
     value: 'false'
+  - name: FLOORIST_SUSPEND_DEV
+    description: Disable Floorist dev cronjob execution
+    required: true
+    value: 'false'
+  - name: FLOORIST_SUSPEND_PREPROD
+    description: Disable Floorist preprod cronjob execution
+    required: true
+    value: 'false'
   - name: FLOORIST_S3_SNOWPIPE_PATH
     description: Path for dataproduct in snowpipe s3 bucket
     value: 'swatch'
@@ -841,6 +849,7 @@ objects:
     name: swatch-tally-dev
   spec:
     <<: *floorplan_spec_base
+    suspend: ${{FLOORIST_SUSPEND_DEV}}
     objectStore:
       secretName: ${FLOORIST_BUCKET_SECRET_NAME_DEV}
 - apiVersion: metrics.console.redhat.com/v1alpha1
@@ -849,6 +858,7 @@ objects:
     name: swatch-tally-preprod
   spec:
     <<: *floorplan_spec_base
+    suspend: ${{FLOORIST_SUSPEND_PREPROD}}
     objectStore:
       secretName: ${FLOORIST_BUCKET_SECRET_NAME_PREPROD}
 - apiVersion: cloud.redhat.com/v1alpha1
