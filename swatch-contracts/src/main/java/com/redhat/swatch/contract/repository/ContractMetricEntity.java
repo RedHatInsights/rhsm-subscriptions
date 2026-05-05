@@ -29,6 +29,7 @@ import jakarta.persistence.IdClass;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -38,6 +39,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.ToString.Exclude;
+import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.Generated;
 
 @Getter
 @Setter
@@ -66,6 +69,12 @@ public class ContractMetricEntity extends PanacheEntityBase {
   @ManyToOne(targetEntity = ContractEntity.class, fetch = FetchType.LAZY)
   @JoinColumn(name = "contract_uuid", insertable = false, updatable = false)
   private ContractEntity contract;
+
+  @Column(name = "last_modified", insertable = false, updatable = false)
+  @ColumnDefault("CURRENT_TIMESTAMP")
+  @Generated
+  // Not included in equals() as this doesn't affect logical equality
+  private Instant lastModified = null;
 
   @Override
   public boolean equals(Object o) {

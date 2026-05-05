@@ -31,6 +31,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
 import java.io.Serializable;
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -41,6 +42,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.Generated;
 
 /**
  * Represents a product Offering that can be provided by a Subscription.
@@ -172,6 +175,12 @@ public class OfferingEntity implements Serializable {
 
   @Column(name = "special_pricing_flag")
   private String specialPricingFlag;
+
+  @Column(name = "last_modified", insertable = false, updatable = false)
+  @ColumnDefault("CURRENT_TIMESTAMP")
+  @Generated
+  // Not included in equals() as this doesn't affect logical equality
+  private Instant lastModified = null;
 
   public boolean isHasUnlimitedUsage() {
     return hasUnlimitedUsage != null && hasUnlimitedUsage;

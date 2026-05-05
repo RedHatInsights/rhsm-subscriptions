@@ -33,6 +33,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.Objects;
@@ -44,6 +45,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.Generated;
 
 @NotNull
 @Entity
@@ -111,6 +114,12 @@ public class ContractEntity extends PanacheEntityBase {
       fetch = FetchType.LAZY,
       mappedBy = "contract")
   private Set<ContractMetricEntity> metrics = new HashSet<>();
+
+  @Column(name = "last_modified", insertable = false, updatable = false)
+  @ColumnDefault("CURRENT_TIMESTAMP")
+  @Generated
+  // Not included in equals() as this doesn't affect logical equality
+  private Instant lastModified = null;
 
   public void addMetrics(Set<ContractMetricEntity> metrics) {
     metrics.forEach(this::addMetric);

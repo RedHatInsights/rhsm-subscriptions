@@ -8,10 +8,10 @@ valid_artifacts=('rhsm-subscriptions'
   'swatch-metrics'
   'swatch-billable-usage'
   'swatch-metrics-hbi'
-  'swatch-database'
   'swatch-utilization')
 
 function build_failed() {
+    echo "Build failed!"
     # Return from the directory the script started in
     popd || exit 1
     exit 1
