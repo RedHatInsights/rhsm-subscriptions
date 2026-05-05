@@ -41,6 +41,7 @@ function get_docker_file_path() {
 function usage() {
   echo "Usage: $0 [-k] [-p platform] [-t tag] [BUILD_ARTIFACT...]"
   echo "-k            keep built images"
+  echo "              always runs Hermeto prefetch and mounts /cachi2/output"
   echo "-p [platform] target platform (e.g. linux/amd64). Auto-detected on Apple Silicon."
   echo "-t [tag]      image tag"
   print_valid_artifacts
@@ -118,6 +119,24 @@ if [[ -n "$platform" ]]; then
   platform_args+=(--platform "$platform")
 fi
 
+cachi_mount=()
+ROOT="$(pwd)"
+OUT_DIR="$ROOT/out"
+rm -rf "$OUT_DIR"
+echo "Generating out/artifacts.lock.yaml"
+lock_args=()
+if [[ ${#projects[@]} -eq 1 ]]; then
+  lock_args=(--project "${projects[0]}")
+fi
+bash "$ROOT/bin/generate-artifacts-lock.sh" "${lock_args[@]}"
+echo "Running Hermeto prefetch -> out"
+podman run --rm \
+  -v "$ROOT:$ROOT:Z" \
+  -w "$ROOT" \
+  ghcr.io/hermetoproject/hermeto:latest \
+  fetch-deps --source "$ROOT" --output "$OUT_DIR" '[{"type":"generic","path":"out"}]'
+cachi_mount=(-v "$OUT_DIR:/cachi2/output:Z")
+
 ./mvnw clean
 for p in "${projects[@]}"; do
   echo "Building ${p}"
@@ -125,6 +144,7 @@ for p in "${projects[@]}"; do
   docker_file=$(get_docker_file_path "$p")
   podman build . -f "$docker_file" \
     "${platform_args[@]}" \
+    "${cachi_mount[@]}" \
     --build-arg-file bin/dev-argfile.conf \
     -t quay.io/$quay_user/$p:$tag \
     --label "git-commit=${commit}" --ulimit nofile=2048:2048

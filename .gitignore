@@ -70,5 +70,4 @@ stub/__files/
 pytest_swatch/*
 
 # maven
-.mvn/wrapper/maven-wrapper.jar
 **/*.dot

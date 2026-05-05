@@ -31,6 +31,10 @@ spec:
       value: swatch-utilization/src/main/docker/Dockerfile.jvm
     - name: path-context
       value: .
+    - name: hermetic
+      value: "true"
+    - name: prefetch-input
+      value: '[{"type":"generic","path":"out"}]'
   pipelineSpec:
     description: |
       This pipeline is ideal for building container images from a Containerfile while maintaining trust after pipeline customization.
@@ -169,12 +173,88 @@ spec:
         workspaces:
           - name: basic-auth
             workspace: git-auth
+      - name: get-runtime-image
+        params:
+          - name: SOURCE_ARTIFACT
+            value: $(tasks.clone-repository.results.SOURCE_ARTIFACT)
+          - name: DOCKERFILE
+            value: $(params.dockerfile)
+        runAfter:
+          - clone-repository
+        taskSpec:
+          params:
+            - name: SOURCE_ARTIFACT
+              type: string
+            - name: DOCKERFILE
+              type: string
+          results:
+            - name: RUNTIME_IMAGE
+          steps:
+            - name: use-trusted-artifact
+              image: quay.io/redhat-appstudio/build-trusted-artifacts:latest@sha256:9b180776a41d9a22a1c51539f1647c60defbbd55b44bbebdd4130e33512d8b0d
+              args:
+              - use
+              - $(params.SOURCE_ARTIFACT)=/workspace/source
+            - name: extract-runtime-image
+              image: quay.io/konflux-ci/konflux-test:stable
+              workingDir: /workspace/source
+              script: |
+                #!/usr/bin/env bash
+                set -euo pipefail
+            
+                RUNTIME_IMAGE="$(awk 'toupper($1) == "FROM" { print $2; exit }' "$(params.DOCKERFILE)")"
+                if [ -z "${RUNTIME_IMAGE}" ]; then
+                  echo "ERROR: Unable to extract runtime image from $(params.DOCKERFILE)" >&2
+                  exit 1
+                fi
+                printf '%s' "${RUNTIME_IMAGE}" > "$(results.RUNTIME_IMAGE.path)"
+      - name: generate-artifacts-lock
+        params:
+          - name: SOURCE_ARTIFACT
+            value: $(tasks.clone-repository.results.SOURCE_ARTIFACT)
+          - name: ociStorage
+            value: $(params.output-image).lockgen
+          - name: ociArtifactExpiresAfter
+            value: $(params.image-expires-after)
+          - name: runtimeImage
+            value: $(tasks.get-runtime-image.results.RUNTIME_IMAGE)
+          - name: executionScript
+            value: |
+              #!/usr/bin/env bash
+              set -euo pipefail
+              set -x
+
+
+              SRC_DIR="/var/workdir/source"
+              WRITABLE_SRC_DIR="/var/workdir/source-writable"
+              BACKUP_SRC_DIR="/var/workdir/source-ro"
+
+              rm -rf "${WRITABLE_SRC_DIR}"
+              cp -a "${SRC_DIR}" "${WRITABLE_SRC_DIR}"
+              (
+                cd "${WRITABLE_SRC_DIR}"
+                ./bin/generate-artifacts-lock.sh --project swatch-utilization
+              )
+              rm -rf "${BACKUP_SRC_DIR}" || true
+              mv "${SRC_DIR}" "${BACKUP_SRC_DIR}"
+              mv "${WRITABLE_SRC_DIR}" "${SRC_DIR}"
+        runAfter:
+          - get-runtime-image
+        taskRef:
+          params:
+            - name: url
+              value: https://github.com/konflux-ci/tekton-integration-catalog.git
+            - name: revision
+              value: 48cbb3f86d2f08b070f8b865a97b632f1a688360
+            - name: pathInRepo
+              value: tasks/fetch-data-to-trusted-artifact/0.1/fetch-data-to-trusted-artifact.yaml
+          resolver: git
       - name: prefetch-dependencies
         params:
           - name: input
             value: $(params.prefetch-input)
           - name: SOURCE_ARTIFACT
-            value: $(tasks.clone-repository.results.SOURCE_ARTIFACT)
+            value: $(tasks.generate-artifacts-lock.results.SOURCE_ARTIFACT)
           - name: ociStorage
             value: $(params.output-image).prefetch
           - name: ociArtifactExpiresAfter
@@ -182,7 +262,7 @@ spec:
           - name: enable-package-registry-proxy
             value: $(params.enable-package-registry-proxy)
         runAfter:
-          - clone-repository
+          - generate-artifacts-lock
         taskRef:
           params:
             - name: name
