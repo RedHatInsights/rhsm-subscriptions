@@ -24,6 +24,7 @@ import static com.redhat.swatch.utilization.configuration.Channels.UTILIZATION;
 
 import com.redhat.swatch.utilization.model.UtilizationSummary;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -34,7 +35,7 @@ public class UtilizationSummaryConsumer {
 
   @Inject UtilizationSummaryPayloadValidator payloadValidator;
   @Inject UtilizationSummaryMeasurementValidator measurementValidator;
-  @Inject CustomerOverUsageService customerOverUsageService;
+  @Inject Instance<UtilizationHandlerService> thresholdServices;
 
   @Incoming(UTILIZATION)
   public void process(UtilizationSummary payload) {
@@ -50,7 +51,9 @@ public class UtilizationSummaryConsumer {
 
     for (var measurement : payload.getMeasurements()) {
       if (measurementValidator.isMeasurementValid(payload, measurement)) {
-        customerOverUsageService.check(payload, measurement);
+        for (var service : thresholdServices) {
+          service.handle(payload, measurement);
+        }
       }
     }
   }

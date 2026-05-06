@@ -20,10 +20,11 @@
  */
 package com.redhat.swatch.utilization.service;
 
-import static com.redhat.swatch.utilization.service.CustomerOverUsageService.OVER_USAGE_METRIC;
+import static com.redhat.swatch.utilization.service.OverUsageThresholdService.EVENT_TYPE;
+import static com.redhat.swatch.utilization.service.OverUsageThresholdService.OVER_USAGE_METRIC;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -53,9 +54,9 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 @QuarkusTest
-class CustomerOverUsageServiceTest {
+class OverUsageThresholdServiceTest {
 
-  @Inject CustomerOverUsageService service;
+  @Inject OverUsageThresholdService service;
 
   @Inject MeterRegistry meterRegistry;
 
@@ -65,17 +66,20 @@ class CustomerOverUsageServiceTest {
 
   // Test data constants
   private static final String ORG_ID = "org123";
-  private static final String PRODUCT_ID = "rosa"; // PAYG product, counter metrics
+  private static final String PAYG_PRODUCT_ID = "rosa"; // PAYG product, counter metrics
   private static final String NON_PAYG_PRODUCT_ID = "RHEL for x86"; // non-PAYG, gauge metrics
-  private static final String PAYG_MIXED_PRODUCT_ID = "ansible-aap-managed"; // PAYG with mixed
-  private static final String METRIC_ID = MetricIdUtils.getCores().getValue();
+  private static final String PAYG_MIXED_PRODUCT_ID =
+      "ansible-aap-managed"; // PAYG product with both counter (Instance-hours) and gauge
+  // (Managed-nodes) metrics
+  private static final String CORES_METRIC_ID = MetricIdUtils.getCores().getValue();
   private static final String SOCKETS_METRIC_ID = MetricIdUtils.getSockets().getValue();
   private static final String MANAGED_NODES_METRIC_ID = MetricIdUtils.getManagedNodes().getValue();
   private static final String INSTANCE_HOURS_METRIC_ID =
       MetricIdUtils.getInstanceHours().getValue();
   private static final double CAPACITY = 100.0;
   private static final double USAGE_EXCEEDING_THRESHOLD = 110.0; // 10% over
-  private static final double USAGE_BELOW_THRESHOLD = 103.0; // 3% over
+  private static final double USAGE_BELOW_THRESHOLD =
+      103.0; // 103% utilization, below 5% default threshold
 
   // Test assertion constants
   private static final double EXPECTED_SINGLE_INCREMENT = 1.0;
@@ -86,12 +90,12 @@ class CustomerOverUsageServiceTest {
   private static final double NEGATIVE_THRESHOLD = -1.0; // Disables detection
 
   // Usage calculation constants
-  private static final double USAGE_ABOVE_PRODUCT_THRESHOLD =
+  private static final double USAGE_BELOW_PRODUCT_THRESHOLD =
       107.0; // 7% over capacity, below 8% product threshold
   private static final double USAGE_ABOVE_DEFAULT_THRESHOLD =
       106.0; // 6% over capacity, exceeds default 5% threshold
-  private static final double USAGE_EXCEEDING_CAPACITY_100_PERCENT =
-      2.0; // 100% over capacity multiplier
+  private static final double USAGE_DOUBLE_CAPACITY =
+      2.0; // multiplier producing 200% utilization (100% over capacity)
 
   @BeforeAll
   static void beforeAll() {
@@ -117,13 +121,14 @@ class CustomerOverUsageServiceTest {
   void shouldIncrementCounter_whenUsageExceedsThreshold() {
     // Given
     UtilizationSummary summary =
-        givenUtilizationSummary(PRODUCT_ID, METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
+        givenUtilizationSummary(
+            PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
 
     // When
     whenCheckSummary(summary);
 
     // Then
-    double count = getCounterValue(PRODUCT_ID, METRIC_ID);
+    double count = getCounterValue(PAYG_PRODUCT_ID, CORES_METRIC_ID);
     assertEquals(EXPECTED_SINGLE_INCREMENT, count, "Counter should be incremented once");
   }
 
@@ -131,13 +136,13 @@ class CustomerOverUsageServiceTest {
   void shouldNotIncrementCounter_whenUsageBelowThreshold() {
     // Given
     UtilizationSummary summary =
-        givenUtilizationSummary(PRODUCT_ID, METRIC_ID, CAPACITY, USAGE_BELOW_THRESHOLD);
+        givenUtilizationSummary(PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, USAGE_BELOW_THRESHOLD);
 
     // When
     whenCheckSummary(summary);
 
     // Then
-    double count = getCounterValue(PRODUCT_ID, METRIC_ID);
+    double count = getCounterValue(PAYG_PRODUCT_ID, CORES_METRIC_ID);
     assertEquals(EXPECTED_NO_CHANGE, count, "Counter should not be incremented");
   }
 
@@ -147,17 +152,19 @@ class CustomerOverUsageServiceTest {
     UtilizationSummary summary =
         new UtilizationSummary()
             .withOrgId(ORG_ID)
-            .withProductId(PRODUCT_ID)
+            .withProductId(PAYG_PRODUCT_ID)
             .withGranularity(UtilizationSummary.Granularity.DAILY)
             .withMeasurements(
                 List.of(
                     new Measurement()
-                        .withMetricId(MetricIdUtils.getCores().getValue())
+                        .withMetricId(CORES_METRIC_ID)
+                        .withValue(USAGE_EXCEEDING_THRESHOLD)
                         .withCurrentTotal(USAGE_EXCEEDING_THRESHOLD)
                         .withCapacity(CAPACITY)
                         .withUnlimited(false),
                     new Measurement()
-                        .withMetricId(MetricIdUtils.getInstanceHours().getValue())
+                        .withMetricId(INSTANCE_HOURS_METRIC_ID)
+                        .withValue(USAGE_EXCEEDING_THRESHOLD)
                         .withCurrentTotal(USAGE_EXCEEDING_THRESHOLD)
                         .withCapacity(CAPACITY)
                         .withUnlimited(false)));
@@ -166,12 +173,11 @@ class CustomerOverUsageServiceTest {
     whenCheckSummary(summary);
 
     // Then - each measurement creates its own counter, check cores counter
-    double coresCount = getCounterValue(PRODUCT_ID, MetricIdUtils.getCores().getValue());
+    double coresCount = getCounterValue(PAYG_PRODUCT_ID, CORES_METRIC_ID);
     assertEquals(EXPECTED_SINGLE_INCREMENT, coresCount, "Cores counter should be incremented");
 
     // And instance hours counter
-    double instanceHoursCount =
-        getCounterValue(PRODUCT_ID, MetricIdUtils.getInstanceHours().getValue());
+    double instanceHoursCount = getCounterValue(PAYG_PRODUCT_ID, INSTANCE_HOURS_METRIC_ID);
     assertEquals(
         EXPECTED_SINGLE_INCREMENT,
         instanceHoursCount,
@@ -184,19 +190,21 @@ class CustomerOverUsageServiceTest {
     UtilizationSummary summary =
         new UtilizationSummary()
             .withOrgId(ORG_ID)
-            .withProductId(PRODUCT_ID)
+            .withProductId(PAYG_PRODUCT_ID)
             .withGranularity(UtilizationSummary.Granularity.DAILY)
             .withMeasurements(
                 List.of(
                     // Below threshold - should NOT increment
                     new Measurement()
-                        .withMetricId(MetricIdUtils.getCores().getValue())
+                        .withMetricId(CORES_METRIC_ID)
+                        .withValue(USAGE_BELOW_THRESHOLD)
                         .withCurrentTotal(USAGE_BELOW_THRESHOLD)
                         .withCapacity(CAPACITY)
                         .withUnlimited(false),
                     // Above threshold - should increment
                     new Measurement()
-                        .withMetricId(MetricIdUtils.getInstanceHours().getValue())
+                        .withMetricId(INSTANCE_HOURS_METRIC_ID)
+                        .withValue(USAGE_EXCEEDING_THRESHOLD)
                         .withCurrentTotal(USAGE_EXCEEDING_THRESHOLD)
                         .withCapacity(CAPACITY)
                         .withUnlimited(false)));
@@ -205,11 +213,10 @@ class CustomerOverUsageServiceTest {
     whenCheckSummary(summary);
 
     // Then - only instance hours should be incremented
-    double coresCount = getCounterValue(PRODUCT_ID, MetricIdUtils.getCores().getValue());
+    double coresCount = getCounterValue(PAYG_PRODUCT_ID, CORES_METRIC_ID);
     assertEquals(EXPECTED_NO_CHANGE, coresCount, "Cores counter should not be incremented");
 
-    double instanceHoursCount =
-        getCounterValue(PRODUCT_ID, MetricIdUtils.getInstanceHours().getValue());
+    double instanceHoursCount = getCounterValue(PAYG_PRODUCT_ID, INSTANCE_HOURS_METRIC_ID);
     assertEquals(
         EXPECTED_SINGLE_INCREMENT,
         instanceHoursCount,
@@ -220,20 +227,23 @@ class CustomerOverUsageServiceTest {
   void shouldInvokeNotificationsProducer_whenUsageExceedsThreshold() {
     // Given
     UtilizationSummary summary =
-        givenUtilizationSummary(PRODUCT_ID, METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
+        givenUtilizationSummary(
+            PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
 
     // When
     whenCheckSummary(summary);
 
     // Then
-    verify(notificationsProducer, times(1)).produce(any(Action.class));
+    verify(notificationsProducer, times(1))
+        .produce(argThat(action -> EVENT_TYPE.equals(action.getEventType())));
   }
 
   @Test
   void shouldSendOverusageNotification_withImportantSeverity() {
     // Given
     UtilizationSummary summary =
-        givenUtilizationSummary(PRODUCT_ID, METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
+        givenUtilizationSummary(
+            PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
 
     // When
     whenCheckSummary(summary);
@@ -242,7 +252,6 @@ class CustomerOverUsageServiceTest {
     var captor = ArgumentCaptor.forClass(Action.class);
     verify(notificationsProducer, times(1)).produce(captor.capture());
     Action action = captor.getValue();
-    assertNotNull(action.getSeverity(), "Notification action should define severity");
     assertEquals(
         Severity.IMPORTANT.name(),
         action.getSeverity(),
@@ -253,7 +262,7 @@ class CustomerOverUsageServiceTest {
   void shouldNotSendNotification_whenUsageBelowThreshold() {
     // Given
     UtilizationSummary summary =
-        givenUtilizationSummary(PRODUCT_ID, METRIC_ID, CAPACITY, USAGE_BELOW_THRESHOLD);
+        givenUtilizationSummary(PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, USAGE_BELOW_THRESHOLD);
 
     // When
     whenCheckSummary(summary);
@@ -268,17 +277,17 @@ class CustomerOverUsageServiceTest {
     UtilizationSummary summary =
         new UtilizationSummary()
             .withOrgId(ORG_ID)
-            .withProductId(PRODUCT_ID)
+            .withProductId(PAYG_PRODUCT_ID)
             .withGranularity(UtilizationSummary.Granularity.DAILY)
             .withMeasurements(
                 List.of(
                     new Measurement()
-                        .withMetricId(MetricIdUtils.getCores().getValue())
+                        .withMetricId(CORES_METRIC_ID)
                         .withCurrentTotal(USAGE_EXCEEDING_THRESHOLD)
                         .withCapacity(CAPACITY)
                         .withUnlimited(false),
                     new Measurement()
-                        .withMetricId(MetricIdUtils.getInstanceHours().getValue())
+                        .withMetricId(INSTANCE_HOURS_METRIC_ID)
                         .withCurrentTotal(USAGE_EXCEEDING_THRESHOLD)
                         .withCapacity(CAPACITY)
                         .withUnlimited(false)));
@@ -287,24 +296,26 @@ class CustomerOverUsageServiceTest {
     whenCheckSummary(summary);
 
     // Then - should send one notification per measurement
-    verify(notificationsProducer, times(2)).produce(any(Action.class));
+    verify(notificationsProducer, times(2))
+        .produce(argThat(action -> EVENT_TYPE.equals(action.getEventType())));
   }
 
   @Test
   void shouldUseProductSpecificThreshold_whenConfigured() {
     // Given - mock product has specific threshold configured
     subscriptionDefinition
-        .when(() -> SubscriptionDefinition.getOverUsageThreshold(PRODUCT_ID))
+        .when(() -> SubscriptionDefinition.getOverUsageThreshold(PAYG_PRODUCT_ID))
         .thenReturn(PRODUCT_SPECIFIC_THRESHOLD);
 
-    double usage = USAGE_ABOVE_PRODUCT_THRESHOLD; // 7% over capacity, below 8% product threshold
-    UtilizationSummary summary = givenUtilizationSummary(PRODUCT_ID, METRIC_ID, CAPACITY, usage);
+    UtilizationSummary summary =
+        givenUtilizationSummary(
+            PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, USAGE_BELOW_PRODUCT_THRESHOLD);
 
     // When
     whenCheckSummary(summary);
 
     // Then - should NOT increment because 7% < 8% product threshold
-    double count = getCounterValue(PRODUCT_ID, METRIC_ID);
+    double count = getCounterValue(PAYG_PRODUCT_ID, CORES_METRIC_ID);
     assertEquals(
         EXPECTED_NO_CHANGE,
         count,
@@ -318,43 +329,43 @@ class CustomerOverUsageServiceTest {
   void shouldUseDefaultThreshold_whenProductThresholdNotConfigured() {
     // Given - mock returns null for product threshold, should fall back to default
     subscriptionDefinition
-        .when(() -> SubscriptionDefinition.getOverUsageThreshold(PRODUCT_ID))
+        .when(() -> SubscriptionDefinition.getOverUsageThreshold(PAYG_PRODUCT_ID))
         .thenReturn(null);
 
     UtilizationSummary summary =
-        givenUtilizationSummary(PRODUCT_ID, METRIC_ID, CAPACITY, USAGE_ABOVE_DEFAULT_THRESHOLD);
+        givenUtilizationSummary(
+            PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, USAGE_ABOVE_DEFAULT_THRESHOLD);
 
     // When
     whenCheckSummary(summary);
 
     // Then - should increment because 6% > 5% default threshold
-    double count = getCounterValue(PRODUCT_ID, METRIC_ID);
+    double count = getCounterValue(PAYG_PRODUCT_ID, CORES_METRIC_ID);
     assertEquals(
         EXPECTED_SINGLE_INCREMENT,
         count,
         "Counter should be incremented when using default threshold");
 
-    // Verify the static method was called and notification was sent
-    verify(notificationsProducer, times(1)).produce(any(Action.class));
+    verify(notificationsProducer, times(1))
+        .produce(argThat(action -> EVENT_TYPE.equals(action.getEventType())));
   }
 
   @Test
   void shouldSkipOverUsageDetection_whenThresholdIsNegative() {
     // Given - negative threshold disables over-usage detection
     subscriptionDefinition
-        .when(() -> SubscriptionDefinition.getOverUsageThreshold(PRODUCT_ID))
+        .when(() -> SubscriptionDefinition.getOverUsageThreshold(PAYG_PRODUCT_ID))
         .thenReturn(NEGATIVE_THRESHOLD);
 
-    double usage =
-        CAPACITY
-            * USAGE_EXCEEDING_CAPACITY_100_PERCENT; // 100% over capacity, but detection disabled
-    UtilizationSummary summary = givenUtilizationSummary(PRODUCT_ID, METRIC_ID, CAPACITY, usage);
+    double usage = CAPACITY * USAGE_DOUBLE_CAPACITY; // 200% utilization, but detection disabled
+    UtilizationSummary summary =
+        givenUtilizationSummary(PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, usage);
 
     // When
     whenCheckSummary(summary);
 
     // Then - should NOT increment because negative threshold disables detection
-    double count = getCounterValue(PRODUCT_ID, METRIC_ID);
+    double count = getCounterValue(PAYG_PRODUCT_ID, CORES_METRIC_ID);
     assertEquals(
         EXPECTED_NO_CHANGE,
         count,
@@ -404,7 +415,8 @@ class CustomerOverUsageServiceTest {
       String expectedUsage) {
     // Given
     UtilizationSummary summary =
-        givenUtilizationSummary(PRODUCT_ID, METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD)
+        givenUtilizationSummary(
+                PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD)
             .withSla(sla)
             .withUsage(usage);
 
@@ -418,7 +430,7 @@ class CustomerOverUsageServiceTest {
     assertEquals(expectedServiceLevel, context.get("service_level"));
     assertEquals(expectedUsage, context.get("usage"));
 
-    double count = getCounterValue(PRODUCT_ID, METRIC_ID, sla, usage);
+    double count = getCounterValue(PAYG_PRODUCT_ID, CORES_METRIC_ID, sla, usage);
     assertEquals(
         EXPECTED_SINGLE_INCREMENT,
         count,
@@ -427,21 +439,9 @@ class CustomerOverUsageServiceTest {
 
   @Test
   void shouldUseValue_forGaugeMetric_nonPaygProduct() {
-    // RHEL for x86 / Sockets is a gauge metric on a non-PAYG product.
-    // value=1 socket (below 2 capacity), currentTotal=31 (meaningless sum of daily gauges)
+    // RHEL for x86 / Sockets: value=1 socket (below 2 capacity), currentTotal=31 (accumulated sum)
     UtilizationSummary summary =
-        new UtilizationSummary()
-            .withOrgId(ORG_ID)
-            .withProductId(NON_PAYG_PRODUCT_ID)
-            .withGranularity(UtilizationSummary.Granularity.DAILY)
-            .withMeasurements(
-                List.of(
-                    new Measurement()
-                        .withMetricId(SOCKETS_METRIC_ID)
-                        .withValue(1.0)
-                        .withCurrentTotal(31.0)
-                        .withCapacity(2.0)
-                        .withUnlimited(false)));
+        givenUtilizationSummary(NON_PAYG_PRODUCT_ID, SOCKETS_METRIC_ID, 2.0, 1.0, 31.0);
 
     whenCheckSummary(summary);
 
@@ -450,65 +450,35 @@ class CustomerOverUsageServiceTest {
 
   @Test
   void shouldTriggerNotification_forGaugeMetric_whenValueExceedsCapacity() {
+    // RHEL for x86 / Sockets: value=3 sockets (above 2 capacity), currentTotal=93 (accumulated sum)
     UtilizationSummary summary =
-        new UtilizationSummary()
-            .withOrgId(ORG_ID)
-            .withProductId(NON_PAYG_PRODUCT_ID)
-            .withGranularity(UtilizationSummary.Granularity.DAILY)
-            .withMeasurements(
-                List.of(
-                    new Measurement()
-                        .withMetricId(SOCKETS_METRIC_ID)
-                        .withValue(3.0)
-                        .withCurrentTotal(93.0)
-                        .withCapacity(2.0)
-                        .withUnlimited(false)));
+        givenUtilizationSummary(NON_PAYG_PRODUCT_ID, SOCKETS_METRIC_ID, 2.0, 3.0, 93.0);
 
     whenCheckSummary(summary);
 
-    verify(notificationsProducer, times(1)).produce(any(Action.class));
+    verify(notificationsProducer, times(1))
+        .produce(argThat(action -> EVENT_TYPE.equals(action.getEventType())));
   }
 
   @Test
   void shouldUseCurrentTotal_forCounterMetric_paygProduct() {
-    // rosa / Cores is a counter metric on a PAYG product.
-    // value=4 (hourly increment), currentTotal=110 (MTD cumulative, exceeds 100 capacity)
+    // rosa / Cores: value=4 (hourly increment), currentTotal=110 (MTD cumulative, exceeds capacity)
     UtilizationSummary summary =
-        new UtilizationSummary()
-            .withOrgId(ORG_ID)
-            .withProductId(PRODUCT_ID)
-            .withGranularity(UtilizationSummary.Granularity.HOURLY)
-            .withMeasurements(
-                List.of(
-                    new Measurement()
-                        .withMetricId(METRIC_ID)
-                        .withValue(4.0)
-                        .withCurrentTotal(USAGE_EXCEEDING_THRESHOLD)
-                        .withCapacity(CAPACITY)
-                        .withUnlimited(false)));
+        givenUtilizationSummary(
+            PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, 4.0, USAGE_EXCEEDING_THRESHOLD);
 
     whenCheckSummary(summary);
 
-    verify(notificationsProducer, times(1)).produce(any(Action.class));
+    verify(notificationsProducer, times(1))
+        .produce(argThat(action -> EVENT_TYPE.equals(action.getEventType())));
   }
 
   @Test
   void shouldUseValue_forGaugeMetric_onPaygProduct() {
-    // ansible-aap-managed / Managed-nodes is a gauge metric on a PAYG product.
-    // value=5 (below 10 capacity), currentTotal=150 (meaningless sum of daily gauges)
+    // ansible-aap-managed / Managed-nodes: value=5 (below 10 capacity), currentTotal=150
+    // (accumulated sum)
     UtilizationSummary summary =
-        new UtilizationSummary()
-            .withOrgId(ORG_ID)
-            .withProductId(PAYG_MIXED_PRODUCT_ID)
-            .withGranularity(UtilizationSummary.Granularity.DAILY)
-            .withMeasurements(
-                List.of(
-                    new Measurement()
-                        .withMetricId(MANAGED_NODES_METRIC_ID)
-                        .withValue(5.0)
-                        .withCurrentTotal(150.0)
-                        .withCapacity(10.0)
-                        .withUnlimited(false)));
+        givenUtilizationSummary(PAYG_MIXED_PRODUCT_ID, MANAGED_NODES_METRIC_ID, 10.0, 5.0, 150.0);
 
     whenCheckSummary(summary);
 
@@ -517,43 +487,27 @@ class CustomerOverUsageServiceTest {
 
   @Test
   void shouldUseCurrentTotal_forCounterMetric_onSamePaygProduct() {
-    // ansible-aap-managed / Instance-hours is a counter metric on the same PAYG product.
-    // value=4 (hourly increment), currentTotal=110 (MTD cumulative, exceeds 100 capacity)
+    // ansible-aap-managed / Instance-hours: value=4 (hourly increment), currentTotal=110 (MTD
+    // cumulative)
     UtilizationSummary summary =
-        new UtilizationSummary()
-            .withOrgId(ORG_ID)
-            .withProductId(PAYG_MIXED_PRODUCT_ID)
-            .withGranularity(UtilizationSummary.Granularity.HOURLY)
-            .withMeasurements(
-                List.of(
-                    new Measurement()
-                        .withMetricId(INSTANCE_HOURS_METRIC_ID)
-                        .withValue(4.0)
-                        .withCurrentTotal(USAGE_EXCEEDING_THRESHOLD)
-                        .withCapacity(CAPACITY)
-                        .withUnlimited(false)));
+        givenUtilizationSummary(
+            PAYG_MIXED_PRODUCT_ID,
+            INSTANCE_HOURS_METRIC_ID,
+            CAPACITY,
+            4.0,
+            USAGE_EXCEEDING_THRESHOLD);
 
     whenCheckSummary(summary);
 
-    verify(notificationsProducer, times(1)).produce(any(Action.class));
+    verify(notificationsProducer, times(1))
+        .produce(argThat(action -> EVENT_TYPE.equals(action.getEventType())));
   }
 
   @Test
   void shouldFallBackToValue_forUnknownMetricOnKnownProduct() {
-    // Known product but unrecognized metric → defaults to GAUGE → uses value
+    // Unknown metric defaults to GAUGE → uses value=1 (below capacity), ignores currentTotal=500
     UtilizationSummary summary =
-        new UtilizationSummary()
-            .withOrgId(ORG_ID)
-            .withProductId(NON_PAYG_PRODUCT_ID)
-            .withGranularity(UtilizationSummary.Granularity.DAILY)
-            .withMeasurements(
-                List.of(
-                    new Measurement()
-                        .withMetricId("Unknown-metric")
-                        .withValue(1.0)
-                        .withCurrentTotal(500.0)
-                        .withCapacity(2.0)
-                        .withUnlimited(false)));
+        givenUtilizationSummary(NON_PAYG_PRODUCT_ID, "Unknown-metric", 2.0, 1.0, 500.0);
 
     whenCheckSummary(summary);
 
@@ -562,20 +516,9 @@ class CustomerOverUsageServiceTest {
 
   @Test
   void shouldFallBackToValue_forUnknownProduct() {
-    // Unknown product → lookupSubscriptionByTag returns empty → defaults to GAUGE → uses value
+    // Unknown product defaults to GAUGE → uses value=1 (below capacity), ignores currentTotal=500
     UtilizationSummary summary =
-        new UtilizationSummary()
-            .withOrgId(ORG_ID)
-            .withProductId("totally-unknown-product")
-            .withGranularity(UtilizationSummary.Granularity.DAILY)
-            .withMeasurements(
-                List.of(
-                    new Measurement()
-                        .withMetricId(SOCKETS_METRIC_ID)
-                        .withValue(1.0)
-                        .withCurrentTotal(500.0)
-                        .withCapacity(2.0)
-                        .withUnlimited(false)));
+        givenUtilizationSummary("totally-unknown-product", SOCKETS_METRIC_ID, 2.0, 1.0, 500.0);
 
     whenCheckSummary(summary);
 
@@ -585,6 +528,11 @@ class CustomerOverUsageServiceTest {
   // Helper methods
   private UtilizationSummary givenUtilizationSummary(
       String productId, String metricId, Double capacity, Double currentTotal) {
+    return givenUtilizationSummary(productId, metricId, capacity, currentTotal, currentTotal);
+  }
+
+  private UtilizationSummary givenUtilizationSummary(
+      String productId, String metricId, Double capacity, Double value, Double currentTotal) {
     return new UtilizationSummary()
         .withOrgId(ORG_ID)
         .withProductId(productId)
@@ -593,6 +541,7 @@ class CustomerOverUsageServiceTest {
             List.of(
                 new Measurement()
                     .withMetricId(metricId)
+                    .withValue(value)
                     .withCurrentTotal(currentTotal)
                     .withCapacity(capacity)
                     .withUnlimited(false)));
@@ -600,7 +549,7 @@ class CustomerOverUsageServiceTest {
 
   private void whenCheckSummary(UtilizationSummary summary) {
     for (Measurement measurement : summary.getMeasurements()) {
-      service.check(summary, measurement);
+      service.handle(summary, measurement);
     }
   }
 
@@ -629,8 +578,8 @@ class CustomerOverUsageServiceTest {
             .name(OVER_USAGE_METRIC)
             .tag("product", productId)
             .tag("metric_id", metricId)
-            .tag("sla", CustomerOverUsageService.metricSlaLabelValue(sla))
-            .tag("usage", CustomerOverUsageService.metricUsageLabelValue(usage))
+            .tag("sla", BaseThresholdService.metricSlaLabelValue(sla))
+            .tag("usage", BaseThresholdService.metricUsageLabelValue(usage))
             .counter();
     return counter != null ? counter.count() : 0.0;
   }
