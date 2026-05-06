@@ -24,10 +24,17 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# Execute network calls without relying on pod-injected proxy env vars.
+run_without_proxy_env() {
+  env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY \
+      -u http_proxy -u https_proxy -u all_proxy \
+      -u NO_PROXY -u no_proxy "$@"
+}
+
 TMP="${TMPDIR:-/tmp}/rhsm-m2-repro-$$"
 MAVEN_CENTRAL_BASE_URL="https://repo.maven.apache.org/maven2/"
 MAVEN_REDHAT_GA_REPO_URL="https://maven.repository.redhat.com/ga/"
-MAVEN_NEXUS_REDHAT_REPO_URL="https://nexus.corp.redhat.com/repository/maven-central/"
+MAVEN_SPLUNK_ARTIFACTORY_URL="https://splunk.jfrog.io/splunk/ext-releases-local/"
 cleanup() { rm -rf "$TMP"; }
 trap cleanup EXIT
 mkdir -p "$TMP"
@@ -54,7 +61,7 @@ MVN_GO_OFFLINE_BACKOFF_BASE_SEC="${MVN_GO_OFFLINE_BACKOFF_BASE_SEC:-5}"
 MVN_GO_OFFLINE_BACKOFF_MAX_SEC="${MVN_GO_OFFLINE_BACKOFF_MAX_SEC:-120}"
 attempt=1
 while true; do
-  if "${MVN_OFFLINE_CMD[@]}"; then
+  if run_without_proxy_env "${MVN_OFFLINE_CMD[@]}"; then
     break
   fi
   if [[ "$attempt" -ge "$MVN_GO_OFFLINE_MAX_ATTEMPTS" ]]; then
@@ -88,11 +95,11 @@ repo_base_for() {
     redhat-ga-repository)
       printf '%s' "$MAVEN_REDHAT_GA_REPO_URL"
       ;;
-    nexus-redhat-repository)
-      printf '%s' "$MAVEN_NEXUS_REDHAT_REPO_URL"
-      ;;
     jboss-public-repository-group)
       printf '%s' 'https://repository.jboss.org/nexus/content/groups/public/'
+      ;;
+    splunk-artifactory)
+      printf '%s' "$MAVEN_SPLUNK_ARTIFACTORY_URL"
       ;;
     *)
       return 1
@@ -118,7 +125,7 @@ sha256_file() {
 }
 
 sha256_url() {
-  curl -fsSL "$1" | sha256_stream
+  run_without_proxy_env curl --noproxy '*' -fsSL "$1" | sha256_stream
 }
 
 seen_mark_string() {
