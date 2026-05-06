@@ -50,10 +50,10 @@ public class BaseUtilizationComponentTest {
   protected static final String OVER_USAGE_METRIC = "swatch_utilization_over_usage_total";
 
   /**
-   * Sentinel for unspecified SLA/usage on {@link #OVER_USAGE_METRIC}; must match {@code
-   * CustomerOverUsageService.OVER_USAGE_DIMENSION_SENTINEL} in swatch-utilization.
+   * Default value for unspecified SLA/usage on threshold metrics; must match {@code
+   * BaseThresholdService.DIMENSION_ANY} in swatch-utilization.
    */
-  protected static final String OVER_USAGE_DIMENSION_SENTINEL = "_ANY";
+  protected static final String DIMENSION_ANY = "_ANY";
 
   @KafkaBridge
   static KafkaBridgeService kafkaBridge = new KafkaBridgeService().subscribeToTopic(NOTIFICATIONS);
@@ -112,13 +112,13 @@ public class BaseUtilizationComponentTest {
 
   /**
    * SLA string as stored on {@link #OVER_USAGE_METRIC}; mirrors swatch-utilization {@code
-   * CustomerOverUsageService} (null, empty, or {@code ANY} → sentinel).
+   * BaseThresholdService} (null, empty, or {@code ANY} → sentinel).
    */
   protected static String slaLabelForOverUsageMetric(UtilizationSummary.Sla sla) {
     if (sla == null
         || sla == UtilizationSummary.Sla.__EMPTY__
         || sla == UtilizationSummary.Sla.ANY) {
-      return OVER_USAGE_DIMENSION_SENTINEL;
+      return DIMENSION_ANY;
     }
     return sla.value();
   }
@@ -130,7 +130,7 @@ public class BaseUtilizationComponentTest {
     if (usage == null
         || usage == UtilizationSummary.Usage.__EMPTY__
         || usage == UtilizationSummary.Usage.ANY) {
-      return OVER_USAGE_DIMENSION_SENTINEL;
+      return DIMENSION_ANY;
     }
     return usage.value();
   }

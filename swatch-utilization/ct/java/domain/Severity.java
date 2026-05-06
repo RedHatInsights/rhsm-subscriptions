@@ -21,5 +21,6 @@
 package domain;
 
 public enum Severity {
-  IMPORTANT
+  IMPORTANT,
+  MODERATE
 }

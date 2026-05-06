@@ -31,6 +31,14 @@ public class MessageValidators {
     return new DefaultMessageValidator<>(a -> orgId.equals(a.getOrgId()), Action.class);
   }
 
+  /** Matches notifications by organization ID and event type. */
+  public static DefaultMessageValidator<Action> matchesNotificationByEventType(
+      String orgId, String eventType) {
+    return new DefaultMessageValidator<>(
+        action -> orgId.equals(action.getOrgId()) && eventType.equals(action.getEventType()),
+        Action.class);
+  }
+
   /** Matches overage notifications by org_id, product_id, and metric_id. */
   public static DefaultMessageValidator<Action> matchesOverageNotification(
       String orgId, String productId, String metricId) {
