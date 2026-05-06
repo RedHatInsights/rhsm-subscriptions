@@ -557,4 +557,18 @@ The over-usage threshold check runs first. If it fires, the custom threshold che
 - **Expected Result**:
     - Over-usage notification takes precedence; custom threshold notification is suppressed.
 
+**custom-threshold-TC006 - Custom threshold fires at the over-usage guard boundary**
 
+- **Description**: Verify that when utilization is exactly at the over-usage guard boundary (`100% + overUsageThreshold`), the custom threshold check is not suppressed and the custom threshold notification is sent, while the over-usage notification is not sent. Both comparisons are exclusive (`>`), so the boundary value does not trigger either check's complement.
+- **Setup**:
+    - The organization has a custom threshold configured (e.g. 80%) via the org preferences API.
+    - A utilization summary is produced with usage exactly at the over-usage guard boundary (105% of capacity, given the default 5% over-usage threshold).
+- **Action**:
+    - Send the utilization summary to the utilization topic.
+- **Verification**:
+    - Wait for notification on the notifications topic.
+    - Verify `eventType` is `exceeded-custom-utilization-threshold` and `severity` is `MODERATE`.
+    - Check absence of any `exceeded-utilization-threshold` notification.
+- **Expected Result**:
+    - Custom threshold notification is sent (guard `utilizationPercent > 100% + threshold` evaluates to `105 > 105` → false, so custom is not suppressed).
+    - No over-usage notification (over-usage check `overagePercent > threshold` evaluates to `5 > 5` → false).
