@@ -48,7 +48,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @Slf4j
-public abstract class BaseThresholdService {
+public abstract class BaseThresholdService implements UtilizationHandlerService {
 
   public static final String DIMENSION_ANY = "_ANY";
 
@@ -66,7 +66,7 @@ public abstract class BaseThresholdService {
   @ConfigProperty(name = "CUSTOMER_OVER_USAGE_DEFAULT_THRESHOLD_PERCENT")
   Double defaultOverUsageThresholdPercent;
 
-  public boolean check(UtilizationSummary payload, Measurement measurement) {
+  public boolean handle(UtilizationSummary payload, Measurement measurement) {
     var utilizationOpt = computeUtilizationPercent(payload, measurement);
     if (utilizationOpt.isEmpty()) {
       return false;
