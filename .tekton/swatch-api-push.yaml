@@ -29,9 +29,7 @@ spec:
   - name: path-context
     value: .
   - name: sast-target-dirs
-    type: string
-    default: .
-    description: Target directories to scan with SAST tools. Multiple values should be separated with commas.
+    value: .
   pipelineSpec:
     description: |
       This pipeline is ideal for building container images from a Containerfile while maintaining trust after pipeline customization.
