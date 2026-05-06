@@ -114,11 +114,11 @@ spec:
       type: string
       description: The format for the resulting image's mediaType. Valid values are oci or docker.
     - name: enable-cache-proxy
-      default: 'false'
+      default: 'true'
       description: Enable cache proxy configuration
       type: string
     - name: enable-package-registry-proxy
-      default: 'true'
+      default: 'false'
       description: Use the package registry proxy when prefetching dependencies
       type: string
     results:
