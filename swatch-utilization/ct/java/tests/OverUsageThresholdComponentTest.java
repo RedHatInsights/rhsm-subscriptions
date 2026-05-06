@@ -43,13 +43,12 @@ import domain.Severity;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-public class CustomerOverUsageComponentTest extends BaseUtilizationComponentTest {
+public class OverUsageThresholdComponentTest extends BaseUtilizationComponentTest {
 
   // Test data constants - aligned with CUSTOMER_OVER_USAGE_DEFAULT_THRESHOLD_PERCENT=5.0
   private static final double BASELINE_CAPACITY = 100.0;
@@ -172,14 +171,13 @@ public class CustomerOverUsageComponentTest extends BaseUtilizationComponentTest
     thenNotificationShouldBeSent();
   }
 
-  /** Verify no exceptions thrown when measurements list is null. */
+  /** Verify no exceptions thrown when measurements list is empty. */
   @Test
-  void shouldHandleNullMeasurementsList_withoutErrors() {
+  void shouldHandleEmptyMeasurementsList_withoutErrors() {
     givenUtilizationSummaryForPaygProduct(Granularity.HOURLY);
 
     whenUtilizationEventIsReceived();
 
-    // Verify counter doesn't change when measurements are null
     thenOverUsageCounterShouldNotChange();
   }
 
@@ -248,10 +246,7 @@ public class CustomerOverUsageComponentTest extends BaseUtilizationComponentTest
             .withBillingAccountId(RandomUtils.generateRandom())
             .withMeasurements(new ArrayList<>());
 
-    for (String metric : List.of(OVER_USAGE_METRIC)) {
-      double initialCount = overUsageMetricCount(product.getFirstMetricId());
-      initialCounters.put(metric, initialCount);
-    }
+    initialCounters.put(OVER_USAGE_METRIC, overUsageMetricCount(product.getFirstMetricId()));
   }
 
   // When helpers
@@ -271,7 +266,9 @@ public class CustomerOverUsageComponentTest extends BaseUtilizationComponentTest
         () -> {
           double currentCount = overUsageMetricCount(metricId);
           assertThat(
-              metric + " counter should be incremented", currentCount, greaterThan(initialCount));
+              metric + " counter should be incremented by exactly 1",
+              currentCount - initialCount,
+              equalTo(EXPECTED_SINGLE_INCREMENT));
         });
   }
 
