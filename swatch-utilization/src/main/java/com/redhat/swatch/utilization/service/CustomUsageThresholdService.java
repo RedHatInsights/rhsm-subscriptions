@@ -45,8 +45,8 @@ public class CustomUsageThresholdService extends BaseThresholdService {
 
   @Transactional
   @Override
-  public boolean check(UtilizationSummary payload, Measurement measurement) {
-    return super.check(payload, measurement);
+  public boolean handle(UtilizationSummary payload, Measurement measurement) {
+    return super.handle(payload, measurement);
   }
 
   @Override

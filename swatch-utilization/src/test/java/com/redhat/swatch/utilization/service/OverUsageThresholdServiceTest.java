@@ -549,7 +549,7 @@ class OverUsageThresholdServiceTest {
 
   private void whenCheckSummary(UtilizationSummary summary) {
     for (Measurement measurement : summary.getMeasurements()) {
-      service.check(summary, measurement);
+      service.handle(summary, measurement);
     }
   }
 

@@ -35,7 +35,7 @@ public class UtilizationSummaryConsumer {
 
   @Inject UtilizationSummaryPayloadValidator payloadValidator;
   @Inject UtilizationSummaryMeasurementValidator measurementValidator;
-  @Inject Instance<BaseThresholdService> thresholdServices;
+  @Inject Instance<UtilizationHandlerService> thresholdServices;
 
   @Incoming(UTILIZATION)
   public void process(UtilizationSummary payload) {
@@ -52,7 +52,7 @@ public class UtilizationSummaryConsumer {
     for (var measurement : payload.getMeasurements()) {
       if (measurementValidator.isMeasurementValid(payload, measurement)) {
         for (var service : thresholdServices) {
-          service.check(payload, measurement);
+          service.handle(payload, measurement);
         }
       }
     }

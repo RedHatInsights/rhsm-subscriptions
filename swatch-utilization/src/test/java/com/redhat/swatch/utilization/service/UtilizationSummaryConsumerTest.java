@@ -90,11 +90,11 @@ public class UtilizationSummaryConsumerTest {
   }
 
   private void thenOverUsageThresholdServiceIsCalled() {
-    verify(overUsageThresholdService).check(any(), any());
+    verify(overUsageThresholdService).handle(any(), any());
   }
 
   private void thenCustomThresholdServiceIsCalled() {
-    verify(customUsageThresholdService).check(any(), any());
+    verify(customUsageThresholdService).handle(any(), any());
   }
 
   private UtilizationSummary createValidPaygPayload() {
