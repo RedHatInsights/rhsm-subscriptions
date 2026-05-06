@@ -20,7 +20,6 @@
 
     <!-- Dependencies -->
     <quarkus.platform.version>3.35.1</quarkus.platform.version>
-    <spring.boot.version>3.5.13</spring.boot.version>
     <spring.boot.version>4.0.6</spring.boot.version>
     <resteasy.version>7.0.0.Final</resteasy.version>
     <!-- Only use as provided in the common dependencies.
