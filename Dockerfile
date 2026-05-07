@@ -4,22 +4,22 @@ USER root
 # Add git, so that the build can determine the git hash
 # Disable all repos except for ubi repos, as ubi repos don't require auth;
 # this makes the container buildable without needing RHEL repos.
-RUN microdnf \
-  --disablerepo=* \
-  --enablerepo=ubi-9-appstream-rpms \
-  --enablerepo=ubi-9-baseos-rpms \
-  install -y \
-  git
 WORKDIR /stage
+ENV HERMETO_GENERIC_DIR="/cachi2/output/deps/generic"
 
 COPY pom.xml ./
 COPY .mvn/maven-settings.xml /tmp/maven-settings.xml
 
+# Hermeto generic prefetch: deps are under /cachi2/output/deps/generic/ with Maven
+# repository layout (see out/artifacts.lock.yaml). Copy into
+# the build-local repo and install prefetched Maven so the build does not hit the network.
+RUN if [ ! -d "${HERMETO_GENERIC_DIR}" ] || ! ls -A "${HERMETO_GENERIC_DIR}" >/dev/null 2>&1; then echo "ERROR: ${HERMETO_GENERIC_DIR} is missing or empty; Hermeto prefetch is required." >&2; exit 1; fi; mkdir -p /root/.m2/repository; cp -a "${HERMETO_GENERIC_DIR}/." /root/.m2/repository/
+
 COPY . .
 ARG VERSION=1.0.0
-ARG MAVEN_BUILD_ARGS=''
+ARG MAVEN_BUILD_ARGS='--no-transfer-progress -B -o -U'
 ARG MAVEN_TASKS='clean package'
-RUN mvn --no-transfer-progress -U -s /tmp/maven-settings.xml ${MAVEN_TASKS} -pl swatch-tally -am -DskipTests ${MAVEN_BUILD_ARGS}
+RUN mvn ${MAVEN_BUILD_ARGS} ${MAVEN_TASKS} ${MAVEN_TASKS} -pl swatch-tally -am -DskipTests
 
 RUN (cd /stage/swatch-tally && exec jar -xf ./target/*.jar)
 RUN ls -al /stage/swatch-tally
@@ -44,15 +44,6 @@ LABEL description="RHSM Subscriptions service based on UBI9 OpenJDK 21."
 LABEL com.redhat.license_terms="https://www.redhat.com/en/about/red-hat-end-user-license-agreements#UBI"
 
 USER root
-RUN microdnf \
-    --disablerepo=* \
-    --enablerepo=ubi-9-baseos-rpms \
-    install -y tar rsync
-RUN microdnf \
-  --disablerepo=* \
-  --enablerepo=ubi-9-appstream-rpms \
-  --enablerepo=ubi-9-baseos-rpms \
-  update -y
 
 # TODO: Investigate layertools? See https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#container-images.efficient-images.layering
 # and https://spring.io/guides/topicals/spring-boot-docker/#_spring_boot_layer_index
