@@ -88,6 +88,24 @@ parameters:
     value: quay.io/redhat-services-prod/rh-subs-watch-tenant/rhsm-subscriptions-egress
   - name: EGRESS_IMAGE_TAG
     value: latest
+  - name: USER_JAVA_OPTS
+    # Heap dumps triggered by heap monitor at 75% threshold (leaves headroom for compression + upload)
+    value: '-Xmx150m -XX:MaxDirectMemorySize=32m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/heapdumps/ -XX:NativeMemoryTracking=summary'
+  - name: ENABLE_HEAP_MONITOR
+    value: 'true'
+  - name: HEAP_MONITOR_THRESHOLD_PERCENT
+    value: '60'
+  - name: HEAP_MONITOR_RESET_PERCENT
+    value: '55'
+  - name: HEAP_DUMP_UPLOAD_S3
+    value: 'false'
+  - name: HEAP_DUMP_S3_PREFIX
+    value: swatch-utilization/heapdumps
+  - name: HEAP_DUMP_S3_BUCKET_NAME
+    value: swatch-utilization-heapdumps
+  - name: HEAP_DUMP_S3_SECRET_NAME
+    # Secret name for S3 credentials (stage/prod: 'heapdump-s3' from app-interface)
+    value: heapdump-s3
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -231,9 +249,28 @@ objects:
                 secretKeyRef:
                   name: ${DB_POD}-db
                   key: db.name
+            - name: JAVA_OPTS_APPEND
+              value: ${USER_JAVA_OPTS}
+            - name: ENABLE_HEAP_MONITOR
+              value: ${ENABLE_HEAP_MONITOR}
+            - name: HEAP_MONITOR_THRESHOLD_PERCENT
+              value: ${HEAP_MONITOR_THRESHOLD_PERCENT}
+            - name: HEAP_MONITOR_RESET_PERCENT
+              value: ${HEAP_MONITOR_RESET_PERCENT}
+            - name: HEAP_DUMP_UPLOAD_S3
+              value: ${HEAP_DUMP_UPLOAD_S3}
+            - name: HEAP_DUMP_S3_PREFIX
+              value: ${HEAP_DUMP_S3_PREFIX}
+            - name: HEAP_DUMP_S3_BUCKET_NAME
+              value: ${HEAP_DUMP_S3_BUCKET_NAME}
           volumeMounts:
             - name: logs
               mountPath: /logs
+            - name: heapdumps
+              mountPath: /heapdumps
+            - name: heapdump-s3-secret
+              mountPath: /aws
+              readOnly: true
           sidecars:
           - name: otel-collector
             enabled: true
@@ -256,6 +293,12 @@ objects:
           volumes:
             - name: logs
               emptyDir:
+            - name: heapdumps
+              emptyDir:
+            - name: heapdump-s3-secret
+              secret:
+                secretName: ${HEAP_DUMP_S3_SECRET_NAME}
+                optional: true
 
 - apiVersion: cloud.redhat.com/v1alpha1
   kind: ClowdApp
