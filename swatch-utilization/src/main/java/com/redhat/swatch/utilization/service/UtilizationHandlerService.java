@@ -18,19 +18,12 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.utilization.data;
+package com.redhat.swatch.utilization.service;
 
-import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.transaction.Transactional;
-import java.util.Optional;
+import com.redhat.swatch.utilization.model.Measurement;
+import com.redhat.swatch.utilization.model.UtilizationSummary;
 
-@ApplicationScoped
-public class OrgUtilizationPreferenceRepository
-    implements PanacheRepositoryBase<OrgUtilizationPreferenceEntity, String> {
+public interface UtilizationHandlerService {
 
-  @Transactional
-  public Optional<OrgUtilizationPreferenceEntity> getPreferences(String orgId) {
-    return findByIdOptional(orgId);
-  }
+  boolean handle(UtilizationSummary payload, Measurement measurement);
 }
