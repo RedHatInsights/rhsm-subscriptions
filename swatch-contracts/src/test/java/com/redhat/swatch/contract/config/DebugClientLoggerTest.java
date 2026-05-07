@@ -55,7 +55,12 @@ import org.junit.jupiter.api.Test;
 @TestProfile(DebugClientLoggerTest.LogAll.class)
 @QuarkusTestResource(value = WireMockResource.class, restrictToAnnotatedClass = true)
 public class DebugClientLoggerTest {
+  private static final String URI_FORMAT =
+      "https://localhost:%s"
+          + "/mock/subscription/search/criteria;"
+          + "subscription_number=any/options;products=ALL;showExternalReferences=true/";
   private static final LoggerCaptor LOGGER_CAPTOR = new LoggerCaptor();
+
   @RestClient SearchApi searchApi;
   @RestClient PartnerApi partnerApi;
   @InjectWireMock WireMockServer wireMockServer;
@@ -87,8 +92,10 @@ public class DebugClientLoggerTest {
     assertEquals(1, response.size());
     assertEquals(123456, response.get(0).getId());
     thenLogWithMessage(
-        "Response method=GET URI=https://localhost:%s/mock/subscription/search/criteria;subscription_number=any"
-            .formatted(wireMockServer.httpsPort()));
+        "Response method=GET"
+            + " URI="
+            + URI_FORMAT.formatted(wireMockServer.httpsPort())
+            + " status=200");
   }
 
   @Test

@@ -87,9 +87,10 @@ public class DebugClientLogger implements ClientRequestFilter, ClientResponseFil
       }
 
       log.debug(
-          "Response method={} URI={} headers={}: \n{}",
+          "Response method={} URI={} status={} headers={}: \n{}",
           requestContext.getMethod(),
           requestContext.getUri().toString(),
+          responseContext.getStatus(),
           mapToString(responseContext.getHeaders()),
           bodyToString(responseBody));
     }
