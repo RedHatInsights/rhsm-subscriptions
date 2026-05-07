@@ -22,7 +22,15 @@ package com.redhat.swatch.utilization.data;
 
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.transaction.Transactional;
+import java.util.Optional;
 
 @ApplicationScoped
 public class OrgUtilizationPreferenceRepository
-    implements PanacheRepositoryBase<OrgUtilizationPreferenceEntity, String> {}
+    implements PanacheRepositoryBase<OrgUtilizationPreferenceEntity, String> {
+
+  @Transactional
+  public Optional<OrgUtilizationPreferenceEntity> getPreferences(String orgId) {
+    return findByIdOptional(orgId);
+  }
+}

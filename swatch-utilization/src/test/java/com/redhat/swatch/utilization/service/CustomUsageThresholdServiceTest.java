@@ -498,7 +498,7 @@ class CustomUsageThresholdServiceTest {
     entity.setOrgId(orgId);
     entity.setCustomThreshold(threshold);
     entity.setLastUpdated(lastUpdated);
-    when(preferenceRepository.findByIdOptional(orgId)).thenReturn(Optional.of(entity));
+    when(preferenceRepository.getPreferences(orgId)).thenReturn(Optional.of(entity));
   }
 
   private UtilizationSummary givenUtilizationSummary(

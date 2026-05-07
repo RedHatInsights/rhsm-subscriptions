@@ -27,7 +27,6 @@ import com.redhat.swatch.utilization.model.Severity;
 import com.redhat.swatch.utilization.model.UtilizationSummary;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
@@ -43,12 +42,6 @@ public class CustomUsageThresholdService extends BaseThresholdService {
 
   @Inject OrgUtilizationPreferenceRepository preferenceRepository;
 
-  @Transactional
-  @Override
-  public boolean handle(UtilizationSummary payload, Measurement measurement) {
-    return super.handle(payload, measurement);
-  }
-
   @Override
   protected Optional<Event> evaluateThreshold(
       double utilizationPercent,
@@ -63,7 +56,7 @@ public class CustomUsageThresholdService extends BaseThresholdService {
       return Optional.empty();
     }
 
-    var preferenceOpt = preferenceRepository.findByIdOptional(payload.getOrgId());
+    var preferenceOpt = preferenceRepository.getPreferences(payload.getOrgId());
     if (preferenceOpt.isEmpty()) {
       log.debug(
           "No org preference found for orgId={}, skipping custom threshold check",
