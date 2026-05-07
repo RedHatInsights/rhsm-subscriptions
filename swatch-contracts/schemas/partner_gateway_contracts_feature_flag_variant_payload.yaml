@@ -1,0 +1,13 @@
+$schema: http://json-schema.org/draft-07/schema#
+title: PartnerGatewayContractsFeatureFlagVariantPayload
+description: JSON payload for the enable-partner-gateway-contracts feature toggle variant.
+type: object
+properties:
+  kafka_consumer_enabled:
+    description: If the kafka consumer is enabled.
+    type: boolean
+    default: true
+  umb_consumer_enabled:
+    description: If the UMB consumer is enabled.
+    type: boolean
+    default: true

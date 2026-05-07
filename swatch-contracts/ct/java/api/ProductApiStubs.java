@@ -23,6 +23,7 @@ package api;
 import domain.Offering;
 import java.util.ArrayList;
 import java.util.Map;
+import org.apache.http.HttpStatus;
 
 /** Facade for stubbing Product API (Offering) endpoints. */
 public class ProductApiStubs {
@@ -126,27 +127,47 @@ public class ProductApiStubs {
 
     var responseBody = Map.of("products", java.util.List.of(product));
 
+    registerProductTreeStub(
+        offering.getSku(),
+        9,
+        Map.of(
+            "status",
+            HttpStatus.SC_OK,
+            "headers",
+            Map.of("Content-Type", "application/json"),
+            "jsonBody",
+            responseBody));
+  }
+
+  public void stubUpstreamProductTreeReturnsServiceUnavailable(String sku) {
+    registerProductTreeStub(
+        sku,
+        1,
+        Map.of(
+            "status",
+            HttpStatus.SC_SERVICE_UNAVAILABLE,
+            "headers",
+            Map.of("Content-Type", "text/plain"),
+            "body",
+            "Service Unavailable"));
+  }
+
+  private static String productTreeUrlPattern(String sku) {
+    return String.format("/mock/product/products/%s/tree.*", sku);
+  }
+
+  private void registerProductTreeStub(String sku, int priority, Map<String, Object> response) {
     wiremockService
         .given()
         .contentType("application/json")
         .body(
             Map.of(
                 "request",
-                Map.of(
-                    "method",
-                    "GET",
-                    "urlPathPattern",
-                    String.format("/mock/product/products/%s/tree.*", offering.getSku())),
+                Map.of("method", "GET", "urlPathPattern", productTreeUrlPattern(sku)),
                 "response",
-                Map.of(
-                    "status",
-                    200,
-                    "headers",
-                    Map.of("Content-Type", "application/json"),
-                    "jsonBody",
-                    responseBody),
+                response,
                 "priority",
-                9,
+                priority,
                 "metadata",
                 wiremockService.getMetadataTags()))
         .when()

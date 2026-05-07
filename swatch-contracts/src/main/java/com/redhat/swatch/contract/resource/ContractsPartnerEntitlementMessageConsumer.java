@@ -23,6 +23,7 @@ package com.redhat.swatch.contract.resource;
 import static com.redhat.swatch.contract.config.Channels.CONTRACTS_FROM_GATEWAY;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.redhat.swatch.contract.config.FeatureFlags;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import io.smallrye.common.annotation.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -34,11 +35,17 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 @Slf4j
 public class ContractsPartnerEntitlementMessageConsumer {
 
+  @Inject FeatureFlags featureFlags;
   @Inject ObjectMapper mapper;
 
   @Blocking
   @Incoming(CONTRACTS_FROM_GATEWAY)
   public void consumeMessage(String dtoContract) {
+    if (!featureFlags.isPartnerGatewayContractsKafkaConsumerEnabled()) {
+      log.debug("IT Partner Kafka consumer for contracts is disabled by feature flag.");
+      return;
+    }
+
     log.debug("IT Partner Kafka consumer was called");
     if (dtoContract == null) {
       return;

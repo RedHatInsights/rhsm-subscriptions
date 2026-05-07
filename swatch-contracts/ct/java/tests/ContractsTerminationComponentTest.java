@@ -52,7 +52,9 @@ import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.http.HttpStatus;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 public class ContractsTerminationComponentTest extends BaseContractComponentTest {
@@ -62,6 +64,16 @@ public class ContractsTerminationComponentTest extends BaseContractComponentTest
   private static final double RHEL_SOCKETS_CAPACITY = 1.0;
 
   @Artemis static ContractsArtemisService artemis = new ContractsArtemisService();
+
+  @BeforeAll
+  static void enablePartnerGatewayContractsFeatureFlag() {
+    unleash.enablePartnerGatewayContracts();
+  }
+
+  @AfterAll
+  static void disablePartnerGatewayContractsFeatureFlag() {
+    unleash.disablePartnerGatewayContracts();
+  }
 
   @TestPlanName("contracts-termination-TC001")
   @Test

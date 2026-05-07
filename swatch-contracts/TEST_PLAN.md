@@ -50,6 +50,7 @@ Test cases should be testable locally and in an ephemeral environment.
 - **Description**: Verify that an AWS PAYG contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
 - **Setup**:  
   - Ensure `UMB_ENABLED=true`
+  - Ensure Unleash toggle `swatch.swatch-contracts.enable-partner-gateway-contracts` is enabled (UMB contract consumer from IT Partner Gateway)
   - Kafka topic `contracts` is available  
   - Prepare a valid AWS partner entitlement message  
 - **Action:**  
@@ -70,6 +71,7 @@ Test cases should be testable locally and in an ephemeral environment.
 - **Description:** Verify that a contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
 - **Setup:**   
   - Ensure `UMB_ENABLED=true`
+  - Ensure Unleash toggle `swatch.swatch-contracts.enable-partner-gateway-contracts` is enabled (UMB contract consumer from IT Partner Gateway)
   - Kafka topic `contracts` is available  
   - Prepare a valid AWS partner entitlement message  
 - **Action:**     
@@ -86,6 +88,7 @@ Test cases should be testable locally and in an ephemeral environment.
 - **Description**: Verify that a contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
 - **Setup**:  
   - Ensure `UMB_ENABLED=true`
+  - Ensure Unleash toggle `swatch.swatch-contracts.enable-partner-gateway-contracts` is enabled (UMB contract consumer from IT Partner Gateway)
   - Kafka topic available  
   - Prepare a valid Azure partner entitlement message  
 - **Action**:  
@@ -106,6 +109,7 @@ Test cases should be testable locally and in an ephemeral environment.
 - **Description**: Verify that a contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
 - **Setup**:  
   - Ensure `UMB_ENABLED=true`
+  - Ensure Unleash toggle `swatch.swatch-contracts.enable-partner-gateway-contracts` is enabled (UMB contract consumer from IT Partner Gateway)
   - Kafka topic available  
   - Prepare a valid Azure partner entitlement message  
 - **Action**:  
@@ -126,6 +130,7 @@ Test cases should be testable locally and in an ephemeral environment.
 - **Description**: Verify contracts can store multiple metrics from partner entitlement dimensions.  
 - **Setup**:  
   - Ensure `UMB_ENABLED=true`
+  - Ensure Unleash toggle `swatch.swatch-contracts.enable-partner-gateway-contracts` is enabled (UMB contract consumer from IT Partner Gateway)
   - Kafka topic available  
   - Prepare a valid partner entitlement message with multiple metrics/dimensions  
 - **Action**:  
@@ -143,6 +148,7 @@ Test cases should be testable locally and in an ephemeral environment.
 - **Description**:  Verify contracts with multiple metrics/dimensions where one of those metrics is an invalid metric, and generate a valid contract with the valid metric.  
 - **Setup**:  
   - Ensure `UMB_ENABLED=true`
+  - Ensure Unleash toggle `swatch.swatch-contracts.enable-partner-gateway-contracts` is enabled (UMB contract consumer from IT Partner Gateway)
   - Kafka topic available  
   - Prepare a valid partner entitlement message with multiple metrics/dimensions where one of those metrics is invalid.  
 - **Action**:  
@@ -160,6 +166,7 @@ Test cases should be testable locally and in an ephemeral environment.
 - **Description**: Verify validation errors are handled gracefully.  
 - **Setup**:   
   - Ensure `UMB_ENABLED=true`
+  - Ensure Unleash toggle `swatch.swatch-contracts.enable-partner-gateway-contracts` is enabled (UMB contract consumer from IT Partner Gateway)
   - Kafka topic available  
   - Prepare an invalid partner entitlement message with missing required fields.  
 - **Action**:  
@@ -176,6 +183,7 @@ Test cases should be testable locally and in an ephemeral environment.
 - **Description**: Verify that an AWS PAYG contract can be successfully created when receiving the message as an object instead of text.
 - **Setup**:
   - Ensure `UMB_ENABLED=true`
+  - Ensure Unleash toggle `swatch.swatch-contracts.enable-partner-gateway-contracts` is enabled (UMB contract consumer from IT Partner Gateway)
   - Prepare a valid AWS partner entitlement message
 - **Action:**
   - Publish message to UMB channel as an object instead of text
@@ -919,6 +927,14 @@ This section verifies the automatic contract termination behavior when contracts
   - API returns HTTP 200 response indicating successful synchronization.
   - Product tag returned matches expected value for unlimited offering.
   - Offering synchronization completes without errors.
+
+**offering-sync-TC005: Upstream product service unavailable during offering sync**
+- **Description:** Verify that when the upstream product API returns HTTP 503 for the product tree, `syncOffering` returns the same HTTP status (503), not HTTP 404.
+- **Setup:** Stub the product tree endpoint (WireMock) to return 503 for the test SKU.
+- **Action:** Call internal sync offering for that SKU.
+- **Verification:** Response status matches upstream (503).
+- **Expected Result:**
+  - Callers can distinguish upstream unavailability from “offering not found”; status code reflects the product API response.
 
 ## Product Tag Management
 

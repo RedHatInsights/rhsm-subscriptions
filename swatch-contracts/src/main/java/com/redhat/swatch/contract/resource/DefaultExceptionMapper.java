@@ -24,6 +24,7 @@ import com.redhat.swatch.contract.exception.ErrorCode;
 import com.redhat.swatch.contract.exception.ServiceException;
 import com.redhat.swatch.contract.openapi.model.Error;
 import jakarta.ws.rs.ClientErrorException;
+import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
@@ -46,6 +47,11 @@ public class DefaultExceptionMapper implements ExceptionMapper<Exception> {
       return Response.status(e.getStatus()).entity(e.error()).build();
     } else if (exception instanceof ClientErrorException clientErrorException) {
       return Response.status(clientErrorException.getResponse().getStatus()).build();
+    } else if (exception instanceof WebApplicationException webApplicationException) {
+      Response webResponse = webApplicationException.getResponse();
+      if (webResponse != null) {
+        return webResponse;
+      }
     }
 
     var status = Status.INTERNAL_SERVER_ERROR;

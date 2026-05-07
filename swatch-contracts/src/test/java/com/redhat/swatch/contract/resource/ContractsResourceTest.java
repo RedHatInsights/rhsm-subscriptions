@@ -85,7 +85,6 @@ class ContractsResourceTest {
 
   private static final String SKU = "mw123";
   private static final String ORG_ID = "org123";
-  private static final String ANOTHER_ORG_ID = "org456";
   private static final String ROSA = "rosa";
   private static final String SYNC_ALL_CONTRACTS_ENDPOINT =
       "/api/swatch-contracts/internal/rpc/contracts/sync";
@@ -270,6 +269,14 @@ class ContractsResourceTest {
         .put(String.format("/api/swatch-contracts/internal/rpc/offerings/sync/%s", "TEST_SKU"))
         .then()
         .statusCode(400);
+
+    when(r.getStatus()).thenReturn(503);
+    doThrow(rtex).when(offeringSyncService).syncOffering(any(String.class));
+    given()
+        .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
+        .put(String.format("/api/swatch-contracts/internal/rpc/offerings/sync/%s", "TEST_SKU"))
+        .then()
+        .statusCode(503);
 
     when(r.getStatus()).thenReturn(0);
     doThrow(rtex).when(offeringSyncService).syncOffering(any(String.class));

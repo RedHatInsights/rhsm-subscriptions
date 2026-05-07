@@ -133,14 +133,9 @@ public class OfferingSyncService {
    */
   private Optional<OfferingEntity> getUpstreamOffering(String sku) {
     log.debug("Retrieving product tree for offeringSku=\"{}\"", sku);
-    try {
-      var offering = UpstreamProductData.offeringFromUpstream(sku, productService);
-      discoverProductTagsBySku(offering);
-      return offering;
-    } catch (ServiceException e) {
-      log.error("Unable to retrieve offering from upstream ", e);
-      return Optional.empty();
-    }
+    var offering = UpstreamProductData.offeringFromUpstream(sku, productService);
+    discoverProductTagsBySku(offering);
+    return offering;
   }
 
   /**

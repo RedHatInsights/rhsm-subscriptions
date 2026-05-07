@@ -94,6 +94,18 @@
               </sourcePaths>
             </configuration>
           </execution>
+          <execution>
+            <id>from-swatch-contracts</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <sourceDirectory>${maven.multiModuleProjectDirectory}/swatch-contracts/schemas</sourceDirectory>
+              <sourcePaths>
+                <sourcePath>enable_partner_gateway_contracts_variant_payload.yaml</sourcePath>
+              </sourcePaths>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
 

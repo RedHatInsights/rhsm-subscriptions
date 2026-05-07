@@ -26,11 +26,13 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import api.ContractsSwatchService;
+import api.ContractsUnleashService;
 import api.ContractsWiremockService;
 import com.redhat.swatch.component.tests.api.ComponentTest;
 import com.redhat.swatch.component.tests.api.KafkaBridge;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.api.Quarkus;
+import com.redhat.swatch.component.tests.api.Unleash;
 import com.redhat.swatch.component.tests.api.Wiremock;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
@@ -70,6 +72,8 @@ public class BaseContractComponentTest {
 
   @Quarkus(service = "swatch-contracts")
   static ContractsSwatchService service = new ContractsSwatchService();
+
+  @Unleash static ContractsUnleashService unleash = new ContractsUnleashService();
 
   protected static final ApplicationClock clock = new ApplicationClock();
 

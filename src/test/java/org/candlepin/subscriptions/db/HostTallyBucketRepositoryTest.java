@@ -21,6 +21,8 @@
 package org.candlepin.subscriptions.db;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import java.time.OffsetDateTime;
@@ -153,6 +155,78 @@ class HostTallyBucketRepositoryTest {
 
     AccountBucketTally abt = tallies.get(0);
     assertBucketTally(abt, null, null, 1.0);
+  }
+
+  @Transactional
+  @Test
+  void testIsPrimaryCanBeSetOnInsert() {
+    AccountServiceInventory account = new AccountServiceInventory("org123", "HBI_HOST");
+
+    Host h1 = createHost("inv1", "org123");
+    HostTallyBucket bucket = new HostTallyBucket();
+    bucket.setKey(
+        new HostBucketKey(
+            h1, "P1", ServiceLevel._ANY, Usage._ANY, BillingProvider.RED_HAT, "redhat1", false));
+    bucket.setHost(h1);
+    bucket.setMeasurementType(HardwareMeasurementType.PHYSICAL);
+    bucket.setPrimary(true);
+    h1.addBucket(bucket);
+    account.getServiceInstances().put(h1.getInstanceId(), h1);
+
+    accountRepo.save(account);
+    accountRepo.flush();
+
+    var accountId = account.getId();
+    String instanceId = h1.getInstanceId();
+    bucketRepo.getEntityManager().clear();
+
+    // Re-fetch from DB through account → host → bucket
+    AccountServiceInventory refetchedAccount = accountRepo.findById(accountId).orElseThrow();
+    Host refetchedHost = refetchedAccount.getServiceInstances().get(instanceId);
+    HostTallyBucket refetchedBucket = refetchedHost.getBuckets().iterator().next();
+
+    assertTrue(refetchedBucket.isPrimary());
+  }
+
+  @Transactional
+  @Test
+  void testIsPrimaryCanBeUpdated() {
+    AccountServiceInventory account = new AccountServiceInventory("org123", "HBI_HOST");
+
+    Host h1 = createHost("inv1", "org123");
+    HostTallyBucket bucket = new HostTallyBucket();
+    bucket.setKey(
+        new HostBucketKey(
+            h1, "P1", ServiceLevel._ANY, Usage._ANY, BillingProvider.RED_HAT, "redhat1", false));
+    bucket.setHost(h1);
+    bucket.setMeasurementType(HardwareMeasurementType.PHYSICAL);
+    h1.addBucket(bucket);
+    account.getServiceInstances().put(h1.getInstanceId(), h1);
+
+    accountRepo.save(account);
+    accountRepo.flush();
+
+    var accountId = account.getId();
+    String instanceId = h1.getInstanceId();
+    bucketRepo.getEntityManager().clear();
+
+    // Re-fetch from DB to verify default value
+    AccountServiceInventory refetchedAccount = accountRepo.findById(accountId).orElseThrow();
+    Host refetchedHost = refetchedAccount.getServiceInstances().get(instanceId);
+    HostTallyBucket refetchedBucket = refetchedHost.getBuckets().iterator().next();
+    assertFalse(refetchedBucket.isPrimary());
+
+    // Update isPrimary to true
+    refetchedBucket.setPrimary(true);
+    accountRepo.save(refetchedAccount);
+    accountRepo.flush();
+    bucketRepo.getEntityManager().clear();
+
+    // Re-fetch again to verify update was persisted
+    AccountServiceInventory refetchedAccount2 = accountRepo.findById(accountId).orElseThrow();
+    Host refetchedHost2 = refetchedAccount2.getServiceInstances().get(instanceId);
+    HostTallyBucket updatedBucket = refetchedHost2.getBuckets().iterator().next();
+    assertTrue(updatedBucket.isPrimary());
   }
 
   private void assertBucketTally(

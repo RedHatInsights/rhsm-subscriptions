@@ -22,8 +22,11 @@ package com.redhat.swatch.contract.resource;
 
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import com.redhat.swatch.contract.config.FeatureFlags;
 import com.redhat.swatch.contract.model.PartnerEntitlementsRequest;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.service.ContractService;
@@ -65,6 +68,7 @@ class ContractUMBMessageConsumerTest {
 
   @InjectMock ContractService contractService;
 
+  @InjectMock FeatureFlags featureFlags;
   @Inject @Any InMemoryConnector connector;
 
   private InMemorySource<Object> contractsChannel;
@@ -72,7 +76,9 @@ class ContractUMBMessageConsumerTest {
   @BeforeEach
   void setUp() {
     contractsChannel = connector.source(CONTRACTS_CHANNEL);
-    Mockito.reset(contractService);
+    Mockito.reset(contractService, featureFlags);
+
+    when(featureFlags.isPartnerGatewayContractsUmbConsumerEnabled()).thenReturn(true);
 
     // Configure mock to return a success response
     StatusResponse mockResponse = new StatusResponse();
@@ -105,6 +111,13 @@ class ContractUMBMessageConsumerTest {
     assertMessageIsProcessed();
   }
 
+  @Test
+  void shouldIgnoreMessagesWhenFeatureFlagIsDisabled() {
+    when(featureFlags.isPartnerGatewayContractsUmbConsumerEnabled()).thenReturn(false);
+    whenSendMessage(VALID_JSON_MESSAGE);
+    assertMessageIsNotProcessed();
+  }
+
   private void whenSendMessage(Object message) {
     contractsChannel.send(message);
   }
@@ -115,6 +128,15 @@ class ContractUMBMessageConsumerTest {
         .untilAsserted(
             () ->
                 verify(contractService)
+                    .createPartnerContract(any(PartnerEntitlementsRequest.class)));
+  }
+
+  private void assertMessageIsNotProcessed() {
+    await()
+        .atMost(Duration.ofMillis(500))
+        .untilAsserted(
+            () ->
+                verify(contractService, never())
                     .createPartnerContract(any(PartnerEntitlementsRequest.class)));
   }
 

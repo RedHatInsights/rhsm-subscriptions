@@ -24,6 +24,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -146,6 +147,23 @@ public class OfferingSyncComponentTest extends BaseContractComponentTest {
         productTags,
         "RHEL for x86",
         "Product tag should match expected value for unlimited RHEL offering");
+  }
+
+  @TestPlanName("offering-sync-TC005")
+  @Test
+  void shouldPropagate503WhenUpstreamProductTreeReturns503() {
+    // Given: Upstream product API returns 503 for the product tree request
+    String sku = "SKU_503_" + RandomUtils.generateRandom();
+    wiremock.forProductAPI().stubUpstreamProductTreeReturnsServiceUnavailable(sku);
+
+    // When: syncOffering is invoked
+    Response syncResponse = whenOfferingIsSynced(sku);
+
+    // Then: Same HTTP status as upstream (not 404 / not a generic 500)
+    assertEquals(
+        HttpStatus.SC_SERVICE_UNAVAILABLE,
+        syncResponse.statusCode(),
+        "syncOffering should return 503 when upstream product service returns 503");
   }
 
   /**

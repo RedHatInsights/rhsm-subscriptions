@@ -3,7 +3,7 @@
 #
 # Before building the container image run:
 #
-# ./mvnw package
+# mvn package
 #
 # Then, build the image with:
 #
@@ -75,7 +75,7 @@
 #   accessed directly. (example: "foo.example.com,bar.example.com")
 #
 ###
-FROM registry.access.redhat.com/ubi9/openjdk-21:1.24-2.1777030054
+FROM registry.access.redhat.com/ubi9/openjdk-21:1.24-2.1777977960
 
 USER root
 # Add git, so that the build can determine the git hash
@@ -89,24 +89,17 @@ RUN microdnf \
   git
 WORKDIR /stage
 
-COPY mvnw .
-COPY .mvn .mvn
 COPY pom.xml ./
+COPY .mvn/maven-settings.xml /tmp/maven-settings.xml
 
-# TEMPORARY WORKAROUND: Removed --mount=type=cache due to runc incompatibility
-# See: https://issues.redhat.com/browse/APPSRE-13062
-# This makes builds slower but allows them to work with runc until infra configures crun
-# TODO: Re-enable cache mounts once infra switches to crun
-RUN ./mvnw -P download dependency:resolve-plugins dependency:resolve --fail-never
 COPY . .
 ARG VERSION=1.0.0
 ARG PROJECT_NAME='swatch-utilization'
 ARG MAVEN_BUILD_ARGS='-DskipTests'
 ARG MAVEN_TASKS='clean package'
-# TEMPORARY WORKAROUND: Removed --mount=type=cache due to runc incompatibility
-RUN ./mvnw ${MAVEN_TASKS} -pl ${PROJECT_NAME} -am ${MAVEN_BUILD_ARGS}
+RUN mvn --no-transfer-progress -U -s /tmp/maven-settings.xml ${MAVEN_TASKS} -pl ${PROJECT_NAME} -am ${MAVEN_BUILD_ARGS}
 
-FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:1.24-2.1777030053
+FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:1.24-2.1777977956
 
 ARG VERSION=1.0.0
 ARG PROJECT_NAME='swatch-utilization'
@@ -130,12 +123,17 @@ USER root
 RUN microdnf \
     --disablerepo=* \
     --enablerepo=ubi-9-baseos-rpms \
-    install -y tar rsync
-RUN microdnf \
+    install -y tar rsync gzip && \
+  microdnf \
   --disablerepo=* \
   --enablerepo=ubi-9-appstream-rpms \
   --enablerepo=ubi-9-baseos-rpms \
-  update -y
+  update -y && \
+  microdnf clean all
+
+# Copy heap monitor scripts
+COPY --chown=default:root --chmod=755 swatch-utilization/src/main/docker/heap-monitor.sh /opt/heap-monitor.sh
+COPY --chown=default:root --chmod=755 swatch-utilization/src/main/docker/entrypoint-wrapper.sh /opt/entrypoint-wrapper.sh
 
 # Used by Quarkus dev mode
 RUN chown default:root /deployments
@@ -164,3 +162,6 @@ ENV INTERNAL_OPTS_APPEND="-Dorg.apache.kafka.automatic.config.providers=none -XX
 ENV QUARKUS_OPTS_APPEND="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"
 ENV JAVA_OPTS_APPEND="$QUARKUS_OPTS_APPEND $INTERNAL_OPTS_APPEND $USER_OPTS_APPEND"
 ENV JAVA_APP_JAR="/deployments/quarkus-run.jar"
+
+# Use wrapper entrypoint to start heap threshold monitor
+ENTRYPOINT ["/opt/entrypoint-wrapper.sh"]
