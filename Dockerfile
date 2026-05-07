@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/openjdk-21:1.24-2.1777575906
+FROM registry.access.redhat.com/ubi9/openjdk-21:1.24-2.1777977960
 
 USER root
 # Add git, so that the build can determine the git hash
@@ -24,7 +24,7 @@ RUN mvn --no-transfer-progress -U -s /tmp/maven-settings.xml ${MAVEN_TASKS} -pl 
 RUN (cd /stage/swatch-tally && exec jar -xf ./target/*.jar)
 RUN ls -al /stage/swatch-tally
 
-FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:1.24-2.1777575919
+FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:1.24-2.1777977956
 
 ARG VERSION=1.0.0
 
