@@ -480,16 +480,16 @@ Additional cases can be added under the same `utilization-notifications-featuref
 
 ## Custom Usage Threshold Notification
 
-The `CustomUsageThresholdService` evaluates utilization summaries against org-specific thresholds stored in the `org_utilization_preference` table. When utilization reaches or exceeds the custom threshold, it sends an `exceeded-custom-utilization-threshold` notification with `MODERATE` severity. The notification payload includes a SHA-256 hash of `last_updated` from the org preference for deduplication.
+The `CustomThresholdUtilizationHandlerService` evaluates utilization summaries against org-specific thresholds stored in the `org_utilization_preference` table. When utilization reaches or exceeds the custom threshold, it sends an `exceeded-custom-utilization-threshold` notification with `MODERATE` severity. The notification payload includes a SHA-256 hash of `last_updated` from the org preference for deduplication.
 
-The over-usage threshold check runs first. If it fires, the custom threshold check is skipped (no redundant notification).
+The custom threshold and over-usage threshold are independent notification types. Both can fire for the same utilization event if their respective conditions are met.
 
 **custom-threshold-TC001 - Detect custom threshold exceeded and send notification**
 
-- **Description**: Verify `CustomUsageThresholdService` sends a notification when utilization exceeds the org custom threshold.
+- **Description**: Verify `CustomThresholdUtilizationHandlerService` sends a notification when utilization exceeds the org custom threshold.
 - **Setup**:
     - The organization has a custom threshold configured (e.g. 80%) via the org preferences API.
-    - A utilization summary is produced with usage above the custom threshold but below the over-usage threshold (e.g. 85% of capacity).
+    - A utilization summary is produced with usage above the custom threshold (e.g. 85% of capacity).
 - **Action**:
     - Send the utilization summary to the utilization topic.
 - **Verification**:
@@ -503,7 +503,7 @@ The over-usage threshold check runs first. If it fires, the custom threshold che
 
 **custom-threshold-TC002 - Notification sent when utilization is exactly at custom threshold**
 
-- **Description**: Verify `CustomUsageThresholdService` sends a notification when utilization is exactly at the org custom threshold boundary.
+- **Description**: Verify `CustomThresholdUtilizationHandlerService` sends a notification when utilization is exactly at the org custom threshold boundary.
 - **Setup**:
     - The organization has a custom threshold configured (e.g. 80%) via the org preferences API.
     - A utilization summary is produced with usage exactly at the custom threshold (e.g. 80% of capacity).
@@ -521,7 +521,7 @@ The over-usage threshold check runs first. If it fires, the custom threshold che
 - **Description**: Verify no custom threshold notification is sent when the organization has not configured a custom threshold.
 - **Setup**:
     - The organization has no entry in `org_utilization_preference`.
-    - A utilization summary is produced with positive usage below the over-usage threshold.
+    - A utilization summary is produced with positive usage above the custom threshold.
 - **Action**:
     - Send the utilization summary to the utilization topic.
 - **Verification**:
@@ -542,33 +542,17 @@ The over-usage threshold check runs first. If it fires, the custom threshold che
 - **Expected Result**:
     - No notification event created.
 
-**custom-threshold-TC005 - Over-usage takes precedence over custom threshold**
+**custom-threshold-TC005 - Both notifications sent independently when usage exceeds both thresholds**
 
-- **Description**: Verify that when over-usage is detected, the custom threshold check is skipped and only the over-usage notification is sent.
+- **Description**: Verify that when usage exceeds both the custom threshold and the over-usage threshold, both notifications are sent independently.
 - **Setup**:
     - The organization has a custom threshold configured (e.g. 80%) via the org preferences API.
-    - A utilization summary is produced with usage exceeding both the custom threshold and the over-usage threshold (e.g. 110% of capacity).
+    - A utilization summary is produced with usage over capacity (e.g. 120% of capacity), exceeding both the custom threshold and the over-usage threshold.
 - **Action**:
     - Send the utilization summary to the utilization topic.
 - **Verification**:
-    - Wait for notification on the notifications topic.
-    - Verify the notification `eventType` is `exceeded-utilization-threshold` and `severity` is `IMPORTANT`.
-    - Check absence of any `exceeded-custom-utilization-threshold` notification.
+    - Wait for notifications on the notifications topic.
+    - Verify a notification with `eventType` `exceeded-custom-utilization-threshold` and `severity` `MODERATE` is sent.
+    - Verify a notification with `eventType` `exceeded-utilization-threshold` and `severity` `IMPORTANT` is sent.
 - **Expected Result**:
-    - Over-usage notification takes precedence; custom threshold notification is suppressed.
-
-**custom-threshold-TC006 - Custom threshold fires at the over-usage guard boundary**
-
-- **Description**: Verify that when utilization is exactly at the over-usage guard boundary (`100% + overUsageThreshold`), the custom threshold check is not suppressed and the custom threshold notification is sent, while the over-usage notification is not sent. Both comparisons are exclusive (`>`), so the boundary value does not trigger either check's complement.
-- **Setup**:
-    - The organization has a custom threshold configured (e.g. 80%) via the org preferences API.
-    - A utilization summary is produced with usage exactly at the over-usage guard boundary (105% of capacity, given the default 5% over-usage threshold).
-- **Action**:
-    - Send the utilization summary to the utilization topic.
-- **Verification**:
-    - Wait for notification on the notifications topic.
-    - Verify `eventType` is `exceeded-custom-utilization-threshold` and `severity` is `MODERATE`.
-    - Check absence of any `exceeded-utilization-threshold` notification.
-- **Expected Result**:
-    - Custom threshold notification is sent (guard `utilizationPercent > 100% + threshold` evaluates to `105 > 105` → false, so custom is not suppressed).
-    - No over-usage notification (over-usage check `overagePercent > threshold` evaluates to `5 > 5` → false).
+    - Both notifications are sent. The two notification types are independent; neither suppresses the other.
