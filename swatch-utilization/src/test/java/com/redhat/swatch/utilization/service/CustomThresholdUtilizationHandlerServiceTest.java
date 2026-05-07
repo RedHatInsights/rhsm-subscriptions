@@ -20,8 +20,8 @@
  */
 package com.redhat.swatch.utilization.service;
 
-import static com.redhat.swatch.utilization.service.CustomUsageThresholdService.CUSTOM_THRESHOLD_METRIC;
-import static com.redhat.swatch.utilization.service.CustomUsageThresholdService.EVENT_TYPE;
+import static com.redhat.swatch.utilization.service.CustomThresholdUtilizationHandlerService.CUSTOM_THRESHOLD_METRIC;
+import static com.redhat.swatch.utilization.service.CustomThresholdUtilizationHandlerService.EVENT_TYPE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -62,9 +62,9 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 @QuarkusTest
-class CustomUsageThresholdServiceTest {
+class CustomThresholdUtilizationHandlerServiceTest {
 
-  @Inject CustomUsageThresholdService service;
+  @Inject CustomThresholdUtilizationHandlerService service;
 
   @Inject MeterRegistry meterRegistry;
 
@@ -292,7 +292,7 @@ class CustomUsageThresholdServiceTest {
     Action action = captor.getValue();
 
     var eventPayload = action.getEvents().get(0).getPayload().getAdditionalProperties();
-    String expectedHash = CustomUsageThresholdService.hashLastUpdated(LAST_UPDATED);
+    String expectedHash = CustomThresholdUtilizationHandlerService.hashLastUpdated(LAST_UPDATED);
     assertEquals(expectedHash, eventPayload.get("last_updated_hash"));
   }
 
@@ -542,8 +542,8 @@ class CustomUsageThresholdServiceTest {
             .name(CUSTOM_THRESHOLD_METRIC)
             .tag("product", productId)
             .tag("metric_id", metricId)
-            .tag("sla", BaseThresholdService.metricSlaLabelValue(sla))
-            .tag("usage", BaseThresholdService.metricUsageLabelValue(usage))
+            .tag("sla", BaseThresholdUtilizationHandlerService.metricSlaLabelValue(sla))
+            .tag("usage", BaseThresholdUtilizationHandlerService.metricUsageLabelValue(usage))
             .counter();
     return counter != null ? counter.count() : 0.0;
   }

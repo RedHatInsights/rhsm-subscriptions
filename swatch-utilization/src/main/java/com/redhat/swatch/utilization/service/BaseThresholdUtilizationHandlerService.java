@@ -48,7 +48,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @Slf4j
-public abstract class BaseThresholdService implements UtilizationHandlerService {
+public abstract class BaseThresholdUtilizationHandlerService implements UtilizationHandlerService {
 
   public static final String DIMENSION_ANY = "_ANY";
 

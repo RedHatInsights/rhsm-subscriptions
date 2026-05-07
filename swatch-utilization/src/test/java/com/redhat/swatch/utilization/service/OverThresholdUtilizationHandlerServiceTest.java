@@ -20,8 +20,8 @@
  */
 package com.redhat.swatch.utilization.service;
 
-import static com.redhat.swatch.utilization.service.OverUsageThresholdService.EVENT_TYPE;
-import static com.redhat.swatch.utilization.service.OverUsageThresholdService.OVER_USAGE_METRIC;
+import static com.redhat.swatch.utilization.service.OverThresholdUtilizationHandlerService.EVENT_TYPE;
+import static com.redhat.swatch.utilization.service.OverThresholdUtilizationHandlerService.OVER_USAGE_METRIC;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -54,9 +54,9 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 @QuarkusTest
-class OverUsageThresholdServiceTest {
+class OverThresholdUtilizationHandlerServiceTest {
 
-  @Inject OverUsageThresholdService service;
+  @Inject OverThresholdUtilizationHandlerService service;
 
   @Inject MeterRegistry meterRegistry;
 
@@ -578,8 +578,8 @@ class OverUsageThresholdServiceTest {
             .name(OVER_USAGE_METRIC)
             .tag("product", productId)
             .tag("metric_id", metricId)
-            .tag("sla", BaseThresholdService.metricSlaLabelValue(sla))
-            .tag("usage", BaseThresholdService.metricUsageLabelValue(usage))
+            .tag("sla", BaseThresholdUtilizationHandlerService.metricSlaLabelValue(sla))
+            .tag("usage", BaseThresholdUtilizationHandlerService.metricUsageLabelValue(usage))
             .counter();
     return counter != null ? counter.count() : 0.0;
   }

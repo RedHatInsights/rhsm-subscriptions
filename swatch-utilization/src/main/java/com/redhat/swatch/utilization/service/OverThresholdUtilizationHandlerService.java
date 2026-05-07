@@ -21,26 +21,20 @@
 package com.redhat.swatch.utilization.service;
 
 import com.redhat.cloud.notifications.ingress.Event;
-import com.redhat.swatch.utilization.data.OrgUtilizationPreferenceRepository;
 import com.redhat.swatch.utilization.model.Measurement;
 import com.redhat.swatch.utilization.model.Severity;
 import com.redhat.swatch.utilization.model.UtilizationSummary;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import java.time.OffsetDateTime;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.codec.digest.DigestUtils;
 
 @Slf4j
 @ApplicationScoped
-public class CustomUsageThresholdService extends BaseThresholdService {
+public class OverThresholdUtilizationHandlerService extends BaseThresholdUtilizationHandlerService {
 
-  public static final String CUSTOM_THRESHOLD_METRIC = "swatch_utilization_custom_threshold";
+  public static final String OVER_USAGE_METRIC = "swatch_utilization_over_usage";
 
-  static final String EVENT_TYPE = "exceeded-custom-utilization-threshold";
-
-  @Inject OrgUtilizationPreferenceRepository preferenceRepository;
+  static final String EVENT_TYPE = "exceeded-utilization-threshold";
 
   @Override
   protected Optional<Event> evaluateThreshold(
@@ -48,41 +42,41 @@ public class CustomUsageThresholdService extends BaseThresholdService {
       double overUsageThreshold,
       UtilizationSummary payload,
       Measurement measurement) {
-    if (utilizationPercent > FULL_CAPACITY_PERCENT + overUsageThreshold) {
+    if (overUsageThreshold < 0.0) {
       log.debug(
-          "Skipping custom threshold check: over-usage alert will be triggered for orgId={} productId={}",
+          "Skipping over-usage check for orgId={} productId={} due to negative threshold={}",
           payload.getOrgId(),
-          payload.getProductId());
+          payload.getProductId(),
+          overUsageThreshold);
       return Optional.empty();
     }
 
-    var preferenceOpt = preferenceRepository.getPreferences(payload.getOrgId());
-    if (preferenceOpt.isEmpty()) {
-      log.debug(
-          "No org preference found for orgId={}, skipping custom threshold check",
-          payload.getOrgId());
-      return Optional.empty();
-    }
+    double overagePercent = utilizationPercent - FULL_CAPACITY_PERCENT;
 
-    var preference = preferenceOpt.get();
-    int threshold = preference.getCustomThreshold();
-
-    if (utilizationPercent >= threshold) {
+    if (overagePercent > overUsageThreshold) {
       log.info(
-          "Custom threshold exceeded: orgId={} productId={} metricId={} sla={} usage={} utilizationPercent={}% threshold={}%",
+          "Over-usage detected: orgId={} productId={} metricId={} sla={} usage={} utilizationPercent={}% overagePercent={}% threshold={}%",
           payload.getOrgId(),
           payload.getProductId(),
           measurement.getMetricId(),
           payload.getSla(),
           payload.getUsage(),
           String.format(PERCENT_FORMAT, utilizationPercent),
-          threshold);
-      var event = buildEvent(utilizationPercent);
-      String lastUpdatedHash = hashLastUpdated(preference.getLastUpdated());
-      event.getPayload().getAdditionalProperties().put("last_updated_hash", lastUpdatedHash);
-      return Optional.of(event);
+          String.format(PERCENT_FORMAT, overagePercent),
+          String.format(PERCENT_FORMAT, overUsageThreshold));
+      return Optional.of(buildEvent(utilizationPercent));
     }
 
+    log.debug(
+        "Usage within threshold: orgId={} productId={} metricId={} sla={} usage={} utilizationPercent={}% overagePercent={}% threshold={}%",
+        payload.getOrgId(),
+        payload.getProductId(),
+        measurement.getMetricId(),
+        payload.getSla(),
+        payload.getUsage(),
+        String.format(PERCENT_FORMAT, utilizationPercent),
+        String.format(PERCENT_FORMAT, overagePercent),
+        String.format(PERCENT_FORMAT, overUsageThreshold));
     return Optional.empty();
   }
 
@@ -93,15 +87,11 @@ public class CustomUsageThresholdService extends BaseThresholdService {
 
   @Override
   protected Severity severity() {
-    return Severity.MODERATE;
+    return Severity.IMPORTANT;
   }
 
   @Override
   protected String metricName() {
-    return CUSTOM_THRESHOLD_METRIC;
-  }
-
-  static String hashLastUpdated(OffsetDateTime lastUpdated) {
-    return DigestUtils.sha256Hex(lastUpdated.toString());
+    return OVER_USAGE_METRIC;
   }
 }

@@ -53,8 +53,8 @@ public class UtilizationSummaryConsumerTest {
   InMemoryConnector connector;
 
   @InjectSpy UtilizationSummaryConsumer consumer;
-  @InjectMock OverUsageThresholdService overUsageThresholdService;
-  @InjectMock CustomUsageThresholdService customUsageThresholdService;
+  @InjectMock OverThresholdUtilizationHandlerService overUsageThresholdService;
+  @InjectMock CustomThresholdUtilizationHandlerService customUsageThresholdService;
   @InjectMock UtilizationSummaryPayloadValidator payloadValidator;
   @InjectMock UtilizationSummaryMeasurementValidator measurementValidator;
 
@@ -72,7 +72,7 @@ public class UtilizationSummaryConsumerTest {
     whenSendUtilization(createValidPaygPayload());
     thenMessageIsConsumed();
     thenUtilizationSummaryValidatorIsCalled();
-    thenOverUsageThresholdServiceIsCalled();
+    thenOverThresholdUtilizationHandlerServiceIsCalled();
     thenCustomThresholdServiceIsCalled();
   }
 
@@ -89,7 +89,7 @@ public class UtilizationSummaryConsumerTest {
     verify(measurementValidator).isMeasurementValid(any(), any());
   }
 
-  private void thenOverUsageThresholdServiceIsCalled() {
+  private void thenOverThresholdUtilizationHandlerServiceIsCalled() {
     verify(overUsageThresholdService).handle(any(), any());
   }
 
