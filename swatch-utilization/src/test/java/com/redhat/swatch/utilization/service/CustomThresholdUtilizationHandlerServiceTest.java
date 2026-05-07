@@ -87,14 +87,11 @@ class CustomThresholdUtilizationHandlerServiceTest {
   private static final OffsetDateTime LAST_UPDATED =
       OffsetDateTime.of(2026, 4, 20, 10, 0, 0, 0, ZoneOffset.UTC);
 
-  private static final double DEFAULT_OVER_USAGE_THRESHOLD = 5.0;
   private static final double USAGE_EXCEEDING_THRESHOLD = 85.0; // 85% > 80% threshold
   private static final double USAGE_AT_THRESHOLD = 80.0; // 80% == 80% threshold
   private static final double USAGE_BELOW_THRESHOLD = 70.0; // 70% < 80% threshold
-  private static final double USAGE_TRIGGERING_OVER_USAGE_ALERT = 106.0; // 106% > 105%
-  private static final double USAGE_AT_OVER_USAGE_BOUNDARY = 105.0; // 105% == 100% + 5%
-  private static final double USAGE_NOT_TRIGGERING_OVER_USAGE_ALERT = 104.0; // 104% < 105%
   private static final double USAGE_AT_FULL_CAPACITY = 100.0; // 100% == 100% capacity
+  private static final double USAGE_OVER_CAPACITY = 120.0; // 120% > 80% custom, above 100% capacity
 
   private static final double EXPECTED_SINGLE_INCREMENT = 1.0;
   private static final double EXPECTED_NO_CHANGE = 0.0;
@@ -159,47 +156,6 @@ class CustomThresholdUtilizationHandlerServiceTest {
   }
 
   @Test
-  void shouldSkipCustomThreshold_whenOverUsageAlertWillTrigger() {
-    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD, LAST_UPDATED);
-    UtilizationSummary summary =
-        givenUtilizationSummary(
-            PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, USAGE_TRIGGERING_OVER_USAGE_ALERT);
-
-    whenCheckSummary(summary);
-
-    verify(notificationsProducer, never()).produce(any(Action.class));
-    assertEquals(EXPECTED_NO_CHANGE, getCounterValue(PAYG_PRODUCT_ID, CORES_METRIC_ID));
-  }
-
-  @Test
-  void shouldSendNotification_whenUsageAtOverUsageBoundaryAndAboveCustomThreshold() {
-    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD, LAST_UPDATED);
-    UtilizationSummary summary =
-        givenUtilizationSummary(
-            PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, USAGE_AT_OVER_USAGE_BOUNDARY);
-
-    whenCheckSummary(summary);
-
-    verify(notificationsProducer, times(1))
-        .produce(argThat(action -> EVENT_TYPE.equals(action.getEventType())));
-    assertEquals(EXPECTED_SINGLE_INCREMENT, getCounterValue(PAYG_PRODUCT_ID, CORES_METRIC_ID));
-  }
-
-  @Test
-  void shouldSendNotification_whenUsageAboveCustomThresholdAndNotTriggeringOverUsageAlert() {
-    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD, LAST_UPDATED);
-    UtilizationSummary summary =
-        givenUtilizationSummary(
-            PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, USAGE_NOT_TRIGGERING_OVER_USAGE_ALERT);
-
-    whenCheckSummary(summary);
-
-    verify(notificationsProducer, times(1))
-        .produce(argThat(action -> EVENT_TYPE.equals(action.getEventType())));
-    assertEquals(EXPECTED_SINGLE_INCREMENT, getCounterValue(PAYG_PRODUCT_ID, CORES_METRIC_ID));
-  }
-
-  @Test
   void shouldSendNotification_whenUsageAtFullCapacityAndAboveCustomThreshold() {
     givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD, LAST_UPDATED);
     UtilizationSummary summary =
@@ -213,32 +169,10 @@ class CustomThresholdUtilizationHandlerServiceTest {
   }
 
   @Test
-  void shouldSkipCustomThreshold_whenProductSpecificOverUsageThresholdExceeded() {
+  void shouldSendNotification_whenUsageIsOverCapacity() {
     givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD, LAST_UPDATED);
-    double productThreshold = 10.0;
-    subscriptionDefinition
-        .when(() -> SubscriptionDefinition.getOverUsageThreshold(PAYG_PRODUCT_ID))
-        .thenReturn(productThreshold);
-    // 111% > 100% + 10% product threshold
     UtilizationSummary summary =
-        givenUtilizationSummary(PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, 111.0);
-
-    whenCheckSummary(summary);
-
-    verify(notificationsProducer, never()).produce(any(Action.class));
-    assertEquals(EXPECTED_NO_CHANGE, getCounterValue(PAYG_PRODUCT_ID, CORES_METRIC_ID));
-  }
-
-  @Test
-  void shouldSendNotification_whenBelowProductSpecificOverUsageThreshold() {
-    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD, LAST_UPDATED);
-    double productThreshold = 10.0;
-    subscriptionDefinition
-        .when(() -> SubscriptionDefinition.getOverUsageThreshold(PAYG_PRODUCT_ID))
-        .thenReturn(productThreshold);
-    // 109% <= 100% + 10% product threshold
-    UtilizationSummary summary =
-        givenUtilizationSummary(PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, 109.0);
+        givenUtilizationSummary(PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, USAGE_OVER_CAPACITY);
 
     whenCheckSummary(summary);
 

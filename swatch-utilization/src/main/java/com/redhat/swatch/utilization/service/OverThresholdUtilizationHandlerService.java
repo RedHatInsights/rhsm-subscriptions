@@ -38,10 +38,8 @@ public class OverThresholdUtilizationHandlerService extends BaseThresholdUtiliza
 
   @Override
   protected Optional<Event> evaluateThreshold(
-      double utilizationPercent,
-      double overUsageThreshold,
-      UtilizationSummary payload,
-      Measurement measurement) {
+      double utilizationPercent, UtilizationSummary payload, Measurement measurement) {
+    double overUsageThreshold = getOverUsageThresholdForProduct(payload.getProductId());
     if (overUsageThreshold < 0.0) {
       log.debug(
           "Skipping over-usage check for orgId={} productId={} due to negative threshold={}",

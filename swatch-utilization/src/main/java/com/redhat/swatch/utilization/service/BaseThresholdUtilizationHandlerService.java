@@ -72,8 +72,7 @@ public abstract class BaseThresholdUtilizationHandlerService implements Utilizat
       return false;
     }
     double utilizationPercent = utilizationOpt.getAsDouble();
-    double overUsageThreshold = getOverUsageThresholdForProduct(payload.getProductId());
-    var eventOpt = evaluateThreshold(utilizationPercent, overUsageThreshold, payload, measurement);
+    var eventOpt = evaluateThreshold(utilizationPercent, payload, measurement);
     if (eventOpt.isPresent()) {
       MetricId metricId = MetricId.fromString(measurement.getMetricId());
       sendNotification(payload, metricId, eventType(), severity(), eventOpt.get(), metricName());
@@ -83,10 +82,7 @@ public abstract class BaseThresholdUtilizationHandlerService implements Utilizat
   }
 
   protected abstract Optional<Event> evaluateThreshold(
-      double utilizationPercent,
-      double overUsageThreshold,
-      UtilizationSummary payload,
-      Measurement measurement);
+      double utilizationPercent, UtilizationSummary payload, Measurement measurement);
 
   protected abstract String eventType();
 

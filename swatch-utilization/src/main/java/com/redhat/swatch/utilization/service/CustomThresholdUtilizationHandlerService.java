@@ -45,18 +45,7 @@ public class CustomThresholdUtilizationHandlerService
 
   @Override
   protected Optional<Event> evaluateThreshold(
-      double utilizationPercent,
-      double overUsageThreshold,
-      UtilizationSummary payload,
-      Measurement measurement) {
-    if (utilizationPercent > FULL_CAPACITY_PERCENT + overUsageThreshold) {
-      log.debug(
-          "Skipping custom threshold check: over-usage alert will be triggered for orgId={} productId={}",
-          payload.getOrgId(),
-          payload.getProductId());
-      return Optional.empty();
-    }
-
+      double utilizationPercent, UtilizationSummary payload, Measurement measurement) {
     var preferenceOpt = preferenceRepository.getPreferences(payload.getOrgId());
     if (preferenceOpt.isEmpty()) {
       log.debug(
