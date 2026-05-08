@@ -2,9 +2,9 @@
 
 The **swatch-utilization** module is a service within the Subscription Watch platform that monitors resource usage against purchased capacity thresholds and triggers proactive notifications to users when their consumption exceeds contracted limits.
 
-The service processes pre-enriched utilization data from Kafka topics (containing usage from swatch-tally already combined with contract capacity by swatch-contracts), detects over-usage thresholds, and sends notification events via Kafka to the notifications-backend service for email delivery.
+The service processes pre-enriched utilization data from Kafka topics (containing usage from swatch-tally already combined with contract capacity by swatch-contracts), detects threshold crossing, and sends notification events via Kafka to the notifications-backend service for email delivery. There are two independent notification types: over-usage (usage exceeds contracted capacity) and custom threshold (usage reaches an org-configured percentage). Both can fire for the same utilization event.
 
-This document outlines the test plan for swatch-utilization, which involves overusage detection and notification triggering.
+This document outlines the test plan for swatch-utilization, which involves threshold crossing detection and notification triggering.
 
 **Purpose:** To ensure the swatch-utilization service is functional, reliable, and meets all defined requirements for capacity monitoring and notification delivery.
 
@@ -478,3 +478,77 @@ Additional cases can be added under the same `utilization-notifications-featuref
     - HTTP 200 response for both 0 and 100 threshold values
     - Response custom_threshold matches request value
 
+## Custom Usage Threshold Notification
+
+**custom-threshold-TC001 - Detect custom threshold exceeded and send notification**
+
+- **Description**: Verify that a notification is sent when utilization exceeds the org custom threshold.
+- **Setup**:
+    - The organization has a custom threshold configured via the org preferences API
+    - A utilization summary is produced with usage above the custom threshold
+- **Action**:
+    - Send the utilization summary to the utilization topic
+- **Verification**:
+    - Wait for notification message on notifications topic
+    - Verify notification payload
+- **Expected Result**:
+    - Notification event contains correct information (org_id, product_id, metric_id, utilization_percentage and last_updated_hash)
+    - Notification action `severity` is `MODERATE`
+
+**custom-threshold-TC002 - Notification sent when utilization is exactly at custom threshold**
+
+- **Description**: Verify that a notification is sent when utilization is exactly at the org custom threshold boundary.
+- **Setup**:
+    - The organization has a custom threshold configured via the org preferences API
+    - A utilization summary is produced with usage exactly at the custom threshold
+- **Action**:
+    - Send the utilization summary to the utilization topic
+- **Verification**:
+    - Wait for notification message on notifications topic
+    - Verify notification payload
+- **Expected Result**:
+    - Notification event contains correct information (org_id, product_id, metric_id, utilization_percentage and last_updated_hash)
+    - Notification action `severity` is `MODERATE`
+    - Notification is sent (threshold comparison uses greater-than-or-equal)
+
+**custom-threshold-TC003 - No notification when no org preference exists**
+
+- **Description**: Verify no custom threshold notification is sent when the organization has not configured a custom threshold.
+- **Setup**:
+    - The organization has not configured a custom threshold
+    - A utilization summary is produced with positive usage
+- **Action**:
+    - Send the utilization summary to the utilization topic
+- **Verification**:
+    - Check absence of notification message on notifications topic
+- **Expected Result**:
+    - No notification event created
+
+**custom-threshold-TC004 - No notification when utilization is below custom threshold**
+
+- **Description**: Verify no notification is sent when utilization is below the configured threshold.
+- **Setup**:
+    - The organization has a custom threshold configured via the org preferences API
+    - A utilization summary is produced with usage below the custom threshold
+- **Action**:
+    - Send the utilization summary to the utilization topic
+- **Verification**:
+    - Check absence of notification message on notifications topic
+- **Expected Result**:
+    - No notification event created
+
+**custom-threshold-TC005 - Both notifications sent independently when usage exceeds both thresholds**
+
+- **Description**: Verify that when usage exceeds both the custom threshold and the over-usage threshold, both notifications are sent independently.
+- **Setup**:
+    - The organization has a custom threshold configured via the org preferences API
+    - A utilization summary is produced with usage exceeding both the custom threshold and the over-usage threshold
+- **Action**:
+    - Send the utilization summary to the utilization topic
+- **Verification**:
+    - Wait for notification messages on notifications topic
+    - Verify notification payloads
+- **Expected Result**:
+    - Both notifications are sent. The two notification types are independent (neither suppresses the other)
+    - One custom threshold notification with `severity` `MODERATE`
+    - One over-usage notification with `severity` `IMPORTANT`
