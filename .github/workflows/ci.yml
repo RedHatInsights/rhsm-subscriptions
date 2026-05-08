@@ -24,7 +24,7 @@ jobs:
     outputs:
       modified-services: ${{ steps.add-labels.outputs.modified-services }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0  # Need to do git diff against the base branch
       - name: Set up JDK
@@ -86,7 +86,7 @@ jobs:
       checkstyle-report-url: ${{ steps.checkstyle-report-upload.outputs.artifact-url }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up JDK
         uses: actions/setup-java@v4
@@ -113,7 +113,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Git config
         run: |
@@ -170,7 +170,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up JDK
         uses: actions/setup-java@v4
@@ -202,7 +202,7 @@ jobs:
       coverage-report-uploaded: ${{ steps.coverage-report-upload.outcome }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up JDK
         uses: actions/setup-java@v4
@@ -246,7 +246,7 @@ jobs:
     needs: [test, labeler]
     if: always() && (needs.test.result == 'success') && (needs.labeler.result == 'success' || needs.labeler.result == 'skipped')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up JDK
         uses: actions/setup-java@v4
