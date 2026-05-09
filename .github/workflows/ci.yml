@@ -103,7 +103,7 @@ jobs:
       - name: Upload Checkstyle Report
         id: checkstyle-report-upload
         if: ${{ always() && (hashFiles('**/build/reports/checkstyle/**')) }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: checkstyle-report
           path: '${{ github.workspace }}/**/target/reports/checkstyle.html'
@@ -187,7 +187,7 @@ jobs:
           ./mvnw clean package -DskipTests
 
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build-artifacts
           path: |
@@ -220,14 +220,14 @@ jobs:
 
       - name: Upload JUnit Report
         if: always() && (hashFiles('**/target/surefire-reports/TEST-*.xml') != '')
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: junit-report
           path: '**/target/surefire-reports/TEST-*.xml'
 
       - name: Upload HTML Test Report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: junit-html-report
           path: '**/target/reports/*'
@@ -235,7 +235,7 @@ jobs:
       - name: Upload Code Coverage
         if: ${{ always() && (hashFiles('coverage-report/target/site/jacoco-aggregate') != '') }}
         continue-on-error: true
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: code-coverage
           path: 'coverage-report/target/site/jacoco-aggregate'
@@ -292,7 +292,7 @@ jobs:
       - name: Download Code Coverage Report
         id: download-coverage
         continue-on-error: true
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         if: ${{ needs.test.outputs.coverage-report-uploaded == 'success' }}
         with:
           name: code-coverage
@@ -301,7 +301,7 @@ jobs:
       - name: Download JUnit Test Results
         id: download-junit
         continue-on-error: true
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: junit-report
           path: junit-report
@@ -309,7 +309,7 @@ jobs:
       - name: Download Checkstyle Report
         id: download-checkstyle
         continue-on-error: true
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: checkstyle-report
           path: checkstyle-report
