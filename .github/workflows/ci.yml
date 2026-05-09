@@ -316,7 +316,7 @@ jobs:
 
       - name: JUnit Test Report
         id: test-report
-        uses: mikepenz/action-junit-report@v5
+        uses: mikepenz/action-junit-report@v6
         # See https://stackoverflow.com/a/70549615/6124862
         if: ${{ steps.download-junit.outcome == 'success' }}
         with:
