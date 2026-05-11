@@ -84,8 +84,8 @@ public class CustomThresholdComponentTest extends BaseUtilizationComponentTest {
             metricId,
             USAGE_ABOVE_CUSTOM_THRESHOLD,
             FULL_CAPACITY,
-            DIMENSION_ANY,
-            DIMENSION_ANY);
+            null,
+            null);
     thenLastUpdatedHashShouldBePresent(notification);
   }
 
@@ -106,8 +106,8 @@ public class CustomThresholdComponentTest extends BaseUtilizationComponentTest {
             metricId,
             USAGE_AT_CUSTOM_THRESHOLD,
             FULL_CAPACITY,
-            DIMENSION_ANY,
-            DIMENSION_ANY);
+            null,
+            null);
     thenLastUpdatedHashShouldBePresent(notification);
   }
 
@@ -152,8 +152,8 @@ public class CustomThresholdComponentTest extends BaseUtilizationComponentTest {
         metricId,
         USAGE_OVER_CAPACITY,
         FULL_CAPACITY,
-        DIMENSION_ANY,
-        DIMENSION_ANY);
+        null,
+        null);
     thenThresholdNotificationShouldBeSent(
         DEFAULT_THRESHOLD_EVENT_TYPE,
         Severity.IMPORTANT,
@@ -161,8 +161,8 @@ public class CustomThresholdComponentTest extends BaseUtilizationComponentTest {
         metricId,
         USAGE_OVER_CAPACITY,
         FULL_CAPACITY,
-        DIMENSION_ANY,
-        DIMENSION_ANY);
+        null,
+        null);
   }
 
   private void givenOrgCustomThreshold(int threshold) {

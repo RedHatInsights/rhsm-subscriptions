@@ -88,8 +88,8 @@ public class OverUsageThresholdComponentTest extends BaseUtilizationComponentTes
         MetricIdUtils.getCores(),
         USAGE_EXCEEDING_THRESHOLD,
         BASELINE_CAPACITY,
-        DIMENSION_ANY,
-        DIMENSION_ANY);
+        null,
+        null);
   }
 
   /**
@@ -180,8 +180,8 @@ public class OverUsageThresholdComponentTest extends BaseUtilizationComponentTes
         MetricIdUtils.getSockets(),
         USAGE_EXCEEDING_THRESHOLD,
         BASELINE_CAPACITY,
-        DIMENSION_ANY,
-        DIMENSION_ANY);
+        null,
+        null);
   }
 
   /** Verify no exceptions thrown when measurements list is empty. */

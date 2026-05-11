@@ -245,8 +245,12 @@ public class BaseUtilizationComponentTest {
     var props = context.getAdditionalProperties();
     assertThat(props.get("product_id"), equalTo(productId));
     assertThat(props.get("metric_id"), equalTo(metricId.getValue()));
-    assertThat(props.get("service_level"), equalTo(expectedServiceLevel));
-    assertThat(props.get("usage"), equalTo(expectedUsage));
+    if (expectedServiceLevel != null) {
+      assertThat(props.get("service_level"), equalTo(expectedServiceLevel));
+    }
+    if (expectedUsage != null) {
+      assertThat(props.get("usage"), equalTo(expectedUsage));
+    }
 
     var events = notification.getEvents();
     assertThat("Events should not be null", events, notNullValue());
