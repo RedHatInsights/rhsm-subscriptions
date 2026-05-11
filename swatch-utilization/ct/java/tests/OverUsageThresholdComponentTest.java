@@ -20,18 +20,12 @@
  */
 package tests;
 
-import static api.MessageValidators.matchesOrgId;
 import static com.redhat.swatch.component.tests.utils.AwaitilityUtils.untilAsserted;
-import static com.redhat.swatch.component.tests.utils.Topics.NOTIFICATIONS;
 import static com.redhat.swatch.component.tests.utils.Topics.UTILIZATION;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.redhat.cloud.notifications.ingress.Action;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
@@ -49,6 +43,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 public class OverUsageThresholdComponentTest extends BaseUtilizationComponentTest {
+
+  private static final String DEFAULT_THRESHOLD_EVENT_TYPE = "exceeded-utilization-threshold";
 
   // Test data constants - aligned with CUSTOMER_OVER_USAGE_DEFAULT_THRESHOLD_PERCENT=5.0
   private static final double BASELINE_CAPACITY = 100.0;
@@ -85,7 +81,15 @@ public class OverUsageThresholdComponentTest extends BaseUtilizationComponentTes
     whenUtilizationEventIsReceived();
 
     thenOverUsageCounterShouldBeIncremented();
-    thenNotificationShouldBeSent();
+    thenThresholdNotificationShouldBeSent(
+        DEFAULT_THRESHOLD_EVENT_TYPE,
+        Severity.IMPORTANT,
+        Product.ROSA.getName(),
+        MetricIdUtils.getCores(),
+        USAGE_EXCEEDING_THRESHOLD,
+        BASELINE_CAPACITY,
+        null,
+        null);
   }
 
   /**
@@ -127,14 +131,15 @@ public class OverUsageThresholdComponentTest extends BaseUtilizationComponentTes
               equalTo(0.0));
         });
 
-    thenNotificationShouldBeSent(
+    thenThresholdNotificationShouldBeSent(
+        DEFAULT_THRESHOLD_EVENT_TYPE,
+        Severity.IMPORTANT,
         Product.ROSA.getName(),
         MetricIdUtils.getCores(),
         USAGE_EXCEEDING_THRESHOLD,
         BASELINE_CAPACITY,
         "Premium",
-        "Production",
-        Severity.IMPORTANT);
+        "Production");
   }
 
   /** Verify over-usage counter is not incremented when usage is below threshold. */
@@ -168,7 +173,15 @@ public class OverUsageThresholdComponentTest extends BaseUtilizationComponentTes
     whenUtilizationEventIsReceived();
 
     thenOverUsageCounterShouldBeIncremented();
-    thenNotificationShouldBeSent();
+    thenThresholdNotificationShouldBeSent(
+        DEFAULT_THRESHOLD_EVENT_TYPE,
+        Severity.IMPORTANT,
+        Product.RHEL.getName(),
+        MetricIdUtils.getSockets(),
+        USAGE_EXCEEDING_THRESHOLD,
+        BASELINE_CAPACITY,
+        null,
+        null);
   }
 
   /** Verify no exceptions thrown when measurements list is empty. */
@@ -283,49 +296,5 @@ public class OverUsageThresholdComponentTest extends BaseUtilizationComponentTes
               assertThat(
                   "Over-usage counter should not change", currentCount, equalTo(initialCount));
             });
-  }
-
-  void thenNotificationShouldBeSent() {
-    Action notification = kafkaBridge.waitForKafkaMessage(NOTIFICATIONS, matchesOrgId(orgId));
-    assertThat("Notification should be sent", notification, notNullValue());
-    assertEquals(
-        "IMPORTANT",
-        notification.getSeverity(),
-        "Over-usage notification should declare IMPORTANT severity");
-
-    // Verify context contains expected product_id and metric_id
-    var context = notification.getContext();
-    assertThat("Context should not be null", context, notNullValue());
-    assertThat(
-        "Context should contain correct product_id",
-        context.getAdditionalProperties().get("product_id"),
-        equalTo(utilizationSummary.getProductId()));
-
-    MetricId expectedMetricId =
-        Product.fromString(utilizationSummary.getProductId()).getFirstMetricId();
-    assertThat(
-        "Context should contain correct metric_id",
-        context.getAdditionalProperties().get("metric_id"),
-        equalTo(expectedMetricId.getValue()));
-
-    // Verify event payload contains expected utilization_percentage
-    var events = notification.getEvents();
-    assertThat("Events should not be null or empty", events, notNullValue());
-    assertThat("Events should contain at least one event", events.size(), greaterThan(0));
-
-    var event = events.get(0);
-    var payload = event.getPayload();
-    assertThat("Event payload should not be null", payload, notNullValue());
-
-    // Calculate expected utilization percentage
-    Measurement measurement = utilizationSummary.getMeasurements().get(0);
-    double expectedUtilizationPercent =
-        (measurement.getCurrentTotal() / measurement.getCapacity()) * 100.0;
-    String expectedUtilizationStr = String.format("%.2f", expectedUtilizationPercent);
-
-    assertThat(
-        "Payload should contain correct utilization_percentage",
-        payload.getAdditionalProperties().get("utilization_percentage"),
-        equalTo(expectedUtilizationStr));
   }
 }
