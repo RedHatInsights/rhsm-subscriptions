@@ -35,7 +35,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.MapKeyClass;
 import jakarta.persistence.Table;
 import java.io.Serializable;
-import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -50,8 +49,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import org.candlepin.subscriptions.utilization.api.v1.model.ReportCategory;
-import org.hibernate.annotations.ColumnDefault;
-import org.hibernate.annotations.Generated;
 
 /** Model object to represent pieces of tally data. */
 @ToString
@@ -62,7 +59,8 @@ import org.hibernate.annotations.Generated;
 @Builder
 @Entity
 @Table(name = "tally_snapshots")
-public class TallySnapshot implements Serializable, TallyMeasurement {
+public class TallySnapshot extends ModificationTrackedEntity
+    implements Serializable, TallyMeasurement {
 
   @Id
   @GeneratedValue(strategy = GenerationType.AUTO)
@@ -99,16 +97,6 @@ public class TallySnapshot implements Serializable, TallyMeasurement {
   @Enumerated(EnumType.STRING)
   @Column(name = "granularity")
   private Granularity granularity;
-
-  @Column(name = "last_modified", insertable = false, updatable = false)
-  @ColumnDefault("CURRENT_TIMESTAMP")
-  @Generated
-  /* A last_modified column also exists in the tally_measurements table; however, it is unmapped
-  in Hibernate since the records in tally_measurements are not their own entities.  They're members
-  of a CollectionTable.  Mapping the column there would require converting tally_snapshots to be
-  mapped to tally_measurements with a @OneToMany -->
-  */
-  private Instant lastModified = null;
 
   @ElementCollection(fetch = FetchType.EAGER)
   @CollectionTable(name = "tally_measurements", joinColumns = @JoinColumn(name = "snapshot_id"))
