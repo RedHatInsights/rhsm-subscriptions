@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.utilization.service;
 
+import static com.redhat.swatch.utilization.service.BaseThresholdUtilizationHandlerService.DIMENSION_ANY;
 import static com.redhat.swatch.utilization.service.CustomThresholdUtilizationHandlerService.CUSTOM_THRESHOLD_METRIC;
 import static com.redhat.swatch.utilization.service.CustomThresholdUtilizationHandlerService.EVENT_TYPE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -381,22 +382,35 @@ class CustomThresholdUtilizationHandlerServiceTest {
             UtilizationSummary.Usage.DEVELOPMENT_TEST,
             "Standard",
             "Development/Test"),
-        Arguments.of(UtilizationSummary.Sla.ANY, UtilizationSummary.Usage.ANY, null, null),
         Arguments.of(
-            UtilizationSummary.Sla.__EMPTY__, UtilizationSummary.Usage.__EMPTY__, null, null),
-        Arguments.of(UtilizationSummary.Sla.PREMIUM, null, "Premium", null),
-        Arguments.of(null, UtilizationSummary.Usage.PRODUCTION, null, "Production"),
+            UtilizationSummary.Sla.ANY, UtilizationSummary.Usage.ANY, DIMENSION_ANY, DIMENSION_ANY),
+        Arguments.of(
+            UtilizationSummary.Sla.__EMPTY__,
+            UtilizationSummary.Usage.__EMPTY__,
+            DIMENSION_ANY,
+            DIMENSION_ANY),
+        Arguments.of(UtilizationSummary.Sla.PREMIUM, null, "Premium", DIMENSION_ANY),
+        Arguments.of(null, UtilizationSummary.Usage.PRODUCTION, DIMENSION_ANY, "Production"),
         Arguments.of(
             UtilizationSummary.Sla.__EMPTY__,
             UtilizationSummary.Usage.PRODUCTION,
-            null,
+            DIMENSION_ANY,
             "Production"),
         Arguments.of(
-            UtilizationSummary.Sla.PREMIUM, UtilizationSummary.Usage.__EMPTY__, "Premium", null),
+            UtilizationSummary.Sla.PREMIUM,
+            UtilizationSummary.Usage.__EMPTY__,
+            "Premium",
+            DIMENSION_ANY),
         Arguments.of(
-            UtilizationSummary.Sla.ANY, UtilizationSummary.Usage.PRODUCTION, null, "Production"),
+            UtilizationSummary.Sla.ANY,
+            UtilizationSummary.Usage.PRODUCTION,
+            DIMENSION_ANY,
+            "Production"),
         Arguments.of(
-            UtilizationSummary.Sla.PREMIUM, UtilizationSummary.Usage.ANY, "Premium", null));
+            UtilizationSummary.Sla.PREMIUM,
+            UtilizationSummary.Usage.ANY,
+            "Premium",
+            DIMENSION_ANY));
   }
 
   @ParameterizedTest

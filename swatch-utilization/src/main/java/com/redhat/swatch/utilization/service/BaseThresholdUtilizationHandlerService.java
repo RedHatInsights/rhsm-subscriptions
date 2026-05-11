@@ -177,12 +177,8 @@ public abstract class BaseThresholdUtilizationHandlerService implements Utilizat
             .withAdditionalProperty("product_id", payload.getProductId())
             .withAdditionalProperty("metric_id", metricId.getValue());
 
-    if (isServiceLevelSet(payload.getSla())) {
-      builder.withAdditionalProperty("service_level", payload.getSla().value());
-    }
-    if (isUsageSet(payload.getUsage())) {
-      builder.withAdditionalProperty("usage", payload.getUsage().value());
-    }
+    builder.withAdditionalProperty("service_level", metricSlaLabelValue(payload.getSla()));
+    builder.withAdditionalProperty("usage", metricUsageLabelValue(payload.getUsage()));
 
     return builder.build();
   }

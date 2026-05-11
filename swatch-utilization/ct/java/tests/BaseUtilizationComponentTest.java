@@ -20,9 +20,11 @@
  */
 package tests;
 
+import static api.MessageValidators.matchesNotificationByEventType;
 import static api.MessageValidators.matchesOverageNotification;
 import static com.redhat.swatch.component.tests.utils.Topics.NOTIFICATIONS;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.notNullValue;
@@ -36,12 +38,14 @@ import com.redhat.swatch.component.tests.api.KafkaBridge;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.api.Quarkus;
 import com.redhat.swatch.component.tests.api.Unleash;
+import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.utilization.test.model.Measurement;
 import com.redhat.swatch.utilization.test.model.UtilizationSummary;
 import domain.Product;
 import domain.Severity;
+import java.time.Duration;
 import java.util.ArrayList;
 import org.junit.jupiter.api.BeforeEach;
 
@@ -217,5 +221,56 @@ public class BaseUtilizationComponentTest {
         "Payload should contain correct utilization_percentage",
         payload.getAdditionalProperties().get("utilization_percentage"),
         equalTo(expectedUtilizationStr));
+  }
+
+  protected Action thenThresholdNotificationShouldBeSent(
+      String eventType,
+      Severity severity,
+      String productId,
+      MetricId metricId,
+      double usageValue,
+      double capacity,
+      String expectedServiceLevel,
+      String expectedUsage) {
+    Action notification =
+        kafkaBridge.waitForKafkaMessage(
+            NOTIFICATIONS, matchesNotificationByEventType(orgId, eventType));
+
+    assertThat("Notification should be sent", notification, notNullValue());
+    assertEquals(severity.name(), notification.getSeverity());
+    assertEquals(eventType, notification.getEventType());
+
+    var context = notification.getContext();
+    assertThat("Context should not be null", context, notNullValue());
+    var props = context.getAdditionalProperties();
+    assertThat(props.get("product_id"), equalTo(productId));
+    assertThat(props.get("metric_id"), equalTo(metricId.getValue()));
+    assertThat(props.get("service_level"), equalTo(expectedServiceLevel));
+    assertThat(props.get("usage"), equalTo(expectedUsage));
+
+    var events = notification.getEvents();
+    assertThat("Events should not be null", events, notNullValue());
+    assertThat(events.size(), greaterThan(0));
+
+    var payload = events.get(0).getPayload();
+    assertThat("Payload should not be null", payload, notNullValue());
+
+    double expectedUtilizationPercent = (usageValue / capacity) * 100.0;
+    String expectedUtilizationStr = String.format("%.2f", expectedUtilizationPercent);
+    assertThat(
+        payload.getAdditionalProperties().get("utilization_percentage"),
+        equalTo(expectedUtilizationStr));
+
+    return notification;
+  }
+
+  protected void thenNoThresholdNotificationShouldBeSent(String eventType) {
+    var notifications =
+        kafkaBridge.waitForKafkaMessage(
+            NOTIFICATIONS,
+            matchesNotificationByEventType(orgId, eventType),
+            0,
+            AwaitilitySettings.usingTimeout(Duration.ofSeconds(5)));
+    assertThat(notifications, empty());
   }
 }
