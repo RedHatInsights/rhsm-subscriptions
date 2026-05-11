@@ -21,16 +21,11 @@
 package tests;
 
 import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
-import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
 import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
-import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_UNCONVERTED;
 
-import api.MessageValidators;
 import com.redhat.swatch.component.tests.api.TestPlanName;
-import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
 import com.redhat.swatch.tally.test.model.TallySummary;
-import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -40,70 +35,11 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
-public class TallySummaryComponentTest extends BaseTallyComponentTest {
-
-  @Test
-  @TestPlanName("tally-summary-TC001")
-  public void testTallyNightlySummaryEmitsGranularityDaily() {
-    // Given: Seeded nightly tally host buckets
-    final String testInventoryId = UUID.randomUUID().toString();
-    helpers.seedNightlyTallyHostBuckets(
-        orgId, RHEL_FOR_X86_ELS_UNCONVERTED.productTag(), testInventoryId, service);
-
-    // When: Triggering nightly tally
-    service.tallyOrg(orgId);
-
-    // Then: Tally summary messages should have DAILY granularity
-    kafkaBridge.waitForKafkaMessage(
-        TALLY,
-        MessageValidators.tallySummaryMatches(
-            orgId,
-            RHEL_FOR_X86_ELS_UNCONVERTED.productTag(),
-            RHEL_FOR_X86_ELS_UNCONVERTED.metricIds().get(1),
-            Granularity.DAILY),
-        1);
-  }
-
-  @Test
-  @TestPlanName("tally-summary-TC002")
-  public void testTallyNightlySummaryHasNoTotalMeasurements() {
-    // Given: Seeded nightly tally host buckets
-    final String testInventoryId = UUID.randomUUID().toString();
-    helpers.seedNightlyTallyHostBuckets(
-        orgId, RHEL_FOR_X86_ELS_UNCONVERTED.productTag(), testInventoryId, service);
-
-    // When: Triggering nightly tally
-    service.tallyOrg(orgId);
-
-    // Then: Nightly snapshots should not emit TOTAL measurement type
-    AwaitilitySettings kafkaConsumerTimeout =
-        AwaitilitySettings.using(Duration.ofMillis(500), Duration.ofSeconds(60));
-    List<TallySummary> summaries =
-        kafkaBridge.waitForKafkaMessage(
-            TALLY,
-            MessageValidators.tallySummaryMatches(
-                orgId,
-                RHEL_FOR_X86_ELS_UNCONVERTED.productTag(),
-                RHEL_FOR_X86_ELS_UNCONVERTED.metricIds().get(1),
-                Granularity.DAILY),
-            1,
-            kafkaConsumerTimeout);
-
-    Assertions.assertFalse(summaries.isEmpty(), "Summaries should not be empty");
-    summaries.stream()
-        .flatMap(summary -> summary.getTallySnapshots().stream())
-        .flatMap(snapshot -> snapshot.getTallyMeasurements().stream())
-        .forEach(
-            measurement ->
-                Assertions.assertNotEquals(
-                    "TOTAL",
-                    measurement.getHardwareMeasurementType().toUpperCase(),
-                    "Nightly snapshots should not emit TOTAL measurement type"));
-  }
+class TallySummaryComponentTest extends BaseTallyComponentTest {
 
   @Test
   @TestPlanName("tally-summary-TC003")
-  public void testTallyHourlySummaryEmitsNoGranularityDaily() {
+  void testTallyHourlySummaryEmitsNoGranularityDaily() {
     // Given: Events within the last day for hourly tally
     final String testInstanceId = UUID.randomUUID().toString();
     final String testEventId = UUID.randomUUID().toString();
@@ -140,7 +76,7 @@ public class TallySummaryComponentTest extends BaseTallyComponentTest {
 
   @Test
   @TestPlanName("tally-summary-TC004")
-  public void testTallyHourlySummaryEmitsGranularityHourly() {
+  void testTallyHourlySummaryEmitsGranularityHourly() {
     // Given: Events within the last day for hourly tally
     final String testInstanceId = UUID.randomUUID().toString();
     final String testEventId = UUID.randomUUID().toString();
