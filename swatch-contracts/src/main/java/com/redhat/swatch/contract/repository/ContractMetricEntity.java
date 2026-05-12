@@ -20,7 +20,6 @@
  */
 package com.redhat.swatch.contract.repository;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -48,7 +47,7 @@ import lombok.ToString.Exclude;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class ContractMetricEntity extends PanacheEntityBase {
+public class ContractMetricEntity extends ModificationTrackedEntity {
 
   @Id
   @Column(name = "contract_uuid", nullable = false)

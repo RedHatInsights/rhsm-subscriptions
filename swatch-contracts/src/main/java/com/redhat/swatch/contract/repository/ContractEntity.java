@@ -21,7 +21,6 @@
 package com.redhat.swatch.contract.repository;
 
 import com.redhat.swatch.panache.Specification;
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Basic;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -54,7 +53,7 @@ import lombok.ToString;
 @Setter
 @Builder
 @ToString
-public class ContractEntity extends PanacheEntityBase {
+public class ContractEntity extends ModificationTrackedEntity {
 
   @Id
   @Column(name = "uuid", nullable = false)

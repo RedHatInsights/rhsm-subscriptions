@@ -60,7 +60,7 @@ import lombok.ToString;
 @NoArgsConstructor
 @IdClass(SubscriptionEntity.SubscriptionCompoundId.class)
 @Table(name = "subscription")
-public class SubscriptionEntity implements Serializable {
+public class SubscriptionEntity extends ModificationTrackedEntity implements Serializable {
 
   @Id
   @Column(name = "subscription_id")
