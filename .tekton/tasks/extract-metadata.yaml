@@ -47,15 +47,15 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.annotations['test.appstudio.openshift.io/group-test-info']
+        - name: GITHUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: $(params.GITHUB_TOKEN_SECRET)
+              key: github_token
       script: |
         #!/bin/bash
         set -euo pipefail
         echo "EVENT_TYPE=${EVENT_TYPE:-unknown}"
-        if [ "${EVENT_TYPE:-}" = "pull_request" ]; then
-          printf "true" > "$(results.IS_PULL_REQUEST.path)"
-        else
-          printf "false" > "$(results.IS_PULL_REQUEST.path)"
-        fi
 
         # IS_PULL_REQUEST: false only for push events; true for pull_request, retest, ok-to-test, etc.
         if [ "${EVENT_TYPE:-}" = "push" ]; then
