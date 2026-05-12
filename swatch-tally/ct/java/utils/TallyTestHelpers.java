@@ -268,18 +268,23 @@ public class TallyTestHelpers {
    * is considered "metered" (currently mapped to PAYG eligibility), so we seed one PAYG bucket to
    * keep the host and one non-PAYG bucket that we assert on.
    *
+   * @param seeder the database seeder instance
    * @param orgId the organization ID
    * @param productId the product ID
    * @param inventoryId the inventory ID
    * @param service the tally service
    */
   public void seedNightlyTallyHostBuckets(
-      String orgId, String productId, String inventoryId, TallySwatchService service) {
+      TallyDbHostSeeder seeder,
+      String orgId,
+      String productId,
+      String inventoryId,
+      TallySwatchService service) {
     service.createOptInConfig(orgId);
 
-    var hostId = TallyDbHostSeeder.insertHbiHost(orgId, inventoryId);
+    var hostId = seeder.insertHbiHost(orgId, inventoryId);
     // Keep the host from being deleted (PAYG-eligible tag)
-    TallyDbHostSeeder.insertBuckets(
+    seeder.insertBuckets(
         hostId,
         TallyTestProducts.RHEL_FOR_X86_ELS_PAYG.productTag(),
         "Premium",
@@ -288,7 +293,7 @@ public class TallyTestHelpers {
         2,
         "AWS");
     // Produce DAILY summary messages (non-PAYG tag)
-    TallyDbHostSeeder.insertBuckets(hostId, productId, "Premium", "Production", 4, 2, "PHYSICAL");
+    seeder.insertBuckets(hostId, productId, "Premium", "Production", 4, 2, "PHYSICAL");
   }
 
   // --- When/Then helper methods: Perform actions and wait for results ---

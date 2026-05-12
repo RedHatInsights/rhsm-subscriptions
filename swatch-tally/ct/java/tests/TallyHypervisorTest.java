@@ -38,22 +38,22 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import utils.TallyDbHostSeeder;
 
-public class TallyHypervisorTests extends BaseTallyComponentTest {
+public class TallyHypervisorTest extends BaseTallyComponentTest {
 
   @Test
   @TestPlanName("tally-hypervisor-TC003")
   public void testHypervisorWithNoGuestsDoesNotShowInInstancesReport() {
     // Given: Baseline tally data and a hypervisor host with no guests
     helpers.seedNightlyTallyHostBuckets(
-        orgId, RHEL_FOR_X86.productTag(), UUID.randomUUID().toString(), service);
+        seeder, orgId, RHEL_FOR_X86.productTag(), UUID.randomUUID().toString(), service);
     service.tallyOrg(orgId);
 
     OffsetDateTime startOfToday = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
     OffsetDateTime endOfToday = startOfToday.plusDays(1).minusNanos(1);
 
     TallyDbHostSeeder.SeededHost hypervisorHost =
-        TallyDbHostSeeder.insertHost(
-            orgId, UUID.randomUUID().toString(), "VIRTUAL", false, false, true, 0, null);
+        seeder.insertHost(
+            orgId, UUID.randomUUID().toString(), "VIRTUALIZED", false, false, true, 0, null);
 
     // When: Running tally for the org
     service.tallyOrg(orgId);
@@ -72,7 +72,7 @@ public class TallyHypervisorTests extends BaseTallyComponentTest {
   public void testHypervisorWithNoGuestsDoesNotChangeDailyTotal() {
     // Given: Baseline usage and a hypervisor host with no guests
     helpers.seedNightlyTallyHostBuckets(
-        orgId, RHEL_FOR_X86.productTag(), UUID.randomUUID().toString(), service);
+        seeder, orgId, RHEL_FOR_X86.productTag(), UUID.randomUUID().toString(), service);
     service.tallyOrg(orgId);
 
     OffsetDateTime startOfToday = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
@@ -80,8 +80,8 @@ public class TallyHypervisorTests extends BaseTallyComponentTest {
 
     long initialSockets = getDailySocketsTotal(startOfToday, endOfToday);
 
-    TallyDbHostSeeder.insertHost(
-        orgId, UUID.randomUUID().toString(), "VIRTUAL", false, false, true, 0, null);
+    seeder.insertHost(
+        orgId, UUID.randomUUID().toString(), "VIRTUALIZED", false, false, true, 0, null);
 
     // When: Running tally for the org
     service.tallyOrg(orgId);

@@ -36,13 +36,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import utils.TallyDbHostSeeder;
 
-public class TallyInstancesBillingAccountIdsTest extends BaseTallyComponentTest {
+class TallyInstancesBillingAccountIdsTest extends BaseTallyComponentTest {
 
   /** Two distinct rows after tally (distinguish-by-billing). */
   private record DistinctBillings(String first, String second) {}
@@ -228,7 +226,7 @@ public class TallyInstancesBillingAccountIdsTest extends BaseTallyComponentTest 
 
   @Test
   @TestPlanName("tally-instances-billing-account-TC001")
-  public void shouldExcludeBillingAccountsWithLastSeenBeforeCurrentMonth() {
+  void shouldExcludeBillingAccountsWithLastSeenBeforeCurrentMonth() {
     final String isolatedOrg = RandomUtils.generateRandom();
     final String testInventoryId = UUID.randomUUID().toString();
     final String billingAccountId = UUID.randomUUID().toString();
@@ -236,7 +234,7 @@ public class TallyInstancesBillingAccountIdsTest extends BaseTallyComponentTest 
 
     service.createOptInConfig(isolatedOrg);
 
-    TallyDbHostSeeder.insertHostWithBillingAccountAndDate(
+    seeder.insertHostWithBillingAccountAndDate(
         isolatedOrg,
         testInventoryId,
         RHEL_FOR_X86_ELS_PAYG.productTag(),
@@ -266,7 +264,7 @@ public class TallyInstancesBillingAccountIdsTest extends BaseTallyComponentTest 
 
   @Test
   @TestPlanName("tally-instances-billing-account-TC002")
-  public void shouldReturnDistinctBillingAccountIdsAfterHourlyTally() {
+  void shouldReturnDistinctBillingAccountIdsAfterHourlyTally() {
     Map<String, Object> queryParams = new HashMap<>();
     Response response = service.getBillingAccountIds(testOrgId, queryParams);
     List<Map<String, String>> ids = response.jsonPath().getList("ids");
@@ -274,7 +272,7 @@ public class TallyInstancesBillingAccountIdsTest extends BaseTallyComponentTest 
         ids, "Response ids should not be null. Response body: " + response.getBody().asString());
 
     List<String> billingAccountIds =
-        ids.stream().map(item -> item.get("billing_account_id")).collect(Collectors.toList());
+        ids.stream().map(item -> item.get("billing_account_id")).toList();
     assertTrue(
         billingAccountIds.contains(distinct.first()),
         "Response should contain billing account ID: " + distinct.first());
@@ -294,12 +292,11 @@ public class TallyInstancesBillingAccountIdsTest extends BaseTallyComponentTest 
 
   @Test
   @TestPlanName("tally-instances-billing-account-TC003")
-  public void shouldReturnInstancesWithThreeDistinctBillingAccountIds() {
+  void shouldReturnInstancesWithThreeDistinctBillingAccountIds() {
     Response response = service.getBillingAccountIds(testOrgId, new HashMap<>());
     List<Map<String, String>> ids = response.jsonPath().getList("ids");
     assertNotNull(ids);
-    List<String> accounts =
-        ids.stream().map(m -> m.get("billing_account_id")).collect(Collectors.toList());
+    List<String> accounts = ids.stream().map(m -> m.get("billing_account_id")).toList();
     assertTrue(accounts.contains(three.a()));
     assertTrue(accounts.contains(three.b()));
     assertTrue(accounts.contains(three.c()));
@@ -307,7 +304,7 @@ public class TallyInstancesBillingAccountIdsTest extends BaseTallyComponentTest 
 
   @Test
   @TestPlanName("tally-instances-billing-account-TC004")
-  public void shouldReturnInstancesWithTwoInstancesSharingSameBillingAccountId() {
+  void shouldReturnInstancesWithTwoInstancesSharingSameBillingAccountId() {
     Response response = service.getBillingAccountIds(testOrgId, new HashMap<>());
     List<Map<String, String>> ids = response.jsonPath().getList("ids");
     assertNotNull(ids);
@@ -321,12 +318,11 @@ public class TallyInstancesBillingAccountIdsTest extends BaseTallyComponentTest 
 
   @Test
   @TestPlanName("tally-instances-billing-account-TC005")
-  public void shouldReturnInstancesWithMixedBillingProviders() {
+  void shouldReturnInstancesWithMixedBillingProviders() {
     Response response = service.getBillingAccountIds(testOrgId, new HashMap<>());
     List<Map<String, String>> ids = response.jsonPath().getList("ids");
     assertNotNull(ids);
-    List<String> prov =
-        ids.stream().map(m -> m.get("billing_provider")).sorted().collect(Collectors.toList());
+    List<String> prov = ids.stream().map(m -> m.get("billing_provider")).sorted().toList();
     assertTrue(prov.contains("aws"));
     assertTrue(prov.contains("azure"));
   }
