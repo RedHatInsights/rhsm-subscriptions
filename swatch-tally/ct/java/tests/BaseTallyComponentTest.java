@@ -29,10 +29,13 @@ import com.redhat.swatch.component.tests.api.ComponentTest;
 import com.redhat.swatch.component.tests.api.KafkaBridge;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.api.SpringBoot;
+import com.redhat.swatch.component.tests.api.SwatchDatabase;
 import com.redhat.swatch.component.tests.api.Unleash;
 import com.redhat.swatch.component.tests.api.Wiremock;
+import com.redhat.swatch.component.tests.api.db.DatabaseService;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import org.junit.jupiter.api.BeforeEach;
+import utils.TallyDbHostSeeder;
 import utils.TallyTestHelpers;
 
 /**
@@ -67,11 +70,12 @@ public class BaseTallyComponentTest {
 
   @Unleash static TallyUnleashService unleash = new TallyUnleashService();
 
+  @SwatchDatabase static DatabaseService swatchDatabase = new DatabaseService();
+
   // --- Instance fields ---
 
+  protected final TallyDbHostSeeder seeder = new TallyDbHostSeeder(swatchDatabase);
   protected String orgId;
-
-  // --- Lifecycle methods ---
 
   @BeforeEach
   void setUp() {
