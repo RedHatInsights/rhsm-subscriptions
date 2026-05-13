@@ -12,9 +12,9 @@ parameters:
   - name: IMAGE_PULL_SECRET
     value: quay-cloudservices-pull
   - name: MEMORY_REQUEST
-    value: 640Mi
+    value: 512Mi
   - name: MEMORY_LIMIT
-    value: 768Mi
+    value: 512Mi
   - name: CPU_REQUEST
     value: 200m
   - name: CPU_LIMIT
@@ -89,13 +89,14 @@ parameters:
   - name: EGRESS_IMAGE_TAG
     value: latest
   - name: USER_JAVA_OPTS
-    value: '-Xmx384m -XX:MaxDirectMemorySize=64m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/heapdumps/ -XX:NativeMemoryTracking=detail'
+    # Heap dumps triggered by heap monitor at 75% threshold (leaves headroom for compression + upload)
+    value: '-Xmx150m -XX:MaxDirectMemorySize=32m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/heapdumps/ -XX:NativeMemoryTracking=summary'
   - name: ENABLE_HEAP_MONITOR
     value: 'true'
   - name: HEAP_MONITOR_THRESHOLD_PERCENT
-    value: '88'
+    value: '60'
   - name: HEAP_MONITOR_RESET_PERCENT
-    value: '82'
+    value: '55'
   - name: HEAP_DUMP_UPLOAD_S3
     value: 'false'
   - name: HEAP_DUMP_S3_PREFIX

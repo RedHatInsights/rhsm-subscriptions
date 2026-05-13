@@ -38,7 +38,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
  * requiring AWS CLI.
  *
  * <p>Usage: java -cp /deployments/quarkus-run.jar com.redhat.swatch.utilization.S3Uploader \
- * /path/to/file.gz \ bucket-name \ prefix/YYYYMMDD-HHMMSS/basename (basename may include hostname)
+ * /path/to/file.gz \ bucket-name \ s3/key/path/file.gz
  *
  * <p>Credentials read from environment variables: AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
  * AWS_DEFAULT_REGION

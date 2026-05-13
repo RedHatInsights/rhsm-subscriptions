@@ -75,19 +75,10 @@ echo "[heap-monitor] Started. Container limit: ${MEMORY_LIMIT_BYTES} bytes, thre
 
 upload_file_to_s3() {
   local file="$1"
-  local datetime_folder="${2:-}"
   [ -f "$file" ] || return 0
   local fname s3_key
   fname=$(basename "$file")
-  if [ -z "$datetime_folder" ]; then
-    if [[ "$fname" =~ ([0-9]{8}-[0-9]{6})\.(txt|hprof\.gz|hprof)$ ]]; then
-      datetime_folder="${BASH_REMATCH[1]}"
-    else
-      datetime_folder=$(date +%Y%m%d-%H%M%S)
-    fi
-  fi
-  s3_key="${S3_PREFIX}/${datetime_folder}/${fname}"
-  echo "[heap-monitor] S3 object key: ${s3_key}"
+  s3_key="${S3_PREFIX}/${POD_NAME}/${fname}"
 
   # Use Java S3Uploader (no AWS CLI needed - uses Quarkus AWS SDK)
   java -cp "/deployments/app/*:/deployments/lib/boot/*:/deployments/lib/main/*:/deployments/quarkus-run.jar" \
@@ -177,7 +168,7 @@ process_jvm_oom_dumps() {
     if compress_dump "$renamed"; then
       if [ "$S3_ENABLED" = true ]; then
         echo "[heap-monitor] Uploading JVM OOM dump to S3..."
-        upload_file_to_s3 "${renamed}.gz" "$timestamp"
+        upload_file_to_s3 "${renamed}.gz"
         rm -f "${renamed}.gz"
       fi
       rm -f "$renamed"
@@ -192,11 +183,11 @@ upload_diagnostics() {
 
   if [ "$S3_ENABLED" = true ]; then
     echo "[heap-monitor] Uploading files to S3..."
-    upload_file_to_s3 "/heapdumps/nmt-${pod}-${ts}.txt" "$ts"
-    upload_file_to_s3 "/heapdumps/jvm-metrics-${pod}-${ts}.txt" "$ts"
-    upload_file_to_s3 "/heapdumps/nmt-periodic.txt" "$ts"
-    upload_file_to_s3 "/heapdumps/jvm-metrics-periodic.txt" "$ts"
-    upload_file_to_s3 "${dump_file}.gz" "$ts"
+    upload_file_to_s3 "/heapdumps/nmt-${pod}-${ts}.txt"
+    upload_file_to_s3 "/heapdumps/jvm-metrics-${pod}-${ts}.txt"
+    upload_file_to_s3 "/heapdumps/nmt-periodic.txt"
+    upload_file_to_s3 "/heapdumps/jvm-metrics-periodic.txt"
+    upload_file_to_s3 "${dump_file}.gz"
     echo "[heap-monitor] S3 upload complete"
 
     rm -f "${dump_file}.gz" \
