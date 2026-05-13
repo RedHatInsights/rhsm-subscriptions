@@ -104,9 +104,13 @@ spec:
       type: string
       description: Value to set for ENV_FOR_DYNACONF
       default: "clowder_smoke"
+    - name: IQE_IMAGE_REPOSITORY
+      type: string
+      description: IQE image repository without tag (must match Bonfire deploy); shown with tag in PR test comments
+      default: "quay.io/cloudservices/iqe-tests"
     - name: IQE_IMAGE_TAG
       type: string
-      description: Tag of the IQE image to be used
+      description: Default tag of the IQE image; overridden for PRs that include /use-iqe-image-tag=VALUE in the PR description
       default: "rhsm-subscriptions"
     - name: IQE_PARALLEL_ENABLED
       type: string
@@ -161,6 +165,12 @@ spec:
           value: "$(params.SNAPSHOT)"
         - name: COMPONENT_NAME
           value: "$(params.COMPONENT_NAME)"
+        - name: PROJECT_REPO
+          value: "$(params.PROJECT_REPO)"
+        - name: GITHUB_TOKEN_SECRET
+          value: "$(params.GITHUB_TOKEN_SECRET)"
+        - name: IQE_IMAGE_TAG_DEFAULT
+          value: "$(params.IQE_IMAGE_TAG)"
       taskRef:
         resolver: git
         params:
@@ -577,7 +587,7 @@ spec:
         - name: IQE_ENV
           value: "$(params.IQE_ENV)"
         - name: IQE_IMAGE_TAG
-          value: "$(params.IQE_IMAGE_TAG)"
+          value: "$(tasks.extract-metadata.results.IQE_IMAGE_TAG)"
         - name: IQE_PARALLEL_ENABLED
           value: "$(params.IQE_PARALLEL_ENABLED)"
       taskRef:
@@ -826,6 +836,8 @@ spec:
           value: "IQE Tests"
         - name: GITHUB_TOKEN_SECRET
           value: "$(params.GITHUB_TOKEN_SECRET)"
+        - name: IQE_IMAGE
+          value: "$(params.IQE_IMAGE_REPOSITORY):$(tasks.extract-metadata.results.IQE_IMAGE_TAG)"
       taskRef:
         resolver: git
         params:

@@ -24,11 +24,11 @@ jobs:
     outputs:
       modified-services: ${{ steps.add-labels.outputs.modified-services }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0  # Need to do git diff against the base branch
       - name: Set up JDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: 21
@@ -86,10 +86,10 @@ jobs:
       checkstyle-report-url: ${{ steps.checkstyle-report-upload.outputs.artifact-url }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up JDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: 21
@@ -103,7 +103,7 @@ jobs:
       - name: Upload Checkstyle Report
         id: checkstyle-report-upload
         if: ${{ always() && (hashFiles('**/build/reports/checkstyle/**')) }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: checkstyle-report
           path: '${{ github.workspace }}/**/target/reports/checkstyle.html'
@@ -113,7 +113,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Git config
         run: |
@@ -121,7 +121,7 @@ jobs:
           git config --global user.email "$(git log -1 --pretty=format:'%ae')"
 
       - name: Set up JDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: 21
@@ -170,10 +170,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up JDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: 21
@@ -187,7 +187,7 @@ jobs:
           ./mvnw clean package -DskipTests
 
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build-artifacts
           path: |
@@ -202,10 +202,10 @@ jobs:
       coverage-report-uploaded: ${{ steps.coverage-report-upload.outcome }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up JDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: 21
@@ -220,14 +220,14 @@ jobs:
 
       - name: Upload JUnit Report
         if: always() && (hashFiles('**/target/surefire-reports/TEST-*.xml') != '')
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: junit-report
           path: '**/target/surefire-reports/TEST-*.xml'
 
       - name: Upload HTML Test Report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: junit-html-report
           path: '**/target/reports/*'
@@ -235,7 +235,7 @@ jobs:
       - name: Upload Code Coverage
         if: ${{ always() && (hashFiles('coverage-report/target/site/jacoco-aggregate') != '') }}
         continue-on-error: true
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: code-coverage
           path: 'coverage-report/target/site/jacoco-aggregate'
@@ -246,10 +246,10 @@ jobs:
     needs: [test, labeler]
     if: always() && (needs.test.result == 'success') && (needs.labeler.result == 'success' || needs.labeler.result == 'skipped')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up JDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: 21
@@ -292,7 +292,7 @@ jobs:
       - name: Download Code Coverage Report
         id: download-coverage
         continue-on-error: true
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         if: ${{ needs.test.outputs.coverage-report-uploaded == 'success' }}
         with:
           name: code-coverage
@@ -301,7 +301,7 @@ jobs:
       - name: Download JUnit Test Results
         id: download-junit
         continue-on-error: true
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: junit-report
           path: junit-report
@@ -309,14 +309,14 @@ jobs:
       - name: Download Checkstyle Report
         id: download-checkstyle
         continue-on-error: true
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: checkstyle-report
           path: checkstyle-report
 
       - name: JUnit Test Report
         id: test-report
-        uses: mikepenz/action-junit-report@v5
+        uses: mikepenz/action-junit-report@v6
         # See https://stackoverflow.com/a/70549615/6124862
         if: ${{ steps.download-junit.outcome == 'success' }}
         with:
