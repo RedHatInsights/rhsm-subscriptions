@@ -140,7 +140,7 @@ capture_nmt_summary() {
   local output_file="$1"
   if [ -d "/proc/1" ]; then
     echo "--- $(date '+%Y-%m-%d %H:%M:%S') ---" >> "$output_file"
-    jcmd 1 VM.native_memory summary >> "$output_file" 2>&1 || \
+    jcmd 1 VM.native_memory detail >> "$output_file" 2>&1 || \
       echo "[heap-monitor] NMT capture failed" >> "$output_file"
     echo "" >> "$output_file"
   fi
