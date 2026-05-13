@@ -26,7 +26,7 @@
     Spring and Quarkus already provides the compatible Jackson versions -->
     <jackson.version>2.21.3</jackson.version>
     <mapstruct.version>1.6.3</mapstruct.version>
-    <slf4j.version>2.0.17</slf4j.version>
+    <slf4j.version>2.0.18</slf4j.version>
     <jakarta.ws.rs-api.version>4.0.0</jakarta.ws.rs-api.version>
     <jakarta.persistence-api.version>3.2.0</jakarta.persistence-api.version>
     <opentelemetry-api.version>1.62.0</opentelemetry-api.version>
