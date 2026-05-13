@@ -199,6 +199,10 @@ public class InventoryController {
     facts.setSysPurposeAddons(consumer.getSysPurposeAddons());
     facts.setSysPurposeUnits(rhsmFacts.get(OCM_UNITS));
     facts.setBillingModel(rhsmFacts.get(OCM_BILLING_MODEL));
+    // The JSON we get from the consumer contains both openshift.cluster_id and
+    // openshift.cluster_uuid. We use the cluster_uuid because the downstream
+    // API expects a valid UUID
+    facts.setOpenshiftClusterId(rhsmFacts.get(OPENSHIFT_CLUSTER_UUID));
     extractConversionsActivity(rhsmFacts, facts);
 
     extractNetworkFacts(consumer, rhsmFacts, facts);

@@ -44,3 +44,5 @@ properties:
   provider_type:
     type: string
     existingJavaType: org.candlepin.subscriptions.utilization.api.model.ConsumerInventory.ProviderTypeEnum
+  openshift_cluster_id:
+    type: string
