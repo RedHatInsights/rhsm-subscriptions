@@ -24,6 +24,7 @@ import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
@@ -72,41 +73,84 @@ public class PrimaryRecordUtils {
     if (snapshot.getProductId() == null) {
       throw new IllegalArgumentException("TallySnapshot productId cannot be null");
     }
+    return isPrimary(
+        snapshot.getProductId(),
+        snapshot.getServiceLevel(),
+        snapshot.getUsage(),
+        snapshot.getBillingProvider(),
+        snapshot.getBillingAccountId());
+  }
 
-    boolean slaIsNotAny = snapshot.getServiceLevel() != ServiceLevel._ANY;
-    boolean usageIsNotAny = snapshot.getUsage() != Usage._ANY;
+  /**
+   * Determines if a HostTallyBucket record is a primary record based on its product type and
+   * attributes.
+   *
+   * <p>For PAYG products, a bucket is primary if:
+   *
+   * <ul>
+   *   <li>SLA is not _ANY
+   *   <li>Usage is not _ANY
+   *   <li>Billing provider is not _ANY
+   *   <li>Billing account ID is not null and not _ANY
+   * </ul>
+   *
+   * <p>For traditional (non-PAYG) products, a bucket is primary if:
+   *
+   * <ul>
+   *   <li>SLA is not _ANY
+   *   <li>Usage is not _ANY
+   *   <li>Billing provider is _ANY
+   *   <li>Billing account ID is _ANY
+   * </ul>
+   *
+   * @param bucket the HostTallyBucket to evaluate
+   * @return true if the bucket is a primary record, false otherwise
+   * @throws IllegalArgumentException if bucket is null, has a null key, or has a null product ID
+   * @throws IllegalStateException if the product ID is not found in the subscription configuration
+   */
+  public static boolean isPrimaryRecord(HostTallyBucket bucket) {
+    if (bucket == null) {
+      throw new IllegalArgumentException("HostTallyBucket cannot be null");
+    }
+    if (bucket.getKey() == null) {
+      throw new IllegalArgumentException("HostTallyBucket key cannot be null");
+    }
+    if (bucket.getKey().getProductId() == null) {
+      throw new IllegalArgumentException("HostTallyBucket productId cannot be null");
+    }
+    return isPrimary(
+        bucket.getKey().getProductId(),
+        bucket.getKey().getSla(),
+        bucket.getKey().getUsage(),
+        bucket.getKey().getBillingProvider(),
+        bucket.getKey().getBillingAccountId());
+  }
 
-    // Look up the subscription definition to determine if it's PAYG eligible
+  private static boolean isPrimary(
+      String productId,
+      ServiceLevel sla,
+      Usage usage,
+      BillingProvider billingProvider,
+      String billingAccountId) {
+
+    boolean slaIsNotAny = sla != ServiceLevel._ANY;
+    boolean usageIsNotAny = usage != Usage._ANY;
+
     SubscriptionDefinition subscriptionDefinition =
-        SubscriptionDefinition.lookupSubscriptionByTag(snapshot.getProductId())
+        SubscriptionDefinition.lookupSubscriptionByTag(productId)
             .orElseThrow(
                 () ->
                     new IllegalStateException(
-                        snapshot.getProductId() + " missing in subscription configuration"));
+                        productId + " missing in subscription configuration"));
 
     if (subscriptionDefinition.isPaygEligible()) {
-      // For PAYG products, all four fields must be non-_ANY
-      boolean billingProviderIsNotAny = snapshot.getBillingProvider() != BillingProvider._ANY;
+      boolean billingProviderIsNotAny = billingProvider != BillingProvider._ANY;
       boolean billingAccountIdIsNotAny =
-          !Objects.isNull(snapshot.getBillingAccountId())
-              && !ANY.equals(snapshot.getBillingAccountId());
+          !Objects.isNull(billingAccountId) && !ANY.equals(billingAccountId);
       return slaIsNotAny && usageIsNotAny && billingProviderIsNotAny && billingAccountIdIsNotAny;
     } else {
-      // For traditional products, SLA and usage must be non-_ANY, and billing fields must be _ANY
-      boolean billingProviderIsAny = snapshot.getBillingProvider() == BillingProvider._ANY;
-      boolean billingAccountIdIsAny = ANY.equals(snapshot.getBillingAccountId());
-
-      // Log warning if billing fields are not _ANY for traditional products
-      if (!billingProviderIsAny || !billingAccountIdIsAny) {
-        log.warn(
-            "Traditional product snapshot has unexpected billing field values. "
-                + "productId={}, billingProvider={}, billingAccountId={}. "
-                + "Expected both to be _ANY.",
-            snapshot.getProductId(),
-            snapshot.getBillingProvider(),
-            snapshot.getBillingAccountId());
-      }
-
+      boolean billingProviderIsAny = billingProvider == BillingProvider._ANY;
+      boolean billingAccountIdIsAny = ANY.equals(billingAccountId);
       return slaIsNotAny && usageIsNotAny && billingProviderIsAny && billingAccountIdIsAny;
     }
   }

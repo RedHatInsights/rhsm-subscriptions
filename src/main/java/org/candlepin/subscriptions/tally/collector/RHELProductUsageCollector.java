@@ -25,6 +25,7 @@ import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
+import org.candlepin.subscriptions.util.PrimaryRecordUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -101,16 +102,19 @@ public class RHELProductUsageCollector implements ProductUsageCollector {
       Integer appliedCores,
       Integer appliedSockets,
       HardwareMeasurementType appliedType) {
-    return new HostTallyBucket(
-        null,
-        key.getProductId(),
-        key.getSla(),
-        key.getUsage(),
-        key.getBillingProvider(),
-        key.getBillingAccountId(),
-        asHypervisor,
-        appliedCores,
-        appliedSockets,
-        appliedType);
+    HostTallyBucket bucket =
+        new HostTallyBucket(
+            null,
+            key.getProductId(),
+            key.getSla(),
+            key.getUsage(),
+            key.getBillingProvider(),
+            key.getBillingAccountId(),
+            asHypervisor,
+            appliedCores,
+            appliedSockets,
+            appliedType);
+    bucket.setPrimary(PrimaryRecordUtils.isPrimaryRecord(bucket));
+    return bucket;
   }
 }

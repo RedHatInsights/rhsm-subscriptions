@@ -96,6 +96,14 @@ public class HostTallyBucket extends ModificationTrackedEntity implements Serial
     this.key.setHostId(host == null ? null : host.getId());
   }
 
+  public boolean isPrimary() {
+    return isPrimary;
+  }
+
+  public void setPrimary(boolean primary) {
+    this.isPrimary = primary;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
