@@ -24,6 +24,7 @@ import com.redhat.swatch.utilization.data.OrgUtilizationPreferenceEntity;
 import com.redhat.swatch.utilization.data.OrgUtilizationPreferenceRepository;
 import com.redhat.swatch.utilization.openapi.model.OrgPreferencesRequest;
 import com.redhat.swatch.utilization.openapi.model.OrgPreferencesResponse;
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -34,12 +35,15 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 public class OrgPreferencesService {
 
   private final OrgUtilizationPreferenceRepository repository;
+  private final MeterRegistry meterRegistry;
 
   @ConfigProperty(name = "ORG_PREFERENCE_DEFAULT_THRESHOLD")
   Integer defaultThreshold;
 
-  public OrgPreferencesService(OrgUtilizationPreferenceRepository repository) {
+  public OrgPreferencesService(
+      OrgUtilizationPreferenceRepository repository, MeterRegistry meterRegistry) {
     this.repository = repository;
+    this.meterRegistry = meterRegistry;
   }
 
   /**
@@ -56,6 +60,10 @@ public class OrgPreferencesService {
     } else {
       response.setCustomThreshold(entityOpt.get().getCustomThreshold());
     }
+    CustomerThresholdPercentMetric.record(
+        meterRegistry,
+        CustomerThresholdPercentMetric.SOURCE_API_GET,
+        response.getCustomThreshold());
     return response;
   }
 
@@ -71,6 +79,8 @@ public class OrgPreferencesService {
     repository.persist(entity);
     var response = new OrgPreferencesResponse();
     response.setCustomThreshold(request.getCustomThreshold());
+    CustomerThresholdPercentMetric.record(
+        meterRegistry, CustomerThresholdPercentMetric.SOURCE_API_PUT, request.getCustomThreshold());
     log.debug("Updated utilization preference '{}' to orgId={}", request, orgId);
     return response;
   }

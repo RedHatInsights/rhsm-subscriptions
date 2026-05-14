@@ -6628,6 +6628,102 @@ data:
                 "type": "prometheus",
                 "uid": "${datasource}"
               },
+              "description": "Rolling average of observed org utilization threshold (percent), by how it was recorded: API GET/PUT vs Kafka pipeline reads.",
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "mappings": [],
+                  "min": 0,
+                  "max": 100,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "unit": "percent"
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 8,
+                "w": 8,
+                "x": 0,
+                "y": 74
+              },
+              "id": 136,
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "none"
+                }
+              },
+              "pluginVersion": "11.6.3",
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "${datasource}"
+                  },
+                  "editorMode": "code",
+                  "expr": "sum(rate(swatch_utilization_customer_threshold_percent_sum{service=\"swatch-utilization-service\"}[5m])) by (source) / sum(rate(swatch_utilization_customer_threshold_percent_count{service=\"swatch-utilization-service\"}[5m])) by (source)",
+                  "legendFormat": "{{ source }}",
+                  "range": true,
+                  "refId": "A"
+                }
+              ],
+              "title": "Customer utilization threshold (avg %)",
+              "type": "timeseries"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
               "fieldConfig": {
                 "defaults": {
                   "color": {
@@ -6738,7 +6834,7 @@ data:
                 "h": 8,
                 "w": 21,
                 "x": 0,
-                "y": 74
+                "y": 82
               },
               "id": 131,
               "options": {
@@ -6880,7 +6976,7 @@ data:
       "timezone": "utc",
       "title": "Subscription Watch",
       "uid": "lkPhH-1Zk",
-      "version": 9
+      "version": 10
     }
 kind: ConfigMap
 metadata:

@@ -146,6 +146,10 @@ The service exposes several metrics for monitoring and alerting:
 - `sla`: Service level when set on the utilization summary; otherwise `_ANY` (missing, empty, or `ANY` on the payload)
 - `usage`: Usage type when set on the utilization summary; otherwise `_ANY` (missing, empty, or `ANY` on the payload)
 
+**swatch_utilization_customer_threshold_percent**: Distribution summary of observed utilization threshold percentages, tagged by `source`:
+- `api_get` / `api_put`: values returned or saved via the org preferences API
+- `pipeline`: values read while evaluating custom thresholds from Kafka summaries
+
 These metrics enable:
 - Dashboards showing utilization monitoring coverage
 - Alerts when over-usage is detected frequently

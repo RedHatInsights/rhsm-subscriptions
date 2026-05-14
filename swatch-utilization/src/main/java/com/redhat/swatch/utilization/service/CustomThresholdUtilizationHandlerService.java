@@ -56,6 +56,8 @@ public class CustomThresholdUtilizationHandlerService
 
     var preference = preferenceOpt.get();
     int threshold = preference.getCustomThreshold();
+    CustomerThresholdPercentMetric.record(
+        meterRegistry, CustomerThresholdPercentMetric.SOURCE_PIPELINE, threshold);
 
     if (utilizationPercent >= threshold) {
       log.info(
