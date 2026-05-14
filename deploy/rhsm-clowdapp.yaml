@@ -78,6 +78,10 @@ objects:
             protocol: rfc3164
             udp:
               listen_address: '0.0.0.0:54526'
+          filelog:
+            include:
+              - /logs/application.log
+            start_at: end
         processors:
           batch:
           transform/syslog:
@@ -97,9 +101,13 @@ objects:
               receivers: [otlp]
               processors: [batch]
               exporters: [debug]
-            logs:
+            logs/syslog:
               receivers: [syslog]
               processors: [batch, transform/syslog]
+              exporters: [debug]
+            logs/file:
+              receivers: [filelog]
+              processors: [batch]
               exporters: [debug]
           telemetry:
             logs:
