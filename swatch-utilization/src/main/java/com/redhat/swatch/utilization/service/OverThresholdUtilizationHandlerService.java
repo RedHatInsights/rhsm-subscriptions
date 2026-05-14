@@ -92,4 +92,9 @@ public class OverThresholdUtilizationHandlerService extends BaseThresholdUtiliza
   protected String metricName() {
     return OVER_USAGE_METRIC;
   }
+
+  @Override
+  protected String handlerKind() {
+    return "over_usage";
+  }
 }
