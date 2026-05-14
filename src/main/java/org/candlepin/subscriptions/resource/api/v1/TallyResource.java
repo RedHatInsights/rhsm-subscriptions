@@ -384,7 +384,9 @@ public class TallyResource implements TallyApi {
   private UnroundedTallyReportDataPoint unroundedDataPointFromMeasurement(
       MetricId metricId, ReportCategory category, TallyMeasurement measurement) {
     return new UnroundedTallyReportDataPoint(
-        measurement.getSnapshotDate(), measurement.extractRawValue(metricId, category), true);
+        measurement.getSnapshotDate(),
+        measurement.extractRawValue(metricId, category),
+        measurement.hasMeasurementForCategory(metricId, category));
   }
 
   private List<UnroundedTallyReportDataPoint> transformToRunningTotalFormat(
