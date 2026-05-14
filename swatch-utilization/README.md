@@ -146,6 +146,8 @@ The service exposes several metrics for monitoring and alerting:
 - `sla`: Service level when set on the utilization summary; otherwise `_ANY` (missing, empty, or `ANY` on the payload)
 - `usage`: Usage type when set on the utilization summary; otherwise `_ANY` (missing, empty, or `ANY` on the payload)
 
+**swatch_utilization_handler**: Timer for wall time spent in each threshold handler implementation, tagged by `handler_kind` (`over_usage`, `custom_threshold`).
+
 Org preference **POST** volume is available from Quarkus HTTP metrics (no custom counter), for example:
 
 ```promql

@@ -91,6 +91,11 @@ public class CustomThresholdUtilizationHandlerService
     return CUSTOM_THRESHOLD_METRIC;
   }
 
+  @Override
+  protected String handlerKind() {
+    return "custom_threshold";
+  }
+
   static String hashLastUpdated(OffsetDateTime lastUpdated) {
     return DigestUtils.sha256Hex(lastUpdated.toString());
   }
