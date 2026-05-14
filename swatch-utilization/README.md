@@ -145,6 +145,9 @@ The service exposes several metrics for monitoring and alerting:
 - `billing`: Billing provider (if present)
 - `sla`: Service level when set on the utilization summary; otherwise `_ANY` (missing, empty, or `ANY` on the payload)
 - `usage`: Usage type when set on the utilization summary; otherwise `_ANY` (missing, empty, or `ANY` on the payload)
+- `event_type`: Notifications ingress event type (for example `exceeded-utilization-threshold`)
+
+**swatch_utilization_custom_threshold**: Counter for custom org-threshold notifications, with the same dimensional tags as over-usage, including `event_type` (for example `exceeded-custom-utilization-threshold`).
 
 **swatch_utilization_customer_threshold_percent**: Distribution summary of observed utilization threshold percentages, tagged by `source`:
 - `api_get` / `api_put`: values returned or saved via the org preferences API

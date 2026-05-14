@@ -212,7 +212,9 @@ public abstract class BaseThresholdUtilizationHandlerService implements Utilizat
             "sla",
             metricSlaLabelValue(payload.getSla()),
             "usage",
-            metricUsageLabelValue(payload.getUsage()))
+            metricUsageLabelValue(payload.getUsage()),
+            "event_type",
+            eventType())
         .increment();
   }
 

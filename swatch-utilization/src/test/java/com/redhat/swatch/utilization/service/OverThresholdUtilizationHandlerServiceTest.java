@@ -580,6 +580,7 @@ class OverThresholdUtilizationHandlerServiceTest {
             .tag("metric_id", metricId)
             .tag("sla", BaseThresholdUtilizationHandlerService.metricSlaLabelValue(sla))
             .tag("usage", BaseThresholdUtilizationHandlerService.metricUsageLabelValue(usage))
+            .tag("event_type", OverThresholdUtilizationHandlerService.EVENT_TYPE)
             .counter();
     return counter != null ? counter.count() : 0.0;
   }
