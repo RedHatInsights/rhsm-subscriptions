@@ -153,6 +153,8 @@ The service exposes several metrics for monitoring and alerting:
 - `api_get` / `api_put`: values returned or saved via the org preferences API
 - `pipeline`: values read while evaluating custom thresholds from Kafka summaries
 
+**swatch_utilization_handler**: Timer for wall time spent in each threshold handler implementation, tagged by `handler_kind` (`over_usage`, `custom_threshold`).
+
 These metrics enable:
 - Dashboards showing utilization monitoring coverage
 - Alerts when over-usage is detected frequently

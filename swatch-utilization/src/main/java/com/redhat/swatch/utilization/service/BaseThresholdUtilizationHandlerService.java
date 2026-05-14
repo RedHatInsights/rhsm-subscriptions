@@ -38,6 +38,7 @@ import com.redhat.swatch.utilization.model.UtilizationSummary;
 import com.redhat.swatch.utilization.model.UtilizationSummary.BillingProvider;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import jakarta.inject.Inject;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -49,6 +50,8 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @Slf4j
 public abstract class BaseThresholdUtilizationHandlerService implements UtilizationHandlerService {
+
+  public static final String HANDLER_TIMER_METRIC = "swatch_utilization_handler";
 
   public static final String DIMENSION_ANY = "_ANY";
 
@@ -67,19 +70,31 @@ public abstract class BaseThresholdUtilizationHandlerService implements Utilizat
   Double defaultOverUsageThresholdPercent;
 
   public boolean handle(UtilizationSummary payload, Measurement measurement) {
-    var utilizationOpt = computeUtilizationPercent(payload, measurement);
-    if (utilizationOpt.isEmpty()) {
+    Timer.Sample sample = Timer.start(meterRegistry);
+    try {
+      var utilizationOpt = computeUtilizationPercent(payload, measurement);
+      if (utilizationOpt.isEmpty()) {
+        return false;
+      }
+      double utilizationPercent = utilizationOpt.getAsDouble();
+      var eventOpt = evaluateThreshold(utilizationPercent, payload, measurement);
+      if (eventOpt.isPresent()) {
+        MetricId metricId = MetricId.fromString(measurement.getMetricId());
+        sendNotification(payload, metricId, eventType(), severity(), eventOpt.get(), metricName());
+        return true;
+      }
       return false;
+    } finally {
+      sample.stop(
+          Timer.builder(HANDLER_TIMER_METRIC)
+              .description("Time spent evaluating a utilization measurement in a threshold handler")
+              .tag("handler_kind", handlerKind())
+              .register(meterRegistry));
     }
-    double utilizationPercent = utilizationOpt.getAsDouble();
-    var eventOpt = evaluateThreshold(utilizationPercent, payload, measurement);
-    if (eventOpt.isPresent()) {
-      MetricId metricId = MetricId.fromString(measurement.getMetricId());
-      sendNotification(payload, metricId, eventType(), severity(), eventOpt.get(), metricName());
-      return true;
-    }
-    return false;
   }
+
+  /** Short stable label for {@link #HANDLER_TIMER_METRIC} (e.g. {@code over_usage}). */
+  protected abstract String handlerKind();
 
   protected abstract Optional<Event> evaluateThreshold(
       double utilizationPercent, UtilizationSummary payload, Measurement measurement);
