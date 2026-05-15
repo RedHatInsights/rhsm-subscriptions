@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+  <!--
+  As of Hibernate 6.5, https://in.relation.to/2024/04/19/generated-values/, the
+  @CurrentTimestamp(source = DB) annotation is capable of storing a result given by a SQL
+  RETURNING clause.  This means that we can avoid the round-trip problem that initially informed
+  the decision to go with trigger to write the last_modified column.  We will still need those
+  triggers for tables that are not directly mapped (e.g. ElementCollection properties).  But using
+  triggers only where absolutely necessary will make schema management much easier.
+  -->
+  <changeSet id="202605111456-01" author="awood" dbms="postgresql">
+    <sql>
+      DROP TRIGGER IF EXISTS trg_hosts_last_modified ON hosts;
+    </sql>
+    <rollback>
+      CREATE OR REPLACE TRIGGER trg_hosts_last_modified
+        BEFORE INSERT OR UPDATE
+        ON hosts
+        FOR EACH ROW
+      EXECUTE FUNCTION update_last_modified_column();
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202605111456-02" author="awood" dbms="hsqldb">
+    <sql>
+      DROP TRIGGER IF EXISTS trg_hosts_last_modified_create;
+      DROP TRIGGER IF EXISTS trg_hosts_last_modified_update;
+    </sql>
+  </changeSet>
+
+  <changeSet id="202605111456-03" author="awood" dbms="postgresql">
+    <sql>
+      DROP TRIGGER IF EXISTS trg_host_tally_buckets_last_modified ON host_tally_buckets;
+    </sql>
+    <rollback>
+      CREATE OR REPLACE TRIGGER trg_host_tally_buckets_last_modified
+        BEFORE INSERT OR UPDATE
+        ON host_tally_buckets
+        FOR EACH ROW
+      EXECUTE FUNCTION update_last_modified_column();
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202605111456-04" author="awood" dbms="hsqldb">
+    <sql>
+      DROP TRIGGER IF EXISTS trg_host_tally_buckets_last_modified_create;
+      DROP TRIGGER IF EXISTS trg_host_tally_buckets_last_modified_update;
+    </sql>
+  </changeSet>
+
+  <changeSet id="202605111456-05" author="awood" dbms="postgresql">
+    <sql>
+      DROP TRIGGER IF EXISTS trg_tally_snapshots_last_modified ON tally_snapshots;
+    </sql>
+    <rollback>
+      CREATE OR REPLACE TRIGGER trg_tally_snapshots_last_modified
+        BEFORE INSERT OR UPDATE
+        ON tally_snapshots
+        FOR EACH ROW
+      EXECUTE FUNCTION update_last_modified_column();
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202605111456-06" author="awood" dbms="hsqldb">
+    <sql>
+      DROP TRIGGER IF EXISTS trg_tally_snapshots_last_modified_create;
+      DROP TRIGGER IF EXISTS trg_tally_snapshots_last_modified_update;
+    </sql>
+  </changeSet>
+</databaseChangeLog>

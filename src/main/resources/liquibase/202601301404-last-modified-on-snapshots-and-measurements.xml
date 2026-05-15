@@ -22,6 +22,7 @@
   will populate the entity correctly using a RETURNING clause after an UPDATE or INSERT which
   avoids a round-trip while keeping timestamp generation on the DB.
   -->
+  <!-- See liquibase/202605111456-remove-last-modified-triggers.xml for important revisions -->
 
   <changeSet id="202601301404-01" author="awood" dbms="postgresql" runOnChange="true">
     <sqlFile path="liquibase/procedures/update_last_modified_column.sql"
