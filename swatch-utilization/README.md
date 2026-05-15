@@ -146,6 +146,16 @@ The service exposes several metrics for monitoring and alerting:
 - `sla`: Service level when set on the utilization summary; otherwise `_ANY` (missing, empty, or `ANY` on the payload)
 - `usage`: Usage type when set on the utilization summary; otherwise `_ANY` (missing, empty, or `ANY` on the payload)
 
+Org preference **POST** volume is available from Quarkus HTTP metrics (no custom counter), for example:
+
+```promql
+sum by (status) (increase(http_server_requests_seconds_count{
+  service="swatch-utilization-service",
+  method="POST",
+  uri="/api/rhsm-subscriptions/v1/utilization/org-preferences"
+}[5m]))
+```
+
 These metrics enable:
 - Dashboards showing utilization monitoring coverage
 - Alerts when over-usage is detected frequently
