@@ -34,6 +34,7 @@ import jakarta.persistence.criteria.Root;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.BillingProvider;
@@ -352,6 +353,7 @@ public interface TallySnapshotRepository
    * @param usage usage type
    * @param billingProvider billing provider
    * @param billingAccountId billing account ID
+   * @param measurementTypes set of measurement types to filter by
    * @param beginning start date
    * @param ending end date
    * @param metricId metric ID to filter by
@@ -369,7 +371,7 @@ public interface TallySnapshotRepository
       Usage usage,
       BillingProvider billingProvider,
       String billingAccountId,
-      HardwareMeasurementType hardwareMeasurementType,
+      Set<HardwareMeasurementType> measurementTypes,
       OffsetDateTime beginning,
       OffsetDateTime ending,
       Pageable pageable) {
@@ -400,7 +402,7 @@ public interface TallySnapshotRepository
             usage,
             billingProvider,
             billingAccountId,
-            hardwareMeasurementType,
+            measurementTypes,
             beginning,
             ending);
 
@@ -451,7 +453,7 @@ public interface TallySnapshotRepository
               usage,
               billingProvider,
               billingAccountId,
-              hardwareMeasurementType,
+              measurementTypes,
               beginning,
               ending);
     }
@@ -475,6 +477,7 @@ public interface TallySnapshotRepository
    * @param usage usage type
    * @param billingProvider billing provider
    * @param billingAccountId billing account ID
+   * @param measurementTypes set of measurement types to filter by
    * @param beginning start date
    * @param ending end date
    * @param metricId metric ID to filter by
@@ -491,7 +494,7 @@ public interface TallySnapshotRepository
       Usage usage,
       BillingProvider billingProvider,
       String billingAccountId,
-      HardwareMeasurementType hardwareMeasurementType,
+      Set<HardwareMeasurementType> measurementTypes,
       OffsetDateTime beginning,
       OffsetDateTime ending) {
 
@@ -522,7 +525,7 @@ public interface TallySnapshotRepository
             usage,
             billingProvider,
             billingAccountId,
-            hardwareMeasurementType,
+            measurementTypes,
             beginning,
             ending);
 

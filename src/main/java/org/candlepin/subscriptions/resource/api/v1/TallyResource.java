@@ -50,6 +50,7 @@ import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyMeasurement;
+import org.candlepin.subscriptions.db.model.TallyMeasurementAggregate;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.resource.ReportCriteria;
 import org.candlepin.subscriptions.resource.ResourceUtils;
@@ -168,12 +169,15 @@ public class TallyResource implements TallyApi {
 
     List<TallyMeasurement> measurements;
     Page<? extends TallyMeasurement> page;
+    List<UnroundedTallyReportDataPoint> snaps;
+
     if (featureFlags.isPrimaryRowSearchesEnabled()) {
-      HardwareMeasurementType hardwareMeasurementType = HardwareMeasurementType.TOTAL;
-      if (Objects.nonNull(reportCriteria.getReportCategory())) {
-        hardwareMeasurementType =
-            HardwareMeasurementType.fromString(reportCriteria.getReportCategory().toString());
-      }
+      log.debug("Using primary row searches for tally report");
+      // Determine measurement types for the category
+      Set<HardwareMeasurementType> measurementTypes =
+          category == null
+              ? Set.of(HardwareMeasurementType.TOTAL)
+              : TallyMeasurement.CATEGORY_MAP.get(category);
 
       page =
           repository.findAggregatedMeasurements(
@@ -186,10 +190,32 @@ public class TallyResource implements TallyApi {
               reportCriteria.getUsage(),
               reportCriteria.getBillingProvider(),
               reportCriteria.getBillingAccountId(),
-              hardwareMeasurementType,
+              measurementTypes,
               reportCriteria.getBeginning(),
               reportCriteria.getEnding(),
               reportCriteria.getPageable());
+
+      // Repository should have filtered to correct measurement types via IN clause,
+      // but defensively filter again to ensure only contributing types are summed.
+      // We need to sum here because the aggregates may be made up of multiple measurement types
+      // (i.e. CLOUD category).
+      Map<OffsetDateTime, Double> summedByDate =
+          page.stream()
+              .map(m -> (TallyMeasurementAggregate) m)
+              .filter(agg -> measurementTypes.contains(agg.getMeasurementType()))
+              .collect(
+                  Collectors.groupingBy(
+                      TallyMeasurementAggregate::getSnapshotDate,
+                      java.util.LinkedHashMap::new,
+                      Collectors.summingDouble(TallyMeasurementAggregate::getValue)));
+
+      // Create data points directly
+      snaps =
+          summedByDate.entrySet().stream()
+              .map(e -> new UnroundedTallyReportDataPoint(e.getKey(), e.getValue(), true))
+              .toList();
+
+      // Keep measurements for monthly totals calculation
       measurements = new ArrayList<>(page.stream().toList());
     } else {
       page =
@@ -205,12 +231,12 @@ public class TallyResource implements TallyApi {
               reportCriteria.getEnding(),
               reportCriteria.getPageable());
       measurements = new ArrayList<>(page.stream().toList());
-    }
 
-    List<UnroundedTallyReportDataPoint> snaps =
-        measurements.stream()
-            .map(snapshot -> unroundedDataPointFromMeasurement(metricId, category, snapshot))
-            .collect(Collectors.toList());
+      snaps =
+          measurements.stream()
+              .map(snapshot -> unroundedDataPointFromMeasurement(metricId, category, snapshot))
+              .collect(Collectors.toList());
+    }
 
     TallyReportData report = new TallyReportData();
     report.setMeta(new TallyReportDataMeta());

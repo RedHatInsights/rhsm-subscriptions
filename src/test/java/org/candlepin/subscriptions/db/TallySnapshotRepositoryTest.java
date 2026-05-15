@@ -34,6 +34,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
@@ -210,7 +211,7 @@ class TallySnapshotRepositoryTest {
                 Usage.PRODUCTION,
                 BillingProvider._ANY,
                 "sellerAcct",
-                HardwareMeasurementType.TOTAL,
+                Set.of(HardwareMeasurementType.TOTAL),
                 LONG_AGO,
                 FAR_FUTURE,
                 PageRequest.of(0, 10))
@@ -257,7 +258,7 @@ class TallySnapshotRepositoryTest {
                 Usage.EMPTY,
                 BillingProvider.EMPTY,
                 "sellerAcct",
-                HardwareMeasurementType.TOTAL,
+                Set.of(HardwareMeasurementType.TOTAL),
                 LONG_AGO,
                 FAR_FUTURE,
                 PageRequest.of(0, 10))
@@ -303,7 +304,7 @@ class TallySnapshotRepositoryTest {
                 Usage.EMPTY,
                 BillingProvider.EMPTY,
                 "sellerAcct",
-                HardwareMeasurementType.TOTAL,
+                Set.of(HardwareMeasurementType.TOTAL),
                 LONG_AGO,
                 FAR_FUTURE,
                 PageRequest.of(0, 10))
@@ -380,7 +381,7 @@ class TallySnapshotRepositoryTest {
                 Usage.PRODUCTION,
                 BillingProvider._ANY,
                 "sellerAcct",
-                HardwareMeasurementType.TOTAL,
+                Set.of(HardwareMeasurementType.TOTAL),
                 LONG_AGO,
                 FAR_FUTURE,
                 PageRequest.of(0, 10))
@@ -456,7 +457,7 @@ class TallySnapshotRepositoryTest {
                 Usage.PRODUCTION,
                 BillingProvider._ANY,
                 "sellerAcct",
-                HardwareMeasurementType.TOTAL,
+                Set.of(HardwareMeasurementType.TOTAL),
                 LONG_AGO,
                 FAR_FUTURE,
                 PageRequest.of(0, 10))

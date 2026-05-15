@@ -48,6 +48,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
@@ -166,7 +167,7 @@ class TallyResourceTest {
                   Usage.PRODUCTION,
                   BillingProvider._ANY,
                   "_ANY",
-                  HardwareMeasurementType.TOTAL,
+                  Set.of(HardwareMeasurementType.TOTAL),
                   begin,
                   end,
                   null))
