@@ -20,27 +20,22 @@
  */
 package org.candlepin.subscriptions.db.model;
 
-import com.redhat.swatch.configuration.registry.MetricId;
 import java.io.Serializable;
 import java.time.OffsetDateTime;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import org.candlepin.subscriptions.utilization.api.v1.model.ReportCategory;
 
 /**
- * DTO class representing aggregated tally measurement data grouped by snapshot date, measurement
- * type, and metric ID.
+ * DTO class representing summed tally measurement data grouped by snapshot date and metric ID.
  *
- * <p>This class is used for queries that aggregate measurements with GROUP BY and SUM operations.
- *
- * <p>Class created with assistance from Claude Code
+ * <p>This DTO does NOT include measurementType because the database query groups by (snapshotDate,
+ * metricId) and sums across all measurement types that match the filter criteria. This allows
+ * pagination to work correctly for multi-type categories like CLOUD.
  */
 @ToString
 @NoArgsConstructor
@@ -48,18 +43,15 @@ import org.candlepin.subscriptions.utilization.api.v1.model.ReportCategory;
 @Getter
 @Setter
 @Builder
-public class TallyMeasurementAggregate implements Serializable, TallyMeasurement {
+public class TallyMeasurementAggregate implements Serializable {
 
-  /** The snapshot date for this aggregated measurement */
+  /** The snapshot date for this summed measurement */
   private OffsetDateTime snapshotDate;
-
-  /** The measurement type (e.g., PHYSICAL, VIRTUAL, TOTAL) */
-  private HardwareMeasurementType measurementType;
 
   /** The metric ID (e.g., Cores, Sockets, Instance-hours) */
   private String metricId;
 
-  /** The aggregated value (typically a SUM of multiple measurements) */
+  /** The summed value across all measurement types that matched the filter */
   private Double value;
 
   @Override
@@ -72,39 +64,12 @@ public class TallyMeasurementAggregate implements Serializable, TallyMeasurement
     }
     TallyMeasurementAggregate that = (TallyMeasurementAggregate) o;
     return Objects.equals(snapshotDate, that.snapshotDate)
-        && measurementType == that.measurementType
         && Objects.equals(metricId, that.metricId)
         && Objects.equals(value, that.value);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(snapshotDate, measurementType, metricId, value);
-  }
-
-  @Override
-  public Double getMeasurement(HardwareMeasurementType type, MetricId metric) {
-    if (!measurementType.equals(type)) {
-      throw new IllegalStateException("Mismatched HardwareMeasurementType " + type);
-    }
-    if (!metricId.equals(metric.getValue())) {
-      throw new IllegalStateException("Mismatched MetricId " + metricId);
-    }
-    return value;
-  }
-
-  @Override
-  public Double extractRawValue(MetricId metricId, ReportCategory category) {
-    Set<HardwareMeasurementType> contributingTypes = getContributingTypes(category);
-    // Check if this aggregate's measurement type is one we care about for this category
-    if (contributingTypes.contains(getMeasurementType())) {
-      return Optional.ofNullable(getValue()).orElse(0.0);
-    }
-    return 0.0;
-  }
-
-  @Override
-  public boolean hasMeasurementForCategory(MetricId metricId, ReportCategory category) {
-    return getContributingTypes(category).contains(getMeasurementType());
+    return Objects.hash(snapshotDate, metricId, value);
   }
 }

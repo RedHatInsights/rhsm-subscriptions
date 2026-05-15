@@ -34,6 +34,7 @@ import jakarta.persistence.criteria.Root;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.BillingProvider;
@@ -337,29 +338,32 @@ public interface TallySnapshotRepository
       @Param("anyBillingProvider") BillingProvider anyBillingProvider);
 
   /**
-   * Finds aggregated measurements grouped by snapshot date, measurement type, and metric ID.
+   * Finds summed measurements grouped by snapshot date and metric ID (no measurementType).
    *
-   * <p>This method executes a query that: 1. Filters snapshots using the provided criteria 2.
-   * Groups by (snapshotDate, measurementType, metricId) 3. Sums the measurement values
+   * <p>This query groups by (snapshotDate, metricId) and sums across all measurement types that
+   * match the filter criteria. This solves the pagination issue for multi-type categories like
+   * CLOUD by ensuring that each date produces exactly 1 row in the result set.
    *
-   * <p>Method created with assistance from Claude Code
+   * <p>Unlike findAggregatedMeasurements which returns multiple rows per date (one per
+   * measurementType), this method returns a single summed value per date.
    *
    * @param isPrimary filter by isPrimary flag
    * @param orgId organization ID
    * @param productId product ID
+   * @param metricId metric ID to filter by
    * @param granularity granularity
    * @param serviceLevel service level
    * @param usage usage type
    * @param billingProvider billing provider
    * @param billingAccountId billing account ID
+   * @param measurementTypes set of measurement types to filter by (applied in WHERE clause)
    * @param beginning start date
    * @param ending end date
-   * @param metricId metric ID to filter by
-   * @param pageable pagination and sorting information (can be null for unpaged)
-   * @return Page of aggregated measurements
+   * @param pageable pagination information
+   * @return Page of summed measurements
    */
   @SuppressWarnings("java:S107")
-  default Page<TallyMeasurementAggregate> findAggregatedMeasurements(
+  default Page<TallyMeasurementAggregate> findSummedMeasurements(
       Boolean isPrimary,
       String orgId,
       String productId,
@@ -369,7 +373,7 @@ public interface TallySnapshotRepository
       Usage usage,
       BillingProvider billingProvider,
       String billingAccountId,
-      HardwareMeasurementType hardwareMeasurementType,
+      Set<HardwareMeasurementType> measurementTypes,
       OffsetDateTime beginning,
       OffsetDateTime ending,
       Pageable pageable) {
@@ -400,7 +404,7 @@ public interface TallySnapshotRepository
             usage,
             billingProvider,
             billingAccountId,
-            hardwareMeasurementType,
+            measurementTypes,
             beginning,
             ending);
 
@@ -410,20 +414,16 @@ public interface TallySnapshotRepository
       query.where(predicate);
     }
 
-    // SELECT with aggregation
+    // SELECT with aggregation - NO measurementType, sum across all types
     query
         .multiselect(
             root.get("snapshotDate"),
-            measurementJoin.key().get("measurementType"),
             measurementJoin.key().get("metricId"),
             cb.sum(measurementJoin.value()))
         .distinct(true);
 
-    // GROUP BY
-    query.groupBy(
-        root.get("snapshotDate"),
-        measurementJoin.key().get("measurementType"),
-        measurementJoin.key().get("metricId"));
+    // GROUP BY - NO measurementType, only date and metric
+    query.groupBy(root.get("snapshotDate"), measurementJoin.key().get("metricId"));
 
     // Create typed query
     var typedQuery = em.createQuery(query);
@@ -441,7 +441,7 @@ public interface TallySnapshotRepository
     long total = results.size();
     if (pageable != null && pageable.isPaged()) {
       total =
-          countAggregatedMeasurements(
+          countSummedMeasurements(
               isPrimary,
               orgId,
               productId,
@@ -451,7 +451,7 @@ public interface TallySnapshotRepository
               usage,
               billingProvider,
               billingAccountId,
-              hardwareMeasurementType,
+              measurementTypes,
               beginning,
               ending);
     }
@@ -460,28 +460,24 @@ public interface TallySnapshotRepository
   }
 
   /**
-   * Counts the total number of aggregated measurement groups.
-   *
-   * <p>This executes a count query that accounts for GROUP BY, returning the number of distinct
-   * groups that match the criteria.
-   *
-   * <p>Method created with assistance from Claude Code
+   * Counts the total number of summed measurement groups (grouped by date and metricId only).
    *
    * @param isPrimary filter by isPrimary flag
    * @param orgId organization ID
    * @param productId product ID
+   * @param metricId metric ID to filter by
    * @param granularity granularity
    * @param serviceLevel service level
    * @param usage usage type
    * @param billingProvider billing provider
    * @param billingAccountId billing account ID
+   * @param measurementTypes set of measurement types to filter by
    * @param beginning start date
    * @param ending end date
-   * @param metricId metric ID to filter by
-   * @return Total count of aggregated measurement groups
+   * @return Total count of summed measurement groups
    */
   @SuppressWarnings("java:S107")
-  default long countAggregatedMeasurements(
+  default long countSummedMeasurements(
       Boolean isPrimary,
       String orgId,
       String productId,
@@ -491,7 +487,7 @@ public interface TallySnapshotRepository
       Usage usage,
       BillingProvider billingProvider,
       String billingAccountId,
-      HardwareMeasurementType hardwareMeasurementType,
+      Set<HardwareMeasurementType> measurementTypes,
       OffsetDateTime beginning,
       OffsetDateTime ending) {
 
@@ -500,7 +496,6 @@ public interface TallySnapshotRepository
     CriteriaBuilder cb = em.getCriteriaBuilder();
 
     // For GROUP BY queries, we need to count distinct groups
-    // Create a query that selects the grouped tuples and count the results
     CriteriaQuery<Long> countQuery = cb.createQuery(Long.class);
     Root<TallySnapshot> root = countQuery.from(TallySnapshot.class);
     countQuery.select(cb.countDistinct(root.get("snapshotDate")));
@@ -522,7 +517,7 @@ public interface TallySnapshotRepository
             usage,
             billingProvider,
             billingAccountId,
-            hardwareMeasurementType,
+            measurementTypes,
             beginning,
             ending);
 

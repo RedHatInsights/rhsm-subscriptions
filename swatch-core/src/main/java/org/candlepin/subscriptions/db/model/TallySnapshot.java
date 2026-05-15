@@ -39,8 +39,6 @@ import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -48,7 +46,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import org.candlepin.subscriptions.utilization.api.v1.model.ReportCategory;
 
 /** Model object to represent pieces of tally data. */
 @ToString
@@ -59,8 +56,7 @@ import org.candlepin.subscriptions.utilization.api.v1.model.ReportCategory;
 @Builder
 @Entity
 @Table(name = "tally_snapshots")
-public class TallySnapshot extends ModificationTrackedEntity
-    implements Serializable, TallyMeasurement {
+public class TallySnapshot extends ModificationTrackedEntity implements Serializable {
 
   @Id
   @GeneratedValue(strategy = GenerationType.AUTO)
@@ -113,14 +109,6 @@ public class TallySnapshot extends ModificationTrackedEntity
   public void setMeasurement(HardwareMeasurementType type, MetricId metricId, Double value) {
     TallyMeasurementKey key = new TallyMeasurementKey(type, metricId.getValue());
     tallyMeasurements.put(key, value);
-  }
-
-  @Override
-  public Double extractRawValue(MetricId metricId, ReportCategory category) {
-    Set<HardwareMeasurementType> contributingTypes = getContributingTypes(category);
-    return contributingTypes.stream()
-        .mapToDouble(type -> Optional.ofNullable(getMeasurement(type, metricId)).orElse(0.0))
-        .sum();
   }
 
   @Override
