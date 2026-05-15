@@ -76,3 +76,29 @@ Limitation:
 4. **Expected Result:**
    - Deduplication fires for identical `product + metric + SLA + usage` combo.
    - A new notification is produced when SLA changes and when usage changes, confirming both are part of the deduplication key.
+
+## stage-notification-offering-alignment-TC001
+
+1. **Description:** Over-usage notifications for PAYG products require that the SLA of the PAYG usage aligns with the contract offering's SLA. Usage at a mismatched SLA tier must not trigger an alert, even if the volume exceeds capacity.
+2. **Setup:**
+   - The organization is opted-in for notifications.
+   - A contract exists for a PAYG product (e.g., ansible-aap-managed on AWS) with capacity tied to a specific SLA (Premium).
+3. **Actions and Verifications (in sequence):**
+   1. Emit PAYG usage at a mismatched SLA (Standard) that exceeds contract capacity → trigger hourly tally sync → verify **no** over-usage notification for Standard SLA.
+   2. Emit PAYG usage at the aligned SLA (Premium) that exceeds contract capacity → trigger hourly tally sync → verify over-usage notification is sent for Premium SLA with the correct utilization percentage.
+4. **Expected Result:**
+   - No notification is emitted when the PAYG SLA does not match the offering.
+   - A notification is emitted when the PAYG SLA matches the offering and usage exceeds the threshold.
+
+## stage-notification-offering-alignment-TC002
+
+1. **Description:** Over-usage notifications for PAYG products require that the syspurpose usage type of the PAYG usage aligns with the contract offering's usage type. Usage at a mismatched usage type must not trigger an alert, even if the volume exceeds capacity.
+2. **Setup:**
+   - The organization is opted-in for notifications.
+   - A contract exists for a PAYG product (e.g., rhel-for-x86-els-payg on AWS) with capacity tied to a specific usage type (Production).
+3. **Actions and Verifications (in sequence):**
+   1. Emit PAYG usage at a mismatched usage type (Development/Test) that exceeds contract capacity → trigger hourly tally sync → verify **no** over-usage notification for Development/Test.
+   2. Emit PAYG usage at the aligned usage type (Production) that exceeds contract capacity → trigger hourly tally sync → verify over-usage notification is sent for Production with the correct utilization percentage.
+4. **Expected Result:**
+   - No notification is emitted when the PAYG usage type does not match the offering.
+   - A notification is emitted when the PAYG usage type matches the offering and usage exceeds the threshold.
