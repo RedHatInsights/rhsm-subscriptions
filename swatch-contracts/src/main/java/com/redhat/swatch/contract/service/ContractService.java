@@ -528,6 +528,10 @@ public class ContractService {
                   "Terminating subscription that no longer exists in upstream partner API: {}",
                   sub);
               sub.setEndDate(terminationDate);
+              sub.setBillingProvider(null);
+              sub.setBillingProviderId(null);
+              sub.setBillingAccountId(null);
+              sub.getSubscriptionMeasurements().clear();
               subscriptionRepository.persist(sub);
             });
   }
@@ -580,8 +584,13 @@ public class ContractService {
           String bpId = contractEntityMapper.extractBillingProviderId(entitlement);
           if (bpId != null) {
             upstreamBillingProviderIds.add(bpId);
+            tryUpsertPartnerContract(entitlement);
+          } else {
+            log.warn(
+                "Skipping entitlement with missing purchase data for org {}: {}",
+                orgId,
+                entitlement);
           }
-          tryUpsertPartnerContract(entitlement);
         }
       }
     }

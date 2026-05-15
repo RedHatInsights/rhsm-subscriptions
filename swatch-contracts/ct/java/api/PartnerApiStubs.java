@@ -25,6 +25,8 @@ import domain.BillingProvider;
 import domain.Contract;
 import io.restassured.http.ContentType;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -161,6 +163,44 @@ public class PartnerApiStubs {
         "azureResourceId", contract.getResourceId(), "page", Map.of("size", 20, "number", 0));
   }
 
+  /** Stub partner entitlements response mixing valid contracts with raw entitlement maps. */
+  public void stubPartnerSubscriptionsWithRawEntitlements(
+      String orgId, List<Contract> contracts, List<Map<String, Object>> rawEntitlements) {
+    var allEntitlements = new ArrayList<Map<String, Object>>();
+    allEntitlements.addAll(contracts.stream().map(this::buildPartnerEntitlementBody).toList());
+    allEntitlements.addAll(rawEntitlements);
+
+    var expectedQuery =
+        Map.of("rhAccountId", orgId, "page", Map.of("size", PAGE_SIZE, "number", 0));
+    var responseBody =
+        Map.of(
+            "content",
+            allEntitlements,
+            "page",
+            Map.of(
+                "size",
+                PAGE_SIZE,
+                "totalElements",
+                allEntitlements.size(),
+                "totalPages",
+                1,
+                "number",
+                0));
+    registerPartnerSubscriptionsMapping(expectedQuery, responseBody);
+  }
+
+  /** Build a raw entitlement body with null purchase for testing malformed data. */
+  public static Map<String, Object> buildEntitlementWithNullPurchase(
+      String orgId, String sourcePartner) {
+    var body = new HashMap<String, Object>();
+    body.put("rhAccountId", orgId);
+    body.put("sourcePartner", sourcePartner);
+    body.put("purchase", null);
+    body.put("partnerIdentities", Map.of());
+    body.put("rhEntitlements", List.of());
+    return body;
+  }
+
   public static class PartnerSubscriptionsStubRequest {
     private final String orgId;
     private final List<Contract> contracts;
@@ -191,7 +231,7 @@ public class PartnerApiStubs {
    * @return AWS contract response body map
    */
   private Map<String, Object> buildAwsContractBody(Contract contract) {
-    var body = new java.util.HashMap<String, Object>();
+    var body = new HashMap<String, Object>();
     body.put("rhAccountId", contract.getOrgId());
     body.put("sourcePartner", "aws_marketplace");
     body.put("entitlementDates", buildEntitlementDates(contract));
@@ -210,7 +250,7 @@ public class PartnerApiStubs {
             "vendorProductCode",
             contract.getProductCode(),
             "contracts",
-            java.util.List.of(buildContractDetails(contract))));
+            List.of(buildContractDetails(contract))));
     body.put("rhEntitlements", buildRhEntitlements(contract));
     return body;
   }
@@ -223,10 +263,10 @@ public class PartnerApiStubs {
    * @return Azure contract response body map
    */
   private Map<String, Object> buildAzureContractBody(Contract contract) {
-    var contractDetails = new java.util.HashMap<>(buildContractDetails(contract));
+    var contractDetails = new HashMap<>(buildContractDetails(contract));
     contractDetails.put("planId", contract.getPlanId());
 
-    var body = new java.util.HashMap<String, Object>();
+    var body = new HashMap<String, Object>();
     body.put("rhAccountId", contract.getOrgId());
     body.put("sourcePartner", "azure_marketplace");
     body.put("entitlementDates", buildEntitlementDates(contract));
@@ -249,7 +289,7 @@ public class PartnerApiStubs {
             "azureResourceId",
             contract.getResourceId(),
             "contracts",
-            java.util.List.of(contractDetails)));
+            List.of(contractDetails)));
     body.put("rhEntitlements", buildRhEntitlements(contract));
     return body;
   }
@@ -264,8 +304,8 @@ public class PartnerApiStubs {
   }
 
   /** Build common RH entitlements list. */
-  private java.util.List<Map<String, String>> buildRhEntitlements(Contract contract) {
-    return java.util.List.of(
+  private List<Map<String, String>> buildRhEntitlements(Contract contract) {
+    return List.of(
         Map.of(
             "sku",
             contract.getOffering().getSku(),
