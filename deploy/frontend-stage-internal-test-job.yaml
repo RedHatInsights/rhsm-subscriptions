@@ -8,7 +8,7 @@ objects:
     kind: Job
     metadata:
       name: curiosity-frontend-stage-test-job-${IMAGE_TAG}-${UID}
-      annotatons:
+      annotations:
         "ignore-check.kube-linter.io/no-liveness-probe": "probes not required on Job pods"
         "ignore-check.kube-linter.io/no-readiness-probe": "probes not required on Job pods"
     spec:
@@ -19,7 +19,7 @@ objects:
             - name: quay-cloudservices-pull
           restartPolicy: Never
           volumes:
-            - name: sel-shm
+            - name: pw-shm
               emptyDir:
                 medium: Memory
           containers:
@@ -77,16 +77,6 @@ objects:
                       key: secretId
                       name: iqe-vault
                       optional: true
-                - name: DYNACONF_main__use_beta
-                  value: "yes"
-                - name: DYNACONF_main__use_browser
-                  value: "chrome"
-                - name: DYNACONF_browsers__chrome__webdriver
-                  value: "Remote"
-                - name: DYNACONF_browsers__chrome__command_executor
-                  value: "http://10.0.151.86:80/wd/hub"
-                - name: DYNACONF_browsers__chrome__webdriver_options__desired_capabilities__chromeOptions__args
-                  value: "['--headless','--window-size=1920,1080']"
               image: ${IQE_IMAGE}
               imagePullPolicy: Always
               resources:
@@ -96,6 +86,31 @@ objects:
                 requests:
                   cpu: 500m
                   memory: 2Gi
+              volumeMounts:
+                - name: pw-shm
+                  mountPath: /dev/shm
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
+            - name: playwright-chromium-${IMAGE_TAG}-${UID}
+              image: ${PLAYWRIGHT_IMAGE}
+              imagePullPolicy: Always
+              env:
+                - name: PW_HEADLESS
+                  value: "false"
+              resources:
+                requests:
+                  cpu: "1"
+                  memory: 1Gi
+                limits:
+                  cpu: 1500m
+                  memory: 3Gi
+              volumeMounts:
+                - name: pw-shm
+                  mountPath: /dev/shm
+              ports:
+                - containerPort: 5900
+                  name: vnc
+                  protocol: TCP
               terminationMessagePath: /dev/termination-log
               terminationMessagePolicy: File
 
@@ -129,3 +144,6 @@ parameters:
     value: ''
   - name: IQE_PARALLEL_WORKER_COUNT
     value: '6'
+  - name: PLAYWRIGHT_IMAGE
+    description: "Container image for Playwright browser"
+    value: quay.io/redhat-services-prod/insights-management-tenant/playwright-images/playwright-vnc-chromium
