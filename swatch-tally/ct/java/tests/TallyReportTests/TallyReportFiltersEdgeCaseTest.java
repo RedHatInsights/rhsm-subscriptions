@@ -22,6 +22,7 @@ package tests;
 
 import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
@@ -30,6 +31,7 @@ import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.tally.test.model.ServiceLevelType;
 import com.redhat.swatch.tally.test.model.TallyReportData;
+import com.redhat.swatch.tally.test.model.TallyReportDataPoint;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
@@ -202,6 +204,23 @@ public class TallyReportFiltersEdgeCaseTest extends BaseTallyComponentTest {
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event);
   }
 
+  private static OffsetDateTime startOfUtcHour(OffsetDateTime t) {
+    return t.withOffsetSameInstant(ZoneOffset.UTC).truncatedTo(ChronoUnit.HOURS);
+  }
+
+  private static TallyReportDataPoint pointForHour(
+      TallyReportData report, OffsetDateTime hourStart) {
+    assertNotNull(report.getData(), "report data");
+    return report.getData().stream()
+        .filter(p -> p.getDate() != null && startOfUtcHour(p.getDate()).isEqual(hourStart))
+        .findFirst()
+        .orElseThrow(() -> new AssertionError("No data point for hour " + hourStart));
+  }
+
+  private static int intValueOrZero(Integer value) {
+    return value == null ? 0 : value;
+  }
+
   @ParameterizedTest(name = "with primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-TC009")
@@ -278,14 +297,44 @@ public class TallyReportFiltersEdgeCaseTest extends BaseTallyComponentTest {
 
     assertNotNull(response.getData(), "Response data should not be null");
 
-    long pointsWithData =
-        response.getData().stream()
-            .filter(point -> Boolean.TRUE.equals(point.getHasData()))
-            .count();
+    OffsetDateTime hour0 = dataGapTest.baseTime();
+    OffsetDateTime hour1 = hour0.plusHours(1);
+    OffsetDateTime hour2 = hour0.plusHours(2);
+    OffsetDateTime hour3 = hour0.plusHours(3);
 
+    // Hours with PREMIUM events after tally: has_data=true and matching values.
+    TallyReportDataPoint hour0Point = pointForHour(response, hour0);
+    assertEquals(10, intValueOrZero(hour0Point.getValue()), "hour 0 value");
     assertTrue(
-        pointsWithData > 0,
-        "Should have at least one data point with hasData=true where events occurred");
+        Boolean.TRUE.equals(hour0Point.getHasData()),
+        "hour 0 must have has_data=true where events occurred");
+
+    TallyReportDataPoint hour2Point = pointForHour(response, hour2);
+    assertEquals(20, intValueOrZero(hour2Point.getValue()), "hour 2 value");
+    assertTrue(
+        Boolean.TRUE.equals(hour2Point.getHasData()),
+        "hour 2 must have has_data=true where events occurred");
+
+    // Gap hours (no events): gap-filled buckets must be value=0 and has_data=false.
+    for (OffsetDateTime gapHour : List.of(hour1, hour3)) {
+      TallyReportDataPoint gapPoint = pointForHour(response, gapHour);
+      assertEquals(
+          0,
+          intValueOrZero(gapPoint.getValue()),
+          "Gap hour " + gapHour + " must have value 0 with no snapshot for that period");
+      assertFalse(
+          Boolean.TRUE.equals(gapPoint.getHasData()),
+          "Gap hour " + gapHour + " must have has_data=false with no measurements: " + gapPoint);
+    }
+
+    assertFalse(
+        response.getData().stream()
+            .anyMatch(
+                p ->
+                    p.getValue() != null
+                        && p.getValue() == 0
+                        && Boolean.TRUE.equals(p.getHasData())),
+        "Unfiltered report must not pair value=0 with has_data=true on gap-filled hours");
   }
 
   @ParameterizedTest(name = "with primaryRowSearches={0}")

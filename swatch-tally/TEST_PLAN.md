@@ -697,6 +697,49 @@ All test files use `@BeforeAll` to create test data once and share it across all
     - Daily reports correctly attribute measurements to respective billing accounts when an instance changes billing account ID
     - Total aggregated value equals the sum of individual billing account values
 
+## Report Has Data Based on Category
+
+**tally-report-has-data-TC001 - has_data matches category contribution**
+
+- **Description**: Verify that hourly tally reports with a category filter set has_data from that category’s measurements only—not from snapshot presence or other hardware categories. Covers gap hours, contributing cloud usage, and muted categories when only cloud PAYG usage exists.
+- **Setup**:
+    - Organization is opted in
+    - Cloud PAYG event published at hour T−2 (relative to current UTC hour) with vCPUs=8.0, sla=PREMIUM
+    - No event at gap hour T−4; no events at other hours in the queried range except T−2
+    - Hourly tally is performed until category=cloud at T−2 shows value>0 and has_data=true
+- **Action**:
+    - Configure primary row searches feature flag (enabled, then disabled via parameterization)
+    - Request hourly tally report for product tag and vCPUs metric with category set to each of physical, virtual, hypervisor, and cloud over range T−6 through end of T−2
+    - Request category=cloud report and inspect gap hour T−4 and event hour T−2
+    - Request physical, virtual, and hypervisor reports at event hour T−2
+- **Verification**:
+    - For every category in the range, no data point has value=0 and has_data=true unless that category contributed measurements
+    - At gap hour T−4, category=cloud has value=0 and has_data=false
+    - At event hour T−2, category=cloud has value=8 and has_data=true
+    - At event hour T−2, physical, virtual, and hypervisor each have value=0 and has_data=false
+- **Expected Result**:
+    - has_data reflects category-specific measurement presence per bucket
+    - Gap-filled hours report has_data=false even when value=0
+    - Non-contributing categories do not report has_data=true when a cloud-only snapshot exists
+
+**tally-report-has-data-TC002 - Zero-value category measurements still report has_data**
+
+- **Description**: Verify that a zero-quantity measurement for a contributing category still returns has_data=true with value=0, and that other categories at the same hour remain has_data=false when only cloud contributed.
+- **Setup**:
+    - Organization is opted in
+    - CLOUD PAYG event published at hour T−6 (relative to current UTC hour) with vCPUs=0.0, sla=PREMIUM
+    - Hourly tally is performed until category=cloud at T−6 shows value=0 and has_data=true
+- **Action**:
+    - Configure primary row searches feature flag (enabled, then disabled via parameterization)
+    - Request hourly tally report for product tag and vCPUs metric with category=cloud for hour T−6 only
+    - Request hourly reports with category physical, virtual, and hypervisor for the same hour
+- **Verification**:
+    - At event hour T−6, category=cloud has value=0 and has_data=true
+    - At event hour T−6, physical, virtual, and hypervisor each have value=0 and has_data=false
+- **Expected Result**:
+    - Existing zero-value measurements for the filtered category are treated as present (has_data=true)
+    - Categories that did not contribute at that hour still report has_data=false with value=0
+
 ## Summary Messages Separated By Attribute Value
 
 **tally-summary-by-attributes-TC001 - Tally summary separates measurements by SLA**
