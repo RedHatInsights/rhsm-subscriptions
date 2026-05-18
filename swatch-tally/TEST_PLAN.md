@@ -500,24 +500,23 @@ All test files use `@BeforeAll` to create test data once and share it across all
 
 **tally-report-filters-TC015 - Data gaps indicated by hasData field**
 
-- **Description**: Verify that tally report data points correctly indicate gaps in time series data using the hasData field
+- **Description**: Verify that an unfiltered hourly tally report sets has_data per bucket.
 - **Setup**:
     - Organization is opted in
-    - Event created at hour 0 (value 10.0)
-    - Event created at hour 2 (value 20.0)
-    - Hour 1 has no events (gap)
+    - Premium payg events created at hour 0 (value 10.0) and hour 2 (value 20.0)
+    - Four-hour range where hours 1 and 3 have no events
     - Hourly tally is performed
 - **Action**:
-    - Request tally report for 4-hour range covering all hours
+    - Request unfiltered hourly tally report for the 4-hour range (no category filter)
 - **Verification**:
-    - Response data contains data points
-    - Data points have hasData field populated
-    - At least one data point has hasData=true where events occurred
-    - hasData field indicates presence/absence of actual event data
+    - Response data contains data points for each hour in the range
+    - Hour 0: value=10, has_data=true
+    - Hour 2: value=20, has_data=true
+    - Gap hours 1 and 3: value=0, has_data=false
+    - No data point in the range has value=0 and has_data=true
 - **Expected Result**:
-    - API populates hasData field in data points
-    - hasData field accurately reflects whether events existed for that time period
-    - Time series gaps are identifiable via hasData field
+    - Event hours report has_data=true with the expected tallied values
+    - Gap-filled hours without a snapshot for that period report value=0 and has_data=false
 
 **tally-report-filters-TC016 - All data returned when no optional filters applied**
 
@@ -701,14 +700,13 @@ All test files use `@BeforeAll` to create test data once and share it across all
 
 **tally-report-has-data-TC001 - has_data matches category contribution**
 
-- **Description**: Verify that hourly tally reports with a category filter set has_data from that category’s measurements only—not from snapshot presence or other hardware categories. Covers gap hours, contributing cloud usage, and muted categories when only cloud PAYG usage exists.
+- **Description**: Verify that hourly tally reports with a category filter set has_data from that category’s measurements only, not from snapshot presence or other hardware categories.
 - **Setup**:
     - Organization is opted in
-    - Cloud PAYG event published at hour T−2 (relative to current UTC hour) with vCPUs=8.0, sla=PREMIUM
+    - Cloud payg event published at hour T−2 (relative to current UTC hour) with vCPUs=8.0, sla=Premium
     - No event at gap hour T−4; no events at other hours in the queried range except T−2
     - Hourly tally is performed until category=cloud at T−2 shows value>0 and has_data=true
 - **Action**:
-    - Configure primary row searches feature flag (enabled, then disabled via parameterization)
     - Request hourly tally report for product tag and vCPUs metric with category set to each of physical, virtual, hypervisor, and cloud over range T−6 through end of T−2
     - Request category=cloud report and inspect gap hour T−4 and event hour T−2
     - Request physical, virtual, and hypervisor reports at event hour T−2
@@ -724,13 +722,12 @@ All test files use `@BeforeAll` to create test data once and share it across all
 
 **tally-report-has-data-TC002 - Zero-value category measurements still report has_data**
 
-- **Description**: Verify that a zero-quantity measurement for a contributing category still returns has_data=true with value=0, and that other categories at the same hour remain has_data=false when only cloud contributed.
+- **Description**: Verify that a zero-quantity measurement for a contributing category still returns has_data=true with value=0 and that other categories at the same hour remain has_data=false when only cloud contributed.
 - **Setup**:
     - Organization is opted in
-    - CLOUD PAYG event published at hour T−6 (relative to current UTC hour) with vCPUs=0.0, sla=PREMIUM
+    - Cloud payg event published at hour T−6 (relative to current UTC hour) with vCPUs=0.0, sla=Premium
     - Hourly tally is performed until category=cloud at T−6 shows value=0 and has_data=true
 - **Action**:
-    - Configure primary row searches feature flag (enabled, then disabled via parameterization)
     - Request hourly tally report for product tag and vCPUs metric with category=cloud for hour T−6 only
     - Request hourly reports with category physical, virtual, and hypervisor for the same hour
 - **Verification**:
