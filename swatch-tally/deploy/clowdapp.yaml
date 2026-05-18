@@ -364,55 +364,19 @@ parameters:
     chunksize: 50000
   - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/hosts
     query: >-
-      SELECT
-        id,
-        instance_id,
-        inventory_id,
-        insights_id,
-        display_name,
-        org_id,
-        subscription_manager_id,
-        is_guest,
-        hypervisor_uuid,
-        hardware_type,
-        num_of_guests,
-        last_seen,
-        is_unmapped_guest,
-        is_hypervisor,
-        cloud_provider,
-        instance_type,
-        billing_provider,
-        billing_account_id,
-        last_modified
+      SELECT *
       FROM hosts
       WHERE last_modified >= date_trunc('day', now() at time zone 'utc' - interval '2 day')
     chunksize: 50000
   - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/host_tally_buckets
     query: >-
-      SELECT
-        host_id,
-        product_id,
-        sla,
-        usage,
-        billing_provider,
-        billing_account_id,
-        as_hypervisor,
-        cores,
-        sockets,
-        measurement_type,
-        is_primary,
-        version,
-        last_modified
+      SELECT *
       FROM host_tally_buckets
       WHERE last_modified >= date_trunc('day', now() at time zone 'utc' - interval '2 day')
     chunksize: 50000
   - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/instance_measurements
     query: >-
-      SELECT
-        host_id,
-        metric_id,
-        value,
-        last_modified
+      SELECT *
       FROM instance_measurements
       WHERE last_modified >= date_trunc('day', now() at time zone 'utc' - interval '2 day')
     chunksize: 50000
