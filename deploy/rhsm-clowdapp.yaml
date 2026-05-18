@@ -80,7 +80,7 @@ objects:
               listen_address: '0.0.0.0:54526'
           filelog:
             include:
-              - /logs/application.log
+              - /logs/server.log
             start_at: end
         processors:
           batch:
