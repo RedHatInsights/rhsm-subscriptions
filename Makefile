@@ -53,11 +53,14 @@ endef
 # profiles that will be in use.  Our Spring profile organization is so complex
 # that I don't want to force developers to have to remember the full listing
 # of profiles they want to use.
+# Pass SUSPEND_DEBUG=true to disable the debug agent.
+DEBUG_ARGUMENT:=-Dspring-boot.run.jvmArguments=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005
 define SPRING_PROXY
     $(call BUILD,$(1))
 	SERVER_PORT=$(2) MANAGEMENT_SERVER_PORT=$(shell echo $$((1000 + $(2)))) \
 	SPRING_PROFILES_INCLUDE=$(subst $(space),$(comma),$(PROFILES)) \
-	./mvnw -pl $(1) spring-boot:run -DskipTests
+	./mvnw -pl $(1) spring-boot:run -DskipTests \
+	$(if $(SUSPEND_DEBUG),,$(DEBUG_ARGUMENT))
 endef
 
 # $1 is the directory with the application to start.
