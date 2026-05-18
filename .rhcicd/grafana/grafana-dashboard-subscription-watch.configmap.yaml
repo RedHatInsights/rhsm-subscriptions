@@ -6835,6 +6835,208 @@ data:
                 "x": 0,
                 "y": 82
               },
+              "id": 137,
+              "options": {
+                "cellHeight": "sm",
+                "footer": {
+                  "countRows": false,
+                  "fields": "",
+                  "reducer": [
+                    "sum"
+                  ],
+                  "show": false
+                },
+                "showHeader": true
+              },
+              "pluginVersion": "11.6.3",
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "${datasource}"
+                  },
+                  "disableTextWrap": false,
+                  "editorMode": "code",
+                  "expr": "sum(increase(swatch_utilization_custom_threshold_total{service=\"swatch-utilization-service\"}[$__range])) by (product, metric_id, sla, usage)",
+                  "format": "table",
+                  "fullMetaSearch": false,
+                  "includeNullMetadata": true,
+                  "instant": false,
+                  "legendFormat": "__auto",
+                  "range": true,
+                  "refId": "A",
+                  "useBackend": false
+                }
+              ],
+              "title": "Subscriptions custom threshold",
+              "transformations": [
+                {
+                  "id": "organize",
+                  "options": {
+                    "excludeByName": {},
+                    "includeByName": {},
+                    "indexByName": {
+                      "Value (max)": 4,
+                      "metric_id": 1,
+                      "product": 0,
+                      "sla": 2,
+                      "usage": 3
+                    },
+                    "renameByName": {
+                      "Value": "",
+                      "metric_id": ""
+                    }
+                  }
+                },
+                {
+                  "id": "groupBy",
+                  "options": {
+                    "fields": {
+                      "Value": {
+                        "aggregations": [
+                          "max"
+                        ],
+                        "operation": "aggregate"
+                      },
+                      "metric_id": {
+                        "aggregations": [],
+                        "operation": "groupby"
+                      },
+                      "product": {
+                        "aggregations": [],
+                        "operation": "groupby"
+                      },
+                      "sla": {
+                        "aggregations": [],
+                        "operation": "groupby"
+                      },
+                      "usage": {
+                        "aggregations": [],
+                        "operation": "groupby"
+                      }
+                    }
+                  }
+                }
+              ],
+              "type": "table"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "custom": {
+                    "align": "auto",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "filterable": true,
+                    "inspect": false
+                  },
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green"
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Value (max)"
+                    },
+                    "properties": [
+                      {
+                        "id": "decimals",
+                        "value": 0
+                      },
+                      {
+                        "id": "displayName",
+                        "value": "Total Notifications Sent"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "metric_id"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Metric Id"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "product"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Product"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "sla"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "SLA"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "usage"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Usage"
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byName",
+                      "options": "Value (max)"
+                    },
+                    "properties": [
+                      {
+                        "id": "displayName",
+                        "value": "Count"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "gridPos": {
+                "h": 8,
+                "w": 21,
+                "x": 0,
+                "y": 90
+              },
               "id": 131,
               "options": {
                 "cellHeight": "sm",
@@ -6975,7 +7177,7 @@ data:
       "timezone": "utc",
       "title": "Subscription Watch",
       "uid": "lkPhH-1Zk",
-      "version": 10
+      "version": 11
     }
 kind: ConfigMap
 metadata:
