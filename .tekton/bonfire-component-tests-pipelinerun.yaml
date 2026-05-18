@@ -19,7 +19,7 @@ spec:
     - name: BONFIRE_REVISION
       value: "main"
     - name: BONFIRE_IMAGE
-      value: "quay.io/redhat-services-prod/hcm-eng-prod-tenant/cicd-tools:3a72fea"
+      value: "quay.io/redhat-services-prod/hcm-eng-prod-tenant/cicd-tools:e312b87"
   workspaces:
     - name: shared-workspace
       volumeClaimTemplate:
