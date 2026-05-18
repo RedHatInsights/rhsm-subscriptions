@@ -56,7 +56,6 @@ public class TallyReportCategoryHasDataPaygTest extends BaseTallyComponentTest {
   private static final Duration PIPELINE_POLL_INTERVAL = Duration.ofSeconds(2);
 
   private static String firstOrgId;
-  private static String secondOrgId;
 
   /** Cloud usage hour and surrounding range for gap assertions. */
   private static OffsetDateTime positiveEventHourStart;
@@ -102,21 +101,21 @@ public class TallyReportCategoryHasDataPaygTest extends BaseTallyComponentTest {
             .timeoutMessage(
                 "Category=cloud metric=%s must materialize positive usage at %s.",
                 METRIC_ID, positiveEventHourStart));
+  }
 
-    secondOrgId = String.valueOf(10000 + (int) (Math.random() * 90000));
-    service.createOptInConfig(secondOrgId);
-    publishCloudPaygEvent(secondOrgId, zeroEventHourStart, 0.0f);
+  private void awaitCloudZeroMeasurementReady(String orgId) {
     AwaitilityUtils.untilAsserted(
         () -> {
-          service.performHourlyTallyForOrg(secondOrgId);
+          service.performHourlyTallyForOrg(orgId);
           if (!zeroMeasurementForHour(
-              getCategoryHourlyReport(secondOrgId, "cloud", zeroEventHourStart, zeroEventHourEnd),
+              getCategoryHourlyReport(orgId, "cloud", zeroEventHourStart, zeroEventHourEnd),
               zeroEventHourStart)) {
             throw new AssertionError(
-                "PAYG fixtures not ready for org "
-                    + secondOrgId
-                    + " at zero hour "
-                    + zeroEventHourStart);
+                "PAYG zero-quantity cloud measurement not ready for org "
+                    + orgId
+                    + " at "
+                    + zeroEventHourStart
+                    + " (expected value=0, has_data=true on category=cloud)");
           }
         },
         AwaitilitySettings.using(PIPELINE_POLL_INTERVAL, PIPELINE_WAIT_TIMEOUT)
@@ -291,15 +290,20 @@ public class TallyReportCategoryHasDataPaygTest extends BaseTallyComponentTest {
   void shouldIndicateExistingZeroValueMeasurementsStillReportHasData(boolean primaryRowSearches) {
     givenFeatureFlagIsConfigured(primaryRowSearches);
 
+    String orgId = String.valueOf(10000 + (int) (Math.random() * 90000));
+    service.createOptInConfig(orgId);
+    publishCloudPaygEvent(orgId, zeroEventHourStart, 0.0f);
+    awaitCloudZeroMeasurementReady(orgId);
+
     TallyReportData cloudReport =
-        getCategoryHourlyReport(secondOrgId, "cloud", zeroEventHourStart, zeroEventHourEnd);
+        getCategoryHourlyReport(orgId, "cloud", zeroEventHourStart, zeroEventHourEnd);
 
     assertCategoryHasMeasurementBucket(
         pointForHour(cloudReport, zeroEventHourStart), 0, zeroEventHourStart, "cloud");
 
     for (String mutedCategory : List.of("physical", "virtual", "hypervisor")) {
       TallyReportData mutedReport =
-          getCategoryHourlyReport(secondOrgId, mutedCategory, zeroEventHourStart, zeroEventHourEnd);
+          getCategoryHourlyReport(orgId, mutedCategory, zeroEventHourStart, zeroEventHourEnd);
       assertMutedCategoryAtSnapshotHour(
           pointForHour(mutedReport, zeroEventHourStart), mutedCategory, zeroEventHourStart);
     }
