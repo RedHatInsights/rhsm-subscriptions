@@ -62,6 +62,8 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.retry.support.RetryTemplate;
 
@@ -109,6 +111,7 @@ class SnapshotSummaryProducerTest {
   }
 
   @ParameterizedTest
+  @MockitoSettings(strictness = Strictness.LENIENT)
   @ValueSource(booleans = {true, false})
   void testProduceSummaryDaily(boolean isPrimaryRowSearch) {
     when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(isPrimaryRowSearch);

@@ -21,8 +21,11 @@
 package org.candlepin.subscriptions.tally;
 
 import com.redhat.swatch.common.model.ServiceLevel;
+import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.registry.MetricType;
 import com.redhat.swatch.configuration.registry.ProductId;
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import java.util.List;
 import java.util.Set;
@@ -35,10 +38,14 @@ import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.TallyMeasurement;
 import org.candlepin.subscriptions.json.TallySummary;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 @Component
 public class TallySummaryMapper {
+
+  private static final Logger log = LoggerFactory.getLogger(TallySummaryMapper.class);
 
   private final TallySnapshotRepository snapshotRepository;
   private final ApplicationClock clock;
@@ -110,13 +117,27 @@ public class TallySummaryMapper {
                     .withHardwareMeasurementType(entry.getKey().getMeasurementType().toString())
                     .withMetricId(entry.getKey().getMetricId())
                     .withValue(entry.getValue())
-                    .withCurrentTotal(getCurrentlyMeasuredTotal(snapshot, entry.getKey())))
+                    .withCurrentTotal(
+                        getCurrentlyMeasuredTotal(snapshot, entry.getKey(), entry.getValue())))
         .toList();
   }
 
   private Double getCurrentlyMeasuredTotal(
-      TallySnapshot snapshot, TallyMeasurementKey measurementKey) {
+      TallySnapshot snapshot, TallyMeasurementKey measurementKey, Double eventValue) {
 
+    String productId = snapshot.getProductId();
+    boolean isPayg = ProductId.fromString(productId).isPayg();
+
+    // Non-PAYG, non-Ansible GAUGE metrics: use event value
+    if (!isPayg
+        && !isAnsibleProduct(productId)
+        && isGaugeMetric(productId, measurementKey.getMetricId())) {
+      // For non-PAYG, non-Ansible GAUGE metrics: use event value directly - no SQL calls
+      log.debug("Using event value for GAUGE metric: {}", measurementKey);
+      return eventValue;
+    }
+
+    // For all other cases (PAYG, Ansible, or COUNTER metrics): use existing SQL logic
     if (featureFlags.isPrimaryRowSearchesEnabled()) {
       gateOnAnyValues(snapshot);
       return snapshotRepository.sumMeasurementValueForPeriodWithPrimary(
@@ -143,6 +164,34 @@ public class TallySummaryMapper {
           snapshot.getSnapshotDate(),
           measurementKey);
     }
+  }
+
+  /**
+   * Check if a metric is of type GAUGE.
+   *
+   * @param productId the product ID (tag)
+   * @param metricId the metric ID
+   * @return true if the metric is a GAUGE, false otherwise
+   */
+  private boolean isGaugeMetric(String productId, String metricId) {
+    return SubscriptionDefinition.lookupSubscriptionByTag(productId)
+        .flatMap(sub -> sub.getMetric(MetricId.tryGetValueFromString(metricId)))
+        .map(Metric::getType)
+        .map(type -> type == MetricType.GAUGE)
+        .orElse(false);
+  }
+
+  /**
+   * Check if a product is an Ansible product.
+   *
+   * @param productId the product ID (tag)
+   * @return true if the product platform is "Ansible", false otherwise
+   */
+  private boolean isAnsibleProduct(String productId) {
+    return SubscriptionDefinition.lookupSubscriptionByTag(productId)
+        .map(SubscriptionDefinition::getPlatform)
+        .map(platform -> "Ansible".equalsIgnoreCase(platform))
+        .orElse(false);
   }
 
   public void gateOnAnyValues(TallySnapshot snapshot) {
