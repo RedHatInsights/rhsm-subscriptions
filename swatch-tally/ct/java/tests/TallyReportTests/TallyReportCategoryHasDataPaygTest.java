@@ -30,6 +30,7 @@ import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
+import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.tally.test.model.ServiceLevelType;
 import com.redhat.swatch.tally.test.model.TallyReportData;
 import com.redhat.swatch.tally.test.model.TallyReportDataPoint;
@@ -56,21 +57,20 @@ public class TallyReportCategoryHasDataPaygTest extends BaseTallyComponentTest {
   private static final Duration PIPELINE_POLL_INTERVAL = Duration.ofSeconds(2);
 
   private static String firstOrgId;
-
-  /** Cloud usage hour and surrounding range for gap assertions. */
   private static OffsetDateTime positiveEventHourStart;
-
   private static OffsetDateTime positiveEventHourEnd;
   private static OffsetDateTime positiveRangeStart;
   private static OffsetDateTime gapHour;
-
-  /** Separate hour for zero-quantity cloud usage. */
   private static OffsetDateTime zeroEventHourStart;
-
   private static OffsetDateTime zeroEventHourEnd;
 
+  private static String dataGapOrgId;
+  private static OffsetDateTime dataGapBaseTime;
+  private static OffsetDateTime dataGapRangeBeginning;
+  private static OffsetDateTime dataGapRangeEnding;
+
   @BeforeAll
-  static void setupCategoryHasDataPaygEvents() {
+  static void givenCategoryHasDataPaygScenariosReady() {
     OffsetDateTime base = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.HOURS);
     positiveEventHourStart = base.minusHours(2);
     positiveEventHourEnd = positiveEventHourStart.plusHours(1).minusNanos(1);
@@ -80,14 +80,14 @@ public class TallyReportCategoryHasDataPaygTest extends BaseTallyComponentTest {
     zeroEventHourStart = base.minusHours(6);
     zeroEventHourEnd = zeroEventHourStart.plusHours(1).minusNanos(1);
 
-    firstOrgId = String.valueOf(10000 + (int) (Math.random() * 90000));
+    firstOrgId = RandomUtils.generateRandom();
     service.createOptInConfig(firstOrgId);
-    publishCloudPaygEvent(firstOrgId, positiveEventHourStart, 8.0f);
+    givenCloudPaygEventPublished(firstOrgId, positiveEventHourStart, 8.0f);
     AwaitilityUtils.untilAsserted(
         () -> {
           service.performHourlyTallyForOrg(firstOrgId);
-          if (!usagePositiveForHour(
-              getCategoryHourlyReport(
+          if (!cloudUsagePositiveForHour(
+              fetchCategoryHourlyReport(
                   firstOrgId, "cloud", positiveEventHourStart, positiveEventHourEnd),
               positiveEventHourStart)) {
             throw new AssertionError(
@@ -101,30 +101,118 @@ public class TallyReportCategoryHasDataPaygTest extends BaseTallyComponentTest {
             .timeoutMessage(
                 "Category=cloud metric=%s must materialize positive usage at %s.",
                 METRIC_ID, positiveEventHourStart));
+
+    dataGapBaseTime = base.minusHours(10);
+    dataGapRangeBeginning = dataGapBaseTime;
+    dataGapRangeEnding = dataGapBaseTime.plusHours(4).minusNanos(1);
+    dataGapOrgId = RandomUtils.generateRandom();
+    service.createOptInConfig(dataGapOrgId);
+    givenCloudPaygEventPublished(dataGapOrgId, dataGapBaseTime, 10.0f);
+    givenCloudPaygEventPublished(dataGapOrgId, dataGapBaseTime.plusHours(2), 20.0f);
+    service.performHourlyTallyForOrg(dataGapOrgId);
   }
 
-  private void awaitCloudZeroMeasurementReady(String orgId) {
-    AwaitilityUtils.untilAsserted(
-        () -> {
-          service.performHourlyTallyForOrg(orgId);
-          if (!zeroMeasurementForHour(
-              getCategoryHourlyReport(orgId, "cloud", zeroEventHourStart, zeroEventHourEnd),
-              zeroEventHourStart)) {
-            throw new AssertionError(
-                "PAYG zero-quantity cloud measurement not ready for org "
-                    + orgId
-                    + " at "
-                    + zeroEventHourStart
-                    + " (expected value=0, has_data=true on category=cloud)");
-          }
-        },
-        AwaitilitySettings.using(PIPELINE_POLL_INTERVAL, PIPELINE_WAIT_TIMEOUT)
-            .timeoutMessage(
-                "Category=cloud metric=%s must materialize value=0 with has_data=true at %s.",
-                METRIC_ID, zeroEventHourStart));
+  @ParameterizedTest(name = "primaryRowSearches={0}")
+  @ValueSource(booleans = {true, false})
+  @TestPlanName("tally-report-has-data-TC001")
+  void shouldIndicateHasDataMatchesCategoryContribution(boolean primaryRowSearches) {
+    // Given: Positive cloud PAYG is tallied and the primary-row flag is configured
+    givenFeatureFlagIsConfigured(primaryRowSearches);
+
+    // When: Hourly category reports are fetched for the event window
+    TallyReportData cloudReport =
+        fetchCategoryHourlyReport(firstOrgId, "cloud", positiveRangeStart, positiveEventHourEnd);
+
+    // Then: No category reports value=0 with has_data=true without contributing
+    for (String category : List.of("physical", "virtual", "hypervisor", "cloud")) {
+      TallyReportData report =
+          fetchCategoryHourlyReport(firstOrgId, category, positiveRangeStart, positiveEventHourEnd);
+      assertFalse(
+          hasMisleadingZeroWithHasData(report),
+          "Category="
+              + category
+              + " must not return value=0 with has_data=true when that category "
+              + "contributed nothing.");
+    }
+
+    thenNoSnapshotGapBucket(pointForHour(cloudReport, gapHour), gapHour);
+    thenCategoryHasMeasurementBucket(
+        pointForHour(cloudReport, positiveEventHourStart),
+        8,
+        positiveEventHourStart,
+        "cloud");
+
+    for (String mutedCategory : List.of("physical", "virtual", "hypervisor")) {
+      TallyReportData mutedReport =
+          fetchCategoryHourlyReport(
+              firstOrgId, mutedCategory, positiveRangeStart, positiveEventHourEnd);
+      thenMutedCategoryAtSnapshotHour(
+          pointForHour(mutedReport, positiveEventHourStart),
+          mutedCategory,
+          positiveEventHourStart);
+    }
   }
 
-  private static void publishCloudPaygEvent(
+  @ParameterizedTest(name = "primaryRowSearches={0}")
+  @ValueSource(booleans = {true, false})
+  @TestPlanName("tally-report-has-data-TC002")
+  void shouldIndicateExistingZeroValueMeasurementsStillReportHasData(
+      boolean primaryRowSearches) {
+    // Given: Zero cloud PAYG is published and tallied
+    givenFeatureFlagIsConfigured(primaryRowSearches);
+    String orgId = RandomUtils.generateRandom();
+    service.createOptInConfig(orgId);
+    givenCloudPaygEventPublished(orgId, zeroEventHourStart, 0.0f);
+    givenZeroCloudMeasurementReadyForOrg(orgId);
+
+    // When: Hourly category reports are fetched for the zero event hour
+    TallyReportData cloudReport =
+        fetchCategoryHourlyReport(orgId, "cloud", zeroEventHourStart, zeroEventHourEnd);
+
+    // Then: Cloud reports zero with has_data=true; muted categories report has_data=false
+    thenCategoryHasMeasurementBucket(
+        pointForHour(cloudReport, zeroEventHourStart), 0, zeroEventHourStart, "cloud");
+
+    for (String mutedCategory : List.of("physical", "virtual", "hypervisor")) {
+      TallyReportData mutedReport =
+          fetchCategoryHourlyReport(orgId, mutedCategory, zeroEventHourStart, zeroEventHourEnd);
+      thenMutedCategoryAtSnapshotHour(
+          pointForHour(mutedReport, zeroEventHourStart), mutedCategory, zeroEventHourStart);
+    }
+  }
+
+  @ParameterizedTest(name = "primaryRowSearches={0}")
+  @ValueSource(booleans = {true, false})
+  @TestPlanName("tally-report-has-data-TC003")
+  void shouldIndicateDataGapsWithHasDataField(boolean primaryRowSearches) {
+    // Given: Events at hours 0 and 2 are tallied; hours 1 and 3 are gaps
+    givenFeatureFlagIsConfigured(primaryRowSearches);
+
+    // When: Unfiltered hourly report is fetched for the four-hour range
+    TallyReportData response =
+        AwaitilityUtils.until(
+            () ->
+                fetchUnfilteredHourlyReport(
+                    dataGapOrgId, dataGapRangeBeginning, dataGapRangeEnding),
+            data -> data.getData() != null && !data.getData().isEmpty());
+
+    OffsetDateTime hour0 = dataGapBaseTime;
+    OffsetDateTime hour1 = hour0.plusHours(1);
+    OffsetDateTime hour2 = hour0.plusHours(2);
+    OffsetDateTime hour3 = hour0.plusHours(3);
+
+    // Then: Event hours report usage; gap hours report value=0 and has_data=false
+    thenCategoryHasMeasurementBucket(pointForHour(response, hour0), 10, hour0, "report");
+    thenCategoryHasMeasurementBucket(pointForHour(response, hour2), 20, hour2, "report");
+    thenNoSnapshotGapBucket(pointForHour(response, hour1), hour1);
+    thenNoSnapshotGapBucket(pointForHour(response, hour3), hour3);
+
+    assertFalse(
+        hasMisleadingZeroWithHasData(response),
+        "Unfiltered report must not pair value=0 with has_data=true on gap-filled hours");
+  }
+
+  private static void givenCloudPaygEventPublished(
       String orgId, OffsetDateTime hourStart, float metricValue) {
     kafkaBridge.produceKafkaMessage(
         SWATCH_SERVICE_INSTANCE_INGRESS,
@@ -141,67 +229,28 @@ public class TallyReportCategoryHasDataPaygTest extends BaseTallyComponentTest {
             PRODUCT_TAG));
   }
 
-  private static Map<String, Object> hourlyQueryParams(
-      OffsetDateTime beginning, OffsetDateTime ending, String category) {
-    Map<String, Object> params = new HashMap<>();
-    params.put("granularity", "Hourly");
-    params.put("beginning", beginning.toString());
-    params.put("ending", ending.toString());
-    params.put("sla", ServiceLevelType.PREMIUM.toString());
-    params.put("category", category);
-    return params;
+  private static void givenZeroCloudMeasurementReadyForOrg(String orgId) {
+    AwaitilityUtils.untilAsserted(
+        () -> {
+          service.performHourlyTallyForOrg(orgId);
+          if (!cloudZeroMeasurementForHour(
+              fetchCategoryHourlyReport(orgId, "cloud", zeroEventHourStart, zeroEventHourEnd),
+              zeroEventHourStart)) {
+            throw new AssertionError(
+                "PAYG zero-quantity cloud measurement not ready for org "
+                    + orgId
+                    + " at "
+                    + zeroEventHourStart
+                    + " (expected value=0, has_data=true on category=cloud)");
+          }
+        },
+        AwaitilitySettings.using(PIPELINE_POLL_INTERVAL, PIPELINE_WAIT_TIMEOUT)
+            .timeoutMessage(
+                "Category=cloud metric=%s must materialize value=0 with has_data=true at %s.",
+                METRIC_ID, zeroEventHourStart));
   }
 
-  private static TallyReportData getCategoryHourlyReport(
-      String orgId, String category, OffsetDateTime beginning, OffsetDateTime ending) {
-    return service.getTallyReportData(
-        orgId, PRODUCT_TAG, METRIC_ID, hourlyQueryParams(beginning, ending, category));
-  }
-
-  private static OffsetDateTime startOfUtcHour(OffsetDateTime t) {
-    return t.withOffsetSameInstant(ZoneOffset.UTC).truncatedTo(ChronoUnit.HOURS);
-  }
-
-  private static TallyReportDataPoint pointForHour(
-      TallyReportData report, OffsetDateTime hourStart) {
-    assertNotNull(report.getData(), "report data");
-    return report.getData().stream()
-        .filter(p -> p.getDate() != null && startOfUtcHour(p.getDate()).isEqual(hourStart))
-        .findFirst()
-        .orElseThrow(() -> new AssertionError("No data point for hour " + hourStart));
-  }
-
-  private static boolean hasMisleadingZeroWithHasData(TallyReportData report) {
-    return report.getData().stream()
-        .anyMatch(
-            p -> p.getValue() != null && p.getValue() == 0 && Boolean.TRUE.equals(p.getHasData()));
-  }
-
-  private static boolean usagePositiveForHour(TallyReportData report, OffsetDateTime hourStart) {
-    if (report.getData() == null || report.getData().isEmpty()) {
-      return false;
-    }
-    return report.getData().stream()
-        .filter(p -> p.getDate() != null && startOfUtcHour(p.getDate()).isEqual(hourStart))
-        .anyMatch(
-            p -> p.getValue() != null && p.getValue() > 0 && Boolean.TRUE.equals(p.getHasData()));
-  }
-
-  private static boolean zeroMeasurementForHour(TallyReportData report, OffsetDateTime hourStart) {
-    if (report.getData() == null || report.getData().isEmpty()) {
-      return false;
-    }
-    return report.getData().stream()
-        .filter(p -> p.getDate() != null && startOfUtcHour(p.getDate()).isEqual(hourStart))
-        .anyMatch(p -> intValueOrZero(p.getValue()) == 0 && Boolean.TRUE.equals(p.getHasData()));
-  }
-
-  private static int intValueOrZero(Integer value) {
-    return value == null ? 0 : value;
-  }
-
-  /** No snapshot/measurements for the period — gap-filled bucket. */
-  private static void assertNoSnapshotGapBucket(TallyReportDataPoint point, OffsetDateTime hour) {
+  private static void thenNoSnapshotGapBucket(TallyReportDataPoint point, OffsetDateTime hour) {
     assertEquals(
         0,
         intValueOrZero(point.getValue()),
@@ -211,8 +260,7 @@ public class TallyReportCategoryHasDataPaygTest extends BaseTallyComponentTest {
         "Gap hour " + hour + " must have has_data=false when no snapshot exists: " + point);
   }
 
-  /** Category contributed measurements for the period. */
-  private static void assertCategoryHasMeasurementBucket(
+  private static void thenCategoryHasMeasurementBucket(
       TallyReportDataPoint point, int expectedValue, OffsetDateTime hour, String category) {
     assertEquals(
         expectedValue,
@@ -228,8 +276,7 @@ public class TallyReportCategoryHasDataPaygTest extends BaseTallyComponentTest {
             + point);
   }
 
-  /** Snapshot exists from other categories but this category did not contribute. */
-  private static void assertMutedCategoryAtSnapshotHour(
+  private static void thenMutedCategoryAtSnapshotHour(
       TallyReportDataPoint point, String category, OffsetDateTime hour) {
     assertEquals(
         0,
@@ -250,62 +297,86 @@ public class TallyReportCategoryHasDataPaygTest extends BaseTallyComponentTest {
             + point);
   }
 
-  @ParameterizedTest(name = "primaryRowSearches={0}")
-  @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-has-data-TC001")
-  void shouldIndicateHasDataMatchesCategoryContribution(boolean primaryRowSearches) {
-    givenFeatureFlagIsConfigured(primaryRowSearches);
-
-    for (String category : List.of("physical", "virtual", "hypervisor", "cloud")) {
-      TallyReportData report =
-          getCategoryHourlyReport(firstOrgId, category, positiveRangeStart, positiveEventHourEnd);
-
-      assertFalse(
-          hasMisleadingZeroWithHasData(report),
-          "Category="
-              + category
-              + " must not return value=0 with has_data=true when that category contributed nothing.");
-    }
-
-    TallyReportData cloudReport =
-        getCategoryHourlyReport(firstOrgId, "cloud", positiveRangeStart, positiveEventHourEnd);
-
-    assertNoSnapshotGapBucket(pointForHour(cloudReport, gapHour), gapHour);
-
-    assertCategoryHasMeasurementBucket(
-        pointForHour(cloudReport, positiveEventHourStart), 8, positiveEventHourStart, "cloud");
-
-    for (String mutedCategory : List.of("physical", "virtual", "hypervisor")) {
-      TallyReportData mutedReport =
-          getCategoryHourlyReport(
-              firstOrgId, mutedCategory, positiveRangeStart, positiveEventHourEnd);
-      assertMutedCategoryAtSnapshotHour(
-          pointForHour(mutedReport, positiveEventHourStart), mutedCategory, positiveEventHourStart);
-    }
+  private static TallyReportData fetchCategoryHourlyReport(
+      String orgId, String category, OffsetDateTime beginning, OffsetDateTime ending) {
+    Map<String, Object> params = new HashMap<>();
+    params.put("granularity", "Hourly");
+    params.put("beginning", beginning.toString());
+    params.put("ending", ending.toString());
+    params.put("sla", ServiceLevelType.PREMIUM.toString());
+    params.put("category", category);
+    return service.getTallyReportData(orgId, PRODUCT_TAG, METRIC_ID, params);
   }
 
-  @ParameterizedTest(name = "primaryRowSearches={0}")
-  @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-has-data-TC002")
-  void shouldIndicateExistingZeroValueMeasurementsStillReportHasData(boolean primaryRowSearches) {
-    givenFeatureFlagIsConfigured(primaryRowSearches);
+  private static TallyReportData fetchUnfilteredHourlyReport(
+      String orgId, OffsetDateTime beginning, OffsetDateTime ending) {
+    Map<String, Object> params = new HashMap<>();
+    params.put("granularity", "Hourly");
+    params.put("beginning", beginning.toString());
+    params.put("ending", ending.toString());
+    return service.getTallyReportData(orgId, PRODUCT_TAG, METRIC_ID, params);
+  }
 
-    String orgId = String.valueOf(10000 + (int) (Math.random() * 90000));
-    service.createOptInConfig(orgId);
-    publishCloudPaygEvent(orgId, zeroEventHourStart, 0.0f);
-    awaitCloudZeroMeasurementReady(orgId);
+  private static OffsetDateTime startOfUtcHour(OffsetDateTime timestamp) {
+    return timestamp.withOffsetSameInstant(ZoneOffset.UTC).truncatedTo(ChronoUnit.HOURS);
+  }
 
-    TallyReportData cloudReport =
-        getCategoryHourlyReport(orgId, "cloud", zeroEventHourStart, zeroEventHourEnd);
+  private static int intValueOrZero(Integer value) {
+    return value == null ? 0 : value;
+  }
 
-    assertCategoryHasMeasurementBucket(
-        pointForHour(cloudReport, zeroEventHourStart), 0, zeroEventHourStart, "cloud");
+  private static TallyReportDataPoint pointForHour(
+      TallyReportData report, OffsetDateTime hourStart) {
+    assertNotNull(report.getData(), "report data");
+    return report.getData().stream()
+        .filter(
+            point ->
+                point.getDate() != null && startOfUtcHour(point.getDate()).isEqual(hourStart))
+        .findFirst()
+        .orElseThrow(() -> new AssertionError("No data point for hour " + hourStart));
+  }
 
-    for (String mutedCategory : List.of("physical", "virtual", "hypervisor")) {
-      TallyReportData mutedReport =
-          getCategoryHourlyReport(orgId, mutedCategory, zeroEventHourStart, zeroEventHourEnd);
-      assertMutedCategoryAtSnapshotHour(
-          pointForHour(mutedReport, zeroEventHourStart), mutedCategory, zeroEventHourStart);
+  private static boolean cloudUsagePositiveForHour(
+      TallyReportData report, OffsetDateTime hourStart) {
+    if (report.getData() == null || report.getData().isEmpty()) {
+      return false;
     }
+    return report.getData().stream()
+        .filter(
+            point ->
+                point.getDate() != null
+                    && startOfUtcHour(point.getDate()).isEqual(hourStart))
+        .anyMatch(
+            point ->
+                point.getValue() != null
+                    && point.getValue() > 0
+                    && Boolean.TRUE.equals(point.getHasData()));
+  }
+
+  private static boolean cloudZeroMeasurementForHour(
+      TallyReportData report, OffsetDateTime hourStart) {
+    if (report.getData() == null || report.getData().isEmpty()) {
+      return false;
+    }
+    return report.getData().stream()
+        .filter(
+            point ->
+                point.getDate() != null && startOfUtcHour(point.getDate()).isEqual(hourStart))
+        .anyMatch(
+            point ->
+                intValueOrZero(point.getValue()) == 0
+                    && Boolean.TRUE.equals(point.getHasData()));
+  }
+
+  private static boolean hasMisleadingZeroWithHasData(TallyReportData report) {
+    if (report.getData() == null) {
+      return false;
+    }
+    return report.getData().stream()
+        .anyMatch(
+            point ->
+                point.getValue() != null
+                    && point.getValue() == 0
+                    && Boolean.TRUE.equals(point.getHasData()));
   }
 }

@@ -241,16 +241,15 @@ Test cases should be testable locally and in deployed environments.
 
 The tally report filtering test cases are organized into two component test files:
 
-- **TallyReportFiltersPaygTest.java** - Contains 20 test cases (TC001-TC023, excluding TC009, TC010, TC015, TC024) covering PAYG (Pay-As-You-Go) scenarios:
+- **TallyReportFiltersPaygTest.java** - Contains 20 test cases (TC001-TC023, excluding TC009, TC010, TC024) covering PAYG (Pay-As-You-Go) scenarios:
   - TC001-TC008: Basic filtering by granularity, SLA, usage, billing provider, and billing account ID
   - TC011-TC014: Validation errors and metadata verification
   - TC016-TC023: Daily granularity filtering, monthly/quarterly/yearly granularity support
   - Product: RHEL for x86 ELS PAYG (supports hourly granularity)
 
-- **TallyReportFiltersEdgeCaseTest.java** - Contains 4 test cases for edge cases requiring special event patterns:
+- **TallyReportFiltersEdgeCaseTest.java** - Contains 3 test cases for edge cases requiring special event patterns:
   - TC009: Multiple events aggregation with same filter attributes
   - TC010: Three distinct SLA values filtering
-  - TC015: Data gaps with hasData field
   - TC024: Billing account change for same instance
   - Product: RHEL for x86 ELS PAYG (supports hourly granularity)
 
@@ -498,26 +497,6 @@ All test files use `@BeforeAll` to create test data once and share it across all
     - API properly handles EMPTY enum values in filters
     - EMPTY is treated as a valid filter value distinct from null
 
-**tally-report-filters-TC015 - Data gaps indicated by hasData field**
-
-- **Description**: Verify that an unfiltered hourly tally report sets has_data per bucket.
-- **Setup**:
-    - Organization is opted in
-    - Premium payg events created at hour 0 (value 10.0) and hour 2 (value 20.0)
-    - Four-hour range where hours 1 and 3 have no events
-    - Hourly tally is performed
-- **Action**:
-    - Request unfiltered hourly tally report for the 4-hour range (no category filter)
-- **Verification**:
-    - Response data contains data points for each hour in the range
-    - Hour 0: value=10, has_data=true
-    - Hour 2: value=20, has_data=true
-    - Gap hours 1 and 3: value=0, has_data=false
-    - No data point in the range has value=0 and has_data=true
-- **Expected Result**:
-    - Event hours report has_data=true with the expected tallied values
-    - Gap-filled hours without a snapshot for that period report value=0 and has_data=false
-
 **tally-report-filters-TC016 - All data returned when no optional filters applied**
 
 - **Description**: Verify that tally report API returns all event data aggregated when querying without optional filter parameters
@@ -736,6 +715,26 @@ All test files use `@BeforeAll` to create test data once and share it across all
 - **Expected Result**:
     - Existing zero-value measurements for the filtered category are treated as present (has_data=true)
     - Categories that did not contribute at that hour still report has_data=false with value=0
+
+**tally-report-has-data-TC003 - Data gaps indicated by hasData field**
+
+- **Description**: Verify that an unfiltered hourly tally report sets has_data per bucket.
+- **Setup**:
+    - Organization is opted in
+    - Premium payg events created at hour 0 (value 10.0) and hour 2 (value 20.0)
+    - Four-hour range where hours 1 and 3 have no events
+    - Hourly tally is performed
+- **Action**:
+    - Request unfiltered hourly tally report for the 4-hour range (no category filter)
+- **Verification**:
+    - Response data contains data points for each hour in the range
+    - Hour 0: value=10, has_data=true
+    - Hour 2: value=20, has_data=true
+    - Gap hours 1 and 3: value=0, has_data=false
+    - No data point in the range has value=0 and has_data=true
+- **Expected Result**:
+    - Event hours report has_data=true with the expected tallied values
+    - Gap-filled hours without a snapshot for that period report value=0 and has_data=false
 
 ## Summary Messages Separated By Attribute Value
 
