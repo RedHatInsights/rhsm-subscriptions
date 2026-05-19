@@ -80,8 +80,8 @@ public class InventoryServiceConfiguration {
 
   @Bean
   public KafkaTemplate<String, CreateUpdateHostMessage> inventoryServiceKafkaProducerTemplate(
-      ProducerFactory<String, CreateUpdateHostMessage> factory) {
-    return kafkaConfigurator.taskMessageKafkaTemplate(factory);
+      ProducerFactory<String, CreateUpdateHostMessage> factory, KafkaProperties kafkaProperties) {
+    return kafkaConfigurator.taskMessageKafkaTemplate(factory, kafkaProperties);
   }
 
   @Bean
