@@ -172,6 +172,24 @@ Kafka messages can be injected for event-driven testing.
 - **Expected Result**:
     - Notification action `severity` is `IMPORTANT` (string name of the utilization severity enum)
 
+**utilization-overusage-TC010 - Overusage notification for daily non-PAYG utilization**
+
+- **Description**: Verify that overusage detection sends a notification when a **daily** utilization summary for a **non-PAYG** product exceeds capacity by more than the threshold. Component tests inject the utilization summary directly; integration coverage (`test_nonpayg_subscriptions_tally_emits_notification_message`) exercises the full tally path.
+- **Setup**:
+    - An organization has capacity for a non-PAYG product metric (e.g. RHEL, Sockets)
+    - The utilization summary uses `DAILY` granularity
+- **Action**:
+    - Generate usage exceeding the threshold for that metric
+    - Trigger utilization calculation process
+- **Verification**:
+    - Wait for notification message on notifications topic
+    - Verify notification payload (org_id, product_id, metric_id, utilization_percentage)
+    - Verify over-usage Prometheus counter is incremented
+- **Expected Result**:
+    - Notification event contains correct information
+    - Notification action `severity` is `IMPORTANT`
+    - Over-usage counter increments by one for the metric
+
 ## Multi-Resource Processing
 
 **utilization-multi-TC001 - Multiple resources with mixed overusage states**

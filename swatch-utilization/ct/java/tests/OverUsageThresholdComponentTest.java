@@ -26,6 +26,7 @@ import static org.awaitility.Awaitility.await;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
+import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
@@ -165,6 +166,8 @@ public class OverUsageThresholdComponentTest extends BaseUtilizationComponentTes
     thenOverUsageCounterShouldNotChange();
   }
 
+  /** Daily non-PAYG over-usage notification; see utilization-overusage-TC010. */
+  @TestPlanName("utilization-overusage-TC010")
   @Test
   void shouldIncrementOverUsageCounter_whenGranularityIsDaily() {
     givenUtilizationSummaryForNonPaygProduct(Granularity.DAILY);
