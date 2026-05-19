@@ -66,6 +66,25 @@ class ContractUMBMessageConsumerTest {
         }
         """;
 
+  /**
+   * Partner Gateway may send licenseArn before SWATCH models it; deserialization must ignore it.
+   */
+  private static final String JSON_WITH_EXTRA_LICENSE_ARN_FIELD =
+      """
+        {
+          "licenseArn": "arn:aws:license-manager:us-east-1:000000000000:license:swatch-test-license",
+          "redHatSubscriptionNumber": "12345678",
+          "cloudIdentifiers": {
+            "awsCustomerId": "aws-customer-123",
+            "productCode": "test-product"
+          },
+          "currentDimensions": [{
+            "dimensionName": "test-dimension",
+            "dimensionValue": "10"
+          }]
+        }
+        """;
+
   @InjectMock ContractService contractService;
 
   @InjectMock FeatureFlags featureFlags;
@@ -90,6 +109,12 @@ class ContractUMBMessageConsumerTest {
   @Test
   void shouldProcessStringMessage() {
     whenSendMessage(VALID_JSON_MESSAGE);
+    assertMessageIsProcessed();
+  }
+
+  @Test
+  void shouldProcessStringMessageWithUnknownLicenseArnField() {
+    whenSendMessage(JSON_WITH_EXTRA_LICENSE_ARN_FIELD);
     assertMessageIsProcessed();
   }
 
