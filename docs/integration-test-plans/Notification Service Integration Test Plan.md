@@ -77,7 +77,7 @@ Limitation:
    - Deduplication fires for identical `product + metric + SLA + usage` combo.
    - A new notification is produced when SLA changes and when usage changes, confirming both are part of the deduplication key.
 
-## stage-notification-offering-alignment-TC001
+## test_over_usage_notification_requires_payg_sla_aligned_with_offering
 
 1. **Description:** Over-usage notifications for PAYG products require that the SLA of the PAYG usage aligns with the contract offering's SLA. Usage at a mismatched SLA tier must not trigger an alert, even if the volume exceeds capacity.
 2. **Setup:**
@@ -90,7 +90,7 @@ Limitation:
    - No notification is emitted when the PAYG SLA does not match the offering.
    - A notification is emitted when the PAYG SLA matches the offering and usage exceeds the threshold.
 
-## stage-notification-offering-alignment-TC002
+## test_over_usage_notification_requires_payg_usage_aligned_with_offering
 
 1. **Description:** Over-usage notifications for PAYG products require that the syspurpose usage type of the PAYG usage aligns with the contract offering's usage type. Usage at a mismatched usage type must not trigger an alert, even if the volume exceeds capacity.
 2. **Setup:**
