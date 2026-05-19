@@ -22,6 +22,8 @@ package com.redhat.swatch.contract.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.DimensionV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1;
@@ -114,6 +116,55 @@ class ContractEntityMapperTest {
     assertEquals(
         "theAzureResourceId;thePlanId;theAzureOfferId;theAzureCustomerId;theClientId",
         entity.getBillingProviderId());
+  }
+
+  @Test
+  void testExtractBillingProviderIdReturnsNullWhenPurchaseIsNull() {
+    entitlement = new PartnerEntitlementV1();
+    entitlement.sourcePartner(ContractSourcePartnerEnum.AWS.getCode());
+    entitlement.setPartnerIdentities(new PartnerIdentityV1());
+
+    assertNull(
+        mapper.extractBillingProviderId(entitlement), "Should return null when purchase is null");
+  }
+
+  @Test
+  void testExtractBillingProviderIdReturnsNullWhenPurchaseIsNullForAzure() {
+    entitlement = new PartnerEntitlementV1();
+    entitlement.sourcePartner(ContractSourcePartnerEnum.AZURE.getCode());
+    entitlement.setPartnerIdentities(new PartnerIdentityV1());
+
+    assertNull(
+        mapper.extractBillingProviderId(entitlement),
+        "Should return null when purchase is null for Azure");
+  }
+
+  @Test
+  void testExtractBillingProviderIdReturnsNullWhenVendorProductCodeIsNull() {
+    entitlement = new PartnerEntitlementV1();
+    entitlement.sourcePartner(ContractSourcePartnerEnum.AZURE.getCode());
+    entitlement.setPurchase(new PurchaseV1());
+    entitlement.setPartnerIdentities(new PartnerIdentityV1());
+
+    assertNull(
+        mapper.extractBillingProviderId(entitlement),
+        "Should return null when vendorProductCode is null");
+  }
+
+  @Test
+  void testExtractBillingProviderIdHandlesNullContractsInAzurePurchase() {
+    entitlement = new PartnerEntitlementV1();
+    entitlement.sourcePartner(ContractSourcePartnerEnum.AZURE.getCode());
+    var purchase = new PurchaseV1();
+    purchase.setVendorProductCode("test-offer");
+    purchase.setAzureResourceId("test-resource");
+    entitlement.setPurchase(purchase);
+    entitlement.setPartnerIdentities(new PartnerIdentityV1());
+
+    String result = mapper.extractBillingProviderId(entitlement);
+    assertNotNull(result, "Should not throw NPE when Azure contracts list is null");
+    assertTrue(
+        result.contains(";;"), "planId should default to empty string when contracts list is null");
   }
 
   private void givenContractWithPlanId(String planId) {
