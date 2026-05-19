@@ -32,7 +32,7 @@ public class BillableUsageDeploymentTest {
   @Test
   void testTraceResponseHeader() {
     given()
-        .put("/api/swatch-billable-usage/internal/rpc/remittance/reset_billable_usage_remittance")
+        .post("/api/swatch-billable-usage/internal/rpc/remittance/reset_billable_usage_remittance")
         .then()
         .header(TRACE_RESPONSE_HEADER, startsWith("00-"));
   }
