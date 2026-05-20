@@ -81,7 +81,6 @@ Limitation:
 
 1. **Description:** Over-usage notifications for PAYG products require that the SLA of the PAYG usage aligns with the contract offering's SLA. Usage at a mismatched SLA tier must not trigger an alert, even if the volume exceeds capacity.
 2. **Setup:**
-   - The organization is opted-in for notifications.
    - A contract exists for a PAYG product (e.g., ansible-aap-managed on AWS) with capacity tied to a specific SLA (Premium).
 3. **Actions and Verifications (in sequence):**
    1. Emit PAYG usage at a mismatched SLA (Standard) that exceeds contract capacity → trigger hourly tally sync → verify **no** over-usage notification for Standard SLA.
