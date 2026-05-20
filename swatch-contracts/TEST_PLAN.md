@@ -747,6 +747,53 @@ This section verifies the automatic contract termination behavior when contracts
   - Contract `end_date` is unchanged (still in the future, not terminated)
   - Contract count remains 1
 
+**contracts-sync-TC016 - Sync does not crash when upstream returns entitlement with null purchase**
+- **Description**: Verify that when upstream returns a mix of valid entitlements and entitlements with null `purchase` field, the sync skips the ones with null purchase and processes the valid contracts. Reproduces SWATCH-4954 NPE.
+- **Setup**:
+  - Stub upstream Partner API to return one valid AWS contract and one entitlement with `purchase: null`
+  - Stub offering and search API for the valid contract
+- **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/{orgId}`
+- **Verification**:
+  - Sync returns HTTP 200 with status "SUCCESS"
+  - Only the valid contract is persisted
+- **Expected Result**:
+  - HTTP 200 with StatusResponse
+  - StatusResponse status: "SUCCESS"
+  - Exactly 1 contract persisted (the valid one)
+  - The entitlement with null purchase is skipped without crashing the sync
+
+**contracts-sync-TC017 - Orphaned contract termination clears subscription's contract-provided state**
+- **Description**: Reproduces SWATCH-4954 subscription blocking. When a contract is orphaned (not found in upstream), the termination should clear the subscription's billing provider and measurements so subscription sync can update it.
+- **Setup**:
+  - Create a contract-enabled subscription for the org (AWS ROSA contract)
+  - Verify the subscription has billing provider and measurements set
+  - Re-stub upstream Partner API to return no valid contracts for the org
+- **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/{orgId}`
+- **Verification**:
+  - Contract is terminated (end_date set)
+  - Subscription's billing provider is cleared
+  - Subscription's measurements are cleared
+- **Expected Result**:
+  - HTTP 200 with StatusResponse
+  - Contract still exists but is terminated
+  - Subscription billing provider cleared and measurements cleared — subscription sync will no longer skip it
+
+**contracts-sync-TC018 - Legitimate contract termination preserves subscription's contract-provided state**
+- **Description**: When a contract is legitimately terminated (still present in upstream but with end_date in the past), the subscription should retain its billing provider, billing_account_id, and measurements — unlike orphaned contracts (TC017) which clear them.
+- **Setup**:
+  - Create a contract-enabled subscription (AWS ROSA contract with future end_date)
+  - Verify the subscription has billing provider and measurements set
+  - Re-stub upstream Partner API to return the same contract but with end_date in the past
+- **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/{orgId}`
+- **Verification**:
+  - Contract's end_date is updated to the past date from upstream
+  - Subscription billing provider is preserved (NOT cleared)
+  - Subscription measurements are preserved (NOT cleared)
+- **Expected Result**:
+  - HTTP 200 with StatusResponse status: "SUCCESS"
+  - Contract synced with upstream end_date
+  - Subscription retains all contract-provided state
+
 ## Subscription Management via UMB
 
 **subscriptions-creation-TC001 - Process a valid UMB subscription XML message from UMB**  

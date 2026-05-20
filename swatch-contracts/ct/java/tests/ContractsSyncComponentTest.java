@@ -29,6 +29,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static utils.DateUtils.assertDatesAreEqual;
 
@@ -662,6 +663,142 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
         endDateBefore,
         contractsAfter.get(0).getEndDate(),
         "Azure contract end_date should be unchanged (not terminated)");
+  }
+
+  /** TC016 - Sync does not crash when upstream returns entitlement with null purchase. */
+  @TestPlanName("contracts-sync-TC016")
+  @Test
+  void shouldSkipEntitlementWithNullPurchaseAndSyncRemainingContracts() {
+    // Given: One valid AWS contract and one malformed entitlement with null purchase
+    String sku = RandomUtils.generateRandom();
+    Contract validContract =
+        Contract.buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, 10.0), sku);
+    wiremock.forProductAPI().stubOfferingData(validContract.getOffering());
+    wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(validContract);
+
+    var nullPurchaseEntitlement =
+        PartnerApiStubs.buildEntitlementWithNullPurchase(orgId, "aws_marketplace");
+    wiremock
+        .forPartnerAPI()
+        .stubPartnerSubscriptionsWithRawEntitlements(
+            orgId, List.of(validContract), List.of(nullPurchaseEntitlement));
+
+    // Sync offering to register product data
+    Response syncOffering = service.syncOffering(sku);
+    assertThat("Sync offering should succeed", syncOffering.statusCode(), is(HttpStatus.SC_OK));
+
+    // When: Sync contracts for the organization
+    Response syncResponse = service.syncContractsByOrg(orgId);
+
+    // Then: Sync succeeds — the valid contract is persisted, the bad one is skipped
+    assertThat("Sync should return OK", syncResponse.statusCode(), is(HttpStatus.SC_OK));
+    syncResponse
+        .then()
+        .body("status", equalTo(STATUS_SUCCESS))
+        .body("message", equalTo("Contracts Synced for " + orgId));
+
+    var contracts = service.getContractsByOrgId(orgId);
+    assertEquals(1, contracts.size(), "Only the valid contract should be persisted");
+    assertEquals(
+        validContract.getSubscriptionNumber(),
+        contracts.get(0).getSubscriptionNumber(),
+        "Persisted contract should be the valid one");
+  }
+
+  /**
+   * TC017 - Orphaned contract termination clears subscription's contract-provided state.
+   *
+   * <p>Reproduces SWATCH-4954: subscription had contract-provided capacity blocking subscription
+   * sync. After contract is orphaned and terminated, billing fields and measurements must be
+   * cleared so subscription sync can update it.
+   */
+  @TestPlanName("contracts-sync-TC017")
+  @Test
+  void shouldClearSubscriptionContractStateWhenContractIsOrphaned() {
+    // Given: An existing contract-enabled subscription with billing data and measurements
+    givenRosaContractIsCreated(10.0);
+
+    var subsBefore = service.getSubscriptionsByOrgId(orgId);
+    assertEquals(1, subsBefore.size(), "Should have one subscription");
+    assertNotNull(
+        subsBefore.get(0).getBillingProvider(),
+        "Subscription should have billing provider from contract");
+    assertFalse(
+        subsBefore.get(0).getMetrics().isEmpty(),
+        "Subscription should have measurements from contract");
+
+    // Given: Upstream now returns no valid contracts for this org
+    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContractsInOrgId(orgId));
+
+    // When: Sync contracts
+    Response syncResponse = service.syncContractsByOrg(orgId);
+
+    // Then: Contract is orphaned and subscription contract state is cleared
+    assertThat("Sync should return OK", syncResponse.statusCode(), is(HttpStatus.SC_OK));
+
+    // Verify contract terminated
+    var contractsAfter = service.getContractsByOrgId(orgId);
+    assertEquals(1, contractsAfter.size(), "Contract should still exist (terminated, not deleted)");
+    assertNotNull(contractsAfter.get(0).getEndDate(), "Contract should be terminated");
+
+    // Verify subscription state cleared
+    var subsAfter = service.getSubscriptionsByOrgId(orgId);
+    assertEquals(1, subsAfter.size(), "Subscription should still exist");
+    assertNull(
+        subsAfter.get(0).getBillingProvider(),
+        "Subscription billingProvider should be cleared after contract termination");
+    assertTrue(
+        subsAfter.get(0).getMetrics().isEmpty(),
+        "Subscription measurements should be cleared after contract termination");
+  }
+
+  /**
+   * TC018 - Legitimate contract termination preserves subscription's contract-provided state.
+   *
+   * <p>Inverse of TC017: contract IS still in upstream (not orphaned) but with end_date in the
+   * past. Subscription billing state must be preserved.
+   */
+  @TestPlanName("contracts-sync-TC018")
+  @Test
+  void shouldPreserveSubscriptionBillingStateWhenContractIsLegitimatelyTerminated() {
+    // Given: A contract-enabled subscription with billing data and measurements
+    Contract contract = givenRosaContractIsCreated(10.0);
+
+    var subsBefore = service.getSubscriptionsByOrgId(orgId);
+    assertEquals(1, subsBefore.size(), "Should have one subscription");
+    assertNotNull(
+        subsBefore.get(0).getBillingProvider(),
+        "Subscription should have billing provider from contract");
+    assertFalse(
+        subsBefore.get(0).getMetrics().isEmpty(),
+        "Subscription should have measurements from contract");
+
+    // Given: Upstream now returns the same contract but with end_date in the past
+    Contract terminatedContract =
+        contract.toBuilder().endDate(OffsetDateTime.now().minusDays(1)).build();
+    wiremock
+        .forPartnerAPI()
+        .stubPartnerSubscriptions(forContractsInOrgId(orgId, terminatedContract));
+    wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(terminatedContract);
+
+    // When: Sync contracts
+    Response syncResponse = service.syncContractsByOrg(orgId);
+
+    // Then: Sync succeeds and subscription billing state is preserved
+    assertThat("Sync should return OK", syncResponse.statusCode(), is(HttpStatus.SC_OK));
+    syncResponse
+        .then()
+        .body("status", equalTo(STATUS_SUCCESS))
+        .body("message", equalTo("Contracts Synced for " + orgId));
+
+    var subsAfter = service.getSubscriptionsByOrgId(orgId);
+    assertEquals(1, subsAfter.size(), "Subscription should still exist");
+    assertNotNull(
+        subsAfter.get(0).getBillingProvider(),
+        "Subscription billingProvider should be preserved after legitimate termination");
+    assertFalse(
+        subsAfter.get(0).getMetrics().isEmpty(),
+        "Subscription measurements should be preserved after legitimate termination");
   }
 
   protected String getContractUuidByProvider(String orgId, BillingProvider provider) {

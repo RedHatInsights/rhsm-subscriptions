@@ -362,6 +362,24 @@ parameters:
         (SELECT stats_reset FROM pg_stat_database WHERE datname = current_database())
       FROM pg_stat_user_tables;
     chunksize: 50000
+  - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/hosts
+    query: >-
+      SELECT *
+      FROM hosts
+      WHERE last_modified >= date_trunc('day', now() at time zone 'utc' - interval '2 day')
+    chunksize: 50000
+  - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/host_tally_buckets
+    query: >-
+      SELECT *
+      FROM host_tally_buckets
+      WHERE last_modified >= date_trunc('day', now() at time zone 'utc' - interval '2 day')
+    chunksize: 50000
+  - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/instance_measurements
+    query: >-
+      SELECT *
+      FROM instance_measurements
+      WHERE last_modified >= date_trunc('day', now() at time zone 'utc' - interval '2 day')
+    chunksize: 50000
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1

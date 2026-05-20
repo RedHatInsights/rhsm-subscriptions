@@ -86,8 +86,8 @@ PostgreSQL database (via Clowder) with table `org_utilization_preference`. Each 
 stores optional per-organization settings: `org_id` (primary key), `custom_threshold` (integer
 percentage points, e.g. 5 for 5%), and `last_updated`. Schema is owned by Liquibase;
 the `OrgUtilizationPreferenceRepository` exposes persistence through Hibernate Panache.
-Application code can later read this table to override product defaults per org without
-redeploying configuration.
+`CustomThresholdUtilizationHandlerService` reads org preferences to evaluate the custom
+threshold path.
 
 ### Granularity Filtering
 The service processes utilization summaries regardless of their granularity (HOURLY, DAILY, MONTHLY).
@@ -137,14 +137,40 @@ The service performs comprehensive validation on incoming utilization summaries:
 Invalid summaries or measurements are logged and skipped without processing.
 
 ### Monitoring and Metrics
-The service exposes several metrics for monitoring and alerting:
 
-**swatch_utilization_over_usage**: Counter tracking detected over-usage events, tagged by:
-- `product`: Product ID
-- `metric_id`: Metric ID
-- `billing`: Billing provider (if present)
-- `sla`: Service level when set on the utilization summary; otherwise `_ANY` (missing, empty, or `ANY` on the payload)
-- `usage`: Usage type when set on the utilization summary; otherwise `_ANY` (missing, empty, or `ANY` on the payload)
+**Threshold handler counters** increment in `sendNotification` when a measurement crosses the
+rule (once per crossing). They do not track Kafka ingress or email delivery; feature flags may
+block `platform.notifications.ingress` after the counter increments.
+
+| Prometheus name | When | Notification event type |
+|-----------------|------|-------------------------|
+| `swatch_utilization_over_usage` | Over product/default over-usage threshold | `exceeded-utilization-threshold` |
+| `swatch_utilization_custom_threshold` | Over org `custom_threshold` (preference required) | `exceeded-custom-utilization-threshold` |
+
+**Micrometer tags (both):** `product`, `metric_id`, `billing`, `sla`, `usage` (`_ANY` when unset).
+
+**Subscription Watch** (swatch-utilization row) tables use range totals grouped by
+`product`, `metric_id`, `sla`, and `usage` (not `billing`):
+
+| Panel | Metric |
+|-------|--------|
+| Subscriptions over-usages | `swatch_utilization_over_usage_total` |
+| Subscriptions custom threshold | `swatch_utilization_custom_threshold_total` |
+
+```promql
+sum(increase(swatch_utilization_over_usage_total{service="swatch-utilization-service"}[$__range])) by (product, metric_id, sla, usage)
+sum(increase(swatch_utilization_custom_threshold_total{service="swatch-utilization-service"}[$__range])) by (product, metric_id, sla, usage)
+```
+
+Org preference **POST** volume is available from Quarkus HTTP metrics (no custom counter), for example:
+
+```promql
+sum by (status) (increase(http_server_requests_seconds_count{
+  service="swatch-utilization-service",
+  method="POST",
+  uri="/api/rhsm-subscriptions/v1/utilization/org-preferences"
+}[5m]))
+```
 
 These metrics enable:
 - Dashboards showing utilization monitoring coverage

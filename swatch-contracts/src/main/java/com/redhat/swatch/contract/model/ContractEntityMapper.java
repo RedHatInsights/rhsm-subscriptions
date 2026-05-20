@@ -43,6 +43,8 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.Named;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Mapper(
     componentModel = "jakarta-cdi",
@@ -50,6 +52,8 @@ import org.mapstruct.Named;
     builder = @Builder(disableBuilder = true),
     uses = {ContractOfferingMapper.class})
 public interface ContractEntityMapper {
+
+  Logger log = LoggerFactory.getLogger(ContractEntityMapper.class);
 
   @Mapping(
       target = "subscriptionNumber",
@@ -108,6 +112,13 @@ public interface ContractEntityMapper {
   /** Extract billingProviderId from Partner Gateway API response */
   @Named("billingProviderId")
   default String extractBillingProviderId(PartnerEntitlementV1 entitlement) {
+    if (entitlement.getPurchase() == null
+        || entitlement.getPurchase().getVendorProductCode() == null) {
+      log.warn(
+          "Skipping entitlement with missing purchase data for org {}",
+          entitlement.getRhAccountId());
+      return null;
+    }
     var partner = entitlement.getSourcePartner();
     if (isAwsMarketplace(partner)) {
       return String.format(
@@ -116,11 +127,11 @@ public interface ContractEntityMapper {
           entitlement.getPartnerIdentities().getAwsCustomerId(),
           entitlement.getPartnerIdentities().getSellerAccountId());
     } else if (isAzureMarketplace(partner)) {
+      var contracts = entitlement.getPurchase().getContracts();
       var azurePlanId =
-          entitlement.getPurchase().getContracts().stream()
-              .map(SaasContractV1::getPlanId)
-              .findFirst()
-              .orElse("");
+          contracts != null
+              ? contracts.stream().map(SaasContractV1::getPlanId).findFirst().orElse("")
+              : "";
       var azureOfferId = entitlement.getPurchase().getVendorProductCode();
       var azureCustomerId = entitlement.getPartnerIdentities().getAzureCustomerId();
       var azureResourceId = entitlement.getPurchase().getAzureResourceId();

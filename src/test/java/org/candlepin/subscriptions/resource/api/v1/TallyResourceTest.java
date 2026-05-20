@@ -221,6 +221,72 @@ class TallyResourceTest {
       assertEquals(22, response.getMeta().getTotalMonthly().getValue());
     }
 
+    /*
+     * Behavior:
+     * - If snapshot and measurements exist (value 0 or non-zero) -> has_data=true with value
+     * - If snapshot and measurements do not exist for that time -> has_data=false with value 0
+     * - If snapshot exists and measurements do not exist for that time -> has_data=false with value 0
+     */
+    @Test
+    void testHasDataFalseWhenCategoryHasNoMeasurementRows() {
+      var day1 = OffsetDateTime.parse("2025-10-01T00:00:00Z");
+      var day2 = OffsetDateTime.parse("2025-10-02T00:00:00Z");
+      var day3 = OffsetDateTime.parse("2025-10-03T00:00:00Z");
+      var day4 = OffsetDateTime.parse("2025-10-04T00:00:00Z");
+
+      // Snapshot and measurements exist with value 10 for day 1
+      var agg = new TallyMeasurementAggregate();
+      agg.setSnapshotDate(day1);
+      agg.setMeasurementType(HardwareMeasurementType.PHYSICAL);
+      agg.setMetricId(MetricIdUtils.getSockets().toString());
+      agg.setValue(10.0);
+
+      // Snapshot and measurements exist with value 0 that's a valid case
+      var agg2 = new TallyMeasurementAggregate();
+      agg2.setSnapshotDate(day2);
+      agg2.setMeasurementType(HardwareMeasurementType.PHYSICAL);
+      agg2.setMetricId(MetricIdUtils.getSockets().toString());
+      agg2.setValue(0.0);
+
+      // Snapshot exists and measurements do not exist for day 3
+      var agg3 = new TallyMeasurementAggregate();
+      agg3.setSnapshotDate(day3);
+
+      // Neither snapshot nor measurement are present for day 4
+
+      when(repository.findAggregatedMeasurements(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+              any()))
+          .thenReturn(new PageImpl<>(List.of(agg, agg2)));
+
+      TallyReportData response =
+          resource.getTallyReportData(
+              RHEL_FOR_X86,
+              MetricIdUtils.getSockets(),
+              GranularityType.DAILY,
+              day1,
+              day4,
+              ReportCategory.PHYSICAL,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              false,
+              null);
+
+      assertEquals(4, response.getData().size());
+      assertEquals(10, response.getData().get(0).getValue());
+      assertTrue(response.getData().get(0).getHasData());
+      assertEquals(0, response.getData().get(1).getValue());
+      assertTrue(response.getData().get(1).getHasData());
+      assertEquals(0, response.getData().get(2).getValue());
+      assertFalse(response.getData().get(2).getHasData());
+      assertEquals(0, response.getData().get(3).getValue());
+      assertFalse(response.getData().get(3).getHasData());
+    }
+
     @Test
     void testTallyReportDataTotalUsingHardwareMeasurements() {
       TallyMeasurementAggregate aggregate = new TallyMeasurementAggregate();
@@ -283,6 +349,75 @@ class TallyResourceTest {
               null);
       assertEquals(
           4.0, response.getData().stream().mapToDouble(TallyReportDataPoint::getValue).sum());
+    }
+
+    /*
+     * Behavior:
+     * - If snapshot and measurements exist (value 0 or non-zero) -> has_data=true with value
+     * - If snapshot and measurements do not exist for that time -> has_data=false with value 0
+     * - If snapshot exists and measurements do not exist for that time -> has_data=false with value 0
+     */
+    @Test
+    void testHasDataForCloudCategoryWithMultipleProviders() {
+      var day1 = OffsetDateTime.parse("2025-10-01T00:00:00Z");
+      var day2 = OffsetDateTime.parse("2025-10-02T00:00:00Z");
+      var day3 = OffsetDateTime.parse("2025-10-03T00:00:00Z");
+      var day4 = OffsetDateTime.parse("2025-10-04T00:00:00Z");
+
+      // Snapshot and measurements exists for different cloud with value 5 and 3 for day 1
+      var awsDay1 = new TallyMeasurementAggregate();
+      awsDay1.setSnapshotDate(day1);
+      awsDay1.setMeasurementType(HardwareMeasurementType.AWS);
+      awsDay1.setMetricId(MetricIdUtils.getSockets().toString());
+      awsDay1.setValue(5.0);
+
+      var azureDay1 = new TallyMeasurementAggregate();
+      azureDay1.setSnapshotDate(day1);
+      azureDay1.setMeasurementType(HardwareMeasurementType.AZURE);
+      azureDay1.setMetricId(MetricIdUtils.getSockets().toString());
+      azureDay1.setValue(3.0);
+
+      // Snapshot and measurements exist with value 7 for day 2
+      var awsDay2 = new TallyMeasurementAggregate();
+      awsDay2.setSnapshotDate(day2);
+      awsDay2.setMeasurementType(HardwareMeasurementType.AWS);
+      awsDay2.setMetricId(MetricIdUtils.getSockets().toString());
+      awsDay2.setValue(7.0);
+
+      // Snapshot exists and measurements do not exist for day 3
+      var awsDay3 = new TallyMeasurementAggregate();
+      awsDay3.setSnapshotDate(day3);
+      // Neither snapshot nor measurement are present for day 4
+
+      when(repository.findAggregatedMeasurements(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+              any()))
+          .thenReturn(new PageImpl<>(List.of(awsDay1, azureDay1, awsDay2)));
+
+      TallyReportData response =
+          resource.getTallyReportData(
+              RHEL_FOR_X86,
+              MetricIdUtils.getSockets(),
+              GranularityType.DAILY,
+              day1,
+              day4,
+              ReportCategory.CLOUD,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              false,
+              null);
+
+      assertEquals(4, response.getData().size());
+      assertTrue(response.getData().get(0).getHasData());
+      assertTrue(response.getData().get(1).getHasData());
+      assertFalse(response.getData().get(2).getHasData());
+      assertEquals(0, response.getData().get(2).getValue());
+      assertFalse(response.getData().get(3).getHasData());
+      assertEquals(0, response.getData().get(3).getValue());
     }
 
     @EnumSource(names = "CLOUD", mode = EnumSource.Mode.EXCLUDE)

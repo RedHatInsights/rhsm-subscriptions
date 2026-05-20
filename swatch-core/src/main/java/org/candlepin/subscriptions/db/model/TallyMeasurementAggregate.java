@@ -102,4 +102,9 @@ public class TallyMeasurementAggregate implements Serializable, TallyMeasurement
     }
     return 0.0;
   }
+
+  @Override
+  public boolean hasMeasurementForCategory(MetricId metricId, ReportCategory category) {
+    return getContributingTypes(category).contains(getMeasurementType());
+  }
 }

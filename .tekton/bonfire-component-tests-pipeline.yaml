@@ -383,6 +383,8 @@ spec:
           value: "$(params.APP_NAME)"
         - name: BONFIRE_COMPONENT_NAME
           value: "$(params.BONFIRE_COMPONENT_NAME)"
+        - name: COMPONENT_NAME
+          value: "$(params.COMPONENT_NAME)"
         - name: COMPONENTS
           value: "$(params.COMPONENTS)"
         - name: COMPONENTS_W_RESOURCES
@@ -410,6 +412,8 @@ spec:
           - name: APP_NAME
             type: string
           - name: BONFIRE_COMPONENT_NAME
+            type: string
+          - name: COMPONENT_NAME
             type: string
           - name: COMPONENTS
             type: string
@@ -461,6 +465,8 @@ spec:
                 value: $(params.APP_NAME)
               - name: BONFIRE_COMPONENT_NAME
                 value: $(params.BONFIRE_COMPONENT_NAME)
+              - name: COMPONENT_NAME
+                value: $(params.COMPONENT_NAME)
               - name: COMPONENTS
                 value: $(params.COMPONENTS)
               - name: COMPONENTS_W_RESOURCES
@@ -489,10 +495,19 @@ spec:
                 login.sh
 
                 echo "deploying to ephemeral"
+
+                # Limit snapshot to the component under test.
+                if [ -n "${COMPONENT_NAME}" ]; then
+                  export SNAPSHOT
+                  SNAPSHOT=$(echo "${SNAPSHOT}" | jq --arg name "${COMPONENT_NAME}" \
+                    '{application: .application, components: [.components[] | select(.name == $name)]}')
+                  echo "parse-snapshot: filtered SNAPSHOT to component '${COMPONENT_NAME}'"
+                fi
+
                 if [ -z "${EXTRA_DEPLOY_ARGS}" ]; then
                   EXTRA_DEPLOY_ARGS="$(parse-snapshot.py)"
                 else
-                  EXTRA_DEPLOY_ARGS+=" $(parse-snapshot.py) "
+                  EXTRA_DEPLOY_ARGS+=" $(parse-snapshot.py)"
                 fi
                 export EXTRA_DEPLOY_ARGS
                 deploy.sh "$(params.NS)" "$(params.NS_REQUESTER)"

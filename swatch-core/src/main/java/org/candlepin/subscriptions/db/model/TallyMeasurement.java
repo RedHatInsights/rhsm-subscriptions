@@ -50,4 +50,9 @@ public interface TallyMeasurement {
     }
     return contributingTypes;
   }
+
+  default boolean hasMeasurementForCategory(MetricId metricId, ReportCategory category) {
+    Set<HardwareMeasurementType> types = getContributingTypes(category);
+    return types.stream().anyMatch(type -> getMeasurement(type, metricId) != null);
+  }
 }

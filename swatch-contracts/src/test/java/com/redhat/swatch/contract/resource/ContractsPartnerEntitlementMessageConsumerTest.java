@@ -22,6 +22,7 @@ package com.redhat.swatch.contract.resource;
 
 import static com.redhat.swatch.contract.config.Channels.CONTRACTS_FROM_GATEWAY;
 import static org.awaitility.Awaitility.await;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -36,6 +37,13 @@ import io.smallrye.reactive.messaging.memory.InMemorySource;
 import jakarta.enterprise.inject.Any;
 import jakarta.inject.Inject;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Handler;
+import java.util.logging.LogRecord;
+import org.jboss.logmanager.Level;
+import org.jboss.logmanager.LogContext;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -59,6 +67,29 @@ class ContractsPartnerEntitlementMessageConsumerTest {
         }
         """;
 
+  /**
+   * Partner Gateway contract-updated payload shape with extra top-level licenseArn (SWATCH-4946).
+   */
+  private static final String JSON_WITH_EXTRA_LICENSE_ARN_FIELD =
+      """
+        {
+          "action": "contract-updated",
+          "licenseArn": "arn:aws:license-manager:us-east-1:000000000000:license:swatch-test-license",
+          "redHatSubscriptionNumber": "12345678",
+          "cloudIdentifiers": {
+            "awsCustomerAccountId": "795061427196",
+            "productCode": "test-product-code",
+            "azureResourceId": "azure-resource-123"
+          },
+          "currentDimensions": [{
+            "dimensionName": "test-dimension",
+            "dimensionValue": "10"
+          }]
+        }
+        """;
+
+  private static final LoggerCaptor LOGGER_CAPTOR = new LoggerCaptor();
+
   @Inject @Any InMemoryConnector connector;
 
   @InjectMock FeatureFlags featureFlags;
@@ -66,9 +97,17 @@ class ContractsPartnerEntitlementMessageConsumerTest {
 
   private InMemorySource<Object> contractsKafkaChannel;
 
+  @BeforeAll
+  static void configureLogging() {
+    LogContext.getLogContext()
+        .getLogger(ContractsPartnerEntitlementMessageConsumer.class.getName())
+        .addHandler(LOGGER_CAPTOR);
+  }
+
   @BeforeEach
   void setUp() {
     contractsKafkaChannel = connector.source(CONTRACTS_FROM_GATEWAY);
+    LOGGER_CAPTOR.clearRecords();
     when(featureFlags.isPartnerGatewayContractsKafkaConsumerEnabled()).thenReturn(true);
   }
 
@@ -76,6 +115,18 @@ class ContractsPartnerEntitlementMessageConsumerTest {
   void shouldProcessStringMessage() {
     whenSendMessage(VALID_JSON_MESSAGE);
     assertMessageIsProcessed();
+  }
+
+  @Test
+  void shouldProcessKafkaMessageWithUnknownLicenseArnField() {
+    whenSendMessage(JSON_WITH_EXTRA_LICENSE_ARN_FIELD);
+    await()
+        .atMost(Duration.ofMillis(500))
+        .untilAsserted(
+            () -> {
+              verify(consumer).consumeContract(JSON_WITH_EXTRA_LICENSE_ARN_FIELD);
+              thenKafkaContractDeserializedSuccessfully();
+            });
   }
 
   @Test
@@ -99,5 +150,41 @@ class ContractsPartnerEntitlementMessageConsumerTest {
     await()
         .atMost(Duration.ofMillis(500))
         .untilAsserted(() -> verify(consumer, never()).consumeContract(anyString()));
+  }
+
+  private static void thenKafkaContractDeserializedSuccessfully() {
+    assertTrue(
+        LOGGER_CAPTOR.records.stream()
+            .anyMatch(
+                r ->
+                    Level.INFO.equals(r.getLevel())
+                        && r.getMessage().contains("IT Partner message consumed: source=kafka")));
+    assertTrue(
+        LOGGER_CAPTOR.records.stream()
+            .noneMatch(r -> r.getMessage().contains("Unable to read IT Partner Kafka message")));
+  }
+
+  static class LoggerCaptor extends Handler {
+
+    private final List<LogRecord> records = new ArrayList<>();
+
+    @Override
+    public void publish(LogRecord trace) {
+      records.add(trace);
+    }
+
+    @Override
+    public void flush() {
+      // no sink
+    }
+
+    @Override
+    public void close() throws SecurityException {
+      clearRecords();
+    }
+
+    void clearRecords() {
+      records.clear();
+    }
   }
 }
