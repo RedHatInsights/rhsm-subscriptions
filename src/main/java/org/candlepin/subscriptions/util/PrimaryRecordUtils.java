@@ -24,6 +24,7 @@ import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
@@ -105,6 +106,83 @@ public class PrimaryRecordUtils {
             snapshot.getProductId(),
             snapshot.getBillingProvider(),
             snapshot.getBillingAccountId());
+      }
+
+      return slaIsNotAny && usageIsNotAny && billingProviderIsAny && billingAccountIdIsAny;
+    }
+  }
+
+  /**
+   * Determines if a HostTallyBucket record is a primary record based on its product type and
+   * attributes.
+   *
+   * <p>For PAYG products, a bucket is primary if:
+   *
+   * <ul>
+   *   <li>SLA is not _ANY
+   *   <li>Usage is not _ANY
+   *   <li>Billing provider is not _ANY
+   *   <li>Billing account ID is not null and not _ANY
+   * </ul>
+   *
+   * <p>For traditional (non-PAYG) products, a bucket is primary if:
+   *
+   * <ul>
+   *   <li>SLA is not _ANY
+   *   <li>Usage is not _ANY
+   *   <li>Billing provider is _ANY
+   *   <li>Billing account ID is _ANY
+   * </ul>
+   *
+   * @param bucket the HostTallyBucket to evaluate
+   * @return true if the bucket is a primary record, false otherwise
+   * @throws IllegalArgumentException if bucket is null, has a null key, or has a null product ID
+   * @throws IllegalStateException if the product ID is not found in the subscription configuration
+   */
+  public static boolean isPrimaryRecord(HostTallyBucket bucket) {
+    if (bucket == null) {
+      throw new IllegalArgumentException("HostTallyBucket cannot be null");
+    }
+    if (bucket.getKey() == null) {
+      throw new IllegalArgumentException("HostTallyBucket key cannot be null");
+    }
+    if (bucket.getKey().getProductId() == null) {
+      throw new IllegalArgumentException("HostTallyBucket productId cannot be null");
+    }
+
+    boolean slaIsNotAny = bucket.getKey().getSla() != ServiceLevel._ANY;
+    boolean usageIsNotAny = bucket.getKey().getUsage() != Usage._ANY;
+
+    // Look up the subscription definition to determine if it's PAYG eligible
+    SubscriptionDefinition subscriptionDefinition =
+        SubscriptionDefinition.lookupSubscriptionByTag(bucket.getKey().getProductId())
+            .orElseThrow(
+                () ->
+                    new IllegalStateException(
+                        bucket.getKey().getProductId() + " missing in subscription configuration"));
+
+    if (subscriptionDefinition.isPaygEligible()) {
+      // For PAYG products, all four fields must be non-_ANY
+      boolean billingProviderIsNotAny =
+          bucket.getKey().getBillingProvider() != BillingProvider._ANY;
+      boolean billingAccountIdIsNotAny =
+          !Objects.isNull(bucket.getKey().getBillingAccountId())
+              && !ANY.equals(bucket.getKey().getBillingAccountId());
+      return slaIsNotAny && usageIsNotAny && billingProviderIsNotAny && billingAccountIdIsNotAny;
+    } else {
+      // For traditional products, SLA and usage must be non-_ANY, and billing fields must be _ANY
+      boolean billingProviderIsAny = bucket.getKey().getBillingProvider() == BillingProvider._ANY;
+      boolean billingAccountIdIsAny = ANY.equals(bucket.getKey().getBillingAccountId());
+
+      // Log warning if billing fields are not _ANY for traditional products
+      if (!billingProviderIsAny || !billingAccountIdIsAny) {
+        log.warn(
+            "Traditional product bucket has unexpected billing field values. "
+                + "productId={}, billingProvider={}, billingAccountId={}. "
+                + "Expected both to be _ANY.",
+            bucket.getKey().getProductId(),
+            bucket.getKey().getBillingProvider(),
+            bucket.getKey().getBillingAccountId());
       }
 
       return slaIsNotAny && usageIsNotAny && billingProviderIsAny && billingAccountIdIsAny;

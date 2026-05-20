@@ -435,6 +435,148 @@ class MetricUsageCollectorTest {
   }
 
   @Test
+  void testUpdateHostsSetsIsPrimaryOnPaygProductBuckets() {
+    Measurement measurement =
+        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);
+    Event event =
+        createEvent()
+            .withEventId(UUID.randomUUID())
+            .withProductIds(List.of(RHEL_ELS_PAYG_ENG_ID))
+            .withProductTag(Set.of(RHEL_FOR_X86_ELS_PAYG))
+            .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
+            .withServiceType("RHEL System")
+            .withHardwareType(HardwareType.VIRTUAL)
+            .withMeasurements(Collections.singletonList(measurement))
+            .withSla(Event.Sla.PREMIUM)
+            .withBillingProvider(Event.BillingProvider.AWS)
+            .withBillingAccountId(Optional.of("123456"));
+
+    metricUsageCollector.updateHosts(ORG_ID, SERVICE_TYPE, List.of(event));
+
+    ArgumentCaptor<Host> saveHostCaptor = ArgumentCaptor.forClass(Host.class);
+    verify(hostRepository).save(saveHostCaptor.capture());
+
+    Host instance = saveHostCaptor.getValue();
+
+    // Find the primary bucket (non-_ANY SLA, Usage, BillingProvider, and BillingAccountId)
+    Optional<HostTallyBucket> primaryBucket =
+        instance.getBuckets().stream()
+            .filter(
+                b ->
+                    b.getKey().getSla() == ServiceLevel.PREMIUM
+                        && b.getKey().getUsage() == Usage.PRODUCTION
+                        && b.getKey().getBillingProvider() == BillingProvider.AWS
+                        && "123456".equals(b.getKey().getBillingAccountId()))
+            .findFirst();
+
+    assertTrue(primaryBucket.isPresent(), "Primary bucket should exist");
+    assertTrue(
+        primaryBucket.get().isPrimary(),
+        "PAYG product with all non-_ANY fields should have isPrimary=true");
+
+    // Verify non-primary buckets (those with _ANY values)
+    long nonPrimaryCount =
+        instance.getBuckets().stream()
+            .filter(
+                b ->
+                    b.getKey().getSla() == ServiceLevel._ANY
+                        || b.getKey().getUsage() == Usage._ANY
+                        || b.getKey().getBillingProvider() == BillingProvider._ANY
+                        || "_ANY".equals(b.getKey().getBillingAccountId()))
+            .filter(b -> !b.isPrimary())
+            .count();
+
+    assertTrue(
+        nonPrimaryCount > 0,
+        "Buckets with _ANY values should have isPrimary=false for PAYG products");
+  }
+
+  @Test
+  void testUpdateHostsSetsIsPrimaryOnTraditionalProductBuckets() {
+    Measurement measurement =
+        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);
+    Event event =
+        createEvent()
+            .withEventId(UUID.randomUUID())
+            .withProductTag(Set.of("rhel-for-x86-els-unconverted"))
+            .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
+            .withServiceType("RHEL System")
+            .withHardwareType(HardwareType.VIRTUAL)
+            .withMeasurements(Collections.singletonList(measurement))
+            .withSla(Event.Sla.PREMIUM)
+            .withBillingProvider(Event.BillingProvider.RED_HAT)
+            .withBillingAccountId(Optional.of("redhat1"));
+
+    metricUsageCollector.updateHosts(ORG_ID, SERVICE_TYPE, List.of(event));
+
+    ArgumentCaptor<Host> saveHostCaptor = ArgumentCaptor.forClass(Host.class);
+    verify(hostRepository).save(saveHostCaptor.capture());
+
+    Host instance = saveHostCaptor.getValue();
+
+    // Find the primary bucket (non-_ANY SLA/Usage, _ANY billing fields)
+    Optional<HostTallyBucket> primaryBucket =
+        instance.getBuckets().stream()
+            .filter(
+                b ->
+                    b.getKey().getSla() == ServiceLevel.PREMIUM
+                        && b.getKey().getUsage() == Usage.PRODUCTION
+                        && b.getKey().getBillingProvider() == BillingProvider._ANY
+                        && "_ANY".equals(b.getKey().getBillingAccountId()))
+            .findFirst();
+
+    assertTrue(primaryBucket.isPresent(), "Primary bucket should exist");
+    assertTrue(
+        primaryBucket.get().isPrimary(),
+        "Traditional product with non-_ANY SLA/Usage and _ANY billing fields should have isPrimary=true");
+
+    // Verify non-primary buckets (those with _ANY SLA or Usage, or non-_ANY billing fields)
+    long nonPrimaryCount =
+        instance.getBuckets().stream()
+            .filter(
+                b ->
+                    b.getKey().getSla() == ServiceLevel._ANY
+                        || b.getKey().getUsage() == Usage._ANY
+                        || b.getKey().getBillingProvider() != BillingProvider._ANY
+                        || !"_ANY".equals(b.getKey().getBillingAccountId()))
+            .filter(b -> !b.isPrimary())
+            .count();
+
+    assertTrue(
+        nonPrimaryCount > 0,
+        "Buckets with _ANY SLA/Usage or non-_ANY billing fields should have isPrimary=false for traditional products");
+  }
+
+  @Test
+  void testUpdateHostsDefaultsIsPrimaryToFalseForUnknownProducts() {
+    Measurement measurement =
+        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);
+    Event event =
+        createEvent()
+            .withEventId(UUID.randomUUID())
+            .withProductTag(Set.of("UNKNOWN_PRODUCT"))
+            .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
+            .withServiceType("RHEL System")
+            .withHardwareType(HardwareType.VIRTUAL)
+            .withMeasurements(Collections.singletonList(measurement))
+            .withSla(Event.Sla.PREMIUM)
+            .withBillingProvider(Event.BillingProvider.AWS)
+            .withBillingAccountId(Optional.of("123456"));
+
+    metricUsageCollector.updateHosts(ORG_ID, SERVICE_TYPE, List.of(event));
+
+    ArgumentCaptor<Host> saveHostCaptor = ArgumentCaptor.forClass(Host.class);
+    verify(hostRepository).save(saveHostCaptor.capture());
+
+    Host instance = saveHostCaptor.getValue();
+
+    // All buckets for unknown products should have isPrimary=false
+    boolean allNonPrimary = instance.getBuckets().stream().noneMatch(HostTallyBucket::isPrimary);
+
+    assertTrue(allNonPrimary, "All buckets for unknown products should default to isPrimary=false");
+  }
+
+  @Test
   void testCalculateUsageAddsAnySlaToBuckets() {
     Measurement measurement =
         new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);

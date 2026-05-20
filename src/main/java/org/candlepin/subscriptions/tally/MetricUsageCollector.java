@@ -59,6 +59,7 @@ import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
+import org.candlepin.subscriptions.util.PrimaryRecordUtils;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -360,6 +361,12 @@ public class MetricUsageCollector {
           activeHostBucketKeys.add(key);
           bucket.setCores(cores);
           bucket.setSockets(sockets);
+          try {
+            bucket.setPrimary(PrimaryRecordUtils.isPrimaryRecord(bucket));
+          } catch (IllegalStateException | IllegalArgumentException e) {
+            // Product not found in configuration or invalid bucket, default to non-primary
+            bucket.setPrimary(false);
+          }
           host.addBucket(bucket);
         });
     // mark as deleted the buckets that are not active
