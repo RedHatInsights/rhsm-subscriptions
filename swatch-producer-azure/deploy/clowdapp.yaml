@@ -27,21 +27,13 @@ parameters:
     value: quay.io/cloudservices/swatch-producer-azure
   - name: IMAGE_TAG
     value: latest
-  - name: ENABLE_SPLUNK_HEC
-    value: 'true'
   - name: SPLUNK_HEC_URL
     value: https://splunk-hec.redhat.com:8088
   - name: SPLUNK_SOURCE
     value: 'swatch-producer-azure'
   - name: SPLUNK_SOURCE_TYPE
     value: 'swatch'
-  - name: SPLUNK_HEC_BATCH_SIZE
-    value: '1000'
-  - name: SPLUNK_HEC_BATCH_INTERVAL
-    value: '10S'
-  - name: SPLUNK_HEC_RETRY_COUNT
-    value: '3'
-  - name: SPLUNK_HEC_INCLUDE_EX
+  - name: LOGGING_FILE_LOG_ENABLED
     value: 'true'
   - name: LOGGING_LEVEL_ROOT
     value: 'INFO'
@@ -64,7 +56,7 @@ parameters:
   - name: OTEL_SIDECAR_IMAGE
     value: quay.io/signalfx/splunk-otel-collector:0.140.0
   - name: OTEL_SIDECAR_CONFIG_MAP
-    value: swatch-otel-config
+    value: logging-otel-config
   - name: OTEL_SIDECAR_SPLUNK_CONFIG
     value: '/etc/otelcol/relay'
   - name: OTEL_ENV_NAME
@@ -108,6 +100,7 @@ objects:
             enabled: true
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
+          terminationGracePeriodSeconds: 90
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -144,37 +137,10 @@ objects:
               value: ${LOGGING_LEVEL_ROOT}
             - name: LOGGING_LEVEL_COM_REDHAT_SWATCH
               value: ${LOGGING_LEVEL_COM_REDHAT_SWATCH}
-            - name: ENABLE_SPLUNK_HEC
-              value: ${ENABLE_SPLUNK_HEC}
-            - name: SPLUNKMETA_namespace
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.namespace
-            - name: HOST_NAME
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.name
-            - name: SPLUNK_HEC_URL
-              value: ${SPLUNK_HEC_URL}
-            - name: SPLUNK_HEC_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: splunk-hec-external
-                  key: token
-            - name: SPLUNK_SOURCE
-              value: ${SPLUNK_SOURCE}
-            - name: SPLUNK_SOURCE_TYPE
-              value: ${SPLUNK_SOURCE_TYPE}
-            - name: SPLUNK_HEC_BATCH_SIZE
-              value: ${SPLUNK_HEC_BATCH_SIZE}
-            - name: SPLUNK_HEC_BATCH_INTERVAL
-              value: ${SPLUNK_HEC_BATCH_INTERVAL}
-            - name: SPLUNK_HEC_RETRY_COUNT
-              value: ${SPLUNK_HEC_RETRY_COUNT}
-            - name: SPLUNK_HEC_INCLUDE_EX
-              value: ${SPLUNK_HEC_INCLUDE_EX}
+            - name: LOGGING_FILE_LOG_ENABLED
+              value: ${LOGGING_FILE_LOG_ENABLED}
+            - name: QUARKUS_LOG_FILE_PATH
+              value: /logs/server.log
             - name: SWATCH_SELF_PSK
               valueFrom:
                 secretKeyRef:
@@ -200,12 +166,15 @@ objects:
               mountPath: /logs
           volumes:
             - name: logs
-              emptyDir:
+              emptyDir: {}
           sidecars:
           - name: otel-collector
             enabled: true
             configMap: ${OTEL_SIDECAR_CONFIG_MAP}
             image: ${OTEL_SIDECAR_IMAGE}
+            volumeMounts:
+              - name: logs
+                mountPath: /logs
             envVars:
               - name: ENV_NAME
                 value: ${OTEL_ENV_NAME}
@@ -220,6 +189,27 @@ objects:
                 value: ${OTEL_SIDECAR_SPLUNK_CONFIG}
               - name: SPLUNK_MEMORY_TOTAL_MIB
                 value: '1024'
+              - name: SPLUNK_HEC_URL
+                value: ${SPLUNK_HEC_URL}
+              - name: SPLUNK_HEC_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: splunk-hec-external
+                    key: token
+              - name: SPLUNK_SOURCE
+                value: ${SPLUNK_SOURCE}
+              - name: SPLUNK_SOURCE_TYPE
+                value: ${SPLUNK_SOURCE_TYPE}
+              - name: K8S_NAMESPACE
+                valueFrom:
+                  fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.namespace
+              - name: K8S_POD_NAME
+                valueFrom:
+                  fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.name
 
 - apiVersion: v1
   kind: Secret

@@ -21,64 +21,37 @@
         </encoder>
     </appender>
 
-    <appender name="FileAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_FILE:-/tmp/rhsm-subscriptions.log}</file>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-        <!-- daily rollover -->
-        <fileNamePattern>${LOG_FILE:-/tmp/rhsm-subscriptions.log}.%d{yyyy-MM-dd-HH-mm}.log</fileNamePattern>
-        <maxHistory>1</maxHistory>
-        <totalSizeCap>100MB</totalSizeCap>
-        </rollingPolicy>
-        <encoder>
-            <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSS'+0000'} [thread=%t] [level=%p] [category=%c] %X{user} - %m%n%ex{full, SECURITY_STACKTRACE_EVAL}</pattern>
-        </encoder>
-    </appender>
-
     <logger name="org.candlepin" level="INFO"/>
 
-    <root level="WARN">
-        <appender-ref ref="ConsoleAppender" />
-        <appender-ref ref="FileAppender" />
-    </root>
-
-    <!-- See https://logback.qos.ch/manual/configuration.html#conditional -->
     <condition class="ch.qos.logback.core.boolex.PropertyEqualityCondition">
-      <key>ENABLE_SPLUNK_HEC</key>
-      <value>true</value>
+        <key>LOGGING_FILE_LOG_ENABLED</key>
+        <value>true</value>
     </condition>
     <if>
         <then>
-         <!--
-          "During substitution, properties are looked up in the local scope first, in the context
-           scope second, in the system properties scope third, and in the OS environment fourth and
-           last." source: http://logback.qos.ch/manual/configuration.html#scopes
-         -->
-            <appender name="http" class="com.splunk.logging.HttpEventCollectorLogbackAppender">
-                <url>${SPLUNK_HEC_URL}</url>
-                <token>${SPLUNK_HEC_TOKEN}</token>
-                <source>${SPLUNK_SOURCE:-rhsm-subscription-hec}</source>
-                <sourcetype>${SPLUNK_SOURCE_TYPE}</sourcetype>
-                <host>${HOST_NAME:-${LOGNAME}@${HOSTNAME}}</host>
-                <messageFormat>${SPLUNK_MESSAGE_FORMAT}</messageFormat>
-                <middleware>HttpEventCollectorResendMiddleware</middleware>
-                <connectTimeout>${SPLUNK_HEC_CONNECT_TIMEOUT:-5000}</connectTimeout>
-                <terminationTimeout>${SPLUNK_HEC_TERMINATION_TIMEOUT:-2000}</terminationTimeout>
-                <batch_size_count>${SPLUNK_HEC_BATCH_SIZE:-10}</batch_size_count>
-                <disableCertificateValidation>${SPLUNK_DISABLE_CERTIFICATE_VALIDATION:-false}</disableCertificateValidation>
-                <eventHeaderSerializer>org.candlepin.subscriptions.logback.RhsmSplunkHecEventHeaderSerializer</eventHeaderSerializer>
-                <layout class="ch.qos.logback.classic.PatternLayout">
-                    <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSS'+0000'} [thread=%t] [level=%p] [category=%c] %X{user} - %m%n%ex{full, SECURITY_STACKTRACE_EVAL}</pattern>
-                </layout>
+            <appender name="FileAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+                <file>${LOG_FILE:-/logs/server.log}</file>
+                <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+                    <fileNamePattern>${LOG_FILE:-/logs/server.log}.%i</fileNamePattern>
+                    <minIndex>1</minIndex>
+                    <maxIndex>2</maxIndex>
+                </rollingPolicy>
+                <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+                    <maxFileSize>10MB</maxFileSize>
+                </triggeringPolicy>
+                <layout class="com.redhat.swatch.logging.LoggingFileJsonLayout"/>
             </appender>
 
-            <logger name="splunk.logger" additivity="false" level="INFO">
-                <appender-ref ref="http"/>
-            </logger>
-
             <root level="WARN">
-                <appender-ref ref="http"/>
+                <appender-ref ref="ConsoleAppender" />
+                <appender-ref ref="FileAppender" />
             </root>
         </then>
+        <else>
+            <root level="WARN">
+                <appender-ref ref="ConsoleAppender" />
+            </root>
+        </else>
     </if>
 
 </configuration>
