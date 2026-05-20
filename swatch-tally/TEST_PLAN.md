@@ -241,16 +241,15 @@ Test cases should be testable locally and in deployed environments.
 
 The tally report filtering test cases are organized into two component test files:
 
-- **TallyReportFiltersPaygTest.java** - Contains 20 test cases (TC001-TC023, excluding TC009, TC010, TC015, TC024) covering PAYG (Pay-As-You-Go) scenarios:
+- **TallyReportFiltersPaygTest.java** - Contains 20 test cases (TC001-TC023, excluding TC009, TC010, TC024) covering PAYG (Pay-As-You-Go) scenarios:
   - TC001-TC008: Basic filtering by granularity, SLA, usage, billing provider, and billing account ID
   - TC011-TC014: Validation errors and metadata verification
   - TC016-TC023: Daily granularity filtering, monthly/quarterly/yearly granularity support
   - Product: RHEL for x86 ELS PAYG (supports hourly granularity)
 
-- **TallyReportFiltersEdgeCaseTest.java** - Contains 4 test cases for edge cases requiring special event patterns:
+- **TallyReportFiltersEdgeCaseTest.java** - Contains 3 test cases for edge cases requiring special event patterns:
   - TC009: Multiple events aggregation with same filter attributes
   - TC010: Three distinct SLA values filtering
-  - TC015: Data gaps with hasData field
   - TC024: Billing account change for same instance
   - Product: RHEL for x86 ELS PAYG (supports hourly granularity)
 
@@ -498,27 +497,6 @@ All test files use `@BeforeAll` to create test data once and share it across all
     - API properly handles EMPTY enum values in filters
     - EMPTY is treated as a valid filter value distinct from null
 
-**tally-report-filters-TC015 - Data gaps indicated by hasData field**
-
-- **Description**: Verify that tally report data points correctly indicate gaps in time series data using the hasData field
-- **Setup**:
-    - Organization is opted in
-    - Event created at hour 0 (value 10.0)
-    - Event created at hour 2 (value 20.0)
-    - Hour 1 has no events (gap)
-    - Hourly tally is performed
-- **Action**:
-    - Request tally report for 4-hour range covering all hours
-- **Verification**:
-    - Response data contains data points
-    - Data points have hasData field populated
-    - At least one data point has hasData=true where events occurred
-    - hasData field indicates presence/absence of actual event data
-- **Expected Result**:
-    - API populates hasData field in data points
-    - hasData field accurately reflects whether events existed for that time period
-    - Time series gaps are identifiable via hasData field
-
 **tally-report-filters-TC016 - All data returned when no optional filters applied**
 
 - **Description**: Verify that tally report API returns all event data aggregated when querying without optional filter parameters
@@ -696,6 +674,67 @@ All test files use `@BeforeAll` to create test data once and share it across all
 - **Expected Result**:
     - Daily reports correctly attribute measurements to respective billing accounts when an instance changes billing account ID
     - Total aggregated value equals the sum of individual billing account values
+
+## Report Has Data Based on Category
+
+**tally-report-has-data-TC001 - has_data matches category contribution**
+
+- **Description**: Verify that hourly tally reports with a category filter set has_data from that category’s measurements only, not from snapshot presence or other hardware categories.
+- **Setup**:
+    - Organization is opted in
+    - Cloud payg event published at hour T−2 (relative to current UTC hour) with vCPUs=8.0, sla=Premium
+    - No event at gap hour T−4; no events at other hours in the queried range except T−2
+    - Hourly tally is performed until category=cloud at T−2 shows value>0 and has_data=true
+- **Action**:
+    - Request hourly tally report for product tag and vCPUs metric with category set to each of physical, virtual, hypervisor, and cloud over range T−6 through end of T−2
+    - Request category=cloud report and inspect gap hour T−4 and event hour T−2
+    - Request physical, virtual, and hypervisor reports at event hour T−2
+- **Verification**:
+    - For every category in the range, no data point has value=0 and has_data=true unless that category contributed measurements
+    - At gap hour T−4, category=cloud has value=0 and has_data=false
+    - At event hour T−2, category=cloud has value=8 and has_data=true
+    - At event hour T−2, physical, virtual, and hypervisor each have value=0 and has_data=false
+- **Expected Result**:
+    - has_data reflects category-specific measurement presence per bucket
+    - Gap-filled hours report has_data=false even when value=0
+    - Non-contributing categories do not report has_data=true when a cloud-only snapshot exists
+
+**tally-report-has-data-TC002 - Zero-value category measurements still report has_data**
+
+- **Description**: Verify that a zero-quantity measurement for a contributing category still returns has_data=true with value=0 and that other categories at the same hour remain has_data=false when only cloud contributed.
+- **Setup**:
+    - Organization is opted in
+    - Cloud payg event published at hour T−6 (relative to current UTC hour) with vCPUs=0.0, sla=Premium
+    - Hourly tally is performed until category=cloud at T−6 shows value=0 and has_data=true
+- **Action**:
+    - Request hourly tally report for product tag and vCPUs metric with category=cloud for hour T−6 only
+    - Request hourly reports with category physical, virtual, and hypervisor for the same hour
+- **Verification**:
+    - At event hour T−6, category=cloud has value=0 and has_data=true
+    - At event hour T−6, physical, virtual, and hypervisor each have value=0 and has_data=false
+- **Expected Result**:
+    - Existing zero-value measurements for the filtered category are treated as present (has_data=true)
+    - Categories that did not contribute at that hour still report has_data=false with value=0
+
+**tally-report-has-data-TC003 - Data gaps indicated by hasData field**
+
+- **Description**: Verify that an unfiltered hourly tally report sets has_data per bucket.
+- **Setup**:
+    - Organization is opted in
+    - Premium payg events created at hour 0 (value 10.0) and hour 2 (value 20.0)
+    - Four-hour range where hours 1 and 3 have no events
+    - Hourly tally is performed
+- **Action**:
+    - Request unfiltered hourly tally report for the 4-hour range (no category filter)
+- **Verification**:
+    - Response data contains data points for each hour in the range
+    - Hour 0: value=10, has_data=true
+    - Hour 2: value=20, has_data=true
+    - Gap hours 1 and 3: value=0, has_data=false
+    - No data point in the range has value=0 and has_data=true
+- **Expected Result**:
+    - Event hours report has_data=true with the expected tallied values
+    - Gap-filled hours without a snapshot for that period report value=0 and has_data=false
 
 ## Summary Messages Separated By Attribute Value
 
