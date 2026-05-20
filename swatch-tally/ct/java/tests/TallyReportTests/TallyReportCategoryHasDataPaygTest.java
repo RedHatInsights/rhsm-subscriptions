@@ -137,27 +137,21 @@ public class TallyReportCategoryHasDataPaygTest extends BaseTallyComponentTest {
 
     thenNoSnapshotGapBucket(pointForHour(cloudReport, gapHour), gapHour);
     thenCategoryHasMeasurementBucket(
-        pointForHour(cloudReport, positiveEventHourStart),
-        8,
-        positiveEventHourStart,
-        "cloud");
+        pointForHour(cloudReport, positiveEventHourStart), 8, positiveEventHourStart, "cloud");
 
     for (String mutedCategory : List.of("physical", "virtual", "hypervisor")) {
       TallyReportData mutedReport =
           fetchCategoryHourlyReport(
               firstOrgId, mutedCategory, positiveRangeStart, positiveEventHourEnd);
       thenMutedCategoryAtSnapshotHour(
-          pointForHour(mutedReport, positiveEventHourStart),
-          mutedCategory,
-          positiveEventHourStart);
+          pointForHour(mutedReport, positiveEventHourStart), mutedCategory, positiveEventHourStart);
     }
   }
 
   @ParameterizedTest(name = "primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-has-data-TC002")
-  void shouldIndicateExistingZeroValueMeasurementsStillReportHasData(
-      boolean primaryRowSearches) {
+  void shouldIndicateExistingZeroValueMeasurementsStillReportHasData(boolean primaryRowSearches) {
     // Given: Zero cloud PAYG is published and tallied
     givenFeatureFlagIsConfigured(primaryRowSearches);
     String orgId = RandomUtils.generateRandom();
@@ -330,8 +324,7 @@ public class TallyReportCategoryHasDataPaygTest extends BaseTallyComponentTest {
     assertNotNull(report.getData(), "report data");
     return report.getData().stream()
         .filter(
-            point ->
-                point.getDate() != null && startOfUtcHour(point.getDate()).isEqual(hourStart))
+            point -> point.getDate() != null && startOfUtcHour(point.getDate()).isEqual(hourStart))
         .findFirst()
         .orElseThrow(() -> new AssertionError("No data point for hour " + hourStart));
   }
@@ -343,9 +336,7 @@ public class TallyReportCategoryHasDataPaygTest extends BaseTallyComponentTest {
     }
     return report.getData().stream()
         .filter(
-            point ->
-                point.getDate() != null
-                    && startOfUtcHour(point.getDate()).isEqual(hourStart))
+            point -> point.getDate() != null && startOfUtcHour(point.getDate()).isEqual(hourStart))
         .anyMatch(
             point ->
                 point.getValue() != null
@@ -360,12 +351,10 @@ public class TallyReportCategoryHasDataPaygTest extends BaseTallyComponentTest {
     }
     return report.getData().stream()
         .filter(
-            point ->
-                point.getDate() != null && startOfUtcHour(point.getDate()).isEqual(hourStart))
+            point -> point.getDate() != null && startOfUtcHour(point.getDate()).isEqual(hourStart))
         .anyMatch(
             point ->
-                intValueOrZero(point.getValue()) == 0
-                    && Boolean.TRUE.equals(point.getHasData()));
+                intValueOrZero(point.getValue()) == 0 && Boolean.TRUE.equals(point.getHasData()));
   }
 
   private static boolean hasMisleadingZeroWithHasData(TallyReportData report) {

@@ -112,8 +112,10 @@ public class TallyReportFiltersEdgeCaseTest extends BaseTallyComponentTest {
             20.0f,
             30.0f);
 
-    givenPaygEventPublished(threeSlaTest.timestamp(), threeSlaTest.premiumValue(), Event.Sla.PREMIUM);
-    givenPaygEventPublished(threeSlaTest.timestamp(), threeSlaTest.standardValue(), Event.Sla.STANDARD);
+    givenPaygEventPublished(
+        threeSlaTest.timestamp(), threeSlaTest.premiumValue(), Event.Sla.PREMIUM);
+    givenPaygEventPublished(
+        threeSlaTest.timestamp(), threeSlaTest.standardValue(), Event.Sla.STANDARD);
     givenPaygEventPublished(
         threeSlaTest.timestamp(), threeSlaTest.selfSupportValue(), Event.Sla.SELF_SUPPORT);
 
