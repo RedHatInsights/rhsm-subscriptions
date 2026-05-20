@@ -185,19 +185,19 @@ for the SWATCH Azure producer, we need:
 
 ```
 SERVER_PORT=8001 \
-ENABLE_SPLUNK_HEC=true \
-SPLUNK_HEC_URL=https://localhost:8088 \
-SPLUNK_HEC_TOKEN=29fe2838-cab6-4d17-a392-37b7b8f41f75 \
+ENABLE_LOGGING_HEC=true \
+LOGGING_HEC_URL=https://localhost:8088 \
+LOGGING_HEC_TOKEN=29fe2838-cab6-4d17-a392-37b7b8f41f75 \
 ./mvnw quarkus:dev
 ```
 
-Some of these environment variables are our own (e.g. `SPLUNK_HEC_URL`) and are
+Some of these environment variables are our own (e.g. `LOGGING_HEC_URL`) and are
 piped into the `quarkus.log.handler.splunk` namespace which is what ultimately
 controls the Splunk HEC configuration.  By default SSL/TLS certificate
 validation is disabled in the `dev` profile for the `swatch-producer-aws`,
 `swatch-producer-azure`, and `swatch-contracts` projects.  If you are seeing
 SSL/TLS error (generally something like `unable to find valid certification path
-to requested target`), then setting `QUARKUS_LOG_HANDLER_SPLUNK_DISABLE_CERTIFICATE_VALIDATION=true`
+to requested target`), then setting `QUARKUS_LOG_HANDLER_LOGGING_DISABLE_CERTIFICATE_VALIDATION=true`
 is the sure-fire way to disable SSL/TLS certificate validation.
 
 ### Export Service

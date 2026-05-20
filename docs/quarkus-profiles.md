@@ -17,7 +17,7 @@ Quarkus profiles allow different configurations to be applied based on the runti
 - **Local Ports**: Each service runs on a specific development port (e.g., swatch-contracts on 8011, swatch-billable-usage on 8012)
 - **Management Ports**: Management/metrics endpoints run on port + 1000 (e.g., 9011, 9012)
 - **Mock Services**: Points to local WireMock services for external dependencies
-- **Splunk Disabled**: `ENABLE_SPLUNK_HEC=false` - logging goes to console instead
+- **Splunk Disabled**: `ENABLE_LOGGING_HEC=false` - logging goes to console instead
 - **CORS Relaxed**: `CORS_ORIGINS=/.*/` - allows any origin for local testing
 - **Security Disabled**: Authentication disabled in dev mode for easier testing
 - **Live Reload**: Quarkus live reload enabled with configurable password
@@ -27,7 +27,7 @@ Quarkus profiles allow different configurations to be applied based on the runti
 %dev.SERVER_PORT=8011
 %dev.QUARKUS_MANAGEMENT_PORT=9011
 %dev.LOGGING_LEVEL_COM_REDHAT_SWATCH=DEBUG
-%dev.ENABLE_SPLUNK_HEC=false
+%dev.ENABLE_LOGGING_HEC=false
 %dev.CORS_ORIGINS=/.*/
 %dev.SWATCH_SELF_PSK=placeholder
 ```

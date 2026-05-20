@@ -1,5 +1,7 @@
 # Observability playbook
 
+> **Stage/prod deploy validation** after env var renames (`LOGGING_*`, `TRACES_*`): see [observability-stage-validation.md](./observability-stage-validation.md) (SWATCH-4882).
+
 This guide will help us to set up the environment with Kafka, Database and Splunk into local with all our swatch services. 
 
 We'll exercise all the swatch integrations that are part of the diagram in [here](https://miro.com/app/board/uXjVLZZFmEc=/?share_link_id=967248979294).
@@ -23,9 +25,9 @@ Read more about the prerequisites in [here](../../CONTRIBUTING.md#build).
 ```
 SERVER_PORT=8002 \
 QUARKUS_MANAGEMENT_PORT=9002 \
-ENABLE_SPLUNK_HEC=true \
-SPLUNK_HEC_URL=https://localhost:8088 \
-SPLUNK_HEC_TOKEN=29fe2838-cab6-4d17-a392-37b7b8f41f75 \
+ENABLE_LOGGING_HEC=true \
+LOGGING_HEC_URL=https://localhost:8088 \
+LOGGING_HEC_TOKEN=29fe2838-cab6-4d17-a392-37b7b8f41f75 \
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 \
 EVENT_SOURCE=telemeter \
 PROM_URL="http://localhost:8101/api/v1/" \
@@ -35,13 +37,13 @@ PROM_URL="http://localhost:8101/api/v1/" \
 - **swatch-tally**: port 8003
 
 ```
-java -DENABLE_SPLUNK_HEC=true \
+java -DENABLE_LOGGING_HEC=true \
 -DSERVER_PORT=8003 \
 -DMANAGEMENT_PORT=9003 \
--DSPLUNK_HEC_URL=https://localhost:8088 \
--DSPLUNK_HEC_TOKEN=29fe2838-cab6-4d17-a392-37b7b8f41f75 \
--DSPLUNK_DISABLE_CERTIFICATE_VALIDATION=true \
--DSPLUNK_SOURCE_TYPE=swatch \
+-DLOGGING_HEC_URL=https://localhost:8088 \
+-DLOGGING_HEC_TOKEN=29fe2838-cab6-4d17-a392-37b7b8f41f75 \
+-DLOGGING_DISABLE_CERTIFICATE_VALIDATION=true \
+-DLOGGING_SOURCE_TYPE=swatch \
 -DINVENTORY_DATABASE_SCHEMA=hbi \
 -Dspring.profiles.active=worker,api,kafka-queue \
 -jar build/libs/rhsm-subscriptions-*.jar
@@ -52,9 +54,9 @@ java -DENABLE_SPLUNK_HEC=true \
 ```
 SERVER_PORT=8004 \
 QUARKUS_MANAGEMENT_PORT=9004 \
-ENABLE_SPLUNK_HEC=true \
-SPLUNK_HEC_URL=https://localhost:8088 \
-SPLUNK_HEC_TOKEN=29fe2838-cab6-4d17-a392-37b7b8f41f75 \
+ENABLE_LOGGING_HEC=true \
+LOGGING_HEC_URL=https://localhost:8088 \
+LOGGING_HEC_TOKEN=29fe2838-cab6-4d17-a392-37b7b8f41f75 \
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 \
 ./mvnw quarkus:dev
 ```
@@ -62,13 +64,13 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 \
 - **swatch-system-conduit**: port 8005
 
 ```
-java -DENABLE_SPLUNK_HEC=true \
+java -DENABLE_LOGGING_HEC=true \
 -DSERVER_PORT=8005 \
 -DMANAGEMENT_PORT=8005 \
--DSPLUNK_HEC_URL=https://localhost:8088 \
--DSPLUNK_HEC_TOKEN=29fe2838-cab6-4d17-a392-37b7b8f41f75 \
--DSPLUNK_DISABLE_CERTIFICATE_VALIDATION=true \
--DSPLUNK_SOURCE_TYPE=swatch \
+-DLOGGING_HEC_URL=https://localhost:8088 \
+-DLOGGING_HEC_TOKEN=29fe2838-cab6-4d17-a392-37b7b8f41f75 \
+-DLOGGING_DISABLE_CERTIFICATE_VALIDATION=true \
+-DLOGGING_SOURCE_TYPE=swatch \
 -DRHSM_USE_STUB=true \
 -DRHSM_BATCH_SIZE=1 \
 -jar swatch-system-conduit/build/libs/swatch-system-conduit-*.jar
