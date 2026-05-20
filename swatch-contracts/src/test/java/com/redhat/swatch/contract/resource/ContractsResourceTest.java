@@ -120,7 +120,7 @@ class ContractsResourceTest {
         given()
             .queryParams("forceSync", "false")
             .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
-            .put("/api/swatch-contracts/internal/rpc/subscriptions/sync")
+            .post("/api/swatch-contracts/internal/rpc/subscriptions/sync")
             .then()
             .statusCode(200)
             .extract()
@@ -137,7 +137,7 @@ class ContractsResourceTest {
         given()
             .queryParams("forceSync", "true")
             .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
-            .put("/api/swatch-contracts/internal/rpc/subscriptions/sync")
+            .post("/api/swatch-contracts/internal/rpc/subscriptions/sync")
             .then()
             .statusCode(200)
             .extract()
@@ -154,7 +154,7 @@ class ContractsResourceTest {
         given()
             .queryParams("forceSync", "false")
             .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
-            .put("/api/swatch-contracts/internal/rpc/subscriptions/sync")
+            .post("/api/swatch-contracts/internal/rpc/subscriptions/sync")
             .then()
             .statusCode(200)
             .extract()
@@ -169,7 +169,7 @@ class ContractsResourceTest {
     OfferingResponse response =
         given()
             .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
-            .put("/api/swatch-contracts/internal/rpc/offerings/sync")
+            .post("/api/swatch-contracts/internal/rpc/offerings/sync")
             .then()
             .statusCode(200)
             .extract()
@@ -184,7 +184,7 @@ class ContractsResourceTest {
     OfferingResponse response =
         given()
             .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
-            .put(String.format("/api/swatch-contracts/internal/rpc/offerings/sync/%s", SKU))
+            .post(String.format("/api/swatch-contracts/internal/rpc/offerings/sync/%s", SKU))
             .then()
             .statusCode(200)
             .extract()
@@ -228,7 +228,7 @@ class ContractsResourceTest {
         .thenReturn(SyncResult.SKIPPED_NOT_FOUND);
     given()
         .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
-        .put(String.format("/api/swatch-contracts/internal/rpc/offerings/sync/%s", "TEST_SKU"))
+        .post(String.format("/api/swatch-contracts/internal/rpc/offerings/sync/%s", "TEST_SKU"))
         .then()
         .statusCode(404);
 
@@ -236,7 +236,7 @@ class ContractsResourceTest {
         .thenReturn(SyncResult.SKIPPED_DENYLISTED);
     given()
         .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
-        .put(String.format("/api/swatch-contracts/internal/rpc/offerings/sync/%s", "TEST_SKU"))
+        .post(String.format("/api/swatch-contracts/internal/rpc/offerings/sync/%s", "TEST_SKU"))
         .then()
         .statusCode(403);
 
@@ -250,7 +250,7 @@ class ContractsResourceTest {
     doThrow(rtex).when(offeringSyncService).syncOffering(any(String.class));
     given()
         .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
-        .put(String.format("/api/swatch-contracts/internal/rpc/offerings/sync/%s", "TEST_SKU"))
+        .post(String.format("/api/swatch-contracts/internal/rpc/offerings/sync/%s", "TEST_SKU"))
         .then()
         .statusCode(404);
 
@@ -258,7 +258,7 @@ class ContractsResourceTest {
     doThrow(rtex).when(offeringSyncService).syncOffering(any(String.class));
     given()
         .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
-        .put(String.format("/api/swatch-contracts/internal/rpc/offerings/sync/%s", "TEST_SKU"))
+        .post(String.format("/api/swatch-contracts/internal/rpc/offerings/sync/%s", "TEST_SKU"))
         .then()
         .statusCode(403);
 
@@ -266,7 +266,7 @@ class ContractsResourceTest {
     doThrow(rtex).when(offeringSyncService).syncOffering(any(String.class));
     given()
         .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
-        .put(String.format("/api/swatch-contracts/internal/rpc/offerings/sync/%s", "TEST_SKU"))
+        .post(String.format("/api/swatch-contracts/internal/rpc/offerings/sync/%s", "TEST_SKU"))
         .then()
         .statusCode(400);
 
@@ -274,7 +274,7 @@ class ContractsResourceTest {
     doThrow(rtex).when(offeringSyncService).syncOffering(any(String.class));
     given()
         .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
-        .put(String.format("/api/swatch-contracts/internal/rpc/offerings/sync/%s", "TEST_SKU"))
+        .post(String.format("/api/swatch-contracts/internal/rpc/offerings/sync/%s", "TEST_SKU"))
         .then()
         .statusCode(503);
 
@@ -282,7 +282,7 @@ class ContractsResourceTest {
     doThrow(rtex).when(offeringSyncService).syncOffering(any(String.class));
     given()
         .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
-        .put(String.format("/api/swatch-contracts/internal/rpc/offerings/sync/%s", "TEST_SKU"))
+        .post(String.format("/api/swatch-contracts/internal/rpc/offerings/sync/%s", "TEST_SKU"))
         .then()
         .statusCode(500);
   }
