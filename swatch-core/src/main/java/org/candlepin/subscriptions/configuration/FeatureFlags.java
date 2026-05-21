@@ -18,18 +18,13 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.db;
+package org.candlepin.subscriptions.configuration;
 
-import java.util.UUID;
-import org.candlepin.subscriptions.db.model.TallyInstancePaygView;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+public interface FeatureFlags {
 
-/**
- * Provides access to TallyInstanceView database entities. This is a legacy class that will be
- * retired when the is_primary migration effort is complete
- */
-@Deprecated
-public interface TallyInstancePaygViewRepository
-    extends JpaRepository<TallyInstancePaygView, UUID>,
-        JpaSpecificationExecutor<TallyInstancePaygView> {}
+  String ENABLE_PRIMARY_ROW_SEARCHES = "swatch.swatch-tally.enable-primary-row-searches";
+
+  boolean isEnabled(String featureName);
+
+  boolean isEnabled(String featureName, boolean defaultWhenUnavailable);
+}
