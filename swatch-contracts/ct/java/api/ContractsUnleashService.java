@@ -37,6 +37,20 @@ public class ContractsUnleashService extends UnleashService {
         AwaitilitySettings.defaults()
             .timeoutMessage(
                 "Unleash toggle '%s' should be enabled".formatted(PARTNER_GATEWAY_CONTRACTS)));
+    waitForUnleashPropagation();
+  }
+
+  /**
+   * Wait for swatch-contracts to pick up the toggle. The harness only checks Unleash admin; the
+   * service polls on {@code quarkus.unleash.fetch-toggles-interval} (1s in dev/ephemeral).
+   */
+  private void waitForUnleashPropagation() {
+    try {
+      Thread.sleep(2000);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Interrupted while waiting for Unleash propagation", e);
+    }
   }
 
   public void disablePartnerGatewayContracts() {
