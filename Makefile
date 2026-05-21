@@ -82,8 +82,13 @@ install: clean
 	./mvnw install -DskipTests $(if $(PL),-pl $(PL) -am)
 
 # E.g. make test PL=swatch-tally TEST=TallyRetentionControllerTest,TallySnapshotControllerTest
+# The - tells make to continue the recipe even if the command failed (i.e. test failures)
+# The default CSS misaligns the cell values and there's no good way to get the report-only
+# task to update the CSS itself
 test:
-	./mvnw test $(if $(PL),-pl $(PL) -am) $(if $(TEST),-Dtest=$(TEST) -Dsurefire.failIfNoSpecifiedTests=false)
+	-./mvnw test $(if $(PL),-pl $(PL) -am) $(if $(TEST),-Dtest=$(TEST) -Dsurefire.failIfNoSpecifiedTests=false)
+	@./mvnw -q surefire-report:report-only && cp config/maven/site.css target/reports/css/
+	@echo "View report at file://$$(git rev-parse --show-toplevel)/target/reports/surefire.html"
 
 # Empty target for build flag
 build:

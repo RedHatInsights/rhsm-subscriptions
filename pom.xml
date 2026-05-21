@@ -334,6 +334,16 @@
     <pluginManagement>
       <plugins>
         <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-report-plugin</artifactId>
+          <version>${surefire-plugin.version}</version>
+          <configuration>
+            <showSuccess>false</showSuccess>
+            <aggregate>true</aggregate>
+          </configuration>
+        </plugin>
+
+        <plugin>
           <groupId>org.liquibase</groupId>
           <artifactId>liquibase-maven-plugin</artifactId>
           <version>${liquibase.version}</version>
@@ -451,6 +461,11 @@
     </pluginManagement>
 
     <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-report-plugin</artifactId>
+      </plugin>
+
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
         <version>${compiler-plugin.version}</version>
