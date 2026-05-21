@@ -11442,18 +11442,15 @@ data:
           }
         ]
       },
-      "time": {
-        "from": "now-6h",
-        "to": "now"
-      },
       "timepicker": {},
       "timezone": "utc",
-      "title": "Subscription Watch - oom New",
-      "uid": "vbusch-oom-2",
-      "version": 2
+      "title": "Subscription Watch",
+      "uid": "lkPhH-1Zk",
+      "version": 11
     }
 kind: ConfigMap
 metadata:
+  creationTimestamp: null
   name: grafana-dashboard-subscription-watch
   annotations:
     grafana-folder: /grafana-dashboard-definitions/Insights
