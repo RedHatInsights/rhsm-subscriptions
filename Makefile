@@ -26,9 +26,25 @@ SHELL=/bin/bash
 override PROFILES+=dev
 
 # Run mvnw in quiet mode by default. Use VERBOSE=true to see full output.
-MVN=./mvnw $(if $(VERBOSE),,-q)
+#
+# The openapi-generator-maven-plugin prints a donation banner on every
+# invocation, wrapped in lines of '#' characters.  There is no plugin-level
+# option to suppress it (see https://github.com/OpenAPITools/openapi-generator/issues/11211).
+# To filter it out without losing other output, MVN is defined as a shell
+# wrapper that pipes all mvnw output through sed.  The sed expression uses
+# [#] character classes instead of literal # characters because Make treats #
+# as a comment delimiter even inside recipe quotes.  The HASH variable (below)
+# holds a literal # character so it can be used in the sed expression via
+# $(HASH) without triggering Make's comment parsing.  The sed range expression
+# '/^####/,/^####/d' treats lines beginning with "####" as delimiters and
+# deletes every line between and including those delimiters, which matches the
+# banner block exactly.  The wrapper uses bash -c so that the pipe is part of
+# the command itself; the trailing "--" sets $0, and "$$@" forwards all
+# Make-supplied arguments (goals, flags, etc.) to mvnw unchanged.
+MVN=bash -c './mvnw $(if $(VERBOSE),,-q) "$$@" 2>&1 | sed "/^$(HASH)$(HASH)$(HASH)$(HASH)/,/^$(HASH)$(HASH)$(HASH)$(HASH)/d"' --
 
 # Init
+HASH := \#
 comma:=,
 empty:=
 space:=$(empty) $(empty)
