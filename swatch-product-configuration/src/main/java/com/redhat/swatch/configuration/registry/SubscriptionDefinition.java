@@ -436,6 +436,21 @@ public class SubscriptionDefinition {
   }
 
   /**
+   * Check if a metric is of type GAUGE.
+   *
+   * @param productId the product ID (tag)
+   * @param metricId the metric ID
+   * @return true if the metric is a GAUGE, false otherwise
+   */
+  public static boolean isGaugeMetric(String productId, String metricId) {
+    return lookupSubscriptionByTag(productId)
+        .flatMap(sub -> sub.getMetric(MetricId.tryGetValueFromString(metricId)))
+        .map(Metric::getType)
+        .map(type -> type == MetricType.GAUGE)
+        .orElse(false);
+  }
+
+  /**
    * Returns a predicate that only evaluates to true if Level1 AND Level2 parameters are specified
    * AND both match the same Variant.
    *

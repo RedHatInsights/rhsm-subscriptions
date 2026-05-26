@@ -201,14 +201,14 @@ class TallySummaryMapperTest {
       assertEquals(expectedValue, m.getValue());
       assertEquals(expectedTotalValues.get(key), m.getCurrentTotal());
 
-      // Check if this is a GAUGE metric on non-PAYG, non-Ansible (no SQL call)
-      boolean isRhelSocketsGauge =
-          "RHEL for x86".equals(expected.getProductId())
+      // Check if this is a GAUGE metric on non-Ansible product (no SQL call)
+      boolean isNonAnsibleGauge =
+          !"ansible-aap-managed".equals(expected.getProductId())
               && MetricIdUtils.toUpperCaseFormatted(MetricIdUtils.getSockets().getValue())
                   .equals(m.getMetricId());
 
-      if (!isRhelSocketsGauge) {
-        // SQL call should be made for non-GAUGE or PAYG/Ansible products
+      if (!isNonAnsibleGauge) {
+        // SQL call should be made for non-GAUGE or Ansible products
         sqlCallCount++;
         if (featureFlags.isPrimaryRowSearchesEnabled()) {
           verify(snapshotRepository)
@@ -287,12 +287,14 @@ class TallySummaryMapperTest {
     var measurementKey = new TallyMeasurementKey(hardwareType, metricId);
     measurements.put(measurementKey, value);
 
-    // For RHEL Sockets (GAUGE, non-PAYG, non-Ansible), currentTotal should equal event value
-    boolean isRhelSocketsGauge =
-        "RHEL for x86".equals(productId) && MetricIdUtils.getSockets().getValue().equals(metricId);
+    // For non-Ansible GAUGE metrics, currentTotal should equal event value
+    boolean isNonAnsibleGauge =
+        productId != null
+            && !"ansible-aap-managed".equals(productId)
+            && MetricIdUtils.getSockets().getValue().equals(metricId);
 
-    if (isRhelSocketsGauge) {
-      // GAUGE metric on non-PAYG, non-Ansible: uses event value directly
+    if (isNonAnsibleGauge) {
+      // GAUGE metric on non-Ansible: uses event value directly
       expectedTotalValues.put(measurementKey, value);
     } else {
       // All other metrics: use SQL query result (value * 2)
@@ -372,16 +374,16 @@ class TallySummaryMapperTest {
   }
 
   /**
-   * Test getCurrentlyMeasuredTotal for non-PAYG, non-Ansible GAUGE metric Uses event value directly
-   * without SQL call
+   * Test getCurrentlyMeasuredTotal for non-Ansible GAUGE metric Uses event value directly without
+   * SQL call (applies to both PAYG and non-PAYG products)
    */
   @Test
   @MockitoSettings(strictness = Strictness.LENIENT)
-  void testGetCurrentlyMeasuredTotalNonPaygNonAnsibleGaugeMetricUsesEventValue() {
+  void testGetCurrentlyMeasuredTotalNonAnsibleGaugeMetricUsesEventValue() {
     when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(false);
 
     String org = "O1";
-    // RHEL is non-PAYG and has GAUGE metrics like "Sockets"
+    // RHEL is non-Ansible and has GAUGE metrics like "Sockets"
     String productId = "RHEL for x86";
     String gaugeMetricId = MetricIdUtils.getSockets().getValue();
     double eventValue = 16.0;
@@ -425,16 +427,17 @@ class TallySummaryMapperTest {
   }
 
   /**
-   * Test getCurrentlyMeasuredTotal for non-PAYG, non-Ansible COUNTER metric Should use SQL query
+   * Test getCurrentlyMeasuredTotal for COUNTER metric Should use SQL query (regardless of PAYG
+   * status)
    */
   @Test
-  void testGetCurrentlyMeasuredTotalNonPaygNonAnsibleCounterMetricUsesSqlQuery() {
+  void testGetCurrentlyMeasuredTotalCounterMetricUsesSqlQuery() {
     when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(false);
 
     String org = "O1";
-    // OpenShift-metrics is non-PAYG, non-Ansible
+    // OpenShift-metrics is non-Ansible
     String productId = "OpenShift-metrics";
-    // Cores is a COUNTER metric for OpenShift-metrics
+    // Cores is a COUNTER metric
     String counterMetricId = MetricIdUtils.getCores().getValue();
     double eventValue = 100.0;
     double sqlTotalValue = 500.0;
@@ -475,14 +478,18 @@ class TallySummaryMapperTest {
             any(), any(), any(), any(), any(), any(), any(), any(), any(), eq(measurementKey));
   }
 
-  /** Test getCurrentlyMeasuredTotal for PAYG product Should always use SQL query */
+  /**
+   * Test getCurrentlyMeasuredTotal for PAYG product with COUNTER metric Should use SQL query (Note:
+   * PAYG products with GAUGE metrics would use event value)
+   */
   @Test
-  void testGetCurrentlyMeasuredTotalPaygProductAlwaysUsesSqlQuery() {
+  void testGetCurrentlyMeasuredTotalPaygProductCounterUsesSqlQuery() {
     when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(false);
 
     String org = "O1";
     // ROSA is a PAYG product
     String productId = "rosa";
+    // Instance-hours is a COUNTER metric
     String metricId = MetricIdUtils.getInstanceHours().getValue();
     double eventValue = 50.0;
     double sqlTotalValue = 200.0;
@@ -512,7 +519,7 @@ class TallySummaryMapperTest {
 
     TallySummary summary = mapper.mapSnapshots(org, List.of(snapshot));
 
-    // Verify currentTotal comes from SQL query for PAYG products
+    // Verify currentTotal comes from SQL query for COUNTER metrics (even on PAYG)
     var measurements = summary.getTallySnapshots().getFirst().getTallyMeasurements();
     assertEquals(1, measurements.size());
     assertEquals(sqlTotalValue, measurements.getFirst().getCurrentTotal());

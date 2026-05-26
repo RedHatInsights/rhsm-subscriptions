@@ -21,9 +21,7 @@
 package org.candlepin.subscriptions.tally;
 
 import com.redhat.swatch.common.model.ServiceLevel;
-import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.MetricId;
-import com.redhat.swatch.configuration.registry.MetricType;
 import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
@@ -126,18 +124,15 @@ public class TallySummaryMapper {
       TallySnapshot snapshot, TallyMeasurementKey measurementKey, Double eventValue) {
 
     String productId = snapshot.getProductId();
-    boolean isPayg = ProductId.fromString(productId).isPayg();
 
-    // Non-PAYG, non-Ansible GAUGE metrics: use event value
-    if (!isPayg
-        && !isAnsibleProduct(productId)
-        && isGaugeMetric(productId, measurementKey.getMetricId())) {
-      // For non-PAYG, non-Ansible GAUGE metrics: use event value directly - no SQL calls
+    // Non-Ansible GAUGE metrics: use event value
+    if (!"ansible-aap-managed".equals(productId)
+        && SubscriptionDefinition.isGaugeMetric(productId, measurementKey.getMetricId())) {
       log.debug("Using event value for GAUGE metric: {}", measurementKey);
       return eventValue;
     }
 
-    // For all other cases (PAYG, Ansible, or COUNTER metrics): use existing SQL logic
+    // For all other cases (Ansible, or COUNTER metrics): use existing SQL logic
     if (featureFlags.isPrimaryRowSearchesEnabled()) {
       gateOnAnyValues(snapshot);
       return snapshotRepository.sumMeasurementValueForPeriodWithPrimary(
@@ -164,34 +159,6 @@ public class TallySummaryMapper {
           snapshot.getSnapshotDate(),
           measurementKey);
     }
-  }
-
-  /**
-   * Check if a metric is of type GAUGE.
-   *
-   * @param productId the product ID (tag)
-   * @param metricId the metric ID
-   * @return true if the metric is a GAUGE, false otherwise
-   */
-  private boolean isGaugeMetric(String productId, String metricId) {
-    return SubscriptionDefinition.lookupSubscriptionByTag(productId)
-        .flatMap(sub -> sub.getMetric(MetricId.tryGetValueFromString(metricId)))
-        .map(Metric::getType)
-        .map(type -> type == MetricType.GAUGE)
-        .orElse(false);
-  }
-
-  /**
-   * Check if a product is an Ansible product.
-   *
-   * @param productId the product ID (tag)
-   * @return true if the product platform is "Ansible", false otherwise
-   */
-  private boolean isAnsibleProduct(String productId) {
-    return SubscriptionDefinition.lookupSubscriptionByTag(productId)
-        .map(SubscriptionDefinition::getPlatform)
-        .map(platform -> "Ansible".equalsIgnoreCase(platform))
-        .orElse(false);
   }
 
   public void gateOnAnyValues(TallySnapshot snapshot) {
