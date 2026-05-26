@@ -66,6 +66,7 @@ public class InventoryAccountUsageCollector {
   private final HostRepository hostRepository;
   private final EntityManager entityManager;
   private final int culledOffsetDays;
+  private final int stalenessOffsetSeconds;
   private final Long hbiReconciliationFlushInterval;
   private final InventorySwatchDataCollator collator;
 
@@ -85,6 +86,7 @@ public class InventoryAccountUsageCollector {
     this.entityManager = entityManager;
     this.tallyBucketRepository = tallyBucketRepository;
     this.culledOffsetDays = props.getCullingOffsetDays();
+    this.stalenessOffsetSeconds = (int) props.getStalenessOffset().toSeconds();
     this.hbiReconciliationFlushInterval = props.getHbiReconciliationFlushInterval();
   }
 
@@ -134,6 +136,7 @@ public class InventoryAccountUsageCollector {
         collator.collateData(
             orgId,
             culledOffsetDays,
+            stalenessOffsetSeconds,
             (hbiSystem, swatchSystem, hypervisorData, iterationCount) -> {
               reconcileHbiSystemWithSwatchSystem(
                   hbiSystem, swatchSystem, hypervisorData, applicableProducts, detachHosts);

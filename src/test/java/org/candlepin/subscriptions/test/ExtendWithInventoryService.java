@@ -70,7 +70,7 @@ public interface ExtendWithInventoryService {
       Map<String, Object> canonicalFacts,
       Map<String, Object> systemProfileFacts,
       String reporter,
-      OffsetDateTime staleTimestamp,
+      OffsetDateTime lastCheckIn,
       OffsetDateTime createdOn,
       OffsetDateTime modifiedOn) {
     ObjectMapper objectMapper = new ObjectMapper();
@@ -88,7 +88,7 @@ public interface ExtendWithInventoryService {
             "system_profile_facts",
             "reporter",
             "groups",
-            "stale_timestamp",
+            "last_check_in",
             "created_on",
             "modified_on"
           },
@@ -102,7 +102,7 @@ public interface ExtendWithInventoryService {
             objectMapper.writeValueAsString(systemProfileFacts),
             reporter,
             "{}",
-            staleTimestamp.toString(),
+            lastCheckIn.toString(),
             createdOn.toString(),
             modifiedOn.toString()
           });

@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.tally.OrgHostsData;
 import org.springframework.stereotype.Component;
@@ -35,16 +36,19 @@ import org.springframework.transaction.annotation.Transactional;
 public class InventoryDatabaseOperations {
 
   private final InventoryRepository repo;
+  private final int stalenessOffsetSeconds;
 
-  public InventoryDatabaseOperations(InventoryRepository inventoryRepository) {
+  public InventoryDatabaseOperations(
+      InventoryRepository inventoryRepository, ApplicationProperties props) {
     this.repo = inventoryRepository;
+    this.stalenessOffsetSeconds = (int) props.getStalenessOffset().toSeconds();
   }
 
   @Transactional(value = "inventoryTransactionManager", readOnly = true)
   public void processHost(
       String orgId, int culledOffsetDays, Consumer<InventoryHostFacts> consumer) {
     try (Stream<InventoryHostFacts> hostFactStream =
-        repo.getFacts(List.of(orgId), culledOffsetDays)) {
+        repo.getFacts(List.of(orgId), culledOffsetDays, stalenessOffsetSeconds)) {
       hostFactStream.forEach(consumer::accept);
     }
   }

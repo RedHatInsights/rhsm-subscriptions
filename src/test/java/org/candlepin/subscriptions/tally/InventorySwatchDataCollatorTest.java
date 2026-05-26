@@ -52,12 +52,12 @@ class InventorySwatchDataCollatorTest {
 
   @Test
   void testCollatorDoesNothingWithNoData() {
-    when(inventoryRepository.streamFacts(any(), any())).thenReturn(Stream.of());
+    when(inventoryRepository.streamFacts(any(), any(), any())).thenReturn(Stream.of());
     when(hostRepository.streamHbiHostsByOrgId(any())).thenReturn(Stream.of());
 
     InventorySwatchDataCollator collator =
         new InventorySwatchDataCollator(inventoryRepository, hostRepository);
-    var iterations = collator.collateData("foo", 7, processor);
+    var iterations = collator.collateData("foo", 7, 104400, processor);
 
     verifyNoInteractions(processor);
     assertEquals(0, iterations);
@@ -67,12 +67,12 @@ class InventorySwatchDataCollatorTest {
   void testCollatorWorksWithOnlyHbiData() {
     InventoryHostFacts hbiSystem = new InventoryHostFacts();
     hbiSystem.setInventoryId(UUID.fromString("123e4567-e89b-12d3-a456-426614174000"));
-    when(inventoryRepository.streamFacts(any(), any())).thenReturn(Stream.of(hbiSystem));
+    when(inventoryRepository.streamFacts(any(), any(), any())).thenReturn(Stream.of(hbiSystem));
     when(hostRepository.streamHbiHostsByOrgId(any())).thenReturn(Stream.of());
 
     InventorySwatchDataCollator collator =
         new InventorySwatchDataCollator(inventoryRepository, hostRepository);
-    var iterations = collator.collateData("foo", 7, processor);
+    var iterations = collator.collateData("foo", 7, 104400, processor);
 
     verify(processor).accept(hbiSystem, null, new OrgHostsData("placeholder"), 1);
     assertEquals(1, iterations);
@@ -80,7 +80,7 @@ class InventorySwatchDataCollatorTest {
 
   @Test
   void testCollatorWorksWithOnlySwatchData() {
-    when(inventoryRepository.streamFacts(any(), any())).thenReturn(Stream.of());
+    when(inventoryRepository.streamFacts(any(), any(), any())).thenReturn(Stream.of());
 
     Host swatchSystem = new Host();
     swatchSystem.setInventoryId("123e4567-e89b-12d3-a456-426614174000");
@@ -88,7 +88,7 @@ class InventorySwatchDataCollatorTest {
 
     InventorySwatchDataCollator collator =
         new InventorySwatchDataCollator(inventoryRepository, hostRepository);
-    var iterations = collator.collateData("foo", 7, processor);
+    var iterations = collator.collateData("foo", 7, 104400, processor);
 
     verify(processor).accept(null, swatchSystem, new OrgHostsData("placeholder"), 1);
     assertEquals(1, iterations);
@@ -98,7 +98,7 @@ class InventorySwatchDataCollatorTest {
   void testCollatorProcessesSameInventoryIdTogetherInOneIteration() {
     InventoryHostFacts hbiSystem = new InventoryHostFacts();
     hbiSystem.setInventoryId(UUID.fromString("123e4567-e89b-12d3-a456-426614174000"));
-    when(inventoryRepository.streamFacts(any(), any())).thenReturn(Stream.of(hbiSystem));
+    when(inventoryRepository.streamFacts(any(), any(), any())).thenReturn(Stream.of(hbiSystem));
 
     Host swatchSystem = new Host();
     swatchSystem.setInventoryId("123e4567-e89b-12d3-a456-426614174000");
@@ -106,7 +106,7 @@ class InventorySwatchDataCollatorTest {
 
     InventorySwatchDataCollator collator =
         new InventorySwatchDataCollator(inventoryRepository, hostRepository);
-    var iterations = collator.collateData("foo", 7, processor);
+    var iterations = collator.collateData("foo", 7, 104400, processor);
 
     verify(processor).accept(hbiSystem, swatchSystem, new OrgHostsData("placeholder"), 1);
     assertEquals(1, iterations);
@@ -116,7 +116,7 @@ class InventorySwatchDataCollatorTest {
   void testCollatorProcessesDifferentInventoryIdsInSeparateIterations() {
     InventoryHostFacts hbiSystem = new InventoryHostFacts();
     hbiSystem.setInventoryId(UUID.fromString("123e4567-e89b-12d3-a456-426614174000"));
-    when(inventoryRepository.streamFacts(any(), any())).thenReturn(Stream.of(hbiSystem));
+    when(inventoryRepository.streamFacts(any(), any(), any())).thenReturn(Stream.of(hbiSystem));
 
     Host swatchSystem = new Host();
     swatchSystem.setInventoryId("223e4567-e89b-12d3-a456-426614174000");
@@ -124,7 +124,7 @@ class InventorySwatchDataCollatorTest {
 
     InventorySwatchDataCollator collator =
         new InventorySwatchDataCollator(inventoryRepository, hostRepository);
-    var iterations = collator.collateData("foo", 7, processor);
+    var iterations = collator.collateData("foo", 7, 104400, processor);
 
     verify(processor).accept(hbiSystem, null, new OrgHostsData("placeholder"), 1);
     verify(processor).accept(null, swatchSystem, new OrgHostsData("placeholder"), 2);
@@ -136,14 +136,14 @@ class InventorySwatchDataCollatorTest {
     InventoryHostFacts hbiSystem = new InventoryHostFacts();
     hbiSystem.setInventoryId(UUID.fromString("123e4567-e89b-12d3-a456-426614174000"));
     hbiSystem.setHypervisorUuid("223e4567-e89b-12d3-a456-426614174000");
-    when(inventoryRepository.streamFacts(any(), any())).thenReturn(Stream.of(hbiSystem));
-    when(inventoryRepository.streamActiveSubscriptionManagerIds(any(), any()))
+    when(inventoryRepository.streamFacts(any(), any(), any())).thenReturn(Stream.of(hbiSystem));
+    when(inventoryRepository.streamActiveSubscriptionManagerIds(any(), any(), any()))
         .thenReturn(Stream.of("223e4567-e89b-12d3-a456-426614174000"));
     when(hostRepository.streamHbiHostsByOrgId(any())).thenReturn(Stream.of());
 
     InventorySwatchDataCollator collator =
         new InventorySwatchDataCollator(inventoryRepository, hostRepository);
-    var iterations = collator.collateData("foo", 7, processor);
+    var iterations = collator.collateData("foo", 7, 104400, processor);
 
     ArgumentCaptor<OrgHostsData> orgHostsDataArgumentCaptor =
         ArgumentCaptor.forClass(OrgHostsData.class);
@@ -164,14 +164,14 @@ class InventorySwatchDataCollatorTest {
     InventoryHostFacts hbiSystem = new InventoryHostFacts();
     hbiSystem.setInventoryId(UUID.fromString("123e4567-e89b-12d3-a456-426614174000"));
     hbiSystem.setHypervisorUuid("223e4567-e89b-12d3-a456-426614174000");
-    when(inventoryRepository.streamFacts(any(), any())).thenReturn(Stream.of(hbiSystem));
-    when(inventoryRepository.streamActiveSubscriptionManagerIds(any(), any()))
+    when(inventoryRepository.streamFacts(any(), any(), any())).thenReturn(Stream.of(hbiSystem));
+    when(inventoryRepository.streamActiveSubscriptionManagerIds(any(), any(), any()))
         .thenReturn(Stream.of((String) null));
     when(hostRepository.streamHbiHostsByOrgId(any())).thenReturn(Stream.of());
 
     InventorySwatchDataCollator collator =
         new InventorySwatchDataCollator(inventoryRepository, hostRepository);
-    collator.collateData("foo", 7, processor);
+    collator.collateData("foo", 7, 104400, processor);
     verify(processor).accept(hbiSystem, null, new OrgHostsData("placeholder"), 1);
   }
 
@@ -180,14 +180,14 @@ class InventorySwatchDataCollatorTest {
     InventoryHostFacts hbiSystem = new InventoryHostFacts();
     hbiSystem.setInventoryId(UUID.fromString("123e4567-e89b-12d3-a456-426614174000"));
     hbiSystem.setSatelliteHypervisorUuid("223e4567-e89b-12d3-a456-426614174000");
-    when(inventoryRepository.streamFacts(any(), any())).thenReturn(Stream.of(hbiSystem));
-    when(inventoryRepository.streamActiveSubscriptionManagerIds(any(), any()))
+    when(inventoryRepository.streamFacts(any(), any(), any())).thenReturn(Stream.of(hbiSystem));
+    when(inventoryRepository.streamActiveSubscriptionManagerIds(any(), any(), any()))
         .thenReturn(Stream.of("223e4567-e89b-12d3-a456-426614174000"));
     when(hostRepository.streamHbiHostsByOrgId(any())).thenReturn(Stream.of());
 
     InventorySwatchDataCollator collator =
         new InventorySwatchDataCollator(inventoryRepository, hostRepository);
-    var iterations = collator.collateData("foo", 7, processor);
+    var iterations = collator.collateData("foo", 7, 104400, processor);
 
     ArgumentCaptor<OrgHostsData> orgHostsDataArgumentCaptor =
         ArgumentCaptor.forClass(OrgHostsData.class);
@@ -208,14 +208,14 @@ class InventorySwatchDataCollatorTest {
     InventoryHostFacts hbiSystem = new InventoryHostFacts();
     hbiSystem.setInventoryId(UUID.fromString("123e4567-e89b-12d3-a456-426614174000"));
     hbiSystem.setHypervisorUuid("223e4567-e89b-12d3-a456-426614174000");
-    when(inventoryRepository.streamFacts(any(), any())).thenReturn(Stream.of(hbiSystem));
-    when(inventoryRepository.streamActiveSubscriptionManagerIds(any(), any()))
+    when(inventoryRepository.streamFacts(any(), any(), any())).thenReturn(Stream.of(hbiSystem));
+    when(inventoryRepository.streamActiveSubscriptionManagerIds(any(), any(), any()))
         .thenReturn(Stream.of("323e4567-e89b-12d3-a456-426614174000"));
     when(hostRepository.streamHbiHostsByOrgId(any())).thenReturn(Stream.of());
 
     InventorySwatchDataCollator collator =
         new InventorySwatchDataCollator(inventoryRepository, hostRepository);
-    var iterations = collator.collateData("foo", 7, processor);
+    var iterations = collator.collateData("foo", 7, 104400, processor);
 
     ArgumentCaptor<OrgHostsData> orgHostsDataArgumentCaptor =
         ArgumentCaptor.forClass(OrgHostsData.class);
@@ -230,8 +230,8 @@ class InventorySwatchDataCollatorTest {
     InventoryHostFacts hbiSystem = new InventoryHostFacts();
     hbiSystem.setInventoryId(UUID.fromString("123e4567-e89b-12d3-a456-426614174000"));
     hbiSystem.setHypervisorUuid("223e4567-e89b-12d3-a456-426614174000");
-    when(inventoryRepository.streamFacts(any(), any())).thenReturn(Stream.of(hbiSystem));
-    when(inventoryRepository.streamActiveSubscriptionManagerIds(any(), any()))
+    when(inventoryRepository.streamFacts(any(), any(), any())).thenReturn(Stream.of(hbiSystem));
+    when(inventoryRepository.streamActiveSubscriptionManagerIds(any(), any(), any()))
         .thenReturn(
             Stream.of(
                 "123e4567-e89b-12d3-a456-426614174000",
@@ -241,7 +241,7 @@ class InventorySwatchDataCollatorTest {
 
     InventorySwatchDataCollator collator =
         new InventorySwatchDataCollator(inventoryRepository, hostRepository);
-    var iterations = collator.collateData("foo", 7, processor);
+    var iterations = collator.collateData("foo", 7, 104400, processor);
 
     ArgumentCaptor<OrgHostsData> orgHostsDataArgumentCaptor =
         ArgumentCaptor.forClass(OrgHostsData.class);

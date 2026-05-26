@@ -254,7 +254,7 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
     host.setSyspurposeSla(sla);
 
     inventoryHosts.add(host);
-    when(inventoryRepository.streamFacts(eq(ORG_ID), any()))
+    when(inventoryRepository.streamFacts(eq(ORG_ID), any(), any()))
         .thenAnswer(i -> inventoryHosts.stream());
 
     return inventoryId;

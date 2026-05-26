@@ -82,7 +82,7 @@ class InventoryAccountUsageCollectorReconcileTest {
         ArgumentCaptor.forClass(InventorySwatchDataCollator.Processor.class);
 
     when(props.getHbiReconciliationFlushInterval()).thenReturn(2L);
-    when(collator.collateData(any(), anyInt(), captor.capture())).thenReturn(5);
+    when(collator.collateData(any(), anyInt(), anyInt(), captor.capture())).thenReturn(5);
     when(factNormalizer.normalize(any(), any())).thenReturn(new NormalizedFacts());
 
     var collector = setupCollector();

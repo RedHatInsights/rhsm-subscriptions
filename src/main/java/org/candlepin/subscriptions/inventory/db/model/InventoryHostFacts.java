@@ -65,7 +65,6 @@ public class InventoryHostFacts {
   private String syspurposeUnits;
   private String billingModel;
   private String cloudProvider;
-  private OffsetDateTime staleTimestamp;
   private String hardwareSubmanId;
 
   public InventoryHostFacts() {
@@ -111,7 +110,6 @@ public class InventoryHostFacts {
       String insightsId,
       String providerId,
       String cloudProvider,
-      OffsetDateTime staleTimestamp,
       String hardwareSubmanId) {
     this.inventoryId = inventoryId;
     this.modifiedOn = modifiedOn;
@@ -146,7 +144,6 @@ public class InventoryHostFacts {
     this.providerId = providerId;
     this.billingModel = billingModel;
     this.cloudProvider = cloudProvider;
-    this.staleTimestamp = staleTimestamp;
     this.hardwareSubmanId = hardwareSubmanId;
   }
 

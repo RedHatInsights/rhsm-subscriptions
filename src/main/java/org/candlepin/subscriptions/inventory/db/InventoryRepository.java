@@ -45,10 +45,14 @@ public interface InventoryRepository extends Repository<InventoryHost, UUID> {
         @QueryHint(name = HINT_READ_ONLY, value = "true")
       })
   Stream<InventoryHostFacts> streamFacts(
-      @Param("orgId") String orgId, @Param("culledOffsetDays") Integer culledOffsetDays);
+      @Param("orgId") String orgId,
+      @Param("culledOffsetDays") Integer culledOffsetDays,
+      @Param("stalenessOffsetSeconds") Integer stalenessOffsetSeconds);
 
-  default Stream<InventoryHostFacts> getFacts(Collection<String> orgIds, Integer culledOffsetDays) {
-    return orgIds.stream().flatMap(orgId -> streamFacts(orgId, culledOffsetDays));
+  default Stream<InventoryHostFacts> getFacts(
+      Collection<String> orgIds, Integer culledOffsetDays, Integer stalenessOffsetSeconds) {
+    return orgIds.stream()
+        .flatMap(orgId -> streamFacts(orgId, culledOffsetDays, stalenessOffsetSeconds));
   }
 
   /**
@@ -88,10 +92,11 @@ public interface InventoryRepository extends Repository<InventoryHost, UUID> {
         h.subscription_manager_id as subscription_manager_id
         from hosts h
         inner join system_profiles_static sps on h.id = sps.host_id
+        left join hbi.staleness s on h.org_id = s.org_id
         where h.org_id=:orgId
            and (h.facts->'rhsm'->>'BILLING_MODEL' IS NULL OR h.facts->'rhsm'->>'BILLING_MODEL' <> 'marketplace')
            and (sps.host_type IS NULL OR sps.host_type <> 'edge')
-           and NOW() < h.stale_timestamp + make_interval(days => :culledOffsetDays)
+           and h.last_check_in + make_interval(secs => coalesce(s.conventional_time_to_stale, :stalenessOffsetSeconds)) > NOW() - make_interval(days => :culledOffsetDays)
         -- NOTE: ordering is crucial for correct streaming reconciliation of HBI data
         order by subscription_manager_id, h.id, h.org_id
       """)
@@ -101,5 +106,7 @@ public interface InventoryRepository extends Repository<InventoryHost, UUID> {
         @QueryHint(name = HINT_READ_ONLY, value = "true")
       })
   Stream<String> streamActiveSubscriptionManagerIds(
-      @Param("orgId") String orgId, @Param("culledOffsetDays") Integer culledOffsetDays);
+      @Param("orgId") String orgId,
+      @Param("culledOffsetDays") Integer culledOffsetDays,
+      @Param("stalenessOffsetSeconds") Integer stalenessOffsetSeconds);
 }

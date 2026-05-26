@@ -77,7 +77,6 @@ import lombok.Setter;
             @ColumnResult(name = "insights_id"),
             @ColumnResult(name = "provider_id"),
             @ColumnResult(name = "cloud_provider"),
-            @ColumnResult(name = "stale_timestamp", type = OffsetDateTime.class),
             @ColumnResult(name = "hardware_subman_id")
           })
     })
@@ -128,7 +127,6 @@ import lombok.Setter;
         rhsm_products.products,
         qpc_prods.qpc_products,
         system_profile.system_profile_product_ids,
-        h.stale_timestamp,
         coalesce(
             h.facts->'satellite'->>'virtual_host_uuid',
             sps.virtual_host_uuid::text,
@@ -140,6 +138,7 @@ import lombok.Setter;
         from hosts h
         inner join system_profiles_static sps on h.org_id = sps.org_id and h.id = sps.host_id
         left join system_profiles_dynamic spd on h.org_id = spd.org_id and h.id = spd.host_id
+        left join hbi.staleness s on h.org_id = s.org_id
         cross join lateral (
             select string_agg(items, ',') as products
             from jsonb_array_elements_text(h.facts->'rhsm'->'RH_PROD') as items) rhsm_products
@@ -152,7 +151,7 @@ import lombok.Setter;
         where h.org_id=:orgId
            and (h.facts->'rhsm'->>'BILLING_MODEL' IS NULL OR h.facts->'rhsm'->>'BILLING_MODEL' <> 'marketplace')
            and (sps.host_type IS NULL OR sps.host_type <> 'edge')
-           and h.stale_timestamp > NOW() - make_interval(days => :culledOffsetDays)
+           and h.last_check_in + make_interval(secs => coalesce(s.conventional_time_to_stale, :stalenessOffsetSeconds)) > NOW() - make_interval(days => :culledOffsetDays)
         -- NOTE: ordering is crucial for correct streaming reconciliation of HBI data
         order by hardware_subman_id, any_hypervisor_uuid, inventory_id, h.org_id
     """,
