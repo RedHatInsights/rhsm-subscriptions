@@ -25,8 +25,8 @@ import lombok.Getter;
 /**
  * Represents the various application codes.
  *
- * <p>SUBSCRIPTIONS1XXX: General application error code space. SUBSCRIPTIONS2XXX: Insights Inventory
- * API related application error code space.
+ * <p>SUBSCRIPTIONS1XXX: General application error code space. SUBSCRIPTIONS2XXX: External service
+ * error code space (RHSM, Contracts). SUBSCRIPTIONS3XXX: Metering error code space.
  */
 @Getter
 public enum ErrorCode {
@@ -64,21 +64,6 @@ public enum ErrorCode {
       1006,
       "Multiple possible matches found. Likely a subscription is missing part of its billingAccountId. (check azureSubscriptionId)"),
 
-  /** An unexpected exception was thrown by the inventory service client. */
-  INVENTORY_SERVICE_ERROR(2000, "Inventory Service Error"),
-
-  /**
-   * The inventory service is unavailable. This typically means that the inventory service is either
-   * down, or the configured service URL is not correct, and a connection can not be made.
-   */
-  INVENTORY_SERVICE_UNAVAILABLE(2001, "The inventory service is unavailable"),
-
-  /**
-   * An exception was thrown by the inventory service when a request was made. This typically means
-   * that an HTTP client error has occurred (HTTP 4XX) when the request was made.
-   */
-  INVENTORY_SERVICE_REQUEST_ERROR(2002, "Inventory API Error"),
-
   /** An unexpected exception was thrown by the RHSM service * */
   RHSM_SERVICE_REQUEST_ERROR(2100, "RHSM Service Error"),
 
@@ -89,20 +74,8 @@ public enum ErrorCode {
   CONTRACTS_SERVICE_ERROR(2200, "Swatch Contracts Service Error"),
 
   // Metering Errors
-  SUBSCRIPTION_SERVICE_REQUEST_ERROR(3000, "Subscription Service Error"),
-
-  SUBSCRIPTION_SERVICE_MARKETPLACE_ID_LOOKUP_ERROR(
-      3001, "Could not find marketplace subscription id"),
-
-  ACCOUNT_MISSING_ERROR(3002, "Account not present according to RH IT services"),
-
-  CONTRACT_NOT_AVAILABLE(3004, "Expected contract missing"),
-
   INVALID_EVENT_CONSUMER_ERROR(
-      3005, "An invalid service instance event was encountered and will be skipped. {}"),
-
-  /** An unexpected exception was thrown by the Swatch Billable Usage Service */
-  BILLABLE_USAGE_SERVICE_ERROR(4000, "Swatch Billable Usage Service Error");
+      3005, "An invalid service instance event was encountered and will be skipped. {}");
 
   private static final String CODE_PREFIX = "SUBSCRIPTIONS";
 
