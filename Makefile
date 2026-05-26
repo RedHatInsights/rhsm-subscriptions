@@ -25,6 +25,9 @@ SHELL=/bin/bash
 # Add the local profile automatically
 override PROFILES+=dev
 
+# Run mvnw in quiet mode by default. Use VERBOSE=true to see full output.
+MVN=./mvnw $(if $(VERBOSE),,-q)
+
 # Init
 comma:=,
 empty:=
@@ -32,7 +35,7 @@ space:=$(empty) $(empty)
 
 # $1 is the directory with the application to start.
 define BUILD
-    $(if $(filter build,$(MAKECMDGOALS)),./mvnw clean install -DskipTests -am -pl $(1))
+    $(if $(filter build,$(MAKECMDGOALS)),$(MVN) clean install -DskipTests -am -pl $(1))
 endef
 
 # $1 is the directory with the application to start.
@@ -42,7 +45,7 @@ define QUARKUS_PROXY
     $(call BUILD,$(1))
 	QUARKUS_HTTP_PORT=$(2) QUARKUS_MANAGEMENT_PORT=$(shell echo $$((1000 + $(2)))) \
 	QUARKUS_HTTP_HOST=0.0.0.0 QUARKUS_PROFILE=$(subst $(space),$(comma),$(PROFILES)) \
-	./mvnw -pl $(1) quarkus:dev -DskipTests $(if $(SUSPEND_DEBUG),-Ddebug=false)
+	$(MVN) -pl $(1) quarkus:dev -DskipTests $(if $(SUSPEND_DEBUG),-Ddebug=false)
 endef
 
 # Take note that we're using SPRING_PROFILES_INCLUDE rather that
@@ -59,35 +62,35 @@ define SPRING_PROXY
     $(call BUILD,$(1))
 	SERVER_PORT=$(2) MANAGEMENT_SERVER_PORT=$(shell echo $$((1000 + $(2)))) \
 	SPRING_PROFILES_INCLUDE=$(subst $(space),$(comma),$(PROFILES)) \
-	./mvnw -pl $(1) spring-boot:run -DskipTests \
+	$(MVN) -pl $(1) spring-boot:run -DskipTests \
 	$(if $(SUSPEND_DEBUG),,$(DEBUG_ARGUMENT))
 endef
 
 # $1 is the directory with the application to start.
 define COMPONENT_TEST_PROXY
 	$(call BUILD,$(1))
-	./mvnw clean install -Pcomponent-tests -pl $(1)/ct -am
+	$(MVN) clean install -Pcomponent-tests -pl $(1)/ct -am
 endef
 
 default: format install
 
 format:
-	./mvnw spotless:apply -Pbuild -Pcomponent-tests
+	$(MVN) spotless:apply -Pbuild -Pcomponent-tests
 
 clean:
-	./mvnw clean
+	$(MVN) clean
 
 # E.g. make install PL=swatch-core
 install: clean
-	./mvnw install -DskipTests $(if $(PL),-pl $(PL) -am)
+	$(MVN) install -DskipTests $(if $(PL),-pl $(PL) -am)
 
 # E.g. make test PL=swatch-tally TEST=TallyRetentionControllerTest,TallySnapshotControllerTest
 # The - tells make to continue the recipe even if the command failed (i.e. test failures)
 # The default CSS misaligns the cell values and there's no good way to get the report-only
 # task to update the CSS itself
 test:
-	-./mvnw test $(if $(PL),-pl $(PL) -am) $(if $(TEST),-Dtest=$(TEST) -Dsurefire.failIfNoSpecifiedTests=false)
-	@./mvnw -q surefire-report:report-only && cp config/maven/site.css target/reports/css/
+	-$(MVN) test $(if $(PL),-pl $(PL) -am) $(if $(TEST),-Dtest=$(TEST) -Dsurefire.failIfNoSpecifiedTests=false)
+	@$(MVN) surefire-report:report-only && cp config/maven/site.css target/reports/css/
 	@echo "View report at file://$$(git rev-parse --show-toplevel)/target/reports/surefire.html"
 
 # Empty target for build flag
