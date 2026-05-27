@@ -27,21 +27,21 @@ parameters:
     value: quay.io/cloudservices/swatch-contracts
   - name: IMAGE_TAG
     value: latest
-  - name: ENABLE_SPLUNK_HEC
+  - name: LOGGING_HEC_ENABLED
     value: 'true'
-  - name: SPLUNK_HEC_URL
+  - name: LOGGING_HEC_URL
     value: https://splunk-hec.redhat.com:8088
-  - name: SPLUNK_SOURCE
+  - name: LOGGING_SOURCE
     value: 'swatch-contracts'
-  - name: SPLUNK_SOURCE_TYPE
+  - name: LOGGING_SOURCE_TYPE
     value: 'swatch'
-  - name: SPLUNK_HEC_BATCH_SIZE
+  - name: LOGGING_HEC_BATCH_SIZE
     value: '1000'
-  - name: SPLUNK_HEC_BATCH_INTERVAL
+  - name: LOGGING_HEC_BATCH_INTERVAL
     value: '10S'
-  - name: SPLUNK_HEC_RETRY_COUNT
+  - name: LOGGING_HEC_RETRY_COUNT
     value: '3'
-  - name: SPLUNK_HEC_INCLUDE_EX
+  - name: LOGGING_HEC_INCLUDE_EX
     value: 'true'
   - name: LOGGING_LEVEL_ROOT
     value: 'INFO'
@@ -135,16 +135,16 @@ parameters:
   - name: OTEL_SIDECAR_IMAGE
     value: quay.io/signalfx/splunk-otel-collector:0.140.0
   - name: OTEL_SIDECAR_CONFIG_MAP
-    value: swatch-otel-config
-  - name: OTEL_SIDECAR_SPLUNK_CONFIG
+    value: swatch-traces-otel-config
+  - name: OTEL_SIDECAR_TRACES_CONFIG
     value: '/etc/otelcol/relay'
   - name: OTEL_ENV_NAME
     value: env-swatch-contracts
   - name: OTEL_K8S_CLUSTER_NAME
     value: ephemeral
-  - name: OTEL_SIGNALFX_TOKEN_SECRET_NAME
+  - name: OTEL_TRACES_TOKEN_SECRET_NAME
     value: signalfx
-  - name: OTEL_SIGNALFX_TOKEN_SECRET_KEY
+  - name: OTEL_TRACES_TOKEN_SECRET_KEY
     value: token
   - name: FLOORIST_DB_SECRET_NAME
     description: database secret name
@@ -340,9 +340,9 @@ objects:
                   secretKeyRef:
                     name: ${DB_POD}-db
                     key: db.name
-              - name: ENABLE_SPLUNK_HEC
-                value: ${ENABLE_SPLUNK_HEC}
-              - name: SPLUNKMETA_namespace
+              - name: LOGGING_HEC_ENABLED
+                value: ${LOGGING_HEC_ENABLED}
+              - name: LOGGING_NAMESPACE
                 valueFrom:
                   fieldRef:
                     apiVersion: v1
@@ -352,25 +352,25 @@ objects:
                   fieldRef:
                     apiVersion: v1
                     fieldPath: metadata.name
-              - name: SPLUNK_HEC_URL
-                value: ${SPLUNK_HEC_URL}
-              - name: SPLUNK_HEC_TOKEN
+              - name: LOGGING_HEC_URL
+                value: ${LOGGING_HEC_URL}
+              - name: LOGGING_HEC_TOKEN
                 valueFrom:
                   secretKeyRef:
                     name: splunk-hec-external
                     key: token
-              - name: SPLUNK_SOURCE
-                value: ${SPLUNK_SOURCE}
-              - name: SPLUNK_SOURCE_TYPE
-                value: ${SPLUNK_SOURCE_TYPE}
-              - name: SPLUNK_HEC_BATCH_SIZE
-                value: ${SPLUNK_HEC_BATCH_SIZE}
-              - name: SPLUNK_HEC_BATCH_INTERVAL
-                value: ${SPLUNK_HEC_BATCH_INTERVAL}
-              - name: SPLUNK_HEC_RETRY_COUNT
-                value: ${SPLUNK_HEC_RETRY_COUNT}
-              - name: SPLUNK_HEC_INCLUDE_EX
-                value: ${SPLUNK_HEC_INCLUDE_EX}
+              - name: LOGGING_SOURCE
+                value: ${LOGGING_SOURCE}
+              - name: LOGGING_SOURCE_TYPE
+                value: ${LOGGING_SOURCE_TYPE}
+              - name: LOGGING_HEC_BATCH_SIZE
+                value: ${LOGGING_HEC_BATCH_SIZE}
+              - name: LOGGING_HEC_BATCH_INTERVAL
+                value: ${LOGGING_HEC_BATCH_INTERVAL}
+              - name: LOGGING_HEC_RETRY_COUNT
+                value: ${LOGGING_HEC_RETRY_COUNT}
+              - name: LOGGING_HEC_INCLUDE_EX
+                value: ${LOGGING_HEC_INCLUDE_EX}
               - name: SWATCH_SELF_PSK
                 valueFrom:
                   secretKeyRef:
@@ -479,12 +479,14 @@ objects:
                 - name: SPLUNK_OBSERVABILITY_ACCESS_TOKEN
                   valueFrom:
                     secretKeyRef:
-                      name: ${OTEL_SIGNALFX_TOKEN_SECRET_NAME}
-                      key: ${OTEL_SIGNALFX_TOKEN_SECRET_KEY}
+                      name: ${OTEL_TRACES_TOKEN_SECRET_NAME}
+                      key: ${OTEL_TRACES_TOKEN_SECRET_KEY}
                 - name: SPLUNK_CONFIG
-                  value: ${OTEL_SIDECAR_SPLUNK_CONFIG}
-                - name: SPLUNK_MEMORY_TOTAL_MIB
+                  value: ${OTEL_SIDECAR_TRACES_CONFIG}
+                - name: TRACES_MEMORY_TOTAL_MIB
                   value: '1024'
+                - name: SPLUNK_MEMORY_TOTAL_MIB
+                  value: $(TRACES_MEMORY_TOTAL_MIB)
             volumes:
               - name: logs
                 emptyDir:
