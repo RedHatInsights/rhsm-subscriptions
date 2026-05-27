@@ -40,14 +40,22 @@ override PROFILES+=dev
 # deletes every line between and including those delimiters, which matches the
 # banner block exactly.  The wrapper uses bash -c so that the pipe is part of
 # the command itself; the trailing "--" sets $0, and "$$@" forwards all
-# Make-supplied arguments (goals, flags, etc.) to mvnw unchanged.
-MVN=bash -c './mvnw $(if $(VERBOSE),,-q) "$$@" 2>&1 | sed "/^$(HASH)$(HASH)$(HASH)$(HASH)/,/^$(HASH)$(HASH)$(HASH)$(HASH)/d"' --
+# Make-supplied arguments (goals, flags, etc.) to mvnw unchanged.  pipefail is
+# set so that a non-zero exit from mvnw propagates through the sed pipe;
+# without it, the pipeline would always report success (sed's exit code).
+MVN=bash -c 'set -o pipefail; ./mvnw $(if $(VERBOSE),,-q) "$$@" 2>&1 | sed "/^$(HASH)$(HASH)$(HASH)$(HASH)/,/^$(HASH)$(HASH)$(HASH)$(HASH)/d"' --
 
 # Init
 HASH := \#
 comma:=,
 empty:=
 space:=$(empty) $(empty)
+
+# Terminal colors (evaluated once at parse time; empty strings if tput is unavailable)
+GREEN := $(shell tput setaf 2 2>/dev/null)
+RED := $(shell tput setaf 1 2>/dev/null)
+BOLD := $(shell tput bold 2>/dev/null)
+RESET := $(shell tput sgr0 2>/dev/null)
 
 # $1 is the directory with the application to start.
 define BUILD
@@ -101,11 +109,15 @@ install: clean
 	$(MVN) install -DskipTests $(if $(PL),-pl $(PL) -am)
 
 # E.g. make test PL=swatch-tally TEST=TallyRetentionControllerTest,TallySnapshotControllerTest
-# The - tells make to continue the recipe even if the command failed (i.e. test failures)
 # The default CSS misaligns the cell values and there's no good way to get the report-only
 # task to update the CSS itself
 test:
-	-$(MVN) test $(if $(PL),-pl $(PL) -am) $(if $(TEST),-Dtest=$(TEST) -Dsurefire.failIfNoSpecifiedTests=false)
+	@if $(MVN) test $(if $(PL),-pl $(PL) -am) $(if $(TEST),-Dtest=$(TEST) -Dsurefire.failIfNoSpecifiedTests=false); then \
+		echo "$(GREEN)SUCCESS$(RESET)"; \
+	else \
+		echo "$(RED)FAILED$(RESET)"; \
+		exit 1; \
+	fi
 	@$(MVN) surefire-report:report-only && cp config/maven/site.css target/reports/css/
 	@echo "View report at file://$$(git rev-parse --show-toplevel)/target/reports/surefire.html"
 
@@ -155,21 +167,16 @@ swatch-api:
 
 # $1 = service name, $2 = port
 define CHECK_SERVICE_STATUS
-	@GREEN=$$(tput setaf 2 2>/dev/null || echo ''); \
-	RED=$$(tput setaf 1 2>/dev/null || echo ''); \
-	RESET=$$(tput sgr0 2>/dev/null || echo ''); \
-	printf "%-25s " "$(1) ($(2)):"; \
+	@printf "%-25s " "$(1) ($(2)):"; \
 	if curl -s -f http://localhost:$(2)/health >/dev/null 2>&1; then \
-		printf "$${GREEN}✓ Running$${RESET}\n"; \
+		printf "$(GREEN)✓ Running$(RESET)\n"; \
 	else \
-		printf "$${RED}✗ Not running$${RESET}\n"; \
+		printf "$(RED)✗ Not running$(RESET)\n"; \
 	fi
 endef
 
 status:
-	@BOLD=$$(tput bold 2>/dev/null || echo ''); \
-	RESET=$$(tput sgr0 2>/dev/null || echo ''); \
-	echo "$${BOLD}Service Status:$${RESET}"
+	@echo "$(BOLD)Service Status:$(RESET)"
 	$(call CHECK_SERVICE_STATUS,swatch-tally,9010)
 	$(call CHECK_SERVICE_STATUS,swatch-contracts,9011)
 	$(call CHECK_SERVICE_STATUS,swatch-billable-usage,9012)
