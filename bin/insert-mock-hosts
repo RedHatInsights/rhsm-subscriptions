@@ -68,7 +68,7 @@ class DatabaseContext:
 
         # Build rhsm facts with optional SLA and usage
         rhsm_facts = {
-            'orgId': org_id or f'org_{account}',
+            'orgId': org_id,
             'IS_VIRTUAL': is_guest,
         }
         if sla:

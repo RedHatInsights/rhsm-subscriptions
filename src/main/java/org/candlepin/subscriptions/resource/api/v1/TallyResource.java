@@ -501,7 +501,7 @@ public class TallyResource implements TallyApi {
     boolean hasData = !dataPoints.isEmpty();
 
     for (var dataPoint : dataPoints) {
-      totalMonthlyValueRaw += dataPoint.value();
+      totalMonthlyValueRaw += dataPoint.value() != null ? dataPoint.value() : 0.0;
       latestSnapshotDate = dataPoint.date();
     }
 
