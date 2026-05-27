@@ -33,7 +33,7 @@ Execute tests for a specific service. For example, to run tests for `swatch-syst
 Deploy only the necessary dependencies for a specific service:
 
 ```bash
-bonfire deploy rhsm --source=appsre --ref-env insights-stage --component swatch-kafka-bridge --component swatch-database --component wiremock --component artemis --component swatch-system-conduit
+bonfire deploy rhsm --source=appsre --ref-env insights-stage --component rhsm --component swatch-kafka-bridge --component swatch-database --component wiremock --component swatch-system-conduit --remove-dependencies swatch-system-conduit/swatch-tally --no-remove-resources app:rhsm
 ```
 
 ### 2. Run Component Tests Against OpenShift
