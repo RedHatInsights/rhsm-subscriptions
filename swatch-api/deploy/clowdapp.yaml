@@ -35,16 +35,6 @@ parameters:
     value: 200m
   - name: CPU_LIMIT
     value: 300m
-  - name: MIGRATION_IMAGE
-    value: quay.io/cloudservices/swatch-database
-  - name: MIGRATION_MEMORY_REQUEST
-    value: 256Mi
-  - name: MIGRATION_MEMORY_LIMIT
-    value: 512Mi
-  - name: MIGRATION_CPU_REQUEST
-    value: 100m
-  - name: MIGRATION_CPU_LIMIT
-    value: 500m
   - name: DATABASE_CONNECTION_TIMEOUT_MS
     value: '30000'
   - name: DATABASE_MAX_POOL_SIZE
