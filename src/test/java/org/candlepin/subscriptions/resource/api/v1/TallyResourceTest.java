@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.resource.api.v1;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -48,6 +49,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
@@ -148,7 +150,6 @@ class TallyResourceTest {
                             0,
                             0,
                             ZoneOffset.UTC));
-                    aggregate.setMeasurementType(HardwareMeasurementType.TOTAL);
                     aggregate.setMetricId(MetricIdUtils.getCores().toString());
                     aggregate.setValue(i * 2.0);
                     return aggregate;
@@ -156,7 +157,7 @@ class TallyResourceTest {
               .collect(Collectors.toList());
 
       Mockito.when(
-              repository.findAggregatedMeasurements(
+              repository.findSummedMeasurements(
                   true,
                   "owner123456",
                   RHEL_FOR_X86.toString(),
@@ -166,7 +167,7 @@ class TallyResourceTest {
                   Usage.PRODUCTION,
                   BillingProvider._ANY,
                   "_ANY",
-                  HardwareMeasurementType.TOTAL,
+                  Set.of(HardwareMeasurementType.TOTAL),
                   begin,
                   end,
                   null))
@@ -237,14 +238,12 @@ class TallyResourceTest {
       // Snapshot and measurements exist with value 10 for day 1
       var agg = new TallyMeasurementAggregate();
       agg.setSnapshotDate(day1);
-      agg.setMeasurementType(HardwareMeasurementType.PHYSICAL);
       agg.setMetricId(MetricIdUtils.getSockets().toString());
       agg.setValue(10.0);
 
       // Snapshot and measurements exist with value 0 that's a valid case
       var agg2 = new TallyMeasurementAggregate();
       agg2.setSnapshotDate(day2);
-      agg2.setMeasurementType(HardwareMeasurementType.PHYSICAL);
       agg2.setMetricId(MetricIdUtils.getSockets().toString());
       agg2.setValue(0.0);
 
@@ -254,7 +253,7 @@ class TallyResourceTest {
 
       // Neither snapshot nor measurement are present for day 4
 
-      when(repository.findAggregatedMeasurements(
+      when(repository.findSummedMeasurements(
               any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
               any()))
           .thenReturn(new PageImpl<>(List.of(agg, agg2)));
@@ -291,10 +290,9 @@ class TallyResourceTest {
     void testTallyReportDataTotalUsingHardwareMeasurements() {
       TallyMeasurementAggregate aggregate = new TallyMeasurementAggregate();
       aggregate.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
-      aggregate.setMeasurementType(HardwareMeasurementType.TOTAL);
       aggregate.setMetricId(MetricIdUtils.getCores().toString());
       aggregate.setValue(4.0);
-      when(repository.findAggregatedMeasurements(
+      when(repository.findSummedMeasurements(
               any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
               any()))
           .thenReturn(new PageImpl<>(List.of(aggregate)));
@@ -323,10 +321,9 @@ class TallyResourceTest {
     void testTallyReportDataTotalUsingTallyMeasurements() {
       TallyMeasurementAggregate aggregate = new TallyMeasurementAggregate();
       aggregate.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
-      aggregate.setMeasurementType(HardwareMeasurementType.TOTAL);
       aggregate.setMetricId(MetricIdUtils.getCores().toString());
       aggregate.setValue(4.0);
-      when(repository.findAggregatedMeasurements(
+      when(repository.findSummedMeasurements(
               any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
               any()))
           .thenReturn(new PageImpl<>(List.of(aggregate)));
@@ -364,35 +361,23 @@ class TallyResourceTest {
       var day3 = OffsetDateTime.parse("2025-10-03T00:00:00Z");
       var day4 = OffsetDateTime.parse("2025-10-04T00:00:00Z");
 
-      // Snapshot and measurements exists for different cloud with value 5 and 3 for day 1
-      var awsDay1 = new TallyMeasurementAggregate();
-      awsDay1.setSnapshotDate(day1);
-      awsDay1.setMeasurementType(HardwareMeasurementType.AWS);
-      awsDay1.setMetricId(MetricIdUtils.getSockets().toString());
-      awsDay1.setValue(5.0);
+      // Database already sums measurement types per date
+      // Day 1: AWS (5) + Azure (3) = 8 sockets (summed by database)
+      var day1Aggregate = new TallyMeasurementAggregate();
+      day1Aggregate.setSnapshotDate(day1);
+      day1Aggregate.setMetricId(MetricIdUtils.getSockets().toString());
+      day1Aggregate.setValue(8.0); // Already summed
 
-      var azureDay1 = new TallyMeasurementAggregate();
-      azureDay1.setSnapshotDate(day1);
-      azureDay1.setMeasurementType(HardwareMeasurementType.AZURE);
-      azureDay1.setMetricId(MetricIdUtils.getSockets().toString());
-      azureDay1.setValue(3.0);
+      // Day 2: AWS (7) only = 7 sockets
+      var day2Aggregate = new TallyMeasurementAggregate();
+      day2Aggregate.setSnapshotDate(day2);
+      day2Aggregate.setMetricId(MetricIdUtils.getSockets().toString());
+      day2Aggregate.setValue(7.0);
 
-      // Snapshot and measurements exist with value 7 for day 2
-      var awsDay2 = new TallyMeasurementAggregate();
-      awsDay2.setSnapshotDate(day2);
-      awsDay2.setMeasurementType(HardwareMeasurementType.AWS);
-      awsDay2.setMetricId(MetricIdUtils.getSockets().toString());
-      awsDay2.setValue(7.0);
-
-      // Snapshot exists and measurements do not exist for day 3
-      var awsDay3 = new TallyMeasurementAggregate();
-      awsDay3.setSnapshotDate(day3);
-      // Neither snapshot nor measurement are present for day 4
-
-      when(repository.findAggregatedMeasurements(
+      when(repository.findSummedMeasurements(
               any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
               any()))
-          .thenReturn(new PageImpl<>(List.of(awsDay1, azureDay1, awsDay2)));
+          .thenReturn(new PageImpl<>(List.of(day1Aggregate, day2Aggregate)));
 
       TallyReportData response =
           resource.getTallyReportData(
@@ -412,12 +397,68 @@ class TallyResourceTest {
               null);
 
       assertEquals(4, response.getData().size());
+
+      // Day 1: AWS (5) + Azure (3) = 8 sockets
       assertTrue(response.getData().get(0).getHasData());
+      assertEquals(8, response.getData().get(0).getValue());
+
+      // Day 2: AWS (7) only = 7 sockets
       assertTrue(response.getData().get(1).getHasData());
+      assertEquals(7, response.getData().get(1).getValue());
+
+      // Day 3: no data
       assertFalse(response.getData().get(2).getHasData());
       assertEquals(0, response.getData().get(2).getValue());
+
+      // Day 4: no data
       assertFalse(response.getData().get(3).getHasData());
       assertEquals(0, response.getData().get(3).getValue());
+    }
+
+    @Test
+    void testCloudCategoryMonthlyTotalsAggregatesMultipleProviders() {
+      var monthStart = OffsetDateTime.parse("2025-10-01T00:00:00Z");
+      var monthEnd = applicationClock.endOfMonth(monthStart);
+
+      // Database returns already-summed aggregates per date
+      // Day 1: AWS (8) + GCP (16) = 24 cores (summed by database)
+      var day1Aggregate = new TallyMeasurementAggregate();
+      day1Aggregate.setSnapshotDate(monthStart);
+      day1Aggregate.setMetricId(MetricIdUtils.getCores().toString());
+      day1Aggregate.setValue(24.0);
+
+      // Day 2: AWS (8) + GCP (16) = 24 cores (summed by database)
+      var day2Aggregate = new TallyMeasurementAggregate();
+      day2Aggregate.setSnapshotDate(monthStart.plusDays(1));
+      day2Aggregate.setMetricId(MetricIdUtils.getCores().toString());
+      day2Aggregate.setValue(24.0);
+
+      when(repository.findSummedMeasurements(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+              any()))
+          .thenReturn(new PageImpl<>(List.of(day1Aggregate, day2Aggregate)));
+
+      TallyReportData response =
+          resource.getTallyReportData(
+              RHEL_FOR_X86,
+              MetricIdUtils.getCores(),
+              GranularityType.DAILY,
+              monthStart,
+              monthEnd,
+              ReportCategory.CLOUD,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              false,
+              null);
+
+      // Verify monthly total: (24 + 24) = 48 cores
+      assertNotNull(response.getMeta().getTotalMonthly());
+      assertTrue(response.getMeta().getTotalMonthly().getHasData());
+      assertEquals(48, response.getMeta().getTotalMonthly().getValue());
     }
 
     @EnumSource(names = "CLOUD", mode = EnumSource.Mode.EXCLUDE)
@@ -427,12 +468,11 @@ class TallyResourceTest {
       for (HardwareMeasurementType hardwareMeasurementType : HardwareMeasurementType.values()) {
         TallyMeasurementAggregate aggregate = new TallyMeasurementAggregate();
         aggregate.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
-        aggregate.setMeasurementType(hardwareMeasurementType);
         aggregate.setMetricId(MetricIdUtils.getCores().toString());
         aggregate.setValue(4.0);
         aggregates.add(aggregate);
       }
-      when(repository.findAggregatedMeasurements(
+      when(repository.findSummedMeasurements(
               any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
               any()))
           .thenReturn(new PageImpl<>(aggregates));
@@ -459,7 +499,7 @@ class TallyResourceTest {
 
     @Test
     void testTallyReportDataReportFiller() {
-      when(repository.findAggregatedMeasurements(
+      when(repository.findSummedMeasurements(
               any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
               any()))
           .thenReturn(new PageImpl<>(List.of()));
@@ -485,7 +525,7 @@ class TallyResourceTest {
 
     @Test
     void testTallyReportTotalMonthlyNotPopulatedWhenQueryIsNotBeginningOfMonth() {
-      when(repository.findAggregatedMeasurements(
+      when(repository.findSummedMeasurements(
               any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
               any()))
           .thenReturn(new PageImpl<>(List.of()));
@@ -510,7 +550,7 @@ class TallyResourceTest {
 
     @Test
     void testTallyReportTotalMonthlyNotPopulatedWhenQueryIsNotEndOfMonth() {
-      when(repository.findAggregatedMeasurements(
+      when(repository.findSummedMeasurements(
               any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
               any()))
           .thenReturn(new PageImpl<>(List.of()));
@@ -535,7 +575,7 @@ class TallyResourceTest {
 
     @Test
     void testTallyReportTotalMonthlyNotPopulatedWhenQueryIsPaged() {
-      when(repository.findAggregatedMeasurements(
+      when(repository.findSummedMeasurements(
               any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
               any()))
           .thenReturn(new PageImpl<>(List.of()));
@@ -560,7 +600,7 @@ class TallyResourceTest {
 
     @Test
     void testTallyReportTotalMonthlyPopulatedWithNoUnderlyingData() {
-      when(repository.findAggregatedMeasurements(
+      when(repository.findSummedMeasurements(
               any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
               any()))
           .thenReturn(new PageImpl<>(List.of()));
@@ -589,15 +629,13 @@ class TallyResourceTest {
     void testTallyReportTotalMonthlyPopulatedWithExistingUnderlyingData() {
       TallyMeasurementAggregate aggregate1 = new TallyMeasurementAggregate();
       aggregate1.setSnapshotDate(OffsetDateTime.parse("2021-11-02T00:00Z"));
-      aggregate1.setMeasurementType(HardwareMeasurementType.TOTAL);
       aggregate1.setMetricId(MetricIdUtils.getCores().toString());
       aggregate1.setValue(4.0);
       TallyMeasurementAggregate aggregate2 = new TallyMeasurementAggregate();
       aggregate2.setSnapshotDate(OffsetDateTime.parse("2021-11-03T00:00Z"));
-      aggregate2.setMeasurementType(HardwareMeasurementType.TOTAL);
       aggregate2.setMetricId(MetricIdUtils.getCores().toString());
       aggregate2.setValue(3.0);
-      when(repository.findAggregatedMeasurements(
+      when(repository.findSummedMeasurements(
               any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
               any()))
           .thenReturn(new PageImpl<>(List.of(aggregate1, aggregate2)));
@@ -629,16 +667,14 @@ class TallyResourceTest {
     void testTallyReportTotalMonthlyPopulatedWithBillingProvider() {
       TallyMeasurementAggregate aggregate1 = new TallyMeasurementAggregate();
       aggregate1.setSnapshotDate(OffsetDateTime.parse("2021-11-02T00:00Z"));
-      aggregate1.setMeasurementType(HardwareMeasurementType.TOTAL);
       aggregate1.setMetricId(MetricIdUtils.getCores().toString());
       aggregate1.setValue(4.0);
       TallyMeasurementAggregate aggregate2 = new TallyMeasurementAggregate();
       aggregate2.setSnapshotDate(OffsetDateTime.parse("2021-11-03T00:00Z"));
-      aggregate2.setMeasurementType(HardwareMeasurementType.TOTAL);
       aggregate2.setMetricId(MetricIdUtils.getCores().toString());
       aggregate2.setValue(3.0);
 
-      when(repository.findAggregatedMeasurements(
+      when(repository.findSummedMeasurements(
               any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
               any()))
           .thenReturn(new PageImpl<>(List.of(aggregate1, aggregate2)));
@@ -676,7 +712,6 @@ class TallyResourceTest {
                     var aggregate = new TallyMeasurementAggregate();
                     aggregate.setSnapshotDate(
                         OffsetDateTime.of(2023, 3, i, 12, 35, 0, 0, ZoneOffset.UTC));
-                    aggregate.setMeasurementType(HardwareMeasurementType.TOTAL);
                     aggregate.setMetricId(MetricIdUtils.getCores().toString());
                     aggregate.setValue(i * 2.0);
                     return aggregate;
@@ -689,7 +724,7 @@ class TallyResourceTest {
               .value(22)
               .hasData(true);
 
-      when(repository.findAggregatedMeasurements(
+      when(repository.findSummedMeasurements(
               any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
               any()))
           .thenReturn(new PageImpl<>(aggregates));
@@ -737,7 +772,6 @@ class TallyResourceTest {
                     var aggregate = new TallyMeasurementAggregate();
                     aggregate.setSnapshotDate(
                         OffsetDateTime.of(2023, 3, i, 12, 35, 0, 0, ZoneOffset.UTC));
-                    aggregate.setMeasurementType(HardwareMeasurementType.TOTAL);
                     aggregate.setMetricId(MetricIdUtils.getCores().toString());
                     aggregate.setValue(1.3);
                     return aggregate;
@@ -750,7 +784,7 @@ class TallyResourceTest {
               .value(3)
               .hasData(true);
 
-      when(repository.findAggregatedMeasurements(
+      when(repository.findSummedMeasurements(
               any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
               any()))
           .thenReturn(new PageImpl<>(aggregates));
@@ -848,13 +882,12 @@ class TallyResourceTest {
       for (OffsetDateTime nextDate : snapDates) {
         TallyMeasurementAggregate aggregate = new TallyMeasurementAggregate();
         aggregate.setSnapshotDate(nextDate);
-        aggregate.setMeasurementType(HardwareMeasurementType.TOTAL);
         aggregate.setMetricId(MetricIdUtils.getCores().toString());
         aggregate.setValue(100.0);
         aggregates.add(aggregate);
       }
 
-      when(repository.findAggregatedMeasurements(
+      when(repository.findSummedMeasurements(
               any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
               any()))
           .thenReturn(new PageImpl<>(aggregates));
@@ -931,13 +964,12 @@ class TallyResourceTest {
       for (OffsetDateTime nextDate : snapDates) {
         TallyMeasurementAggregate aggregate = new TallyMeasurementAggregate();
         aggregate.setSnapshotDate(nextDate);
-        aggregate.setMeasurementType(HardwareMeasurementType.TOTAL);
         aggregate.setMetricId(MetricIdUtils.getCores().toString());
         aggregate.setValue(100.0);
         aggregates.add(aggregate);
       }
 
-      when(repository.findAggregatedMeasurements(
+      when(repository.findSummedMeasurements(
               any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
               any()))
           .thenReturn(new PageImpl<>(aggregates));
@@ -1707,6 +1739,94 @@ class TallyResourceTest {
 
       var noUsage2 = report.getData().get(snapshotIndex + 5);
       assertEquals(500, noUsage2.getValue());
+    }
+
+    @Test
+    void testCloudCategoryAggregatesMultipleCloudProviders() {
+      var snapshotDate = OffsetDateTime.parse("2025-10-01T00:00:00Z");
+
+      TallySnapshot snapshot = new TallySnapshot();
+      snapshot.setSnapshotDate(snapshotDate);
+
+      // Set measurements for multiple cloud provider types
+      snapshot.setMeasurement(HardwareMeasurementType.AWS, MetricIdUtils.getCores(), 8.0);
+      snapshot.setMeasurement(HardwareMeasurementType.GOOGLE, MetricIdUtils.getCores(), 16.0);
+      snapshot.setMeasurement(HardwareMeasurementType.AZURE, MetricIdUtils.getCores(), 12.0);
+
+      when(repository.findSnapshot(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+          .thenReturn(new PageImpl<>(List.of(snapshot)));
+
+      TallyReportData response =
+          resource.getTallyReportData(
+              RHEL_FOR_X86,
+              MetricIdUtils.getCores(),
+              GranularityType.DAILY,
+              snapshotDate,
+              snapshotDate,
+              ReportCategory.CLOUD,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              false,
+              null);
+
+      assertEquals(1, response.getData().size());
+      assertTrue(response.getData().get(0).getHasData());
+      // Should sum AWS + GCP + Azure = 8 + 16 + 12 = 36 cores
+      assertEquals(36, response.getData().get(0).getValue());
+    }
+
+    @Test
+    void testCloudCategoryWithMultipleDaysAggregatesCorrectly() {
+      var day1 = OffsetDateTime.parse("2025-10-01T00:00:00Z");
+      var day2 = OffsetDateTime.parse("2025-10-02T00:00:00Z");
+
+      // Day 1 snapshot with AWS and GCP
+      TallySnapshot snapshot1 = new TallySnapshot();
+      snapshot1.setSnapshotDate(day1);
+      snapshot1.setMeasurement(HardwareMeasurementType.AWS, MetricIdUtils.getSockets(), 2.0);
+      snapshot1.setMeasurement(HardwareMeasurementType.GOOGLE, MetricIdUtils.getSockets(), 4.0);
+
+      // Day 2 snapshot with AWS and Azure
+      TallySnapshot snapshot2 = new TallySnapshot();
+      snapshot2.setSnapshotDate(day2);
+      snapshot2.setMeasurement(HardwareMeasurementType.AWS, MetricIdUtils.getSockets(), 3.0);
+      snapshot2.setMeasurement(HardwareMeasurementType.AZURE, MetricIdUtils.getSockets(), 5.0);
+
+      when(repository.findSnapshot(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+          .thenReturn(new PageImpl<>(List.of(snapshot1, snapshot2)));
+
+      TallyReportData response =
+          resource.getTallyReportData(
+              RHEL_FOR_X86,
+              MetricIdUtils.getSockets(),
+              GranularityType.DAILY,
+              day1,
+              day2,
+              ReportCategory.CLOUD,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              false,
+              null);
+
+      assertEquals(2, response.getData().size());
+
+      // Day 1: AWS (2) + GCP (4) = 6 sockets
+      assertTrue(response.getData().get(0).getHasData());
+      assertEquals(6, response.getData().get(0).getValue());
+
+      // Day 2: AWS (3) + Azure (5) = 8 sockets
+      assertTrue(response.getData().get(1).getHasData());
+      assertEquals(8, response.getData().get(1).getValue());
     }
   }
 

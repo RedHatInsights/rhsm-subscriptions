@@ -49,7 +49,8 @@ import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.TallyMeasurement;
+import org.candlepin.subscriptions.db.model.TallyMeasurementAggregate;
+import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.resource.ReportCriteria;
 import org.candlepin.subscriptions.resource.ResourceUtils;
@@ -166,92 +167,25 @@ public class TallyResource implements TallyApi {
                 usageType)
             : Collections.emptyMap();
 
-    List<TallyMeasurement> measurements;
-    Page<? extends TallyMeasurement> page;
-    if (featureFlags.isPrimaryRowSearchesEnabled()) {
-      HardwareMeasurementType hardwareMeasurementType = HardwareMeasurementType.TOTAL;
-      if (Objects.nonNull(reportCriteria.getReportCategory())) {
-        hardwareMeasurementType =
-            HardwareMeasurementType.fromString(reportCriteria.getReportCategory().toString());
-      }
+    // Execute query based on feature flag - each path returns unified result
+    TallyQueryResult queryResult =
+        featureFlags.isPrimaryRowSearchesEnabled()
+            ? executeAggregateQuery(reportCriteria, metricId, category)
+            : executeSnapshotBasedQuery(reportCriteria, metricId, category);
+    List<UnroundedTallyReportDataPoint> snaps = queryResult.dataPoints();
 
-      page =
-          repository.findAggregatedMeasurements(
-              true, // isPrimary
-              reportCriteria.getOrgId(),
-              reportCriteria.getProductId(),
-              metricId,
-              reportCriteria.getGranularity(),
-              reportCriteria.getServiceLevel(),
-              reportCriteria.getUsage(),
-              reportCriteria.getBillingProvider(),
-              reportCriteria.getBillingAccountId(),
-              hardwareMeasurementType,
-              reportCriteria.getBeginning(),
-              reportCriteria.getEnding(),
-              reportCriteria.getPageable());
-      measurements = new ArrayList<>(page.stream().toList());
-    } else {
-      page =
-          repository.findSnapshot(
-              reportCriteria.getOrgId(),
-              reportCriteria.getProductId(),
-              reportCriteria.getGranularity(),
-              reportCriteria.getServiceLevel(),
-              reportCriteria.getUsage(),
-              reportCriteria.getBillingProvider(),
-              reportCriteria.getBillingAccountId(),
-              reportCriteria.getBeginning(),
-              reportCriteria.getEnding(),
-              reportCriteria.getPageable());
-      measurements = new ArrayList<>(page.stream().toList());
-    }
+    // Build report with metadata
+    TallyReportData report =
+        buildReportWithMetadata(
+            reportCriteria, metricId, sla, usageType, billingProviderType, billingAcctId);
 
-    List<UnroundedTallyReportDataPoint> snaps =
-        measurements.stream()
-            .map(snapshot -> unroundedDataPointFromMeasurement(metricId, category, snapshot))
-            .collect(Collectors.toList());
-
-    TallyReportData report = new TallyReportData();
-    report.setMeta(new TallyReportDataMeta());
-    report.getMeta().setGranularity(mapper.map(reportCriteria.getGranularity()));
-    report.getMeta().setProduct(productId.toString());
-    report.getMeta().setMetricId(metricId.toString());
-    report.getMeta().setServiceLevel(sla);
-    report.getMeta().setUsage(usageType == null ? null : mapper.map(reportCriteria.getUsage()));
-    report
-        .getMeta()
-        .setBillingProvider(
-            billingProviderType == null ? null : mapper.map(reportCriteria.getBillingProvider()));
-    report.getMeta().setBillingAcountId(billingAcctId);
-
+    // Calculate monthly totals if request is for exactly one full month without paging
     // NOTE: rather than keep a separate monthly rollup, in order to avoid unnecessary storage and
     // DB round-trips, deserialization, etc., simply aggregate in-memory the monthly totals here.
-    // NOTE: In order to avoid incorrect aggregations, if there is not exactly a full month (e.g.
-    // custom API usage), we'll log a warning and omit totalMonthly if the range doesn't match
-    // expected UI usage, or if paging is requested.
     // NOTE: the UI's precision for end of month is less than the backends. By truncating to
     // seconds, we relax the comparison.
-    if (clock.startOfMonth(reportCriteria.getBeginning()).equals(reportCriteria.getBeginning())
-        && clock
-            .endOfMonth(reportCriteria.getBeginning())
-            .truncatedTo(ChronoUnit.SECONDS)
-            .equals(reportCriteria.getEnding().truncatedTo(ChronoUnit.SECONDS))
-        && reportCriteria.getPageable() == null) {
-      // gather monthly totals for the month
-      OffsetDateTime latestSnapshotDate = null;
-      var totalMonthlyValueRaw = 0.0;
-      for (var measurement : measurements) {
-        totalMonthlyValueRaw += measurement.extractRawValue(metricId, category);
-        latestSnapshotDate = measurement.getSnapshotDate();
-      }
-      var totalMonthlyValue = (int) Math.ceil(totalMonthlyValueRaw);
-      TallyReportTotalMonthly totalMonthly =
-          new TallyReportTotalMonthly()
-              .hasData(!measurements.isEmpty())
-              .value(totalMonthlyValue)
-              .date(latestSnapshotDate);
-      report.getMeta().setTotalMonthly(totalMonthly);
+    if (isFullMonthRequest(reportCriteria)) {
+      calculateAndSetMonthlyTotals(report, snaps);
     } else {
       log.warn(
           "Tally API called for a range more or less than a full month. Not populating totalMonthly");
@@ -259,7 +193,8 @@ public class TallyResource implements TallyApi {
 
     // Only set page links if we are paging (not filling).
     if (reportCriteria.getPageable() != null) {
-      report.setLinks(mapper.map(pageLinkCreator.getPaginationLinks(uriInfo, page)));
+      report.setLinks(
+          mapper.map(pageLinkCreator.getPaginationLinks(uriInfo, queryResult.pageForLinks())));
     }
 
     if (Boolean.TRUE.equals(useRunningTotalsFormat)) {
@@ -382,11 +317,46 @@ public class TallyResource implements TallyApi {
   }
 
   private UnroundedTallyReportDataPoint unroundedDataPointFromMeasurement(
-      MetricId metricId, ReportCategory category, TallyMeasurement measurement) {
+      MetricId metricId, ReportCategory category, TallySnapshot snapshot) {
     return new UnroundedTallyReportDataPoint(
-        measurement.getSnapshotDate(),
-        measurement.extractRawValue(metricId, category),
-        measurement.hasMeasurementForCategory(metricId, category));
+        snapshot.getSnapshotDate(),
+        extractRawValue(snapshot, metricId, category),
+        hasMeasurementForCategory(snapshot, metricId, category));
+  }
+
+  /**
+   * Extracts the summed measurement value for a given metric and category.
+   *
+   * @param snapshot the tally snapshot
+   * @param metricId the metric ID
+   * @param category the report category
+   * @return the summed value across all contributing measurement types
+   */
+  private double extractRawValue(
+      TallySnapshot snapshot, MetricId metricId, ReportCategory category) {
+    Set<HardwareMeasurementType> contributingTypes = determineMeasurementTypes(category);
+
+    return contributingTypes.stream()
+        .map(type -> snapshot.getMeasurement(type, metricId))
+        .filter(java.util.Objects::nonNull)
+        .mapToDouble(Double::doubleValue)
+        .sum();
+  }
+
+  /**
+   * Checks if a snapshot has any measurements for the given metric and category.
+   *
+   * @param snapshot the tally snapshot
+   * @param metricId the metric ID
+   * @param category the report category
+   * @return true if any contributing measurement type has a value
+   */
+  private boolean hasMeasurementForCategory(
+      TallySnapshot snapshot, MetricId metricId, ReportCategory category) {
+    Set<HardwareMeasurementType> contributingTypes = determineMeasurementTypes(category);
+
+    return contributingTypes.stream()
+        .anyMatch(type -> snapshot.getMeasurement(type, metricId) != null);
   }
 
   private List<UnroundedTallyReportDataPoint> transformToRunningTotalFormat(
@@ -416,4 +386,173 @@ public class TallyResource implements TallyApi {
         });
     return runningTotalSnaps;
   }
+
+  /**
+   * Determines the set of hardware measurement types that contribute to the given report category.
+   *
+   * @param category the report category (null defaults to TOTAL)
+   * @return the set of contributing measurement types
+   */
+  private Set<HardwareMeasurementType> determineMeasurementTypes(ReportCategory category) {
+    return category == null ? Set.of(HardwareMeasurementType.TOTAL) : CATEGORY_MAP.get(category);
+  }
+
+  /**
+   * Executes a query using database-level aggregation with primary row searches.
+   *
+   * @param reportCriteria the report criteria
+   * @param metricId the metric ID
+   * @param category the report category
+   * @return the query result containing data points and page for links
+   */
+  private TallyQueryResult executeAggregateQuery(
+      ReportCriteria reportCriteria, MetricId metricId, ReportCategory category) {
+
+    log.info("Using primary row searches for tally report");
+
+    Set<HardwareMeasurementType> measurementTypes = determineMeasurementTypes(category);
+
+    Page<TallyMeasurementAggregate> summedPage =
+        repository.findSummedMeasurements(
+            true, // isPrimary
+            reportCriteria.getOrgId(),
+            reportCriteria.getProductId(),
+            metricId,
+            reportCriteria.getGranularity(),
+            reportCriteria.getServiceLevel(),
+            reportCriteria.getUsage(),
+            reportCriteria.getBillingProvider(),
+            reportCriteria.getBillingAccountId(),
+            measurementTypes,
+            reportCriteria.getBeginning(),
+            reportCriteria.getEnding(),
+            reportCriteria.getPageable());
+
+    // Database already grouped by (date, metricId) and summed across measurement types
+    // No Java-side grouping needed - create data points directly
+    List<UnroundedTallyReportDataPoint> dataPoints =
+        summedPage.stream()
+            .map(
+                sum ->
+                    new UnroundedTallyReportDataPoint(sum.getSnapshotDate(), sum.getValue(), true))
+            .toList();
+
+    return new TallyQueryResult(dataPoints, summedPage);
+  }
+
+  /**
+   * Executes a query using snapshots with Java-side aggregation.
+   *
+   * @param reportCriteria the report criteria
+   * @param metricId the metric ID
+   * @param category the report category
+   * @return the query result containing data points and page for links
+   */
+  private TallyQueryResult executeSnapshotBasedQuery(
+      ReportCriteria reportCriteria, MetricId metricId, ReportCategory category) {
+
+    Page<TallySnapshot> page =
+        repository.findSnapshot(
+            reportCriteria.getOrgId(),
+            reportCriteria.getProductId(),
+            reportCriteria.getGranularity(),
+            reportCriteria.getServiceLevel(),
+            reportCriteria.getUsage(),
+            reportCriteria.getBillingProvider(),
+            reportCriteria.getBillingAccountId(),
+            reportCriteria.getBeginning(),
+            reportCriteria.getEnding(),
+            reportCriteria.getPageable());
+
+    List<UnroundedTallyReportDataPoint> dataPoints =
+        page.stream()
+            .map(snapshot -> unroundedDataPointFromMeasurement(metricId, category, snapshot))
+            .toList();
+
+    return new TallyQueryResult(dataPoints, page);
+  }
+
+  /**
+   * Checks if the request is for exactly a full month without pagination.
+   *
+   * @param reportCriteria the report criteria
+   * @return true if the request spans exactly one full month without paging
+   */
+  private boolean isFullMonthRequest(ReportCriteria reportCriteria) {
+    return clock.startOfMonth(reportCriteria.getBeginning()).equals(reportCriteria.getBeginning())
+        && clock
+            .endOfMonth(reportCriteria.getBeginning())
+            .truncatedTo(ChronoUnit.SECONDS)
+            .equals(reportCriteria.getEnding().truncatedTo(ChronoUnit.SECONDS))
+        && reportCriteria.getPageable() == null;
+  }
+
+  /**
+   * Calculates and sets the monthly totals on the report metadata.
+   *
+   * @param report the report to update
+   * @param dataPoints the data points to aggregate
+   */
+  private void calculateAndSetMonthlyTotals(
+      TallyReportData report, List<UnroundedTallyReportDataPoint> dataPoints) {
+
+    double totalMonthlyValueRaw = 0.0;
+    OffsetDateTime latestSnapshotDate = null;
+    boolean hasData = !dataPoints.isEmpty();
+
+    for (var dataPoint : dataPoints) {
+      totalMonthlyValueRaw += dataPoint.value() != null ? dataPoint.value() : 0.0;
+      latestSnapshotDate = dataPoint.date();
+    }
+
+    int totalMonthlyValue = (int) Math.ceil(totalMonthlyValueRaw);
+    TallyReportTotalMonthly totalMonthly =
+        new TallyReportTotalMonthly()
+            .hasData(hasData)
+            .value(totalMonthlyValue)
+            .date(latestSnapshotDate);
+    report.getMeta().setTotalMonthly(totalMonthly);
+  }
+
+  /**
+   * Builds a tally report with metadata populated from request parameters.
+   *
+   * @param reportCriteria the report criteria
+   * @param metricId the metric ID
+   * @param sla the service level type
+   * @param usageType the usage type
+   * @param billingProviderType the billing provider type
+   * @param billingAcctId the billing account ID
+   * @return a new TallyReportData with metadata set
+   */
+  private TallyReportData buildReportWithMetadata(
+      ReportCriteria reportCriteria,
+      MetricId metricId,
+      ServiceLevelType sla,
+      UsageType usageType,
+      BillingProviderType billingProviderType,
+      String billingAcctId) {
+
+    TallyReportData report = new TallyReportData();
+    report.setMeta(new TallyReportDataMeta());
+    report.getMeta().setGranularity(mapper.map(reportCriteria.getGranularity()));
+    report.getMeta().setProduct(reportCriteria.getProductId().toString());
+    report.getMeta().setMetricId(metricId.toString());
+    report.getMeta().setServiceLevel(sla);
+    report.getMeta().setUsage(usageType == null ? null : mapper.map(reportCriteria.getUsage()));
+    report
+        .getMeta()
+        .setBillingProvider(
+            billingProviderType == null ? null : mapper.map(reportCriteria.getBillingProvider()));
+    report.getMeta().setBillingAcountId(billingAcctId);
+
+    return report;
+  }
+
+  /**
+   * Encapsulates the result of querying tally data, containing both the data points and the page
+   * object needed for pagination links.
+   */
+  private record TallyQueryResult(
+      List<UnroundedTallyReportDataPoint> dataPoints, Page<?> pageForLinks) {}
 }

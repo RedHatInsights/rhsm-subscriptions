@@ -40,8 +40,8 @@ class DatabaseContext:
             return self._generate_hbi_host(
                 inventory_id, insights_id, account_number, org_id, display_name,
                 subscription_manager_id, cores, sockets, is_guest, hypervisor_uuid,
-                hardware_type, last_seen, product, cloud_provider, is_marketplace,
-                conversions_activity, host_type
+                hardware_type, last_seen, product, sla, usage, cloud_provider,
+                is_marketplace, conversions_activity, host_type
             )
         else:
             return self._generate_tally_host(
@@ -55,8 +55,8 @@ class DatabaseContext:
 
     def _generate_hbi_host(self, inventory_id, insights_id, account_number, org_id, display_name,
                           subscription_manager_id, cores, sockets, is_guest, hypervisor_uuid,
-                          hardware_type, last_seen, product, cloud_provider, is_marketplace,
-                          conversions_activity, host_type):
+                          hardware_type, last_seen, product, sla, usage, cloud_provider,
+                          is_marketplace, conversions_activity, host_type):
         """Generate HBI inventory host facts for insights database"""
         account = account_number or "account123"
         org = org_id or "org123"
@@ -66,6 +66,16 @@ class DatabaseContext:
         if not is_guest:
             hypervisor_uuid = None
 
+        # Build rhsm facts with optional SLA and usage
+        rhsm_facts = {
+            'orgId': org_id,
+            'IS_VIRTUAL': is_guest,
+        }
+        if sla:
+            rhsm_facts['SYSPURPOSE_SLA'] = sla
+        if usage:
+            rhsm_facts['SYSPURPOSE_USAGE'] = usage
+
         host_fields = {
             'id': inventory_id,
             'account': account,
@@ -73,12 +83,7 @@ class DatabaseContext:
             'org_id': org,
             'created_on': last_seen or '1993-03-26',
             'modified_on': last_seen or '1993-03-26',
-            'facts': json.dumps({
-                'rhsm': {
-                    'orgId': org_id or f'org_{account}',
-                    'IS_VIRTUAL': is_guest,
-                },
-            }),
+            'facts': json.dumps({'rhsm': rhsm_facts}),
             'insights_id': insights_id,
             'subscription_manager_id': subscription_manager_id or str(uuid.uuid4()),
             'stale_timestamp': '2030-01-01',
@@ -102,6 +107,15 @@ class DatabaseContext:
             'host_type': host_type,
             'virtual_host_uuid': hypervisor_uuid,
         }
+
+        # Add system_purpose if sla or usage is specified
+        if sla or usage:
+            system_purpose = {}
+            if sla:
+                system_purpose['service_level_agreement'] = sla
+            if usage:
+                system_purpose['usage'] = usage
+            static_profile_fields['system_purpose'] = json.dumps(system_purpose)
         if conversions_activity is not None:
             static_profile_fields['conversions'] = json.dumps({"activity": conversions_activity})
 

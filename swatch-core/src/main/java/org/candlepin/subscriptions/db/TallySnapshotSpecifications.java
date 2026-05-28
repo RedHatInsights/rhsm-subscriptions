@@ -24,6 +24,7 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.MapJoin;
 import java.time.OffsetDateTime;
+import java.util.Set;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
@@ -113,14 +114,18 @@ public class TallySnapshotSpecifications {
             : cb.equal(measurementJoin.key().get("metricId"), metricId.toUpperCaseFormatted());
   }
 
-  public static Specification<TallySnapshot> withHardwareMeasurementType(
+  public static Specification<TallySnapshot> withMeasurementTypes(
       MapJoin<TallySnapshot, TallyMeasurementKey, Double> measurementJoin,
-      HardwareMeasurementType measurementType) {
-    return (root, query, cb) ->
-        measurementType == null
-            ? null
-            : cb.equal(
-                measurementJoin.key().get("measurementType"), measurementType.name().toUpperCase());
+      Set<HardwareMeasurementType> measurementTypes) {
+    return (root, query, cb) -> {
+      if (measurementTypes == null || measurementTypes.isEmpty()) {
+        return null;
+      }
+      return measurementJoin
+          .key()
+          .get("measurementType")
+          .in(measurementTypes.stream().map(type -> type.name().toUpperCase()).toList());
+    };
   }
 
   public static Specification<TallySnapshot> withTallyMeasurements() {
@@ -191,6 +196,7 @@ public class TallySnapshotSpecifications {
    * @param usage usage type to filter by
    * @param billingProvider billing provider to filter by
    * @param billingAccountId billing account ID to filter by
+   * @param measurementTypes set of measurement types to filter by
    * @param beginning start of date range
    * @param ending end of date range
    * @param metricId metric ID to filter by
@@ -207,7 +213,7 @@ public class TallySnapshotSpecifications {
       Usage usage,
       BillingProvider billingProvider,
       String billingAccountId,
-      HardwareMeasurementType hardwareMeasurementType,
+      Set<HardwareMeasurementType> measurementTypes,
       OffsetDateTime beginning,
       OffsetDateTime ending) {
 
@@ -221,7 +227,7 @@ public class TallySnapshotSpecifications {
         .and(hasBillingAccountId(billingAccountId))
         .and(snapshotDateBetween(beginning, ending))
         .and(withMetricId(measurementJoin, metricId))
-        .and(withHardwareMeasurementType(measurementJoin, hardwareMeasurementType))
+        .and(withMeasurementTypes(measurementJoin, measurementTypes))
         .and(orderBySnapshotDate());
   }
 }

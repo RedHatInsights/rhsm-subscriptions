@@ -148,7 +148,6 @@ public class TallyReportCategoryHasDataPaygTest extends BaseTallyComponentTest {
     }
   }
 
-  /*
   @ParameterizedTest(name = "primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-has-data-TC002")
@@ -175,7 +174,6 @@ public class TallyReportCategoryHasDataPaygTest extends BaseTallyComponentTest {
           pointForHour(mutedReport, zeroEventHourStart), mutedCategory, zeroEventHourStart);
     }
   }
-  */
 
   @ParameterizedTest(name = "primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})

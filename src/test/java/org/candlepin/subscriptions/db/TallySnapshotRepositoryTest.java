@@ -34,6 +34,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
@@ -50,6 +51,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
@@ -200,7 +202,7 @@ class TallySnapshotRepositoryTest {
 
     List<TallyMeasurementAggregate> found =
         repository
-            .findAggregatedMeasurements(
+            .findSummedMeasurements(
                 true,
                 "orgBugs",
                 "Bunny",
@@ -210,7 +212,7 @@ class TallySnapshotRepositoryTest {
                 Usage.PRODUCTION,
                 BillingProvider._ANY,
                 "sellerAcct",
-                HardwareMeasurementType.TOTAL,
+                Set.of(HardwareMeasurementType.TOTAL),
                 LONG_AGO,
                 FAR_FUTURE,
                 PageRequest.of(0, 10))
@@ -218,10 +220,10 @@ class TallySnapshotRepositoryTest {
             .collect(Collectors.toList());
 
     assertEquals(1, found.size());
-    TallyMeasurementAggregate aggregate = found.get(0);
-    assertEquals(NOWISH, aggregate.getSnapshotDate());
-    assertEquals(HardwareMeasurementType.TOTAL, aggregate.getMeasurementType());
-    assertEquals(8888, aggregate.getValue().intValue());
+    TallyMeasurementAggregate sum = found.get(0);
+    assertEquals(NOWISH, sum.getSnapshotDate());
+    assertEquals(MetricIdUtils.getCores().getValue().toUpperCase(), sum.getMetricId());
+    assertEquals(8888, sum.getValue().intValue());
   }
 
   @SuppressWarnings("linelength")
@@ -247,7 +249,7 @@ class TallySnapshotRepositoryTest {
 
     List<TallyMeasurementAggregate> found =
         repository
-            .findAggregatedMeasurements(
+            .findSummedMeasurements(
                 true,
                 "orgA1",
                 "P1",
@@ -257,17 +259,17 @@ class TallySnapshotRepositoryTest {
                 Usage.EMPTY,
                 BillingProvider.EMPTY,
                 "sellerAcct",
-                HardwareMeasurementType.TOTAL,
+                Set.of(HardwareMeasurementType.TOTAL),
                 LONG_AGO,
                 FAR_FUTURE,
                 PageRequest.of(0, 10))
             .stream()
             .collect(Collectors.toList());
     assertEquals(1, found.size());
-    TallyMeasurementAggregate aggregate = found.get(0);
-    assertEquals(NOWISH, aggregate.getSnapshotDate());
-    assertEquals(HardwareMeasurementType.TOTAL, aggregate.getMeasurementType());
-    assertEquals(1111, aggregate.getValue().intValue());
+    TallyMeasurementAggregate sum = found.get(0);
+    assertEquals(NOWISH, sum.getSnapshotDate());
+    assertEquals(MetricIdUtils.getCores().getValue().toUpperCase(), sum.getMetricId());
+    assertEquals(1111, sum.getValue().intValue());
   }
 
   @SuppressWarnings("linelength")
@@ -293,7 +295,7 @@ class TallySnapshotRepositoryTest {
 
     List<TallyMeasurementAggregate> found =
         repository
-            .findAggregatedMeasurements(
+            .findSummedMeasurements(
                 true,
                 "orgA1",
                 "P1",
@@ -303,18 +305,17 @@ class TallySnapshotRepositoryTest {
                 Usage.EMPTY,
                 BillingProvider.EMPTY,
                 "sellerAcct",
-                HardwareMeasurementType.TOTAL,
+                Set.of(HardwareMeasurementType.TOTAL),
                 LONG_AGO,
                 FAR_FUTURE,
                 PageRequest.of(0, 10))
             .stream()
             .collect(Collectors.toList());
     assertEquals(1, found.size());
-    TallyMeasurementAggregate aggregate = found.get(0);
-    assertEquals(NOWISH, aggregate.getSnapshotDate());
-    assertEquals(HardwareMeasurementType.TOTAL, aggregate.getMeasurementType());
-    assertEquals(MetricIdUtils.getSockets().getValue().toUpperCase(), aggregate.getMetricId());
-    assertEquals(111, aggregate.getValue().intValue());
+    TallyMeasurementAggregate sum = found.get(0);
+    assertEquals(NOWISH, sum.getSnapshotDate());
+    assertEquals(MetricIdUtils.getSockets().getValue().toUpperCase(), sum.getMetricId());
+    assertEquals(111, sum.getValue().intValue());
   }
 
   @SuppressWarnings("linelength")
@@ -370,7 +371,7 @@ class TallySnapshotRepositoryTest {
 
     List<TallyMeasurementAggregate> found =
         repository
-            .findAggregatedMeasurements(
+            .findSummedMeasurements(
                 true,
                 "orgBugs",
                 "Bunny",
@@ -380,7 +381,7 @@ class TallySnapshotRepositoryTest {
                 Usage.PRODUCTION,
                 BillingProvider._ANY,
                 "sellerAcct",
-                HardwareMeasurementType.TOTAL,
+                Set.of(HardwareMeasurementType.TOTAL),
                 LONG_AGO,
                 FAR_FUTURE,
                 PageRequest.of(0, 10))
@@ -388,9 +389,9 @@ class TallySnapshotRepositoryTest {
             .collect(Collectors.toList());
 
     assertEquals(1, found.size());
-    TallyMeasurementAggregate aggregate = found.get(0);
-    assertEquals(NOWISH, aggregate.getSnapshotDate());
-    assertEquals(HardwareMeasurementType.TOTAL, aggregate.getMeasurementType());
+    TallyMeasurementAggregate sum = found.get(0);
+    assertEquals(NOWISH, sum.getSnapshotDate());
+    assertEquals(MetricIdUtils.getCores().getValue().toUpperCase(), sum.getMetricId());
   }
 
   @SuppressWarnings("linelength")
@@ -446,7 +447,7 @@ class TallySnapshotRepositoryTest {
 
     List<TallyMeasurementAggregate> found =
         repository
-            .findAggregatedMeasurements(
+            .findSummedMeasurements(
                 true,
                 "orgBugs",
                 "Bunny",
@@ -456,7 +457,7 @@ class TallySnapshotRepositoryTest {
                 Usage.PRODUCTION,
                 BillingProvider._ANY,
                 "sellerAcct",
-                HardwareMeasurementType.TOTAL,
+                Set.of(HardwareMeasurementType.TOTAL),
                 LONG_AGO,
                 FAR_FUTURE,
                 PageRequest.of(0, 10))
@@ -464,10 +465,10 @@ class TallySnapshotRepositoryTest {
             .collect(Collectors.toList());
 
     assertEquals(1, found.size());
-    TallyMeasurementAggregate aggregate = found.get(0);
-    assertEquals(NOWISH, aggregate.getSnapshotDate());
-    assertEquals(HardwareMeasurementType.TOTAL, aggregate.getMeasurementType());
-    assertEquals(18887, aggregate.getValue().intValue());
+    TallyMeasurementAggregate sum = found.get(0);
+    assertEquals(NOWISH, sum.getSnapshotDate());
+    assertEquals(MetricIdUtils.getCores().getValue().toUpperCase(), sum.getMetricId());
+    assertEquals(18887, sum.getValue().intValue());
   }
 
   @Test
@@ -765,6 +766,245 @@ class TallySnapshotRepositoryTest {
             NOWISH,
             NOWISH.plusHours(1),
             key));
+  }
+
+  @Test
+  void testFindSummedMeasurementsAggregatesMultipleCloudProviders() {
+    String orgId = "test-org";
+    String productId = "OpenShift-metrics";
+    Granularity granularity = Granularity.DAILY;
+    ServiceLevel serviceLevel = ServiceLevel.PREMIUM;
+    Usage usage = Usage.PRODUCTION;
+    BillingProvider billingProvider = BillingProvider._ANY;
+    String billingAccountId = "_ANY";
+    OffsetDateTime snapshotDate = NOWISH;
+
+    TallySnapshot snapshot =
+        createUnpersisted(orgId, productId, granularity, 0, 0, 0, snapshotDate);
+    snapshot.setPrimary(true);
+    snapshot.setServiceLevel(serviceLevel);
+    snapshot.setUsage(usage);
+    snapshot.setBillingProvider(billingProvider);
+    snapshot.setBillingAccountId(billingAccountId);
+
+    snapshot.setMeasurement(HardwareMeasurementType.AWS, MetricIdUtils.getCores(), 8.0);
+    snapshot.setMeasurement(HardwareMeasurementType.GOOGLE, MetricIdUtils.getCores(), 16.0);
+    snapshot.setMeasurement(HardwareMeasurementType.AZURE, MetricIdUtils.getCores(), 12.0);
+    snapshot.setMeasurement(HardwareMeasurementType.ALIBABA, MetricIdUtils.getCores(), 4.0);
+
+    repository.save(snapshot);
+    repository.flush();
+
+    Set<HardwareMeasurementType> cloudTypes =
+        Set.of(
+            HardwareMeasurementType.AWS,
+            HardwareMeasurementType.GOOGLE,
+            HardwareMeasurementType.AZURE,
+            HardwareMeasurementType.ALIBABA);
+
+    Page<TallyMeasurementAggregate> results =
+        repository.findSummedMeasurements(
+            true,
+            orgId,
+            productId,
+            MetricIdUtils.getCores(),
+            granularity,
+            serviceLevel,
+            usage,
+            billingProvider,
+            billingAccountId,
+            cloudTypes,
+            snapshotDate,
+            snapshotDate,
+            null);
+
+    assertEquals(1, results.getContent().size());
+    TallyMeasurementAggregate aggregate = results.getContent().get(0);
+    assertEquals(snapshotDate, aggregate.getSnapshotDate());
+    assertEquals(MetricIdUtils.getCores().getValue().toUpperCase(), aggregate.getMetricId());
+    assertEquals(40.0, aggregate.getValue());
+  }
+
+  @Test
+  void testFindSummedMeasurementsAggregatesMultipleDatesWithMultipleCloudProviders() {
+    String orgId = "123123123";
+    String productId = "OpenShift-metrics";
+    Granularity granularity = Granularity.DAILY;
+    ServiceLevel serviceLevel = ServiceLevel.PREMIUM;
+    Usage usage = Usage.PRODUCTION;
+    BillingProvider billingProvider = BillingProvider._ANY;
+    String billingAccountId = "_ANY";
+
+    OffsetDateTime day1 = NOWISH;
+    OffsetDateTime day2 = NOWISH.plusDays(1);
+    OffsetDateTime day3 = NOWISH.plusDays(2);
+
+    TallySnapshot snapshot1 = createUnpersisted(orgId, productId, granularity, 0, 0, 0, day1);
+    snapshot1.setPrimary(true);
+    snapshot1.setServiceLevel(serviceLevel);
+    snapshot1.setUsage(usage);
+    snapshot1.setBillingProvider(billingProvider);
+    snapshot1.setBillingAccountId(billingAccountId);
+    snapshot1.setMeasurement(HardwareMeasurementType.AWS, MetricIdUtils.getSockets(), 2.0);
+    snapshot1.setMeasurement(HardwareMeasurementType.GOOGLE, MetricIdUtils.getSockets(), 4.0);
+
+    TallySnapshot snapshot2 = createUnpersisted(orgId, productId, granularity, 0, 0, 0, day2);
+    snapshot2.setPrimary(true);
+    snapshot2.setServiceLevel(serviceLevel);
+    snapshot2.setUsage(usage);
+    snapshot2.setBillingProvider(billingProvider);
+    snapshot2.setBillingAccountId(billingAccountId);
+    snapshot2.setMeasurement(HardwareMeasurementType.AWS, MetricIdUtils.getSockets(), 3.0);
+    snapshot2.setMeasurement(HardwareMeasurementType.AZURE, MetricIdUtils.getSockets(), 5.0);
+    snapshot2.setMeasurement(HardwareMeasurementType.ALIBABA, MetricIdUtils.getSockets(), 1.0);
+
+    TallySnapshot snapshot3 = createUnpersisted(orgId, productId, granularity, 0, 0, 0, day3);
+    snapshot3.setPrimary(true);
+    snapshot3.setServiceLevel(serviceLevel);
+    snapshot3.setUsage(usage);
+    snapshot3.setBillingProvider(billingProvider);
+    snapshot3.setBillingAccountId(billingAccountId);
+    snapshot3.setMeasurement(HardwareMeasurementType.GOOGLE, MetricIdUtils.getSockets(), 7.0);
+    snapshot3.setMeasurement(HardwareMeasurementType.AZURE, MetricIdUtils.getSockets(), 8.0);
+
+    repository.saveAll(List.of(snapshot1, snapshot2, snapshot3));
+    repository.flush();
+
+    Set<HardwareMeasurementType> cloudTypes =
+        Set.of(
+            HardwareMeasurementType.AWS,
+            HardwareMeasurementType.GOOGLE,
+            HardwareMeasurementType.AZURE,
+            HardwareMeasurementType.ALIBABA);
+
+    Page<TallyMeasurementAggregate> results =
+        repository.findSummedMeasurements(
+            true,
+            orgId,
+            productId,
+            MetricIdUtils.getSockets(),
+            granularity,
+            serviceLevel,
+            usage,
+            billingProvider,
+            billingAccountId,
+            cloudTypes,
+            day1,
+            day3,
+            null);
+
+    assertEquals(3, results.getContent().size());
+
+    TallyMeasurementAggregate day1Aggregate =
+        results.getContent().stream()
+            .filter(a -> a.getSnapshotDate().equals(day1))
+            .findFirst()
+            .orElseThrow();
+    assertEquals(6.0, day1Aggregate.getValue());
+
+    TallyMeasurementAggregate day2Aggregate =
+        results.getContent().stream()
+            .filter(a -> a.getSnapshotDate().equals(day2))
+            .findFirst()
+            .orElseThrow();
+    assertEquals(9.0, day2Aggregate.getValue());
+
+    TallyMeasurementAggregate day3Aggregate =
+        results.getContent().stream()
+            .filter(a -> a.getSnapshotDate().equals(day3))
+            .findFirst()
+            .orElseThrow();
+    assertEquals(15.0, day3Aggregate.getValue());
+  }
+
+  @Test
+  void testFindSummedMeasurementsWithMixedCloudProviderCoverage() {
+    String orgId = "123123123";
+    String productId = "OpenShift-metrics";
+    Granularity granularity = Granularity.DAILY;
+    ServiceLevel serviceLevel = ServiceLevel.PREMIUM;
+    Usage usage = Usage.PRODUCTION;
+    BillingProvider billingProvider = BillingProvider._ANY;
+    String billingAccountId = "_ANY";
+
+    OffsetDateTime day1 = NOWISH;
+    OffsetDateTime day2 = NOWISH.plusDays(1);
+    OffsetDateTime day3 = NOWISH.plusDays(2);
+
+    TallySnapshot snapshot1 = createUnpersisted(orgId, productId, granularity, 0, 0, 0, day1);
+    snapshot1.setPrimary(true);
+    snapshot1.setServiceLevel(serviceLevel);
+    snapshot1.setUsage(usage);
+    snapshot1.setBillingProvider(billingProvider);
+    snapshot1.setBillingAccountId(billingAccountId);
+    snapshot1.setMeasurement(HardwareMeasurementType.AWS, MetricIdUtils.getCores(), 10.0);
+
+    TallySnapshot snapshot2 = createUnpersisted(orgId, productId, granularity, 0, 0, 0, day2);
+    snapshot2.setPrimary(true);
+    snapshot2.setServiceLevel(serviceLevel);
+    snapshot2.setUsage(usage);
+    snapshot2.setBillingProvider(billingProvider);
+    snapshot2.setBillingAccountId(billingAccountId);
+    snapshot2.setMeasurement(HardwareMeasurementType.AWS, MetricIdUtils.getCores(), 5.0);
+    snapshot2.setMeasurement(HardwareMeasurementType.GOOGLE, MetricIdUtils.getCores(), 8.0);
+    snapshot2.setMeasurement(HardwareMeasurementType.AZURE, MetricIdUtils.getCores(), 12.0);
+
+    TallySnapshot snapshot3 = createUnpersisted(orgId, productId, granularity, 0, 0, 0, day3);
+    snapshot3.setPrimary(true);
+    snapshot3.setServiceLevel(serviceLevel);
+    snapshot3.setUsage(usage);
+    snapshot3.setBillingProvider(billingProvider);
+    snapshot3.setBillingAccountId(billingAccountId);
+    snapshot3.setMeasurement(HardwareMeasurementType.ALIBABA, MetricIdUtils.getCores(), 3.0);
+
+    repository.saveAll(List.of(snapshot1, snapshot2, snapshot3));
+    repository.flush();
+
+    Set<HardwareMeasurementType> cloudTypes =
+        Set.of(
+            HardwareMeasurementType.AWS,
+            HardwareMeasurementType.GOOGLE,
+            HardwareMeasurementType.AZURE,
+            HardwareMeasurementType.ALIBABA);
+
+    Page<TallyMeasurementAggregate> results =
+        repository.findSummedMeasurements(
+            true,
+            orgId,
+            productId,
+            MetricIdUtils.getCores(),
+            granularity,
+            serviceLevel,
+            usage,
+            billingProvider,
+            billingAccountId,
+            cloudTypes,
+            day1,
+            day3,
+            null);
+
+    assertEquals(3, results.getContent().size());
+
+    TallyMeasurementAggregate day1Aggregate =
+        results.getContent().stream()
+            .filter(a -> a.getSnapshotDate().equals(day1))
+            .findFirst()
+            .orElseThrow();
+    assertEquals(10.0, day1Aggregate.getValue());
+
+    TallyMeasurementAggregate day2Aggregate =
+        results.getContent().stream()
+            .filter(a -> a.getSnapshotDate().equals(day2))
+            .findFirst()
+            .orElseThrow();
+    assertEquals(25.0, day2Aggregate.getValue());
+
+    TallyMeasurementAggregate day3Aggregate =
+        results.getContent().stream()
+            .filter(a -> a.getSnapshotDate().equals(day3))
+            .findFirst()
+            .orElseThrow();
+    assertEquals(3.0, day3Aggregate.getValue());
   }
 
   private List<TallySnapshot> createSequencedSnapshots(
