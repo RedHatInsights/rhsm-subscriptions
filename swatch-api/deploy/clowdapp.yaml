@@ -77,9 +77,7 @@ parameters:
   - name: OTEL_SIDECAR_IMAGE
     value: quay.io/signalfx/splunk-otel-collector:0.140.0
   - name: OTEL_SIDECAR_CONFIG_MAP
-    value: swatch-traces-otel-config
-  - name: NGINX_OTEL_SIDECAR_CONFIG_MAP
-    value: swatch-logging-otel-config
+    value: swatch-otel-config-v1
   - name: OTEL_SIDECAR_TRACES_CONFIG
     value: '/etc/otelcol/relay'
   - name: OTEL_ENV_NAME
@@ -300,6 +298,27 @@ objects:
                     value: '1024'
                   - name: SPLUNK_MEMORY_TOTAL_MIB
                     value: $(TRACES_MEMORY_TOTAL_MIB)
+                  - name: LOGGING_HEC_URL
+                    value: ${LOGGING_HEC_URL}
+                  - name: LOGGING_HEC_TOKEN
+                    valueFrom:
+                      secretKeyRef:
+                        name: splunk-hec-external
+                        key: token
+                  - name: LOGGING_SOURCE
+                    value: ${LOGGING_SOURCE}
+                  - name: LOGGING_SOURCE_TYPE
+                    value: ${LOGGING_SOURCE_TYPE}
+                  - name: K8S_NAMESPACE
+                    valueFrom:
+                      fieldRef:
+                        apiVersion: v1
+                        fieldPath: metadata.namespace
+                  - name: K8S_POD_NAME
+                    valueFrom:
+                      fieldRef:
+                        apiVersion: v1
+                        fieldPath: metadata.name
         - name: nginx-proxy
           replicas: ${{REPLICAS}}
           webServices:
@@ -331,7 +350,7 @@ objects:
             sidecars:
               - name: otel-collector
                 enabled: true
-                configMap: ${NGINX_OTEL_SIDECAR_CONFIG_MAP}
+                configMap: ${OTEL_SIDECAR_CONFIG_MAP}
                 image: ${OTEL_SIDECAR_IMAGE}
                 envVars:
                   - name: ENV_NAME
@@ -365,6 +384,11 @@ objects:
                       fieldRef:
                         apiVersion: v1
                         fieldPath: metadata.namespace
+                  - name: K8S_POD_NAME
+                    valueFrom:
+                      fieldRef:
+                        apiVersion: v1
+                        fieldPath: metadata.name
 
   - kind: Service
     apiVersion: v1

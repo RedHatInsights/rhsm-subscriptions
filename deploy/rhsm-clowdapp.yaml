@@ -28,40 +28,7 @@ objects:
   - apiVersion: v1
     kind: ConfigMap
     metadata:
-      name: swatch-traces-otel-config
-    data:
-      relay: |
-        extensions:
-          health_check:
-            endpoint: 0.0.0.0:13133
-        receivers:
-          otlp:
-            protocols:
-              grpc:
-                endpoint: 0.0.0.0:4317
-              http:
-                endpoint: 0.0.0.0:4318
-        processors:
-          batch:
-        exporters:
-          debug:
-            verbosity: detailed
-        service:
-          extensions:
-            - health_check
-          pipelines:
-            traces:
-              receivers: [otlp]
-              processors: [batch]
-              exporters: [debug]
-          telemetry:
-            logs:
-              level: info
-
-  - apiVersion: v1
-    kind: ConfigMap
-    metadata:
-      name: swatch-logging-otel-config
+      name: swatch-otel-config-v1
     data:
       relay: |
         extensions:
@@ -78,6 +45,14 @@ objects:
             protocol: rfc3164
             udp:
               listen_address: '0.0.0.0:54526'
+          filelog:
+            include:
+              - /logs/server.log
+            start_at: end
+            operators:
+              - type: json_parser
+                parse_from: body
+                parse_to: attributes
         processors:
           batch:
           transform/syslog:
@@ -86,6 +61,12 @@ objects:
               statements:
               - set(resource.attributes["host.name"], attributes["hostname"]) where attributes["hostname"] != nil
               - set(body, attributes["message"]) where attributes["message"] != nil
+          transform/file_logs:
+            log_statements:
+            - context: log
+              statements:
+              - set(body, attributes) where IsMap(attributes)
+              - keep_keys(body, ["message", "severity", "properties"])
         exporters:
           debug:
             verbosity: detailed
@@ -97,9 +78,13 @@ objects:
               receivers: [otlp]
               processors: [batch]
               exporters: [debug]
-            logs:
+            logs/syslog:
               receivers: [syslog]
               processors: [batch, transform/syslog]
+              exporters: [debug]
+            logs/file:
+              receivers: [filelog]
+              processors: [batch, transform/file_logs]
               exporters: [debug]
           telemetry:
             logs:
