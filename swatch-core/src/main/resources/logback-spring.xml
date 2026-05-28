@@ -43,7 +43,7 @@
 
     <!-- See https://logback.qos.ch/manual/configuration.html#conditional -->
     <condition class="ch.qos.logback.core.boolex.PropertyEqualityCondition">
-      <key>ENABLE_SPLUNK_HEC</key>
+      <key>LOGGING_HEC_ENABLED</key>
       <value>true</value>
     </condition>
     <if>
@@ -54,17 +54,17 @@
            last." source: http://logback.qos.ch/manual/configuration.html#scopes
          -->
             <appender name="http" class="com.splunk.logging.HttpEventCollectorLogbackAppender">
-                <url>${SPLUNK_HEC_URL}</url>
-                <token>${SPLUNK_HEC_TOKEN}</token>
-                <source>${SPLUNK_SOURCE:-rhsm-subscription-hec}</source>
-                <sourcetype>${SPLUNK_SOURCE_TYPE}</sourcetype>
+                <url>${LOGGING_HEC_URL}</url>
+                <token>${LOGGING_HEC_TOKEN}</token>
+                <source>${LOGGING_SOURCE:-rhsm-subscription-hec}</source>
+                <sourcetype>${LOGGING_SOURCE_TYPE}</sourcetype>
                 <host>${HOST_NAME:-${LOGNAME}@${HOSTNAME}}</host>
-                <messageFormat>${SPLUNK_MESSAGE_FORMAT}</messageFormat>
+                <messageFormat>${LOGGING_MESSAGE_FORMAT}</messageFormat>
                 <middleware>HttpEventCollectorResendMiddleware</middleware>
-                <connectTimeout>${SPLUNK_HEC_CONNECT_TIMEOUT:-5000}</connectTimeout>
-                <terminationTimeout>${SPLUNK_HEC_TERMINATION_TIMEOUT:-2000}</terminationTimeout>
-                <batch_size_count>${SPLUNK_HEC_BATCH_SIZE:-10}</batch_size_count>
-                <disableCertificateValidation>${SPLUNK_DISABLE_CERTIFICATE_VALIDATION:-false}</disableCertificateValidation>
+                <connectTimeout>${LOGGING_HEC_CONNECT_TIMEOUT:-5000}</connectTimeout>
+                <terminationTimeout>${LOGGING_HEC_TERMINATION_TIMEOUT:-2000}</terminationTimeout>
+                <batch_size_count>${LOGGING_HEC_BATCH_SIZE:-10}</batch_size_count>
+                <disableCertificateValidation>${LOGGING_DISABLE_CERTIFICATE_VALIDATION:-false}</disableCertificateValidation>
                 <eventHeaderSerializer>org.candlepin.subscriptions.logback.RhsmSplunkHecEventHeaderSerializer</eventHeaderSerializer>
                 <layout class="ch.qos.logback.classic.PatternLayout">
                     <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSS'+0000'} [thread=%t] [level=%p] [category=%c] %X{user} - %m%n%ex{full, SECURITY_STACKTRACE_EVAL}</pattern>

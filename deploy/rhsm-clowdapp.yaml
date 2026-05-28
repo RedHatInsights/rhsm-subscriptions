@@ -28,7 +28,7 @@ objects:
   - apiVersion: v1
     kind: ConfigMap
     metadata:
-      name: swatch-otel-config
+      name: swatch-traces-otel-config
     data:
       relay: |
         extensions:
@@ -61,7 +61,7 @@ objects:
   - apiVersion: v1
     kind: ConfigMap
     metadata:
-      name: logging-otel-config
+      name: swatch-logging-otel-config
     data:
       relay: |
         extensions:
