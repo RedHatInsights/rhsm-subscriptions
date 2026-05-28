@@ -34,7 +34,9 @@ public enum TallyTestProducts {
   RHACM("rhacm", "rhacm", "vCPUs"),
   ROSA("rosa", "rosa", "Cores", "Instance-hours"),
   OPENSHIFT_DEDICATED(
-      "openshift-dedicated-metrics", "OpenShift-dedicated-metrics", "Cores", "Instance-hours");
+      "openshift-dedicated-metrics", "OpenShift-dedicated-metrics", "Cores", "Instance-hours"),
+  ANSIBLE_AAP_MANAGED(
+      "ansible-aap-managed", "ansible-aap-managed", "Managed-nodes", "Instance-hours");
 
   private final String productId;
   private final String productTag;
