@@ -157,7 +157,7 @@ class InternalBillableUsageResourceTest {
         .queryParam("org_ids", ORG_ID)
         .queryParam("start", OffsetDateTime.now().minusDays(5).toString())
         .queryParam("end", OffsetDateTime.now().plusDays(5).toString())
-        .post("/api/swatch-billable-usage/internal/rpc/remittance/reset_billable_usage_remittance")
+        .put("/api/swatch-billable-usage/internal/rpc/remittance/reset_billable_usage_remittance")
         .then()
         .statusCode(HttpStatus.SC_OK);
   }
@@ -170,7 +170,7 @@ class InternalBillableUsageResourceTest {
         .queryParam("start", OffsetDateTime.now().minusDays(5).toString())
         .queryParam("end", OffsetDateTime.now().plusDays(5).toString())
         .queryParam("billing_account_ids", String.format("%s_%s_ba", ORG_ID, PRODUCT_ID))
-        .post("/api/swatch-billable-usage/internal/rpc/remittance/reset_billable_usage_remittance")
+        .put("/api/swatch-billable-usage/internal/rpc/remittance/reset_billable_usage_remittance")
         .then()
         .statusCode(HttpStatus.SC_OK);
   }
@@ -184,7 +184,7 @@ class InternalBillableUsageResourceTest {
         .queryParam("start", OffsetDateTime.now().minusDays(5).toString())
         .queryParam("end", OffsetDateTime.now().plusDays(5).toString())
         .queryParam("billing_account_ids", String.format("%s_%s_ba", ORG_ID, PRODUCT_ID))
-        .post("/api/swatch-billable-usage/internal/rpc/remittance/reset_billable_usage_remittance")
+        .put("/api/swatch-billable-usage/internal/rpc/remittance/reset_billable_usage_remittance")
         .then()
         .statusCode(HttpStatus.SC_BAD_REQUEST);
   }
