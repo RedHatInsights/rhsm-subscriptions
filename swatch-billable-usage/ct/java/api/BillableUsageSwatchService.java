@@ -84,6 +84,6 @@ public class BillableUsageSwatchService extends SwatchService {
 
   /** Flush Kafka topics using internal API. */
   public void flushBillableUsageAggregationTopic() {
-    given().post(FLUSH_ENDPOINT).then().statusCode(HttpStatus.SC_OK);
+    given().put(FLUSH_ENDPOINT).then().statusCode(HttpStatus.SC_OK);
   }
 }

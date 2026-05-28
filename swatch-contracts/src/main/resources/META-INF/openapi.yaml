@@ -449,7 +449,7 @@ paths:
         - service: [ ]
   /api/swatch-contracts/internal/rpc/subscriptions/sync:
     description: Enqueue all sync-enabled orgs to sync their subscriptions with upstream
-    post:
+    put:
       summary: Enqueue all sync-enabled orgs to sync their subscriptions with upstream
       operationId: syncAllSubscriptions
       parameters:
@@ -671,7 +671,7 @@ paths:
         required: true
         schema:
           type: string
-    post:
+    put:
       summary: Sync an offering from the upstream source.
       operationId: syncOffering
       responses:
@@ -689,7 +689,7 @@ paths:
         - service: [ ]
   /api/swatch-contracts/internal/rpc/offerings/sync:
     description: Syncs all offerings not listed in deny list from the upstream source.
-    post:
+    put:
       summary: Syncs all offerings not listed in deny list from the upstream source.
       operationId: syncAllOfferings
       responses:
@@ -713,7 +713,7 @@ paths:
         required: true
         schema:
           type: string
-    post:
+    put:
       summary: Reconcile capacity for an offering from the upstream source.
       operationId: forceReconcileOffering
       responses:

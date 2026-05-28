@@ -88,7 +88,7 @@ public class ContractsSwatchService extends SwatchService {
     Objects.requireNonNull(sku, "sku must not be null");
 
     String endpoint = String.format(OFFERING_SYNC_ENDPOINT, sku);
-    return given().headers(SECURITY_HEADERS).when().post(endpoint);
+    return given().headers(SECURITY_HEADERS).when().put(endpoint);
   }
 
   public List<com.redhat.swatch.contract.test.model.Contract> getContracts(Contract contract) {
@@ -420,7 +420,7 @@ public class ContractsSwatchService extends SwatchService {
   }
 
   public Response syncAllSubscriptions() {
-    return given().headers(SECURITY_HEADERS).when().post(SYNC_ALL_SUBSCRIPTIONS_ENDPOINT);
+    return given().headers(SECURITY_HEADERS).when().put(SYNC_ALL_SUBSCRIPTIONS_ENDPOINT);
   }
 
   public SubscriptionResponse syncUmbSubscription(Subscription subscription) {
@@ -461,7 +461,7 @@ public class ContractsSwatchService extends SwatchService {
     Objects.requireNonNull(sku, "sku must not be null");
 
     String endpoint = String.format(FORCE_RECONCILE_OFFERING_ENDPOINT, sku);
-    return given().headers(SECURITY_HEADERS).when().post(endpoint);
+    return given().headers(SECURITY_HEADERS).when().put(endpoint);
   }
 
   private List<com.redhat.swatch.contract.test.model.Contract> getContracts(

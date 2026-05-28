@@ -904,9 +904,9 @@ This section verifies the automatic contract termination behavior when contracts
 - **Note:** This endpoint **SUPPORTS multiple subscriptions** via JSON array
 
 **subscriptions-sync-TC001 - Sync all subscriptions for enabled orgs**  
-- **Description**: Verify POST /rpc/subscriptions/sync enqueues org subscriptions.  
+- **Description**: Verify PUT /rpc/subscriptions/sync enqueues org subscriptions.  
 - **Setup**: Configure sync-enabled orgs.  
-- **Action:** POST `/api/swatch-contracts/internal/rpc/subscriptions/sync`.  
+- **Action:** PUT `/api/swatch-contracts/internal/rpc/subscriptions/sync`.  
 - **Verification**: Monitor sync queue.  
 - **Expected Result:**  
   - RpcResponse with success

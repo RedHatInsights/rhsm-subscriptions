@@ -89,7 +89,7 @@ paths:
         '500':
           $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
   /api/swatch-billable-usage/internal/rpc/remittance/reset_billable_usage_remittance:
-    post:
+    put:
       description: Reset remittance_pending_value in Billable Usage Remittance table when it matches certain criteria
       summary: Update billable usage remittance records. Use org_ids to update by orgs, or billing_account_ids to update by billing accounts. Only one of these parameters should be specified at a time, do not provide both.
       operationId: resetBillableUsageRemittance
@@ -146,7 +146,7 @@ paths:
           $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
   /api/swatch-billable-usage/internal/rpc/topics/flush:
     description: Flush the billable usage aggregation topic to force publish aggregations that are stuck from low traffic.
-    post:
+    put:
       summary: Publishes messages to the billable-usage-aggregation-repartition topic for every partition in order to flush out stuck aggregations.
       operationId: flushBillableUsageAggregationTopic
       responses:
