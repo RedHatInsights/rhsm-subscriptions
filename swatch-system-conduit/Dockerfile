@@ -25,7 +25,7 @@ RUN mvn --no-transfer-progress -U -s /tmp/maven-settings.xml ${MAVEN_TASKS} -pl 
 RUN (cd /stage/swatch-system-conduit && exec jar -xf ./target/*.jar)
 RUN ls -al /stage/swatch-system-conduit
 
-FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:1.24-2.1779229707
+FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:1.24-2.1779791372
 
 ARG VERSION=1.0.0
 
