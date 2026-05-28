@@ -2,7 +2,7 @@
 version: '3.8'
 services:
   artemis:
-    image: quay.io/redhat-services-prod/rh-subs-watch-tenant/artemis
+    image: quay.io/redhat-services-prod/rh-subs-watch-tenant/artemis:latest
     container_name: artemis
     ports:
       - "61616:61616"  # core messaging (TCP)
