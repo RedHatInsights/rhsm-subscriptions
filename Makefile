@@ -14,6 +14,7 @@ SHELL=/bin/bash
 	component-test \
 	build \
 	format \
+	check \
 	install \
 	test \
 	clean \
@@ -99,7 +100,18 @@ endef
 default: format install
 
 format:
-	$(MVN) spotless:apply -Pbuild -Pcomponent-tests
+	@echo "Running spotless:apply..."
+	@$(MVN) spotless:apply -Pbuild -Pcomponent-tests
+
+# Checkstyle violations are logged at Maven INFO level, so -q hides them.  Instead, we write a
+# plain-text report and display it only when violations are found.
+check: format
+	@echo "Running checkstyle..."
+	@$(MVN) checkstyle:check -Pbuild -Pcomponent-tests \
+		-Dcheckstyle.output.format=plain \
+		-Dcheckstyle.output.file=target/checkstyle-result.txt \
+		>/dev/null \
+	|| { cat target/checkstyle-result.txt; exit 1; }
 
 clean:
 	$(MVN) clean
