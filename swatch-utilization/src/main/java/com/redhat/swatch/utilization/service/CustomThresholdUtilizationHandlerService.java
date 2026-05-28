@@ -20,7 +20,9 @@
  */
 package com.redhat.swatch.utilization.service;
 
+import com.redhat.cloud.notifications.ingress.Context;
 import com.redhat.cloud.notifications.ingress.Event;
+import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.utilization.model.Measurement;
 import com.redhat.swatch.utilization.model.Severity;
 import com.redhat.swatch.utilization.model.UtilizationSummary;
@@ -37,6 +39,7 @@ public class CustomThresholdUtilizationHandlerService
     extends BaseThresholdUtilizationHandlerService {
 
   public static final String CUSTOM_THRESHOLD_METRIC = "swatch_utilization_custom_threshold";
+  public static final String PREFERENCES_HASH = "preferences_hash";
 
   static final String EVENT_TYPE = "exceeded-custom-utilization-threshold";
 
@@ -77,8 +80,10 @@ public class CustomThresholdUtilizationHandlerService
           String.format(PERCENT_FORMAT, utilizationPercent),
           threshold);
       var event = buildEvent(utilizationPercent);
-      String lastModifiedHash = hashLastModified(preference.getLastModified().toInstant());
-      event.getPayload().getAdditionalProperties().put("last_modified_hash", lastModifiedHash);
+      event
+          .getMetadata()
+          .getAdditionalProperties()
+          .put(LAST_MODIFIED_HASH, hashLastModified(preference.getLastModified().toInstant()));
       return Optional.of(event);
     }
 
@@ -98,6 +103,15 @@ public class CustomThresholdUtilizationHandlerService
   @Override
   protected String metricName() {
     return CUSTOM_THRESHOLD_METRIC;
+  }
+
+  @Override
+  protected void addAdditionalContextProperties(
+      Context.ContextBuilder builder, UtilizationSummary payload, MetricId metricId, Event event) {
+    String hash = (String) event.getMetadata().getAdditionalProperties().get(LAST_MODIFIED_HASH);
+    if (hash != null) {
+      builder.withAdditionalProperty(LAST_MODIFIED_HASH, hash);
+    }
   }
 
   static String hashLastModified(Instant lastModified) {

@@ -165,17 +165,18 @@ public abstract class BaseThresholdUtilizationHandlerService implements Utilizat
     action.setTimestamp(LocalDateTime.now());
     action.setId(UUID.randomUUID());
     action.setEvents(List.of(event));
-    action.setContext(buildContext(payload, metricId));
+    action.setContext(buildContext(payload, metricId, event));
     action.setRecipients(List.of(buildRecipient()));
     action.setSeverity(severity.name());
     return action;
   }
 
-  private Context buildContext(UtilizationSummary payload, MetricId metricId) {
-    var builder =
-        new Context.ContextBuilder()
-            .withAdditionalProperty("product_id", payload.getProductId())
-            .withAdditionalProperty("metric_id", metricId.getValue());
+  private Context buildContext(UtilizationSummary payload, MetricId metricId, Event event) {
+    Context.ContextBuilder builder =
+        (Context.ContextBuilder)
+            new Context.ContextBuilder()
+                .withAdditionalProperty("product_id", payload.getProductId())
+                .withAdditionalProperty("metric_id", metricId.getValue());
 
     if (isServiceLevelSet(payload.getSla())) {
       builder.withAdditionalProperty("service_level", payload.getSla().value());
@@ -183,8 +184,18 @@ public abstract class BaseThresholdUtilizationHandlerService implements Utilizat
     if (isUsageSet(payload.getUsage())) {
       builder.withAdditionalProperty("usage", payload.getUsage().value());
     }
+    if (payload.getBillingAccountId() != null && !payload.getBillingAccountId().isEmpty()) {
+      builder.withAdditionalProperty("billing_account_id", payload.getBillingAccountId());
+    }
+
+    addAdditionalContextProperties(builder, payload, metricId, event);
 
     return builder.build();
+  }
+
+  protected void addAdditionalContextProperties(
+      Context.ContextBuilder builder, UtilizationSummary payload, MetricId metricId, Event event) {
+    // Default: no additional properties
   }
 
   protected void sendNotification(
