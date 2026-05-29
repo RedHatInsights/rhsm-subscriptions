@@ -56,6 +56,7 @@ class OrgUtilizationPreferenceRepositoryTest {
     entity.setOrgId(orgId);
     entity.setCustomThreshold(thresholdPercent);
     repository.persist(entity);
+    repository.flush();
   }
 
   private void thenPreferenceIsFound(String orgId, int thresholdPercent) {
@@ -63,6 +64,6 @@ class OrgUtilizationPreferenceRepositoryTest {
     assertTrue(found.isPresent());
     assertEquals(orgId, found.get().getOrgId());
     assertEquals(thresholdPercent, found.get().getCustomThreshold());
-    assertNotNull(found.get().getLastUpdated());
+    assertNotNull(found.get().getLastModified());
   }
 }

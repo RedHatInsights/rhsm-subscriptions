@@ -130,7 +130,7 @@ parameters:
   - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/org_utilization_preference
     query: >-
       select * from org_utilization_preference
-      where last_updated >= date_trunc('day', now() at time zone 'utc' - interval '2 day')
+      where last_modified >= date_trunc('day', now() at time zone 'utc' - interval '2 day')
     chunksize: 50000
 
 objects:

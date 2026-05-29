@@ -20,26 +20,28 @@
  */
 package com.redhat.swatch.utilization.data;
 
+import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import java.io.Serializable;
+import jakarta.persistence.MappedSuperclass;
+import java.time.Instant;
 import lombok.Getter;
-import lombok.Setter;
+import org.hibernate.annotations.CurrentTimestamp;
+import org.hibernate.annotations.SourceType;
 
+/**
+ * A MappedSuperclass to hold the information for a last_modified column. This column is used to
+ * limit the number of rows fetched when we do data exports to the data warehouse.
+ *
+ * <p>Hibernate will populate the value for this column using a RETURNING clause which eliminates an
+ * extra round trip to the database. See <a
+ * href="https://in.relation.to/2024/04/19/generated-values/">here</a>
+ */
 @Getter
-@Setter
-@Entity
-@Table(name = "org_utilization_preference")
-public class OrgUtilizationPreferenceEntity extends ModificationTrackedEntity
-    implements Serializable {
+@MappedSuperclass
+public abstract class ModificationTrackedEntity extends PanacheEntityBase {
 
-  @Id
-  @Column(name = "org_id", nullable = false, length = 32)
-  private String orgId;
-
-  /** Over-usage threshold margin as a whole-number percentage (e.g. 5 means 5%). */
-  @Column(name = "custom_threshold", nullable = false)
-  private int customThreshold;
+  // Do not include in equals() as this doesn't affect logical equality
+  @Column(name = "last_modified")
+  @CurrentTimestamp(source = SourceType.DB)
+  private Instant lastModified = null;
 }

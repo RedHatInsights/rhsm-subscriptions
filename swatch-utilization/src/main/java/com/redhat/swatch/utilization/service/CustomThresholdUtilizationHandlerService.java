@@ -27,7 +27,7 @@ import com.redhat.swatch.utilization.model.Severity;
 import com.redhat.swatch.utilization.model.UtilizationSummary;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -68,7 +68,7 @@ public class CustomThresholdUtilizationHandlerService
           String.format(PERCENT_FORMAT, utilizationPercent),
           threshold);
       var event = buildEvent(utilizationPercent);
-      String lastUpdatedHash = hashLastUpdated(preference.getLastUpdated());
+      String lastUpdatedHash = hashLastModified(preference.getLastModified());
       event.getPayload().getAdditionalProperties().put("last_updated_hash", lastUpdatedHash);
       return Optional.of(event);
     }
@@ -91,7 +91,7 @@ public class CustomThresholdUtilizationHandlerService
     return CUSTOM_THRESHOLD_METRIC;
   }
 
-  static String hashLastUpdated(OffsetDateTime lastUpdated) {
-    return DigestUtils.sha256Hex(lastUpdated.toString());
+  static String hashLastModified(Instant lastModified) {
+    return DigestUtils.sha256Hex(lastModified.toString());
   }
 }
