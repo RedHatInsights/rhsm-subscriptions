@@ -705,7 +705,7 @@ objects:
                 value: ${OTEL_ENV_NAME}
               - name: K8S_CLUSTER_NAME
                 value: ${OTEL_K8S_CLUSTER_NAME}
-              - name: SPLUNK_OBSERVABILITY_ACCESS_TOKEN
+              - name: TRACES_ACCESS_TOKEN
                 valueFrom:
                   secretKeyRef:
                     name: ${OTEL_TRACES_TOKEN_SECRET_NAME}
