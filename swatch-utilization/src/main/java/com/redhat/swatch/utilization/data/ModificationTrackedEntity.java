@@ -29,7 +29,7 @@ import org.hibernate.annotations.CurrentTimestamp;
 import org.hibernate.annotations.SourceType;
 
 /**
- * A MappedSuperclass to hold the information for a last_modified column. This column is used to
+ * A MappedSuperclass to hold the information for a last_updated column. This column is used to
  * limit the number of rows fetched when we do data exports to the data warehouse.
  *
  * <p>Hibernate will populate the value for this column using a RETURNING clause which eliminates an
@@ -41,7 +41,7 @@ import org.hibernate.annotations.SourceType;
 public abstract class ModificationTrackedEntity extends PanacheEntityBase {
 
   // Do not include in equals() as this doesn't affect logical equality
-  @Column(name = "last_modified")
+  @Column(name = "last_updated")
   @CurrentTimestamp(source = SourceType.DB)
-  private Instant lastModified = null;
+  private Instant lastUpdated = null;
 }

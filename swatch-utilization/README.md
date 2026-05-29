@@ -84,7 +84,7 @@ over-usage alerts.
 **Organization-level preferences (database)**: The service uses the shared Subscription Watch
 PostgreSQL database (via Clowder) with table `org_utilization_preference`. Each row
 stores optional per-organization settings: `org_id` (primary key), `custom_threshold` (integer
-percentage points, e.g. 5 for 5%), and `last_modified`. Schema is owned by Liquibase;
+percentage points, e.g. 5 for 5%), and `last_updated`. Schema is owned by Liquibase;
 the `OrgUtilizationPreferenceRepository` exposes persistence through Hibernate Panache.
 `CustomThresholdUtilizationHandlerService` reads org preferences to evaluate the custom
 threshold path.

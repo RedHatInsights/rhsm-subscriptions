@@ -64,6 +64,6 @@ class OrgUtilizationPreferenceRepositoryTest {
     assertTrue(found.isPresent());
     assertEquals(orgId, found.get().getOrgId());
     assertEquals(thresholdPercent, found.get().getCustomThreshold());
-    assertNotNull(found.get().getLastModified());
+    assertNotNull(found.get().getLastUpdated());
   }
 }
