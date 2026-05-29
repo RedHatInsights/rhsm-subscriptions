@@ -46,7 +46,7 @@ public class RhsmSplunkHecEventHeaderSerializer implements EventHeaderSerializer
      * at a point in the startup lifecycle where putting it into a @Bean configurable via
      * application properties wasn't a straightforward solution.
      */
-    fields.put("namespace", System.getenv("SPLUNKMETA_namespace"));
+    fields.put("namespace", System.getenv("LOGGING_NAMESPACE"));
 
     return metadata;
   }
