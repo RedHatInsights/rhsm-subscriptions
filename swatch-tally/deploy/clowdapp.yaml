@@ -714,8 +714,6 @@ objects:
                 value: ${OTEL_SIDECAR_TRACES_CONFIG}
               - name: TRACES_MEMORY_TOTAL_MIB
                 value: '1024'
-              - name: SPLUNK_MEMORY_TOTAL_MIB
-                value: $(TRACES_MEMORY_TOTAL_MIB)
               - name: LOGGING_HEC_URL
                 value: ${LOGGING_HEC_URL}
               - name: LOGGING_HEC_TOKEN
