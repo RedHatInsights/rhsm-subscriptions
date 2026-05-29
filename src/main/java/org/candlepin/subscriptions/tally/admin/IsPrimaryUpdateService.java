@@ -25,6 +25,7 @@ import io.micrometer.core.annotation.Timed;
 import java.time.OffsetDateTime;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.db.HostTallyBucketRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
@@ -39,7 +40,8 @@ import org.springframework.transaction.annotation.Transactional;
 @AllArgsConstructor
 public class IsPrimaryUpdateService {
 
-  private final TallySnapshotRepository repository;
+  private final TallySnapshotRepository snapshotRepository;
+  private final HostTallyBucketRepository bucketRepository;
 
   /**
    * Set is_primary=true for appropriate rows based on product's PAYG eligibility (asynchronous).
@@ -49,7 +51,7 @@ public class IsPrimaryUpdateService {
    * @param startDate Start date (required, inclusive)
    * @param endDate End date (required, exclusive)
    */
-  @Async("updatePrimaryTallySnapshotsTaskExecutor")
+  @Async("updatePrimaryTaskExecutor")
   @Timed("rhsm-subscriptions.snapshots.is-primary-update.async")
   public void updateIsPrimaryAsync(
       String orgId, String productId, OffsetDateTime startDate, OffsetDateTime endDate) {
@@ -99,7 +101,7 @@ public class IsPrimaryUpdateService {
 
     int rowsUpdated =
         isPayg
-            ? repository.setIsPrimaryForPayg(
+            ? snapshotRepository.setIsPrimaryForPayg(
                 orgId,
                 productId,
                 startDate,
@@ -107,7 +109,7 @@ public class IsPrimaryUpdateService {
                 ServiceLevel._ANY,
                 Usage._ANY,
                 BillingProvider._ANY)
-            : repository.setIsPrimaryForNonPayg(
+            : snapshotRepository.setIsPrimaryForNonPayg(
                 orgId,
                 productId,
                 startDate,
@@ -124,6 +126,53 @@ public class IsPrimaryUpdateService {
         isPayg,
         startDate,
         endDate);
+
+    return rowsUpdated;
+  }
+
+  @Async("updatePrimaryTaskExecutor")
+  @Timed("rhsm-subscriptions.host-tally-buckets.is-primary-update.async")
+  public void updateHostTallyBucketsIsPrimaryAsync(String orgId, String productId) {
+    try {
+      updateHostTallyBucketsIsPrimary(orgId, productId);
+    } catch (Exception e) {
+      log.error(
+          "Failed to update is_primary asynchronously for org={}, product={}: {}",
+          orgId != null ? orgId : "ALL",
+          productId,
+          e.getMessage(),
+          e);
+    }
+  }
+
+  @Transactional
+  @Timed("rhsm-subscriptions.host-tally-buckets.is-primary-update.sync")
+  public int updateHostTallyBucketsIsPrimarySync(String orgId, String productId) {
+    return updateHostTallyBucketsIsPrimary(orgId, productId);
+  }
+
+  private int updateHostTallyBucketsIsPrimary(String orgId, String productId) {
+    log.info(
+        "Updating is_primary for org={}, product={}", orgId != null ? orgId : "ALL", productId);
+
+    boolean isPayg =
+        SubscriptionDefinition.lookupSubscriptionByTag(productId)
+            .map(SubscriptionDefinition::isPaygEligible)
+            .orElse(false);
+
+    int rowsUpdated =
+        isPayg
+            ? bucketRepository.setIsPrimaryForPayg(
+                orgId, productId, ServiceLevel._ANY, Usage._ANY, BillingProvider._ANY)
+            : bucketRepository.setIsPrimaryForNonPayg(
+                orgId, productId, ServiceLevel._ANY, Usage._ANY, BillingProvider._ANY);
+
+    log.info(
+        "Updated is_primary=true for {} rows (org={}, product={}, payg={})",
+        rowsUpdated,
+        orgId != null ? orgId : "ALL",
+        productId,
+        isPayg);
 
     return rowsUpdated;
   }

@@ -354,6 +354,109 @@ class InternalTallyResourceTest {
     verify(isPrimaryUpdateService).updateIsPrimaryAsync(ORG_ID, productId, startDate, endDate);
   }
 
+  @Test
+  void testUpdateHostTallyBucketIsPrimaryAsyncWithValidProduct() {
+    String productId = "rosa";
+
+    var response = resource.updateHostTallyBucketsIsPrimary(productId, ORG_ID, false);
+
+    verify(isPrimaryUpdateService).updateHostTallyBucketsIsPrimaryAsync(ORG_ID, productId);
+    assertEquals("Accepted", response.getStatus(), "Async request should return Accepted status");
+  }
+
+  @Test
+  void testUpdateHostTallyBucketIsPrimaryAsyncWithNullOrgId() {
+    String productId = "rosa";
+
+    var response = resource.updateHostTallyBucketsIsPrimary(productId, null, false);
+
+    verify(isPrimaryUpdateService).updateHostTallyBucketsIsPrimaryAsync(null, productId);
+    assertEquals("Accepted", response.getStatus(), "Async request should return Accepted status");
+  }
+
+  @Test
+  void testUpdateHostTallyBucketIsPrimaryAsyncWithNullSyncFlag() {
+    String productId = "rosa";
+
+    var response = resource.updateHostTallyBucketsIsPrimary(productId, ORG_ID, null);
+
+    verify(isPrimaryUpdateService).updateHostTallyBucketsIsPrimaryAsync(ORG_ID, productId);
+    assertEquals("Accepted", response.getStatus(), "Null sync flag should default to async");
+  }
+
+  @Test
+  void testUpdateHostTallyBucketIsPrimarySyncWithValidProduct() {
+    String productId = "rosa";
+    var expectedRowsUpdated = 150;
+    when(isPrimaryUpdateService.updateHostTallyBucketsIsPrimarySync(ORG_ID, productId))
+        .thenReturn(expectedRowsUpdated);
+
+    var response = resource.updateHostTallyBucketsIsPrimary(productId, ORG_ID, true);
+
+    verify(isPrimaryUpdateService).updateHostTallyBucketsIsPrimarySync(ORG_ID, productId);
+    assertEquals(expectedRowsUpdated + " rows updated", response.getStatus());
+  }
+
+  @Test
+  void testUpdateHostTallyBucketIsPrimarySyncWithNullOrgId() {
+    String productId = "rosa";
+    var expectedRowsUpdated = 150;
+    when(isPrimaryUpdateService.updateHostTallyBucketsIsPrimarySync(null, productId))
+        .thenReturn(expectedRowsUpdated);
+
+    var response = resource.updateHostTallyBucketsIsPrimary(productId, null, true);
+
+    verify(isPrimaryUpdateService).updateHostTallyBucketsIsPrimarySync(null, productId);
+    assertEquals(expectedRowsUpdated + " rows updated", response.getStatus());
+  }
+
+  @Test
+  void testUpdateHostTallyBucketIsPrimaryAsyncTaskRejected() {
+    String productId = "rosa";
+    doThrow(new org.springframework.core.task.TaskRejectedException("Queue full"))
+        .when(isPrimaryUpdateService)
+        .updateHostTallyBucketsIsPrimaryAsync(ORG_ID, productId);
+
+    var response = resource.updateHostTallyBucketsIsPrimary(productId, ORG_ID, false);
+
+    verify(isPrimaryUpdateService).updateHostTallyBucketsIsPrimaryAsync(ORG_ID, productId);
+    assertEquals("Rejected", response.getStatus());
+  }
+
+  @Test
+  void testUpdateHostTallyBucketIsPrimarySyncThrowsException() {
+    // Given: Database error occurs during sync update
+    String productId = "rosa";
+
+    when(isPrimaryUpdateService.updateHostTallyBucketsIsPrimarySync(ORG_ID, productId))
+        .thenThrow(new RuntimeException("Database error"));
+
+    assertThrows(
+        RuntimeException.class,
+        () -> resource.updateHostTallyBucketsIsPrimary(productId, ORG_ID, true),
+        "Sync mode error");
+
+    verify(isPrimaryUpdateService).updateHostTallyBucketsIsPrimarySync(ORG_ID, productId);
+  }
+
+  @Test
+  void testUpdateHostTallyBucketIsPrimaryAsyncThrowsNonTaskRejectedException() {
+    // Given: Unexpected error occurs in async mode
+    String productId = "rosa";
+
+    doThrow(new RuntimeException("Unexpected error"))
+        .when(isPrimaryUpdateService)
+        .updateHostTallyBucketsIsPrimaryAsync(ORG_ID, productId);
+
+    // When/Then: Should propagate non-TaskRejectedException
+    assertThrows(
+        RuntimeException.class,
+        () -> resource.updateHostTallyBucketsIsPrimary(productId, ORG_ID, false),
+        "Async mode errors");
+
+    verify(isPrimaryUpdateService).updateHostTallyBucketsIsPrimaryAsync(ORG_ID, productId);
+  }
+
   ObjectMapper objectMapper(ApplicationProperties applicationProperties) {
     ObjectMapper objectMapper = new ObjectMapper();
     objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);

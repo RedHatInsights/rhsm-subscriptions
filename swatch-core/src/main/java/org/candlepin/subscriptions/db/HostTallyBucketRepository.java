@@ -26,14 +26,21 @@ import static org.hibernate.jpa.AvailableHints.HINT_READ_ONLY;
 import jakarta.persistence.QueryHint;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.AccountBucketTally;
+import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.HostBucketKey;
 import org.candlepin.subscriptions.db.model.HostTallyBucket;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Usage;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.QueryHints;
-import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 public interface HostTallyBucketRepository
-    extends CrudRepository<HostTallyBucket, HostBucketKey>, EntityManagerLookup {
+    extends JpaRepository<HostTallyBucket, HostBucketKey>, EntityManagerLookup {
 
   @Query(
       """
@@ -51,4 +58,54 @@ public interface HostTallyBucketRepository
         @QueryHint(name = HINT_READ_ONLY, value = "true")
       })
   Stream<AccountBucketTally> tallyHostBuckets(String orgId, String instanceType);
+
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  @Modifying
+  @Query(
+      """
+    UPDATE HostTallyBucket b
+    SET b.isPrimary = true
+    WHERE b.key.productId = :productId
+      AND EXISTS (
+        SELECT 1 FROM Host h
+        WHERE h.id = b.key.hostId
+          AND COALESCE(:orgId, h.orgId) = h.orgId
+      )
+      AND b.key.sla <> :anyServiceLevel
+      AND b.key.usage <> :anyUsage
+      AND b.key.billingProvider <> :anyBillingProvider
+      AND b.key.billingAccountId <> '_ANY'
+      AND b.isPrimary = false
+  """)
+  int setIsPrimaryForPayg(
+      @Param("orgId") String orgId,
+      @Param("productId") String productId,
+      @Param("anyServiceLevel") ServiceLevel anyServiceLevel,
+      @Param("anyUsage") Usage anyUsage,
+      @Param("anyBillingProvider") BillingProvider anyBillingProvider);
+
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  @Modifying
+  @Query(
+      """
+    UPDATE HostTallyBucket b
+    SET b.isPrimary = true
+    WHERE b.key.productId = :productId
+      AND EXISTS (
+        SELECT 1 FROM Host h
+        WHERE h.id = b.key.hostId
+          AND COALESCE(:orgId, h.orgId) = h.orgId
+      )
+      AND b.key.sla <> :anyServiceLevel
+      AND b.key.usage <> :anyUsage
+      AND b.key.billingProvider = :anyBillingProvider
+      AND b.key.billingAccountId = '_ANY'
+      AND b.isPrimary = false
+  """)
+  int setIsPrimaryForNonPayg(
+      @Param("orgId") String orgId,
+      @Param("productId") String productId,
+      @Param("anyServiceLevel") ServiceLevel anyServiceLevel,
+      @Param("anyUsage") Usage anyUsage,
+      @Param("anyBillingProvider") BillingProvider anyBillingProvider);
 }

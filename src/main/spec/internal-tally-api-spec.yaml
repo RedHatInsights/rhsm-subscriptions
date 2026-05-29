@@ -366,6 +366,46 @@ paths:
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags: [internalTally]
+  /v1/internal/rpc/instances/is-primary:
+    description: 'Update is_primary column for host_tally_buckets by product.'
+    post:
+      operationId: updateHostTallyBucketsIsPrimary
+      summary: "Batch update is_primary column for host_tally_buckets"
+      parameters:
+      - name: product_id
+        in: query
+        required: true
+        schema:
+          type: string
+        description: "The product ID to update (e.g. 'rosa')"
+      - name: org_id
+        in: query
+        required: false
+        schema:
+          type: string
+        description: "org Id (optional, processes all orgs if not specified)"
+      - name: x-rh-swatch-synchronous-request
+        in: header
+        required: false
+        schema:
+          type: boolean
+          default: "false"
+        description: "When true, the request is processed synchronously and waits for completion."
+      responses:
+        '202':
+          description: "The request to update is_primary was accepted and will be processed asynchronously."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DefaultResponse"
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags: [internalTally]
+
   /v1/internal/rpc/tally/is-primary:
     description: 'Update is_primary column for tally snapshots by product and date range.'
     post:
@@ -377,7 +417,7 @@ paths:
           required: true
           schema:
             type: string
-          description: "The product ID to update (e.g.'rosa')"
+          description: "The product ID to update (e.g. 'rosa')"
         - name: start_date
           in: query
           required: true
@@ -471,7 +511,7 @@ components:
         UUID string:
         ```
         c9a98753-2092-4617-b226-5c2653330b3d
-        ``` 
+        ```
 
 security:
   - PskIdentity: []

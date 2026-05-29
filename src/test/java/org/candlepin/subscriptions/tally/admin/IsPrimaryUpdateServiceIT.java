@@ -22,14 +22,26 @@ package org.candlepin.subscriptions.tally.admin;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.google.common.collect.Sets;
 import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
+import org.candlepin.subscriptions.db.HostRepository;
+import org.candlepin.subscriptions.db.HostTallyBucketRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
+import org.candlepin.subscriptions.db.model.AccountServiceInventory;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.db.model.Host;
+import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -46,726 +58,831 @@ class IsPrimaryUpdateServiceIT {
   private static final OffsetDateTime IN_RANGE_DATE = OffsetDateTime.parse("2026-01-15T00:00:00Z");
 
   @Autowired private TallySnapshotRepository repository;
+  @Autowired private HostTallyBucketRepository htbRepository;
+  @Autowired private HostRepository hostRepository;
+  @Autowired private AccountServiceInventoryRepository accountServiceRepository;
   @Autowired private IsPrimaryUpdateService service;
-
-  @Test
-  void testUpdateIsPrimaryForPaygProduct() {
-    // Given: Realistic PAYG scenario matching data patterns
-    String orgId = randomOrgId();
-    createPaygSnapshotTestData(orgId);
-
-    // When: Updating is_primary for PAYG product for time range
-    int rowsUpdated = service.updateIsPrimarySync(orgId, PRODUCT_PAYG, START_DATE, END_DATE);
-
-    // Then:
-    assertEquals(
-        4,
-        rowsUpdated,
-        "Should update 4 PAYG rows with non-_ANY sla, usage, billing_provider, and billing_account_id");
-  }
-
-  @Test
-  void testUpdateIsPrimaryForNonPaygProduct() {
-    // Given: Standard non-PAYG scenario with 8 rows
-    String orgId = randomOrgId();
-    createNonPaygSnapshotTestData(orgId);
-
-    // When: Updating is_primary for non-PAYG product
-    int rowsUpdated = service.updateIsPrimarySync(orgId, PRODUCT_NON_PAYG, START_DATE, END_DATE);
-
-    // Then: Only 4 non-PAYG rows with non-_ANY sla and usage should be updated
-    assertEquals(4, rowsUpdated, "Should update 4 non-PAYG rows with non-_ANY sla and usage");
-  }
-
-  @Test
-  void testUpdateIsPrimaryDateRangeFiltering() {
-    // Given: Rows with different snapshot dates
-    String orgId = randomOrgId();
-    createPaygSnapshotWithDate(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel.PREMIUM,
-        Usage.PRODUCTION,
-        OffsetDateTime.parse("2025-12-31T23:59:59Z")); // Before range
-    createPaygSnapshotWithDate(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel.PREMIUM,
-        Usage.PRODUCTION,
-        OffsetDateTime.parse("2026-01-01T00:00:00Z")); // Start of range (inclusive)
-    createPaygSnapshotWithDate(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel.PREMIUM,
-        Usage.PRODUCTION,
-        OffsetDateTime.parse("2026-01-15T12:00:00Z")); // Middle of range
-    createPaygSnapshotWithDate(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel.PREMIUM,
-        Usage.PRODUCTION,
-        OffsetDateTime.parse("2026-02-01T00:00:00Z")); // End of range (exclusive)
-    createPaygSnapshotWithDate(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel.PREMIUM,
-        Usage.PRODUCTION,
-        OffsetDateTime.parse("2026-02-01T00:00:01Z")); // After range
-
-    // When: Updating for date range
-    int rowsUpdated = service.updateIsPrimarySync(orgId, PRODUCT_PAYG, START_DATE, END_DATE);
-
-    // Then: Should only update rows within [START_DATE, END_DATE)
-    assertEquals(
-        2, rowsUpdated, "Should update 2 rows: start boundary (inclusive) and middle of range");
-  }
-
-  @Test
-  void testUpdateIsPrimaryMixedScenarioPaygAndNonPayg() {
-    // Given: Both PAYG and non-PAYG scenarios in same org
-    String orgId = randomOrgId();
-
-    // Setup PAYG scenario (8 rows, 3 should update)
-    createPaygSnapshot(orgId, PRODUCT_PAYG, ServiceLevel.PREMIUM, Usage.PRODUCTION);
-    createPaygSnapshot(orgId, PRODUCT_PAYG, ServiceLevel.STANDARD, Usage.DEVELOPMENT_TEST);
-    createPaygSnapshot(orgId, PRODUCT_PAYG, ServiceLevel._ANY, Usage.PRODUCTION);
-    createPaygSnapshot(orgId, PRODUCT_PAYG, ServiceLevel.PREMIUM, Usage._ANY);
-    createPaygSnapshot(orgId, PRODUCT_PAYG, ServiceLevel._ANY, Usage._ANY);
-    createNonPaygSnapshot(orgId, PRODUCT_PAYG, ServiceLevel.PREMIUM, Usage.PRODUCTION);
-
-    // Setup non-PAYG scenario (8 rows, 3 should update)
-    createNonPaygSnapshot(orgId, PRODUCT_NON_PAYG, ServiceLevel.PREMIUM, Usage.PRODUCTION);
-    createNonPaygSnapshot(orgId, PRODUCT_NON_PAYG, ServiceLevel.STANDARD, Usage.DEVELOPMENT_TEST);
-    createNonPaygSnapshot(orgId, PRODUCT_NON_PAYG, ServiceLevel._ANY, Usage.PRODUCTION);
-    createNonPaygSnapshot(orgId, PRODUCT_NON_PAYG, ServiceLevel.PREMIUM, Usage._ANY);
-    createNonPaygSnapshot(orgId, PRODUCT_NON_PAYG, ServiceLevel._ANY, Usage._ANY);
-    createPaygSnapshot(orgId, PRODUCT_NON_PAYG, ServiceLevel.PREMIUM, Usage.PRODUCTION);
-
-    // When: Updating PAYG product
-    int paygRowsUpdated = service.updateIsPrimarySync(orgId, PRODUCT_PAYG, START_DATE, END_DATE);
-    assertEquals(2, paygRowsUpdated, "PAYG product should update 2 PAYG rows");
-  }
-
-  @Test
-  void testUpdateIsPrimaryForUnknownProduct() {
-    // Given: Unknown product defaults to non-PAYG behavior
-    String orgId = randomOrgId();
-    createNonPaygSnapshot(
-        orgId, "unknown-product", ServiceLevel.PREMIUM, Usage.PRODUCTION); // Should update
-    createPaygSnapshot(
-        orgId, "unknown-product", ServiceLevel.PREMIUM, Usage.PRODUCTION); // Should NOT
-
-    // When: Updating unknown product (defaults to non-PAYG)
-    int rowsUpdated = service.updateIsPrimarySync(orgId, "unknown-product", START_DATE, END_DATE);
-
-    // Then: Should update non-PAYG rows only
-    assertEquals(1, rowsUpdated, "Unknown product should default to non-PAYG and update 1 row");
-  }
 
   // Setup methods for common test scenarios
   private String randomOrgId() {
     return "org-" + UUID.randomUUID().toString().substring(0, 8);
   }
 
-  /**
-   * Creates realistic PAYG test data matching patterns: 48 rows total - 24 DAILY rows (only 2
-   * should be updated) - 24 HOURLY rows (only 2 should be updated)
-   *
-   * <p>Rows that should be updated have ALL non-_ANY values for: sla, usage, billing_provider, and
-   * billing_account_id
-   */
-  private void createPaygSnapshotTestData(String orgId) {
-    OffsetDateTime snapshotDate = IN_RANGE_DATE;
+  @Nested
+  class TallySnapshotsIsPrimaryTests {
+    @Test
+    void testUpdateIsPrimaryForPaygProduct() {
+      // Given: Realistic PAYG scenario matching data patterns
+      String orgId = randomOrgId();
+      createPaygSnapshotTestData(orgId);
 
-    // DAILY rows - First 2 should be updated, rest should NOT
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel.PREMIUM,
-        Usage.PRODUCTION,
-        BillingProvider.AWS,
-        "521760247103",
-        snapshotDate,
-        Granularity.DAILY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel.PREMIUM,
-        Usage.PRODUCTION,
-        BillingProvider.AWS,
-        "117622437410",
-        snapshotDate,
-        Granularity.DAILY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel.PREMIUM,
-        Usage._ANY,
-        BillingProvider._ANY,
-        "117622437410",
-        snapshotDate,
-        Granularity.DAILY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel.PREMIUM,
-        Usage._ANY,
-        BillingProvider.AWS,
-        "521760247103",
-        snapshotDate,
-        Granularity.DAILY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel._ANY,
-        Usage.PRODUCTION,
-        BillingProvider._ANY,
-        "521760247103",
-        snapshotDate,
-        Granularity.DAILY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel._ANY,
-        Usage._ANY,
-        BillingProvider._ANY,
-        "521760247103",
-        snapshotDate,
-        Granularity.DAILY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel._ANY,
-        Usage.PRODUCTION,
-        BillingProvider.AWS,
-        "_ANY",
-        snapshotDate,
-        Granularity.DAILY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel.PREMIUM,
-        Usage.PRODUCTION,
-        BillingProvider.AWS,
-        "_ANY",
-        snapshotDate,
-        Granularity.DAILY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel._ANY,
-        Usage.PRODUCTION,
-        BillingProvider.AWS,
-        "117622437410",
-        snapshotDate,
-        Granularity.DAILY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel._ANY,
-        Usage._ANY,
-        BillingProvider.AWS,
-        "521760247103",
-        snapshotDate,
-        Granularity.DAILY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel._ANY,
-        Usage._ANY,
-        BillingProvider.AWS,
-        "_ANY",
-        snapshotDate,
-        Granularity.DAILY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel.PREMIUM,
-        Usage._ANY,
-        BillingProvider.AWS,
-        "_ANY",
-        snapshotDate,
-        Granularity.DAILY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel._ANY,
-        Usage._ANY,
-        BillingProvider._ANY,
-        "117622437410",
-        snapshotDate,
-        Granularity.DAILY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel._ANY,
-        Usage.PRODUCTION,
-        BillingProvider.AWS,
-        "521760247103",
-        snapshotDate,
-        Granularity.DAILY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel.PREMIUM,
-        Usage._ANY,
-        BillingProvider._ANY,
-        "521760247103",
-        snapshotDate,
-        Granularity.DAILY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel.PREMIUM,
-        Usage._ANY,
-        BillingProvider.AWS,
-        "117622437410",
-        snapshotDate,
-        Granularity.DAILY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel.PREMIUM,
-        Usage._ANY,
-        BillingProvider._ANY,
-        "_ANY",
-        snapshotDate,
-        Granularity.DAILY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel.PREMIUM,
-        Usage.PRODUCTION,
-        BillingProvider._ANY,
-        "_ANY",
-        snapshotDate,
-        Granularity.DAILY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel._ANY,
-        Usage.PRODUCTION,
-        BillingProvider._ANY,
-        "_ANY",
-        snapshotDate,
-        Granularity.DAILY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel.PREMIUM,
-        Usage.PRODUCTION,
-        BillingProvider._ANY,
-        "117622437410",
-        snapshotDate,
-        Granularity.DAILY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel._ANY,
-        Usage._ANY,
-        BillingProvider._ANY,
-        "_ANY",
-        snapshotDate,
-        Granularity.DAILY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel.PREMIUM,
-        Usage.PRODUCTION,
-        BillingProvider._ANY,
-        "521760247103",
-        snapshotDate,
-        Granularity.DAILY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel._ANY,
-        Usage.PRODUCTION,
-        BillingProvider._ANY,
-        "117622437410",
-        snapshotDate,
-        Granularity.DAILY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel._ANY,
-        Usage._ANY,
-        BillingProvider.AWS,
-        "117622437410",
-        snapshotDate,
-        Granularity.DAILY);
+      // When: Updating is_primary for PAYG product for time range
+      int rowsUpdated = service.updateIsPrimarySync(orgId, PRODUCT_PAYG, START_DATE, END_DATE);
 
-    // HOURLY rows - First 2 should be updated, rest should NOT
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel.PREMIUM,
-        Usage.PRODUCTION,
-        BillingProvider.AWS,
-        "521760247103",
-        snapshotDate,
-        Granularity.HOURLY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel.PREMIUM,
-        Usage.PRODUCTION,
-        BillingProvider.AWS,
-        "117622437410",
-        snapshotDate,
-        Granularity.HOURLY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel.PREMIUM,
-        Usage.PRODUCTION,
-        BillingProvider._ANY,
-        "521760247103",
-        snapshotDate,
-        Granularity.HOURLY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel._ANY,
-        Usage.PRODUCTION,
-        BillingProvider.AWS,
-        "_ANY",
-        snapshotDate,
-        Granularity.HOURLY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel._ANY,
-        Usage._ANY,
-        BillingProvider.AWS,
-        "117622437410",
-        snapshotDate,
-        Granularity.HOURLY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel._ANY,
-        Usage._ANY,
-        BillingProvider.AWS,
-        "_ANY",
-        snapshotDate,
-        Granularity.HOURLY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel.PREMIUM,
-        Usage.PRODUCTION,
-        BillingProvider.AWS,
-        "_ANY",
-        snapshotDate,
-        Granularity.HOURLY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel.PREMIUM,
-        Usage._ANY,
-        BillingProvider.AWS,
-        "117622437410",
-        snapshotDate,
-        Granularity.HOURLY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel._ANY,
-        Usage.PRODUCTION,
-        BillingProvider._ANY,
-        "117622437410",
-        snapshotDate,
-        Granularity.HOURLY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel._ANY,
-        Usage._ANY,
-        BillingProvider._ANY,
-        "521760247103",
-        snapshotDate,
-        Granularity.HOURLY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel.PREMIUM,
-        Usage._ANY,
-        BillingProvider._ANY,
-        "521760247103",
-        snapshotDate,
-        Granularity.HOURLY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel._ANY,
-        Usage._ANY,
-        BillingProvider.AWS,
-        "521760247103",
-        snapshotDate,
-        Granularity.HOURLY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel.PREMIUM,
-        Usage.PRODUCTION,
-        BillingProvider._ANY,
-        "117622437410",
-        snapshotDate,
-        Granularity.HOURLY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel.PREMIUM,
-        Usage.PRODUCTION,
-        BillingProvider._ANY,
-        "_ANY",
-        snapshotDate,
-        Granularity.HOURLY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel.PREMIUM,
-        Usage._ANY,
-        BillingProvider.AWS,
-        "_ANY",
-        snapshotDate,
-        Granularity.HOURLY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel._ANY,
-        Usage.PRODUCTION,
-        BillingProvider.AWS,
-        "521760247103",
-        snapshotDate,
-        Granularity.HOURLY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel._ANY,
-        Usage._ANY,
-        BillingProvider._ANY,
-        "_ANY",
-        snapshotDate,
-        Granularity.HOURLY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel._ANY,
-        Usage.PRODUCTION,
-        BillingProvider._ANY,
-        "521760247103",
-        snapshotDate,
-        Granularity.HOURLY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel.PREMIUM,
-        Usage._ANY,
-        BillingProvider._ANY,
-        "_ANY",
-        snapshotDate,
-        Granularity.HOURLY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel.PREMIUM,
-        Usage._ANY,
-        BillingProvider.AWS,
-        "521760247103",
-        snapshotDate,
-        Granularity.HOURLY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel._ANY,
-        Usage.PRODUCTION,
-        BillingProvider._ANY,
-        "_ANY",
-        snapshotDate,
-        Granularity.HOURLY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel.PREMIUM,
-        Usage._ANY,
-        BillingProvider._ANY,
-        "117622437410",
-        snapshotDate,
-        Granularity.HOURLY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel._ANY,
-        Usage._ANY,
-        BillingProvider._ANY,
-        "117622437410",
-        snapshotDate,
-        Granularity.HOURLY);
-    createSnapshot(
-        orgId,
-        PRODUCT_PAYG,
-        ServiceLevel._ANY,
-        Usage.PRODUCTION,
-        BillingProvider.AWS,
-        "117622437410",
-        snapshotDate,
-        Granularity.HOURLY);
+      // Then:
+      assertEquals(
+          4,
+          rowsUpdated,
+          "Should update 4 PAYG rows with non-_ANY sla, usage, billing_provider, and billing_account_id");
+    }
+
+    @Test
+    void testUpdateIsPrimaryForNonPaygProduct() {
+      // Given: Standard non-PAYG scenario with 8 rows
+      String orgId = randomOrgId();
+      createNonPaygSnapshotTestData(orgId);
+
+      // When: Updating is_primary for non-PAYG product
+      int rowsUpdated = service.updateIsPrimarySync(orgId, PRODUCT_NON_PAYG, START_DATE, END_DATE);
+
+      // Then: Only 4 non-PAYG rows with non-_ANY sla and usage should be updated
+      assertEquals(4, rowsUpdated, "Should update 4 non-PAYG rows with non-_ANY sla and usage");
+    }
+
+    @Test
+    void testUpdateIsPrimaryDateRangeFiltering() {
+      // Given: Rows with different snapshot dates
+      String orgId = randomOrgId();
+      createPaygSnapshotWithDate(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel.PREMIUM,
+          Usage.PRODUCTION,
+          OffsetDateTime.parse("2025-12-31T23:59:59Z")); // Before range
+      createPaygSnapshotWithDate(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel.PREMIUM,
+          Usage.PRODUCTION,
+          OffsetDateTime.parse("2026-01-01T00:00:00Z")); // Start of range (inclusive)
+      createPaygSnapshotWithDate(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel.PREMIUM,
+          Usage.PRODUCTION,
+          OffsetDateTime.parse("2026-01-15T12:00:00Z")); // Middle of range
+      createPaygSnapshotWithDate(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel.PREMIUM,
+          Usage.PRODUCTION,
+          OffsetDateTime.parse("2026-02-01T00:00:00Z")); // End of range (exclusive)
+      createPaygSnapshotWithDate(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel.PREMIUM,
+          Usage.PRODUCTION,
+          OffsetDateTime.parse("2026-02-01T00:00:01Z")); // After range
+
+      // When: Updating for date range
+      int rowsUpdated = service.updateIsPrimarySync(orgId, PRODUCT_PAYG, START_DATE, END_DATE);
+
+      // Then: Should only update rows within [START_DATE, END_DATE)
+      assertEquals(
+          2, rowsUpdated, "Should update 2 rows: start boundary (inclusive) and middle of range");
+    }
+
+    @Test
+    void testUpdateIsPrimaryMixedScenarioPaygAndNonPayg() {
+      // Given: Both PAYG and non-PAYG scenarios in same org
+      String orgId = randomOrgId();
+
+      // Setup PAYG scenario (8 rows, 3 should update)
+      createPaygSnapshot(orgId, PRODUCT_PAYG, ServiceLevel.PREMIUM, Usage.PRODUCTION);
+      createPaygSnapshot(orgId, PRODUCT_PAYG, ServiceLevel.STANDARD, Usage.DEVELOPMENT_TEST);
+      createPaygSnapshot(orgId, PRODUCT_PAYG, ServiceLevel._ANY, Usage.PRODUCTION);
+      createPaygSnapshot(orgId, PRODUCT_PAYG, ServiceLevel.PREMIUM, Usage._ANY);
+      createPaygSnapshot(orgId, PRODUCT_PAYG, ServiceLevel._ANY, Usage._ANY);
+      createNonPaygSnapshot(orgId, PRODUCT_PAYG, ServiceLevel.PREMIUM, Usage.PRODUCTION);
+
+      // Setup non-PAYG scenario (8 rows, 3 should update)
+      createNonPaygSnapshot(orgId, PRODUCT_NON_PAYG, ServiceLevel.PREMIUM, Usage.PRODUCTION);
+      createNonPaygSnapshot(orgId, PRODUCT_NON_PAYG, ServiceLevel.STANDARD, Usage.DEVELOPMENT_TEST);
+      createNonPaygSnapshot(orgId, PRODUCT_NON_PAYG, ServiceLevel._ANY, Usage.PRODUCTION);
+      createNonPaygSnapshot(orgId, PRODUCT_NON_PAYG, ServiceLevel.PREMIUM, Usage._ANY);
+      createNonPaygSnapshot(orgId, PRODUCT_NON_PAYG, ServiceLevel._ANY, Usage._ANY);
+      createPaygSnapshot(orgId, PRODUCT_NON_PAYG, ServiceLevel.PREMIUM, Usage.PRODUCTION);
+
+      // When: Updating PAYG product
+      int paygRowsUpdated = service.updateIsPrimarySync(orgId, PRODUCT_PAYG, START_DATE, END_DATE);
+      assertEquals(2, paygRowsUpdated, "PAYG product should update 2 PAYG rows");
+    }
+
+    @Test
+    void testUpdateIsPrimaryForUnknownProduct() {
+      // Given: Unknown product defaults to non-PAYG behavior
+      String orgId = randomOrgId();
+      createNonPaygSnapshot(
+          orgId, "unknown-product", ServiceLevel.PREMIUM, Usage.PRODUCTION); // Should update
+      createPaygSnapshot(
+          orgId, "unknown-product", ServiceLevel.PREMIUM, Usage.PRODUCTION); // Should NOT
+
+      // When: Updating unknown product (defaults to non-PAYG)
+      int rowsUpdated = service.updateIsPrimarySync(orgId, "unknown-product", START_DATE, END_DATE);
+
+      // Then: Should update non-PAYG rows only
+      assertEquals(1, rowsUpdated, "Unknown product should default to non-PAYG and update 1 row");
+    }
+
+    /**
+     * Creates realistic PAYG test data matching patterns: 48 rows total - 24 DAILY rows (only 2
+     * should be updated) - 24 HOURLY rows (only 2 should be updated)
+     *
+     * <p>Rows that should be updated have ALL non-_ANY values for: sla, usage, billing_provider,
+     * and billing_account_id
+     */
+    private void createPaygSnapshotTestData(String orgId) {
+      OffsetDateTime snapshotDate = IN_RANGE_DATE;
+
+      // DAILY rows - First 2 should be updated, rest should NOT
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel.PREMIUM,
+          Usage.PRODUCTION,
+          BillingProvider.AWS,
+          "521760247103",
+          snapshotDate,
+          Granularity.DAILY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel.PREMIUM,
+          Usage.PRODUCTION,
+          BillingProvider.AWS,
+          "117622437410",
+          snapshotDate,
+          Granularity.DAILY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel.PREMIUM,
+          Usage._ANY,
+          BillingProvider._ANY,
+          "117622437410",
+          snapshotDate,
+          Granularity.DAILY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel.PREMIUM,
+          Usage._ANY,
+          BillingProvider.AWS,
+          "521760247103",
+          snapshotDate,
+          Granularity.DAILY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel._ANY,
+          Usage.PRODUCTION,
+          BillingProvider._ANY,
+          "521760247103",
+          snapshotDate,
+          Granularity.DAILY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel._ANY,
+          Usage._ANY,
+          BillingProvider._ANY,
+          "521760247103",
+          snapshotDate,
+          Granularity.DAILY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel._ANY,
+          Usage.PRODUCTION,
+          BillingProvider.AWS,
+          "_ANY",
+          snapshotDate,
+          Granularity.DAILY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel.PREMIUM,
+          Usage.PRODUCTION,
+          BillingProvider.AWS,
+          "_ANY",
+          snapshotDate,
+          Granularity.DAILY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel._ANY,
+          Usage.PRODUCTION,
+          BillingProvider.AWS,
+          "117622437410",
+          snapshotDate,
+          Granularity.DAILY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel._ANY,
+          Usage._ANY,
+          BillingProvider.AWS,
+          "521760247103",
+          snapshotDate,
+          Granularity.DAILY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel._ANY,
+          Usage._ANY,
+          BillingProvider.AWS,
+          "_ANY",
+          snapshotDate,
+          Granularity.DAILY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel.PREMIUM,
+          Usage._ANY,
+          BillingProvider.AWS,
+          "_ANY",
+          snapshotDate,
+          Granularity.DAILY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel._ANY,
+          Usage._ANY,
+          BillingProvider._ANY,
+          "117622437410",
+          snapshotDate,
+          Granularity.DAILY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel._ANY,
+          Usage.PRODUCTION,
+          BillingProvider.AWS,
+          "521760247103",
+          snapshotDate,
+          Granularity.DAILY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel.PREMIUM,
+          Usage._ANY,
+          BillingProvider._ANY,
+          "521760247103",
+          snapshotDate,
+          Granularity.DAILY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel.PREMIUM,
+          Usage._ANY,
+          BillingProvider.AWS,
+          "117622437410",
+          snapshotDate,
+          Granularity.DAILY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel.PREMIUM,
+          Usage._ANY,
+          BillingProvider._ANY,
+          "_ANY",
+          snapshotDate,
+          Granularity.DAILY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel.PREMIUM,
+          Usage.PRODUCTION,
+          BillingProvider._ANY,
+          "_ANY",
+          snapshotDate,
+          Granularity.DAILY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel._ANY,
+          Usage.PRODUCTION,
+          BillingProvider._ANY,
+          "_ANY",
+          snapshotDate,
+          Granularity.DAILY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel.PREMIUM,
+          Usage.PRODUCTION,
+          BillingProvider._ANY,
+          "117622437410",
+          snapshotDate,
+          Granularity.DAILY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel._ANY,
+          Usage._ANY,
+          BillingProvider._ANY,
+          "_ANY",
+          snapshotDate,
+          Granularity.DAILY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel.PREMIUM,
+          Usage.PRODUCTION,
+          BillingProvider._ANY,
+          "521760247103",
+          snapshotDate,
+          Granularity.DAILY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel._ANY,
+          Usage.PRODUCTION,
+          BillingProvider._ANY,
+          "117622437410",
+          snapshotDate,
+          Granularity.DAILY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel._ANY,
+          Usage._ANY,
+          BillingProvider.AWS,
+          "117622437410",
+          snapshotDate,
+          Granularity.DAILY);
+
+      // HOURLY rows - First 2 should be updated, rest should NOT
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel.PREMIUM,
+          Usage.PRODUCTION,
+          BillingProvider.AWS,
+          "521760247103",
+          snapshotDate,
+          Granularity.HOURLY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel.PREMIUM,
+          Usage.PRODUCTION,
+          BillingProvider.AWS,
+          "117622437410",
+          snapshotDate,
+          Granularity.HOURLY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel.PREMIUM,
+          Usage.PRODUCTION,
+          BillingProvider._ANY,
+          "521760247103",
+          snapshotDate,
+          Granularity.HOURLY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel._ANY,
+          Usage.PRODUCTION,
+          BillingProvider.AWS,
+          "_ANY",
+          snapshotDate,
+          Granularity.HOURLY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel._ANY,
+          Usage._ANY,
+          BillingProvider.AWS,
+          "117622437410",
+          snapshotDate,
+          Granularity.HOURLY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel._ANY,
+          Usage._ANY,
+          BillingProvider.AWS,
+          "_ANY",
+          snapshotDate,
+          Granularity.HOURLY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel.PREMIUM,
+          Usage.PRODUCTION,
+          BillingProvider.AWS,
+          "_ANY",
+          snapshotDate,
+          Granularity.HOURLY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel.PREMIUM,
+          Usage._ANY,
+          BillingProvider.AWS,
+          "117622437410",
+          snapshotDate,
+          Granularity.HOURLY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel._ANY,
+          Usage.PRODUCTION,
+          BillingProvider._ANY,
+          "117622437410",
+          snapshotDate,
+          Granularity.HOURLY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel._ANY,
+          Usage._ANY,
+          BillingProvider._ANY,
+          "521760247103",
+          snapshotDate,
+          Granularity.HOURLY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel.PREMIUM,
+          Usage._ANY,
+          BillingProvider._ANY,
+          "521760247103",
+          snapshotDate,
+          Granularity.HOURLY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel._ANY,
+          Usage._ANY,
+          BillingProvider.AWS,
+          "521760247103",
+          snapshotDate,
+          Granularity.HOURLY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel.PREMIUM,
+          Usage.PRODUCTION,
+          BillingProvider._ANY,
+          "117622437410",
+          snapshotDate,
+          Granularity.HOURLY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel.PREMIUM,
+          Usage.PRODUCTION,
+          BillingProvider._ANY,
+          "_ANY",
+          snapshotDate,
+          Granularity.HOURLY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel.PREMIUM,
+          Usage._ANY,
+          BillingProvider.AWS,
+          "_ANY",
+          snapshotDate,
+          Granularity.HOURLY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel._ANY,
+          Usage.PRODUCTION,
+          BillingProvider.AWS,
+          "521760247103",
+          snapshotDate,
+          Granularity.HOURLY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel._ANY,
+          Usage._ANY,
+          BillingProvider._ANY,
+          "_ANY",
+          snapshotDate,
+          Granularity.HOURLY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel._ANY,
+          Usage.PRODUCTION,
+          BillingProvider._ANY,
+          "521760247103",
+          snapshotDate,
+          Granularity.HOURLY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel.PREMIUM,
+          Usage._ANY,
+          BillingProvider._ANY,
+          "_ANY",
+          snapshotDate,
+          Granularity.HOURLY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel.PREMIUM,
+          Usage._ANY,
+          BillingProvider.AWS,
+          "521760247103",
+          snapshotDate,
+          Granularity.HOURLY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel._ANY,
+          Usage.PRODUCTION,
+          BillingProvider._ANY,
+          "_ANY",
+          snapshotDate,
+          Granularity.HOURLY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel.PREMIUM,
+          Usage._ANY,
+          BillingProvider._ANY,
+          "117622437410",
+          snapshotDate,
+          Granularity.HOURLY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel._ANY,
+          Usage._ANY,
+          BillingProvider._ANY,
+          "117622437410",
+          snapshotDate,
+          Granularity.HOURLY);
+      createSnapshot(
+          orgId,
+          PRODUCT_PAYG,
+          ServiceLevel._ANY,
+          Usage.PRODUCTION,
+          BillingProvider.AWS,
+          "117622437410",
+          snapshotDate,
+          Granularity.HOURLY);
+    }
+
+    /**
+     * Creates non-PAYG test data: 9 DAILY rows total - 4 rows that SHOULD be updated (non-_ANY sla
+     * and usage with _ANY billing) - 5 rows that should NOT be updated (have _ANY sla or usage, or
+     * wrong billing provider)
+     */
+    private void createNonPaygSnapshotTestData(String orgId) {
+      OffsetDateTime snapshotDate = IN_RANGE_DATE;
+
+      // Valid non-PAYG rows - should be updated (4 rows)
+      createSnapshot(
+          orgId,
+          PRODUCT_NON_PAYG,
+          ServiceLevel.PREMIUM,
+          Usage.PRODUCTION,
+          BillingProvider._ANY,
+          "_ANY",
+          snapshotDate,
+          Granularity.DAILY);
+      createSnapshot(
+          orgId,
+          PRODUCT_NON_PAYG,
+          ServiceLevel.STANDARD,
+          Usage.PRODUCTION,
+          BillingProvider._ANY,
+          "_ANY",
+          snapshotDate,
+          Granularity.DAILY);
+      createSnapshot(
+          orgId,
+          PRODUCT_NON_PAYG,
+          ServiceLevel.PREMIUM,
+          Usage.DEVELOPMENT_TEST,
+          BillingProvider._ANY,
+          "_ANY",
+          snapshotDate,
+          Granularity.DAILY);
+      createSnapshot(
+          orgId,
+          PRODUCT_NON_PAYG,
+          ServiceLevel.EMPTY,
+          Usage.EMPTY,
+          BillingProvider._ANY,
+          "_ANY",
+          snapshotDate,
+          Granularity.DAILY);
+
+      // Invalid rows - sla or usage is _ANY (3 rows)
+      createSnapshot(
+          orgId,
+          PRODUCT_NON_PAYG,
+          ServiceLevel._ANY,
+          Usage.PRODUCTION,
+          BillingProvider._ANY,
+          "_ANY",
+          snapshotDate,
+          Granularity.DAILY);
+      createSnapshot(
+          orgId,
+          PRODUCT_NON_PAYG,
+          ServiceLevel.PREMIUM,
+          Usage._ANY,
+          BillingProvider._ANY,
+          "_ANY",
+          snapshotDate,
+          Granularity.DAILY);
+      createSnapshot(
+          orgId,
+          PRODUCT_NON_PAYG,
+          ServiceLevel._ANY,
+          Usage._ANY,
+          BillingProvider._ANY,
+          "_ANY",
+          snapshotDate,
+          Granularity.DAILY);
+
+      // Invalid rows
+      createSnapshot(
+          orgId,
+          PRODUCT_NON_PAYG,
+          ServiceLevel._ANY,
+          Usage._ANY,
+          BillingProvider._ANY,
+          "_ANY",
+          snapshotDate,
+          Granularity.DAILY);
+      createSnapshot(
+          orgId,
+          PRODUCT_NON_PAYG,
+          ServiceLevel._ANY,
+          Usage.EMPTY,
+          BillingProvider._ANY,
+          "_ANY",
+          snapshotDate,
+          Granularity.DAILY);
+    }
+
+    // Helper methods to create test data
+    private void createPaygSnapshot(String orgId, String productId, ServiceLevel sla, Usage usage) {
+      createSnapshotWithDate(
+          orgId, productId, sla, usage, BillingProvider.AWS, "aws-account-123", IN_RANGE_DATE);
+    }
+
+    private void createNonPaygSnapshot(
+        String orgId, String productId, ServiceLevel sla, Usage usage) {
+      createSnapshotWithDate(
+          orgId, productId, sla, usage, BillingProvider._ANY, "_ANY", IN_RANGE_DATE);
+    }
+
+    private void createPaygSnapshotWithDate(
+        String orgId, String productId, ServiceLevel sla, Usage usage, OffsetDateTime date) {
+      createSnapshotWithDate(
+          orgId, productId, sla, usage, BillingProvider.AWS, "aws-account-123", date);
+    }
+
+    private void createSnapshot(
+        String orgId,
+        String productId,
+        ServiceLevel sla,
+        Usage usage,
+        BillingProvider billingProvider,
+        String billingAccountId,
+        OffsetDateTime snapshotDate,
+        Granularity granularity) {
+      TallySnapshot snapshot = new TallySnapshot();
+      snapshot.setOrgId(orgId);
+      snapshot.setProductId(productId);
+      snapshot.setServiceLevel(sla);
+      snapshot.setUsage(usage);
+      snapshot.setBillingProvider(billingProvider);
+      snapshot.setBillingAccountId(billingAccountId);
+      snapshot.setSnapshotDate(snapshotDate);
+      snapshot.setGranularity(granularity);
+      snapshot.setPrimary(false);
+      repository.saveAndFlush(snapshot);
+    }
+
+    private void createSnapshotWithDate(
+        String orgId,
+        String productId,
+        ServiceLevel sla,
+        Usage usage,
+        BillingProvider billingProvider,
+        String billingAccountId,
+        OffsetDateTime snapshotDate) {
+      createSnapshot(
+          orgId,
+          productId,
+          sla,
+          usage,
+          billingProvider,
+          billingAccountId,
+          snapshotDate,
+          Granularity.DAILY);
+    }
   }
 
-  /**
-   * Creates non-PAYG test data: 9 DAILY rows total - 4 rows that SHOULD be updated (non-_ANY sla
-   * and usage with _ANY billing) - 5 rows that should NOT be updated (have _ANY sla or usage, or
-   * wrong billing provider)
-   */
-  private void createNonPaygSnapshotTestData(String orgId) {
-    OffsetDateTime snapshotDate = IN_RANGE_DATE;
+  @Nested
+  class HostTallyBucketIsPrimaryTests {
+    @Test
+    void testUpdateHostTallyBucketsIsPrimaryForPaygProduct() {
+      String orgId = randomOrgId();
+      createPaygHost(orgId, PRODUCT_PAYG);
 
-    // Valid non-PAYG rows - should be updated (4 rows)
-    createSnapshot(
-        orgId,
-        PRODUCT_NON_PAYG,
-        ServiceLevel.PREMIUM,
-        Usage.PRODUCTION,
-        BillingProvider._ANY,
-        "_ANY",
-        snapshotDate,
-        Granularity.DAILY);
-    createSnapshot(
-        orgId,
-        PRODUCT_NON_PAYG,
-        ServiceLevel.STANDARD,
-        Usage.PRODUCTION,
-        BillingProvider._ANY,
-        "_ANY",
-        snapshotDate,
-        Granularity.DAILY);
-    createSnapshot(
-        orgId,
-        PRODUCT_NON_PAYG,
-        ServiceLevel.PREMIUM,
-        Usage.DEVELOPMENT_TEST,
-        BillingProvider._ANY,
-        "_ANY",
-        snapshotDate,
-        Granularity.DAILY);
-    createSnapshot(
-        orgId,
-        PRODUCT_NON_PAYG,
-        ServiceLevel.EMPTY,
-        Usage.EMPTY,
-        BillingProvider._ANY,
-        "_ANY",
-        snapshotDate,
-        Granularity.DAILY);
+      int rowsUpdated = service.updateHostTallyBucketsIsPrimarySync(orgId, PRODUCT_PAYG);
 
-    // Invalid rows - sla or usage is _ANY (3 rows)
-    createSnapshot(
-        orgId,
-        PRODUCT_NON_PAYG,
-        ServiceLevel._ANY,
-        Usage.PRODUCTION,
-        BillingProvider._ANY,
-        "_ANY",
-        snapshotDate,
-        Granularity.DAILY);
-    createSnapshot(
-        orgId,
-        PRODUCT_NON_PAYG,
-        ServiceLevel.PREMIUM,
-        Usage._ANY,
-        BillingProvider._ANY,
-        "_ANY",
-        snapshotDate,
-        Granularity.DAILY);
-    createSnapshot(
-        orgId,
-        PRODUCT_NON_PAYG,
-        ServiceLevel._ANY,
-        Usage._ANY,
-        BillingProvider._ANY,
-        "_ANY",
-        snapshotDate,
-        Granularity.DAILY);
+      assertEquals(
+          1,
+          rowsUpdated,
+          "Should update i row with non-_ANY sla, usage, billing_provider, and billing_account_id");
+    }
 
-    // Invalid rows
-    createSnapshot(
-        orgId,
-        PRODUCT_NON_PAYG,
-        ServiceLevel._ANY,
-        Usage._ANY,
-        BillingProvider._ANY,
-        "_ANY",
-        snapshotDate,
-        Granularity.DAILY);
-    createSnapshot(
-        orgId,
-        PRODUCT_NON_PAYG,
-        ServiceLevel._ANY,
-        Usage.EMPTY,
-        BillingProvider._ANY,
-        "_ANY",
-        snapshotDate,
-        Granularity.DAILY);
-  }
+    @Test
+    void testUpdateHostTallyBucketsIsPrimaryForNonPaygProduct() {
+      // Given: Standard non-PAYG scenario with 8 rows
+      String orgId = randomOrgId();
+      createNonPaygHost(orgId, PRODUCT_NON_PAYG);
 
-  // Helper methods to create test data
-  private void createPaygSnapshot(String orgId, String productId, ServiceLevel sla, Usage usage) {
-    createSnapshotWithDate(
-        orgId, productId, sla, usage, BillingProvider.AWS, "aws-account-123", IN_RANGE_DATE);
-  }
+      // When: Updating is_primary for non-PAYG product
+      int rowsUpdated = service.updateHostTallyBucketsIsPrimarySync(orgId, PRODUCT_NON_PAYG);
 
-  private void createNonPaygSnapshot(
-      String orgId, String productId, ServiceLevel sla, Usage usage) {
-    createSnapshotWithDate(
-        orgId, productId, sla, usage, BillingProvider._ANY, "_ANY", IN_RANGE_DATE);
-  }
+      // Then: Only 1 non-PAYG row with non-_ANY sla and usage should be updated
+      assertEquals(1, rowsUpdated, "Should update 1 non-PAYG row with non-_ANY sla and usage");
+    }
 
-  private void createPaygSnapshotWithDate(
-      String orgId, String productId, ServiceLevel sla, Usage usage, OffsetDateTime date) {
-    createSnapshotWithDate(
-        orgId, productId, sla, usage, BillingProvider.AWS, "aws-account-123", date);
-  }
+    private Host stubHost(String orgId) {
+      AccountServiceInventory asi = new AccountServiceInventory(orgId, orgId);
+      accountServiceRepository.saveAndFlush(asi);
 
-  private void createSnapshot(
-      String orgId,
-      String productId,
-      ServiceLevel sla,
-      Usage usage,
-      BillingProvider billingProvider,
-      String billingAccountId,
-      OffsetDateTime snapshotDate,
-      Granularity granularity) {
-    TallySnapshot snapshot = new TallySnapshot();
-    snapshot.setOrgId(orgId);
-    snapshot.setProductId(productId);
-    snapshot.setServiceLevel(sla);
-    snapshot.setUsage(usage);
-    snapshot.setBillingProvider(billingProvider);
-    snapshot.setBillingAccountId(billingAccountId);
-    snapshot.setSnapshotDate(snapshotDate);
-    snapshot.setGranularity(granularity);
-    snapshot.setPrimary(false);
-    repository.saveAndFlush(snapshot);
-  }
+      Host h = new Host();
+      h.setDisplayName(orgId);
+      h.setInstanceType(orgId);
+      h.setInstanceId(orgId);
+      h.setOrgId(orgId);
+      return h;
+    }
 
-  private void createSnapshotWithDate(
-      String orgId,
-      String productId,
-      ServiceLevel sla,
-      Usage usage,
-      BillingProvider billingProvider,
-      String billingAccountId,
-      OffsetDateTime snapshotDate) {
-    createSnapshot(
-        orgId,
-        productId,
-        sla,
-        usage,
-        billingProvider,
-        billingAccountId,
-        snapshotDate,
-        Granularity.DAILY);
+    private void createPaygHost(String orgId, String productId) {
+      Host h = stubHost(orgId);
+      var slas = Set.of(ServiceLevel.PREMIUM, ServiceLevel._ANY);
+      var usages = Set.of(Usage.PRODUCTION, Usage._ANY);
+      var billingProviders = Set.of(BillingProvider.AWS, BillingProvider._ANY);
+      var billingAccountIds = Set.of(orgId + "_accountId", "_ANY");
+      h.setBuckets(buildBuckets(productId, slas, usages, billingProviders, billingAccountIds, h));
+      hostRepository.saveAndFlush(h);
+    }
+
+    private void createNonPaygHost(String orgId, String productId) {
+      Host h = stubHost(orgId);
+      var slas = Set.of(ServiceLevel.PREMIUM, ServiceLevel._ANY);
+      var usages = Set.of(Usage.PRODUCTION, Usage._ANY);
+      var billingProviders = Set.of(BillingProvider._ANY);
+      var billingAccountIds = Set.of("_ANY");
+      h.setBuckets(buildBuckets(productId, slas, usages, billingProviders, billingAccountIds, h));
+      hostRepository.saveAndFlush(h);
+    }
+
+    private Set<HostTallyBucket> buildBuckets(
+        String productId,
+        Set<ServiceLevel> slas,
+        Set<Usage> usages,
+        Set<BillingProvider> billingProviders,
+        Set<String> billingAccountIds,
+        Host h) {
+      Set<List<Object>> tuples =
+          Sets.cartesianProduct(slas, usages, billingProviders, billingAccountIds);
+
+      return tuples.stream()
+          .map(
+              tuple -> {
+                ServiceLevel sla = (ServiceLevel) tuple.get(0);
+                Usage usage = (Usage) tuple.get(1);
+                BillingProvider billingProvider = (BillingProvider) tuple.get(2);
+                String billingAccountId = (String) tuple.get(3);
+
+                var measurementType =
+                    (billingProvider.equals(BillingProvider._ANY))
+                        ? HardwareMeasurementType.PHYSICAL
+                        : HardwareMeasurementType.AWS;
+
+                return new HostTallyBucket(
+                    h,
+                    productId,
+                    sla,
+                    usage,
+                    billingProvider,
+                    billingAccountId,
+                    false,
+                    10,
+                    10,
+                    measurementType);
+              })
+          .collect(Collectors.toSet());
+    }
   }
 }
