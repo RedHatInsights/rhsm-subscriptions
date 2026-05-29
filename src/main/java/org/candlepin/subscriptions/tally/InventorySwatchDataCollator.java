@@ -85,15 +85,18 @@ public class InventorySwatchDataCollator {
    *
    * @param orgId orgId to operate on
    * @param culledOffsetDays number of days before a system is considered culled by HBI
+   * @param stalenessOffsetSeconds seconds to add to last_check_in to calculate stale_timestamp
    * @param processor delegate that implements the Processor functional interface, to be called for
    *     each iteration.
    * @return the number of unique inventory IDs processed.
    */
-  public int collateData(String orgId, int culledOffsetDays, Processor processor) {
+  public int collateData(
+      String orgId, int culledOffsetDays, int stalenessOffsetSeconds, Processor processor) {
     Stream<InventoryHostFacts> inventorySystemStream =
-        inventoryRepository.streamFacts(orgId, culledOffsetDays);
+        inventoryRepository.streamFacts(orgId, culledOffsetDays, stalenessOffsetSeconds);
     Stream<String> activeSubmanIdStream =
-        inventoryRepository.streamActiveSubscriptionManagerIds(orgId, culledOffsetDays);
+        inventoryRepository.streamActiveSubscriptionManagerIds(
+            orgId, culledOffsetDays, stalenessOffsetSeconds);
     Stream<Host> swatchSystemStream = hostRepository.streamHbiHostsByOrgId(orgId);
 
     /*

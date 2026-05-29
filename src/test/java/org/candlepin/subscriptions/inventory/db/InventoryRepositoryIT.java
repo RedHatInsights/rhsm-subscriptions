@@ -79,6 +79,7 @@ class InventoryRepositoryIT implements ExtendWithInventoryService, ExtendWithSwa
   private static final Set<Map<String, String>> INSTALLED_PRODUCTS =
       Set.of(Map.of("id", "d1"), Map.of("id", "d2"));
   private static final int CUT_OFF_DAYS = 3;
+  private static final int STALENESS_OFFSET_SECONDS = 104400;
 
   @Autowired InventoryRepository repository;
 
@@ -90,10 +91,11 @@ class InventoryRepositoryIT implements ExtendWithInventoryService, ExtendWithSwa
   @Transactional
   @Test
   void testStreamFacts() { // NOSONAR
-    assertEquals(0, repository.streamFacts(ORG_ID, CUT_OFF_DAYS).count());
+    assertEquals(0, repository.streamFacts(ORG_ID, CUT_OFF_DAYS, STALENESS_OFFSET_SECONDS).count());
 
     UUID expectedHostId = givenHost();
-    List<InventoryHostFacts> facts = repository.streamFacts(ORG_ID, CUT_OFF_DAYS).toList();
+    List<InventoryHostFacts> facts =
+        repository.streamFacts(ORG_ID, CUT_OFF_DAYS, STALENESS_OFFSET_SECONDS).toList();
     assertEquals(1, facts.size());
     InventoryHostFacts fact = facts.get(0);
     assertEquals(expectedHostId, fact.getInventoryId());
@@ -144,11 +146,17 @@ class InventoryRepositoryIT implements ExtendWithInventoryService, ExtendWithSwa
   @Transactional
   @Test
   void testStreamActiveSubscriptionManagerIds() {
-    assertEquals(0, repository.streamActiveSubscriptionManagerIds(ORG_ID, CUT_OFF_DAYS).count());
+    assertEquals(
+        0,
+        repository
+            .streamActiveSubscriptionManagerIds(ORG_ID, CUT_OFF_DAYS, STALENESS_OFFSET_SECONDS)
+            .count());
 
     givenHost();
     List<String> actual =
-        repository.streamActiveSubscriptionManagerIds(ORG_ID, CUT_OFF_DAYS).toList();
+        repository
+            .streamActiveSubscriptionManagerIds(ORG_ID, CUT_OFF_DAYS, STALENESS_OFFSET_SECONDS)
+            .toList();
     assertEquals(1, actual.size());
     assertEquals(SUBSCRIPTION_MANAGER_ID, actual.get(0));
   }

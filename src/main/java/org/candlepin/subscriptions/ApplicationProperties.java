@@ -97,6 +97,15 @@ public class ApplicationProperties {
   private int cullingOffsetDays = 14;
 
   /**
+   * The time to add to a host's last_check_in to calculate its effective stale_timestamp. This
+   * should match HBI's CONVENTIONAL_TIME_TO_STALE_SECONDS default (29 hours) for orgs without
+   * custom staleness configuration. HBI no longer writes the stale_timestamp column (as of May
+   * 2026), so we calculate it from last_check_in + this offset.
+   */
+  @DurationUnit(ChronoUnit.SECONDS)
+  private Duration stalenessOffset = Duration.ofHours(29);
+
+  /**
    * Offsets the range to look at metrics to account for delay in prometheus having metrics
    * available
    */

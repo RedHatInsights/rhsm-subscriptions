@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+from datetime import datetime
 import json
 import os
 import subprocess
@@ -66,6 +67,9 @@ class DatabaseContext:
         if not is_guest:
             hypervisor_uuid = None
 
+        # Use current timestamp if last_seen not provided so hosts appear fresh
+        timestamp = last_seen or datetime.now().isoformat()
+
         # Build rhsm facts with optional SLA and usage
         rhsm_facts = {
             'orgId': org_id,
@@ -81,8 +85,9 @@ class DatabaseContext:
             'account': account,
             'display_name': display_name or insights_id,
             'org_id': org,
-            'created_on': last_seen or '1993-03-26',
-            'modified_on': last_seen or '1993-03-26',
+            'created_on': timestamp,
+            'modified_on': timestamp,
+            'last_check_in': timestamp,
             'facts': json.dumps({'rhsm': rhsm_facts}),
             'insights_id': insights_id,
             'subscription_manager_id': subscription_manager_id or str(uuid.uuid4()),
@@ -152,6 +157,9 @@ class DatabaseContext:
         # Create account_service record (only for tally database)
         self._create_account_service(account, 'HBI_HOST', org)
 
+        # Use current timestamp if last_seen not provided so hosts appear fresh
+        timestamp = last_seen or datetime.now().isoformat()
+
         host_fields = {
             'id': host_id,
             'instance_id': inventory_id,
@@ -164,7 +172,7 @@ class DatabaseContext:
             'hypervisor_uuid': hypervisor_uuid or None,
             'hardware_type': hardware_type or 'PHYSICAL',
             'num_of_guests': num_of_guests,
-            'last_seen': last_seen or '1993-03-26',
+            'last_seen': timestamp,
             'is_unmapped_guest': is_unmapped_guest or False,
             'is_hypervisor': is_hypervisor or False,
             'cloud_provider': cloud_provider or None,
@@ -349,6 +357,9 @@ parser.add_argument('--metric_id',
 parser.add_argument('--inventory-id',
                     default=None,
                     help='Set the inventory_id for the inserted hosts')
+parser.add_argument('--last-seen',
+                    default=None,
+                    help='Set the last_seen/last_check_in timestamp for inserted hosts (ISO 8601 format, e.g., 2026-05-26T15:00:00-03:00). Defaults to current time.')
 
 args = parser.parse_args()
 if args.is_hbi:
@@ -394,7 +405,7 @@ for i in range(args.num_accounts):
     for i in range(args.num_aws):
         generate_host(inventory_id=args.inventory_id, account_number=account, org_id=args.org, hardware_type='VIRTUALIZED', measurement_type='AWS',
                       product=args.product, sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets,
-                      is_hbi=args.is_hbi, num_of_guests=args.num_guests,
+                      is_hbi=args.is_hbi, num_of_guests=args.num_guests, last_seen=args.last_seen,
                       cloud_provider='AWS', is_marketplace=args.is_marketplace, conversions_activity=args.conversions_activity,
                       host_type=args.host_type, billing_provider=args.billing_provider, billing_account_id=args.billing_account_id,
                       metric_id=args.metric_id)
@@ -402,7 +413,7 @@ for i in range(args.num_accounts):
     for i in range(args.num_gcp):
         generate_host(inventory_id=args.inventory_id, account_number=account, org_id=args.org, hardware_type='VIRTUALIZED', measurement_type='GOOGLE',
                       product=args.product, sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets,
-                      is_hbi=args.is_hbi, num_of_guests=args.num_guests,
+                      is_hbi=args.is_hbi, num_of_guests=args.num_guests, last_seen=args.last_seen,
                       cloud_provider='GCP', is_marketplace=args.is_marketplace, conversions_activity=args.conversions_activity, host_type=args.host_type,
                       billing_provider=args.billing_provider, billing_account_id=args.billing_account_id,
                       metric_id=args.metric_id)
@@ -410,7 +421,7 @@ for i in range(args.num_accounts):
     for i in range(args.num_physical):
         generate_host(inventory_id=args.inventory_id, account_number=account, org_id=args.org, hardware_type='PHYSICAL', measurement_type='PHYSICAL',
                       product=args.product, sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets,
-                      is_hbi=args.is_hbi, num_of_guests=args.num_guests,
+                      is_hbi=args.is_hbi, num_of_guests=args.num_guests, last_seen=args.last_seen,
                       is_marketplace=args.is_marketplace, conversions_activity=args.conversions_activity,
                       host_type=args.host_type,
                       billing_provider=args.billing_provider, billing_account_id=args.billing_account_id,
@@ -421,7 +432,7 @@ for i in range(args.num_accounts):
         hypervisor = generate_host(inventory_id=args.inventory_id, account_number=account, org_id=args.org, hardware_type='PHYSICAL', measurement_type='VIRTUAL',
                                    product=args.product,
                                    sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets,
-                                   is_hypervisor=True, is_hbi=args.is_hbi,
+                                   is_hypervisor=True, is_hbi=args.is_hbi, last_seen=args.last_seen,
                                    is_marketplace=args.is_marketplace, conversions_activity=args.conversions_activity,
                                    host_type=args.host_type,
                                    billing_provider=args.billing_provider, billing_account_id=args.billing_account_id,
@@ -431,7 +442,7 @@ for i in range(args.num_accounts):
             generate_host(inventory_id=args.inventory_id, account_number=account, org_id=args.org, hardware_type='PHYSICAL', measurement_type='PHYSICAL',
                           product=args.product,
                           sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets, is_hypervisor=True,
-                          is_hbi=args.is_hbi,
+                          is_hbi=args.is_hbi, last_seen=args.last_seen,
                           is_marketplace=args.is_marketplace, conversions_activity=args.conversions_activity,
                           host_type=args.host_type,
                           billing_provider=args.billing_provider, billing_account_id=args.billing_account_id,
@@ -453,7 +464,7 @@ for i in range(args.num_accounts):
         generate_host(inventory_id=args.inventory_id, account_number=account, org_id=args.org, hardware_type='VIRTUALIZED', is_guest=True,
                       product=args.product, sla=args.sla, usage=args.usage, hypervisor_uuid=hypervisor_uuid,
                       cores=args.cores, sockets=args.sockets, is_unmapped_guest=create_unmapped,
-                      skip_buckets=skip_buckets, is_hbi=args.is_hbi,
+                      skip_buckets=skip_buckets, is_hbi=args.is_hbi, last_seen=args.last_seen,
                       is_marketplace=args.is_marketplace,  conversions_activity=args.conversions_activity,
                       host_type=args.host_type,
                       billing_provider=args.billing_provider, billing_account_id=args.billing_account_id,

@@ -116,7 +116,8 @@ class InventoryAccountUsageCollectorTallyTest {
         hypervisor.getSubscriptionManagerId(), hypervisor.getSubscriptionManagerId());
     mockReportedHypervisors(ORG_ID, expectedHypervisorMap);
 
-    when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt())).thenReturn(Stream.of(hypervisor));
+    when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt(), anyInt()))
+        .thenReturn(Stream.of(hypervisor));
     whenProcessHost(NON_RHEL_PRODUCTS, ORG_ID);
     mockBucketRepositoryFromAccountService();
 
@@ -139,7 +140,8 @@ class InventoryAccountUsageCollectorTallyTest {
         hypervisor.getSubscriptionManagerId(), hypervisor.getSubscriptionManagerId());
     mockReportedHypervisors(ORG_ID, expectedHypervisorMap);
 
-    when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt())).thenReturn(Stream.of(hypervisor));
+    when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt(), anyInt()))
+        .thenReturn(Stream.of(hypervisor));
 
     whenProcessHost(RHEL_PRODUCTS, ORG_ID);
     mockBucketRepositoryFromAccountService();
@@ -162,7 +164,8 @@ class InventoryAccountUsageCollectorTallyTest {
     expectedHypervisorMap.put(guest.getHypervisorUuid(), guest.getHypervisorUuid());
     mockReportedHypervisors(ORG_ID, expectedHypervisorMap);
 
-    when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt())).thenReturn(Stream.of(guest));
+    when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt(), anyInt()))
+        .thenReturn(Stream.of(guest));
 
     whenProcessHost(RHEL_PRODUCTS, ORG_ID);
     mockBucketRepositoryFromAccountService();
@@ -183,7 +186,8 @@ class InventoryAccountUsageCollectorTallyTest {
     expectedHypervisorMap.put(guest.getHypervisorUuid(), null);
     mockReportedHypervisors(ORG_ID, expectedHypervisorMap);
 
-    when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt())).thenReturn(Stream.of(guest));
+    when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt(), anyInt()))
+        .thenReturn(Stream.of(guest));
 
     whenProcessHost(RHEL_PRODUCTS, ORG_ID);
     mockBucketRepositoryFromAccountService();
@@ -208,7 +212,8 @@ class InventoryAccountUsageCollectorTallyTest {
     host.setSystemProfileSockets(3);
     mockReportedHypervisors(ORG_ID, new HashMap<>());
 
-    when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt())).thenReturn(Stream.of(host));
+    when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt(), anyInt()))
+        .thenReturn(Stream.of(host));
 
     whenProcessHost(RHEL_PRODUCTS, ORG_ID);
     mockBucketRepositoryFromAccountService();
@@ -242,8 +247,10 @@ class InventoryAccountUsageCollectorTallyTest {
     host3.setSystemProfileSockets(2);
 
     mockReportedHypervisors(List.of(orgId1, orgId2), new HashMap<>());
-    when(inventoryRepo.getFacts(eq(List.of(orgId1)), anyInt())).thenReturn(Stream.of(host1, host2));
-    when(inventoryRepo.getFacts(eq(List.of(orgId2)), anyInt())).thenReturn(Stream.of(host3));
+    when(inventoryRepo.getFacts(eq(List.of(orgId1)), anyInt(), anyInt()))
+        .thenReturn(Stream.of(host1, host2));
+    when(inventoryRepo.getFacts(eq(List.of(orgId2)), anyInt(), anyInt()))
+        .thenReturn(Stream.of(host3));
 
     whenProcessHost(RHEL_PRODUCTS, orgId1);
     whenProcessHost(RHEL_PRODUCTS, orgId2);
@@ -286,7 +293,8 @@ class InventoryAccountUsageCollectorTallyTest {
     host2.setSystemProfileSockets(10);
 
     mockReportedHypervisors(ORG_ID, new HashMap<>());
-    when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt())).thenReturn(Stream.of(host1, host2));
+    when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt(), anyInt()))
+        .thenReturn(Stream.of(host1, host2));
 
     whenProcessHost(RHEL_PRODUCTS, ORG_ID);
     mockBucketRepositoryFromAccountService();
@@ -324,7 +332,8 @@ class InventoryAccountUsageCollectorTallyTest {
     host2.setSystemProfileSockets(10);
 
     mockReportedHypervisors(ORG_ID, new HashMap<>());
-    when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt())).thenReturn(Stream.of(host1, host2));
+    when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt(), anyInt()))
+        .thenReturn(Stream.of(host1, host2));
 
     whenProcessHost(RHEL_PRODUCTS, ORG_ID);
     mockBucketRepositoryFromAccountService();
@@ -380,8 +389,10 @@ class InventoryAccountUsageCollectorTallyTest {
         createSystemProfileHost(orgId2, List.of(TEST_PRODUCT_ID), 2, 6, OffsetDateTime.now());
 
     mockReportedHypervisors(List.of(orgId1, orgId2), new HashMap<>());
-    when(inventoryRepo.getFacts(eq(List.of(orgId1)), anyInt())).thenReturn(Stream.of(host1, host2));
-    when(inventoryRepo.getFacts(eq(List.of(orgId2)), anyInt())).thenReturn(Stream.of(host3));
+    when(inventoryRepo.getFacts(eq(List.of(orgId1)), anyInt(), anyInt()))
+        .thenReturn(Stream.of(host1, host2));
+    when(inventoryRepo.getFacts(eq(List.of(orgId2)), anyInt(), anyInt()))
+        .thenReturn(Stream.of(host3));
 
     whenProcessHost(RHEL_PRODUCTS, orgId1);
     whenProcessHost(RHEL_PRODUCTS, orgId2);
@@ -422,7 +433,8 @@ class InventoryAccountUsageCollectorTallyTest {
 
     mockReportedHypervisors(ORG_ID, new HashMap<>());
 
-    when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt())).thenReturn(Stream.of(h1, h2));
+    when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt(), anyInt()))
+        .thenReturn(Stream.of(h1, h2));
 
     whenProcessHost(RHEL_PRODUCTS, ORG_ID);
     mockBucketRepositoryFromAccountService();
@@ -462,8 +474,10 @@ class InventoryAccountUsageCollectorTallyTest {
     expectedHypervisorMap.put(host4.getSubscriptionManagerId(), null);
     mockReportedHypervisors(orgIds, expectedHypervisorMap);
 
-    when(inventoryRepo.getFacts(eq(List.of(orgId1)), anyInt())).thenReturn(Stream.of(host1, host2));
-    when(inventoryRepo.getFacts(eq(List.of(orgId2)), anyInt())).thenReturn(Stream.of(host3, host4));
+    when(inventoryRepo.getFacts(eq(List.of(orgId1)), anyInt(), anyInt()))
+        .thenReturn(Stream.of(host1, host2));
+    when(inventoryRepo.getFacts(eq(List.of(orgId2)), anyInt(), anyInt()))
+        .thenReturn(Stream.of(host3, host4));
 
     whenProcessHost(RHEL_PRODUCTS, orgId1);
     whenProcessHost(RHEL_PRODUCTS, orgId2);
@@ -515,7 +529,7 @@ class InventoryAccountUsageCollectorTallyTest {
         hypervisor.getSubscriptionManagerId(), hypervisor.getSubscriptionManagerId());
     mockReportedHypervisors(ORG_ID, expectedHypervisorMap);
 
-    when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt()))
+    when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt(), anyInt()))
         .thenReturn(Stream.of(hypervisor, guest1, guest2));
 
     whenProcessHost(RHEL_PRODUCTS, ORG_ID);
@@ -551,7 +565,7 @@ class InventoryAccountUsageCollectorTallyTest {
         hypervisor.getSubscriptionManagerId(), hypervisor.getSubscriptionManagerId());
     mockReportedHypervisors(ORG_ID, expectedHypervisorMap);
 
-    when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt()))
+    when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt(), anyInt()))
         .thenReturn(Stream.of(hypervisor, guest1, guest2));
 
     whenProcessHost(RHEL_PRODUCTS, ORG_ID);
@@ -582,7 +596,7 @@ class InventoryAccountUsageCollectorTallyTest {
         hypervisor.getSubscriptionManagerId(), hypervisor.getSubscriptionManagerId());
     mockReportedHypervisors(ORG_ID, expectedHypervisorMap);
 
-    when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt()))
+    when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt(), anyInt()))
         .thenReturn(Stream.of(hypervisor, guest1, guest2));
 
     whenProcessHost(RHEL_PRODUCTS, ORG_ID);
@@ -622,7 +636,8 @@ class InventoryAccountUsageCollectorTallyTest {
     host.setSystemProfileSockets(3);
 
     mockReportedHypervisors(ORG_ID, new HashMap<>());
-    when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt())).thenReturn(Stream.of(host));
+    when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt(), anyInt()))
+        .thenReturn(Stream.of(host));
 
     whenProcessHost(RHEL_PRODUCTS, ORG_ID);
     mockBucketRepositoryFromAccountService();
@@ -656,7 +671,7 @@ class InventoryAccountUsageCollectorTallyTest {
             AccountServiceInventoryId.builder().orgId(ORG_ID).serviceType("HBI_HOST").build()))
         .thenReturn(Optional.of(accountServiceInventory));
 
-    when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), any())).thenReturn(Stream.of(host));
+    when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), any(), any())).thenReturn(Stream.of(host));
 
     whenProcessHost(accountServiceInventory, RHEL_PRODUCTS, ORG_ID);
 
