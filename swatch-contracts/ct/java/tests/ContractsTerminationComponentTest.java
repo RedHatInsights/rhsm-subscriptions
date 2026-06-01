@@ -21,6 +21,7 @@
 package tests;
 
 import static api.PartnerApiStubs.PartnerSubscriptionsStubRequest.forContract;
+import static com.redhat.swatch.component.tests.utils.DateUtils.assertDatesAreEqual;
 import static domain.Contract.buildRosaContract;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -34,7 +35,6 @@ import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static utils.DateUtils.assertDatesAreEqual;
 
 import api.ContractsArtemisService;
 import com.redhat.swatch.component.tests.api.Artemis;
