@@ -31,6 +31,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.utilization.openapi.model.OrgPreferencesRequest;
 import com.redhat.swatch.utilization.openapi.model.OrgPreferencesResponse;
 import com.redhat.swatch.utilization.service.OrgPreferencesService;
@@ -38,7 +39,6 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import io.restassured.response.ValidatableResponse;
-import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.Test;
@@ -55,7 +55,7 @@ class OrgPreferencesResourceTest {
   @InjectMock OrgPreferencesService orgPreferencesService;
 
   @Test
-  void getOrgPreferences_whenPreferencesExist_returnsPreferences() {
+  void getOrgPreferences_whenPreferencesExist_returnsPreferences() throws Exception {
     var expected = new OrgPreferencesResponse();
     expected.setCustomThreshold(10);
     when(orgPreferencesService.getOrgPreferences(ORG_ID)).thenReturn(expected);
@@ -71,7 +71,7 @@ class OrgPreferencesResourceTest {
   }
 
   @Test
-  void getOrgPreferences_whenPreferencesDoNotExist_returnsDefaultThreshold() {
+  void getOrgPreferences_whenPreferencesDoNotExist_returnsDefaultThreshold() throws Exception {
     var expected = new OrgPreferencesResponse();
     expected.setCustomThreshold(80);
     when(orgPreferencesService.getOrgPreferences(ORG_ID)).thenReturn(expected);
@@ -87,7 +87,7 @@ class OrgPreferencesResourceTest {
   }
 
   @Test
-  void updateOrgPreferences_whenPayloadValid_invokesServiceWithResolvedOrgId() {
+  void updateOrgPreferences_whenPayloadValid_invokesServiceWithResolvedOrgId() throws Exception {
     var expected = new OrgPreferencesResponse();
     expected.setCustomThreshold(4);
     when(orgPreferencesService.updateOrgPreferences(eq(ORG_ID), any(OrgPreferencesRequest.class)))
@@ -106,7 +106,7 @@ class OrgPreferencesResourceTest {
   @ParameterizedTest
   @ValueSource(ints = {-1, 101})
   void updateOrgPreferences_whenThresholdOutOfRange_returnsBadRequestWithoutCallingService(
-      int invalidThreshold) {
+      int invalidThreshold) throws Exception {
     whenUpdateOrgPreferencesTo(invalidThreshold).statusCode(HttpStatus.SC_BAD_REQUEST);
 
     verify(orgPreferencesService, never())
@@ -114,27 +114,29 @@ class OrgPreferencesResourceTest {
   }
 
   @Test
-  void updateOrgPreferences_whenCustomThresholdMissing_returnsBadRequestWithoutCallingService() {
+  void updateOrgPreferences_whenCustomThresholdMissing_returnsBadRequestWithoutCallingService()
+      throws Exception {
     whenUpdateOrgPreferencesTo(null).statusCode(HttpStatus.SC_BAD_REQUEST);
 
     verify(orgPreferencesService, never())
         .updateOrgPreferences(anyString(), any(OrgPreferencesRequest.class));
   }
 
-  private static ValidatableResponse whenGetOrgPreferences() {
+  private static ValidatableResponse whenGetOrgPreferences() throws Exception {
     return given()
-        .header(RH_IDENTITY_HEADER, base64UserIdentity(ORG_ID))
+        .header(RH_IDENTITY_HEADER, base64UserIdentity(ORG_ID, false))
         .when()
         .get(ORG_PREFERENCES_PATH)
         .then();
   }
 
-  private static ValidatableResponse whenUpdateOrgPreferencesTo(Integer customThreshold) {
+  private static ValidatableResponse whenUpdateOrgPreferencesTo(Integer customThreshold)
+      throws Exception {
     OrgPreferencesRequest request = new OrgPreferencesRequest();
     request.setCustomThreshold(customThreshold);
 
     return given()
-        .header(RH_IDENTITY_HEADER, base64UserIdentity(ORG_ID))
+        .header(RH_IDENTITY_HEADER, base64UserIdentity(ORG_ID, true))
         .contentType(ContentType.JSON)
         .body(request)
         .when()
@@ -142,8 +144,12 @@ class OrgPreferencesResourceTest {
         .then();
   }
 
-  private static String base64UserIdentity(String orgId) {
-    String json = String.format("{\"identity\":{\"type\":\"User\",\"org_id\":\"%s\"}}", orgId);
-    return Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
+  private static String base64UserIdentity(String orgId, boolean isOrgAdmin) throws Exception {
+    var mapper = new ObjectMapper();
+    var root = mapper.createObjectNode();
+    var identity = root.putObject("identity");
+    identity.put("type", "User").put("org_id", orgId);
+    identity.putObject("user").put("is_org_admin", isOrgAdmin);
+    return Base64.getEncoder().encodeToString(mapper.writeValueAsBytes(root));
   }
 }

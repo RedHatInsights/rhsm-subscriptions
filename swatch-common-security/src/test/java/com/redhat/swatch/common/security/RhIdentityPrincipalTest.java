@@ -91,6 +91,32 @@ class RhIdentityPrincipalTest {
   }
 
   @Test
+  void testIsOrgAdminReturnsTrueWhenUserIsOrgAdmin() {
+    User user = User.builder().orgAdmin(true).build();
+    Identity identity = Identity.builder().type("User").orgId("123").user(user).build();
+    RhIdentityPrincipal principal = RhIdentityPrincipal.builder().identity(identity).build();
+
+    assertTrue(principal.isOrgAdmin());
+  }
+
+  @Test
+  void testIsOrgAdminReturnsFalseWhenUserIsNotOrgAdmin() {
+    User user = User.builder().orgAdmin(false).build();
+    Identity identity = Identity.builder().type("User").orgId("123").user(user).build();
+    RhIdentityPrincipal principal = RhIdentityPrincipal.builder().identity(identity).build();
+
+    assertFalse(principal.isOrgAdmin());
+  }
+
+  @Test
+  void testIsOrgAdminReturnsFalseWhenUserSubObjectAbsent() {
+    Identity identity = Identity.builder().type("User").orgId("123").build();
+    RhIdentityPrincipal principal = RhIdentityPrincipal.builder().identity(identity).build();
+
+    assertFalse(principal.isOrgAdmin());
+  }
+
+  @Test
   void testGetNameForDifferentTypes() {
     // Test name resolution for different identity types
 

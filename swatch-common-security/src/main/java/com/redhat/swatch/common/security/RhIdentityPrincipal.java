@@ -71,6 +71,11 @@ public class RhIdentityPrincipal implements Principal {
     return Objects.equals("X509", getIdentity().getType());
   }
 
+  public boolean isOrgAdmin() {
+    User user = getIdentity().getUser();
+    return user != null && Boolean.TRUE.equals(user.getOrgAdmin());
+  }
+
   public String toString() {
     return getName();
   }

@@ -16,6 +16,9 @@ paths:
       tags:
         - OrgPreferences
       operationId: getOrgPreferences
+      security:
+        - customer: []
+        - service: []
       summary: Get organization utilization preferences
       description: >-
         Retrieves the organization utilization preferences for the organization resolved
@@ -44,6 +47,9 @@ paths:
       tags:
         - OrgPreferences
       operationId: updateOrgPreferences
+      security:
+        - admin: []
+        - service: []
       summary: Update organization utilization preferences
       description: >-
         Accepts organization utilization preferences (for example custom over-usage threshold)
@@ -77,6 +83,22 @@ paths:
         "500":
           $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
 components:
+  securitySchemes:
+    customer:
+      type: apiKey
+      description: customer facing API
+      name: x-rh-identity
+      in: header
+    admin:
+      type: apiKey
+      description: API is available for org admin users
+      name: x-rh-identity
+      in: header
+    service:
+      type: apiKey
+      description: API is available for services
+      name: x-rh-swatch-psk
+      in: header
   schemas:
     OrgPreferencesRequest:
       type: object

@@ -21,6 +21,7 @@
 package com.redhat.swatch.common.security;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
@@ -42,5 +43,13 @@ class RhIdentityDeserializationTest {
     var identity = identityFactory.fromHeader(RhIdentityUtils.X509_IDENTITY_HEADER);
     assertEquals("X509", identity.getIdentity().getType());
     assertEquals("CN=test.example.com", identity.getIdentity().getX509().getSubjectDn());
+  }
+
+  @Test
+  void shouldDeserializeOrgAdminUserHeader() throws Exception {
+    var identity = identityFactory.fromHeader(RhIdentityUtils.ORG_ADMIN_IDENTITY_HEADER);
+    assertEquals("User", identity.getIdentity().getType());
+    assertEquals("org123", identity.getIdentity().getOrgId());
+    assertTrue(identity.isOrgAdmin());
   }
 }

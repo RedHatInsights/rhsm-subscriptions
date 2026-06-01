@@ -63,6 +63,21 @@ public class RhIdentityUtils {
 
   public static final String CUSTOMER_IDENTITY_HEADER = generateHeader(CUSTOMER_IDENTITY_JSON);
 
+  public static final String ORG_ADMIN_IDENTITY_JSON =
+      """
+            {
+              "identity": {
+                "type": "User",
+                "org_id": "org123",
+                "user": {
+                  "is_org_admin": true
+                }
+              }
+            }
+            """;
+
+  public static final String ORG_ADMIN_IDENTITY_HEADER = generateHeader(ORG_ADMIN_IDENTITY_JSON);
+
   static String generateHeader(String json) {
     return new String(
         Base64.getEncoder().encode(json.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
