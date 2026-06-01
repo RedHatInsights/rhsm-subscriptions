@@ -6,6 +6,11 @@
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
 
   <changeSet id="202605151359-01" author="awood" dbms="postgresql">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <indexExists tableName="host_tally_buckets" indexName="host_tally_buckets_is_primary_idx"/>
+      </not>
+    </preConditions>
     <sql>
       CREATE INDEX host_tally_buckets_is_primary_idx ON host_tally_buckets (
         product_id
