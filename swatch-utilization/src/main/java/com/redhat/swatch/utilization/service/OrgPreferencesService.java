@@ -42,19 +42,25 @@ public class OrgPreferencesService {
     this.repository = repository;
   }
 
+  public int getDefaultThreshold() {
+    return defaultThreshold;
+  }
+
   /**
    * Retrieves preferences for the given organization. Returns default threshold from
    * ORG_PREFERENCE_DEFAULT_THRESHOLD property if not configured.
    */
   @Transactional
   public OrgPreferencesResponse getOrgPreferences(String orgId) {
-    log.info("Retrieving utilization preference for orgId={}", orgId);
+    log.debug("Retrieving utilization preference for orgId={}", orgId);
     var entityOpt = repository.findByIdOptional(orgId);
     var response = new OrgPreferencesResponse();
     if (entityOpt.isEmpty()) {
       response.setCustomThreshold(defaultThreshold);
     } else {
-      response.setCustomThreshold(entityOpt.get().getCustomThreshold());
+      var entity = entityOpt.get();
+      response.setCustomThreshold(entity.getCustomThreshold());
+      response.setLastUpdated(entity.getLastUpdated());
     }
     return response;
   }
@@ -70,7 +76,8 @@ public class OrgPreferencesService {
     entity.setCustomThreshold(request.getCustomThreshold());
     repository.persist(entity);
     var response = new OrgPreferencesResponse();
-    response.setCustomThreshold(request.getCustomThreshold());
+    response.setCustomThreshold(entity.getCustomThreshold());
+    response.setLastUpdated(entity.getLastUpdated());
     log.debug("Updated utilization preference '{}' to orgId={}", request, orgId);
     return response;
   }

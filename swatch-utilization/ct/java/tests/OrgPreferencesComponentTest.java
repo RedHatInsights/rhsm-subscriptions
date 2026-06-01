@@ -20,8 +20,10 @@
  */
 package tests;
 
+import static com.redhat.swatch.component.tests.utils.DateUtils.assertDatesAreEqual;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.utilization.openapi.model.OrgPreferencesRequest;
@@ -43,13 +45,15 @@ public class OrgPreferencesComponentTest extends BaseUtilizationComponentTest {
     // When: Retrieving org preferences
     OrgPreferencesResponse response = whenGetOrgPreferences();
 
-    // Then: Response contains system default threshold
+    // Then: Response contains system default threshold and no last_updated
     assertNotNull(response, "Response should not be null");
     assertNotNull(response.getCustomThreshold(), "Custom threshold should not be null");
     assertEquals(
         DEFAULT_THRESHOLD,
         response.getCustomThreshold(),
         "Should return system default threshold when org has no custom preferences");
+    assertNull(
+        response.getLastUpdated(), "last_updated should be absent when using default threshold");
   }
 
   @TestPlanName("org-preferences-TC002")
@@ -67,11 +71,13 @@ public class OrgPreferencesComponentTest extends BaseUtilizationComponentTest {
         customThreshold,
         postResponse.getCustomThreshold(),
         "POST response should contain custom threshold");
+    assertNotNull(postResponse.getLastUpdated(), "POST response should contain last_updated");
 
     // Verify persistence by retrieving
     OrgPreferencesResponse getResponse = whenGetOrgPreferences();
     assertEquals(
         customThreshold, getResponse.getCustomThreshold(), "GET should return persisted value");
+    assertDatesAreEqual(postResponse.getLastUpdated(), getResponse.getLastUpdated());
   }
 
   @TestPlanName("org-preferences-TC003")
@@ -90,6 +96,7 @@ public class OrgPreferencesComponentTest extends BaseUtilizationComponentTest {
         customThreshold,
         response.getCustomThreshold(),
         "Should return custom threshold, not system default");
+    assertNotNull(response.getLastUpdated(), "Should return last_updated for configured org");
   }
 
   @TestPlanName("org-preferences-TC004")
@@ -109,6 +116,7 @@ public class OrgPreferencesComponentTest extends BaseUtilizationComponentTest {
         updatedThreshold,
         response.getCustomThreshold(),
         "Should return updated threshold, not initial threshold");
+    assertNotNull(response.getLastUpdated(), "Should return last_updated after update");
   }
 
   @TestPlanName("org-preferences-TC005")

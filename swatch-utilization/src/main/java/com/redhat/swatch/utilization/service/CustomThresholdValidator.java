@@ -18,11 +18,21 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.utilization.data;
+package com.redhat.swatch.utilization.service;
 
-import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
+import com.redhat.swatch.utilization.openapi.model.OrgPreferencesRequest;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.validation.Validator;
 
 @ApplicationScoped
-public class OrgUtilizationPreferenceRepository
-    implements PanacheRepositoryBase<OrgUtilizationPreferenceEntity, String> {}
+public class CustomThresholdValidator {
+
+  @Inject Validator validator;
+
+  public boolean isValid(int customThreshold) {
+    return validator
+        .validate(new OrgPreferencesRequest().customThreshold(customThreshold))
+        .isEmpty();
+  }
+}

@@ -21,6 +21,7 @@
 package com.redhat.swatch.utilization.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -30,6 +31,8 @@ import com.redhat.swatch.utilization.openapi.model.OrgPreferencesRequest;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -38,6 +41,7 @@ import org.mockito.ArgumentCaptor;
 class OrgPreferencesServiceTest {
 
   private static final String ORG_ID = "org-456";
+  private static final OffsetDateTime LAST_UPDATED = OffsetDateTime.now(ZoneOffset.UTC);
 
   @InjectMock OrgUtilizationPreferenceRepository repository;
 
@@ -48,20 +52,23 @@ class OrgPreferencesServiceTest {
     var entity = new OrgUtilizationPreferenceEntity();
     entity.setOrgId(ORG_ID);
     entity.setCustomThreshold(7);
+    entity.setLastUpdated(LAST_UPDATED);
     when(repository.findByIdOptional(ORG_ID)).thenReturn(Optional.of(entity));
 
     var response = service.getOrgPreferences(ORG_ID);
 
     assertEquals(7, response.getCustomThreshold());
+    assertEquals(LAST_UPDATED, response.getLastUpdated());
   }
 
   @Test
-  void getOrgPreferences_whenPreferenceDoesNotExist_returnsDefaultThreshold() {
+  void getOrgPreferences_whenPreferenceDoesNotExist_returnsDefaultThresholdWithoutLastUpdated() {
     when(repository.findByIdOptional(ORG_ID)).thenReturn(Optional.empty());
 
     var response = service.getOrgPreferences(ORG_ID);
 
     assertEquals(80, response.getCustomThreshold());
+    assertNull(response.getLastUpdated());
   }
 
   @Test
