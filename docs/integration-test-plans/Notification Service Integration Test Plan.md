@@ -77,21 +77,6 @@ Limitation:
    - Deduplication fires for identical `product + metric + SLA + usage` combo.
    - A new notification is produced when SLA changes and when usage changes, confirming both are part of the deduplication key.
 
-## stage-notification-deduplication-TC003
-
-1. **Description:** Exercises the **preferences_hash** element of the deduplication key for custom threshold notifications. Updating the custom utilization threshold changes the `preferences_hash` embedded in the event, causing the deduplication key to differ so the user is re-notified even if the same utilization level was already notified this month.
-2. **Setup:**
-   - The organization is opted-in for custom threshold notifications (`exceeded-custom-utilization-threshold` event type).
-   - The organization has set a custom threshold at a value below current usage (e.g., 80% with usage at 85%).
-   - The organization has already received a custom threshold notification this calendar month.
-3. **Actions and Verifications (in sequence):**
-   1. Trigger the utilization sync job → verify first custom threshold notification is received with a non-null `preferences_hash` in the context.
-   2. Trigger the utilization sync job again (same usage, same threshold) → assert **no new notification** is received (deduplication suppresses the duplicate).
-   3. Update the custom threshold to a different value that is still below current usage (e.g., 79%) → trigger the sync → verify **a new notification is received** and its `preferences_hash` differs from the first notification's hash.
-4. **Expected Result:**
-   - Deduplication suppresses notifications when the custom threshold configuration is unchanged.
-   - A new notification is delivered after the threshold is updated, confirming that the `preferences_hash` change resets the deduplication key.
-
 ## test_over_usage_notification_requires_payg_sla_aligned_with_offering
 
 1. **Description:** Over-usage notifications for PAYG products require that the SLA of the PAYG usage aligns with the contract offering's SLA. Usage at a mismatched SLA tier must not trigger an alert, even if the volume exceeds capacity.
