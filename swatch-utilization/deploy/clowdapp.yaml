@@ -148,7 +148,6 @@ objects:
       - ${DB_POD}
       - swatch-contracts
       - rbac
-      - export-service
 
     kafkaTopics:
       - replicas: ${{KAFKA_UTILIZATION_REPLICAS}}
