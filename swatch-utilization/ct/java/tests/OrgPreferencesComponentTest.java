@@ -45,7 +45,7 @@ public class OrgPreferencesComponentTest extends BaseUtilizationComponentTest {
     // When: Retrieving org preferences
     OrgPreferencesResponse response = whenGetOrgPreferences();
 
-    // Then: Response contains system default threshold and no last_updated
+    // Then: Response contains system default threshold and no last_modified
     assertNotNull(response, "Response should not be null");
     assertNotNull(response.getCustomThreshold(), "Custom threshold should not be null");
     assertEquals(
@@ -53,7 +53,7 @@ public class OrgPreferencesComponentTest extends BaseUtilizationComponentTest {
         response.getCustomThreshold(),
         "Should return system default threshold when org has no custom preferences");
     assertNull(
-        response.getLastUpdated(), "last_updated should be absent when using default threshold");
+        response.getLastModified(), "last_modified should be absent when using default threshold");
   }
 
   @TestPlanName("org-preferences-TC002")
@@ -71,13 +71,13 @@ public class OrgPreferencesComponentTest extends BaseUtilizationComponentTest {
         customThreshold,
         postResponse.getCustomThreshold(),
         "POST response should contain custom threshold");
-    assertNotNull(postResponse.getLastUpdated(), "POST response should contain last_updated");
+    assertNotNull(postResponse.getLastModified(), "POST response should contain last_modified");
 
     // Verify persistence by retrieving
     OrgPreferencesResponse getResponse = whenGetOrgPreferences();
     assertEquals(
         customThreshold, getResponse.getCustomThreshold(), "GET should return persisted value");
-    assertDatesAreEqual(postResponse.getLastUpdated(), getResponse.getLastUpdated());
+    assertDatesAreEqual(postResponse.getLastModified(), getResponse.getLastModified());
   }
 
   @TestPlanName("org-preferences-TC003")
@@ -96,7 +96,7 @@ public class OrgPreferencesComponentTest extends BaseUtilizationComponentTest {
         customThreshold,
         response.getCustomThreshold(),
         "Should return custom threshold, not system default");
-    assertNotNull(response.getLastUpdated(), "Should return last_updated for configured org");
+    assertNotNull(response.getLastModified(), "Should return last_modified for configured org");
   }
 
   @TestPlanName("org-preferences-TC004")
@@ -116,7 +116,7 @@ public class OrgPreferencesComponentTest extends BaseUtilizationComponentTest {
         updatedThreshold,
         response.getCustomThreshold(),
         "Should return updated threshold, not initial threshold");
-    assertNotNull(response.getLastUpdated(), "Should return last_updated after update");
+    assertNotNull(response.getLastModified(), "Should return last_modified after update");
   }
 
   @TestPlanName("org-preferences-TC005")
@@ -159,6 +159,7 @@ public class OrgPreferencesComponentTest extends BaseUtilizationComponentTest {
 
     // Then: Request is accepted and returns boundary value
     assertEquals(0, response.getCustomThreshold(), "Should accept threshold value 0");
+    assertNotNull(response.getLastModified(), "POST response should contain last_modified");
   }
 
   @TestPlanName("org-preferences-TC006")
@@ -171,6 +172,7 @@ public class OrgPreferencesComponentTest extends BaseUtilizationComponentTest {
 
     // Then: Request is accepted and returns boundary value
     assertEquals(100, response.getCustomThreshold(), "Should accept threshold value 100");
+    assertNotNull(response.getLastModified(), "POST response should contain last_modified");
   }
 
   private OrgPreferencesResponse whenGetOrgPreferences() {

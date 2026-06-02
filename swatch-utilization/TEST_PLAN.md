@@ -403,11 +403,11 @@ Additional cases can be added under the same `utilization-notifications-featuref
 - **Verification**:
     - Verify response status code is 200
     - Verify response contains custom_threshold field
-    - Verify response last_updated is absent (field omitted; org has no persisted preferences)
+    - Verify response last_modified is absent (field omitted; org has no persisted preferences)
 - **Expected Result**:
     - HTTP 200 response
     - Response contains custom_threshold matching system default (ORG_PREFERENCE_DEFAULT_THRESHOLD config property)
-    - last_updated is absent (omitted from response body)
+    - last_modified is absent (omitted from response body)
 
 **org-preferences-TC002 - Update organization threshold preferences**
 
@@ -419,11 +419,11 @@ Additional cases can be added under the same `utilization-notifications-featuref
 - **Verification**:
     - Verify response status code is 200
     - Verify response contains the persisted custom_threshold value
-    - Verify response contains last_updated (UTC timestamp of persistence)
+    - Verify response contains last_modified (UTC timestamp of persistence)
 - **Expected Result**:
     - HTTP 200 response
     - Response custom_threshold matches the value from request body
-    - Response last_updated is present and matches the value returned by subsequent GET
+    - Response last_modified is present and matches the value returned by subsequent GET
 
 **org-preferences-TC003 - Retrieve custom threshold after update**
 
@@ -436,11 +436,11 @@ Additional cases can be added under the same `utilization-notifications-featuref
 - **Verification**:
     - Verify GET response status code is 200
     - Verify GET response contains the previously configured custom_threshold
-    - Verify GET response contains last_updated
+    - Verify GET response contains last_modified
 - **Expected Result**:
     - HTTP 200 response
     - Response custom_threshold matches the value set in previous POST request (not the system default)
-    - Response last_updated is present
+    - Response last_modified is present
 
 **org-preferences-TC004 - Update existing custom threshold**
 
@@ -453,11 +453,11 @@ Additional cases can be added under the same `utilization-notifications-featuref
     - Call GET /api/rhsm-subscriptions/v1/utilization/org-preferences to verify
 - **Verification**:
     - Verify final GET response returns the updated threshold value
-    - Verify final GET response contains last_updated reflecting the latest update
+    - Verify final GET response contains last_modified reflecting the latest update
 - **Expected Result**:
     - HTTP 200 response
     - Response custom_threshold matches the second POST request value (not the first)
-    - Response last_updated is present
+    - Response last_modified is present
 
 **org-preferences-TC005 - Reject invalid threshold values**
 
@@ -485,7 +485,7 @@ Additional cases can be added under the same `utilization-notifications-featuref
 - **Expected Result**:
     - HTTP 200 response for both 0 and 100 threshold values
     - Response custom_threshold matches request value
-    - Response last_updated is present for each successful POST
+    - Response last_modified is present for each successful POST
 
 ## Custom Usage Threshold Notification
 
@@ -501,7 +501,7 @@ Additional cases can be added under the same `utilization-notifications-featuref
     - Wait for notification message on notifications topic
     - Verify notification payload
 - **Expected Result**:
-    - Notification event contains correct information (org_id, product_id, metric_id, utilization_percentage and last_updated_hash)
+    - Notification event contains correct information (org_id, product_id, metric_id, utilization_percentage and last_modified_hash)
     - Notification action `severity` is `MODERATE`
 
 **custom-threshold-TC002 - Notification sent when utilization is exactly at custom threshold**
@@ -516,7 +516,7 @@ Additional cases can be added under the same `utilization-notifications-featuref
     - Wait for notification message on notifications topic
     - Verify notification payload
 - **Expected Result**:
-    - Notification event contains correct information (org_id, product_id, metric_id, utilization_percentage and last_updated_hash)
+    - Notification event contains correct information (org_id, product_id, metric_id, utilization_percentage and last_modified_hash)
     - Notification action `severity` is `MODERATE`
     - Notification is sent (threshold comparison uses greater-than-or-equal)
 

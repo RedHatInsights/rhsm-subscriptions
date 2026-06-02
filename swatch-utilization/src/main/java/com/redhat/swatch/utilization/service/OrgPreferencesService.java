@@ -26,6 +26,9 @@ import com.redhat.swatch.utilization.openapi.model.OrgPreferencesRequest;
 import com.redhat.swatch.utilization.openapi.model.OrgPreferencesResponse;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
@@ -60,7 +63,7 @@ public class OrgPreferencesService {
     } else {
       var entity = entityOpt.get();
       response.setCustomThreshold(entity.getCustomThreshold());
-      response.setLastUpdated(entity.getLastUpdated());
+      response.setLastModified(toOffsetDateTime(entity.getLastModified()));
     }
     return response;
   }
@@ -74,10 +77,11 @@ public class OrgPreferencesService {
     log.info("Updating utilization preference orgId={}", orgId);
     var entity = getOrCreateOrgPreferenceEntity(orgId);
     entity.setCustomThreshold(request.getCustomThreshold());
-    repository.persist(entity);
+    // using persist and flush, so the current_modified column is populated
+    repository.persistAndFlush(entity);
     var response = new OrgPreferencesResponse();
     response.setCustomThreshold(entity.getCustomThreshold());
-    response.setLastUpdated(entity.getLastUpdated());
+    response.setLastModified(toOffsetDateTime(entity.getLastModified()));
     log.debug("Updated utilization preference '{}' to orgId={}", request, orgId);
     return response;
   }
@@ -91,5 +95,9 @@ public class OrgPreferencesService {
               entity.setOrgId(orgId);
               return entity;
             });
+  }
+
+  private static OffsetDateTime toOffsetDateTime(Instant instant) {
+    return instant == null ? null : instant.atOffset(ZoneOffset.UTC);
   }
 }

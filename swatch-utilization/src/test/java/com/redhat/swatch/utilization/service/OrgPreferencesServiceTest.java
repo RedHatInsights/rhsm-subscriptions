@@ -31,8 +31,6 @@ import com.redhat.swatch.utilization.openapi.model.OrgPreferencesRequest;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -41,7 +39,6 @@ import org.mockito.ArgumentCaptor;
 class OrgPreferencesServiceTest {
 
   private static final String ORG_ID = "org-456";
-  private static final OffsetDateTime LAST_UPDATED = OffsetDateTime.now(ZoneOffset.UTC);
 
   @InjectMock OrgUtilizationPreferenceRepository repository;
 
@@ -52,23 +49,21 @@ class OrgPreferencesServiceTest {
     var entity = new OrgUtilizationPreferenceEntity();
     entity.setOrgId(ORG_ID);
     entity.setCustomThreshold(7);
-    entity.setLastUpdated(LAST_UPDATED);
     when(repository.findByIdOptional(ORG_ID)).thenReturn(Optional.of(entity));
 
     var response = service.getOrgPreferences(ORG_ID);
 
     assertEquals(7, response.getCustomThreshold());
-    assertEquals(LAST_UPDATED, response.getLastUpdated());
   }
 
   @Test
-  void getOrgPreferences_whenPreferenceDoesNotExist_returnsDefaultThresholdWithoutLastUpdated() {
+  void getOrgPreferences_whenPreferenceDoesNotExist_returnsDefaultThresholdWithoutLastModified() {
     when(repository.findByIdOptional(ORG_ID)).thenReturn(Optional.empty());
 
     var response = service.getOrgPreferences(ORG_ID);
 
     assertEquals(80, response.getCustomThreshold());
-    assertNull(response.getLastUpdated());
+    assertNull(response.getLastModified());
   }
 
   @Test
@@ -81,7 +76,7 @@ class OrgPreferencesServiceTest {
 
     assertEquals(11, response.getCustomThreshold());
     var captor = ArgumentCaptor.forClass(OrgUtilizationPreferenceEntity.class);
-    verify(repository).persist(captor.capture());
+    verify(repository).persistAndFlush(captor.capture());
     assertEquals(ORG_ID, captor.getValue().getOrgId());
     assertEquals(11, captor.getValue().getCustomThreshold());
   }

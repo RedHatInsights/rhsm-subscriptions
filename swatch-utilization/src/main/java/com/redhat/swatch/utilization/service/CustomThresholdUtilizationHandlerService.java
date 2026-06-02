@@ -26,7 +26,7 @@ import com.redhat.swatch.utilization.model.Severity;
 import com.redhat.swatch.utilization.model.UtilizationSummary;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -48,7 +48,7 @@ public class CustomThresholdUtilizationHandlerService
       double utilizationPercent, UtilizationSummary payload, Measurement measurement) {
     var preference = orgPreferencesService.getOrgPreferences(payload.getOrgId());
     // In SWATCH-4990, we need to remove this condition, so all orgs are opted in.
-    if (preference.getLastUpdated() == null) {
+    if (preference.getLastModified() == null) {
       log.debug(
           "No org preference found for orgId={}, skipping custom threshold check",
           payload.getOrgId());
@@ -77,8 +77,8 @@ public class CustomThresholdUtilizationHandlerService
           String.format(PERCENT_FORMAT, utilizationPercent),
           threshold);
       var event = buildEvent(utilizationPercent);
-      String lastUpdatedHash = hashLastUpdated(preference.getLastUpdated());
-      event.getPayload().getAdditionalProperties().put("last_updated_hash", lastUpdatedHash);
+      String lastModifiedHash = hashLastModified(preference.getLastModified().toInstant());
+      event.getPayload().getAdditionalProperties().put("last_modified_hash", lastModifiedHash);
       return Optional.of(event);
     }
 
@@ -100,9 +100,8 @@ public class CustomThresholdUtilizationHandlerService
     return CUSTOM_THRESHOLD_METRIC;
   }
 
-  static String hashLastUpdated(OffsetDateTime lastUpdated) {
-    var instant = lastUpdated.toInstant();
-    String canonicalTimestamp = instant.getEpochSecond() + ":" + instant.getNano();
+  static String hashLastModified(Instant lastModified) {
+    String canonicalTimestamp = lastModified.getEpochSecond() + ":" + lastModified.getNano();
     return DigestUtils.sha256Hex(canonicalTimestamp);
   }
 }
