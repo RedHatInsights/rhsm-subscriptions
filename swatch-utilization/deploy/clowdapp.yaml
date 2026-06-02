@@ -90,6 +90,50 @@ parameters:
     value: quay.io/redhat-services-prod/rh-subs-watch-tenant/rhsm-subscriptions-egress
   - name: EGRESS_IMAGE_TAG
     value: latest
+  - name: FLOORIST_DB_SECRET_NAME
+    description: database secret name
+    value: swatch-db-ro
+  # FloorPlan swatch-utilization: Stage=dev, Prod=prod
+  - name: FLOORIST_BUCKET_SECRET_NAME
+    description: bucket secret name
+    required: true
+    value: egress-s3
+  # FloorPlan swatch-utilization-test: Stage=sandbox, Prod=preprod
+  - name: FLOORIST_BUCKET_SECRET_NAME_TEST
+    description: bucket secret name for test environment
+    required: true
+    value: egress-s3
+  - name: FLOORIST_LOGLEVEL
+    description: Floorist loglevel config
+    value: 'DEBUG'
+  - name: FLOORIST_SUSPEND
+    description: Disable Floorist cronjob execution
+    required: true
+    value: 'false'
+  - name: FLOORIST_S3_SNOWPIPE_PATH
+    description: Path for dataproduct in snowpipe s3 bucket
+    value: 'swatch'
+
+# Shared FloorPlan specification for all environments (sandbox, dev, preprod, prod)
+# Only objectStore differs per environment
+.floorplan_spec: &floorplan_spec_base
+  database:
+    secretName: ${FLOORIST_DB_SECRET_NAME}
+  logLevel: ${FLOORIST_LOGLEVEL}
+  suspend: ${{FLOORIST_SUSPEND}}
+  resources:
+    limits:
+      cpu: 400m
+      memory: 500Mi
+    requests:
+      cpu: 200m
+      memory: 250Mi
+  queries:
+  - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/org_utilization_preference
+    query: >-
+      select * from org_utilization_preference
+      where last_modified >= date_trunc('day', now() at time zone 'utc' - interval '2 day')
+    chunksize: 50000
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -348,6 +392,24 @@ objects:
     appName: swatch-utilization-db-cleanup
     jobs:
       - changelog-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
+
+- apiVersion: metrics.console.redhat.com/v1alpha1
+  kind: FloorPlan
+  metadata:
+    name: swatch-utilization
+  spec:
+    <<: *floorplan_spec_base
+    objectStore:
+      secretName: ${FLOORIST_BUCKET_SECRET_NAME}
+
+- apiVersion: metrics.console.redhat.com/v1alpha1
+  kind: FloorPlan
+  metadata:
+    name: swatch-utilization-test
+  spec:
+    <<: *floorplan_spec_base
+    objectStore:
+      secretName: ${FLOORIST_BUCKET_SECRET_NAME_TEST}
 
 - apiVersion: v1
   kind: Secret

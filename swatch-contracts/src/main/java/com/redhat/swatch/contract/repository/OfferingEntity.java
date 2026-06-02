@@ -22,6 +22,7 @@ package com.redhat.swatch.contract.repository;
 
 import com.redhat.swatch.common.model.ServiceLevel;
 import com.redhat.swatch.common.model.Usage;
+import com.redhat.swatch.panache.ModificationTrackedEntity;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -30,7 +31,6 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
-import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -55,7 +55,7 @@ import lombok.ToString;
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor
-public class OfferingEntity extends ModificationTrackedEntity implements Serializable {
+public class OfferingEntity extends ModificationTrackedEntity {
 
   private static final String MIGRATION_OFFERING = "MIGRATION_OFFERING";
 

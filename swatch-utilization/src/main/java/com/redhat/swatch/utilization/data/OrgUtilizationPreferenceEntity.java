@@ -20,15 +20,11 @@
  */
 package com.redhat.swatch.utilization.data;
 
+import com.redhat.swatch.panache.ModificationTrackedEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
-import java.io.Serializable;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -36,7 +32,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "org_utilization_preference")
-public class OrgUtilizationPreferenceEntity implements Serializable {
+public class OrgUtilizationPreferenceEntity extends ModificationTrackedEntity {
 
   @Id
   @Column(name = "org_id", nullable = false, length = 32)
@@ -45,13 +41,4 @@ public class OrgUtilizationPreferenceEntity implements Serializable {
   /** Over-usage threshold margin as a whole-number percentage (e.g. 5 means 5%). */
   @Column(name = "custom_threshold", nullable = false)
   private int customThreshold;
-
-  @Column(name = "last_updated", nullable = false)
-  private OffsetDateTime lastUpdated;
-
-  @PrePersist
-  @PreUpdate
-  public void setLastUpdated() {
-    this.lastUpdated = OffsetDateTime.now(ZoneOffset.UTC);
-  }
 }

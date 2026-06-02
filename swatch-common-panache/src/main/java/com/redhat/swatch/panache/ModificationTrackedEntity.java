@@ -18,12 +18,14 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.contract.repository;
+package com.redhat.swatch.panache;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
+import java.io.Serializable;
 import java.time.Instant;
+import lombok.Getter;
 import org.hibernate.annotations.CurrentTimestamp;
 import org.hibernate.annotations.SourceType;
 
@@ -36,9 +38,10 @@ import org.hibernate.annotations.SourceType;
  * href="https://in.relation.to/2024/04/19/generated-values/">here</a>
  */
 @MappedSuperclass
-public abstract class ModificationTrackedEntity extends PanacheEntityBase {
+public abstract class ModificationTrackedEntity extends PanacheEntityBase implements Serializable {
 
   // Do not include in equals() as this doesn't affect logical equality
+  @Getter
   @Column(name = "last_modified")
   @CurrentTimestamp(source = SourceType.DB)
   private Instant lastModified = null;

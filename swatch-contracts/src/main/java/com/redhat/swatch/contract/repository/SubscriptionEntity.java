@@ -22,6 +22,7 @@ package com.redhat.swatch.contract.repository;
 
 import com.redhat.swatch.common.model.ServiceLevel;
 import com.redhat.swatch.common.model.Usage;
+import com.redhat.swatch.panache.ModificationTrackedEntity;
 import com.redhat.swatch.panache.Specification;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
@@ -60,7 +61,7 @@ import lombok.ToString;
 @NoArgsConstructor
 @IdClass(SubscriptionEntity.SubscriptionCompoundId.class)
 @Table(name = "subscription")
-public class SubscriptionEntity extends ModificationTrackedEntity implements Serializable {
+public class SubscriptionEntity extends ModificationTrackedEntity {
 
   @Id
   @Column(name = "subscription_id")
