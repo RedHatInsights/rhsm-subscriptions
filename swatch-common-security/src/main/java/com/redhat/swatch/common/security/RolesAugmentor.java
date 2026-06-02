@@ -37,7 +37,7 @@ import lombok.extern.slf4j.Slf4j;
  * <li>service - granted to x-rh-swatch-psk authenticated principals
  * <li>support - granted to x-rh-identity authenticated principals when type is "Associate".
  * <li>test - granted to any authenticated principal when SWATCH_TEST_APIS_ENABLED is true.
- * <li>admin - granted to x-rh-identity User principals when is_org_admin is true.
+ * <li>org_admin - granted to x-rh-identity User principals when is_org_admin is true.
  */
 @Slf4j
 @ApplicationScoped
@@ -60,7 +60,7 @@ public class RolesAugmentor implements SecurityIdentityAugmentor {
         roles.add("service");
       }
       if (rhIdentityPrincipal.isUser() && rhIdentityPrincipal.isOrgAdmin()) {
-        roles.add("admin");
+        roles.add("org_admin");
       }
     }
     if (principal instanceof PskPrincipal) {

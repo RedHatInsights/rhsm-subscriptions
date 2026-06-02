@@ -49,13 +49,14 @@ import org.junit.jupiter.params.provider.ValueSource;
 class OrgPreferencesResourceTest {
 
   private static final String ORG_ID = "org123";
+  private static final boolean IS_ORG_ADMIN = true;
   private static final String ORG_PREFERENCES_PATH =
       "/api/rhsm-subscriptions/v1/utilization/org-preferences";
 
   @InjectMock OrgPreferencesService orgPreferencesService;
 
   @Test
-  void getOrgPreferences_whenPreferencesExist_returnsPreferences() throws Exception {
+  void getOrgPreferences_whenPreferencesExist_returnsPreferences() {
     var expected = new OrgPreferencesResponse();
     expected.setCustomThreshold(10);
     when(orgPreferencesService.getOrgPreferences(ORG_ID)).thenReturn(expected);
@@ -71,7 +72,7 @@ class OrgPreferencesResourceTest {
   }
 
   @Test
-  void getOrgPreferences_whenPreferencesDoNotExist_returnsDefaultThreshold() throws Exception {
+  void getOrgPreferences_whenPreferencesDoNotExist_returnsDefaultThreshold() {
     var expected = new OrgPreferencesResponse();
     expected.setCustomThreshold(80);
     when(orgPreferencesService.getOrgPreferences(ORG_ID)).thenReturn(expected);
@@ -87,7 +88,7 @@ class OrgPreferencesResourceTest {
   }
 
   @Test
-  void updateOrgPreferences_whenPayloadValid_invokesServiceWithResolvedOrgId() throws Exception {
+  void updateOrgPreferences_whenPayloadValid_invokesServiceWithResolvedOrgId() {
     var expected = new OrgPreferencesResponse();
     expected.setCustomThreshold(4);
     when(orgPreferencesService.updateOrgPreferences(eq(ORG_ID), any(OrgPreferencesRequest.class)))
@@ -106,7 +107,7 @@ class OrgPreferencesResourceTest {
   @ParameterizedTest
   @ValueSource(ints = {-1, 101})
   void updateOrgPreferences_whenThresholdOutOfRange_returnsBadRequestWithoutCallingService(
-      int invalidThreshold) throws Exception {
+      int invalidThreshold) {
     whenUpdateOrgPreferencesTo(invalidThreshold).statusCode(HttpStatus.SC_BAD_REQUEST);
 
     verify(orgPreferencesService, never())
@@ -114,29 +115,27 @@ class OrgPreferencesResourceTest {
   }
 
   @Test
-  void updateOrgPreferences_whenCustomThresholdMissing_returnsBadRequestWithoutCallingService()
-      throws Exception {
+  void updateOrgPreferences_whenCustomThresholdMissing_returnsBadRequestWithoutCallingService() {
     whenUpdateOrgPreferencesTo(null).statusCode(HttpStatus.SC_BAD_REQUEST);
 
     verify(orgPreferencesService, never())
         .updateOrgPreferences(anyString(), any(OrgPreferencesRequest.class));
   }
 
-  private static ValidatableResponse whenGetOrgPreferences() throws Exception {
+  private static ValidatableResponse whenGetOrgPreferences() {
     return given()
-        .header(RH_IDENTITY_HEADER, base64UserIdentity(ORG_ID, false))
+        .header(RH_IDENTITY_HEADER, base64UserIdentity(ORG_ID, !IS_ORG_ADMIN))
         .when()
         .get(ORG_PREFERENCES_PATH)
         .then();
   }
 
-  private static ValidatableResponse whenUpdateOrgPreferencesTo(Integer customThreshold)
-      throws Exception {
+  private static ValidatableResponse whenUpdateOrgPreferencesTo(Integer customThreshold) {
     OrgPreferencesRequest request = new OrgPreferencesRequest();
     request.setCustomThreshold(customThreshold);
 
     return given()
-        .header(RH_IDENTITY_HEADER, base64UserIdentity(ORG_ID, true))
+        .header(RH_IDENTITY_HEADER, base64UserIdentity(ORG_ID, IS_ORG_ADMIN))
         .contentType(ContentType.JSON)
         .body(request)
         .when()
@@ -144,12 +143,16 @@ class OrgPreferencesResourceTest {
         .then();
   }
 
-  private static String base64UserIdentity(String orgId, boolean isOrgAdmin) throws Exception {
-    var mapper = new ObjectMapper();
-    var root = mapper.createObjectNode();
-    var identity = root.putObject("identity");
-    identity.put("type", "User").put("org_id", orgId);
-    identity.putObject("user").put("is_org_admin", isOrgAdmin);
-    return Base64.getEncoder().encodeToString(mapper.writeValueAsBytes(root));
+  private static String base64UserIdentity(String orgId, boolean isOrgAdmin) {
+    try {
+      var mapper = new ObjectMapper();
+      var root = mapper.createObjectNode();
+      var identity = root.putObject("identity");
+      identity.put("type", "User").put("org_id", orgId);
+      identity.putObject("user").put("is_org_admin", isOrgAdmin);
+      return Base64.getEncoder().encodeToString(mapper.writeValueAsBytes(root));
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 }

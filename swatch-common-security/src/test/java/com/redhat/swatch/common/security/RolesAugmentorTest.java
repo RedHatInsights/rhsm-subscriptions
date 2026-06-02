@@ -71,7 +71,7 @@ class RolesAugmentorTest {
             .map(SecurityIdentity::getRoles)
             .subscribe()
             .withSubscriber(UniAssertSubscriber.create());
-    subscriber.assertCompleted().assertItem(Set.of("admin"));
+    subscriber.assertCompleted().assertItem(Set.of("org_admin"));
   }
 
   @Test

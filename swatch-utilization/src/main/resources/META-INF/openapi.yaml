@@ -48,7 +48,7 @@ paths:
         - OrgPreferences
       operationId: updateOrgPreferences
       security:
-        - admin: []
+        - org_admin: []
         - service: []
       summary: Update organization utilization preferences
       description: >-
@@ -89,9 +89,9 @@ components:
       description: customer facing API
       name: x-rh-identity
       in: header
-    admin:
+    org_admin:
       type: apiKey
-      description: API is available for org admin users
+      description: API is available for organization administrators (is_org_admin=true in x-rh-identity)
       name: x-rh-identity
       in: header
     service:
