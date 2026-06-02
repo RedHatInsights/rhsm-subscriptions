@@ -18,30 +18,31 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.utilization.data;
+package com.redhat.swatch.panache;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
+import java.io.Serializable;
 import java.time.Instant;
 import lombok.Getter;
 import org.hibernate.annotations.CurrentTimestamp;
 import org.hibernate.annotations.SourceType;
 
 /**
- * A MappedSuperclass to hold the information for a last_updated column. This column is used to
+ * A MappedSuperclass to hold the information for a last_modified column. This column is used to
  * limit the number of rows fetched when we do data exports to the data warehouse.
  *
  * <p>Hibernate will populate the value for this column using a RETURNING clause which eliminates an
  * extra round trip to the database. See <a
  * href="https://in.relation.to/2024/04/19/generated-values/">here</a>
  */
-@Getter
 @MappedSuperclass
-public abstract class ModificationTrackedEntity extends PanacheEntityBase {
+public abstract class ModificationTrackedEntity extends PanacheEntityBase implements Serializable {
 
   // Do not include in equals() as this doesn't affect logical equality
-  @Column(name = "last_updated")
+  @Getter
+  @Column(name = "last_modified")
   @CurrentTimestamp(source = SourceType.DB)
-  private Instant lastUpdated = null;
+  private Instant lastModified = null;
 }

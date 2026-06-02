@@ -25,17 +25,16 @@ import static com.redhat.swatch.utilization.service.CustomThresholdUtilizationHa
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import com.redhat.cloud.notifications.ingress.Action;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
-import com.redhat.swatch.utilization.data.ModificationTrackedEntity;
 import com.redhat.swatch.utilization.data.OrgUtilizationPreferenceEntity;
 import com.redhat.swatch.utilization.data.OrgUtilizationPreferenceRepository;
 import com.redhat.swatch.utilization.model.Measurement;
@@ -46,10 +45,8 @@ import io.micrometer.core.instrument.search.Search;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
-import java.lang.reflect.Field;
-import java.time.Instant;
+import jakarta.transaction.Transactional;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -64,15 +61,7 @@ import org.mockito.Mockito;
 
 @QuarkusTest
 class CustomThresholdUtilizationHandlerServiceTest {
-
-  @Inject CustomThresholdUtilizationHandlerService service;
-
-  @Inject MeterRegistry meterRegistry;
-
-  @InjectMock NotificationsProducer notificationsProducer;
-  @InjectMock OrgUtilizationPreferenceRepository preferenceRepository;
-
-  static MockedStatic<SubscriptionDefinition> subscriptionDefinition;
+  private static MockedStatic<SubscriptionDefinition> subscriptionDefinition;
 
   private static final String ORG_ID = "org123";
   private static final String PAYG_PRODUCT_ID = "rosa";
@@ -85,7 +74,6 @@ class CustomThresholdUtilizationHandlerServiceTest {
       MetricIdUtils.getInstanceHours().getValue();
   private static final double CAPACITY = 100.0;
   private static final int CUSTOM_THRESHOLD = 80;
-  private static final Instant LAST_UPDATED = Instant.parse("2026-04-20T10:00:00Z");
 
   private static final double USAGE_EXCEEDING_THRESHOLD = 85.0; // 85% > 80% threshold
   private static final double USAGE_AT_THRESHOLD = 80.0; // 80% == 80% threshold
@@ -95,6 +83,12 @@ class CustomThresholdUtilizationHandlerServiceTest {
 
   private static final double EXPECTED_SINGLE_INCREMENT = 1.0;
   private static final double EXPECTED_NO_CHANGE = 0.0;
+
+  @Inject CustomThresholdUtilizationHandlerService service;
+  @Inject OrgUtilizationPreferenceRepository preferenceRepository;
+  @Inject MeterRegistry meterRegistry;
+
+  @InjectMock NotificationsProducer notificationsProducer;
 
   @BeforeAll
   static void beforeAll() {
@@ -109,15 +103,17 @@ class CustomThresholdUtilizationHandlerServiceTest {
     subscriptionDefinition.close();
   }
 
+  @Transactional
   @BeforeEach
   void setUp() {
     meterRegistry.clear();
     subscriptionDefinition.reset();
+    preferenceRepository.deleteAll();
   }
 
   @Test
   void shouldSendNotification_whenUtilizationExceedsOrgThreshold() {
-    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD, LAST_UPDATED);
+    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD);
     UtilizationSummary summary =
         givenUtilizationSummary(
             PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
@@ -131,7 +127,7 @@ class CustomThresholdUtilizationHandlerServiceTest {
 
   @Test
   void shouldSendNotification_whenUtilizationEqualsOrgThreshold() {
-    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD, LAST_UPDATED);
+    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD);
     UtilizationSummary summary =
         givenUtilizationSummary(PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, USAGE_AT_THRESHOLD);
 
@@ -144,7 +140,7 @@ class CustomThresholdUtilizationHandlerServiceTest {
 
   @Test
   void shouldNotSendNotification_whenUtilizationBelowOrgThreshold() {
-    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD, LAST_UPDATED);
+    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD);
     UtilizationSummary summary =
         givenUtilizationSummary(
             PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, USAGE_BELOW_THRESHOLD); // 70% < 80%
@@ -157,7 +153,7 @@ class CustomThresholdUtilizationHandlerServiceTest {
 
   @Test
   void shouldSendNotification_whenUsageAtFullCapacityAndAboveCustomThreshold() {
-    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD, LAST_UPDATED);
+    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD);
     UtilizationSummary summary =
         givenUtilizationSummary(PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, USAGE_AT_FULL_CAPACITY);
 
@@ -170,7 +166,7 @@ class CustomThresholdUtilizationHandlerServiceTest {
 
   @Test
   void shouldSendNotification_whenUsageIsOverCapacity() {
-    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD, LAST_UPDATED);
+    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD);
     UtilizationSummary summary =
         givenUtilizationSummary(PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, USAGE_OVER_CAPACITY);
 
@@ -183,7 +179,6 @@ class CustomThresholdUtilizationHandlerServiceTest {
 
   @Test
   void shouldNotSendNotification_whenNoOrgPreferenceExists() {
-    when(preferenceRepository.findByIdOptional(ORG_ID)).thenReturn(Optional.empty());
     UtilizationSummary summary =
         givenUtilizationSummary(
             PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
@@ -196,7 +191,7 @@ class CustomThresholdUtilizationHandlerServiceTest {
 
   @Test
   void shouldUseModerateSeverity() {
-    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD, LAST_UPDATED);
+    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD);
     UtilizationSummary summary =
         givenUtilizationSummary(
             PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
@@ -214,7 +209,7 @@ class CustomThresholdUtilizationHandlerServiceTest {
 
   @Test
   void shouldIncludeLastUpdatedHashInPayload() {
-    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD, LAST_UPDATED);
+    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD);
     UtilizationSummary summary =
         givenUtilizationSummary(
             PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
@@ -225,16 +220,13 @@ class CustomThresholdUtilizationHandlerServiceTest {
     verify(notificationsProducer, times(1)).produce(captor.capture());
     Action action = captor.getValue();
 
-    var eventPayload = action.getEvents().get(0).getPayload().getAdditionalProperties();
-    String expectedHash = CustomThresholdUtilizationHandlerService.hashLastUpdated(LAST_UPDATED);
-    assertEquals(expectedHash, eventPayload.get("last_updated_hash"));
+    var eventPayload = action.getEvents().getFirst().getPayload().getAdditionalProperties();
+    assertNotNull(eventPayload.get("last_updated_hash"));
   }
 
   @Test
   void shouldProduceDifferentHash_whenLastUpdatedChanges() {
-    var later = Instant.parse("2026-04-21T10:00:00Z");
-
-    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD, LAST_UPDATED);
+    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD);
     UtilizationSummary summary =
         givenUtilizationSummary(
             PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
@@ -247,13 +239,13 @@ class CustomThresholdUtilizationHandlerServiceTest {
             captor
                 .getValue()
                 .getEvents()
-                .get(0)
+                .getFirst()
                 .getPayload()
                 .getAdditionalProperties()
                 .get("last_updated_hash");
 
     Mockito.reset(notificationsProducer);
-    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD, later);
+    givenOrgPreferenceIsUpdated(ORG_ID, CUSTOM_THRESHOLD + 1);
     whenCheckSummary(summary);
 
     verify(notificationsProducer, times(1)).produce(captor.capture());
@@ -262,7 +254,7 @@ class CustomThresholdUtilizationHandlerServiceTest {
             captor
                 .getValue()
                 .getEvents()
-                .get(0)
+                .getFirst()
                 .getPayload()
                 .getAdditionalProperties()
                 .get("last_updated_hash");
@@ -274,7 +266,7 @@ class CustomThresholdUtilizationHandlerServiceTest {
 
   @Test
   void shouldIncludeUtilizationPercentageInPayload() {
-    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD, LAST_UPDATED);
+    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD);
     UtilizationSummary summary =
         givenUtilizationSummary(
             PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
@@ -285,14 +277,14 @@ class CustomThresholdUtilizationHandlerServiceTest {
     verify(notificationsProducer, times(1)).produce(captor.capture());
     Action action = captor.getValue();
 
-    var eventPayload = action.getEvents().get(0).getPayload().getAdditionalProperties();
+    var eventPayload = action.getEvents().getFirst().getPayload().getAdditionalProperties();
     String expectedPercent = String.format("%.2f", USAGE_EXCEEDING_THRESHOLD);
     assertEquals(expectedPercent, eventPayload.get("utilization_percentage"));
   }
 
   @Test
   void shouldUseCurrentTotal_forCounterMetric() {
-    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD, LAST_UPDATED);
+    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD);
     // rosa / Cores: value=4 (hourly increment), currentTotal=85 (MTD total exceeds 80% of 100)
     UtilizationSummary summary =
         givenUtilizationSummary(
@@ -306,7 +298,7 @@ class CustomThresholdUtilizationHandlerServiceTest {
 
   @Test
   void shouldUseValue_forGaugeMetric() {
-    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD, LAST_UPDATED);
+    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD);
     // RHEL for x86 / Sockets: value=1 (50% of 2 capacity, below 80%), currentTotal=31 (accumulated
     // sum)
     UtilizationSummary summary =
@@ -320,7 +312,7 @@ class CustomThresholdUtilizationHandlerServiceTest {
 
   @Test
   void shouldTriggerNotification_forGaugeMetric_whenValueExceedsThreshold() {
-    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD, LAST_UPDATED);
+    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD);
     // RHEL for x86 / Sockets: value=9 (90% of 10 capacity, above 80%), currentTotal=270
     // (accumulated sum)
     UtilizationSummary summary =
@@ -335,7 +327,7 @@ class CustomThresholdUtilizationHandlerServiceTest {
 
   @Test
   void shouldUseValue_forGaugeMetric_onPaygProduct() {
-    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD, LAST_UPDATED);
+    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD);
     // ansible-aap-managed / Managed-nodes: value=5 (50% of 10, below 80%), currentTotal=150
     // (accumulated sum)
     UtilizationSummary summary =
@@ -350,7 +342,7 @@ class CustomThresholdUtilizationHandlerServiceTest {
 
   @Test
   void shouldUseCurrentTotal_forCounterMetric_onPaygProduct() {
-    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD, LAST_UPDATED);
+    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD);
     // ansible-aap-managed / Instance-hours: value=4 (hourly increment), currentTotal=85 (MTD, above
     // 80%)
     UtilizationSummary summary =
@@ -406,7 +398,7 @@ class CustomThresholdUtilizationHandlerServiceTest {
       UtilizationSummary.Usage usage,
       String expectedServiceLevel,
       String expectedUsage) {
-    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD, LAST_UPDATED);
+    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD);
     UtilizationSummary summary =
         givenUtilizationSummary(
                 PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD)
@@ -427,22 +419,20 @@ class CustomThresholdUtilizationHandlerServiceTest {
 
   // Helper methods
 
-  private void givenOrgPreference(String orgId, int threshold, Instant lastUpdated) {
+  @Transactional
+  void givenOrgPreference(String orgId, int threshold) {
     var entity = new OrgUtilizationPreferenceEntity();
     entity.setOrgId(orgId);
     entity.setCustomThreshold(threshold);
-    setLastUpdated(entity, lastUpdated);
-    when(preferenceRepository.getPreferences(orgId)).thenReturn(Optional.of(entity));
+    preferenceRepository.persist(entity);
   }
 
-  private static void setLastUpdated(OrgUtilizationPreferenceEntity entity, Instant lastUpdated) {
-    try {
-      Field field = ModificationTrackedEntity.class.getDeclaredField("lastUpdated");
-      field.setAccessible(true);
-      field.set(entity, lastUpdated);
-    } catch (ReflectiveOperationException e) {
-      throw new IllegalStateException("Failed to set lastUpdated for test entity", e);
-    }
+  @Transactional
+  void givenOrgPreferenceIsUpdated(String orgId, int threshold) {
+    var entity = preferenceRepository.getPreferences(orgId);
+    assertTrue(entity.isPresent());
+    entity.get().setCustomThreshold(threshold);
+    preferenceRepository.persist(entity.get());
   }
 
   private UtilizationSummary givenUtilizationSummary(

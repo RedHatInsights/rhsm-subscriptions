@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.contract.repository;
 
+import com.redhat.swatch.panache.ModificationTrackedEntity;
 import com.redhat.swatch.panache.Specification;
 import jakarta.persistence.Basic;
 import jakarta.persistence.CascadeType;

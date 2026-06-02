@@ -8,5 +8,6 @@
 
   <include file="/db/202604161200-create-organization-utilization-preference-table.xml"/>
   <include file="/db/202604200730-add-primary-key-to-changelog-table.xml"/>
+  <include file="/db/202606020730-rename-last-updated-column.xml"/>
 
 </databaseChangeLog>

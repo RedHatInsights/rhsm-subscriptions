@@ -68,7 +68,7 @@ public class CustomThresholdUtilizationHandlerService
           String.format(PERCENT_FORMAT, utilizationPercent),
           threshold);
       var event = buildEvent(utilizationPercent);
-      String lastUpdatedHash = hashLastUpdated(preference.getLastUpdated());
+      String lastUpdatedHash = hashLastUpdated(preference.getLastModified());
       event.getPayload().getAdditionalProperties().put("last_updated_hash", lastUpdatedHash);
       return Optional.of(event);
     }
@@ -92,6 +92,7 @@ public class CustomThresholdUtilizationHandlerService
   }
 
   static String hashLastUpdated(Instant lastUpdated) {
-    return DigestUtils.sha256Hex(lastUpdated.toString());
+    String canonicalTimestamp = lastUpdated.getEpochSecond() + ":" + lastUpdated.getNano();
+    return DigestUtils.sha256Hex(canonicalTimestamp);
   }
 }

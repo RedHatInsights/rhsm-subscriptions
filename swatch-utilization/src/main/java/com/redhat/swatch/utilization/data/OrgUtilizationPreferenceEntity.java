@@ -20,11 +20,11 @@
  */
 package com.redhat.swatch.utilization.data;
 
+import com.redhat.swatch.panache.ModificationTrackedEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import java.io.Serializable;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -32,8 +32,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "org_utilization_preference")
-public class OrgUtilizationPreferenceEntity extends ModificationTrackedEntity
-    implements Serializable {
+public class OrgUtilizationPreferenceEntity extends ModificationTrackedEntity {
 
   @Id
   @Column(name = "org_id", nullable = false, length = 32)
