@@ -7,6 +7,8 @@ parameters:
   - name: JAVA_DEBUG
     # Set to "true" to enable remote debugging
     value: ''
+  - name: USER_OPTS_APPEND
+    value: ''
   - name: QUARKUS_LAUNCH_DEVMODE
     value: ''
   - name: IMAGE_PULL_SECRET
@@ -203,6 +205,8 @@ objects:
           env:
             - name: JAVA_DEBUG
               value: ${JAVA_DEBUG}
+            - name: USER_OPTS_APPEND
+              value: ${USER_OPTS_APPEND}
             - name: QUARKUS_LAUNCH_DEVMODE
               value: ${QUARKUS_LAUNCH_DEVMODE}
             - name: LOGGING_LEVEL_ROOT
