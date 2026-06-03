@@ -93,6 +93,12 @@
       <artifactId>mockito-junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-testing</artifactId>
+      <version>1.78.0</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
