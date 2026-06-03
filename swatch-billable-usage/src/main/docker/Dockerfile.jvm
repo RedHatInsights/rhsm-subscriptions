@@ -144,6 +144,9 @@ COPY --from=0 --chown=default:root --chmod=775 /stage/${PROJECT_NAME}/target/qua
 # Required by Red Hat OpenShift Software Certification Policy Guide
 COPY --from=0 /stage/LICENSE /licenses/
 
+# Copy shared entrypoint wrapper that combines JAVA_OPTS at runtime
+COPY --from=0 --chmod=755 /stage/bin/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+
 # Used by Quarkus dev mode
 RUN chmod 775 /deployments /deployments/*
 
@@ -154,5 +157,6 @@ EXPOSE 8080
 ENV INTERNAL_OPTS_APPEND="-Dorg.apache.kafka.automatic.config.providers=none -XX:-OmitStackTraceInFastThrow"
 # Standard Quarkus JVM properties
 ENV QUARKUS_OPTS_APPEND="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"
-ENV JAVA_OPTS_APPEND="$QUARKUS_OPTS_APPEND $INTERNAL_OPTS_APPEND $USER_OPTS_APPEND"
 ENV JAVA_APP_JAR="/deployments/quarkus-run.jar"
+
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]

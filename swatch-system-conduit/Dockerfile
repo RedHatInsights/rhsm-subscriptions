@@ -55,6 +55,10 @@ COPY --from=0 /stage/swatch-system-conduit/META-INF /deployments/META-INF
 COPY --from=0 /stage/swatch-system-conduit/BOOT-INF/classes /deployments/
 
 COPY --from=0 /stage/swatch-system-conduit/target/javaagent/* /opt/
+
+# Copy shared entrypoint wrapper that combines JAVA_OPTS at runtime
+COPY --from=0 --chmod=755 /stage/bin/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+
 RUN chmod -R g=u /deployments
 
 USER default
@@ -62,6 +66,7 @@ USER default
 ## - Fix CVE-2024-31141: Disabling Kafka client config providers
 ## - OmitStackTraceInFastThrow: disabling the optimization that eliminates the full exception stack trace
 ENV INTERNAL_OPTS_APPEND="-Dorg.apache.kafka.automatic.config.providers=none -XX:-OmitStackTraceInFastThrow"
-ENV JAVA_OPTS_APPEND="$INTERNAL_OPTS_APPEND $USER_OPTS_APPEND"
 ENV JAVA_MAIN_CLASS=org.candlepin.subscriptions.SystemConduitApplication
 ENV JAVA_LIB_DIR=/deployments/lib/*
+
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
