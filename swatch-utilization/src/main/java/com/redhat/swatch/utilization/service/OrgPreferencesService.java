@@ -77,7 +77,7 @@ public class OrgPreferencesService {
     log.info("Updating utilization preference orgId={}", orgId);
     var entity = getOrCreateOrgPreferenceEntity(orgId);
     entity.setCustomThreshold(request.getCustomThreshold());
-    // using persist and flush, so the current_modified column is populated
+    // using persist and flush, so the last_modified column is populated
     repository.persistAndFlush(entity);
     var response = new OrgPreferencesResponse();
     response.setCustomThreshold(entity.getCustomThreshold());

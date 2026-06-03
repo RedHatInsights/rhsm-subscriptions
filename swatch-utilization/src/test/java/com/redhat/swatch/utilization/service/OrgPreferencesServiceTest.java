@@ -82,7 +82,7 @@ class OrgPreferencesServiceTest {
   }
 
   @Test
-  void whenPreferenceExists_updatesThresholdWithoutPersist() {
+  void whenPreferenceExists_updatesThreshold() {
     var existing = new OrgUtilizationPreferenceEntity();
     existing.setOrgId(ORG_ID);
     existing.setCustomThreshold(3);
