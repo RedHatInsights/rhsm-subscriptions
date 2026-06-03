@@ -20,13 +20,13 @@
  */
 package org.candlepin.subscriptions.db;
 
-import java.util.UUID;
 import org.candlepin.subscriptions.db.model.TallyInstancePaygPrimaryView;
+import org.candlepin.subscriptions.db.model.TallyInstanceViewKey;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-/** Provides access to TallyInstanceView database entities. */
+/** Provides access to {@link TallyInstancePaygPrimaryView} database entities. */
 @SuppressWarnings({"linelength", "indentation"})
 public interface TallyInstancePaygPrimaryViewRepository
-    extends JpaRepository<TallyInstancePaygPrimaryView, UUID>,
+    extends JpaRepository<TallyInstancePaygPrimaryView, TallyInstanceViewKey>,
         JpaSpecificationExecutor<TallyInstancePaygPrimaryView> {}

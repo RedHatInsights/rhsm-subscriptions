@@ -20,8 +20,8 @@
  */
 package org.candlepin.subscriptions.db;
 
-import java.util.UUID;
 import org.candlepin.subscriptions.db.model.TallyInstancePaygView;
+import org.candlepin.subscriptions.db.model.TallyInstanceViewKey;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
@@ -31,5 +31,5 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
  */
 @Deprecated
 public interface TallyInstancePaygViewRepository
-    extends JpaRepository<TallyInstancePaygView, UUID>,
+    extends JpaRepository<TallyInstancePaygView, TallyInstanceViewKey>,
         JpaSpecificationExecutor<TallyInstancePaygView> {}
