@@ -17,36 +17,36 @@
             "createdAt": "2024-10-01T09:18:27.111Z"
         },
         {
-          "name": "swatch.swatch-notifications.send-notifications",
-          "description": "Enable sending of over-usage notifications to platform.notifications.ingress",
-          "type": "operational",
-          "project": "default",
-          "enabled": true,
-          "stale": false,
-          "strategies": [
-            {
-              "name": "default",
-              "parameters": {}
-            }
-          ],
-          "variants": [],
-          "createdAt": "2025-11-28T10:00:00.000Z"
+            "name": "swatch.swatch-notifications.send-notifications",
+            "description": "Enable sending of over-usage notifications to platform.notifications.ingress",
+            "type": "operational",
+            "project": "default",
+            "enabled": true,
+            "stale": false,
+            "strategies": [
+                {
+                    "name": "default",
+                    "parameters": {}
+                }
+            ],
+            "variants": [],
+            "createdAt": "2025-11-28T10:00:00.000Z"
         },
         {
-          "name": "swatch.swatch-notifications.send-notifications-orgs-allowlist",
-          "description": "Comma-separated list of org IDs allowed to receive over-usage notifications regardless of the global send-notifications flag. Used for targeted testing in production without affecting other users.",
-          "type": "operational",
-          "project": "default",
-          "enabled": true,
-          "stale": false,
-          "strategies": [
-            {
-              "name": "default",
-              "parameters": {}
-            }
-          ],
-          "variants": [],
-          "createdAt": "2026-02-26T10:00:00.000Z"
+            "name": "swatch.swatch-notifications.send-notifications-orgs-allowlist",
+            "description": "Comma-separated list of org IDs allowed to receive over-usage notifications regardless of the global send-notifications flag. Used for targeted testing in production without affecting other users.",
+            "type": "operational",
+            "project": "default",
+            "enabled": true,
+            "stale": false,
+            "strategies": [
+                {
+                    "name": "default",
+                    "parameters": {}
+                }
+            ],
+            "variants": [],
+            "createdAt": "2026-02-26T10:00:00.000Z"
         },
         {
             "name": "hbi.api.disable-xjoin",
@@ -141,6 +141,22 @@
             ],
             "variants": [],
             "createdAt": "2026-03-30T015:18:27.111Z"
+        },
+        {
+            "name": "swatch.common-security.use-kessel-rbac",
+            "description": "When enabled, SWATCH uses Kessel (RBACv2) for authorization instead of legacy RBACv1. Part of SWATCH-4368 migration.",
+            "type": "operational",
+            "project": "default",
+            "enabled": false,
+            "stale": false,
+            "strategies": [
+                {
+                    "name": "default",
+                    "parameters": {}
+                }
+            ],
+            "variants": [],
+            "createdAt": "2026-06-02T20:00:00.000Z"
         }
     ],
     "strategies": [

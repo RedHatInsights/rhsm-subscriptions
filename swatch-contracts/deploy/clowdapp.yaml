@@ -239,6 +239,8 @@ objects:
         - ${DB_POD}
         - rbac
         - export-service
+      optionalDependencies:
+        - kessel-inventory
 
       featureFlags: true
 
