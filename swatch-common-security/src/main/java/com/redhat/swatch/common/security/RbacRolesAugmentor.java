@@ -23,6 +23,7 @@ package com.redhat.swatch.common.security;
 import com.redhat.swatch.clients.rbac.api.model.Access;
 import com.redhat.swatch.clients.rbac.api.resources.AccessApi;
 import com.redhat.swatch.clients.rbac.api.resources.ApiException;
+import io.getunleash.Unleash;
 import io.quarkus.arc.properties.IfBuildProperty;
 import io.quarkus.security.identity.AuthenticationRequestContext;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -54,6 +55,7 @@ public class RbacRolesAugmentor implements SecurityIdentityAugmentor {
   @ConfigProperty(name = "RBAC_ENABLED", defaultValue = "true")
   boolean rbacEnabled;
 
+  @Inject Unleash unleash;
   @Inject @RestClient AccessApi accessApi;
 
   @Override
@@ -61,6 +63,10 @@ public class RbacRolesAugmentor implements SecurityIdentityAugmentor {
       SecurityIdentity identity, AuthenticationRequestContext context) {
     if (!rbacEnabled) {
       return Uni.createFrom().item(buildWithAllRoles(identity));
+    }
+
+    if (unleash.isEnabled(KesselRolesAugmentor.KESSEL_FLAG)) {
+      return Uni.createFrom().item(identity);
     }
 
     Principal principal = identity.getPrincipal();
