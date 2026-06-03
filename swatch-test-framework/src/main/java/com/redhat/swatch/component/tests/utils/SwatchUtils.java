@@ -20,6 +20,8 @@
  */
 package com.redhat.swatch.component.tests.utils;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Map;
 
 public final class SwatchUtils {
@@ -45,10 +47,20 @@ public final class SwatchUtils {
             + orgId
             + "\",\"issuer_dn\":\"CN=test-issuer\"}},"
             + "\"entitlements\":{\"rhel\":{\"is_entitled\":true}}}";
-    String rhId =
-        java.util.Base64.getEncoder()
-            .encodeToString(json.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    String rhId = Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
 
+    return Map.of(ORIGIN_HEADER, ORIGIN_HEADER_VALUE, X_RH_IDENTITY_HEADER, rhId);
+  }
+
+  /** Returns headers for a User-type identity (Quarkus services). */
+  public static Map<String, String> securityHeadersWithUserRole(String orgId, boolean isOrgAdmin) {
+    String json =
+        "{\"identity\":{\"type\":\"User\",\"org_id\":\""
+            + orgId
+            + "\",\"user\":{\"is_org_admin\":"
+            + isOrgAdmin
+            + "}}}";
+    String rhId = Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
     return Map.of(ORIGIN_HEADER, ORIGIN_HEADER_VALUE, X_RH_IDENTITY_HEADER, rhId);
   }
 
@@ -69,7 +81,6 @@ public final class SwatchUtils {
             + orgId
             + "\"}"
             + "}}";
-    return java.util.Base64.getEncoder()
-        .encodeToString(json.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    return Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
   }
 }

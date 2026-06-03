@@ -31,6 +31,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.utilization.openapi.model.OrgPreferencesRequest;
 import com.redhat.swatch.utilization.openapi.model.OrgPreferencesResponse;
 import com.redhat.swatch.utilization.service.OrgPreferencesService;
@@ -38,7 +39,6 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import io.restassured.response.ValidatableResponse;
-import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.Test;
@@ -49,6 +49,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 class OrgPreferencesResourceTest {
 
   private static final String ORG_ID = "org123";
+  private static final boolean IS_ORG_ADMIN = true;
   private static final String ORG_PREFERENCES_PATH =
       "/api/rhsm-subscriptions/v1/utilization/org-preferences";
 
@@ -123,7 +124,7 @@ class OrgPreferencesResourceTest {
 
   private static ValidatableResponse whenGetOrgPreferences() {
     return given()
-        .header(RH_IDENTITY_HEADER, base64UserIdentity(ORG_ID))
+        .header(RH_IDENTITY_HEADER, base64UserIdentity(ORG_ID, !IS_ORG_ADMIN))
         .when()
         .get(ORG_PREFERENCES_PATH)
         .then();
@@ -134,7 +135,7 @@ class OrgPreferencesResourceTest {
     request.setCustomThreshold(customThreshold);
 
     return given()
-        .header(RH_IDENTITY_HEADER, base64UserIdentity(ORG_ID))
+        .header(RH_IDENTITY_HEADER, base64UserIdentity(ORG_ID, IS_ORG_ADMIN))
         .contentType(ContentType.JSON)
         .body(request)
         .when()
@@ -142,8 +143,16 @@ class OrgPreferencesResourceTest {
         .then();
   }
 
-  private static String base64UserIdentity(String orgId) {
-    String json = String.format("{\"identity\":{\"type\":\"User\",\"org_id\":\"%s\"}}", orgId);
-    return Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
+  private static String base64UserIdentity(String orgId, boolean isOrgAdmin) {
+    try {
+      var mapper = new ObjectMapper();
+      var root = mapper.createObjectNode();
+      var identity = root.putObject("identity");
+      identity.put("type", "User").put("org_id", orgId);
+      identity.putObject("user").put("is_org_admin", isOrgAdmin);
+      return Base64.getEncoder().encodeToString(mapper.writeValueAsBytes(root));
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 }

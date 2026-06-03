@@ -48,7 +48,7 @@ public class OrgPreferencesResource implements OrgPreferencesApi {
   }
 
   @Override
-  @RolesAllowed({"customer", "service"})
+  @RolesAllowed({"org_admin", "service"})
   public OrgPreferencesResponse updateOrgPreferences(
       String xRhIdentity, OrgPreferencesRequest orgPreferencesRequest) {
     String orgId = orgIdResolver.getOrgId(securityContext, httpHeaders);

@@ -487,6 +487,47 @@ Additional cases can be added under the same `utilization-notifications-featuref
     - Response custom_threshold matches request value
     - Response last_modified is present for each successful POST
 
+**org-preferences-TC007 - Org admin can update custom threshold**
+
+- **Description**: Verify that an org admin (is_org_admin=true in x-rh-identity) can successfully update the custom threshold.
+- **Setup**:
+    - An organization has not configured any custom preferences
+- **Action**:
+    - Call POST /api/rhsm-subscriptions/v1/utilization/org-preferences with User-type identity where is_org_admin=true
+- **Verification**:
+    - Verify response status code is 200
+    - Verify response contains the persisted custom_threshold value
+- **Expected Result**:
+    - HTTP 200 response
+    - Custom threshold is updated successfully
+
+**org-preferences-TC008 - Non-admin user cannot update custom threshold**
+
+- **Description**: Verify that a regular user (is_org_admin=false in x-rh-identity) is rejected when attempting to update the custom threshold.
+- **Setup**:
+    - An organization has not configured any custom preferences
+- **Action**:
+    - Call POST /api/rhsm-subscriptions/v1/utilization/org-preferences with User-type identity where is_org_admin=false
+- **Verification**:
+    - Verify response status code is 403 Forbidden
+- **Expected Result**:
+    - HTTP 403 Forbidden
+    - Threshold is not updated
+
+**org-preferences-TC009 - Org admin from another organization cannot tamper with a different org's preferences**
+
+- **Description**: Verify that an admin from org A, when using their own x-rh-identity (org_id=A), can only update org A's preferences, not org B's. The endpoint is inherently safe from cross-org tampering because org_id is always extracted from the authenticated identity.
+- **Setup**:
+    - Org B has a custom threshold configured
+- **Action**:
+    - Org A admin calls POST /api/rhsm-subscriptions/v1/utilization/org-preferences using their own identity (org_id=A) with a different threshold value
+- **Verification**:
+    - Verify that org B's threshold is unchanged
+    - Verify that org A's threshold is updated
+- **Expected Result**:
+    - Org B's preferences remain unchanged (org A's identity cannot target org B)
+    - Org A's preferences are updated
+
 ## Custom Usage Threshold Notification
 
 **custom-threshold-TC001 - Detect custom threshold exceeded and send notification**

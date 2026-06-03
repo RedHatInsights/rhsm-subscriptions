@@ -21,6 +21,7 @@
 package api;
 
 import static com.redhat.swatch.component.tests.utils.SwatchUtils.securityHeadersWithServiceRole;
+import static com.redhat.swatch.component.tests.utils.SwatchUtils.securityHeadersWithUserRole;
 import static org.apache.http.HttpStatus.SC_OK;
 
 import com.redhat.swatch.component.tests.api.SwatchService;
@@ -72,6 +73,31 @@ public class UtilizationSwatchService extends SwatchService {
     Objects.requireNonNull(request, "request must not be null");
 
     return updateOrgPreferences(orgId, request)
+        .then()
+        .statusCode(SC_OK)
+        .extract()
+        .as(OrgPreferencesResponse.class);
+  }
+
+  public Response updateOrgPreferencesAsUser(
+      String orgId, boolean isOrgAdmin, OrgPreferencesRequest request) {
+    Objects.requireNonNull(orgId, "orgId must not be null");
+    Objects.requireNonNull(request, "request must not be null");
+
+    return given()
+        .headers(securityHeadersWithUserRole(orgId, isOrgAdmin))
+        .contentType(ContentType.JSON)
+        .body(request)
+        .when()
+        .post(ORG_PREFERENCES_ENDPOINT);
+  }
+
+  public OrgPreferencesResponse updateOrgPreferencesAsUserExpectSuccess(
+      String orgId, boolean isOrgAdmin, OrgPreferencesRequest request) {
+    Objects.requireNonNull(orgId, "orgId must not be null");
+    Objects.requireNonNull(request, "request must not be null");
+
+    return updateOrgPreferencesAsUser(orgId, isOrgAdmin, request)
         .then()
         .statusCode(SC_OK)
         .extract()

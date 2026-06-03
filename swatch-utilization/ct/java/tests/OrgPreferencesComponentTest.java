@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
+import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.utilization.openapi.model.OrgPreferencesRequest;
 import com.redhat.swatch.utilization.openapi.model.OrgPreferencesResponse;
 import io.restassured.response.Response;
@@ -173,6 +174,66 @@ public class OrgPreferencesComponentTest extends BaseUtilizationComponentTest {
     // Then: Request is accepted and returns boundary value
     assertEquals(100, response.getCustomThreshold(), "Should accept threshold value 100");
     assertNotNull(response.getLastModified(), "POST response should contain last_modified");
+  }
+
+  @TestPlanName("org-preferences-TC007")
+  @Test
+  void shouldAllowOrgAdminToUpdatePreferences() {
+    // Given: An org admin user identity with a custom threshold
+    Integer customThreshold = 42;
+    OrgPreferencesRequest request = new OrgPreferencesRequest();
+    request.setCustomThreshold(customThreshold);
+
+    // When: Org admin updates the threshold
+    OrgPreferencesResponse body =
+        service.updateOrgPreferencesAsUserExpectSuccess(orgId, true, request);
+
+    // Then: Request succeeds
+    assertEquals(
+        customThreshold, body.getCustomThreshold(), "Response should contain updated threshold");
+  }
+
+  @TestPlanName("org-preferences-TC008")
+  @Test
+  void shouldRejectNonAdminUserFromUpdatingPreferences() {
+    // Given: A non-admin user identity
+    OrgPreferencesRequest request = new OrgPreferencesRequest();
+    request.setCustomThreshold(42);
+
+    // When: Non-admin user attempts to update the threshold
+    Response response = service.updateOrgPreferencesAsUser(orgId, false, request);
+
+    // Then: Request is rejected with 403 Forbidden
+    assertEquals(
+        HttpStatus.SC_FORBIDDEN,
+        response.statusCode(),
+        "Non-admin user should be rejected with 403");
+  }
+
+  @TestPlanName("org-preferences-TC009")
+  @Test
+  void shouldNotAffectAnotherOrgPreferencesWhenAdminUsesOwnIdentity() {
+    // Given: Org B has a custom threshold configured
+    String orgBId = RandomUtils.generateRandom();
+    Integer orgBThreshold = 30;
+    OrgPreferencesRequest orgBRequest = new OrgPreferencesRequest();
+    orgBRequest.setCustomThreshold(orgBThreshold);
+    service.updateOrgPreferencesAsUserExpectSuccess(orgBId, true, orgBRequest);
+
+    // When: Admin from org A (different org) updates their own threshold
+    Integer orgAThreshold = 55;
+    OrgPreferencesRequest orgARequest = new OrgPreferencesRequest();
+    orgARequest.setCustomThreshold(orgAThreshold);
+    service.updateOrgPreferencesAsUserExpectSuccess(orgId, true, orgARequest);
+
+    // Then: Org B's threshold is unchanged; org A's threshold is updated
+    OrgPreferencesResponse orgBPreferences = service.getOrgPreferencesExpectSuccess(orgBId);
+    assertEquals(
+        orgBThreshold, orgBPreferences.getCustomThreshold(), "Org B threshold should be unchanged");
+
+    OrgPreferencesResponse orgAPreferences = service.getOrgPreferencesExpectSuccess(orgId);
+    assertEquals(
+        orgAThreshold, orgAPreferences.getCustomThreshold(), "Org A threshold should be updated");
   }
 
   private OrgPreferencesResponse whenGetOrgPreferences() {
