@@ -20,8 +20,8 @@
  */
 package tests;
 
+import static com.redhat.swatch.component.tests.utils.DateUtils.assertDatesAreEqual;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static utils.DateUtils.assertDatesAreEqual;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import domain.Subscription;

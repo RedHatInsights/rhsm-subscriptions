@@ -21,6 +21,7 @@
 package com.redhat.swatch.utilization.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -56,12 +57,13 @@ class OrgPreferencesServiceTest {
   }
 
   @Test
-  void getOrgPreferences_whenPreferenceDoesNotExist_returnsDefaultThreshold() {
+  void getOrgPreferences_whenPreferenceDoesNotExist_returnsDefaultThresholdWithoutLastModified() {
     when(repository.findByIdOptional(ORG_ID)).thenReturn(Optional.empty());
 
     var response = service.getOrgPreferences(ORG_ID);
 
     assertEquals(80, response.getCustomThreshold());
+    assertNull(response.getLastModified());
   }
 
   @Test
@@ -74,13 +76,13 @@ class OrgPreferencesServiceTest {
 
     assertEquals(11, response.getCustomThreshold());
     var captor = ArgumentCaptor.forClass(OrgUtilizationPreferenceEntity.class);
-    verify(repository).persist(captor.capture());
+    verify(repository).persistAndFlush(captor.capture());
     assertEquals(ORG_ID, captor.getValue().getOrgId());
     assertEquals(11, captor.getValue().getCustomThreshold());
   }
 
   @Test
-  void whenPreferenceExists_updatesThresholdWithoutPersist() {
+  void whenPreferenceExists_updatesThreshold() {
     var existing = new OrgUtilizationPreferenceEntity();
     existing.setOrgId(ORG_ID);
     existing.setCustomThreshold(3);

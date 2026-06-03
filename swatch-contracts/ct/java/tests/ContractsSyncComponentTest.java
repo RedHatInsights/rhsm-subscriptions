@@ -21,6 +21,7 @@
 package tests;
 
 import static api.PartnerApiStubs.PartnerSubscriptionsStubRequest.forContractsInOrgId;
+import static com.redhat.swatch.component.tests.utils.DateUtils.assertDatesAreEqual;
 import static java.util.Collections.disjoint;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -31,7 +32,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static utils.DateUtils.assertDatesAreEqual;
 
 import api.PartnerApiStubs;
 import com.redhat.swatch.component.tests.api.TestPlanName;

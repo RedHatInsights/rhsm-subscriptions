@@ -86,7 +86,7 @@ public class CustomThresholdComponentTest extends BaseUtilizationComponentTest {
             FULL_CAPACITY,
             null,
             null);
-    thenLastUpdatedHashShouldBePresent(notification);
+    thenLastModifiedHashShouldBePresent(notification);
   }
 
   @TestPlanName("custom-threshold-TC002")
@@ -108,7 +108,7 @@ public class CustomThresholdComponentTest extends BaseUtilizationComponentTest {
             FULL_CAPACITY,
             null,
             null);
-    thenLastUpdatedHashShouldBePresent(notification);
+    thenLastModifiedHashShouldBePresent(notification);
   }
 
   @TestPlanName("custom-threshold-TC003")
@@ -175,14 +175,14 @@ public class CustomThresholdComponentTest extends BaseUtilizationComponentTest {
     kafkaBridge.produceKafkaMessage(UTILIZATION, utilizationSummary);
   }
 
-  private void thenLastUpdatedHashShouldBePresent(Action notification) {
+  private void thenLastModifiedHashShouldBePresent(Action notification) {
     assertThat(
         notification
             .getEvents()
             .get(0)
             .getPayload()
             .getAdditionalProperties()
-            .get("last_updated_hash"),
+            .get("last_modified_hash"),
         notNullValue());
   }
 }

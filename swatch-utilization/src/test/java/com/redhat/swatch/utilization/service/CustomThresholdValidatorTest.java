@@ -18,11 +18,31 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.utilization.data;
+package com.redhat.swatch.utilization.service;
 
-import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
-import jakarta.enterprise.context.ApplicationScoped;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@ApplicationScoped
-public class OrgUtilizationPreferenceRepository
-    implements PanacheRepositoryBase<OrgUtilizationPreferenceEntity, String> {}
+import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
+import org.junit.jupiter.api.Test;
+
+@QuarkusTest
+class CustomThresholdValidatorTest {
+
+  @Inject CustomThresholdValidator validator;
+
+  @Test
+  void isValid_acceptsBoundaryValues() {
+    assertTrue(validator.isValid(0));
+    assertTrue(validator.isValid(100));
+    assertTrue(validator.isValid(50));
+  }
+
+  @Test
+  void isValid_rejectsValuesOutsideRange() {
+    assertFalse(validator.isValid(-1));
+    assertFalse(validator.isValid(101));
+    assertFalse(validator.isValid(150));
+  }
+}

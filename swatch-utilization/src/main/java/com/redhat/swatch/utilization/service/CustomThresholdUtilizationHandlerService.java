@@ -21,7 +21,6 @@
 package com.redhat.swatch.utilization.service;
 
 import com.redhat.cloud.notifications.ingress.Event;
-import com.redhat.swatch.utilization.data.OrgUtilizationPreferenceRepository;
 import com.redhat.swatch.utilization.model.Measurement;
 import com.redhat.swatch.utilization.model.Severity;
 import com.redhat.swatch.utilization.model.UtilizationSummary;
@@ -41,21 +40,31 @@ public class CustomThresholdUtilizationHandlerService
 
   static final String EVENT_TYPE = "exceeded-custom-utilization-threshold";
 
-  @Inject OrgUtilizationPreferenceRepository preferenceRepository;
+  @Inject OrgPreferencesService orgPreferencesService;
+  @Inject CustomThresholdValidator customThresholdValidator;
 
   @Override
   protected Optional<Event> evaluateThreshold(
       double utilizationPercent, UtilizationSummary payload, Measurement measurement) {
-    var preferenceOpt = preferenceRepository.getPreferences(payload.getOrgId());
-    if (preferenceOpt.isEmpty()) {
+    var preference = orgPreferencesService.getOrgPreferences(payload.getOrgId());
+    // In SWATCH-4990, we need to remove this condition, so all orgs are opted in.
+    if (preference.getLastModified() == null) {
       log.debug(
           "No org preference found for orgId={}, skipping custom threshold check",
           payload.getOrgId());
       return Optional.empty();
     }
 
-    var preference = preferenceOpt.get();
     int threshold = preference.getCustomThreshold();
+    if (!customThresholdValidator.isValid(threshold)) {
+      int defaultThreshold = orgPreferencesService.getDefaultThreshold();
+      log.warn(
+          "Retrieved invalid custom threshold '{}'. OrgId: {}. Using default threshold '{}'.",
+          threshold,
+          payload.getOrgId(),
+          defaultThreshold);
+      threshold = defaultThreshold;
+    }
 
     if (utilizationPercent >= threshold) {
       log.info(
@@ -68,8 +77,8 @@ public class CustomThresholdUtilizationHandlerService
           String.format(PERCENT_FORMAT, utilizationPercent),
           threshold);
       var event = buildEvent(utilizationPercent);
-      String lastUpdatedHash = hashLastUpdated(preference.getLastModified());
-      event.getPayload().getAdditionalProperties().put("last_updated_hash", lastUpdatedHash);
+      String lastModifiedHash = hashLastModified(preference.getLastModified().toInstant());
+      event.getPayload().getAdditionalProperties().put("last_modified_hash", lastModifiedHash);
       return Optional.of(event);
     }
 
@@ -91,8 +100,8 @@ public class CustomThresholdUtilizationHandlerService
     return CUSTOM_THRESHOLD_METRIC;
   }
 
-  static String hashLastUpdated(Instant lastUpdated) {
-    String canonicalTimestamp = lastUpdated.getEpochSecond() + ":" + lastUpdated.getNano();
+  static String hashLastModified(Instant lastModified) {
+    String canonicalTimestamp = lastModified.getEpochSecond() + ":" + lastModified.getNano();
     return DigestUtils.sha256Hex(canonicalTimestamp);
   }
 }

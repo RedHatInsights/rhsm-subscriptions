@@ -100,3 +100,9 @@ components:
           minimum: 0
           maximum: 100
           description: Persisted over-usage threshold margin as a whole-number percentage.
+        last_modified:
+          type: string
+          format: date-time
+          description: >-
+            UTC timestamp when preferences were last persisted. Omitted when the organization
+            has not configured custom preferences and the system default threshold is returned.

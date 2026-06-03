@@ -26,6 +26,9 @@ import com.redhat.swatch.utilization.openapi.model.OrgPreferencesRequest;
 import com.redhat.swatch.utilization.openapi.model.OrgPreferencesResponse;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
@@ -42,19 +45,25 @@ public class OrgPreferencesService {
     this.repository = repository;
   }
 
+  public int getDefaultThreshold() {
+    return defaultThreshold;
+  }
+
   /**
    * Retrieves preferences for the given organization. Returns default threshold from
    * ORG_PREFERENCE_DEFAULT_THRESHOLD property if not configured.
    */
   @Transactional
   public OrgPreferencesResponse getOrgPreferences(String orgId) {
-    log.info("Retrieving utilization preference for orgId={}", orgId);
+    log.debug("Retrieving utilization preference for orgId={}", orgId);
     var entityOpt = repository.findByIdOptional(orgId);
     var response = new OrgPreferencesResponse();
     if (entityOpt.isEmpty()) {
       response.setCustomThreshold(defaultThreshold);
     } else {
-      response.setCustomThreshold(entityOpt.get().getCustomThreshold());
+      var entity = entityOpt.get();
+      response.setCustomThreshold(entity.getCustomThreshold());
+      response.setLastModified(toOffsetDateTime(entity.getLastModified()));
     }
     return response;
   }
@@ -68,9 +77,11 @@ public class OrgPreferencesService {
     log.info("Updating utilization preference orgId={}", orgId);
     var entity = getOrCreateOrgPreferenceEntity(orgId);
     entity.setCustomThreshold(request.getCustomThreshold());
-    repository.persist(entity);
+    // using persist and flush, so the last_modified column is populated
+    repository.persistAndFlush(entity);
     var response = new OrgPreferencesResponse();
-    response.setCustomThreshold(request.getCustomThreshold());
+    response.setCustomThreshold(entity.getCustomThreshold());
+    response.setLastModified(toOffsetDateTime(entity.getLastModified()));
     log.debug("Updated utilization preference '{}' to orgId={}", request, orgId);
     return response;
   }
@@ -84,5 +95,9 @@ public class OrgPreferencesService {
               entity.setOrgId(orgId);
               return entity;
             });
+  }
+
+  private static OffsetDateTime toOffsetDateTime(Instant instant) {
+    return instant == null ? null : instant.atOffset(ZoneOffset.UTC);
   }
 }

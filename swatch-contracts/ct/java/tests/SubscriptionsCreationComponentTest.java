@@ -22,6 +22,7 @@ package tests;
 
 import static api.CanonicalMessageArtemisSender.SUBSCRIPTION_CHANNEL;
 import static api.PartnerApiStubs.PartnerSubscriptionsStubRequest.forContract;
+import static com.redhat.swatch.component.tests.utils.DateUtils.assertDatesAreEqual;
 import static com.redhat.swatch.contract.product.umb.UmbSubscription.convertToUtc;
 import static domain.Contract.buildRosaContract;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -30,7 +31,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static utils.DateUtils.assertDatesAreEqual;
 
 import api.ContractsArtemisService;
 import com.redhat.swatch.component.tests.api.Artemis;
