@@ -45,7 +45,9 @@
     </dependency>
     <dependency>
       <groupId>io.getunleash</groupId>
-      <artifactId>springboot-unleash-starter</artifactId>
+      <artifactId>unleash-client-java</artifactId>
+      <version>10.0.2</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.project-kessel</groupId>
