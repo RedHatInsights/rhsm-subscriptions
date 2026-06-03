@@ -40,7 +40,7 @@ import lombok.extern.slf4j.Slf4j;
 @IfBuildProperty(name = "swatch-common-security.include-rbac", stringValue = "true")
 public class KesselRolesAugmentor implements SecurityIdentityAugmentor {
 
-  static final String KESSEL_FLAG = "swatch.common-security.use-kessel-rbac";
+  public static final String KESSEL_FLAG = "swatch.common-security.use-kessel-rbac";
 
   private static final String RBAC_ADMIN_PERMISSION = "subscriptions:*:*";
   private static final String RBAC_READER_PERMISSION = "subscriptions:reports:read";
