@@ -21,12 +21,19 @@
 package org.candlepin.subscriptions.event;
 
 import com.google.common.collect.Sets;
+import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import com.redhat.swatch.configuration.registry.Variant;
+import com.redhat.swatch.configuration.util.MetricIdUtils;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Measurement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
@@ -47,6 +54,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class EventNormalizer {
 
+  private static final Logger log = LoggerFactory.getLogger(EventNormalizer.class);
   private static final String ANSIBLE_INFRASTRUCTURE_HOUR = "Ansible Infrastructure Hour";
 
   private final ResolvedEventMapper resolvedEventMapper;
@@ -71,7 +79,71 @@ public class EventNormalizer {
         && event.getServiceType().equals(ANSIBLE_INFRASTRUCTURE_HOUR)) {
       event.setServiceType("Ansible Managed Node");
     }
+
+    // Filter out non-paygo product tags
+    filterNonPaygoTags(event);
+
     return event;
+  }
+
+  private void filterNonPaygoTags(Event event) {
+    Set<String> productTags = event.getProductTag();
+
+    if (productTags == null || productTags.isEmpty()) {
+      return;
+    }
+
+    Set<String> paygoTags =
+        productTags.stream().filter(this::isPaygoEligibleTag).collect(Collectors.toSet());
+
+    if (paygoTags.isEmpty()) {
+      log.debug("No paygo-eligible tags found in {}. Clearing product_tag.", productTags);
+      event.setProductTag(null);
+    } else {
+      if (paygoTags.size() < productTags.size()) {
+        log.warn("Filtered non-paygo tags from {}. Keeping: {}", productTags, paygoTags);
+        event.setProductTag(paygoTags);
+      }
+      filterUnsupportedMeasurements(event, paygoTags);
+    }
+  }
+
+  private void filterUnsupportedMeasurements(Event event, Set<String> paygoTags) {
+    List<Measurement> measurements = event.getMeasurements();
+    if (measurements == null || measurements.isEmpty()) {
+      return;
+    }
+
+    // Get all supported metrics for the remaining paygo tags
+    Set<String> supportedMetrics =
+        paygoTags.stream()
+            .flatMap(MetricIdUtils::getMetricIdsFromConfigForTag)
+            .map(MetricId::toUpperCaseFormatted)
+            .collect(Collectors.toSet());
+
+    List<Measurement> validMeasurements =
+        measurements.stream()
+            .filter(
+                m -> supportedMetrics.contains(MetricIdUtils.toUpperCaseFormatted(m.getMetricId())))
+            .toList();
+
+    if (validMeasurements.size() < measurements.size()) {
+      List<Measurement> filteredOut =
+          measurements.stream().filter(m -> !supportedMetrics.contains(m.getMetricId())).toList();
+      log.warn(
+          "Filtered out unsupported measurements for paygo tags {}: {}. Keeping: {}",
+          paygoTags,
+          filteredOut.stream().map(Measurement::getMetricId).collect(Collectors.toList()),
+          validMeasurements.stream().map(Measurement::getMetricId).collect(Collectors.toList()));
+      event.setMeasurements(validMeasurements);
+    }
+  }
+
+  private boolean isPaygoEligibleTag(String productTag) {
+    return Variant.findByTag(productTag)
+        .map(Variant::getSubscription)
+        .map(SubscriptionDefinition::isPaygEligible)
+        .orElse(false);
   }
 
   private Event create(Event from, String tag, Measurement measurement) {

@@ -461,6 +461,63 @@ class EventControllerTest {
     assertEquals(1, events.size());
   }
 
+  @Test
+  void testPersistServiceInstancesFiltersNonPaygoTags() {
+    List<String> eventRecords = new ArrayList<>();
+
+    var mixedPaygoNonPaygoEventRecord =
+        """
+                    {
+                     "sla":"Premium",
+                     "org_id":"111111111",
+                     "timestamp":"2024-06-10T10:00:00Z",
+                     "conversion":false,
+                     "event_type":"snapshot_mixed_tags",
+                     "expiration":"2024-06-10T11:00:00Z",
+                     "instance_id":"d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                     "product_tag":[
+                        "rhel-for-x86-els-payg-addon",
+                        "rhel-for-x86-els-converted"
+                     ],
+                     "display_name":"automation__cluster_d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                     "event_source":"Premium",
+                     "measurements":[
+                        {
+                           "value":4.0,
+                           "metric_id":"vCPUs"
+                        },
+                        {
+                           "value":2.0,
+                           "metric_id":"Sockets"
+                        }
+                     ],
+                     "service_type":"RHEL System"
+                  }
+            """;
+
+    eventRecords.add(mixedPaygoNonPaygoEventRecord);
+    eventController.persistServiceInstances(eventRecords);
+    when(eventRecordRepository.saveAll(any())).thenReturn(new ArrayList<>());
+
+    verify(eventRecordRepository).saveAll(eventsSaved.capture());
+    List<EventRecord> events = eventsSaved.getAllValues().get(0).stream().toList();
+
+    // After fix: Only paygo-tagged EventRecords should be saved
+    // Each EventRecord should only have the paygo tag "rhel-for-x86-els-payg-addon"
+    // Non-paygo tag "rhel-for-x86-els-converted" should be filtered out
+    assertTrue(
+        events.stream().allMatch(e -> e.getEvent().getProductTag().size() == 1),
+        "All EventRecords should have exactly 1 product tag");
+    assertTrue(
+        events.stream()
+            .allMatch(e -> e.getEvent().getProductTag().contains("rhel-for-x86-els-payg-addon")),
+        "All EventRecords should only contain the paygo tag");
+    assertTrue(
+        events.stream()
+            .noneMatch(e -> e.getEvent().getProductTag().contains("rhel-for-x86-els-converted")),
+        "No EventRecords should contain the non-paygo tag");
+  }
+
   @ParameterizedTest
   @ValueSource(
       strings = {
