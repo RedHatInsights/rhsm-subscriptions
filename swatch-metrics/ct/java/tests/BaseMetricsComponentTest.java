@@ -24,10 +24,12 @@ import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INST
 
 import api.MessageValidators;
 import api.MetricsSwatchService;
+import api.PrometheusWiremockService;
 import com.redhat.swatch.component.tests.api.ComponentTest;
 import com.redhat.swatch.component.tests.api.KafkaBridge;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.api.Quarkus;
+import com.redhat.swatch.component.tests.api.Wiremock;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
@@ -42,6 +44,8 @@ public class BaseMetricsComponentTest {
   static final MetricId VCPUS = MetricIdUtils.getVCpus();
 
   @KafkaBridge static KafkaBridgeService kafkaBridge = new KafkaBridgeService();
+
+  @Wiremock static PrometheusWiremockService wiremock = new PrometheusWiremockService();
 
   @Quarkus(service = "swatch-metrics")
   static MetricsSwatchService service = new MetricsSwatchService();

@@ -7,7 +7,7 @@
 Start the required containers:
 
 ```bash
-podman compose up -d kafka kafka-bridge kafka-setup wiremock prometheus
+podman compose up -d kafka kafka-bridge kafka-setup wiremock
 ```
 
 ### 2. Run Component Tests
@@ -15,7 +15,7 @@ podman compose up -d kafka kafka-bridge kafka-setup wiremock prometheus
 Execute tests for swatch-metrics:
 
 ```bash
-./mvnw clean install -Pcomponent-tests -pl swatch-metrics/ct -am
+PROM_URL=http://localhost:8006/api/v1 ./mvnw clean install -Pcomponent-tests -pl swatch-metrics/ct -am
 ```
 
 ## Running Tests Against OpenShift (Bonfire)
@@ -25,7 +25,7 @@ Execute tests for swatch-metrics:
 Deploy only the necessary dependencies for swatch-metrics:
 
 ```bash
-bonfire deploy rhsm --no-remove-resources app:rhsm --source=appsre --ref-env insights-stage --component rhsm --component swatch-kafka-bridge --component wiremock --component prometheus --component swatch-metrics --remove-dependencies swatch-metrics
+bonfire deploy rhsm --no-remove-resources app:rhsm --source=appsre --ref-env insights-stage --component rhsm --component swatch-kafka-bridge --component wiremock --component swatch-metrics  --set-parameter swatch-metrics/PROM_URL=http://wiremock-service:8000/api/v1
 ```
 
 You can use a custom image of the service by adding the following parameters to the previous command: `-p swatch-metrics/IMAGE=quay.io/yourname/swatch-metrics -p swatch-metrics/IMAGE_TAG=yourtag`.

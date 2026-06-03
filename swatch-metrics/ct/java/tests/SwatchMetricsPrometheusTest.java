@@ -25,18 +25,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import api.PrometheusService;
-import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
-import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
-import domain.PrometheusMetricData;
-import domain.PrometheusMetricData.TimeValuePair;
-import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Map;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Measurement;
 import org.junit.jupiter.api.Test;
@@ -53,38 +46,35 @@ class SwatchMetricsPrometheusTest extends BaseMetricsComponentTest {
    */
   private static final int METERING_API_RANGE_MINUTES = 120;
 
-  /** Importer returns before the TSDB always answers on {@code /api/v1/query}; avoid flaky CT. */
-  private static final Duration PROM_PROBE_POLL = Duration.ofMillis(500);
-
-  private static final Duration PROM_PROBE_TIMEOUT = Duration.ofSeconds(90);
-
   /**
-   * Exercises rhelemeter PromQL against imported OpenMetrics, internal metering, and Kafka-bound
-   * events. Flow: build aligned fixture → import → wait until query API sees the series → POST
-   * metering → assert event payload.
+   * Exercises rhelemeter PromQL against mocked Prometheus responses, internal metering, and
+   * Kafka-bound events. Flow: stub query_range results → POST metering → assert event payload.
    */
   @Test
   void shouldCreateMeteringEventsForRhelPaygAddonFromPrometheus() {
-    // Given: RHEL PAYG addon metrics imported to Prometheus
+    // Given: RHEL PAYG addon metrics will be returned from mock Prometheus
     String metricId = VCPUS.getValue();
-    String clusterId = "cluster-" + RandomUtils.generateRandom();
     String instanceId = "i-" + RandomUtils.generateRandom();
     String billingProvider = "aws";
     String billingAccountId = "test-" + RandomUtils.generateRandom();
     double expectedVcpu = 4.0;
 
     OffsetDateTime meteringEnd = currentUtcHourStart();
-    PrometheusMetricData metricData =
-        rhelPaygMetricsForMeteringWindow(
-            orgId, instanceId, billingProvider, billingAccountId, expectedVcpu, meteringEnd);
 
-    PrometheusService prometheus = new PrometheusService();
-    String probeQuery = vcpuProbeQuery(instanceId, orgId);
-    long lastSampleEpoch = lastSampleEpochSeconds(metricData);
-
-    prometheus.importMetricsExpectSuccess(
-        metricData.toOpenMetrics(clusterId, "subscription_labels_vcpus"));
-    awaitProbeSeriesVisible(prometheus, probeQuery, lastSampleEpoch);
+    // Stub the query_range endpoint to return metric data
+    // The metering service will query Prometheus for VCPU metrics
+    Map<String, String> labels = new java.util.HashMap<>();
+    labels.put("billing_marketplace_instance_id", instanceId);
+    labels.put("external_organization", orgId);
+    labels.put("billing_marketplace", billingProvider);
+    labels.put("billing_marketplace_account", billingAccountId);
+    labels.put("product", "204");
+    labels.put("billing_model", "marketplace");
+    labels.put("support", "Premium");
+    labels.put("usage", "Production");
+    wiremock
+        .forPrometheus()
+        .stubQueryRangeWithMetricData("system_cpu_logical_count", labels, expectedVcpu);
 
     // When: Internal metering is triggered
     service.triggerInternalMetering(
@@ -108,75 +98,6 @@ class SwatchMetricsPrometheusTest extends BaseMetricsComponentTest {
    */
   private static OffsetDateTime currentUtcHourStart() {
     return OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.HOURS);
-  }
-
-  private static String vcpuProbeQuery(String instanceId, String orgId) {
-    return String.format(
-        "system_cpu_logical_count{billing_marketplace_instance_id=\"%s\",external_organization=\"%s\"}",
-        instanceId, orgId);
-  }
-
-  private static long lastSampleEpochSeconds(PrometheusMetricData metricData) {
-    List<TimeValuePair> values = metricData.getValues();
-    return (long) values.get(values.size() - 1).getTimestamp();
-  }
-
-  /**
-   * Instant query at {@code now} misses stale-looking points; evaluating at {@code lastSampleEpoch}
-   * covers that case. This is the series count used both for waiting and for logging.
-   */
-  private static int probeSeriesCount(
-      PrometheusService prometheus, String probeQuery, long lastSampleEpochSeconds) {
-    return Math.max(
-        prometheus.getInstantQueryResultCount(probeQuery, null),
-        prometheus.getInstantQueryResultCount(probeQuery, lastSampleEpochSeconds));
-  }
-
-  private static void awaitProbeSeriesVisible(
-      PrometheusService prometheus, String probeQuery, long lastSampleEpochSeconds) {
-    AwaitilityUtils.untilIsTrue(
-        () -> probeSeriesCount(prometheus, probeQuery, lastSampleEpochSeconds) > 0,
-        AwaitilitySettings.using(PROM_PROBE_POLL, PROM_PROBE_TIMEOUT)
-            .timeoutMessage(
-                "Prometheus did not return probe series for %s within timeout "
-                    + "(instant at now or at last sample epoch %d)",
-                probeQuery, lastSampleEpochSeconds));
-  }
-
-  /**
-   * Samples every minute over the last four hours through {@code max(meteringEndUtc, now)} so that
-   * (1) metering windows ending at {@code meteringEndUtc} still have history, and (2) the latest
-   * point is recent enough for Prometheus instant queries at default evaluation time (lookback
-   * ~5m).
-   */
-  private static PrometheusMetricData rhelPaygMetricsForMeteringWindow(
-      String orgId,
-      String instanceId,
-      String billingProvider,
-      String billingAccountId,
-      double metricValue,
-      OffsetDateTime meteringEndUtc) {
-    long hourEnd = meteringEndUtc.toEpochSecond();
-    long nowSec = OffsetDateTime.now(ZoneOffset.UTC).toEpochSecond();
-    long end = Math.max(hourEnd, nowSec);
-    long start = end - 4 * 3600L;
-    List<TimeValuePair> dataPoints = new ArrayList<>();
-    for (long t = start; t <= end; t += 60) {
-      dataPoints.add(new TimeValuePair(t, metricValue));
-    }
-    return PrometheusMetricData.builder()
-        .orgId(orgId)
-        .instanceId(instanceId)
-        .sla("Premium")
-        .usage("PRODUCTION")
-        .billingProvider(billingProvider)
-        .billingAccountId(billingAccountId)
-        .accountNumber(null)
-        .displayName(instanceId + "-display")
-        .product("204")
-        .conversionsSuccess(false)
-        .values(dataPoints)
-        .build();
   }
 
   private void thenEventHasCorrectMetadata(Event event, String orgId, String instanceId) {
