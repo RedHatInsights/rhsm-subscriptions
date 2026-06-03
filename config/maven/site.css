@@ -1,0 +1,11 @@
+/* Right-align numeric columns in surefire report tables */
+.table th,
+.table td {
+  text-align: right;
+}
+
+/* Keep the icon and class name columns left-aligned */
+.table th:nth-child(-n+2),
+.table td:nth-child(-n+2) {
+  text-align: left;
+}

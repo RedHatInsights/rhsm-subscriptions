@@ -14,6 +14,7 @@ SHELL=/bin/bash
 	component-test \
 	build \
 	format \
+	check \
 	install \
 	test \
 	clean \
@@ -25,14 +26,41 @@ SHELL=/bin/bash
 # Add the local profile automatically
 override PROFILES+=dev
 
+# Run mvnw in quiet mode by default. Use VERBOSE=true to see full output.
+#
+# The openapi-generator-maven-plugin prints a donation banner on every
+# invocation, wrapped in lines of '#' characters.  There is no plugin-level
+# option to suppress it (see https://github.com/OpenAPITools/openapi-generator/issues/11211).
+# To filter it out without losing other output, MVN is defined as a shell
+# wrapper that pipes all mvnw output through sed.  The sed expression uses
+# [#] character classes instead of literal # characters because Make treats #
+# as a comment delimiter even inside recipe quotes.  The HASH variable (below)
+# holds a literal # character so it can be used in the sed expression via
+# $(HASH) without triggering Make's comment parsing.  The sed range expression
+# '/^####/,/^####/d' treats lines beginning with "####" as delimiters and
+# deletes every line between and including those delimiters, which matches the
+# banner block exactly.  The wrapper uses bash -c so that the pipe is part of
+# the command itself; the trailing "--" sets $0, and "$$@" forwards all
+# Make-supplied arguments (goals, flags, etc.) to mvnw unchanged.  pipefail is
+# set so that a non-zero exit from mvnw propagates through the sed pipe;
+# without it, the pipeline would always report success (sed's exit code).
+MVN=bash -c 'set -o pipefail; ./mvnw $(if $(VERBOSE),,-q) "$$@" 2>&1 | sed "/^$(HASH)$(HASH)$(HASH)$(HASH)/,/^$(HASH)$(HASH)$(HASH)$(HASH)/d"' --
+
 # Init
+HASH := \#
 comma:=,
 empty:=
 space:=$(empty) $(empty)
 
+# Terminal colors (evaluated once at parse time; empty strings if tput is unavailable)
+GREEN := $(shell tput setaf 2 2>/dev/null)
+RED := $(shell tput setaf 1 2>/dev/null)
+BOLD := $(shell tput bold 2>/dev/null)
+RESET := $(shell tput sgr0 2>/dev/null)
+
 # $1 is the directory with the application to start.
 define BUILD
-    $(if $(filter build,$(MAKECMDGOALS)),./mvnw clean install -DskipTests -am -pl $(1))
+    $(if $(filter build,$(MAKECMDGOALS)),$(MVN) clean install -DskipTests -am -pl $(1))
 endef
 
 # $1 is the directory with the application to start.
@@ -42,7 +70,7 @@ define QUARKUS_PROXY
     $(call BUILD,$(1))
 	QUARKUS_HTTP_PORT=$(2) QUARKUS_MANAGEMENT_PORT=$(shell echo $$((1000 + $(2)))) \
 	QUARKUS_HTTP_HOST=0.0.0.0 QUARKUS_PROFILE=$(subst $(space),$(comma),$(PROFILES)) \
-	./mvnw -pl $(1) quarkus:dev -DskipTests $(if $(SUSPEND_DEBUG),-Ddebug=false)
+	$(MVN) -pl $(1) quarkus:dev -DskipTests $(if $(SUSPEND_DEBUG),-Ddebug=false)
 endef
 
 # Take note that we're using SPRING_PROFILES_INCLUDE rather that
@@ -59,31 +87,51 @@ define SPRING_PROXY
     $(call BUILD,$(1))
 	SERVER_PORT=$(2) MANAGEMENT_SERVER_PORT=$(shell echo $$((1000 + $(2)))) \
 	SPRING_PROFILES_INCLUDE=$(subst $(space),$(comma),$(PROFILES)) \
-	./mvnw -pl $(1) spring-boot:run -DskipTests \
+	$(MVN) -pl $(1) spring-boot:run -DskipTests \
 	$(if $(SUSPEND_DEBUG),,$(DEBUG_ARGUMENT))
 endef
 
 # $1 is the directory with the application to start.
 define COMPONENT_TEST_PROXY
 	$(call BUILD,$(1))
-	./mvnw clean install -Pcomponent-tests -pl $(1)/ct -am
+	$(MVN) clean install -Pcomponent-tests -pl $(1)/ct -am
 endef
 
 default: format install
 
 format:
-	./mvnw spotless:apply -Pbuild -Pcomponent-tests
+	@echo "Running spotless:apply..."
+	@$(MVN) spotless:apply -Pbuild -Pcomponent-tests
+
+# Checkstyle violations are logged at Maven INFO level, so -q hides them.  Instead, we write a
+# plain-text report and display it only when violations are found.
+check: format
+	@echo "Running checkstyle..."
+	@$(MVN) checkstyle:check -Pbuild -Pcomponent-tests \
+		-Dcheckstyle.output.format=plain \
+		-Dcheckstyle.output.file=target/checkstyle-result.txt \
+		>/dev/null \
+	|| { cat target/checkstyle-result.txt; exit 1; }
 
 clean:
-	./mvnw clean
+	$(MVN) clean
 
 # E.g. make install PL=swatch-core
 install: clean
-	./mvnw install -DskipTests $(if $(PL),-pl $(PL) -am)
+	$(MVN) install -DskipTests $(if $(PL),-pl $(PL) -am)
 
 # E.g. make test PL=swatch-tally TEST=TallyRetentionControllerTest,TallySnapshotControllerTest
+# The default CSS misaligns the cell values and there's no good way to get the report-only
+# task to update the CSS itself
 test:
-	./mvnw test $(if $(PL),-pl $(PL) -am) $(if $(TEST),-Dtest=$(TEST) -Dsurefire.failIfNoSpecifiedTests=false)
+	@if $(MVN) test $(if $(PL),-pl $(PL) -am) $(if $(TEST),-Dtest=$(TEST) -Dsurefire.failIfNoSpecifiedTests=false); then \
+		echo "$(GREEN)SUCCESS$(RESET)"; \
+	else \
+		echo "$(RED)FAILED$(RESET)"; \
+		exit 1; \
+	fi
+	@$(MVN) surefire-report:report-only && cp config/maven/site.css target/reports/css/
+	@echo "View report at file://$$(git rev-parse --show-toplevel)/target/reports/surefire.html"
 
 # Empty target for build flag
 build:
@@ -131,21 +179,16 @@ swatch-api:
 
 # $1 = service name, $2 = port
 define CHECK_SERVICE_STATUS
-	@GREEN=$$(tput setaf 2 2>/dev/null || echo ''); \
-	RED=$$(tput setaf 1 2>/dev/null || echo ''); \
-	RESET=$$(tput sgr0 2>/dev/null || echo ''); \
-	printf "%-25s " "$(1) ($(2)):"; \
+	@printf "%-25s " "$(1) ($(2)):"; \
 	if curl -s -f http://localhost:$(2)/health >/dev/null 2>&1; then \
-		printf "$${GREEN}✓ Running$${RESET}\n"; \
+		printf "$(GREEN)✓ Running$(RESET)\n"; \
 	else \
-		printf "$${RED}✗ Not running$${RESET}\n"; \
+		printf "$(RED)✗ Not running$(RESET)\n"; \
 	fi
 endef
 
 status:
-	@BOLD=$$(tput bold 2>/dev/null || echo ''); \
-	RESET=$$(tput sgr0 2>/dev/null || echo ''); \
-	echo "$${BOLD}Service Status:$${RESET}"
+	@echo "$(BOLD)Service Status:$(RESET)"
 	$(call CHECK_SERVICE_STATUS,swatch-tally,9010)
 	$(call CHECK_SERVICE_STATUS,swatch-contracts,9011)
 	$(call CHECK_SERVICE_STATUS,swatch-billable-usage,9012)
