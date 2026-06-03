@@ -20,9 +20,6 @@
  */
 package com.redhat.swatch.utilization.service;
 
-import com.redhat.cloud.notifications.ingress.Context;
-import com.redhat.cloud.notifications.ingress.Event;
-import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.utilization.model.Measurement;
 import com.redhat.swatch.utilization.model.Severity;
 import com.redhat.swatch.utilization.model.UtilizationSummary;
@@ -47,7 +44,7 @@ public class CustomThresholdUtilizationHandlerService
   @Inject CustomThresholdValidator customThresholdValidator;
 
   @Override
-  protected Optional<Event> evaluateThreshold(
+  protected Optional<HandlerEvent> evaluateThreshold(
       double utilizationPercent, UtilizationSummary payload, Measurement measurement) {
     var preference = orgPreferencesService.getOrgPreferences(payload.getOrgId());
     // In SWATCH-4990, we need to remove this condition, so all orgs are opted in.
@@ -80,10 +77,8 @@ public class CustomThresholdUtilizationHandlerService
           String.format(PERCENT_FORMAT, utilizationPercent),
           threshold);
       var event = buildEvent(utilizationPercent);
-      event
-          .getMetadata()
-          .getAdditionalProperties()
-          .put(LAST_MODIFIED_HASH, hashLastModified(preference.getLastModified().toInstant()));
+      event.addContextProperty(
+          PREFERENCES_HASH, hashLastModified(preference.getLastModified().toInstant()));
       return Optional.of(event);
     }
 
@@ -103,15 +98,6 @@ public class CustomThresholdUtilizationHandlerService
   @Override
   protected String metricName() {
     return CUSTOM_THRESHOLD_METRIC;
-  }
-
-  @Override
-  protected void addAdditionalContextProperties(
-      Context.ContextBuilder builder, UtilizationSummary payload, MetricId metricId, Event event) {
-    String hash = (String) event.getMetadata().getAdditionalProperties().get(LAST_MODIFIED_HASH);
-    if (hash != null) {
-      builder.withAdditionalProperty(LAST_MODIFIED_HASH, hash);
-    }
   }
 
   static String hashLastModified(Instant lastModified) {

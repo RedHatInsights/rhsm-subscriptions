@@ -20,7 +20,6 @@
  */
 package com.redhat.swatch.utilization.service;
 
-import com.redhat.cloud.notifications.ingress.Event;
 import com.redhat.swatch.utilization.model.Measurement;
 import com.redhat.swatch.utilization.model.Severity;
 import com.redhat.swatch.utilization.model.UtilizationSummary;
@@ -37,7 +36,7 @@ public class OverThresholdUtilizationHandlerService extends BaseThresholdUtiliza
   static final String EVENT_TYPE = "exceeded-utilization-threshold";
 
   @Override
-  protected Optional<Event> evaluateThreshold(
+  protected Optional<HandlerEvent> evaluateThreshold(
       double utilizationPercent, UtilizationSummary payload, Measurement measurement) {
     double overUsageThreshold = getOverUsageThresholdForProduct(payload.getProductId());
     if (overUsageThreshold < 0.0) {
