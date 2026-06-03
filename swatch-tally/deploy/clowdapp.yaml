@@ -399,6 +399,8 @@ objects:
       - swatch-contracts
       - rbac
       - export-service
+    optionalDependencies:
+      - kessel-inventory
     # IQE plugin your ClowdApp is associated with
     testing:
       iqePlugin: rhsm-subscriptions
