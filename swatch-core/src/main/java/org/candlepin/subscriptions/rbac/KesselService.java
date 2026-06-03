@@ -90,8 +90,8 @@ public class KesselService {
       this.channel = result.getRight();
       log.info("Kessel authorization client initialized: endpoint={}", properties.getEndpoint());
     } catch (Exception e) {
-      log.error("Failed to initialize Kessel authorization client", e);
-      throw new IllegalStateException("Kessel client initialization failed", e);
+      log.warn(
+          "Failed to initialize Kessel authorization client; auth checks will deny by default", e);
     }
   }
 
@@ -108,6 +108,10 @@ public class KesselService {
   }
 
   public boolean checkAccess(String subjectId, String permission) {
+    if (stub == null) {
+      log.warn("Kessel client not initialized; denying access for subject={}", subjectId);
+      return false;
+    }
     var relation = mapPermissionToRelation(permission);
 
     var request =
