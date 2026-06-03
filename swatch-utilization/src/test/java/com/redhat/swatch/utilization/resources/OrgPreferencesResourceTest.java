@@ -22,6 +22,7 @@ package com.redhat.swatch.utilization.resources;
 
 import static com.redhat.swatch.common.security.RhIdentityHeaderAuthenticationMechanism.RH_IDENTITY_HEADER;
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
@@ -107,7 +108,9 @@ class OrgPreferencesResourceTest {
   @ValueSource(ints = {-1, 101})
   void updateOrgPreferences_whenThresholdOutOfRange_returnsBadRequestWithoutCallingService(
       int invalidThreshold) {
-    whenUpdateOrgPreferencesTo(invalidThreshold).statusCode(HttpStatus.SC_BAD_REQUEST);
+    whenUpdateOrgPreferencesTo(invalidThreshold)
+        .statusCode(HttpStatus.SC_BAD_REQUEST)
+        .body("errors[0].detail", containsString("rejected value " + invalidThreshold));
 
     verify(orgPreferencesService, never())
         .updateOrgPreferences(anyString(), any(OrgPreferencesRequest.class));
