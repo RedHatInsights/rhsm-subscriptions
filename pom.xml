@@ -66,6 +66,8 @@
     <sonar.branch.target>main</sonar.branch.target>
     <sonar.coverage.jacoco.xmlReportPaths>${maven.multiModuleProjectDirectory}/coverage-report/target/site/jacoco-aggregate/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
     <sonar.java.binaries>${project.build.directory}</sonar.java.binaries>
+    <!-- Required for later late replacement of @{argLine} -->
+    <argLine/>
   </properties>
 
   <repositories>
@@ -383,6 +385,9 @@
           <artifactId>maven-surefire-plugin</artifactId>
           <version>${surefire-plugin.version}</version>
           <configuration>
+            <argLine>
+              @{argLine} -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar
+            </argLine>
             <reportFormat>brief</reportFormat>
             <includes>
               <include>*Test.java</include>
