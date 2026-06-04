@@ -1,0 +1,430 @@
+---
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: swatch-metrics-hbi
+parameters:
+  - name: JAVA_DEBUG
+    # Set to "true" to enable remote debugging
+    value: ''
+  - name: USER_OPTS_APPEND
+    value: ''
+  - name: QUARKUS_LAUNCH_DEVMODE
+    value: ''
+  - name: IMAGE_PULL_SECRET
+    value: quay-cloudservices-pull
+  - name: MEMORY_REQUEST
+    value: 1000Mi
+  - name: MEMORY_LIMIT
+    value: 1400Mi
+  - name: CPU_REQUEST
+    value: 350m
+  - name: CPU_LIMIT
+    value: 1500m
+  - name: ENV_NAME
+    value: env-swatch-metrics-hbi
+  - name: REPLICAS
+    value: '1'
+  - name: IMAGE
+    value: quay.io/cloudservices/swatch-metrics-hbi
+  - name: IMAGE_TAG
+    value: latest
+  - name: LOGGING_HEC_ENABLED
+    value: 'true'
+  - name: LOGGING_HEC_URL
+    value: https://splunk-hec.redhat.com:8088
+  - name: LOGGING_SOURCE
+    value: 'swatch-metrics-hbi'
+  - name: LOGGING_SOURCE_TYPE
+    value: 'swatch'
+  - name: LOGGING_HEC_BATCH_SIZE
+    value: '1000'
+  - name: LOGGING_HEC_BATCH_INTERVAL
+    value: '10S'
+  - name: LOGGING_HEC_RETRY_COUNT
+    value: '3'
+  - name: LOGGING_HEC_INCLUDE_EX
+    value: 'true'
+  - name: LOGGING_LEVEL_ROOT
+    value: 'INFO'
+  - name: LOGGING_LEVEL_COM_REDHAT_SWATCH
+    value: 'INFO'
+  - name: QUARKUS_PROFILE
+    value: prod
+  - name: SWATCH_EVENT_PRODUCER_BACK_OFF_INITIAL_INTERVAL
+    value: '1000ms'
+  - name: SWATCH_EVENT_PRODUCER_BACK_OFF_MAX_INTERVAL
+    value: '60s'
+  - name: SWATCH_EVENT_PRODUCER_BACK_OFF_MULTIPLIER
+    value: '2'
+  - name: SWATCH_EVENT_PRODUCER_MAX_ATTEMPTS
+    value: '1'
+  - name: KAFKA_HBI_HOST_EVENTS_TOPIC
+    value: 'platform.inventory.events'
+  - name: KAFKA_HBI_HOST_EVENTS_REPLICAS
+    value: '1'
+  - name: KAFKA_HBI_HOST_EVENTS_PARTITIONS
+    value: '1'
+  - name: KAFKA_SERVICE_INSTANCE_TOPIC
+    value: 'platform.rhsm-subscriptions.service-instance-ingress'
+  - name: KAFKA_SERVICE_INSTANCE_REPLICAS
+    value: '1'
+  - name: KAFKA_SERVICE_INSTANCE_PARTITIONS
+    value: '1'
+  - name: HOST_LAST_SYNC_THRESHOLD
+    value: '24h'
+  - name: USE_CPU_SYSTEM_FACTS_FOR_ALL_PRODUCTS
+    value: 'true'
+  - name: CULLING_OFFSET
+    value: '14d'
+  - name: LOGGING_SHOW_SQL_QUERIES
+    value: 'false'
+  # allow overriding to support independent deploy with bonfire
+  - name: DB_POD
+    value: swatch-database
+  # Using a value of 'select 1' makes this job a no-op by default.
+  # When needed bump DB_CHANGELOG_CLEANUP_RUN_NUMBER, set DB_CHANGELOG_CLEANUP_SQL to 'delete from databasechangeloglock_swatch_contracts'
+  - name: DB_CHANGELOG_CLEANUP_RUN_NUMBER
+    value: '1'
+  - name: DB_CHANGELOG_CLEANUP_SQL
+    value: 'select 1'
+  - name: EGRESS_IMAGE
+    value: quay.io/redhat-services-prod/rh-subs-watch-tenant/rhsm-subscriptions-egress
+  - name: EGRESS_IMAGE_TAG
+    value: latest
+  - name: CURL_CRON_IMAGE
+    value: registry.access.redhat.com/ubi8/ubi-minimal
+  - name: CURL_CRON_IMAGE_TAG
+    value: latest
+  - name: CURL_CRON_MEMORY_REQUEST
+    value: 50Mi
+  - name: CURL_CRON_MEMORY_LIMIT
+    value: 50Mi
+  - name: CURL_CRON_CPU_REQUEST
+    value: 100m
+  - name: CURL_CRON_CPU_LIMIT
+    value: 100m
+  - name: OUTBOX_FLUSH_SCHEDULE
+    value: '*/2 * * * *'
+  - name: OUTBOX_FLUSH_BATCH_SIZE
+    value: '1000'
+  - name: OTEL_DISABLED
+    value: 'true'
+  - name: OTEL_SIDECAR_IMAGE
+    value: quay.io/signalfx/splunk-otel-collector:0.140.0
+  - name: OTEL_SIDECAR_CONFIG_MAP
+    value: swatch-otel-config-v1
+  - name: OTEL_SIDECAR_TRACES_CONFIG
+    value: '/etc/otelcol/relay'
+  - name: OTEL_ENV_NAME
+    value: env-swatch-metrics-hbi
+  - name: OTEL_K8S_CLUSTER_NAME
+    value: ephemeral
+  - name: OTEL_TRACES_TOKEN_SECRET_NAME
+    value: signalfx
+  - name: OTEL_TRACES_TOKEN_SECRET_KEY
+    value: token
+
+objects:
+- apiVersion: cloud.redhat.com/v1alpha1
+  kind: ClowdApp
+  metadata:
+    name: swatch-metrics-hbi
+    labels:
+      prometheus: quarkus
+  spec:
+    envName: ${ENV_NAME}
+
+    kafkaTopics:
+      - topicName: ${{KAFKA_HBI_HOST_EVENTS_TOPIC}}
+        replicas: ${{KAFKA_HBI_HOST_EVENTS_REPLICAS}}
+        partitions: ${{KAFKA_HBI_HOST_EVENTS_PARTITIONS}}
+      - topicName: ${{KAFKA_SERVICE_INSTANCE_TOPIC}}
+        replicas: ${{KAFKA_SERVICE_INSTANCE_REPLICAS}}
+        partitions: ${{KAFKA_SERVICE_INSTANCE_PARTITIONS}}
+
+    pullSecrets:
+      name: ${IMAGE_PULL_SECRET}
+
+    database:
+      sharedDbAppName: ${DB_POD}
+
+    dependencies:
+      - ${DB_POD}
+
+    deployments:
+      - name: service
+        replicas: ${{REPLICAS}}
+        webServices:
+          public:
+            enabled: true
+        podSpec:
+          image: ${IMAGE}:${IMAGE_TAG}
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health/live
+              port: 9000
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            successThreshold: 1
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health/ready
+              port: 9000
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            successThreshold: 1
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: ${CPU_REQUEST}
+              memory: ${MEMORY_REQUEST}
+            limits:
+              cpu: ${CPU_LIMIT}
+              memory: ${MEMORY_LIMIT}
+          env:
+            - name: JAVA_DEBUG
+              value: ${JAVA_DEBUG}
+            - name: USER_OPTS_APPEND
+              value: ${USER_OPTS_APPEND}
+            - name: QUARKUS_LAUNCH_DEVMODE
+              value: ${QUARKUS_LAUNCH_DEVMODE}
+            - name: LOGGING_LEVEL_ROOT
+              value: ${LOGGING_LEVEL_ROOT}
+            - name: LOGGING_LEVEL_COM_REDHAT_SWATCH
+              value: ${LOGGING_LEVEL_COM_REDHAT_SWATCH}
+            - name: LOGGING_SHOW_SQL_QUERIES
+              value: ${LOGGING_SHOW_SQL_QUERIES}
+            - name: LOGGING_HEC_ENABLED
+              value: ${LOGGING_HEC_ENABLED}
+            - name: LOGGING_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: HOST_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: LOGGING_HEC_URL
+              value: ${LOGGING_HEC_URL}
+            - name: LOGGING_HEC_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: splunk-hec-external
+                  key: token
+            - name: LOGGING_SOURCE
+              value: ${LOGGING_SOURCE}
+            - name: LOGGING_SOURCE_TYPE
+              value: ${LOGGING_SOURCE_TYPE}
+            - name: LOGGING_HEC_BATCH_SIZE
+              value: ${LOGGING_HEC_BATCH_SIZE}
+            - name: LOGGING_HEC_BATCH_INTERVAL
+              value: ${LOGGING_HEC_BATCH_INTERVAL}
+            - name: LOGGING_HEC_RETRY_COUNT
+              value: ${LOGGING_HEC_RETRY_COUNT}
+            - name: LOGGING_HEC_INCLUDE_EX
+              value: ${LOGGING_HEC_INCLUDE_EX}
+            - name: SWATCH_SELF_PSK
+              valueFrom:
+                secretKeyRef:
+                  name: swatch-psks
+                  key: self
+            - name: QUARKUS_PROFILE
+              value: ${QUARKUS_PROFILE}
+            - name: SWATCH_EVENT_PRODUCER_BACK_OFF_INITIAL_INTERVAL
+              value: ${SWATCH_EVENT_PRODUCER_BACK_OFF_INITIAL_INTERVAL}
+            - name: SWATCH_EVENT_PRODUCER_BACK_OFF_MAX_INTERVAL
+              value: ${SWATCH_EVENT_PRODUCER_BACK_OFF_MAX_INTERVAL}
+            - name: SWATCH_EVENT_PRODUCER_BACK_OFF_MULTIPLIER
+              value: ${SWATCH_EVENT_PRODUCER_BACK_OFF_MULTIPLIER}
+            - name: SWATCH_EVENT_PRODUCER_MAX_ATTEMPTS
+              value: ${SWATCH_EVENT_PRODUCER_MAX_ATTEMPTS}
+            - name: HOST_LAST_SYNC_THRESHOLD
+              value: ${HOST_LAST_SYNC_THRESHOLD}
+            - name: USE_CPU_SYSTEM_FACTS_FOR_ALL_PRODUCTS
+              value: ${USE_CPU_SYSTEM_FACTS_FOR_ALL_PRODUCTS}
+            - name: CULLING_OFFSET
+              value: ${CULLING_OFFSET}
+            - name: OTEL_DISABLED
+              value: ${OTEL_DISABLED}
+            - name: DATABASE_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: ${DB_POD}-db
+                  key: db.host
+            - name: DATABASE_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: ${DB_POD}-db
+                  key: db.port
+            - name: DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: ${DB_POD}-db
+                  key: db.user
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ${DB_POD}-db
+                  key: db.password
+            - name: DATABASE_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: ${DB_POD}-db
+                  key: db.name
+            - name: OUTBOX_FLUSH_BATCH_SIZE
+              value: ${OUTBOX_FLUSH_BATCH_SIZE}
+          volumeMounts:
+            - name: logs
+              mountPath: /logs
+          sidecars:
+          - name: otel-collector
+            enabled: true
+            configMap: ${OTEL_SIDECAR_CONFIG_MAP}
+            image: ${OTEL_SIDECAR_IMAGE}
+            envVars:
+              - name: ENV_NAME
+                value: ${OTEL_ENV_NAME}
+              - name: K8S_CLUSTER_NAME
+                value: ${OTEL_K8S_CLUSTER_NAME}
+              - name: TRACES_ACCESS_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: ${OTEL_TRACES_TOKEN_SECRET_NAME}
+                    key: ${OTEL_TRACES_TOKEN_SECRET_KEY}
+              - name: SPLUNK_CONFIG
+                value: ${OTEL_SIDECAR_TRACES_CONFIG}
+              - name: TRACES_MEMORY_TOTAL_MIB
+                value: '1024'
+              - name: LOGGING_HEC_URL
+                value: ${LOGGING_HEC_URL}
+              - name: LOGGING_HEC_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: splunk-hec-external
+                    key: token
+              - name: LOGGING_SOURCE
+                value: ${LOGGING_SOURCE}
+              - name: LOGGING_SOURCE_TYPE
+                value: ${LOGGING_SOURCE_TYPE}
+              - name: K8S_NAMESPACE
+                valueFrom:
+                  fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.namespace
+              - name: K8S_POD_NAME
+                valueFrom:
+                  fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.name
+          volumes:
+            - name: logs
+              emptyDir:
+
+    jobs:
+        - name: outbox-flush
+          schedule: ${OUTBOX_FLUSH_SCHEDULE}
+          successfulJobsHistoryLimit: 2
+          restartPolicy: Never
+          podSpec:
+            image: ${CURL_CRON_IMAGE}:${CURL_CRON_IMAGE_TAG}
+            command:
+              - /usr/bin/bash
+              - -c
+              - >
+                /usr/bin/curl --fail -H "Origin: https://swatch-metrics-hbi-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X PUT "http://swatch-metrics-hbi-service:8000/api/swatch-metrics-hbi/internal/rpc/outbox/flush"
+            env:
+              - name: SWATCH_SELF_PSK
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-psks
+                    key: self
+            resources:
+              requests:
+                cpu: ${CURL_CRON_CPU_REQUEST}
+                memory: ${CURL_CRON_MEMORY_REQUEST}
+              limits:
+                cpu: ${CURL_CRON_CPU_LIMIT}
+                memory: ${CURL_CRON_MEMORY_LIMIT}
+
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: swatch-psks
+  data:
+    self: cGxhY2Vob2xkZXI=
+
+- apiVersion: cloud.redhat.com/v1alpha1
+  kind: ClowdApp
+  metadata:
+    name: swatch-metrics-hbi-db-cleanup
+  spec:
+    # The name of the ClowdEnvironment providing the services
+    envName: ${ENV_NAME}
+
+    database:
+      sharedDbAppName: ${DB_POD}
+
+    dependencies:
+      - ${DB_POD}
+
+    pullSecrets:
+      name: ${IMAGE_PULL_SECRET}
+
+    kafkaTopics: []
+    deployments: []
+    jobs:
+      - name: changelog-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
+        restartPolicy: Never
+        podSpec:
+          image: ${EGRESS_IMAGE}:${EGRESS_IMAGE_TAG}
+          name: db-changelog-cleanup
+          command: ["/bin/sh", "-c"]
+          args:
+            - psql -h $POSTGRESQL_SERVICE_HOST -U $POSTGRESQL_USER $POSTGRESQL_DATABASE -c "$DB_CHANGELOG_CLEANUP_SQL"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 50Mi
+            limits:
+              cpu: 100m
+              memory: 100Mi
+          env:
+            - name: POSTGRESQL_SERVICE_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: ${DB_POD}-db
+                  key: db.host
+            - name: POSTGRESQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: ${DB_POD}-db
+                  key: db.user
+            - name: POSTGRESQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: ${DB_POD}-db
+                  key: db.name
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ${DB_POD}-db
+                  key: db.password
+            - name: DB_CHANGELOG_CLEANUP_SQL
+              value: ${DB_CHANGELOG_CLEANUP_SQL}
+
+- apiVersion: cloud.redhat.com/v1alpha1
+  kind: ClowdJobInvocation
+  metadata:
+    name: metrics-hbi-db-changelog-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
+  spec:
+    appName: swatch-metrics-hbi-db-cleanup
+    jobs:
+      - changelog-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}

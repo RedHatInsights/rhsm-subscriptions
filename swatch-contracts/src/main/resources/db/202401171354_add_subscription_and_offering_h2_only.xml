@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+  <changeSet id="202401171354-01" author="khowell" dbms="h2">
+    <comment>Create the subscription table for tests only (since it is still managed by the monolith)</comment>
+    <createTable tableName="subscription">
+      <column name="sku" type="varchar"/>
+      <column name="org_id" type="varchar"/>
+      <column name="subscription_id" type="varchar">
+        <constraints nullable="false"/>
+      </column>
+      <column name="quantity" type="bigint"/>
+      <column name="start_date" type="timestamp">
+        <constraints nullable="false"/>
+      </column>
+      <column name="end_date" type="timestamp"/>
+      <column name="billing_provider_id" type="varchar"/>
+      <column name="subscription_number" type="varchar"/>
+      <column name="billing_provider" type="varchar"/>
+      <column name="billing_account_id" type="varchar"/>
+    </createTable>
+    <createTable tableName="subscription_measurements">
+      <column name="value" type="float"/>
+      <column name="measurement_type" type="varchar"/>
+      <column name="metric_id" type="varchar"/>
+      <column name="start_date" type="timestamp"/>
+      <column name="subscription_id" type="varchar"/>
+    </createTable>
+    <createTable tableName="subscription_product_ids">
+      <column name="subscription_id" type="varchar"/>
+      <column name="product_id" type="varchar"/>
+      <column name="start_date" type="timestamp"/>
+    </createTable>
+    <!-- rollback automatically generated -->
+  </changeSet>
+  <changeSet id="202401171354-02" author="khowell" dbms="h2">
+    <comment>Create the offering table for tests only (since it is still managed by the monolith)</comment>
+    <createTable tableName="offering">
+      <column name="sku" type="varchar">
+        <constraints nullable="false"/>
+      </column>
+      <column name="product_name" type="varchar"/>
+      <column name="product_family" type="varchar"/>
+      <column name="cores" type="bigint"/>
+      <column name="sockets" type="bigint"/>
+      <column name="hypervisor_cores" type="bigint"/>
+      <column name="hypervisor_sockets" type="bigint"/>
+      <column name="role" type="varchar"/>
+      <column name="sla" type="varchar"/>
+      <column name="usage" type="varchar"/>
+      <column name="description" type="varchar"/>
+      <column name="has_unlimited_usage" type="boolean"/>
+      <column name="derived_sku" type="varchar"/>
+    </createTable>
+    <createTable tableName="sku_child_sku">
+      <column name="sku" type="varchar"/>
+      <column name="child_sku" type="varchar"/>
+    </createTable>
+    <createTable tableName="sku_oid">
+      <column name="sku" type="varchar"/>
+      <column name="oid" type="varchar"/>
+    </createTable>
+    <!-- rollback automatically generated -->
+  </changeSet>
+</databaseChangeLog>

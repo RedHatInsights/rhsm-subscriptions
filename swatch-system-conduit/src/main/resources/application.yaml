@@ -1,0 +1,40 @@
+CONDUIT_TOPIC: ${clowder.kafka.topics."platform.rhsm-conduit.tasks".name:platform.rhsm-conduit.tasks}
+INVENTORY_HOST_INGRESS_TOPIC: ${clowder.kafka.topics."platform.inventory.host-ingress".name:platform.inventory.host-ingress}
+
+spring:
+  config:
+    import: classpath:swatch-core/application.yaml  # load the common configuration
+  profiles:
+    active: kafka-queue
+resilience4j.bulkhead:
+  instances:
+    rhsmApi:
+      maxConcurrentCalls: ${RHSM_API_MAX_CONCURRENT_CALLS:5}
+      maxWaitDuration: ${RHSM_API_MAX_WAIT_DURATION:3m}
+rhsm-conduit:
+  enable-synchronous-operations: ${ENABLE_SYNCHRONOUS_OPERATIONS:false}
+  rhsm:
+    use-stub: ${RHSM_USE_STUB:false}
+    url: ${RHSM_URL:http://localhost:9090}
+    keystore: file:${RHSM_KEYSTORE:}
+    keystore-password: ${RHSM_KEYSTORE_PASSWORD:changeit}
+    request-batch-size: ${RHSM_BATCH_SIZE:1000}
+    max-connections: ${RHSM_MAX_CONNECTIONS:100}
+    truststore: file:${RHSM_TRUSTSTORE:}
+    truststore-password: ${RHSM_TRUSTSTORE_PASSWORD:changeit}
+    max-attempts: ${RHSM_MAX_ATTEMPTS:10}
+    back-off-max-interval: ${RHSM_BACK_OFF_MAX_INTERVAL:64s}
+    back-off-initial-interval: ${RHSM_BACK_OFF_INITIAL_INTERVAL:1s}
+    back-off-multiplier: ${RHSM_BACK_OFF_MULTIPLIER:2}
+  inventory-service:
+    use-stub: ${INVENTORY_USE_STUB:true}
+    api-key: ${INVENTORY_API_KEY:changeit}
+    host-last-sync-threshold: ${HOST_LAST_SYNC_THRESHOLD:24h}
+    add-uuid-hyphens: ${INVENTORY_ADD_UUID_HYPHENS:false}
+    stale-host-offset: ${INVENTORY_STALE_HOST_OFFSET:48h}
+    kafka-host-ingress-topic: ${INVENTORY_HOST_INGRESS_TOPIC}
+  tasks:
+    topic: ${CONDUIT_TOPIC}
+    kafka-group-id: ${CONDUIT_KAFKA_GROUP_ID:rhsm-conduit-task-processor}
+    seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
+    seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}

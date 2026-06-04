@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+  <changeSet id="202407161214-01" author="mstead">
+    <comment>
+      Deletes all instance measurements matching a RHEL System host with a metric_id matching
+      CORES/SOCKETS.
+    </comment>
+    <sql dbms="postgresql">
+      <!-- The "DELETE ... FROM ... USING" statement is Postgres specific.  -->
+      delete from instance_measurements m
+      using hosts h
+      where m.host_id = h.id
+        and h.instance_type = 'RHEL System'
+        and m.metric_id in ('CORES', 'SOCKETS');
+    </sql>
+    <rollback>
+      <!-- Unable to roll back. -->
+    </rollback>
+  </changeSet>
+</databaseChangeLog>

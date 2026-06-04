@@ -1,0 +1,7 @@
+{
+  "type": "delete",
+  "id": "$INVENTORY_UUID",
+  "timestamp": "$TIMESTAMP",
+  "org_id": "$ORG_ID",
+  "insights_id": "$INSIGHTS_UUID"
+}

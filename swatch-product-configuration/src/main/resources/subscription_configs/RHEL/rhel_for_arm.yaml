@@ -1,0 +1,18 @@
+---
+platform: RHEL
+
+id: rhel-for-arm
+
+vdcType: true
+
+variants:
+  - tag: RHEL for ARM
+    engineeringIds:
+      - 419
+
+defaults:
+  variant: RHEL for ARM
+
+metrics:
+  - id: Sockets
+    type: gauge

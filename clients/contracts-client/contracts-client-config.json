@@ -1,0 +1,8 @@
+{
+  "modelPackage": "com.redhat.swatch.contracts.spring.api.model",
+  "apiPackage": "com.redhat.swatch.contracts.spring.api.resources",
+  "invokerPackage": "com.redhat.swatch.contracts.spring.client",
+  "groupId": "org.candlepin",
+  "artifactId": "contracts-client",
+  "java8": true
+}

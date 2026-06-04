@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="202006180903-1" author="khowell">
+        <comment>Add usage to host buckets.</comment>
+        <addColumn tableName="host_tally_buckets">
+            <column name="usage" type="VARCHAR(255)" defaultValue="_ANY">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="202006180903-2" author="khowell">
+        <comment>Drop primary key, so we can recreate it.</comment>
+        <dropPrimaryKey constraintName="host_tally_bucket_pkey"
+            tableName="host_tally_buckets"/>
+    </changeSet>
+
+    <changeSet id="202006180903-3" author="khowell">
+        <comment>Recreate primary key, with usage added.</comment>
+        <addPrimaryKey constraintName="host_tally_bucket_pkey"
+                       tableName="host_tally_buckets"
+                       columnNames="host_insights_id,product_id,sla,usage,as_hypervisor"/>
+    </changeSet>
+
+</databaseChangeLog>
+<!-- vim: set expandtab sts=4 sw=4 ai: -->

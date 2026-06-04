@@ -1,0 +1,29 @@
+@startuml
+
+title "Red Hat SaaS Offering Provisioning - AWS"
+
+actor "Red Hat Customer" as customer
+participant "Red Hat SaaS\nControl Plane" as control_plane
+participant "Telemetry\n(Prometheus)" as prometheus
+participant "Service\n(e.g. RHOSAK instance)" as service
+
+customer -> control_plane: Provision w/ awsCustomerAccountId
+note right: Control plane validates against\n\
+data collected during onboarding
+return
+
+control_plane -> prometheus: service metadata {\n\
+  id,\n\
+  webCustomerId,\n\
+  awsCustomerAccountId,\n\
+  product,\n\
+  etc...\n\
+}
+
+service -> prometheus: usage data {\n\
+  id,\n\
+  value,\n\
+  etc...\n\
+}
+
+@enduml

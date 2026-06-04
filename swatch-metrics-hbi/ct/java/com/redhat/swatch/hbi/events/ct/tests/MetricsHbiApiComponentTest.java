@@ -1,0 +1,83 @@
+/*
+ * Copyright Red Hat, Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Red Hat trademarks are not licensed under GPLv3. No permission is
+ * granted to use or replicate Red Hat trademarks that are incorporated
+ * in this software or its documentation.
+ */
+package com.redhat.swatch.hbi.events.ct.tests;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import com.redhat.swatch.component.tests.api.TestPlanName;
+import com.redhat.swatch.hbi.model.FlushResponse;
+import com.redhat.swatch.hbi.model.FlushResponse.StatusEnum;
+import org.junit.jupiter.api.Test;
+
+class MetricsHbiApiComponentTest extends BaseSMHBIComponentTest {
+
+  @TestPlanName("metrics-hbi-api-TC001")
+  @Test
+  void shouldReportServiceAsRunning() {
+    // Given: Service is running in component test environment
+
+    // When: Checking if service is running
+
+    // Then: Service should report as running
+    assertTrue(service.isRunning(), "Service should be running");
+  }
+
+  @TestPlanName("metrics-hbi-api-TC002")
+  @Test
+  void shouldFlushOutboxSynchronously() {
+    // Given: Outbox is ready to be flushed
+
+    // When: Calling the synchronous outbox flush API
+    FlushResponse body = service.flushOutboxSynchronously();
+
+    // Then: Flush should succeed with synchronous mode
+    assertEquals(StatusEnum.SUCCESS, body.getStatus(), "Flush status should be SUCCESS");
+    assertFalse(body.getAsync(), "Flush should be synchronous");
+  }
+
+  @TestPlanName("metrics-hbi-api-TC003")
+  @Test
+  void shouldEnableUnleashFlag() {
+    // Given: Unleash service is available and EMIT_EVENTS flag is disabled
+    unleash.disableFlag(EMIT_EVENTS);
+
+    // When: Enabling the EMIT_EVENTS flag
+    unleash.enableFlag(EMIT_EVENTS);
+
+    // Then: Flag should be enabled
+    assertTrue(unleash.isFlagEnabled(EMIT_EVENTS), "EMIT_EVENTS flag should be enabled");
+  }
+
+  @TestPlanName("metrics-hbi-api-TC004")
+  @Test
+  void shouldDisableUnleashFlag() {
+    // Given: Unleash service is available and EMIT_EVENTS flag is enabled
+    unleash.enableFlag(EMIT_EVENTS);
+
+    // When: Disabling the EMIT_EVENTS flag
+    unleash.disableFlag(EMIT_EVENTS);
+
+    // Then: Flag should be disabled
+    assertFalse(unleash.isFlagEnabled(EMIT_EVENTS), "EMIT_EVENTS flag should be disabled");
+  }
+}

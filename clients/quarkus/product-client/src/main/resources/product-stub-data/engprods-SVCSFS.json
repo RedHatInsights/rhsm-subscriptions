@@ -1,0 +1,32 @@
+{
+  "entries": [
+    {
+      "sku": "SVCSFS",
+      "engProducts": {
+        "engProducts": [
+          {
+            "oid": 92
+          },
+          {
+            "oid": 394
+          },
+          {
+            "oid": 395
+          },
+          {
+            "oid": 408
+          },
+          {
+            "oid": 491
+          },
+          {
+            "oid": 479
+          },
+          {
+            "oid": 588
+          }
+        ]
+      }
+    }
+  ]
+}

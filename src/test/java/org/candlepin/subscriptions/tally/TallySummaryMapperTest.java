@@ -1,0 +1,726 @@
+/*
+ * Copyright Red Hat, Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Red Hat trademarks are not licensed under GPLv3. No permission is
+ * granted to use or replicate Red Hat trademarks that are incorporated
+ * in this software or its documentation.
+ */
+package org.candlepin.subscriptions.tally;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import com.redhat.swatch.configuration.util.MetricIdUtils;
+import java.time.OffsetDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import org.candlepin.clock.ApplicationClock;
+import org.candlepin.subscriptions.configuration.FeatureFlags;
+import org.candlepin.subscriptions.db.TallySnapshotRepository;
+import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
+import org.candlepin.subscriptions.db.model.TallySnapshot;
+import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.json.TallySummary;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+
+@ExtendWith(MockitoExtension.class)
+class TallySummaryMapperTest {
+
+  @Mock TallySnapshotRepository snapshotRepository;
+  @Mock ApplicationClock clock;
+  @Mock FeatureFlags featureFlags;
+  @InjectMocks TallySummaryMapper mapper;
+  private Map<TallyMeasurementKey, Double> expectedTotalValues = new HashMap<>();
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void testMapSnapshots(boolean isPrimaryRowSearch) {
+    when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(true);
+    when(clock.startOfMonth(any(OffsetDateTime.class)))
+        .thenAnswer(inv -> ((OffsetDateTime) inv.getArgument(0)).minusDays(10));
+
+    String org = "O1";
+    TallySnapshot rosa =
+        buildSnapshot(
+            org,
+            "rosa",
+            Granularity.HOURLY,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider.AWS,
+            MetricIdUtils.getInstanceHours().getValue(),
+            2,
+            isPrimaryRowSearch);
+    TallySnapshot rhel =
+        buildSnapshot(
+            org,
+            "RHEL for x86",
+            Granularity.HOURLY,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider.RED_HAT,
+            MetricIdUtils.getSockets().getValue(),
+            24,
+            isPrimaryRowSearch);
+
+    var snapshots = List.of(rosa, rhel);
+    TallySummary summary = mapper.mapSnapshots(org, snapshots);
+    assertEquals(org, summary.getOrgId());
+    List<org.candlepin.subscriptions.json.TallySnapshot> summarySnaps = summary.getTallySnapshots();
+    assertEquals(snapshots.size(), summarySnaps.size());
+
+    var mappedRosaOptional = findSnapshot(summary, "rosa");
+    assertTrue(mappedRosaOptional.isPresent());
+    assertMappedSnapshot(rosa, mappedRosaOptional.get());
+
+    var mappedRhelOptional = findSnapshot(summary, "RHEL for x86");
+    assertTrue(mappedRhelOptional.isPresent());
+    assertMappedSnapshot(rhel, mappedRhelOptional.get());
+  }
+
+  @Test
+  @MockitoSettings(strictness = Strictness.LENIENT)
+  void testMapSnapshotsPrimayRowsWithAny() {
+    when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(true);
+    when(clock.startOfMonth(any(OffsetDateTime.class)))
+        .thenAnswer(inv -> ((OffsetDateTime) inv.getArgument(0)).minusDays(10));
+
+    String org = "O1";
+    TallySnapshot rosa =
+        buildSnapshot(
+            org,
+            "rosa",
+            Granularity.HOURLY,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider.AWS,
+            MetricIdUtils.getInstanceHours().getValue(),
+            2,
+            true);
+    TallySummary summary = mapper.mapSnapshots(org, List.of(rosa));
+    assertEquals(org, summary.getOrgId());
+    List<org.candlepin.subscriptions.json.TallySnapshot> summarySnaps = summary.getTallySnapshots();
+    assertEquals(List.of(rosa).size(), summarySnaps.size());
+
+    // Build snapshot without stubs since it's expected to throw
+    TallySnapshot rosaWithAny =
+        buildSnapshot(
+            org,
+            "rosa",
+            Granularity.HOURLY,
+            ServiceLevel._ANY,
+            Usage._ANY,
+            BillingProvider.AWS,
+            MetricIdUtils.getInstanceHours().getValue(),
+            2,
+            true);
+    assertThrows(
+        IllegalArgumentException.class, () -> mapper.mapSnapshots(org, List.of(rosaWithAny)));
+
+    // Build snapshot with _ANY BillingProvider for PAYG product (should throw)
+    TallySnapshot rosaWithAnyBillingProvider =
+        TallySnapshot.builder()
+            .orgId(org)
+            .productId("rosa")
+            .snapshotDate(OffsetDateTime.now())
+            .tallyMeasurements(
+                Map.of(
+                    new TallyMeasurementKey(
+                        HardwareMeasurementType.PHYSICAL,
+                        MetricIdUtils.getInstanceHours().getValue()),
+                    2.0))
+            .granularity(Granularity.HOURLY)
+            .serviceLevel(ServiceLevel.PREMIUM)
+            .usage(Usage.PRODUCTION)
+            .billingProvider(BillingProvider._ANY)
+            .billingAccountId("_ANY")
+            .isPrimary(true)
+            .build();
+
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> mapper.mapSnapshots(org, List.of(rosaWithAnyBillingProvider)));
+  }
+
+  void assertMappedSnapshot(
+      TallySnapshot expected, org.candlepin.subscriptions.json.TallySnapshot mapped) {
+    assertEquals(expected.getId(), mapped.getId());
+    assertEquals(expected.getBillingAccountId(), mapped.getBillingAccountId());
+    assertEquals(expected.getBillingProvider().getValue(), mapped.getBillingProvider().value());
+    assertEquals(expected.getGranularity().getValue(), mapped.getGranularity().value());
+    assertEquals(expected.getProductId(), mapped.getProductId());
+    assertEquals(expected.getSnapshotDate(), mapped.getSnapshotDate());
+    assertEquals(expected.getServiceLevel().getValue(), mapped.getSla().value());
+    assertEquals(expected.getUsage().getValue(), mapped.getUsage().value());
+
+    var expectedMeasurements = expected.getTallyMeasurements();
+    var mappedMeasurements = mapped.getTallyMeasurements();
+    assertEquals(expectedMeasurements.size(), mappedMeasurements.size());
+
+    int sqlCallCount = 0;
+    for (var m : mappedMeasurements) {
+      HardwareMeasurementType type =
+          HardwareMeasurementType.valueOf(m.getHardwareMeasurementType());
+      TallyMeasurementKey key = new TallyMeasurementKey(type, m.getMetricId());
+      assertTrue(expectedMeasurements.containsKey(key));
+      Double expectedValue = expectedMeasurements.get(key);
+      assertEquals(expectedValue, m.getValue());
+      assertEquals(expectedTotalValues.get(key), m.getCurrentTotal());
+
+      // Check if this is a GAUGE metric on non-Ansible product (no SQL call)
+      boolean isNonAnsibleGauge =
+          !"ansible-aap-managed".equals(expected.getProductId())
+              && MetricIdUtils.toUpperCaseFormatted(MetricIdUtils.getSockets().getValue())
+                  .equals(m.getMetricId());
+
+      if (!isNonAnsibleGauge) {
+        // SQL call should be made for non-GAUGE or Ansible products
+        sqlCallCount++;
+        if (featureFlags.isPrimaryRowSearchesEnabled()) {
+          verify(snapshotRepository)
+              .sumMeasurementValueForPeriodWithPrimary(
+                  eq(expected.getOrgId()),
+                  eq(expected.getProductId()),
+                  eq(Granularity.HOURLY),
+                  eq(expected.getServiceLevel()),
+                  eq(expected.getUsage()),
+                  eq(expected.getBillingProvider()),
+                  eq(expected.getBillingAccountId()),
+                  any(),
+                  eq(expected.getSnapshotDate()),
+                  eq(key));
+        } else {
+          verify(snapshotRepository)
+              .sumMeasurementValueForPeriod(
+                  eq(expected.getOrgId()),
+                  eq(expected.getProductId()),
+                  eq(Granularity.HOURLY),
+                  eq(expected.getServiceLevel()),
+                  eq(expected.getUsage()),
+                  eq(expected.getBillingProvider()),
+                  eq(expected.getBillingAccountId()),
+                  any(),
+                  eq(expected.getSnapshotDate()),
+                  eq(key));
+        }
+      }
+    }
+    // Only verify clock calls for metrics that actually make SQL queries
+    verify(clock, times(sqlCallCount)).startOfMonth(expected.getSnapshotDate());
+  }
+
+  TallySnapshot buildSnapshot(
+      String orgId,
+      String productId,
+      Granularity granularity,
+      ServiceLevel sla,
+      Usage usage,
+      BillingProvider billingProvider,
+      String metricId,
+      double val,
+      boolean isPrimaryRowSearch) {
+    Map<TallyMeasurementKey, Double> measurements = new HashMap<>();
+    buildMeasurement(measurements, HardwareMeasurementType.PHYSICAL, metricId, val, productId);
+    buildMeasurement(measurements, HardwareMeasurementType.TOTAL, metricId, val, productId);
+
+    return TallySnapshot.builder()
+        .orgId(orgId)
+        .productId(productId)
+        .snapshotDate(OffsetDateTime.now())
+        .tallyMeasurements(measurements)
+        .granularity(granularity)
+        .serviceLevel(sla)
+        .usage(usage)
+        .billingProvider(billingProvider)
+        .isPrimary(isPrimaryRowSearch)
+        .build();
+  }
+
+  void buildMeasurement(
+      Map<TallyMeasurementKey, Double> measurements,
+      HardwareMeasurementType hardwareType,
+      String metricId,
+      double value) {
+    buildMeasurement(measurements, hardwareType, metricId, value, null);
+  }
+
+  void buildMeasurement(
+      Map<TallyMeasurementKey, Double> measurements,
+      HardwareMeasurementType hardwareType,
+      String metricId,
+      double value,
+      String productId) {
+    var measurementKey = new TallyMeasurementKey(hardwareType, metricId);
+    measurements.put(measurementKey, value);
+
+    // For non-Ansible GAUGE metrics, currentTotal should equal event value
+    boolean isNonAnsibleGauge =
+        productId != null
+            && !"ansible-aap-managed".equals(productId)
+            && MetricIdUtils.getSockets().getValue().equals(metricId);
+
+    if (isNonAnsibleGauge) {
+      // GAUGE metric on non-Ansible: uses event value directly
+      expectedTotalValues.put(measurementKey, value);
+    } else {
+      // All other metrics: use SQL query result (value * 2)
+      expectedTotalValues.put(measurementKey, value * 2);
+      if (featureFlags.isPrimaryRowSearchesEnabled()) {
+        when(snapshotRepository.sumMeasurementValueForPeriodWithPrimary(
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), eq(measurementKey)))
+            .thenReturn(value * 2);
+      } else {
+        when(snapshotRepository.sumMeasurementValueForPeriod(
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), eq(measurementKey)))
+            .thenReturn(value * 2);
+      }
+    }
+  }
+
+  Optional<org.candlepin.subscriptions.json.TallySnapshot> findSnapshot(
+      TallySummary summary, String product) {
+    return summary.getTallySnapshots().stream()
+        .filter(s -> product.equalsIgnoreCase(s.getProductId()))
+        .findFirst();
+  }
+
+  @Test
+  void testFilterInvalidMeasurements() {
+    when(clock.startOfMonth(any(OffsetDateTime.class)))
+        .thenAnswer(inv -> ((OffsetDateTime) inv.getArgument(0)).minusDays(10));
+
+    String org = "O1";
+
+    // Create a snapshot with both valid and invalid measurements
+    Map<TallyMeasurementKey, Double> measurements = new HashMap<>();
+
+    // Valid measurement for rosa: Instance-hours
+    String validMetric = MetricIdUtils.getInstanceHours().getValue();
+    buildMeasurement(measurements, HardwareMeasurementType.PHYSICAL, validMetric, 10.0);
+    buildMeasurement(measurements, HardwareMeasurementType.TOTAL, validMetric, 10.0);
+
+    // Invalid measurement for rosa: Sockets (this is a RHEL metric, not ROSA)
+    String invalidMetric = MetricIdUtils.getSockets().getValue();
+    var invalidKey1 = new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, invalidMetric);
+    var invalidKey2 = new TallyMeasurementKey(HardwareMeasurementType.TOTAL, invalidMetric);
+    measurements.put(invalidKey1, 5.0);
+    measurements.put(invalidKey2, 5.0);
+
+    TallySnapshot snapshot =
+        TallySnapshot.builder()
+            .orgId(org)
+            .productId("rosa")
+            .snapshotDate(OffsetDateTime.now())
+            .tallyMeasurements(measurements)
+            .granularity(Granularity.HOURLY)
+            .serviceLevel(ServiceLevel.PREMIUM)
+            .usage(Usage.PRODUCTION)
+            .billingProvider(BillingProvider.AWS)
+            .build();
+
+    // Map the snapshot
+    TallySummary summary = mapper.mapSnapshots(org, List.of(snapshot));
+
+    // Verify the summary
+    assertEquals(org, summary.getOrgId());
+    assertEquals(1, summary.getTallySnapshots().size());
+
+    var mappedSnapshot = summary.getTallySnapshots().getFirst();
+    assertEquals("rosa", mappedSnapshot.getProductId());
+
+    // Should only have 2 measurements (PHYSICAL and TOTAL for Instance-hours)
+    // The invalid Sockets measurements should be filtered out
+    assertEquals(2, mappedSnapshot.getTallyMeasurements().size());
+
+    // Verify all measurements are for the valid metric (in uppercase format)
+    String expectedMetricId = MetricIdUtils.toUpperCaseFormatted(validMetric);
+    mappedSnapshot
+        .getTallyMeasurements()
+        .forEach(m -> assertEquals(expectedMetricId, m.getMetricId()));
+  }
+
+  /**
+   * Test getCurrentlyMeasuredTotal for non-Ansible GAUGE metric Uses event value directly without
+   * SQL call (applies to both PAYG and non-PAYG products)
+   */
+  @Test
+  @MockitoSettings(strictness = Strictness.LENIENT)
+  void testGetCurrentlyMeasuredTotalNonAnsibleGaugeMetricUsesEventValue() {
+    when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(false);
+
+    String org = "O1";
+    // RHEL is non-Ansible and has GAUGE metrics like "Sockets"
+    String productId = "RHEL for x86";
+    String gaugeMetricId = MetricIdUtils.getSockets().getValue();
+    double eventValue = 16.0;
+
+    TallySnapshot snapshot =
+        TallySnapshot.builder()
+            .orgId(org)
+            .productId(productId)
+            .snapshotDate(OffsetDateTime.now())
+            .tallyMeasurements(
+                Map.of(
+                    new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, gaugeMetricId),
+                    eventValue))
+            .granularity(Granularity.HOURLY)
+            .serviceLevel(ServiceLevel.PREMIUM)
+            .usage(Usage.PRODUCTION)
+            .billingProvider(BillingProvider.RED_HAT)
+            .build();
+
+    TallySummary summary = mapper.mapSnapshots(org, List.of(snapshot));
+
+    // Verify currentTotal equals eventValue (no SQL call made)
+    var measurements = summary.getTallySnapshots().getFirst().getTallyMeasurements();
+    assertEquals(1, measurements.size());
+    assertEquals(eventValue, measurements.getFirst().getCurrentTotal());
+    assertEquals(eventValue, measurements.getFirst().getValue());
+
+    // Verify NO SQL query was made
+    verify(snapshotRepository, times(0))
+        .sumMeasurementValueForPeriod(
+            anyString(),
+            anyString(),
+            any(Granularity.class),
+            any(ServiceLevel.class),
+            any(Usage.class),
+            any(BillingProvider.class),
+            anyString(),
+            any(OffsetDateTime.class),
+            any(OffsetDateTime.class),
+            any(TallyMeasurementKey.class));
+  }
+
+  /**
+   * Test getCurrentlyMeasuredTotal for COUNTER metric Should use SQL query (regardless of PAYG
+   * status)
+   */
+  @Test
+  void testGetCurrentlyMeasuredTotalCounterMetricUsesSqlQuery() {
+    when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(false);
+
+    String org = "O1";
+    // OpenShift-metrics is non-Ansible
+    String productId = "OpenShift-metrics";
+    // Cores is a COUNTER metric
+    String counterMetricId = MetricIdUtils.getCores().getValue();
+    double eventValue = 100.0;
+    double sqlTotalValue = 500.0;
+
+    var measurementKey = new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, counterMetricId);
+
+    OffsetDateTime snapshotDate = OffsetDateTime.now();
+    OffsetDateTime monthStart = snapshotDate.minusDays(10);
+    when(clock.startOfMonth(any(OffsetDateTime.class))).thenReturn(monthStart);
+
+    when(snapshotRepository.sumMeasurementValueForPeriod(
+            any(), any(), any(), any(), any(), any(), any(), any(), any(), eq(measurementKey)))
+        .thenReturn(sqlTotalValue);
+
+    TallySnapshot snapshot =
+        TallySnapshot.builder()
+            .orgId(org)
+            .productId(productId)
+            .snapshotDate(snapshotDate)
+            .tallyMeasurements(Map.of(measurementKey, eventValue))
+            .granularity(Granularity.HOURLY)
+            .serviceLevel(ServiceLevel.PREMIUM)
+            .usage(Usage.PRODUCTION)
+            .billingProvider(BillingProvider.RED_HAT)
+            .build();
+
+    TallySummary summary = mapper.mapSnapshots(org, List.of(snapshot));
+
+    // Verify currentTotal comes from SQL query, not event value
+    var measurements = summary.getTallySnapshots().getFirst().getTallyMeasurements();
+    assertEquals(1, measurements.size());
+    assertEquals(sqlTotalValue, measurements.getFirst().getCurrentTotal());
+    assertEquals(eventValue, measurements.getFirst().getValue());
+
+    // Verify SQL query WAS made
+    verify(snapshotRepository, times(1))
+        .sumMeasurementValueForPeriod(
+            any(), any(), any(), any(), any(), any(), any(), any(), any(), eq(measurementKey));
+  }
+
+  /**
+   * Test getCurrentlyMeasuredTotal for PAYG product with COUNTER metric Should use SQL query (Note:
+   * PAYG products with GAUGE metrics would use event value)
+   */
+  @Test
+  void testGetCurrentlyMeasuredTotalPaygProductCounterUsesSqlQuery() {
+    when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(false);
+
+    String org = "O1";
+    // ROSA is a PAYG product
+    String productId = "rosa";
+    // Instance-hours is a COUNTER metric
+    String metricId = MetricIdUtils.getInstanceHours().getValue();
+    double eventValue = 50.0;
+    double sqlTotalValue = 200.0;
+
+    var measurementKey = new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, metricId);
+
+    OffsetDateTime snapshotDate = OffsetDateTime.now();
+    OffsetDateTime monthStart = snapshotDate.minusDays(10);
+    when(clock.startOfMonth(any(OffsetDateTime.class))).thenReturn(monthStart);
+
+    when(snapshotRepository.sumMeasurementValueForPeriod(
+            any(), any(), any(), any(), any(), any(), any(), any(), any(), eq(measurementKey)))
+        .thenReturn(sqlTotalValue);
+
+    TallySnapshot snapshot =
+        TallySnapshot.builder()
+            .orgId(org)
+            .productId(productId)
+            .snapshotDate(snapshotDate)
+            .tallyMeasurements(Map.of(measurementKey, eventValue))
+            .granularity(Granularity.HOURLY)
+            .serviceLevel(ServiceLevel.PREMIUM)
+            .usage(Usage.PRODUCTION)
+            .billingProvider(BillingProvider.AWS)
+            .billingAccountId("aws-account-123")
+            .build();
+
+    TallySummary summary = mapper.mapSnapshots(org, List.of(snapshot));
+
+    // Verify currentTotal comes from SQL query for COUNTER metrics (even on PAYG)
+    var measurements = summary.getTallySnapshots().getFirst().getTallyMeasurements();
+    assertEquals(1, measurements.size());
+    assertEquals(sqlTotalValue, measurements.getFirst().getCurrentTotal());
+
+    // Verify SQL query WAS made
+    verify(snapshotRepository, times(1))
+        .sumMeasurementValueForPeriod(
+            any(), any(), any(), any(), any(), any(), any(), any(), any(), eq(measurementKey));
+  }
+
+  /**
+   * Test getCurrentlyMeasuredTotal for Ansible product with GAUGE metric Should use SQL query
+   * (Ansible exception)
+   */
+  @Test
+  void testGetCurrentlyMeasuredTotalAnsibleGaugeMetricUsesSqlQuery() {
+    when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(false);
+
+    String org = "O1";
+    // Ansible product
+    String productId = "ansible-aap-managed";
+    String metricId = "Managed-nodes"; // Ansible metric
+    double eventValue = 100.0;
+    double sqlTotalValue = 300.0;
+
+    var measurementKey = new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, metricId);
+
+    OffsetDateTime snapshotDate = OffsetDateTime.now();
+    OffsetDateTime monthStart = snapshotDate.minusDays(10);
+    when(clock.startOfMonth(any(OffsetDateTime.class))).thenReturn(monthStart);
+
+    when(snapshotRepository.sumMeasurementValueForPeriod(
+            any(), any(), any(), any(), any(), any(), any(), any(), any(), eq(measurementKey)))
+        .thenReturn(sqlTotalValue);
+
+    TallySnapshot snapshot =
+        TallySnapshot.builder()
+            .orgId(org)
+            .productId(productId)
+            .snapshotDate(snapshotDate)
+            .tallyMeasurements(Map.of(measurementKey, eventValue))
+            .granularity(Granularity.HOURLY)
+            .serviceLevel(ServiceLevel.PREMIUM)
+            .usage(Usage.PRODUCTION)
+            .billingProvider(BillingProvider.RED_HAT)
+            .build();
+
+    TallySummary summary = mapper.mapSnapshots(org, List.of(snapshot));
+
+    // Verify currentTotal comes from SQL query for Ansible (exception to GAUGE rule)
+    var measurements = summary.getTallySnapshots().getFirst().getTallyMeasurements();
+    assertEquals(1, measurements.size());
+    assertEquals(sqlTotalValue, measurements.getFirst().getCurrentTotal());
+
+    // Verify SQL query WAS made
+    verify(snapshotRepository, times(1))
+        .sumMeasurementValueForPeriod(
+            any(), any(), any(), any(), any(), any(), any(), any(), any(), eq(measurementKey));
+  }
+
+  /**
+   * Test getCurrentlyMeasuredTotal with primary row searches enabled Should use primary query
+   * variant
+   */
+  @Test
+  void testGetCurrentlyMeasuredTotalPrimaryRowSearchEnabledUsesPrimaryQuery() {
+    when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(true);
+
+    String org = "O1";
+    String productId = "OpenShift-metrics";
+    String counterMetricId = MetricIdUtils.getCores().getValue();
+    double eventValue = 100.0;
+    double sqlTotalValue = 500.0;
+
+    var measurementKey = new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, counterMetricId);
+
+    OffsetDateTime snapshotDate = OffsetDateTime.now();
+    OffsetDateTime monthStart = snapshotDate.minusDays(10);
+    when(clock.startOfMonth(any(OffsetDateTime.class))).thenReturn(monthStart);
+
+    when(snapshotRepository.sumMeasurementValueForPeriodWithPrimary(
+            any(), any(), any(), any(), any(), any(), any(), any(), any(), eq(measurementKey)))
+        .thenReturn(sqlTotalValue);
+
+    TallySnapshot snapshot =
+        TallySnapshot.builder()
+            .orgId(org)
+            .productId(productId)
+            .snapshotDate(snapshotDate)
+            .tallyMeasurements(Map.of(measurementKey, eventValue))
+            .granularity(Granularity.HOURLY)
+            .serviceLevel(ServiceLevel.PREMIUM)
+            .usage(Usage.PRODUCTION)
+            .billingProvider(BillingProvider.RED_HAT)
+            .isPrimary(true)
+            .build();
+
+    TallySummary summary = mapper.mapSnapshots(org, List.of(snapshot));
+
+    // Verify currentTotal comes from SQL query
+    var measurements = summary.getTallySnapshots().getFirst().getTallyMeasurements();
+    assertEquals(1, measurements.size());
+    assertEquals(sqlTotalValue, measurements.getFirst().getCurrentTotal());
+
+    // Verify PRIMARY SQL query WAS made (not the regular one)
+    verify(snapshotRepository, times(1))
+        .sumMeasurementValueForPeriodWithPrimary(
+            any(), any(), any(), any(), any(), any(), any(), any(), any(), eq(measurementKey));
+    verify(snapshotRepository, times(0))
+        .sumMeasurementValueForPeriod(
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(TallyMeasurementKey.class));
+  }
+
+  /**
+   * Test that Ansible with mixed GAUGE and COUNTER metrics Both should use SQL (Ansible exception)
+   */
+  @Test
+  void testGetCurrentlyMeasuredTotalMixedGaugeAndCounter() {
+    when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(false);
+
+    String org = "O1";
+    String productId = "ansible-aap-managed";
+
+    // GAUGE metric - Ansible exception: should use SQL
+    String gaugeMetricId = "Managed-nodes";
+    double gaugeEventValue = 16.0;
+    double gaugeSqlValue = 32.0;
+    var gaugeKey = new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, gaugeMetricId);
+
+    // COUNTER metric - should use SQL
+    String counterMetricId = MetricIdUtils.getInstanceHours().getValue();
+    double counterEventValue = 100.0;
+    double counterSqlValue = 500.0;
+    var counterKey = new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, counterMetricId);
+
+    OffsetDateTime snapshotDate = OffsetDateTime.now();
+    OffsetDateTime monthStart = snapshotDate.minusDays(10);
+    when(clock.startOfMonth(any(OffsetDateTime.class))).thenReturn(monthStart);
+
+    when(snapshotRepository.sumMeasurementValueForPeriod(
+            any(), any(), any(), any(), any(), any(), any(), any(), any(), eq(gaugeKey)))
+        .thenReturn(gaugeSqlValue);
+    when(snapshotRepository.sumMeasurementValueForPeriod(
+            any(), any(), any(), any(), any(), any(), any(), any(), any(), eq(counterKey)))
+        .thenReturn(counterSqlValue);
+
+    Map<TallyMeasurementKey, Double> measurements = new HashMap<>();
+    measurements.put(gaugeKey, gaugeEventValue);
+    measurements.put(counterKey, counterEventValue);
+
+    TallySnapshot snapshot =
+        TallySnapshot.builder()
+            .orgId(org)
+            .productId(productId)
+            .snapshotDate(snapshotDate)
+            .tallyMeasurements(measurements)
+            .granularity(Granularity.HOURLY)
+            .serviceLevel(ServiceLevel.PREMIUM)
+            .usage(Usage.PRODUCTION)
+            .billingProvider(BillingProvider.RED_HAT)
+            .build();
+
+    TallySummary summary = mapper.mapSnapshots(org, List.of(snapshot));
+
+    var tallyMeasurements = summary.getTallySnapshots().getFirst().getTallyMeasurements();
+    assertEquals(2, tallyMeasurements.size());
+
+    // Find GAUGE measurement - should use SQL for Ansible
+    var gaugeMeasurement =
+        tallyMeasurements.stream()
+            .filter(m -> m.getMetricId().equals(MetricIdUtils.toUpperCaseFormatted(gaugeMetricId)))
+            .findFirst();
+    assertTrue(gaugeMeasurement.isPresent());
+    assertEquals(gaugeSqlValue, gaugeMeasurement.get().getCurrentTotal());
+    assertEquals(gaugeEventValue, gaugeMeasurement.get().getValue());
+
+    // Find COUNTER measurement - should have currentTotal from SQL
+    var counterMeasurement =
+        tallyMeasurements.stream()
+            .filter(
+                m -> m.getMetricId().equals(MetricIdUtils.toUpperCaseFormatted(counterMetricId)))
+            .findFirst();
+    assertTrue(counterMeasurement.isPresent());
+    assertEquals(counterSqlValue, counterMeasurement.get().getCurrentTotal());
+    assertEquals(counterEventValue, counterMeasurement.get().getValue());
+
+    // Verify SQL was called for both metrics (Ansible exception: GAUGE and COUNTER use SQL)
+    verify(snapshotRepository, times(1))
+        .sumMeasurementValueForPeriod(
+            any(), any(), any(), any(), any(), any(), any(), any(), any(), eq(counterKey));
+    verify(snapshotRepository, times(1))
+        .sumMeasurementValueForPeriod(
+            any(), any(), any(), any(), any(), any(), any(), any(), any(), eq(gaugeKey));
+  }
+}

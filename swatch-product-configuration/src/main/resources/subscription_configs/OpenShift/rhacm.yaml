@@ -1,0 +1,32 @@
+---
+platform: OpenShift
+
+id: rhacm
+
+variants:
+  - tag: rhacm
+    level1:
+      - OpenShift
+    level2:
+      - "ACM - Advanced Cluster Management"
+
+defaults:
+  variant: rhacm
+  sla: PREMIUM
+  usage: PRODUCTION
+
+serviceType: rhacm Instance
+
+contractEnabled: true
+
+metrics:
+  - id: vCPUs
+    type: counter
+    awsDimension: acm_vcpu_hours
+    prometheus:
+      queryKey: rosa
+      queryParams:
+        instanceKey: _id
+        productLabelRegex: (moa-hostedcontrolplane|moa)
+        metric: acm_capacity_effective_cpu_cores:sum
+        metadataMetric: ocm_subscription

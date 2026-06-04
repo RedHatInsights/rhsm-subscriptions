@@ -1,0 +1,7 @@
+spring:
+  kafka:
+    bootstrap-servers: ${spring.embedded.kafka.brokers}
+    consumer:
+      # In tests, messages may be sent before the listener has been assigned the topic
+      # so we ensure that when the listener comes online it starts from first message.
+      auto-offset-reset: earliest

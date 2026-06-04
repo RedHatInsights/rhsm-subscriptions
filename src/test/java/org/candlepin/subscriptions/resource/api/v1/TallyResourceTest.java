@@ -1,0 +1,1951 @@
+/*
+ * Copyright Red Hat, Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Red Hat trademarks are not licensed under GPLv3. No permission is
+ * granted to use or replicate Red Hat trademarks that are incorporated
+ * in this software or its documentation.
+ */
+package org.candlepin.subscriptions.resource.api.v1;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.params.ParameterizedTest.DEFAULT_DISPLAY_NAME;
+import static org.junit.jupiter.params.ParameterizedTest.DISPLAY_NAME_PLACEHOLDER;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.when;
+
+import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.registry.ProductId;
+import com.redhat.swatch.configuration.util.MetricIdUtils;
+import com.redhat.swatch.contracts.spring.api.model.CapacityReportByMetricId;
+import com.redhat.swatch.contracts.spring.api.model.CapacityReportByMetricIdMeta;
+import com.redhat.swatch.contracts.spring.api.model.CapacitySnapshotByMetricId;
+import jakarta.ws.rs.BadRequestException;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.temporal.TemporalAmount;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.candlepin.clock.ApplicationClock;
+import org.candlepin.subscriptions.configuration.FeatureFlags;
+import org.candlepin.subscriptions.contracts.ContractsCapacityController;
+import org.candlepin.subscriptions.db.OrgConfigRepository;
+import org.candlepin.subscriptions.db.TallySnapshotRepository;
+import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.TallyMeasurementAggregate;
+import org.candlepin.subscriptions.db.model.TallySnapshot;
+import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.resteasy.PageLinkCreator;
+import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
+import org.candlepin.subscriptions.test.TestClock;
+import org.candlepin.subscriptions.test.TestClockConfiguration;
+import org.candlepin.subscriptions.util.SnapshotTimeAdjuster;
+import org.candlepin.subscriptions.utilization.api.v1.model.BillingCategory;
+import org.candlepin.subscriptions.utilization.api.v1.model.BillingProviderType;
+import org.candlepin.subscriptions.utilization.api.v1.model.GranularityType;
+import org.candlepin.subscriptions.utilization.api.v1.model.ReportCategory;
+import org.candlepin.subscriptions.utilization.api.v1.model.ServiceLevelType;
+import org.candlepin.subscriptions.utilization.api.v1.model.TallyReportData;
+import org.candlepin.subscriptions.utilization.api.v1.model.TallyReportDataPoint;
+import org.candlepin.subscriptions.utilization.api.v1.model.TallyReportTotalMonthly;
+import org.candlepin.subscriptions.utilization.api.v1.model.UsageType;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+
+@SuppressWarnings("linelength")
+@SpringBootTest
+@ActiveProfiles({"api", "test"})
+@WithMockRedHatPrincipal("123456")
+@Import(TestClockConfiguration.class)
+class TallyResourceTest {
+  public static final Instant MID_MONTH_INSTANT =
+      LocalDateTime.of(2023, 7, 15, 13, 0, 0).toInstant(ZoneOffset.UTC);
+  public static final OffsetDateTime TEST_DATE =
+      OffsetDateTime.ofInstant(MID_MONTH_INSTANT, ZoneOffset.UTC);
+
+  public static final ProductId RHEL_PRODUCT_ID = ProductId.fromString("RHEL for x86");
+  public static final ProductId OPENSHIFT_DEDICATED_METRICS =
+      ProductId.fromString("OpenShift-dedicated-metrics");
+  public static final ProductId RHEL_FOR_X86 = RHEL_PRODUCT_ID;
+  private static final MetricId METRIC_ID_CORES = MetricIdUtils.getCores();
+
+  @MockitoBean TallySnapshotRepository repository;
+  @MockitoBean PageLinkCreator pageLinkCreator;
+  @MockitoBean OrgConfigRepository orgConfigRepository;
+  @MockitoBean ContractsCapacityController capacityController;
+  @MockitoBean FeatureFlags featureFlags;
+  @Autowired TallyResource resource;
+  @Autowired ApplicationClock applicationClock;
+
+  @BeforeEach
+  void setupTests() {
+    when(orgConfigRepository.existsByOrgId("owner123456")).thenReturn(true);
+    var testClock = (TestClock) applicationClock.getClock();
+    testClock.setInstant(MID_MONTH_INSTANT);
+  }
+
+  /* Tests updated to use the configuration entry with Claude Code */
+  @Nested
+  class WithPrimaryRowSearchesEnabled {
+    @BeforeEach
+    void setup() {
+      when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(true);
+    }
+
+    @Test
+    void testTallyReportDataFillerMarksHasDataFalseAfterNowWithRunningTotal() {
+      var begin = applicationClock.startOfMonth(TEST_DATE);
+      var end = applicationClock.endOfMonth(TEST_DATE);
+      List<TallyMeasurementAggregate> aggregates =
+          Stream.of(1, 2, 8)
+              .map(
+                  i -> {
+                    var aggregate = new TallyMeasurementAggregate();
+                    aggregate.setSnapshotDate(
+                        OffsetDateTime.of(
+                            TEST_DATE.getYear(),
+                            TEST_DATE.getMonthValue(),
+                            i,
+                            12,
+                            35,
+                            0,
+                            0,
+                            ZoneOffset.UTC));
+                    aggregate.setMetricId(MetricIdUtils.getCores().toString());
+                    aggregate.setValue(i * 2.0);
+                    return aggregate;
+                  })
+              .collect(Collectors.toList());
+
+      Mockito.when(
+              repository.findSummedMeasurements(
+                  true,
+                  "owner123456",
+                  RHEL_FOR_X86.toString(),
+                  MetricIdUtils.getCores(),
+                  Granularity.DAILY,
+                  ServiceLevel.PREMIUM,
+                  Usage.PRODUCTION,
+                  BillingProvider._ANY,
+                  "_ANY",
+                  Set.of(HardwareMeasurementType.TOTAL),
+                  begin,
+                  end,
+                  null))
+          .thenReturn(new PageImpl<>(aggregates));
+
+      TallyReportData response =
+          resource.getTallyReportData(
+              RHEL_FOR_X86,
+              METRIC_ID_CORES,
+              GranularityType.DAILY,
+              begin,
+              end,
+              null,
+              ServiceLevelType.PREMIUM,
+              UsageType.PRODUCTION,
+              null,
+              null,
+              null,
+              null,
+              true,
+              null);
+      int expected = TEST_DATE.getMonth().length(false);
+      assertEquals(expected, response.getMeta().getCount());
+      assertEquals(expected, response.getData().size());
+
+      var firstSnapshot = response.getData().get(0);
+      assertEquals(2, firstSnapshot.getValue());
+      assertTrue(firstSnapshot.getHasData());
+
+      var snapshots2Through7 = response.getData().subList(1, 7);
+      snapshots2Through7.forEach(
+          snapshot -> {
+            assertTrue(snapshot.getHasData());
+            assertEquals(6, snapshot.getValue());
+          });
+
+      var snapshots8ThroughPresent = response.getData().subList(7, TEST_DATE.getDayOfMonth());
+      snapshots8ThroughPresent.forEach(
+          snapshot -> {
+            assertTrue(snapshot.getHasData());
+            assertEquals(22, snapshot.getValue());
+          });
+
+      var snapshotsPresentToEndOfMonth =
+          response.getData().subList(TEST_DATE.getDayOfMonth(), TEST_DATE.getMonth().length(false));
+      snapshotsPresentToEndOfMonth.forEach(
+          snapshot -> {
+            assertFalse(snapshot.getHasData());
+            assertEquals(0, snapshot.getValue());
+          });
+
+      assertEquals(22, response.getMeta().getTotalMonthly().getValue());
+    }
+
+    /*
+     * Behavior:
+     * - If snapshot and measurements exist (value 0 or non-zero) -> has_data=true with value
+     * - If snapshot and measurements do not exist for that time -> has_data=false with value 0
+     * - If snapshot exists and measurements do not exist for that time -> has_data=false with value 0
+     */
+    @Test
+    void testHasDataFalseWhenCategoryHasNoMeasurementRows() {
+      var day1 = OffsetDateTime.parse("2025-10-01T00:00:00Z");
+      var day2 = OffsetDateTime.parse("2025-10-02T00:00:00Z");
+      var day3 = OffsetDateTime.parse("2025-10-03T00:00:00Z");
+      var day4 = OffsetDateTime.parse("2025-10-04T00:00:00Z");
+
+      // Snapshot and measurements exist with value 10 for day 1
+      var agg = new TallyMeasurementAggregate();
+      agg.setSnapshotDate(day1);
+      agg.setMetricId(MetricIdUtils.getSockets().toString());
+      agg.setValue(10.0);
+
+      // Snapshot and measurements exist with value 0 that's a valid case
+      var agg2 = new TallyMeasurementAggregate();
+      agg2.setSnapshotDate(day2);
+      agg2.setMetricId(MetricIdUtils.getSockets().toString());
+      agg2.setValue(0.0);
+
+      // Snapshot exists and measurements do not exist for day 3
+      var agg3 = new TallyMeasurementAggregate();
+      agg3.setSnapshotDate(day3);
+
+      // Neither snapshot nor measurement are present for day 4
+
+      when(repository.findSummedMeasurements(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+              any()))
+          .thenReturn(new PageImpl<>(List.of(agg, agg2)));
+
+      TallyReportData response =
+          resource.getTallyReportData(
+              RHEL_FOR_X86,
+              MetricIdUtils.getSockets(),
+              GranularityType.DAILY,
+              day1,
+              day4,
+              ReportCategory.PHYSICAL,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              false,
+              null);
+
+      assertEquals(4, response.getData().size());
+      assertEquals(10, response.getData().get(0).getValue());
+      assertTrue(response.getData().get(0).getHasData());
+      assertEquals(0, response.getData().get(1).getValue());
+      assertTrue(response.getData().get(1).getHasData());
+      assertEquals(0, response.getData().get(2).getValue());
+      assertFalse(response.getData().get(2).getHasData());
+      assertEquals(0, response.getData().get(3).getValue());
+      assertFalse(response.getData().get(3).getHasData());
+    }
+
+    @Test
+    void testTallyReportDataTotalUsingHardwareMeasurements() {
+      TallyMeasurementAggregate aggregate = new TallyMeasurementAggregate();
+      aggregate.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
+      aggregate.setMetricId(MetricIdUtils.getCores().toString());
+      aggregate.setValue(4.0);
+      when(repository.findSummedMeasurements(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+              any()))
+          .thenReturn(new PageImpl<>(List.of(aggregate)));
+
+      TallyReportData response =
+          resource.getTallyReportData(
+              RHEL_FOR_X86,
+              METRIC_ID_CORES,
+              GranularityType.DAILY,
+              OffsetDateTime.parse("2021-10-01T00:00Z"),
+              OffsetDateTime.parse("2021-10-30T00:00Z"),
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              false,
+              null);
+      assertEquals(
+          4.0, response.getData().stream().mapToDouble(TallyReportDataPoint::getValue).sum());
+    }
+
+    @Test
+    void testTallyReportDataTotalUsingTallyMeasurements() {
+      TallyMeasurementAggregate aggregate = new TallyMeasurementAggregate();
+      aggregate.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
+      aggregate.setMetricId(MetricIdUtils.getCores().toString());
+      aggregate.setValue(4.0);
+      when(repository.findSummedMeasurements(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+              any()))
+          .thenReturn(new PageImpl<>(List.of(aggregate)));
+
+      TallyReportData response =
+          resource.getTallyReportData(
+              RHEL_FOR_X86,
+              METRIC_ID_CORES,
+              GranularityType.DAILY,
+              OffsetDateTime.parse("2021-10-01T00:00Z"),
+              OffsetDateTime.parse("2021-10-30T00:00Z"),
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              false,
+              null);
+      assertEquals(
+          4.0, response.getData().stream().mapToDouble(TallyReportDataPoint::getValue).sum());
+    }
+
+    /*
+     * Behavior:
+     * - If snapshot and measurements exist (value 0 or non-zero) -> has_data=true with value
+     * - If snapshot and measurements do not exist for that time -> has_data=false with value 0
+     * - If snapshot exists and measurements do not exist for that time -> has_data=false with value 0
+     */
+    @Test
+    void testHasDataForCloudCategoryWithMultipleProviders() {
+      var day1 = OffsetDateTime.parse("2025-10-01T00:00:00Z");
+      var day2 = OffsetDateTime.parse("2025-10-02T00:00:00Z");
+      var day3 = OffsetDateTime.parse("2025-10-03T00:00:00Z");
+      var day4 = OffsetDateTime.parse("2025-10-04T00:00:00Z");
+
+      // Database already sums measurement types per date
+      // Day 1: AWS (5) + Azure (3) = 8 sockets (summed by database)
+      var day1Aggregate = new TallyMeasurementAggregate();
+      day1Aggregate.setSnapshotDate(day1);
+      day1Aggregate.setMetricId(MetricIdUtils.getSockets().toString());
+      day1Aggregate.setValue(8.0); // Already summed
+
+      // Day 2: AWS (7) only = 7 sockets
+      var day2Aggregate = new TallyMeasurementAggregate();
+      day2Aggregate.setSnapshotDate(day2);
+      day2Aggregate.setMetricId(MetricIdUtils.getSockets().toString());
+      day2Aggregate.setValue(7.0);
+
+      when(repository.findSummedMeasurements(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+              any()))
+          .thenReturn(new PageImpl<>(List.of(day1Aggregate, day2Aggregate)));
+
+      TallyReportData response =
+          resource.getTallyReportData(
+              RHEL_FOR_X86,
+              MetricIdUtils.getSockets(),
+              GranularityType.DAILY,
+              day1,
+              day4,
+              ReportCategory.CLOUD,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              false,
+              null);
+
+      assertEquals(4, response.getData().size());
+
+      // Day 1: AWS (5) + Azure (3) = 8 sockets
+      assertTrue(response.getData().get(0).getHasData());
+      assertEquals(8, response.getData().get(0).getValue());
+
+      // Day 2: AWS (7) only = 7 sockets
+      assertTrue(response.getData().get(1).getHasData());
+      assertEquals(7, response.getData().get(1).getValue());
+
+      // Day 3: no data
+      assertFalse(response.getData().get(2).getHasData());
+      assertEquals(0, response.getData().get(2).getValue());
+
+      // Day 4: no data
+      assertFalse(response.getData().get(3).getHasData());
+      assertEquals(0, response.getData().get(3).getValue());
+    }
+
+    @Test
+    void testCloudCategoryMonthlyTotalsAggregatesMultipleProviders() {
+      var monthStart = OffsetDateTime.parse("2025-10-01T00:00:00Z");
+      var monthEnd = applicationClock.endOfMonth(monthStart);
+
+      // Database returns already-summed aggregates per date
+      // Day 1: AWS (8) + GCP (16) = 24 cores (summed by database)
+      var day1Aggregate = new TallyMeasurementAggregate();
+      day1Aggregate.setSnapshotDate(monthStart);
+      day1Aggregate.setMetricId(MetricIdUtils.getCores().toString());
+      day1Aggregate.setValue(24.0);
+
+      // Day 2: AWS (8) + GCP (16) = 24 cores (summed by database)
+      var day2Aggregate = new TallyMeasurementAggregate();
+      day2Aggregate.setSnapshotDate(monthStart.plusDays(1));
+      day2Aggregate.setMetricId(MetricIdUtils.getCores().toString());
+      day2Aggregate.setValue(24.0);
+
+      when(repository.findSummedMeasurements(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+              any()))
+          .thenReturn(new PageImpl<>(List.of(day1Aggregate, day2Aggregate)));
+
+      TallyReportData response =
+          resource.getTallyReportData(
+              RHEL_FOR_X86,
+              MetricIdUtils.getCores(),
+              GranularityType.DAILY,
+              monthStart,
+              monthEnd,
+              ReportCategory.CLOUD,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              false,
+              null);
+
+      // Verify monthly total: (24 + 24) = 48 cores
+      assertNotNull(response.getMeta().getTotalMonthly());
+      assertTrue(response.getMeta().getTotalMonthly().getHasData());
+      assertEquals(48, response.getMeta().getTotalMonthly().getValue());
+    }
+
+    @EnumSource(names = "CLOUD", mode = EnumSource.Mode.EXCLUDE)
+    @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
+    void testTallyReportDataCategoriesUsingHardwareMeasurements(ReportCategory category) {
+      List<TallyMeasurementAggregate> aggregates = new ArrayList<>();
+      for (HardwareMeasurementType hardwareMeasurementType : HardwareMeasurementType.values()) {
+        TallyMeasurementAggregate aggregate = new TallyMeasurementAggregate();
+        aggregate.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
+        aggregate.setMetricId(MetricIdUtils.getCores().toString());
+        aggregate.setValue(4.0);
+        aggregates.add(aggregate);
+      }
+      when(repository.findSummedMeasurements(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+              any()))
+          .thenReturn(new PageImpl<>(aggregates));
+
+      TallyReportData response =
+          resource.getTallyReportData(
+              RHEL_FOR_X86,
+              METRIC_ID_CORES,
+              GranularityType.DAILY,
+              OffsetDateTime.parse("2021-10-01T00:00Z"),
+              OffsetDateTime.parse("2021-10-30T00:00Z"),
+              category,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              false,
+              null);
+      assertEquals(
+          4.0, response.getData().stream().mapToDouble(TallyReportDataPoint::getValue).sum());
+    }
+
+    @Test
+    void testTallyReportDataReportFiller() {
+      when(repository.findSummedMeasurements(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+              any()))
+          .thenReturn(new PageImpl<>(List.of()));
+      TallyReportData response =
+          resource.getTallyReportData(
+              RHEL_FOR_X86,
+              METRIC_ID_CORES,
+              GranularityType.DAILY,
+              OffsetDateTime.parse("2021-10-01T00:00Z"),
+              OffsetDateTime.parse("2021-10-30T00:00Z"),
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              false,
+              null);
+      assertEquals(30, response.getMeta().getCount());
+      assertEquals(30, response.getData().size());
+    }
+
+    @Test
+    void testTallyReportTotalMonthlyNotPopulatedWhenQueryIsNotBeginningOfMonth() {
+      when(repository.findSummedMeasurements(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+              any()))
+          .thenReturn(new PageImpl<>(List.of()));
+      TallyReportData response =
+          resource.getTallyReportData(
+              RHEL_FOR_X86,
+              METRIC_ID_CORES,
+              GranularityType.DAILY,
+              OffsetDateTime.parse("2021-11-02T00:00Z"),
+              OffsetDateTime.parse("2021-11-30T23:59:59.999Z"),
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              false,
+              null);
+      assertNull(response.getMeta().getTotalMonthly());
+    }
+
+    @Test
+    void testTallyReportTotalMonthlyNotPopulatedWhenQueryIsNotEndOfMonth() {
+      when(repository.findSummedMeasurements(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+              any()))
+          .thenReturn(new PageImpl<>(List.of()));
+      TallyReportData response =
+          resource.getTallyReportData(
+              RHEL_FOR_X86,
+              METRIC_ID_CORES,
+              GranularityType.DAILY,
+              OffsetDateTime.parse("2021-11-01T00:00Z"),
+              OffsetDateTime.parse("2021-11-24T23:59:59.999Z"),
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              false,
+              null);
+      assertNull(response.getMeta().getTotalMonthly());
+    }
+
+    @Test
+    void testTallyReportTotalMonthlyNotPopulatedWhenQueryIsPaged() {
+      when(repository.findSummedMeasurements(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+              any()))
+          .thenReturn(new PageImpl<>(List.of()));
+      TallyReportData response =
+          resource.getTallyReportData(
+              RHEL_FOR_X86,
+              METRIC_ID_CORES,
+              GranularityType.DAILY,
+              OffsetDateTime.parse("2021-11-01T00:00Z"),
+              OffsetDateTime.parse("2021-11-30T23:59:59.999Z"),
+              null,
+              null,
+              null,
+              null,
+              null,
+              0,
+              10,
+              false,
+              null);
+      assertNull(response.getMeta().getTotalMonthly());
+    }
+
+    @Test
+    void testTallyReportTotalMonthlyPopulatedWithNoUnderlyingData() {
+      when(repository.findSummedMeasurements(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+              any()))
+          .thenReturn(new PageImpl<>(List.of()));
+      TallyReportData response =
+          resource.getTallyReportData(
+              RHEL_FOR_X86,
+              METRIC_ID_CORES,
+              GranularityType.DAILY,
+              OffsetDateTime.parse("2021-11-01T00:00Z"),
+              OffsetDateTime.parse("2021-11-30T23:59:59.999Z"),
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              false,
+              null);
+      TallyReportTotalMonthly expectedTotalMonthly =
+          new TallyReportTotalMonthly().date(null).value(0).hasData(false);
+      assertEquals(expectedTotalMonthly, response.getMeta().getTotalMonthly());
+    }
+
+    @Test
+    void testTallyReportTotalMonthlyPopulatedWithExistingUnderlyingData() {
+      TallyMeasurementAggregate aggregate1 = new TallyMeasurementAggregate();
+      aggregate1.setSnapshotDate(OffsetDateTime.parse("2021-11-02T00:00Z"));
+      aggregate1.setMetricId(MetricIdUtils.getCores().toString());
+      aggregate1.setValue(4.0);
+      TallyMeasurementAggregate aggregate2 = new TallyMeasurementAggregate();
+      aggregate2.setSnapshotDate(OffsetDateTime.parse("2021-11-03T00:00Z"));
+      aggregate2.setMetricId(MetricIdUtils.getCores().toString());
+      aggregate2.setValue(3.0);
+      when(repository.findSummedMeasurements(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+              any()))
+          .thenReturn(new PageImpl<>(List.of(aggregate1, aggregate2)));
+      TallyReportData response =
+          resource.getTallyReportData(
+              RHEL_FOR_X86,
+              METRIC_ID_CORES,
+              GranularityType.DAILY,
+              OffsetDateTime.parse("2021-11-01T00:00Z"),
+              OffsetDateTime.parse("2021-11-30T23:59:59.999Z"),
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              false,
+              null);
+      TallyReportTotalMonthly expectedTotalMonthly =
+          new TallyReportTotalMonthly()
+              .date(OffsetDateTime.parse("2021-11-03T00:00Z"))
+              .value(7)
+              .hasData(true);
+      assertEquals(expectedTotalMonthly, response.getMeta().getTotalMonthly());
+    }
+
+    @Test
+    void testTallyReportTotalMonthlyPopulatedWithBillingProvider() {
+      TallyMeasurementAggregate aggregate1 = new TallyMeasurementAggregate();
+      aggregate1.setSnapshotDate(OffsetDateTime.parse("2021-11-02T00:00Z"));
+      aggregate1.setMetricId(MetricIdUtils.getCores().toString());
+      aggregate1.setValue(4.0);
+      TallyMeasurementAggregate aggregate2 = new TallyMeasurementAggregate();
+      aggregate2.setSnapshotDate(OffsetDateTime.parse("2021-11-03T00:00Z"));
+      aggregate2.setMetricId(MetricIdUtils.getCores().toString());
+      aggregate2.setValue(3.0);
+
+      when(repository.findSummedMeasurements(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+              any()))
+          .thenReturn(new PageImpl<>(List.of(aggregate1, aggregate2)));
+      TallyReportData response =
+          resource.getTallyReportData(
+              RHEL_FOR_X86,
+              METRIC_ID_CORES,
+              GranularityType.DAILY,
+              OffsetDateTime.parse("2021-11-01T00:00Z"),
+              OffsetDateTime.parse("2021-11-30T23:59:59.999Z"),
+              null,
+              null,
+              null,
+              BillingProviderType.RED_HAT,
+              null,
+              null,
+              null,
+              false,
+              null);
+      TallyReportTotalMonthly expectedTotalMonthly =
+          new TallyReportTotalMonthly()
+              .date(OffsetDateTime.parse("2021-11-03T00:00Z"))
+              .value(7)
+              .hasData(true);
+      assertEquals(expectedTotalMonthly, response.getMeta().getTotalMonthly());
+      assertEquals(BillingProviderType.RED_HAT, response.getMeta().getBillingProvider());
+    }
+
+    @Test
+    void testRunningTotalFormatUsedForNewerTallyAPI() {
+      List<TallyMeasurementAggregate> aggregates =
+          Stream.of(1, 2, 8)
+              .map(
+                  i -> {
+                    var aggregate = new TallyMeasurementAggregate();
+                    aggregate.setSnapshotDate(
+                        OffsetDateTime.of(2023, 3, i, 12, 35, 0, 0, ZoneOffset.UTC));
+                    aggregate.setMetricId(MetricIdUtils.getCores().toString());
+                    aggregate.setValue(i * 2.0);
+                    return aggregate;
+                  })
+              .collect(Collectors.toList());
+
+      TallyReportTotalMonthly expectedTotalMonthly =
+          new TallyReportTotalMonthly()
+              .date(OffsetDateTime.parse("2023-03-08T12:35Z"))
+              .value(22)
+              .hasData(true);
+
+      when(repository.findSummedMeasurements(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+              any()))
+          .thenReturn(new PageImpl<>(aggregates));
+
+      TallyReportData report =
+          resource.getTallyReportData(
+              OPENSHIFT_DEDICATED_METRICS,
+              METRIC_ID_CORES,
+              GranularityType.DAILY,
+              OffsetDateTime.parse("2023-03-01T00:00Z"),
+              OffsetDateTime.parse("2023-03-31T23:59:59.999Z"),
+              null,
+              null,
+              null,
+              BillingProviderType.RED_HAT,
+              null,
+              null,
+              null,
+              true,
+              null);
+      assertEquals(31, report.getData().size());
+
+      var firstSnapshot = report.getData().get(0);
+      assertEquals(2, firstSnapshot.getValue());
+
+      var secondSnapshot = report.getData().get(1);
+      assertEquals(6, secondSnapshot.getValue());
+
+      // Snapshot for day with no usage should still show running total
+      var snapshotWithNoNewUsage = report.getData().get(2);
+      assertEquals(6, snapshotWithNoNewUsage.getValue());
+
+      var thirdSnapshot = report.getData().get(7);
+      assertEquals(22, thirdSnapshot.getValue());
+
+      assertEquals(expectedTotalMonthly, report.getMeta().getTotalMonthly());
+    }
+
+    @Test
+    void testMonthlyTotalsRoundedUpToNearestInteger() {
+      List<TallyMeasurementAggregate> aggregates =
+          Stream.of(1, 2)
+              .map(
+                  i -> {
+                    var aggregate = new TallyMeasurementAggregate();
+                    aggregate.setSnapshotDate(
+                        OffsetDateTime.of(2023, 3, i, 12, 35, 0, 0, ZoneOffset.UTC));
+                    aggregate.setMetricId(MetricIdUtils.getCores().toString());
+                    aggregate.setValue(1.3);
+                    return aggregate;
+                  })
+              .collect(Collectors.toList());
+
+      TallyReportTotalMonthly expectedTotalMonthly =
+          new TallyReportTotalMonthly()
+              .date(OffsetDateTime.parse("2023-03-02T12:35Z"))
+              .value(3)
+              .hasData(true);
+
+      when(repository.findSummedMeasurements(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+              any()))
+          .thenReturn(new PageImpl<>(aggregates));
+
+      TallyReportData report =
+          resource.getTallyReportData(
+              OPENSHIFT_DEDICATED_METRICS,
+              METRIC_ID_CORES,
+              GranularityType.DAILY,
+              OffsetDateTime.parse("2023-03-01T00:00Z"),
+              OffsetDateTime.parse("2023-03-31T23:59:59.999Z"),
+              null,
+              null,
+              null,
+              BillingProviderType.RED_HAT,
+              null,
+              null,
+              null,
+              true,
+              null);
+      assertEquals(31, report.getData().size());
+
+      // Each running total entry should be the Math.ceil of all the total previous snapshot values
+      // Rounding should only occur after the total has been calculated
+      var firstSnapshot = report.getData().get(0);
+      assertEquals((int) Math.ceil(1.3), firstSnapshot.getValue());
+
+      var secondSnapshot = report.getData().get(1);
+      assertEquals((int) Math.ceil(1.3 + 1.3), secondSnapshot.getValue());
+
+      assertEquals(expectedTotalMonthly, report.getMeta().getTotalMonthly());
+    }
+
+    @Test
+    void testBadRequestWhenBillingCategorySpecifiedWhenRunningTotalsParamIsNull() {
+      OffsetDateTime beginning = OffsetDateTime.parse("2021-10-01T00:00Z");
+      OffsetDateTime ending = OffsetDateTime.parse("2021-10-30T00:00Z");
+      assertThrows(
+          BadRequestException.class,
+          () -> {
+            resource.getTallyReportData(
+                RHEL_FOR_X86,
+                METRIC_ID_CORES,
+                GranularityType.DAILY,
+                beginning,
+                ending,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                BillingCategory.ON_DEMAND);
+          });
+    }
+
+    @Test
+    void testBadRequestWhenBillingCategorySpecifiedWhenRunningTotalsParamIsFalse() {
+      OffsetDateTime beginning = OffsetDateTime.parse("2021-10-01T00:00Z");
+      OffsetDateTime ending = OffsetDateTime.parse("2021-10-30T00:00Z");
+      assertThrows(
+          BadRequestException.class,
+          () -> {
+            resource.getTallyReportData(
+                RHEL_FOR_X86,
+                METRIC_ID_CORES,
+                GranularityType.DAILY,
+                beginning,
+                ending,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                false,
+                BillingCategory.ON_DEMAND);
+          });
+    }
+
+    @Test
+    void testRunningTotalForOnDemand() {
+      OffsetDateTime snap1Date = OffsetDateTime.of(2023, 3, 4, 0, 0, 0, 0, ZoneOffset.UTC);
+      OffsetDateTime snap2Date = OffsetDateTime.of(2023, 3, 5, 0, 0, 0, 0, ZoneOffset.UTC);
+      OffsetDateTime snap3Date = OffsetDateTime.of(2023, 3, 6, 0, 0, 0, 0, ZoneOffset.UTC);
+      OffsetDateTime snap4Date = OffsetDateTime.of(2023, 3, 7, 0, 0, 0, 0, ZoneOffset.UTC);
+      OffsetDateTime snap5Date = OffsetDateTime.of(2023, 3, 8, 0, 0, 0, 0, ZoneOffset.UTC);
+
+      List<OffsetDateTime> snapDates =
+          List.of(snap1Date, snap2Date, snap3Date, snap4Date, snap5Date);
+      List<TallyMeasurementAggregate> aggregates = new LinkedList<>();
+      for (OffsetDateTime nextDate : snapDates) {
+        TallyMeasurementAggregate aggregate = new TallyMeasurementAggregate();
+        aggregate.setSnapshotDate(nextDate);
+        aggregate.setMetricId(MetricIdUtils.getCores().toString());
+        aggregate.setValue(100.0);
+        aggregates.add(aggregate);
+      }
+
+      when(repository.findSummedMeasurements(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+              any()))
+          .thenReturn(new PageImpl<>(aggregates));
+
+      mockCapacity(
+          OPENSHIFT_DEDICATED_METRICS,
+          METRIC_ID_CORES,
+          GranularityType.DAILY,
+          OffsetDateTime.parse("2023-03-01T00:00Z"),
+          OffsetDateTime.parse("2023-03-31T23:59:59.999Z"),
+          null,
+          null,
+          null,
+          Map.of(
+              snap2Date, 100,
+              snap3Date, 100,
+              snap4Date, 100,
+              snap5Date, 150));
+
+      TallyReportTotalMonthly expectedTotalMonthly =
+          new TallyReportTotalMonthly().date(snap5Date).value(500).hasData(true);
+
+      TallyReportData report =
+          resource.getTallyReportData(
+              OPENSHIFT_DEDICATED_METRICS,
+              METRIC_ID_CORES,
+              GranularityType.DAILY,
+              OffsetDateTime.parse("2023-03-01T00:00Z"),
+              OffsetDateTime.parse("2023-03-31T23:59:59.999Z"),
+              null,
+              null,
+              null,
+              BillingProviderType.RED_HAT,
+              null,
+              null,
+              null,
+              true,
+              BillingCategory.ON_DEMAND);
+      assertEquals(31, report.getData().size());
+
+      int snapshotIndex = 2; //
+      var beforeUsage = report.getData().get(snapshotIndex);
+      assertEquals(0, beforeUsage.getValue());
+
+      var noAppliedCapacity = report.getData().get(snapshotIndex + 1);
+      assertEquals(100, noAppliedCapacity.getValue());
+
+      var firstSnapshot = report.getData().get(snapshotIndex + 2);
+      assertEquals(100, firstSnapshot.getValue());
+
+      var secondSnapshot = report.getData().get(snapshotIndex + 3);
+      assertEquals(200, secondSnapshot.getValue());
+
+      var thirdSnapshot = report.getData().get(snapshotIndex + 4);
+      assertEquals(300, thirdSnapshot.getValue());
+
+      var fourthSnapshot = report.getData().get(snapshotIndex + 5);
+      assertEquals(350, fourthSnapshot.getValue());
+
+      assertEquals(expectedTotalMonthly, report.getMeta().getTotalMonthly());
+    }
+
+    @Test
+    void testRunningTotalForPrePaid() {
+      OffsetDateTime snap1Date = OffsetDateTime.of(2023, 3, 4, 0, 0, 0, 0, ZoneOffset.UTC);
+      OffsetDateTime snap2Date = OffsetDateTime.of(2023, 3, 5, 0, 0, 0, 0, ZoneOffset.UTC);
+      OffsetDateTime snap3Date = OffsetDateTime.of(2023, 3, 6, 0, 0, 0, 0, ZoneOffset.UTC);
+      OffsetDateTime snap4Date = OffsetDateTime.of(2023, 3, 7, 0, 0, 0, 0, ZoneOffset.UTC);
+      OffsetDateTime snap5Date = OffsetDateTime.of(2023, 3, 8, 0, 0, 0, 0, ZoneOffset.UTC);
+
+      List<OffsetDateTime> snapDates =
+          List.of(snap1Date, snap2Date, snap3Date, snap4Date, snap5Date);
+      List<TallyMeasurementAggregate> aggregates = new LinkedList<>();
+      for (OffsetDateTime nextDate : snapDates) {
+        TallyMeasurementAggregate aggregate = new TallyMeasurementAggregate();
+        aggregate.setSnapshotDate(nextDate);
+        aggregate.setMetricId(MetricIdUtils.getCores().toString());
+        aggregate.setValue(100.0);
+        aggregates.add(aggregate);
+      }
+
+      when(repository.findSummedMeasurements(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+              any()))
+          .thenReturn(new PageImpl<>(aggregates));
+
+      mockCapacity(
+          OPENSHIFT_DEDICATED_METRICS,
+          METRIC_ID_CORES,
+          GranularityType.DAILY,
+          OffsetDateTime.parse("2023-03-01T00:00Z"),
+          OffsetDateTime.parse("2023-03-31T23:59:59.999Z"),
+          null,
+          null,
+          null,
+          Map.of(
+              snap2Date, 200,
+              snap3Date, 200,
+              snap4Date, 500,
+              snap5Date, 500));
+
+      TallyReportData report =
+          resource.getTallyReportData(
+              OPENSHIFT_DEDICATED_METRICS,
+              METRIC_ID_CORES,
+              GranularityType.DAILY,
+              OffsetDateTime.parse("2023-03-01T00:00Z"),
+              OffsetDateTime.parse("2023-03-31T23:59:59.999Z"),
+              null,
+              null,
+              null,
+              BillingProviderType.RED_HAT,
+              null,
+              null,
+              null,
+              true,
+              BillingCategory.PREPAID);
+      assertEquals(31, report.getData().size());
+
+      int snapshotIndex = 2; //
+      var beforeUsage = report.getData().get(snapshotIndex);
+      assertEquals(0, beforeUsage.getValue());
+
+      var noAppliedCapacity = report.getData().get(snapshotIndex + 1);
+      assertEquals(0, noAppliedCapacity.getValue());
+
+      var firstSnapshot = report.getData().get(snapshotIndex + 2);
+      assertEquals(200, firstSnapshot.getValue());
+
+      var secondSnapshot = report.getData().get(snapshotIndex + 3);
+      assertEquals(200, secondSnapshot.getValue());
+
+      var thirdSnapshot = report.getData().get(snapshotIndex + 4);
+      assertEquals(400, thirdSnapshot.getValue());
+
+      var fourthSnapshot = report.getData().get(snapshotIndex + 5);
+      assertEquals(500, fourthSnapshot.getValue());
+
+      var noUsage2 = report.getData().get(snapshotIndex + 5);
+      assertEquals(500, noUsage2.getValue());
+    }
+  }
+
+  @Nested
+  class WithPrimaryRowSearchesDisabled {
+    @BeforeEach
+    void setup() {
+      when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(false);
+    }
+
+    @Test
+    void testTallyReportDataFillerMarksHasDataFalseAfterNowWithRunningTotal() {
+      var begin = applicationClock.startOfMonth(TEST_DATE);
+      var end = applicationClock.endOfMonth(TEST_DATE);
+      List<TallySnapshot> snapshots =
+          Stream.of(1, 2, 8)
+              .map(
+                  i -> {
+                    var snapshot = new TallySnapshot();
+                    snapshot.setSnapshotDate(
+                        OffsetDateTime.of(
+                            TEST_DATE.getYear(),
+                            TEST_DATE.getMonthValue(),
+                            i,
+                            12,
+                            35,
+                            0,
+                            0,
+                            ZoneOffset.UTC));
+                    snapshot.setMeasurement(
+                        HardwareMeasurementType.TOTAL, MetricIdUtils.getCores(), i * 2.0);
+                    return snapshot;
+                  })
+              .collect(Collectors.toList());
+
+      Mockito.when(
+              repository.findSnapshot(
+                  "owner123456",
+                  RHEL_FOR_X86.toString(),
+                  Granularity.DAILY,
+                  ServiceLevel.PREMIUM,
+                  Usage.PRODUCTION,
+                  BillingProvider._ANY,
+                  "_ANY",
+                  begin,
+                  end,
+                  null))
+          .thenReturn(new PageImpl<>(snapshots));
+
+      TallyReportData response =
+          resource.getTallyReportData(
+              RHEL_FOR_X86,
+              METRIC_ID_CORES,
+              GranularityType.DAILY,
+              begin,
+              end,
+              null,
+              ServiceLevelType.PREMIUM,
+              UsageType.PRODUCTION,
+              null,
+              null,
+              null,
+              null,
+              true,
+              null);
+      int expected = TEST_DATE.getMonth().length(false);
+      assertEquals(expected, response.getMeta().getCount());
+      assertEquals(expected, response.getData().size());
+
+      var firstSnapshot = response.getData().get(0);
+      assertEquals(2, firstSnapshot.getValue());
+      assertTrue(firstSnapshot.getHasData());
+
+      var snapshots2Through7 = response.getData().subList(1, 7);
+      snapshots2Through7.forEach(
+          snapshot -> {
+            assertTrue(snapshot.getHasData());
+            assertEquals(6, snapshot.getValue());
+          });
+
+      var snapshots8ThroughPresent = response.getData().subList(7, TEST_DATE.getDayOfMonth());
+      snapshots8ThroughPresent.forEach(
+          snapshot -> {
+            assertTrue(snapshot.getHasData());
+            assertEquals(22, snapshot.getValue());
+          });
+
+      var snapshotsPresentToEndOfMonth =
+          response.getData().subList(TEST_DATE.getDayOfMonth(), TEST_DATE.getMonth().length(false));
+      snapshotsPresentToEndOfMonth.forEach(
+          snapshot -> {
+            assertFalse(snapshot.getHasData());
+            assertEquals(0, snapshot.getValue());
+          });
+
+      assertEquals(22, response.getMeta().getTotalMonthly().getValue());
+    }
+
+    @Test
+    void testTallyReportDataTotalUsingHardwareMeasurements() {
+      TallySnapshot snapshot = new TallySnapshot();
+      snapshot.setOrgId("org123");
+      snapshot.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
+      snapshot.setMeasurement(HardwareMeasurementType.TOTAL, MetricIdUtils.getCores(), 4.0);
+      when(repository.findSnapshot(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+          .thenReturn(new PageImpl<>(List.of(snapshot)));
+      TallyReportData response =
+          resource.getTallyReportData(
+              RHEL_FOR_X86,
+              METRIC_ID_CORES,
+              GranularityType.DAILY,
+              OffsetDateTime.parse("2021-10-01T00:00Z"),
+              OffsetDateTime.parse("2021-10-30T00:00Z"),
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              false,
+              null);
+      assertEquals(
+          4.0, response.getData().stream().mapToDouble(TallyReportDataPoint::getValue).sum());
+    }
+
+    @Test
+    void testTallyReportDataTotalUsingTallyMeasurements() {
+      TallySnapshot snapshot = new TallySnapshot();
+      snapshot.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
+      snapshot.setMeasurement(HardwareMeasurementType.TOTAL, MetricIdUtils.getCores(), 4.0);
+      when(repository.findSnapshot(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+          .thenReturn(new PageImpl<>(List.of(snapshot)));
+      TallyReportData response =
+          resource.getTallyReportData(
+              RHEL_FOR_X86,
+              METRIC_ID_CORES,
+              GranularityType.DAILY,
+              OffsetDateTime.parse("2021-10-01T00:00Z"),
+              OffsetDateTime.parse("2021-10-30T00:00Z"),
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              false,
+              null);
+      assertEquals(
+          4.0, response.getData().stream().mapToDouble(TallyReportDataPoint::getValue).sum());
+    }
+
+    @EnumSource(names = "CLOUD", mode = EnumSource.Mode.EXCLUDE)
+    @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
+    void testTallyReportDataCategoriesUsingHardwareMeasurements(ReportCategory category) {
+      TallySnapshot snapshot = new TallySnapshot();
+      snapshot.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
+      for (HardwareMeasurementType hardwareMeasurementType : HardwareMeasurementType.values()) {
+        snapshot.setMeasurement(hardwareMeasurementType, MetricIdUtils.getCores(), 4.0);
+      }
+      when(repository.findSnapshot(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+          .thenReturn(new PageImpl<>(List.of(snapshot)));
+      TallyReportData response =
+          resource.getTallyReportData(
+              RHEL_FOR_X86,
+              METRIC_ID_CORES,
+              GranularityType.DAILY,
+              OffsetDateTime.parse("2021-10-01T00:00Z"),
+              OffsetDateTime.parse("2021-10-30T00:00Z"),
+              category,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              false,
+              null);
+      assertEquals(
+          4.0, response.getData().stream().mapToDouble(TallyReportDataPoint::getValue).sum());
+    }
+
+    @Test
+    void testTallyReportDataReportFiller() {
+      when(repository.findSnapshot(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+          .thenReturn(new PageImpl<>(List.of()));
+      TallyReportData response =
+          resource.getTallyReportData(
+              RHEL_FOR_X86,
+              METRIC_ID_CORES,
+              GranularityType.DAILY,
+              OffsetDateTime.parse("2021-10-01T00:00Z"),
+              OffsetDateTime.parse("2021-10-30T00:00Z"),
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              false,
+              null);
+      assertEquals(30, response.getMeta().getCount());
+      assertEquals(30, response.getData().size());
+    }
+
+    @Test
+    void testTallyReportTotalMonthlyNotPopulatedWhenQueryIsNotBeginningOfMonth() {
+      when(repository.findSnapshot(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+          .thenReturn(new PageImpl<>(List.of()));
+      TallyReportData response =
+          resource.getTallyReportData(
+              RHEL_FOR_X86,
+              METRIC_ID_CORES,
+              GranularityType.DAILY,
+              OffsetDateTime.parse("2021-11-02T00:00Z"),
+              OffsetDateTime.parse("2021-11-30T23:59:59.999Z"),
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              false,
+              null);
+      assertNull(response.getMeta().getTotalMonthly());
+    }
+
+    @Test
+    void testTallyReportTotalMonthlyNotPopulatedWhenQueryIsNotEndOfMonth() {
+      when(repository.findSnapshot(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+          .thenReturn(new PageImpl<>(List.of()));
+      TallyReportData response =
+          resource.getTallyReportData(
+              RHEL_FOR_X86,
+              METRIC_ID_CORES,
+              GranularityType.DAILY,
+              OffsetDateTime.parse("2021-11-01T00:00Z"),
+              OffsetDateTime.parse("2021-11-24T23:59:59.999Z"),
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              false,
+              null);
+      assertNull(response.getMeta().getTotalMonthly());
+    }
+
+    @Test
+    void testTallyReportTotalMonthlyNotPopulatedWhenQueryIsPaged() {
+      when(repository.findSnapshot(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+          .thenReturn(new PageImpl<>(List.of()));
+      TallyReportData response =
+          resource.getTallyReportData(
+              RHEL_FOR_X86,
+              METRIC_ID_CORES,
+              GranularityType.DAILY,
+              OffsetDateTime.parse("2021-11-01T00:00Z"),
+              OffsetDateTime.parse("2021-11-30T23:59:59.999Z"),
+              null,
+              null,
+              null,
+              null,
+              null,
+              0,
+              10,
+              false,
+              null);
+      assertNull(response.getMeta().getTotalMonthly());
+    }
+
+    @Test
+    void testTallyReportTotalMonthlyPopulatedWithNoUnderlyingData() {
+      when(repository.findSnapshot(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+          .thenReturn(new PageImpl<>(List.of()));
+      TallyReportData response =
+          resource.getTallyReportData(
+              RHEL_FOR_X86,
+              METRIC_ID_CORES,
+              GranularityType.DAILY,
+              OffsetDateTime.parse("2021-11-01T00:00Z"),
+              OffsetDateTime.parse("2021-11-30T23:59:59.999Z"),
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              false,
+              null);
+      TallyReportTotalMonthly expectedTotalMonthly =
+          new TallyReportTotalMonthly().date(null).value(0).hasData(false);
+      assertEquals(expectedTotalMonthly, response.getMeta().getTotalMonthly());
+    }
+
+    @Test
+    void testTallyReportTotalMonthlyPopulatedWithExistingUnderlyingData() {
+      TallySnapshot snapshot1 = new TallySnapshot();
+      snapshot1.setSnapshotDate(OffsetDateTime.parse("2021-11-02T00:00Z"));
+      snapshot1.setGranularity(Granularity.DAILY);
+      snapshot1.setMeasurement(HardwareMeasurementType.TOTAL, MetricIdUtils.getCores(), 4.0);
+      TallySnapshot snapshot2 = new TallySnapshot();
+      snapshot2.setSnapshotDate(OffsetDateTime.parse("2021-11-03T00:00Z"));
+      snapshot2.setGranularity(Granularity.DAILY);
+      snapshot2.setMeasurement(HardwareMeasurementType.TOTAL, MetricIdUtils.getCores(), 3.0);
+      when(repository.findSnapshot(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+          .thenReturn(new PageImpl<>(List.of(snapshot1, snapshot2)));
+      TallyReportData response =
+          resource.getTallyReportData(
+              RHEL_FOR_X86,
+              METRIC_ID_CORES,
+              GranularityType.DAILY,
+              OffsetDateTime.parse("2021-11-01T00:00Z"),
+              OffsetDateTime.parse("2021-11-30T23:59:59.999Z"),
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              false,
+              null);
+      TallyReportTotalMonthly expectedTotalMonthly =
+          new TallyReportTotalMonthly()
+              .date(OffsetDateTime.parse("2021-11-03T00:00Z"))
+              .value(7)
+              .hasData(true);
+      assertEquals(expectedTotalMonthly, response.getMeta().getTotalMonthly());
+    }
+
+    @Test
+    void testTallyReportTotalMonthlyPopulatedWithBillingProvider() {
+      TallySnapshot snapshot1 = new TallySnapshot();
+      snapshot1.setSnapshotDate(OffsetDateTime.parse("2021-11-02T00:00Z"));
+      snapshot1.setGranularity(Granularity.DAILY);
+      snapshot1.setBillingProvider(BillingProvider.RED_HAT);
+      snapshot1.setMeasurement(HardwareMeasurementType.TOTAL, MetricIdUtils.getCores(), 4.0);
+      TallySnapshot snapshot2 = new TallySnapshot();
+      snapshot2.setSnapshotDate(OffsetDateTime.parse("2021-11-03T00:00Z"));
+      snapshot2.setGranularity(Granularity.DAILY);
+      snapshot2.setBillingProvider(BillingProvider.RED_HAT);
+      snapshot2.setMeasurement(HardwareMeasurementType.TOTAL, MetricIdUtils.getCores(), 3.0);
+      when(repository.findSnapshot(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+          .thenReturn(new PageImpl<>(List.of(snapshot1, snapshot2)));
+      TallyReportData response =
+          resource.getTallyReportData(
+              RHEL_FOR_X86,
+              METRIC_ID_CORES,
+              GranularityType.DAILY,
+              OffsetDateTime.parse("2021-11-01T00:00Z"),
+              OffsetDateTime.parse("2021-11-30T23:59:59.999Z"),
+              null,
+              null,
+              null,
+              BillingProviderType.RED_HAT,
+              null,
+              null,
+              null,
+              false,
+              null);
+      TallyReportTotalMonthly expectedTotalMonthly =
+          new TallyReportTotalMonthly()
+              .date(OffsetDateTime.parse("2021-11-03T00:00Z"))
+              .value(7)
+              .hasData(true);
+      assertEquals(expectedTotalMonthly, response.getMeta().getTotalMonthly());
+      assertEquals(BillingProviderType.RED_HAT, response.getMeta().getBillingProvider());
+    }
+
+    @Test
+    void testRunningTotalFormatUsedForNewerTallyAPI() {
+      List<TallySnapshot> snapshots =
+          Stream.of(1, 2, 8)
+              .map(
+                  i -> {
+                    var snapshot = new TallySnapshot();
+                    snapshot.setSnapshotDate(
+                        OffsetDateTime.of(2023, 3, i, 12, 35, 0, 0, ZoneOffset.UTC));
+                    snapshot.setMeasurement(
+                        HardwareMeasurementType.TOTAL, MetricIdUtils.getCores(), i * 2.0);
+                    return snapshot;
+                  })
+              .collect(Collectors.toList());
+
+      TallyReportTotalMonthly expectedTotalMonthly =
+          new TallyReportTotalMonthly()
+              .date(OffsetDateTime.parse("2023-03-08T12:35Z"))
+              .value(22)
+              .hasData(true);
+
+      when(repository.findSnapshot(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+          .thenReturn(new PageImpl<>(snapshots));
+
+      TallyReportData report =
+          resource.getTallyReportData(
+              OPENSHIFT_DEDICATED_METRICS,
+              METRIC_ID_CORES,
+              GranularityType.DAILY,
+              OffsetDateTime.parse("2023-03-01T00:00Z"),
+              OffsetDateTime.parse("2023-03-31T23:59:59.999Z"),
+              null,
+              null,
+              null,
+              BillingProviderType.RED_HAT,
+              null,
+              null,
+              null,
+              true,
+              null);
+      assertEquals(31, report.getData().size());
+
+      var firstSnapshot = report.getData().get(0);
+      assertEquals(2, firstSnapshot.getValue());
+
+      var secondSnapshot = report.getData().get(1);
+      assertEquals(6, secondSnapshot.getValue());
+
+      // Snapshot for day with no usage should still show running total
+      var snapshotWithNoNewUsage = report.getData().get(2);
+      assertEquals(6, snapshotWithNoNewUsage.getValue());
+
+      var thirdSnapshot = report.getData().get(7);
+      assertEquals(22, thirdSnapshot.getValue());
+
+      assertEquals(expectedTotalMonthly, report.getMeta().getTotalMonthly());
+    }
+
+    @Test
+    void testMonthlyTotalsRoundedUpToNearestInteger() {
+      List<TallySnapshot> snapshots =
+          Stream.of(1, 2)
+              .map(
+                  i -> {
+                    var snapshot = new TallySnapshot();
+                    snapshot.setSnapshotDate(
+                        OffsetDateTime.of(2023, 3, i, 12, 35, 0, 0, ZoneOffset.UTC));
+                    snapshot.setMeasurement(
+                        HardwareMeasurementType.TOTAL, MetricIdUtils.getCores(), 1.3);
+                    return snapshot;
+                  })
+              .collect(Collectors.toList());
+
+      TallyReportTotalMonthly expectedTotalMonthly =
+          new TallyReportTotalMonthly()
+              .date(OffsetDateTime.parse("2023-03-02T12:35Z"))
+              .value(3)
+              .hasData(true);
+
+      when(repository.findSnapshot(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+          .thenReturn(new PageImpl<>(snapshots));
+
+      TallyReportData report =
+          resource.getTallyReportData(
+              OPENSHIFT_DEDICATED_METRICS,
+              METRIC_ID_CORES,
+              GranularityType.DAILY,
+              OffsetDateTime.parse("2023-03-01T00:00Z"),
+              OffsetDateTime.parse("2023-03-31T23:59:59.999Z"),
+              null,
+              null,
+              null,
+              BillingProviderType.RED_HAT,
+              null,
+              null,
+              null,
+              true,
+              null);
+      assertEquals(31, report.getData().size());
+
+      // Each running total entry should be the Math.ceil of all the total previous snapshot values
+      // Rounding should only occur after the total has been calculated
+      var firstSnapshot = report.getData().get(0);
+      assertEquals((int) Math.ceil(1.3), firstSnapshot.getValue());
+
+      var secondSnapshot = report.getData().get(1);
+      assertEquals((int) Math.ceil(1.3 + 1.3), secondSnapshot.getValue());
+
+      assertEquals(expectedTotalMonthly, report.getMeta().getTotalMonthly());
+    }
+
+    @Test
+    void testBadRequestWhenBillingCategorySpecifiedWhenRunningTotalsParamIsNull() {
+      OffsetDateTime beginning = OffsetDateTime.parse("2021-10-01T00:00Z");
+      OffsetDateTime ending = OffsetDateTime.parse("2021-10-30T00:00Z");
+      assertThrows(
+          BadRequestException.class,
+          () -> {
+            resource.getTallyReportData(
+                RHEL_FOR_X86,
+                METRIC_ID_CORES,
+                GranularityType.DAILY,
+                beginning,
+                ending,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                BillingCategory.ON_DEMAND);
+          });
+    }
+
+    @Test
+    void testBadRequestWhenBillingCategorySpecifiedWhenRunningTotalsParamIsFalse() {
+      OffsetDateTime beginning = OffsetDateTime.parse("2021-10-01T00:00Z");
+      OffsetDateTime ending = OffsetDateTime.parse("2021-10-30T00:00Z");
+      assertThrows(
+          BadRequestException.class,
+          () -> {
+            resource.getTallyReportData(
+                RHEL_FOR_X86,
+                METRIC_ID_CORES,
+                GranularityType.DAILY,
+                beginning,
+                ending,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                false,
+                BillingCategory.ON_DEMAND);
+          });
+    }
+
+    @Test
+    void testRunningTotalForOnDemand() {
+      OffsetDateTime snap1Date = OffsetDateTime.of(2023, 3, 4, 0, 0, 0, 0, ZoneOffset.UTC);
+      OffsetDateTime snap2Date = OffsetDateTime.of(2023, 3, 5, 0, 0, 0, 0, ZoneOffset.UTC);
+      OffsetDateTime snap3Date = OffsetDateTime.of(2023, 3, 6, 0, 0, 0, 0, ZoneOffset.UTC);
+      OffsetDateTime snap4Date = OffsetDateTime.of(2023, 3, 7, 0, 0, 0, 0, ZoneOffset.UTC);
+      OffsetDateTime snap5Date = OffsetDateTime.of(2023, 3, 8, 0, 0, 0, 0, ZoneOffset.UTC);
+
+      List<OffsetDateTime> snapDates =
+          List.of(snap1Date, snap2Date, snap3Date, snap4Date, snap5Date);
+      List<TallySnapshot> snapshots = new LinkedList<>();
+      for (OffsetDateTime nextDate : snapDates) {
+        TallySnapshot snap =
+            TallySnapshot.builder()
+                .productId(OPENSHIFT_DEDICATED_METRICS.toString())
+                .snapshotDate(nextDate)
+                .build();
+        snap.setMeasurement(HardwareMeasurementType.TOTAL, MetricIdUtils.getCores(), 100.0);
+        snapshots.add(snap);
+      }
+
+      when(repository.findSnapshot(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+          .thenReturn(new PageImpl<>(snapshots));
+
+      mockCapacity(
+          OPENSHIFT_DEDICATED_METRICS,
+          METRIC_ID_CORES,
+          GranularityType.DAILY,
+          OffsetDateTime.parse("2023-03-01T00:00Z"),
+          OffsetDateTime.parse("2023-03-31T23:59:59.999Z"),
+          null,
+          null,
+          null,
+          Map.of(
+              snap2Date, 100,
+              snap3Date, 100,
+              snap4Date, 100,
+              snap5Date, 150));
+
+      TallyReportTotalMonthly expectedTotalMonthly =
+          new TallyReportTotalMonthly().date(snap5Date).value(500).hasData(true);
+
+      TallyReportData report =
+          resource.getTallyReportData(
+              OPENSHIFT_DEDICATED_METRICS,
+              METRIC_ID_CORES,
+              GranularityType.DAILY,
+              OffsetDateTime.parse("2023-03-01T00:00Z"),
+              OffsetDateTime.parse("2023-03-31T23:59:59.999Z"),
+              null,
+              null,
+              null,
+              BillingProviderType.RED_HAT,
+              null,
+              null,
+              null,
+              true,
+              BillingCategory.ON_DEMAND);
+      assertEquals(31, report.getData().size());
+
+      int snapshotIndex = 2; //
+      var beforeUsage = report.getData().get(snapshotIndex);
+      assertEquals(0, beforeUsage.getValue());
+
+      var noAppliedCapacity = report.getData().get(snapshotIndex + 1);
+      assertEquals(100, noAppliedCapacity.getValue());
+
+      var firstSnapshot = report.getData().get(snapshotIndex + 2);
+      assertEquals(100, firstSnapshot.getValue());
+
+      var secondSnapshot = report.getData().get(snapshotIndex + 3);
+      assertEquals(200, secondSnapshot.getValue());
+
+      var thirdSnapshot = report.getData().get(snapshotIndex + 4);
+      assertEquals(300, thirdSnapshot.getValue());
+
+      var fourthSnapshot = report.getData().get(snapshotIndex + 5);
+      assertEquals(350, fourthSnapshot.getValue());
+
+      assertEquals(expectedTotalMonthly, report.getMeta().getTotalMonthly());
+    }
+
+    @Test
+    void testRunningTotalForPrePaid() {
+      OffsetDateTime snap1Date = OffsetDateTime.of(2023, 3, 4, 0, 0, 0, 0, ZoneOffset.UTC);
+      OffsetDateTime snap2Date = OffsetDateTime.of(2023, 3, 5, 0, 0, 0, 0, ZoneOffset.UTC);
+      OffsetDateTime snap3Date = OffsetDateTime.of(2023, 3, 6, 0, 0, 0, 0, ZoneOffset.UTC);
+      OffsetDateTime snap4Date = OffsetDateTime.of(2023, 3, 7, 0, 0, 0, 0, ZoneOffset.UTC);
+      OffsetDateTime snap5Date = OffsetDateTime.of(2023, 3, 8, 0, 0, 0, 0, ZoneOffset.UTC);
+
+      List<OffsetDateTime> snapDates =
+          List.of(snap1Date, snap2Date, snap3Date, snap4Date, snap5Date);
+      List<TallySnapshot> snapshots = new LinkedList<>();
+      for (OffsetDateTime nextDate : snapDates) {
+        TallySnapshot snap =
+            TallySnapshot.builder()
+                .productId(OPENSHIFT_DEDICATED_METRICS.toString())
+                .snapshotDate(nextDate)
+                .build();
+        snap.setMeasurement(HardwareMeasurementType.TOTAL, MetricIdUtils.getCores(), 100.0);
+        snapshots.add(snap);
+      }
+
+      when(repository.findSnapshot(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+          .thenReturn(new PageImpl<>(snapshots));
+
+      mockCapacity(
+          OPENSHIFT_DEDICATED_METRICS,
+          METRIC_ID_CORES,
+          GranularityType.DAILY,
+          OffsetDateTime.parse("2023-03-01T00:00Z"),
+          OffsetDateTime.parse("2023-03-31T23:59:59.999Z"),
+          null,
+          null,
+          null,
+          Map.of(
+              snap2Date, 200,
+              snap3Date, 200,
+              snap4Date, 500,
+              snap5Date, 500));
+
+      TallyReportData report =
+          resource.getTallyReportData(
+              OPENSHIFT_DEDICATED_METRICS,
+              METRIC_ID_CORES,
+              GranularityType.DAILY,
+              OffsetDateTime.parse("2023-03-01T00:00Z"),
+              OffsetDateTime.parse("2023-03-31T23:59:59.999Z"),
+              null,
+              null,
+              null,
+              BillingProviderType.RED_HAT,
+              null,
+              null,
+              null,
+              true,
+              BillingCategory.PREPAID);
+      assertEquals(31, report.getData().size());
+
+      int snapshotIndex = 2; //
+      var beforeUsage = report.getData().get(snapshotIndex);
+      assertEquals(0, beforeUsage.getValue());
+
+      var noAppliedCapacity = report.getData().get(snapshotIndex + 1);
+      assertEquals(0, noAppliedCapacity.getValue());
+
+      var firstSnapshot = report.getData().get(snapshotIndex + 2);
+      assertEquals(200, firstSnapshot.getValue());
+
+      var secondSnapshot = report.getData().get(snapshotIndex + 3);
+      assertEquals(200, secondSnapshot.getValue());
+
+      var thirdSnapshot = report.getData().get(snapshotIndex + 4);
+      assertEquals(400, thirdSnapshot.getValue());
+
+      var fourthSnapshot = report.getData().get(snapshotIndex + 5);
+      assertEquals(500, fourthSnapshot.getValue());
+
+      var noUsage2 = report.getData().get(snapshotIndex + 5);
+      assertEquals(500, noUsage2.getValue());
+    }
+
+    @Test
+    void testCloudCategoryAggregatesMultipleCloudProviders() {
+      var snapshotDate = OffsetDateTime.parse("2025-10-01T00:00:00Z");
+
+      TallySnapshot snapshot = new TallySnapshot();
+      snapshot.setSnapshotDate(snapshotDate);
+
+      // Set measurements for multiple cloud provider types
+      snapshot.setMeasurement(HardwareMeasurementType.AWS, MetricIdUtils.getCores(), 8.0);
+      snapshot.setMeasurement(HardwareMeasurementType.GOOGLE, MetricIdUtils.getCores(), 16.0);
+      snapshot.setMeasurement(HardwareMeasurementType.AZURE, MetricIdUtils.getCores(), 12.0);
+
+      when(repository.findSnapshot(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+          .thenReturn(new PageImpl<>(List.of(snapshot)));
+
+      TallyReportData response =
+          resource.getTallyReportData(
+              RHEL_FOR_X86,
+              MetricIdUtils.getCores(),
+              GranularityType.DAILY,
+              snapshotDate,
+              snapshotDate,
+              ReportCategory.CLOUD,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              false,
+              null);
+
+      assertEquals(1, response.getData().size());
+      assertTrue(response.getData().get(0).getHasData());
+      // Should sum AWS + GCP + Azure = 8 + 16 + 12 = 36 cores
+      assertEquals(36, response.getData().get(0).getValue());
+    }
+
+    @Test
+    void testCloudCategoryWithMultipleDaysAggregatesCorrectly() {
+      var day1 = OffsetDateTime.parse("2025-10-01T00:00:00Z");
+      var day2 = OffsetDateTime.parse("2025-10-02T00:00:00Z");
+
+      // Day 1 snapshot with AWS and GCP
+      TallySnapshot snapshot1 = new TallySnapshot();
+      snapshot1.setSnapshotDate(day1);
+      snapshot1.setMeasurement(HardwareMeasurementType.AWS, MetricIdUtils.getSockets(), 2.0);
+      snapshot1.setMeasurement(HardwareMeasurementType.GOOGLE, MetricIdUtils.getSockets(), 4.0);
+
+      // Day 2 snapshot with AWS and Azure
+      TallySnapshot snapshot2 = new TallySnapshot();
+      snapshot2.setSnapshotDate(day2);
+      snapshot2.setMeasurement(HardwareMeasurementType.AWS, MetricIdUtils.getSockets(), 3.0);
+      snapshot2.setMeasurement(HardwareMeasurementType.AZURE, MetricIdUtils.getSockets(), 5.0);
+
+      when(repository.findSnapshot(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+          .thenReturn(new PageImpl<>(List.of(snapshot1, snapshot2)));
+
+      TallyReportData response =
+          resource.getTallyReportData(
+              RHEL_FOR_X86,
+              MetricIdUtils.getSockets(),
+              GranularityType.DAILY,
+              day1,
+              day2,
+              ReportCategory.CLOUD,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              false,
+              null);
+
+      assertEquals(2, response.getData().size());
+
+      // Day 1: AWS (2) + GCP (4) = 6 sockets
+      assertTrue(response.getData().get(0).getHasData());
+      assertEquals(6, response.getData().get(0).getValue());
+
+      // Day 2: AWS (3) + Azure (5) = 8 sockets
+      assertTrue(response.getData().get(1).getHasData());
+      assertEquals(8, response.getData().get(1).getValue());
+    }
+  }
+
+  private void mockCapacity(
+      ProductId productId,
+      MetricId metricId,
+      GranularityType granularityType,
+      OffsetDateTime beginning,
+      OffsetDateTime ending,
+      ReportCategory category,
+      ServiceLevelType sla,
+      UsageType usageType,
+      Map<OffsetDateTime, Integer> result) {
+    GranularityType resolvedGranularity = GranularityType.valueOf(granularityType.name());
+    ReportCategory resolvedReportCategory =
+        Optional.ofNullable(category).map(c -> ReportCategory.valueOf(c.name())).orElse(null);
+    ServiceLevelType resolvedSla =
+        Optional.ofNullable(sla).map(s -> ServiceLevelType.valueOf(s.name())).orElse(null);
+    UsageType resolvedUsage =
+        Optional.ofNullable(usageType).map(ut -> UsageType.valueOf(ut.name())).orElse(null);
+
+    when(capacityController.getCapacityReportByMetricId(
+            eq(productId),
+            eq(metricId),
+            eq(resolvedGranularity),
+            eq(beginning),
+            eq(ending),
+            any(),
+            any(),
+            any(),
+            eq(resolvedReportCategory),
+            eq(resolvedSla),
+            eq(resolvedUsage)))
+        .thenReturn(
+            capacityReport(
+                beginning,
+                ending,
+                metricId.getValue(),
+                resolvedReportCategory,
+                resolvedGranularity,
+                resolvedSla,
+                resolvedUsage,
+                result));
+  }
+
+  private CapacityReportByMetricId capacityReport(
+      OffsetDateTime start,
+      OffsetDateTime end,
+      String metricId,
+      ReportCategory category,
+      GranularityType granularity,
+      ServiceLevelType sla,
+      UsageType usage,
+      Map<OffsetDateTime, Integer> values) {
+    var capacityApiCategory =
+        Optional.ofNullable(category)
+            .map(
+                c ->
+                    com.redhat.swatch.contracts.spring.api.model.ReportCategory.fromValue(
+                        c.toString()))
+            .orElse(null);
+    var capacityApiGranularity =
+        Optional.ofNullable(granularity)
+            .map(
+                c ->
+                    com.redhat.swatch.contracts.spring.api.model.GranularityType.fromValue(
+                        c.toString()))
+            .orElse(null);
+    var capacitySla =
+        Optional.ofNullable(sla)
+            .map(
+                c ->
+                    com.redhat.swatch.contracts.spring.api.model.ServiceLevelType.fromValue(
+                        c.toString()))
+            .orElse(null);
+    var capacityUsage =
+        Optional.ofNullable(usage)
+            .map(
+                c -> com.redhat.swatch.contracts.spring.api.model.UsageType.fromValue(c.toString()))
+            .orElse(null);
+    var meta =
+        new CapacityReportByMetricIdMeta()
+            .metricId(metricId)
+            .category(capacityApiCategory)
+            .granularity(capacityApiGranularity)
+            .serviceLevel(capacitySla)
+            .usage(capacityUsage)
+            .count(values.size());
+    return new CapacityReportByMetricId()
+        .meta(meta)
+        .data(createCapacitySnapshots(start, end, granularity, values));
+  }
+
+  private List<CapacitySnapshotByMetricId> createCapacitySnapshots(
+      OffsetDateTime reportStart,
+      OffsetDateTime reportEnd,
+      GranularityType granularityType,
+      Map<OffsetDateTime, Integer> values) {
+    SnapshotTimeAdjuster timeAdjuster =
+        SnapshotTimeAdjuster.getTimeAdjuster(
+            applicationClock, Granularity.fromString(granularityType.toString()));
+
+    OffsetDateTime start = timeAdjuster.adjustToPeriodStart(reportStart);
+    OffsetDateTime end = timeAdjuster.adjustToPeriodEnd(reportEnd);
+    TemporalAmount offset = timeAdjuster.getSnapshotOffset();
+
+    List<CapacitySnapshotByMetricId> result = new ArrayList<>();
+    OffsetDateTime next = OffsetDateTime.from(start);
+
+    while (next.isBefore(end) || next.isEqual(end)) {
+      Integer value = values.getOrDefault(next, 0);
+      result.add(
+          new CapacitySnapshotByMetricId()
+              .hasData(values.containsKey(next))
+              .date(next)
+              .hasInfiniteQuantity(false)
+              .value(value));
+      next = timeAdjuster.adjustToPeriodStart(next.plus(offset));
+    }
+    return result;
+  }
+}

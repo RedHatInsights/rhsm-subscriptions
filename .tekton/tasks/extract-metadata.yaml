@@ -1,0 +1,137 @@
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: extract-metadata
+spec:
+  description: Extracts event type, PR number, git revision, PR labels, and optional IQE image tag from PR body (same GitHub GET as labels).
+  params:
+    - name: SNAPSHOT
+      type: string
+    - name: COMPONENT_NAME
+      type: string
+    - name: PROJECT_REPO
+      type: string
+      default: "RedHatInsights/rhsm-subscriptions"
+    - name: GITHUB_TOKEN_SECRET
+      type: string
+      default: "swatch-ci-github-token"
+    - name: IQE_IMAGE_TAG_DEFAULT
+      type: string
+      default: ""
+      description: Fallback IQE image tag when no /use-iqe-image-tag=... directive appears in the PR body
+  results:
+    - name: IS_PULL_REQUEST
+      description: Whether the event is PR-related (true for all non-push events, false for push)
+    - name: PR_NUMBER
+      description: Pull request number, or "none" if not a PR event
+    - name: GIT_REVISION
+      description: Git revision extracted from the SNAPSHOT
+    - name: LABELS
+      description: Comma-separated list of PR labels (empty on push events)
+    - name: IQE_IMAGE_TAG
+      description: IQE image tag from PR body /use-iqe-image-tag=VALUE if present and valid; empty or XXX uses IQE_IMAGE_TAG_DEFAULT
+  steps:
+    - name: extract
+      image: quay.io/konflux-ci/appstudio-utils:latest
+      env:
+        - name: EVENT_TYPE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.labels['pac.test.appstudio.openshift.io/event-type']
+        - name: PAC_PR_NUMBER
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.labels['pac.test.appstudio.openshift.io/pull-request']
+        - name: GROUP_TEST_INFO
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.annotations['test.appstudio.openshift.io/group-test-info']
+        - name: GITHUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: $(params.GITHUB_TOKEN_SECRET)
+              key: github_token
+      script: |
+        #!/bin/bash
+        set -euo pipefail
+        echo "EVENT_TYPE=${EVENT_TYPE:-unknown}"
+
+        # IS_PULL_REQUEST: false only for push events; true for pull_request, retest, ok-to-test, etc.
+        if [ "${EVENT_TYPE:-}" = "push" ]; then
+          IS_PR=false
+        else
+          IS_PR=true
+        fi
+        printf "$IS_PR" > "$(results.IS_PULL_REQUEST.path)"
+        echo "IS_PULL_REQUEST=$IS_PR"
+
+        # Extract PR number (only meaningful for PR events)
+        PR=""
+        if [ "$IS_PR" = "true" ]; then
+          if [ -n "${GROUP_TEST_INFO:-}" ]; then
+            echo "GROUP_TEST_INFO=${GROUP_TEST_INFO}"
+            PR=$(echo "${GROUP_TEST_INFO}" | jq -r '.[0].pullRequestNumber // empty' 2>/dev/null || echo "")
+          fi
+          if [ -z "$PR" ] && [ -n "${PAC_PR_NUMBER:-}" ]; then
+            PR="${PAC_PR_NUMBER}"
+          fi
+        fi
+        echo "PR_NUMBER=${PR:-none}"
+        printf "%s" "${PR:-none}" > "$(results.PR_NUMBER.path)"
+
+        echo "Extracting git revision for component: $(params.COMPONENT_NAME)"
+        rev=$(echo '$(params.SNAPSHOT)' | jq -r --arg name '$(params.COMPONENT_NAME)' '.components[] | select(.name==$name) | .source.git.revision // empty')
+        if [ -z "$rev" ] || [ "$rev" = "null" ]; then
+          rev=$(echo '$(params.SNAPSHOT)' | jq -r '.components[0].source.git.revision // empty')
+        fi
+        echo "GIT_REVISION=${rev:-empty}"
+        printf "%s" "$rev" > "$(results.GIT_REVISION.path)"
+
+        # Fetch PR metadata (labels + body) only for PR events with a valid PR number
+        if [ "$IS_PR" != "true" ] || [ -z "${PR:-}" ] || [ "${PR:-}" = "none" ]; then
+          printf "" > "$(results.LABELS.path)"
+          printf "%s" "$(params.IQE_IMAGE_TAG_DEFAULT)" > "$(results.IQE_IMAGE_TAG.path)"
+          echo "LABELS=(skipped)"
+          exit 0
+        fi
+
+        GITHUB_TOKEN=$(echo -n "$GITHUB_TOKEN" | tr -d '[:space:]')
+        REPO="$(params.PROJECT_REPO)"
+        URL="https://api.github.com/repos/${REPO}/pulls/${PR}"
+        echo "Fetching PR metadata (labels, body) from: ${URL}"
+
+        set +e
+        HTTP_CODE=$(curl -sS --http1.1 --retry 5 --retry-connrefused \
+          --connect-timeout 10 --max-time 30 \
+          -o /tmp/pr.json -w "%{http_code}" \
+          -H "Authorization: token ${GITHUB_TOKEN}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          -H "Cache-Control: no-cache" \
+          -H "If-None-Match: \"\"" \
+          "${URL}" 2>&1)
+        CURL_EXIT=$?
+        set -e
+
+        if [ $CURL_EXIT -ne 0 ] || [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+          echo "WARNING: Failed to fetch PR metadata (curl exit: $CURL_EXIT, HTTP: $HTTP_CODE)"
+          printf "" > "$(results.LABELS.path)"
+          printf "%s" "$(params.IQE_IMAGE_TAG_DEFAULT)" > "$(results.IQE_IMAGE_TAG.path)"
+          exit 0
+        fi
+
+        LABELS=$(jq -r '[.labels[].name] | join(",")' /tmp/pr.json)
+        echo "LABELS=${LABELS}"
+        printf "%s" "$LABELS" > "$(results.LABELS.path)"
+
+        BODY=$(jq -r '.body // ""' /tmp/pr.json)
+        PR_IQE=""
+        if [[ "${BODY}" =~ /use-iqe-image-tag=([^[:space:]]*) ]]; then
+          PR_IQE="${BASH_REMATCH[1]}"
+        fi
+        if [ -n "${PR_IQE}" ] && [ "${PR_IQE}" != "XXX" ]; then
+          echo "IQE_IMAGE_TAG from PR body: ${PR_IQE}"
+          printf "%s" "${PR_IQE}" > "$(results.IQE_IMAGE_TAG.path)"
+        else
+          printf "%s" "$(params.IQE_IMAGE_TAG_DEFAULT)" > "$(results.IQE_IMAGE_TAG.path)"
+        fi

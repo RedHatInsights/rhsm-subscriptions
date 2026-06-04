@@ -1,0 +1,48 @@
+#!/bin/bash
+
+# If you put this file (or symlink it) to somewhere in your path, the `oc`
+# command will find it and delegate to it.  You can then just run `oc db`
+
+PORT_FORWARD_PID=""
+
+# Cleanup function
+cleanup() {
+    if [ -n "$PORT_FORWARD_PID" ]; then
+        echo "Cleaning up port-forward (PID: $PORT_FORWARD_PID)..."
+        kill $PORT_FORWARD_PID 2>/dev/null
+    fi
+}
+
+# Set trap to cleanup on various signals
+trap cleanup INT TERM ERR EXIT
+
+# Find and port-forward the swatch-database-db pod
+POD=$(oc get pods --no-headers | grep "^swatch-database-db" | awk '{print $1}' | head -1)
+
+if [ -z "$POD" ]; then
+    echo "No pod found starting with 'swatch-database-db'"
+    exit 1
+fi
+
+echo "Found pod: $POD"
+echo "Setting up port-forward..."
+
+# Start port-forward in background
+oc port-forward "$POD" 5433:5432 &
+PORT_FORWARD_PID=$!
+
+# Give port-forward time to establish
+sleep 3
+
+# Get username from secret
+USERNAME=$(oc get secret swatch-database-db -o json | jq -r '.data.username' | base64 -d)
+
+if [ -z "$USERNAME" ]; then
+    echo "Failed to get username from secret"
+    exit 1
+fi
+
+echo "Connecting to database as user: $USERNAME"
+
+# Connect to database
+psql -U "$USERNAME" -p 5433 -h localhost rhsm "$@"

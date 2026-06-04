@@ -1,0 +1,53 @@
+# These are core, default properties that we don't want the user to change.  Take care to use
+# spring.config.additional-location instead of spring.config.location so that this file will continue
+# getting loaded.
+# See https://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-external-config.html#boot-features-external-config-application-property-files
+
+spring:
+  # load the common core definitions
+  config:
+    import: classpath:swatch-core/application.yaml
+  profiles:
+    active:
+      - api
+      - worker
+      - kafka-queue
+  jms:
+    listener:
+      auto-startup: ${UMB_ENABLED:false}
+
+rhsm-subscriptions:
+  jobs:
+    purge-snapshot-schedule: ${PURGE_SNAPSHOT-SCHEDULE:0 0 1 * * ?}
+    purge-events-schedule: ${PURGE_EVENTS_SCHEDULE:0 0 1 * * ?}
+  account-batch-size: ${ACCOUNT_BATCH_SIZE:1}
+  product-denylist-resource-location: ${PRODUCT_DENYLIST_RESOURCE_LOCATION:}
+  hourly-tally-offset: ${HOURLY_TALLY_OFFSET:60m}
+  metric-lookup-range-duration: ${METRIC_LOOKUP_RANGE:1h}
+  enable-synchronous-operations: ${ENABLE_SYNCHRONOUS_OPERATIONS:false}
+
+io:
+  getunleash:
+    app-name: ${UNLEASH_APP_NAME:swatch-tally}
+    instance-id: ${UNLEASH_INSTANCE_ID:swatch-tally}
+    environment: ${UNLEASH_ENVIRONMENT:production}
+    api-url: ${UNLEASH_URL}
+    api-token: ${UNLEASH_API_TOKEN}
+management:
+  health:
+    jms:
+      # disable activemq health checks when we're not actually using UMB
+      enabled: ${UMB_ENABLED:false}
+
+#Current version of spring-kafka(3.0.10) has bug that logs incorrect warning: https://github.com/spring-projects/spring-kafka/issues/2784
+#TODO remove this. Fixed in next release
+logging:
+  level:
+    org:
+      springframework:
+        kafka:
+          listener:
+            DeadLetterPublishingRecoverer=error:
+
+server:
+  max-http-request-header-size: 96KB

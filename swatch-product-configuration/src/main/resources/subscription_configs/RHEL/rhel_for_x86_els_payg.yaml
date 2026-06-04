@@ -1,0 +1,34 @@
+---
+platform: RHEL
+
+id: rhel-for-x86-els-payg
+
+vdcType: true
+
+variants:
+  - tag: rhel-for-x86-els-payg
+    isMigrationProduct: true
+    engineeringIds:
+      - 204
+
+defaults:
+  variant: rhel-for-x86-els-payg
+  sla: PREMIUM
+  usage: PRODUCTION
+
+serviceType: RHEL System
+
+contractEnabled: false #There is no need to generate an AWS contract listing because we will be using a non-Saas contract flow.
+
+metrics:
+  - id: vCPUs
+    type: counter
+    awsDimension: vCPU_hours
+    # NOTE(khowell) disabled on 2024-10-15 to be re-enabled on 2024-11-01
+    #azureDimension: vcpu_hours
+    prometheus:
+      queryKey: rhelemeter
+      queryParams:
+        productLabelRegex: .*(^|,)(204)($|,).* # this regex is used to fetch metrics for the product label that contains the product/engineering ID 204. the number here needs to map to a tag defined in the variant section of this file
+        metric: system_cpu_logical_count
+        instanceKey: billing_marketplace_instance_id

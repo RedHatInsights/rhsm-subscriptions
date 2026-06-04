@@ -1,0 +1,42 @@
+/*
+ * Copyright Red Hat, Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Red Hat trademarks are not licensed under GPLv3. No permission is
+ * granted to use or replicate Red Hat trademarks that are incorporated
+ * in this software or its documentation.
+ */
+package com.redhat.swatch.component.tests.utils;
+
+public final class Topics {
+  public static final String SUFFIX = "platform.rhsm-subscriptions.";
+  public static final String BILLABLE_USAGE = SUFFIX + "billable-usage";
+  public static final String BILLABLE_USAGE_HOURLY_AGGREGATE =
+      SUFFIX + "billable-usage-hourly-aggregate";
+  public static final String BILLABLE_USAGE_STATUS = SUFFIX + "billable-usage.status";
+  public static final String UTILIZATION = SUFFIX + "utilization";
+  public static final String SWATCH_SERVICE_INSTANCE_INGRESS = SUFFIX + "service-instance-ingress";
+  public static final String HBI_EVENT_IN = "platform.inventory.events";
+  public static final String INVENTORY_HOST_INGRESS = "platform.inventory.host-ingress";
+  public static final String TALLY = SUFFIX + "tally";
+  public static final String CONDUIT_TASKS = "platform.rhsm-conduit.tasks";
+  public static final String NOTIFICATIONS = "platform.notifications.ingress";
+  public static final String ENABLED_ORGS = "platform.rhsm-subscriptions.enabled-orgs-for-tasks";
+  public static final String SUBSCRIPTION_SYNC_TASK =
+      "platform.rhsm-subscriptions.subscription-sync-task";
+  public static final String CAPACITY_RECONCILE = SUFFIX + "capacity-reconcile";
+
+  private Topics() {}
+}

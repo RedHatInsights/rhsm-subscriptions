@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+    <changeSet id="202101291558-1" author="khowell">
+        <addColumn tableName="hosts">
+            <column name="instance_type" type="VARCHAR(255)" defaultValue="HBI_HOST">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="202101291558-2" author="khowell">
+        <dropNotNullConstraint tableName="hosts" columnName="inventory_id"/>
+    </changeSet>
+
+    <changeSet id="202101291558-3" author="khowell">
+        <comment>Add a column to uniquely identify a service instance (e.g. OpenShift Cluster ID)</comment>
+        <addColumn tableName="hosts">
+            <column name="instance_id" type="VARCHAR(255)" />
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>

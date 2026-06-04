@@ -1,0 +1,21 @@
+$schema: http://json-schema.org/draft-07/schema#
+title: NetworkInterface
+properties:
+  ipv4_addresses:
+    type: array
+    items:
+      type: string
+  ipv6_addresses:
+    type: array
+    items:
+      type: string
+  mtu:
+    type: integer
+  mac_address:
+    type: string
+  name:
+    type: string
+  state:
+    type: string
+  type:
+    type: string

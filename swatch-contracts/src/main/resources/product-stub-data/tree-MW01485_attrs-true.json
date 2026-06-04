@@ -1,0 +1,49 @@
+{
+  "products": [
+    {
+      "sku": "MW01485",
+      "description": "Red Hat OpenShift Container Platform (Hourly)",
+      "status": "ACTIVE",
+      "attributes": [
+        {
+          "code": "PRODUCT_FAMILY",
+          "value": "OpenShift Enterprise"
+        },
+        {
+          "code": "SERVICE_TYPE",
+          "value": "Premium"
+        },
+        {
+          "code": "PRODUCT_NAME",
+          "value": "OpenShift Container Platform"
+        }
+      ],
+      "roles": []
+    },
+    {
+      "sku": "SVCMW01485",
+      "description": "Red Hat OpenShift Container Platform, Premium (1 vCPU, Hourly, On-Demand, Billing)",
+      "status": "ACTIVE",
+      "attributes": [
+        {
+          "code": "PRODUCT_FAMILY",
+          "value": "OpenShift Enterprise"
+        },
+        {
+          "code": "SERVICE_TYPE",
+          "value": "Premium"
+        },
+        {
+          "code": "PRODUCT_NAME",
+          "value": "OpenShift Container Platform"
+        }
+      ],
+      "roles": []
+    }
+  ],
+  "parentMap": [
+    {
+      "child": "SVCMW01485"
+    }
+  ]
+}

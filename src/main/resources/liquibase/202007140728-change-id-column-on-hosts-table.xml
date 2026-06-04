@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="202007140728-1" author="mstead">
+        <comment>Drop the existing tables. No data has been persisted by the repo, so this is OK.</comment>
+        <dropTable tableName="host_tally_buckets" />
+        <dropTable tableName="hosts" />
+    </changeSet>
+
+    <changeSet id="202007140728-2" author="mstead">
+        <comment>Recreate the hosts table.</comment>
+        <createTable tableName="hosts">
+            <column name="inventory_id" type="VARCHAR(255)"/>
+            <column name="account_number" type="VARCHAR(255)">
+                <constraints nullable="false" />
+            </column>
+            <column name="insights_id" type="VARCHAR(255)"/>
+            <column name="org_id" type="VARCHAR(255)" />
+            <column name="display_name" type="VARCHAR(255)"/>
+            <column name="subscription_manager_id" type="VARCHAR(255)"/>
+            <column name="cores" type="INTEGER"/>
+            <column name="sockets" type="INTEGER"/>
+            <column name="is_guest" type="BOOLEAN"/>
+            <column name="hypervisor_uuid" type="VARCHAR(255)"/>
+            <column name="hardware_type" type="VARCHAR(32)" />
+            <column name="num_of_guests" type="INTEGER"/>
+            <column name="last_seen" type="TIMESTAMP WITH TIME ZONE" />
+        </createTable>
+    </changeSet>
+
+    <changeSet id="202007140728-3" author="mstead">
+        <addPrimaryKey constraintName="inventory_id_pkey" tableName="hosts" columnNames="inventory_id" />
+    </changeSet>
+
+    <changeSet id="202007140728-4" author="mstead">
+        <comment>Create indexes for hosts table.</comment>
+        <createIndex indexName="insights_id_idx" tableName="hosts">
+            <column name="insights_id"/>
+        </createIndex>
+        <createIndex indexName="account_idx" tableName="hosts">
+            <column name="account_number"/>
+        </createIndex>
+        <createIndex indexName="org_id_idx" tableName="hosts">
+            <column name="org_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="202007140728-5" author="mstead">
+        <comment>Add table for host buckets.</comment>
+        <createTable tableName="host_tally_buckets">
+            <column name="host_inventory_id" type="VARCHAR(255)">
+                <constraints referencedTableName="hosts" referencedColumnNames="inventory_id"
+                             nullable="false" foreignKeyName="host_fk" deleteCascade="true"/>
+            </column>
+            <column name="usage" type="VARCHAR(255)" defaultValue="_ANY">
+                <constraints nullable="false"/>
+            </column>
+            <column name="product_id" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="sla" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="as_hypervisor" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="cores" type="INTEGER" defaultValue="0" />
+            <column name="sockets" type="INTEGER" defaultValue="0" />
+            <column name="measurement_type" type="VARCHAR(32)" />
+        </createTable>
+    </changeSet>
+
+    <changeSet id="202007140728-6" author="mstead">
+        <addPrimaryKey constraintName="host_tally_bucket_pkey"
+                       tableName="host_tally_buckets"
+                       columnNames="host_inventory_id,product_id,usage,sla,as_hypervisor"/>
+    </changeSet>
+
+</databaseChangeLog>
+<!-- vim: set expandtab sts=4 sw=4 ai: -->

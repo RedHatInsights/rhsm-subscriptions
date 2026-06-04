@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+    <changeSet id="202103031601-1" author="khowell">
+        <update tableName="hosts">
+            <column name="instance_id" valueComputed="inventory_id"/>
+            <where>instance_type = 'HBI_HOST'</where>
+        </update>
+    </changeSet>
+
+    <changeSet id="202103031601-2" author="khowell">
+        <addNotNullConstraint tableName="hosts" columnName="instance_id"/>
+    </changeSet>
+
+</databaseChangeLog>

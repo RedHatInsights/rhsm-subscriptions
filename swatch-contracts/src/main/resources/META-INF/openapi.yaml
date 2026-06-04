@@ -1,0 +1,1953 @@
+---
+openapi: 3.0.2
+info:
+  title: SWATCH Contract Service
+  version: 1.0.0
+  description: CRUD Operations for contract information
+  termsOfService: http://swagger.io/terms/
+  contact:
+    name: SWATCH Dev
+    url: https://github.com/RedHatInsights/rhsm-subscriptions
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+paths:
+  /api/swatch-contracts/internal/contracts/{uuid}:
+    delete:
+      parameters:
+        - examples:
+            uuid:
+              value: 8ece4096-bef6-4ad6-b0db-20c8e6b2a78c
+          name: uuid
+          description: UUID generated from a previously saved contract
+          schema:
+            type: string
+          in: path
+          required: true
+      responses:
+        "200":
+          description: Success
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+      operationId: deleteContractByUUID
+      description: "This will execute a hard delete of a contract and its associated\
+        \ metrics from the database.  This is NOT the same as setting a contract to\
+        \ expired.  To expire a certificate, the updateContract endpoint should be\
+        \ used with an end_date."
+      security:
+        - test: []
+  /api/swatch-contracts/internal/contracts:
+    get:
+      parameters:
+        - examples:
+            org_id:
+              value: org123
+          name: org_id
+          description: ""
+          schema:
+            type: string
+          in: query
+          required: true
+        - examples:
+            product_id:
+              value: BASILISK
+          name: product_tag
+          description: ""
+          schema:
+            type: string
+          in: query
+        - examples:
+            vendor_product_code:
+              value: 6n58d3s3qpvk22dgew2gal7w3
+          name: vendor_product_code
+          description: ""
+          schema:
+            type: string
+          in: query
+        - examples:
+            billing_provider:
+              value: aws
+          name: billing_provider
+          description: ""
+          schema:
+            type: string
+          in: query
+        - examples:
+            billing_account_id:
+              value: "123456789101"
+          name: billing_account_id
+          description: ""
+          schema:
+            type: string
+          in: query
+        - name: timestamp
+          description: Return only contract records active at this timestamp
+          schema:
+            type: string
+            format: date-time
+          in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Contract'
+          description: success
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+      security:
+        - support: []
+        - test: []
+        - service: []
+      operationId: getContract
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContractRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContractResponse'
+          description: success
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+      security:
+        - test: []
+      operationId: createContract
+  /api/swatch-contracts/internal/rpc/sync/contracts/{org_id}:
+    description: "Trigger a contract sync for a given Org ID"
+    post:
+      parameters:
+        - name: org_id
+          description: ""
+          schema:
+            type: string
+          in: path
+          required: true
+      summary: "Sync contracts for given org_id."
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+              examples:
+                status response:
+                  value:
+                    status: 'Success'
+                    message: "Contracts Synced for given org_id"
+          description: success
+      security:
+        - support: []
+        - test: []
+      operationId: syncContractsByOrg
+  /api/swatch-contracts/internal/rpc/sync/contracts/{org_id}/subscriptions:
+    description: "Trigger a subscription sync for all contracts of a given Org ID"
+    post:
+      parameters:
+        - name: org_id
+          description: ""
+          schema:
+            type: string
+          in: path
+          required: true
+      summary: "Sync subscriptions for all contracts for given org_id."
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+              examples:
+                status response:
+                  value:
+                    status: 'Success'
+                    message: "Subscriptions Synced for given org_id"
+          description: success
+      security:
+        - support: [ ]
+        - test: [ ]
+      operationId: syncSubscriptionsForContractsByOrg
+  /api/swatch-contracts/internal/rpc/contracts/sync:
+    description: "Trigger a sync for all orgs that have contracts in the upstream database."
+    post:
+      summary: "Sync all contracts."
+      operationId: syncAllContracts
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+              examples:
+                status response:
+                  value:
+                    status: 'Success'
+                    message: "All contracts Synced"
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+      security:
+        - support: []
+        - test: []
+        - service: []
+  /api/swatch-contracts/internal/rpc/reset/{org_id}:
+    description: "Clear all contracts and subscriptions for a given org ID. "
+    delete:
+      parameters:
+        - name: org_id
+          description: "Organization ID"
+          schema:
+            type: string
+          in: path
+          required: true
+      summary: "Clear all contracts and subscriptions for given org_id."
+      responses:
+        '204':
+          description: "Contracts and subscriptions successfully deleted"
+      security:
+        - support: [ ]
+        - test: [ ]
+        - service: [ ]
+      operationId: deleteDataForOrg
+  '/api/swatch-contracts/internal/rpc/partner/contracts':
+    post:
+      operationId: createPartnerEntitlementContract
+      requestBody:
+        description: Create a contract record from partner entitlement.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PartnerEntitlementContract'
+            examples:
+              contract info:
+                value:
+                  action: contract-updated
+                  redHatSubscriptionNumber: '12400374'
+                  currentDimensions:
+                    -
+                      dimensionName: cpu-hours
+                      dimensionValue: '5'
+                      expirationDate: '2018-02-10T09:30Z'
+                    -
+                      dimensionName: instance-hours
+                      dimensionValue: '10'
+                      expirationDate: '2018-02-10T09:30Z'
+                  cloudIdentifiers:
+                    awsCustomerId: 'HSwCpt6sqkC'
+                    awsCustomerAccountId: '795061427196'
+                    productCode: '1234567890abcdefghijklmno'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+              examples:
+                status response:
+                  value:
+                    status: 'Success'
+                    message: "Contract created"
+          description: Success
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+      security:
+        - test: []
+  /api/swatch-contracts/internal/subscriptions:
+    description: Save subscriptions manually. Supported only in dev-mode.
+    post:
+      operationId: saveSubscriptions
+      parameters:
+        - name: reconcileCapacity
+          in: query
+          schema:
+            type: boolean
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: string
+            examples:
+              subscription:
+                "value": [
+                  {
+                    "id": "000149",
+                    "subscriptionNumber": "8838431",
+                    "subscriptionProducts": [
+                      {
+                        "sku": "MCT4121HR"
+                      }
+                    ],
+                    "webCustomerId": "14541308",
+                    "quantity": 1,
+                    "oracleAccountNumber": "",
+                    "effectiveStartDate": 1697847432103,
+                    "effectiveEndDate": 1730247432103,
+                    "externalReferences": {
+                      "awsMarketplace": {
+                        "subscriptionID": "100",
+                        "customerID": 102,
+                        "productCode": "testProductCode",
+                        "sellerAccount": "1234567",
+                        "customerAccountID": 102
+                      }
+                    }
+                  }
+                ]
+      responses:
+        '200':
+          description: Save a list of subscriptions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionResponse"
+              examples:
+                success:
+                  value: {
+                    "detail": "Success"
+                  }
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+      security:
+        - support: [ ]
+        - test: [ ]
+        - service: [ ]
+    get:
+      parameters:
+        - name: org_id
+          schema:
+            type: string
+          in: query
+          required: true
+      operationId: getSubscriptions
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Subscription'
+          description: success
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+      security:
+        - support: [ ]
+        - test: [ ]
+        - service: [ ]
+  /api/swatch-contracts/internal/subscriptions/umb:
+    description: Save UMB subscription manually.
+    post:
+      operationId: syncUmbSubscription
+      requestBody:
+        content:
+          application/xml:
+            schema:
+              type: string
+            example:
+              '<CanonicalMessage>
+                <Payload>
+                <Sync>
+                <Subscription>
+                <Identifiers>
+                <PlaceholderElementThatShouldBeIgnored>FooBar</PlaceholderElementThatShouldBeIgnored>
+                <Reference system="EBS" entity-name="Account" qualifier="number">account123</Reference>
+                <Reference system="WEB" entity-name="Customer" qualifier="id">org123_ICUST</Reference>
+                <Identifier system="SUBSCRIPTION" entity-name="Subscription" qualifier="number">1234</Identifier>
+                </Identifiers>
+                <Status>
+                <State>Active</State>
+                <StartDate>2020-01-01T12:34:56.789</StartDate>
+                </Status>
+                <Quantity>1</Quantity>
+                <effectiveStartDate>2020-01-01T00:00:00.000</effectiveStartDate>
+                <effectiveEndDate>2030-01-01T00:00:00.000</effectiveEndDate>
+                <Product>
+                <Sku>MW01882</Sku>
+                <CreatedBy>OSUBPRODTEST3EAC72C765804E2B8D34484E7FF8D1C8</CreatedBy>
+                <CreatedDate>2023-04-24T14:11:16.809</CreatedDate>
+                <Identifiers>
+                <MasterSystem>EBS</MasterSystem>
+                <Identifier entity-name="Product"
+                qualifier="number" system="SUBSCRIPTION">37188549
+                </Identifier>
+                </Identifiers>
+                <Status>
+                <State>Active</State>
+                <StartDate>2020-01-01T12:34:56.789</StartDate>
+                </Status>
+                <Product serviceable="true">
+                <CreatedBy>OSUBPRODTEST3EAC72C765804E2B8D34484E7FF8D1C8</CreatedBy>
+                <CreatedDate>2023-04-24T14:11:16.809</CreatedDate>
+                <LastUpdatedBy>SYSADMIN</LastUpdatedBy>
+                <LastUpdatedDate>2023-04-24T14:17:02.000</LastUpdatedDate>
+                <Identifiers>
+                <MasterSystem>EBS</MasterSystem>
+                <AuthoringOperatingUnit>
+                <Number>103</Number>
+                </AuthoringOperatingUnit>
+                <Identifier entity-name="Product"
+                qualifier="number" system="SUBSCRIPTION">37188550
+                </Identifier>
+                <Reference entity-name="Contract"
+                qualifier="number" system="EBS">16612423
+                </Reference>
+                <Reference entity-name="Contract"
+                qualifier="id" system="EBS">25565753
+                </Reference>
+                </Identifiers>
+                <Status>
+                <State>Active</State>
+                <StartDate>2023-04-24T00:00:00.000</StartDate>
+                <EndDate>2026-04-23T00:00:00.000</EndDate>
+                </Status>
+                <Status>
+                <State>Signed</State>
+                <StartDate>2023-04-24T00:00:00.000</StartDate>
+                </Status>
+                <Status primary="true">
+                <State>Terminated</State>
+                <StartDate>2023-04-24T14:17:02.000</StartDate>
+                </Status>
+                <Sku>SVC2681</Sku>
+                <InventoryOperatingUnit>
+                <Number>118</Number>
+                </InventoryOperatingUnit>
+                <ContractDescription>Reg Number activation from Hock</ContractDescription>
+                <ContractHeaderStatus>Terminated</ContractHeaderStatus>
+                </Product>
+                </Product>
+                <PlaceholderElementThatShouldBeIgnored />
+                </Subscription>
+                </Sync>
+                </Payload>
+                </CanonicalMessage>'
+      responses:
+        '200':
+          description: Save a UMB subscription
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionResponse"
+              examples:
+                success:
+                  value: {
+                    "detail": "Success"
+                  }
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+      security:
+        - support: [ ]
+        - test: [ ]
+        - service: [ ]
+  /api/swatch-contracts/internal/rpc/subscriptions/sync:
+    description: Enqueue all sync-enabled orgs to sync their subscriptions with upstream
+    post:
+      summary: Enqueue all sync-enabled orgs to sync their subscriptions with upstream
+      operationId: syncAllSubscriptions
+      parameters:
+        - name: forceSync
+          in: query
+          schema:
+            type: boolean
+            default: "false"
+            description: "When true, it will trigger a sync of all subscription even when it was explicitly disabled via configuration."
+      responses:
+        '200':
+          description: The request for syncing all subscriptions is successful.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RpcResponse"
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+      security:
+        - support: [ ]
+        - test: [ ]
+        - service: [ ]
+  /api/swatch-contracts/internal/subscriptions/sync/org/{org_id}:
+    description: "Force sync of subscriptions for given org_id."
+    parameters:
+      - name: org_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: "The ID for the organization subscriptions to sync"
+    put:
+      summary: "Sync all subscriptions for given org_id."
+      operationId: forceSyncSubscriptionsForOrg
+      responses:
+        '200':
+          description: The request for syncing a single organization's subscription is processing.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RpcResponse"
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+      security:
+        - support: [ ]
+        - test: [ ]
+        - service: [ ]
+  /api/swatch-contracts/internal/subscriptions/awsUsageContext:
+    description: "Get AWS usage context."
+    parameters:
+      - name: orgId
+        in: query
+        schema:
+          type: string
+        description: "Customer's Org Id"
+      - name: date
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: productId
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: sla
+        in: query
+        schema:
+          type: string
+      - name: usage
+        in: query
+        schema:
+          type: string
+      - name: awsAccountId
+        in: query
+        schema:
+          type: string
+          default: _ANY
+
+    get:
+      summary: "Lookup necessary info to submit a usage record to AWS"
+      operationId: getAwsUsageContext
+      responses:
+        '200':
+          description: "Found AWS usage context matching the criteria."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AwsUsageContext'
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+      security:
+        - support: [ ]
+        - test: [ ]
+        - service: [ ]
+  /api/swatch-contracts/internal/subscriptions/azureUsageContext:
+    get:
+      operationId: getAzureMarketplaceContext
+      summary: Lookup necessary info to submit a usage record to Azure
+      parameters:
+        - name: orgId
+          description: 'Look at subscriptions for this orgId'
+          example: org123
+          schema:
+            type: string
+          in: query
+        - name: date
+          description: 'Look at subscriptions starting on this date'
+          example: 2023-10-31T00:00:00Z
+          schema:
+            format: date-time
+            type: string
+          in: query
+          required: true
+        - name: productId
+          description: 'This value should correspond to a product variant tag as defined in swatch product configuration'
+          example: rhel-for-x86-els-payg
+          schema:
+            type: string
+          in: query
+          required: true
+        - name: sla
+          description: 'Look at subscriptions matching this SLA'
+          example: Premium
+          schema:
+            type: string
+          in: query
+        - name: usage
+          description: 'Look at subscriptions matching this usage'
+          example: Production
+          schema:
+            type: string
+          in: query
+        - name: azureAccountId
+          description: 'Look at subscriptions matching this billing_account_id'
+          schema:
+            type: string
+            default: _ANY
+          in: query
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AzureUsageContext'
+          description: Found Azure usage context matching the criteria.
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+      security:
+        - support: [ ]
+        - test: [ ]
+        - service: [ ]
+  /api/swatch-contracts/internal/offerings/{sku}/product_tags:
+    description: "Mapping sku to product tags."
+    parameters:
+      - name: sku
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: "Lookup product tags by sku"
+      operationId: getSkuProductTags
+      responses:
+        '200':
+          description: "The request to get product tags by sku ."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfferingProductTags'
+              example:
+                data:
+                  - Rho one
+                  - Rho two
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+      security:
+        - test: [ ]
+  /api/swatch-contracts/internal/tags/{tag}/metrics:
+    description: "Mapping sku to product tags."
+    parameters:
+      - name: tag
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: "Lookup metric information by tag"
+      operationId: getMetrics
+      responses:
+        '200':
+          description: Matching metrics
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MetricResponse'
+              example:
+                data:
+                  - metric_id: foo
+                    aws_dimension: foo1
+                    billing_factor: 0.25
+                  - metric_id: bar
+                    aws_dimension: bar1
+                    billing_factor: 1.0
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+      security:
+        - support: [ ]
+        - test: [ ]
+        - service: [ ]
+  /api/swatch-contracts/internal/rpc/offerings/sync/{sku}:
+    description: Sync an offering from the upstream source.
+    parameters:
+      - name: sku
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Sync an offering from the upstream source.
+      operationId: syncOffering
+      responses:
+        '200':
+          description: Sync for offering sku
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OfferingResponse"
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+      security:
+        - support: [ ]
+        - test: [ ]
+        - service: [ ]
+  /api/swatch-contracts/internal/rpc/offerings/sync:
+    description: Syncs all offerings not listed in deny list from the upstream source.
+    post:
+      summary: Syncs all offerings not listed in deny list from the upstream source.
+      operationId: syncAllOfferings
+      responses:
+        '200':
+          description: Enqueued offerings to be synced.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OfferingResponse"
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+      security:
+        - support: [ ]
+        - test: [ ]
+        - service: [ ]
+  /api/swatch-contracts/internal/rpc/offerings/reconcile/{sku}:
+    description: Reconcile capacity for an offering from the upstream source.
+    parameters:
+      - name: sku
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Reconcile capacity for an offering from the upstream source.
+      operationId: forceReconcileOffering
+      responses:
+        '200':
+          description: Capacity Reconciliation for offering sku successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OfferingResponse"
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+      security:
+        - support: [ ]
+        - test: [ ]
+        - service: [ ]
+  /api/swatch-contracts/internal/subscriptions/terminate/{subscription_id}:
+    description: "Terminate a subscription with a given end date."
+    parameters:
+      - name: subscription_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: "Subscription ID to terminate."
+    post:
+      operationId: terminateSubscription
+      summary: "Terminate a subscription."
+      parameters:
+        - name: timestamp
+          description: "The termination timestamp to use."
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: "The termination request was successful"
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/TerminationRequest"
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+      security:
+        - support: [ ]
+        - test: [ ]
+        - service: [ ]
+
+  /api/rhsm-subscriptions/v1/subscriptions/products/{product_id}:
+    description: "Operations for total capacity by SKU for all of the org's active subscriptions for given Swatch product ID."
+    parameters:
+      - name: product_id
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/ProductId"
+        description: "The ID for the product we wish to query"
+      - name: offset
+        in: query
+        schema:
+          type: integer
+          minimum: 0
+        description: "The number of items to skip before starting to collect the result set"
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+        description: "The numbers of items to return"
+    get:
+      summary: "Returns the total capacity by SKU for all of the org's active subscriptions for given Swatch product ID."
+      operationId: getSkuCapacityReportV1
+      deprecated: true
+      parameters:
+        - name: category
+          in: query
+          schema:
+            $ref: '#/components/schemas/ReportCategory'
+          description: 'The category to fetch data for'
+        - name: sla
+          in: query
+          schema:
+            $ref: '#/components/schemas/ServiceLevelType'
+          description: "Include only capacity for the specified service level."
+        - name: usage
+          in: query
+          schema:
+            $ref: '#/components/schemas/UsageType'
+          description: "Include only capacity for the specified usage level."
+        - name: billing_provider
+          in: query
+          schema:
+            $ref: '#/components/schemas/BillingProviderType'
+          description: "Include only report data matching the specified billing provider"
+        - name: billing_account_id
+          in: query
+          schema:
+            $ref: '#/components/schemas/BillingAccountId'
+          description: "Include only report data matching the specified billing account"
+        - name: beginning
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: "Defines the start of the report period. Dates should be provided in ISO 8601
+             format but the only accepted offset is UTC. E.g. 2017-07-21T17:32:28Z"
+        - name: ending
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: "Defines the end of the report period.  Defaults to the current time. Dates should
+             be provided in UTC."
+        - name: metric_id
+          in: query
+          schema:
+            type: string
+          description: "Filter subscriptions to those that contribute to a specific unit of measure"
+        - name: sort
+          in: query
+          schema:
+            $ref: "#/components/schemas/SkuCapacityReportSort_V1"
+          description: "What property to sort by (optional)"
+        - name: dir
+          in: query
+          schema:
+            $ref: "#/components/schemas/SortDirection"
+          description: "Which direction to sort by (default: asc)"
+      responses:
+        '200':
+          description: "The request for the account's subscription capacities was successful."
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/SkuCapacityReport_V1"
+              example:
+                data:
+                  - sku: RH00011
+                    product_name: "Red Hat Enterprise Linux Server, Premium (Physical and 4 Virtual Nodes)(L3 Only)"
+                    service_level: Premium
+                    usage: Production
+                    subscriptions:
+                      - id: "1234567890"
+                        number: "1234567891"
+                      - id: "1234567892"
+                        number: "1234567893"
+                      - id: "1234567894"
+                        number: "1234567895"
+                    next_event_date: "2020-04-01T00:00:00Z"
+                    next_event_type: Subscription Begin
+                    quantity: 3
+                    capacity: 3
+                    hypervisor_capacity: 3
+                    total_capacity: 6
+                    metricId: Sockets
+                  - sku: RH00010
+                    product_name: "Red Hat Enterprise Linux Server"
+                    service_level: Self-Support
+                    usage: Production
+                    subscriptions:
+                      - id: "1234567896"
+                        number: "1234567897"
+                      - id: "1234567898"
+                        number: "1234567899"
+                      - id: "1234567900"
+                        number: "1234567901"
+                    next_event_date: "2020-04-02T00:00:00Z"
+                    next_event_type: Subscription Begin
+                    quantity: 3
+                    capacity: 3
+                    hypervisor_capacity: 3
+                    total_capacity": 6
+                    metricId: Sockets
+                  - sku: RH00009
+                    product_name: "Red Hat Enterprise Linux Server, Premium"
+                    service_level: Premium
+                    usage: Production
+                    subscriptions:
+                      - id: "1234567902"
+                        number: "1234567903"
+                      - id: "1234567904"
+                        number: "1234567905"
+                      - id: "1234567906"
+                        number: "1234567907"
+                    next_event_date: "2020-04-01T00:00:00Z"
+                    next_event_type: Subscription End
+                    quantity: 3
+                    capacity: 6
+                    hypervisor_capacity: 6
+                    total_capacity: 12
+                    metricId: Cores
+                meta:
+                  count: 3
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '404':
+          $ref: "#/components/responses/ResourceNotFound"
+        '500':
+          $ref: "#/components/responses/InternalServerError"
+      tags:
+        - subscriptions_v1
+      security:
+        - customer: [ ]
+        - service: [ ]
+
+  /api/rhsm-subscriptions/v2/subscriptions/products/{product_id}:
+    description: "Operations for total capacity by SKU for all of the org's active subscriptions for given Swatch product ID."
+    parameters:
+      - name: product_id
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/ProductId"
+        description: "The ID for the product we wish to query"
+      - name: offset
+        in: query
+        schema:
+          type: integer
+          minimum: 0
+        description: "The number of items to skip before starting to collect the result set"
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+        description: "The numbers of items to return"
+    get:
+      summary: "Returns the total capacity by SKU for all of the org's active subscriptions for given Swatch product ID."
+      operationId: getSkuCapacityReportV2
+      parameters:
+        - name: category
+          in: query
+          schema:
+            $ref: '#/components/schemas/ReportCategory'
+          description: 'The category to fetch data for'
+        - name: sla
+          in: query
+          schema:
+            $ref: '#/components/schemas/ServiceLevelType'
+          description: "Include only capacity for the specified service level."
+        - name: usage
+          in: query
+          schema:
+            $ref: '#/components/schemas/UsageType'
+          description: "Include only capacity for the specified usage level."
+        - name: billing_provider
+          in: query
+          schema:
+            $ref: '#/components/schemas/BillingProviderType'
+          description: "Include only report data matching the specified billing provider"
+        - name: billing_account_id
+          in: query
+          schema:
+            $ref: '#/components/schemas/BillingAccountId'
+          description: "Include only report data matching the specified billing account"
+        - name: beginning
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: "Defines the start of the report period. Dates should be provided in ISO 8601
+             format but the only accepted offset is UTC. E.g. 2017-07-21T17:32:28Z"
+        - name: ending
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: "Defines the end of the report period.  Defaults to the current time. Dates should
+             be provided in UTC."
+        - name: metric_id
+          in: query
+          schema:
+            type: string
+          description: "Filter subscriptions to those that contribute to a specific unit of measure"
+        - name: sort
+          in: query
+          schema:
+            $ref: "#/components/schemas/SkuCapacityReportSort_V2"
+          description: "What property to sort by (optional)"
+        - name: dir
+          in: query
+          schema:
+            $ref: "#/components/schemas/SortDirection"
+          description: "Which direction to sort by (default: asc)"
+      responses:
+        '200':
+          description: "The request for the account's subscription capacities was successful."
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/SkuCapacityReport_V2"
+              example:
+                data:
+                  - sku: RH00011
+                    product_name: "Red Hat Enterprise Linux Server, Premium (Physical and 4 Virtual Nodes)(L3 Only)"
+                    service_level: Premium
+                    usage: Production
+                    subscriptions:
+                      - id: "1234567890"
+                        number: "1234567891"
+                      - id: "1234567892"
+                        number: "1234567893"
+                      - id: "1234567894"
+                        number: "1234567895"
+                    next_event_date: "2020-04-01T00:00:00Z"
+                    next_event_type: Subscription Begin
+                    quantity: 3
+                    capacity: 3
+                    hypervisor_capacity: 3
+                    total_capacity: 6
+                    metricId: Sockets
+                  - sku: RH00010
+                    product_name: "Red Hat Enterprise Linux Server"
+                    service_level: Self-Support
+                    usage: Production
+                    subscriptions:
+                      - id: "1234567896"
+                        number: "1234567897"
+                      - id: "1234567898"
+                        number: "1234567899"
+                      - id: "1234567900"
+                        number: "1234567901"
+                    next_event_date: "2020-04-02T00:00:00Z"
+                    next_event_type: Subscription Begin
+                    quantity: 3
+                    capacity: 3
+                    hypervisor_capacity: 3
+                    total_capacity": 6
+                    metricId: Sockets
+                  - sku: RH00009
+                    product_name: "Red Hat Enterprise Linux Server, Premium"
+                    service_level: Premium
+                    usage: Production
+                    subscriptions:
+                      - id: "1234567902"
+                        number: "1234567903"
+                      - id: "1234567904"
+                        number: "1234567905"
+                      - id: "1234567906"
+                        number: "1234567907"
+                    next_event_date: "2020-04-01T00:00:00Z"
+                    next_event_type: Subscription End
+                    quantity: 3
+                    capacity: 6
+                    hypervisor_capacity: 6
+                    total_capacity: 12
+                    metricId: Cores
+                meta:
+                  count: 3
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '404':
+          $ref: "#/components/responses/ResourceNotFound"
+        '500':
+          $ref: "#/components/responses/InternalServerError"
+      tags:
+        - subscriptions_v2
+      security:
+        - customer: [ ]
+        - service: [ ]
+
+  /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}:
+    description: 'Operations for capacity report for a given account and product'
+    parameters:
+      - name: product_id
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/ProductId"
+        description: "The ID for the product we wish to query"
+      - name: metric_id
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/MetricId"
+        description: "The metric ID for the product we wish to query"
+      - name: offset
+        in: query
+        schema:
+          type: integer
+        description: "The number of items to skip before starting to collect the result set"
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+        description: "The numbers of items to return"
+    get:
+      summary: "Fetch a capacity report for an account and product."
+      operationId: getCapacityReportByMetricId
+      parameters:
+        - name: billing_account_id
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/BillingAccountId"
+          description: "The billing account ID for the product we wish to query"
+        - name: granularity
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/GranularityType'
+          description: "The level of granularity to return."
+        - name: category
+          in: query
+          schema:
+            $ref: '#/components/schemas/ReportCategory'
+          description: 'The category to fetch data for'
+        - name: sla
+          in: query
+          schema:
+            $ref: '#/components/schemas/ServiceLevelType'
+          description: "Include only capacity for the specified service level."
+        - name: usage
+          in: query
+          schema:
+            $ref: '#/components/schemas/UsageType'
+          description: "Include only capacity for the specified usage level."
+        - name: beginning
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+          description: "Defines the start of the report period. Dates should be provided in ISO 8601
+            format but the only accepted offset is UTC. E.g. 2017-07-21T17:32:28Z"
+        - name: ending
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+          description: "Defines the end of the report period.  Defaults to the current time. Dates should
+            be provided in UTC."
+      responses:
+        '200':
+          description: 'The request for a capacity report was successful.'
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/CapacityReportByMetricId"
+              example:
+                data:
+                  - date: '2017-08-01T17:32:05Z'
+                    has_data: true
+                    value: 100.0
+                  - date: '2017-08-02T17:31:04Z'
+                    has_data: false
+                    value: 0.0
+                  - date: '2017-08-03T17:31:04Z'
+                    has_data: false
+                    value: 0.0
+                  - date: '2017-08-04T17:31:04Z'
+                    has_data: false
+                    value: 0.0
+                  - date: '2017-08-05T17:31:04Z'
+                    has_data: false
+                    value: 0.0
+                links:
+                  first: '/api/rhsm-subscriptions/v1/capacity/RHEL%20for%20x86/Sockets?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=0&limit=5'
+                  last: '/api/rhsm-subscriptions/v1/capacity/RHEL%20for%20x86/Sockets?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=5&limit=5'
+                  previous: null
+                  next: '/api/rhsm-subscriptions/v1/capacity/RHEL%20for%20x86/Sockets?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=5&limit=5'
+                meta:
+                  count: 10
+                  product: RHEL Server
+                  granularity: Daily
+                  service_level: Premium
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '404':
+          $ref: "#/components/responses/ResourceNotFound"
+        '500':
+          $ref: "#/components/responses/InternalServerError"
+      tags:
+        - capacity
+      security:
+        - service: [ ]
+        - customer: [ ]
+
+  /api/swatch-contracts/v1/subscriptions/billing_account_ids:
+    description: Fetch billing account IDs by Org
+    get:
+      operationId: fetchBillingAccountIdsForOrg
+      parameters:
+        - name: org_id
+          in: query
+          schema:
+            type: string
+          required: true
+        - name: product_tag
+          in: query
+          schema:
+            type: string
+          required: false
+      responses:
+        '200':
+          description: List of billing account ids by org
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BillingAccountIdResponse"
+              example:
+                ids:
+                  - billing_account_id: "151968c3-cf37-47f4-bd76-affbdfb91245"
+                    billing_provider: "aws"
+                    org_id: "123"
+                    product_tag: "rosa"
+                  - billing_account_id: "2cfa4d67-58c9-48c1-9673-bc539b4ea51a"
+                    billing_provider: "azure"
+                    org_id: "124"
+                    product_tag: "rhods"
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '403':
+          $ref: "#/components/responses/Forbidden"
+        '500':
+          $ref: "#/components/responses/InternalServerError"
+      tags:
+        - contracts_v1
+      security:
+        - support: [ ]
+        - customer: [ ]
+        - test: [ ]
+
+components:
+  schemas:
+    Errors:
+      required:
+        - errors
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/Error'
+    Error:
+      required:
+        - status
+        - code
+        - title
+      properties:
+        status:
+          type: string
+        code:
+          type: string
+        title:
+          type: string
+        detail:
+          type: string
+    ContractRequest:
+      description: ""
+      required:
+        - partner_entitlement
+        - subscription_id
+      type: object
+      properties:
+        partner_entitlement:
+          $ref: '../../../../../clients/rh-partner-gateway-client/rh-partner-gateway-api-spec.yaml#/components/schemas/PartnerEntitlementV1'
+        subscription_id:
+          description: The subscription ID provided by the Subscription API using the subscription number.
+          type: string
+    BillingAccountIdResponse:
+      type: object
+      properties:
+        ids:
+          type: array
+          items:
+            $ref: "#/components/schemas/BillingAccount"
+    BillingAccount:
+      type: object
+      properties:
+        org_id:
+          type: string
+        product_tag:
+          type: string
+        billing_provider:
+          type: string
+        billing_account_id:
+          type: string
+    ContractResponse:
+      required:
+        - status
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/StatusResponse'
+        contract:
+          $ref: '#/components/schemas/Contract'
+    Contract:
+      description: ""
+      required:
+        - start_date
+        - org_id
+        - billing_provider
+        - billing_account_id
+        - product_tags
+        - metrics
+        - sku
+        - vendor_product_code
+      type: object
+      properties:
+        uuid:
+          description: Randomly generated if not set
+          type: string
+          example: 8ece4096-bef6-4ad6-b0db-20c8e6b2a78c
+        subscription_number:
+          description: ""
+          type: string
+          example: "12345678"
+        sku:
+          description: ""
+          type: string
+          example: BAS123
+        start_date:
+          format: date-time
+          description: ""
+          type: string
+          example: 2022-01-01T00:00:00Z
+        end_date:
+          format: date-time
+          description: ""
+          type: string
+          example: 2023-03-01T00:00:00Z
+        org_id:
+          description: ""
+          type: string
+          example: org123
+        billing_provider:
+          description: ""
+          type: string
+          example: aws
+        billing_provider_id:
+          description: Encoded additional information needed for billing
+          type: string
+        billing_account_id:
+          description: AWS billing account ids are 12 digits
+          type: string
+          example: "123456789101"
+        product_tags:
+          description: ""
+          type: array
+          items:
+            type: string
+          example: "[\"BASILISK\"]"
+        vendor_product_code:
+          description: ""
+          type: string
+          example: "6n58d3s3qpvk22dgew2gal7w3"
+        metrics:
+          description: ""
+          type: array
+          items:
+            $ref: '#/components/schemas/Metric'
+          example: "[{\"metric_id\": \"Instance-hours\", \"value\": 68.6}]"
+      example:
+        uuid: some text
+        subscription_number: some text
+        start_date: 2018-02-10T09:30Z
+        end_date: 2018-02-10T09:30Z
+        org_id: some text
+        billing_provider: aws
+        billing_account_id: some text
+        product_tags: ["some text"]
+        metrics:
+          - metric_id: some text
+            value: 3.57
+          - metric_id: some text
+            value: 52.67
+    Metric:
+      title: Root Type for Metric
+      description: ""
+      required:
+        - value
+        - metric_id
+      type: object
+      properties:
+        metric_id:
+          type: string
+          example: Instance-hours
+        value:
+          format: int32
+          type: integer
+          example: 1
+      example:
+        metric_id: Instance-hours
+        value: 68.6
+    Subscription:
+      type: object
+      properties:
+        subscription_id:
+          type: string
+        subscription_number:
+          type: string
+        sku:
+          type: string
+        quantity:
+          type: integer
+        start_date:
+          format: date-time
+          type: string
+        end_date:
+          format: date-time
+          type: string
+        org_id:
+          type: string
+        billing_provider:
+          type: string
+        billing_provider_id:
+          type: string
+        billing_account_id:
+          type: string
+        metrics:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubscriptionMeasurement'
+    SubscriptionMeasurement:
+      type: object
+      properties:
+        metric_id:
+          type: string
+        measurement_type:
+          type: string
+        value:
+          format: double
+          type: number
+    OfferingProductTags:
+      properties:
+        data:
+          type: array
+          items:
+            type: string
+    OperationalProductEvent:
+      properties:
+        occurredOn:
+          description: timestamp that event occurred
+          example: '2023-05-29T16:00:54.279Z'
+          type: string
+        productCode:
+          description: Sku of Product
+          type: string
+        productCategory:
+          description: Parent or Child SKU
+          type: string
+          enum:
+            - Parent SKU
+            - Child SKU
+        eventType:
+          description: Create or update product
+          type: string
+          enum:
+            - Create
+            - Update
+    PartnerEntitlementContract:
+      properties:
+        action:
+          description: Create or update contract
+          type: string
+#          enum:
+#            - contract-updated
+        redHatSubscriptionNumber:
+          description: Map it to subscription_number
+          type: string
+        currentDimensions:
+          description: ''
+          type: array
+          items:
+            $ref: '#/components/schemas/Dimension'
+          example: '[{"dimensionName": "test_dim_1", "dimensionValue": 5, "expirationDate": "2023-02-15T00:00:00Z"}]'
+        cloudIdentifiers:
+          type: object
+          properties:
+            partner:
+              type: string
+            awsCustomerId:
+              type: string
+            awsCustomerAccountId:
+              type: string
+            productCode:
+              type: string
+            azureResourceId:
+              type: string
+            azureTenantId:
+              type: string
+            azureOfferId:
+              type: string
+            planId:
+              type: string
+    Dimension:
+      properties:
+        dimensionName:
+          type: string
+        dimensionValue:
+          type: string
+        expirationDate:
+          format: date-time
+          description: ''
+          type: string
+          example: '2023-03-01T00:00:00Z'
+    StatusResponse:
+      properties:
+        status:
+          type: string
+        message:
+          type: string
+    AwsUsageContext:
+      description: Encapsulates all data needed to map tally snapshot usage to AWS UsageRecords.
+      properties:
+        rhSubscriptionId:
+          type: string
+        customerId:
+          type: string
+        productCode:
+          type: string
+        awsSellerAccountId:
+          type: string
+        subscriptionStartDate:
+          type: string
+          format: date-time
+    AzureUsageContext:
+      description: Encapsulates all data needed to map tally snapshot usage to Azure UsageRecords.
+      properties:
+        azureResourceId:
+          description: IT Partner gateway will pass it under "cloudIdentifiers".  UMB messages under purchase.resourceId
+          type: string
+          example: 10d3a42f-cad5-4b55-8cd7-1569edf07a4d
+        azureTenantId:
+          description: IT Partner gateway will pass it under "cloudIdentifiers".  UMB messages under partnerIdentities.azureTenantId
+          type: string
+          example: 18087458-3905-4dea-80a4-758d69b7d2c5
+        offerId:
+          description: IT Partner gateway will pass it under "cloudIdentifiers".  UMB messages under purchase.vendorProductCode
+          type: string
+          example: azureProductCode
+        planId:
+          description: IT Partner gateway will pass it under "cloudIdentifiers".  UMB messages under contracts.planId
+          type: string
+          example: rh-rhel-sub-1yr
+        clientId:
+          description: IT Partner gateway will pass it under "cloudIdentifiers".  UMB messages under partnerIdentities.clientId
+          type: string
+          example: 6779ef20e75817b79602
+    MetricResponse:
+      properties:
+        metric_id:
+          type: string
+        aws_dimension:
+          type: string
+        billing_factor:
+          type: number
+          format: double
+    TerminationRequest:
+      properties:
+        data:
+          type: object
+          properties:
+            termination_message:
+              type: string
+    RpcResponse:
+      properties:
+        result:
+          type: string
+          description: Result of the operation. Empty when succeeded.
+    SubscriptionResponse:
+      properties:
+        detail:
+          type: string
+    OfferingResponse:
+      properties:
+        detail:
+          type: string
+    # Schemas ending in "Type" are intentionally named to prevent naming conflicts with db model classes
+    ServiceLevelType:
+      description: "Describes the service level that the report was made against. Not set if it
+          wasn't specified as a query parameter."
+      type: string
+      enum: [ "", Premium, Standard, Self-Support, _ANY ]
+    UsageType:
+      description: "Describes the usage that the report was made against. Not set if it wasn't
+          specified as a query parameter."
+      type: string
+      enum: [ "", Production, Development/Test, Disaster Recovery, _ANY ]
+    BillingProviderType:
+      type: string
+      enum: [ "", red hat, aws, gcp, azure, oracle, _ANY ]
+    ReportCategory:
+      type: string
+      enum:
+        - physical
+        - virtual
+        - cloud
+        - hypervisor
+    BillingAccountId:
+      type: string
+    SortDirection:
+      type: string
+      enum:
+        - asc
+        - desc
+    PageLinks:
+      properties:
+        first:
+          type: string
+        last:
+          type: string
+        previous:
+          type: string
+        next:
+          type: string
+      required:
+        - first
+        - last
+    GranularityType:
+      description: "Describes the significance of each date in the snapshot list. For example if the
+          granularity is set to 'weekly', the dates in the snapshot list will represent the start
+          of a seven day period."
+      type: string
+      enum: [ Hourly, Daily, Weekly, Monthly, Quarterly, Yearly ]
+    SubscriptionType:
+      type: string
+      enum:
+        - On-demand
+        - Annual
+    MetricId:
+      type: string
+      format: MetricId
+    SubscriptionEventType:
+      description: "The most immediate subscription event, such as a subscription beginning or ending."
+      type: string
+      enum:
+        - Subscription Start
+        - Subscription End
+
+    SkuCapacitySubscription:
+      properties:
+        id:
+          type: string
+        number:
+          type: string
+
+    SkuCapacity_V1:
+      properties:
+        sku:
+          description: "The identifier for the offering."
+          type: string
+        product_name:
+          description: "The offering name."
+          type: string
+        service_level:
+          $ref: "#/components/schemas/ServiceLevelType"
+        usage:
+          $ref: "#/components/schemas/UsageType"
+        subscriptions:
+          description: "List of active subscriptions that contribute to the quantity and capacity totals."
+          type: array
+          items:
+            $ref: "#/components/schemas/SkuCapacitySubscription"
+        billing_provider:
+          $ref: '#/components/schemas/BillingProviderType'
+        next_event_date:
+          description: "The most immediate date for a subscription event."
+          type: string
+          format: date-time
+        next_event_type:
+          $ref: "#/components/schemas/SubscriptionEventType"
+        quantity:
+          description: "The summed subscription quantities across the active subscriptions for the offering."
+          type: integer
+          format: int32
+        capacity:
+          description: "The summed standard capacity of the unit-of-measure of the active subscriptions for the offering."
+          type: integer
+          format: int32
+        hypervisor_capacity:
+          description: "The summed hypervisor capacity of the unit-of-measure of the active subscriptions for the offering."
+          type: integer
+          format: int32
+        total_capacity:
+          description: "The combined (standard and hypervisor) capacity for the offering."
+          type: integer
+          format: int32
+        has_infinite_quantity:
+          description: "Denotes unlimited capacity for the offering when true."
+          type: boolean
+        metric_id:
+          type: string
+
+    SkuCapacity_V2:
+      properties:
+        sku:
+          description: "The identifier for the offering."
+          type: string
+        product_name:
+          description: "The offering name."
+          type: string
+        service_level:
+          $ref: "#/components/schemas/ServiceLevelType"
+        usage:
+          $ref: "#/components/schemas/UsageType"
+        subscriptions:
+          description: "List of active subscriptions that contribute to the quantity and capacity totals."
+          type: array
+          items:
+            $ref: "#/components/schemas/SkuCapacitySubscription"
+        billing_account_id:
+          description: "The billing account ID."
+          type: string
+        billing_provider:
+          $ref: '#/components/schemas/BillingProviderType'
+        next_event_date:
+          description: "The most immediate date for a subscription event."
+          type: string
+          format: date-time
+        next_event_type:
+          $ref: "#/components/schemas/SubscriptionEventType"
+        quantity:
+          description: "The summed subscription quantities across the active subscriptions for the offering."
+          type: integer
+          format: int32
+        measurements:
+          description: >-
+            The summed standard capacity of the unit-of-measure of the active subscriptions for the offering. 
+            Must be in the same order as "measurements" in the meta.
+          type: array
+          items:
+            format: double
+            type: number
+        category:
+          $ref: '#/components/schemas/ReportCategory'
+        has_infinite_quantity:
+          description: "Denotes unlimited capacity for the offering when true."
+          type: boolean
+
+    SkuCapacityReportSort_V1:
+      type: string
+      enum:
+        - sku
+        - service_level
+        - usage
+        - next_event_date
+        - next_event_type
+        - quantity
+        - total_capacity
+        - product_name
+
+    SkuCapacityReportSort_V2:
+      type: string
+      enum:
+        - sku
+        - service_level
+        - usage
+        - next_event_date
+        - next_event_type
+        - quantity
+        - product_name
+
+    SkuCapacityReport_V1:
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/SkuCapacity_V1'
+        links:
+          $ref: "#/components/schemas/PageLinks"
+        meta:
+          type: object
+          properties:
+            count:
+              type: integer
+            product:
+              type: string
+            measurements:
+              type: array
+              items:
+                type: string
+            service_level:
+              $ref: '#/components/schemas/ServiceLevelType'
+            usage:
+              $ref: '#/components/schemas/UsageType'
+            subscription_type:
+              $ref: '#/components/schemas/SubscriptionType'
+            report_category:
+              $ref: '#/components/schemas/ReportCategory'
+          required:
+            - count
+            - product
+            - subscription_type
+
+    SkuCapacityReport_V2:
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/SkuCapacity_V2'
+        links:
+          $ref: "#/components/schemas/PageLinks"
+        meta:
+          type: object
+          properties:
+            count:
+              type: integer
+            product:
+              type: string
+            measurements:
+              type: array
+              items:
+                type: string
+            service_level:
+              $ref: '#/components/schemas/ServiceLevelType'
+            usage:
+              $ref: '#/components/schemas/UsageType'
+            subscription_type:
+              $ref: '#/components/schemas/SubscriptionType'
+            report_category:
+              $ref: '#/components/schemas/ReportCategory'
+          required:
+            - count
+            - product
+            - subscription_type
+    ProductId:
+      type: string
+      format: ProductId
+
+    CapacityReportByMetricId:
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/CapacitySnapshotByMetricId"
+        links:
+          $ref: "#/components/schemas/PageLinks"
+        meta:
+          type: object
+          properties:
+            count:
+              type: integer
+            product:
+              type: string
+            metric_id:
+              type: string
+            billing_account_id:
+              type: string
+            granularity:
+              $ref: '#/components/schemas/GranularityType'
+            service_level:
+              $ref: '#/components/schemas/ServiceLevelType'
+            usage:
+              $ref: '#/components/schemas/UsageType'
+            category:
+              $ref: '#/components/schemas/ReportCategory'
+          required:
+            - count
+            - product
+            - granularity
+
+    CapacitySnapshotByMetricId:
+      required:
+        - date
+        - has_data
+        - value
+      properties:
+        date:
+          type: string
+          format: date-time
+          description: "The start date for this snapshot entry. Dates are returned in UTC. Clients must
+            consult the 'granularity' field in the CapacityReport to determine the length of time each
+            CapacitySnapshot covers."
+        has_data:
+          type: boolean
+        value:
+          description: "Capacity value"
+          type: integer
+          format: int32
+          minimum: 0
+        has_infinite_quantity:
+          type: boolean
+
+  responses:
+    ErrorResponse:
+      description: "Error handling request"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Errors'
+    BadRequest:
+      description: "The server could could not process the current request."
+      content:
+        application/vnd.api+json:
+          schema:
+            $ref: "#/components/schemas/Errors"
+    Forbidden:
+      description: "The request was valid, but the request was refused by the server."
+      content:
+        application/vnd.api+json:
+          schema:
+            $ref: "#/components/schemas/Errors"
+    ResourceNotFound:
+      description: "The requested resource was not found."
+      content:
+        application/vnd.api+json:
+          schema:
+            $ref: "#/components/schemas/Errors"
+    InternalServerError:
+      description: "An internal server error has occurred and is not recoverable."
+      content:
+        application/vnd.api+json:
+          schema:
+            $ref: "#/components/schemas/Errors"
+
+  securitySchemes:
+    customer:
+      type: apiKey
+      description: customer facing API
+      name: x-rh-identity
+      in: header
+    support:
+      type: apiKey
+      description: API is available for support operations
+      name: x-rh-identity
+      in: header
+    service:
+      type: apiKey
+      description: API is available for services
+      name: x-rh-swatch-psk
+      in: header
+    test:
+      type: apiKey
+      description: API is available for testing purposes (pre-production environments
+        only)
+      name: x-rh-swatch-psk
+      in: header

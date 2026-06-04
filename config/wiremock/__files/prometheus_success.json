@@ -1,0 +1,21 @@
+{
+  "status" : "success",
+  "data" : {
+    "resultType" : "matrix",
+    "result" : [
+      {
+        "metric" : {
+          "_id" : "123456",
+          "support" : "Premium",
+          "usage" : "Production",
+          "product" : "moa-hostedcontrolplane",
+          "billing_marketplace" : "billing_marketplace",
+          "billing_marketplace_account" : "billing_marketplace_account",
+          "ebs_account" : "account",
+          "external_organization": "org123"
+        },
+        "values": [[ 1693476839, "1" ]]
+      }
+    ]
+  }
+}

@@ -1,0 +1,191 @@
+{
+  "products": [
+    {
+      "sku": "RH3413336",
+      "description": "Red Hat Enterprise Linux Developer Workstation, Enterprise",
+      "status": "ACTIVE",
+      "attributes": [
+        {
+          "code": "PRODUCT_FAMILY",
+          "value": "Red Hat Enterprise Linux"
+        },
+        {
+          "code": "SERVICE_TYPE",
+          "value": "Dev-Enterprise"
+        },
+        {
+          "code": "SOCKET_LIMIT",
+          "value": "2"
+        },
+        {
+          "code": "USAGE",
+          "value": "Development/Test"
+        },
+        {
+          "code": "PRODUCT_NAME",
+          "value": "RHEL Developer Workstation"
+        }
+      ],
+      "roles": []
+    },
+    {
+      "sku": "SVCRH34",
+      "description": "Red Hat Enterprise Linux Developer Workstation",
+      "status": "ACTIVE",
+      "attributes": [
+        {
+          "code": "PRODUCT_FAMILY",
+          "value": "Red Hat Enterprise Linux"
+        },
+        {
+          "code": "SOCKET_LIMIT",
+          "value": "0"
+        },
+        {
+          "code": "PRODUCT_NAME",
+          "value": "RHEL Developer Workstation"
+        }
+      ],
+      "roles": []
+    },
+    {
+      "sku": "SVCMPV4",
+      "description": "Smart Management (Up to 4 guests)",
+      "status": "ACTIVE",
+      "attributes": [
+        {
+          "code": "PRODUCT_FAMILY",
+          "value": "Red Hat Enterprise Linux"
+        },
+        {
+          "code": "CORES",
+          "value": "0"
+        },
+        {
+          "code": "IFL",
+          "value": "1"
+        },
+        {
+          "code": "SERVICE_TYPE",
+          "value": "Layered"
+        },
+        {
+          "code": "PRODUCT_NAME",
+          "value": "Management Modules"
+        }
+      ],
+      "roles": []
+    },
+    {
+      "sku": "SVCRS",
+      "description": "Resilient Storage",
+      "status": "ACTIVE",
+      "attributes": [
+        {
+          "code": "PRODUCT_FAMILY",
+          "value": "Red Hat Applications"
+        },
+        {
+          "code": "SERVICE_TYPE",
+          "value": "Layered"
+        },
+        {
+          "code": "PRODUCT_NAME",
+          "value": "Resilient Storage"
+        }
+      ],
+      "roles": []
+    },
+    {
+      "sku": "SVCSFS",
+      "description": "Scalable File System",
+      "status": "ACTIVE",
+      "attributes": [
+        {
+          "code": "PRODUCT_FAMILY",
+          "value": "Red Hat Enterprise Linux"
+        },
+        {
+          "code": "SERVICE_TYPE",
+          "value": "Layered"
+        },
+        {
+          "code": "PRODUCT_NAME",
+          "value": "Scalable File System"
+        }
+      ],
+      "roles": []
+    },
+    {
+      "sku": "SVCHPNRH34",
+      "description": "High Performance Network for Red Hat Developer Workstation",
+      "status": "ACTIVE",
+      "attributes": [
+        {
+          "code": "PRODUCT_FAMILY",
+          "value": "Red Hat Applications"
+        },
+        {
+          "code": "PRODUCT_NAME",
+          "value": "High Performance Network"
+        }
+      ],
+      "roles": []
+    },
+    {
+      "sku": "SVCEUSRH34",
+      "description": "Extended Update Support for Red Hat Enterprise Linux Developer Workstation",
+      "status": "ACTIVE",
+      "attributes": [
+        {
+          "code": "PRODUCT_FAMILY",
+          "value": "Red Hat Enterprise Linux"
+        },
+        {
+          "code": "PRODUCT_NAME",
+          "value": "EUS for Server"
+        }
+      ],
+      "roles": []
+    },
+    {
+      "sku": "SVCRH34V4",
+      "description": "Red Hat Enterprise Linux Developer Workstation (up to 4 guests)",
+      "status": "ACTIVE",
+      "attributes": [
+        {
+          "code": "PRODUCT_FAMILY",
+          "value": "Red Hat Enterprise Linux"
+        },
+        {
+          "code": "PRODUCT_NAME",
+          "value": "RHEL Developer Workstation"
+        }
+      ],
+      "roles": []
+    }
+  ],
+  "parentMap": [
+    {
+      "child": "SVCRH34"
+    },
+    {
+      "child": "SVCMPV4"
+    },
+    {
+      "child": "SVCRS"
+    },
+    {
+      "child": "SVCSFS"
+    },
+    {
+      "child": "SVCHPNRH34"
+    },
+    {
+      "child": "SVCEUSRH34"
+    },
+    {
+      "child": "SVCRH34V4"
+    }
+  ]
+}

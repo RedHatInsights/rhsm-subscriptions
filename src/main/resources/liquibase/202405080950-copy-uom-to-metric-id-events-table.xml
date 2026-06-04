@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+  <changeSet id="202405080950-01" author="wpoteat">
+    <comment>
+      Copy data from uom field to metric_id field where no value exists in metric_id field
+    </comment>
+    <sql dbms="postgresql">
+      update events
+      set data = jsonb_set(data::jsonb, '{"measurements", 0, "metric_id"}', data -> 'measurements' -> 0 -> 'uom')
+      where data -> 'measurements' -> 0 -> 'metric_id' is null and data -> 'measurements' -> 0 -> 'uom' is not null
+    </sql>
+    <rollback>empty</rollback>
+  </changeSet>
+</databaseChangeLog>

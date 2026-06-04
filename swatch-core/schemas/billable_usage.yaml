@@ -1,0 +1,84 @@
+$schema: http://json-schema.org/draft-07/schema#
+title: BillableUsage
+properties:
+  uuid:
+    description: The billable usage remittance ID.
+    type: string
+    format: uuid
+  org_id:
+    description: Preferred identifier for the relevant account (if present).
+    type: string
+  tally_id:
+    description: Tally snapshot ID that resulted in this billable usage (for tracking).
+    type: string
+    format: uuid
+  billing_provider:
+    type: string
+    enum:
+      - red hat
+      - aws
+      - gcp
+      - azure
+      - oracle
+  billing_account_id:
+    type: string
+  snapshot_date:
+    type: string
+    format: date-time
+  product_id:
+    type: string
+  sla:
+    description: Service level for the subject.
+    type: string
+    enum:
+      - ''  # UNSPECIFIED
+      - Premium
+      - Standard
+      - Self-Support
+  usage:
+    description: Intended usage for the subject.
+    type: string
+    enum:
+      - ''  # UNSPECIFIED
+      - Production
+      - Development/Test
+      - Disaster Recovery
+  status:
+    description: Intended to be used for reporting remittance status
+    type: string
+    enum:
+      - pending
+      - succeeded
+      - failed
+      - gratis
+      - retryable
+  error_code:
+    description: Intended to be used for reporting remittance error code in case of failure
+    type: string
+    enum:
+      - inactive
+      - redundant
+      - subscription_not_found
+      - subscription_terminated
+      - usage_context_lookup
+      - unsupported_metric
+      - unknown
+      - marketplace_rate_limit
+  billed_on:
+    type: string
+    format: date-time
+  metric_id:
+    description: Preferred unit of measure for the subject (for products with multiple possible metrics).
+    type: string
+  value:
+    description: Measurement value.
+    type: number
+  billing_factor:
+    description: Field is used to multiple or divide the remittance values by a configured amount
+    type: number
+  vendor_product_code:
+    description: Field used to specify a unique contract
+    type: string
+  currentTotal:
+    description: Sum of all measurements between the start of the month to the snapshot date.
+    type: number

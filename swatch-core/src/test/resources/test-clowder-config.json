@@ -1,0 +1,89 @@
+{
+    "database": {
+        "adminPassword": "SECRET",
+        "adminUsername": "postgres",
+        "hostname": "rhsm-clowdapp-db.rhsm.svc",
+        "name": "swatch-database-db",
+        "password": "ALSO_SECRET",
+        "port": 5432,
+        "sslMode": "disable",
+        "username": "my_user"
+    },
+    "endpoints": [
+        {
+            "app": "rhsm-clowdapp",
+            "hostname": "rhsm-clowdapp-service.rhsm.svc",
+            "name": "service",
+            "port": 8000
+        },
+        {
+            "app": "index",
+            "hostname": "index.rhsm.svc",
+            "name": "service",
+            "port": 8000,
+            "tlsPort": 8800
+        }
+    ],
+    "privateEndpoints": [
+        {
+            "app": "export-service",
+            "hostname": "export-service-service.svc",
+            "name": "service",
+            "port": 10000,
+            "tlsPort": 0
+        }
+    ],
+    "featureFlags": {
+        "hostname": "env-rhsm-featureflags.rhsm.svc",
+        "port": 4242
+    },
+    "kafka": {
+        "brokers": [
+            {
+                "hostname": "env-rhsm-kafka.rhsm.svc",
+                "port": 29092,
+                "cacert": "Dummy value",
+                "authtype": "sasl",
+                "sasl": {
+                    "username": "john",
+                    "password": "doe",
+                    "securityProtocol":"SASL_SSL",
+                    "saslMechanism":"PLAIN"
+                }
+            },
+            {
+                "hostname": "env-rhsm-kafka-secondary.rhsm.svc",
+                "port": 29093
+            }
+        ],
+        "topics": [
+            {
+                "name": "platform.rhsm-subscriptions.tally-env-rhsm-rhsm",
+                "requestedName": "platform.rhsm-subscriptions.tally"
+            },
+            {
+                "name": "platform.rhsm-subscriptions.tasks-env-rhsm-rhsm",
+                "requestedName": "platform.rhsm-subscriptions.tasks"
+            },
+            {
+                "name": "platform.rhsm-subscriptions.metering-tasks-env-rhsm-rhsm",
+                "requestedName": "platform.rhsm-subscriptions.metering-tasks"
+            }
+        ]
+    },
+    "logging": {
+        "cloudwatch": {
+            "accessKeyId": "",
+            "logGroup": "",
+            "region": "",
+            "secretAccessKey": ""
+        },
+        "type": "null"
+    },
+    "metricsPath": "/metrics",
+    "metricsPort": 9000,
+    "privatePort": 8080,
+    "publicPort": 8000,
+    "webPort": 8000,
+    "tlsCAPath": "src/test/resources/ca-test.pem"
+}

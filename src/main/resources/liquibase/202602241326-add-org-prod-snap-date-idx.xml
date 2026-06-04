@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+  <changeSet id="202602241326-01" author="wpoteat">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <indexExists tableName="tally_snapshots" indexName="tally_snapshots_quad_idx"/>
+      </not>
+    </preConditions>
+    <comment>
+      Add index to tally snapshots to improve current lookup.
+      This should only run on new databases.
+      Stage and Prod will have this applied by other means.
+    </comment>
+    <createIndex indexName="tally_snapshots_quad_idx" tableName="tally_snapshots">
+      <column name="org_id"/>
+      <column name="product_id"/>
+      <column name="snapshot_date"/>
+      <column name="granularity"/>
+    </createIndex>
+  </changeSet>
+</databaseChangeLog>

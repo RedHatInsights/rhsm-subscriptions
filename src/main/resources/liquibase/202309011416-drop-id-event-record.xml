@@ -1,0 +1,17 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="202309011416-1" author="jcarvaja" dbms="postgresql">
+        <comment>Drop events.id column.</comment>
+        <dropColumn tableName="events" columnName="id"/>
+        <rollback>
+            <sql>
+                alter table events add column id UUID generated always as (event_id) stored;
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

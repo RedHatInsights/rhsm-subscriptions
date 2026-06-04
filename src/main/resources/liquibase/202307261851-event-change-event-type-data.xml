@@ -1,0 +1,132 @@
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202307261851-1"  author="karshah" dbms="postgresql">
+    <comment>Update the BASILISK transfer-gibibytes event type</comment>
+    <update tableName="events">
+      <column name="event_type" value="snapshot_basilisk_transfer-gibibytes"/>
+      <column name="data" valueComputed="jsonb_set(data, '{event_type}', '&quot;snapshot_basilisk_transfer-gibibytes&quot;')" />
+      <where>event_type='snapshot_redhat.com:BASILISK:transfer_gb'</where>
+    </update>
+  </changeSet>
+
+  <changeSet id="202307261851-2"  author="karshah" dbms="postgresql">
+    <comment>Update the rhods cores event type</comment>
+    <update tableName="events">
+      <column name="event_type" value="snapshot_rhods_cores"/>
+      <column name="data" valueComputed="jsonb_set(data, '{event_type}', '&quot;snapshot_rhods_cores&quot;')" />
+      <where>event_type='snapshot_redhat.com:openshift_data_science:cpu_hours'</where>
+    </update>
+  </changeSet>
+
+  <changeSet id="202307261851-3"  author="karshah" dbms="postgresql">
+    <comment>Update the openShift-dedicated-metrics instance-hours event type</comment>
+    <update tableName="events">
+      <column name="event_type" value="snapshot_openshift-dedicated-metrics_instance-hours"/>
+      <column name="data" valueComputed="jsonb_set(data, '{event_type}', '&quot;snapshot_openshift-dedicated-metrics_instance-hours&quot;')" />
+      <where>event_type='snapshot_redhat.com:openshift_dedicated:cluster_hour'</where>
+    </update>
+  </changeSet>
+
+  <changeSet id="202307261851-4"  author="karshah" dbms="postgresql">
+    <comment>Update the rhosak storage-gibibytes event type</comment>
+    <update tableName="events">
+      <column name="event_type" value="snapshot_rhosak_storage-gibibytes"/>
+      <column name="data" valueComputed="jsonb_set(data, '{event_type}', '&quot;snapshot_rhosak_storage-gibibytes&quot;')" />
+      <where>event_type='snapshot_redhat.com:rhosak:storage_gb'</where>
+    </update>
+  </changeSet>
+
+  <changeSet id="202307261851-5"  author="karshah" dbms="postgresql">
+    <comment>Update the rhosak transfer-gibibytes event type</comment>
+    <update tableName="events">
+      <column name="event_type" value="snapshot_rhosak_transfer-gibibytes"/>
+      <column name="data" valueComputed="jsonb_set(data, '{event_type}', '&quot;snapshot_rhosak_transfer-gibibytes&quot;')" />
+      <where>event_type='snapshot_redhat.com:rhosak:transfer_gb'</where>
+    </update>
+  </changeSet>
+
+  <changeSet id="202307261851-6"  author="karshah" dbms="postgresql">
+    <comment>Update the rosa cores event type</comment>
+    <update tableName="events">
+      <column name="event_type" value="snapshot_rosa_cores"/>
+      <column name="data" valueComputed="jsonb_set(data, '{event_type}', '&quot;snapshot_rosa_cores&quot;')" />
+      <where>event_type='snapshot_redhat.com:rosa:cpu_hour'</where>
+    </update>
+  </changeSet>
+
+  <changeSet id="202307261851-7"  author="karshah" dbms="postgresql">
+    <comment>Update the rhosak instance-hours event type</comment>
+    <update tableName="events">
+      <column name="event_type" value="snapshot_rhosak_instance-hours"/>
+      <column name="data" valueComputed="jsonb_set(data, '{event_type}', '&quot;snapshot_rhosak_instance-hours&quot;')" />
+      <where>event_type='snapshot_redhat.com:rhosak:cluster_hour'</where>
+    </update>
+  </changeSet>
+
+  <changeSet id="202307261851-8"  author="karshah" dbms="postgresql">
+    <comment>Update the openshift-metrics cores event type</comment>
+    <update tableName="events">
+      <column name="event_type" value="snapshot_openshift-metrics_cores"/>
+      <column name="data" valueComputed="jsonb_set(data, '{event_type}', '&quot;snapshot_openshift-metrics_cores&quot;')" />
+      <where>event_type='snapshot_redhat.com:openshift_container_platform:cpu_hour'</where>
+    </update>
+  </changeSet>
+
+  <changeSet id="202307261851-9"  author="karshah" dbms="postgresql">
+    <comment>Update the rhosak storage-gibibyte-months event type</comment>
+    <update tableName="events">
+      <column name="event_type" value="snapshot_rhosak_storage-gibibyte-months"/>
+      <column name="data" valueComputed="jsonb_set(data, '{event_type}', '&quot;snapshot_rhosak_storage-gibibyte-months&quot;')" />
+      <where>event_type='snapshot_redhat.com:rhosak:storage_gib_months'</where>
+    </update>
+  </changeSet>
+
+  <changeSet id="202307261851-10"  author="karshah" dbms="postgresql">
+    <comment>Update the rhacs cores event type</comment>
+    <update tableName="events">
+      <column name="event_type" value="snapshot_rhacs_cores"/>
+      <column name="data" valueComputed="jsonb_set(data, '{event_type}', '&quot;snapshot_rhacs_cores&quot;')" />
+      <where>event_type='snapshot_redhat.com:rhacs:cpu_hour'</where>
+    </update>
+  </changeSet>
+
+  <changeSet id="202307261851-11"  author="karshah" dbms="postgresql">
+    <comment>Update the rosa instance-hours event type</comment>
+    <update tableName="events">
+      <column name="event_type" value="snapshot_rosa_instance-hours"/>
+      <column name="data" valueComputed="jsonb_set(data, '{event_type}', '&quot;snapshot_rosa_instance-hours&quot;')" />
+      <where>event_type='snapshot_redhat.com:rosa:cluster_hour'</where>
+    </update>
+  </changeSet>
+
+  <changeSet id="202307261851-12"  author="karshah" dbms="postgresql">
+    <comment>Update the basilisk instance-hours event type</comment>
+    <update tableName="events">
+      <column name="event_type" value="snapshot_basilisk_instance-hours"/>
+      <column name="data" valueComputed="jsonb_set(data, '{event_type}', '&quot;snapshot_basilisk_instance-hours&quot;')" />
+      <where>event_type='snapshot_redhat.com:BASILISK:cluster_hour'</where>
+    </update>
+  </changeSet>
+
+  <changeSet id="202307261851-13"  author="karshah" dbms="postgresql">
+    <comment>Update the basilisk storage-gibibyte-months event type</comment>
+    <update tableName="events">
+      <column name="event_type" value="snapshot_basilisk_storage-gibibyte-months"/>
+      <column name="data" valueComputed="jsonb_set(data, '{event_type}', '&quot;snapshot_basilisk_storage-gibibyte-months&quot;')" />
+      <where>event_type='snapshot_redhat.com:BASILISK:storage_gib_months'</where>
+    </update>
+  </changeSet>
+
+  <changeSet id="202307261851-14"  author="karshah" dbms="postgresql">
+    <comment>Update the openshift-dedicated-metrics cores event type</comment>
+    <update tableName="events">
+      <column name="event_type" value="snapshot_openshift-dedicated-metrics_cores"/>
+      <column name="data" valueComputed="jsonb_set(data, '{event_type}', '&quot;snapshot_openshift-dedicated-metrics_cores&quot;')" />
+      <where>event_type='snapshot_redhat.com:openshift_dedicated:4cpu_hour'</where>
+    </update>
+  </changeSet>
+</databaseChangeLog>

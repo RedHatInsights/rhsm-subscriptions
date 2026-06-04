@@ -1,0 +1,351 @@
+/*
+ * Copyright Red Hat, Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Red Hat trademarks are not licensed under GPLv3. No permission is
+ * granted to use or replicate Red Hat trademarks that are incorporated
+ * in this software or its documentation.
+ */
+package org.candlepin.subscriptions.db.model;
+
+import static org.candlepin.subscriptions.tally.InventoryAccountUsageCollector.populateHostFieldsFromHbi;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import com.redhat.swatch.configuration.util.MetricIdUtils;
+import java.time.OffsetDateTime;
+import java.util.Optional;
+import java.util.UUID;
+import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
+import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
+
+class HostTest {
+
+  @Test
+  void populateFieldsFromHbiNull() {
+    Host host = new Host();
+    InventoryHostFacts inventoryHostFacts = new InventoryHostFacts();
+    NormalizedFacts normalizedFacts = new NormalizedFacts();
+
+    populateHostFieldsFromHbi(host, inventoryHostFacts, normalizedFacts);
+
+    assertNull(host.getInstanceId());
+    assertNull(host.getInventoryId());
+    assertNull(host.getInsightsId());
+    assertNull(host.getOrgId());
+    assertNull(host.getDisplayName());
+    assertNull(host.getSubscriptionManagerId());
+    assertFalse(host.isGuest());
+    assertNull(host.getHypervisorUuid());
+    assertEquals(0, host.getMeasurements().size());
+    assertFalse(host.isHypervisor());
+    assertNull(host.getCloudProvider());
+    assertNull(host.getLastSeen());
+    assertNull(host.getHardwareType());
+    assertFalse(host.isMetered());
+  }
+
+  @Test
+  void populateFieldsFromHbiPhysical() {
+    Host host = new Host();
+    InventoryHostFacts inventoryHostFacts = getInventoryHostFactsFull();
+    NormalizedFacts normalizedFacts = getNormalizedFactsPhysical();
+
+    populateHostFieldsFromHbi(host, inventoryHostFacts, normalizedFacts);
+
+    assertEquals(host.getInventoryId(), inventoryHostFacts.getInventoryId().toString());
+    assertEquals(host.getInsightsId(), inventoryHostFacts.getInsightsId());
+    assertEquals(host.getOrgId(), inventoryHostFacts.getOrgId());
+    assertEquals(host.getDisplayName(), inventoryHostFacts.getDisplayName());
+    assertEquals(host.getSubscriptionManagerId(), inventoryHostFacts.getSubscriptionManagerId());
+    assertFalse(host.isGuest());
+    assertFalse(host.isHypervisor());
+    assertEquals(host.getHypervisorUuid(), normalizedFacts.getHypervisorUuid());
+    assertEquals(2, host.getMeasurements().size());
+    assertEquals(host.getLastSeen(), inventoryHostFacts.getModifiedOn());
+    assertEquals(host.getHardwareType(), normalizedFacts.getHardwareType());
+  }
+
+  @Test
+  void populateFieldsFromHbiUnmappedGuest() {
+    Host host = new Host();
+    InventoryHostFacts inventoryHostFacts = getInventoryHostFactsFull();
+    NormalizedFacts normalizedFacts = getNormalizedFactsUnmappedGuest();
+
+    populateHostFieldsFromHbi(host, inventoryHostFacts, normalizedFacts);
+    assertEquals(host.getInventoryId(), inventoryHostFacts.getInventoryId().toString());
+    assertEquals(host.getInsightsId(), inventoryHostFacts.getInsightsId());
+    assertEquals(host.getOrgId(), inventoryHostFacts.getOrgId());
+    assertEquals(host.getDisplayName(), inventoryHostFacts.getDisplayName());
+    assertEquals(host.getSubscriptionManagerId(), inventoryHostFacts.getSubscriptionManagerId());
+    assertTrue(host.isGuest());
+    assertFalse(host.isHypervisor());
+    assertEquals(host.getHypervisorUuid(), normalizedFacts.getHypervisorUuid());
+    assertEquals(2, host.getMeasurements().size());
+    assertEquals(host.getCloudProvider(), normalizedFacts.getCloudProviderType().name());
+    assertEquals(host.getLastSeen(), inventoryHostFacts.getModifiedOn());
+    assertEquals(host.getHardwareType(), normalizedFacts.getHardwareType());
+  }
+
+  @Test
+  void populateFieldsFromHbiMappedGuest() {
+    Host host = new Host();
+    InventoryHostFacts inventoryHostFacts = getInventoryHostFactsFull();
+    NormalizedFacts normalizedFacts = getNormalizedFactsUnmappedGuest();
+
+    populateHostFieldsFromHbi(host, inventoryHostFacts, normalizedFacts);
+    assertEquals(host.getInventoryId(), inventoryHostFacts.getInventoryId().toString());
+    assertEquals(host.getInsightsId(), inventoryHostFacts.getInsightsId());
+    assertEquals(host.getOrgId(), inventoryHostFacts.getOrgId());
+    assertEquals(host.getDisplayName(), inventoryHostFacts.getDisplayName());
+    assertEquals(host.getSubscriptionManagerId(), inventoryHostFacts.getSubscriptionManagerId());
+    assertTrue(host.isGuest());
+    assertFalse(host.isHypervisor());
+    assertEquals(host.getHypervisorUuid(), normalizedFacts.getHypervisorUuid());
+    assertEquals(2, host.getMeasurements().size());
+    assertEquals(host.getCloudProvider(), normalizedFacts.getCloudProviderType().name());
+    assertEquals(host.getLastSeen(), inventoryHostFacts.getModifiedOn());
+    assertEquals(host.getHardwareType(), normalizedFacts.getHardwareType());
+  }
+
+  @Test
+  void populateFieldsFromHbiHypervisor() {
+    Host host = new Host();
+    InventoryHostFacts inventoryHostFacts = getInventoryHostFactsFull();
+    NormalizedFacts normalizedFacts = getNormalizedFactsHypervisor();
+
+    populateHostFieldsFromHbi(host, inventoryHostFacts, normalizedFacts);
+    assertEquals(host.getInventoryId(), inventoryHostFacts.getInventoryId().toString());
+    assertEquals(host.getInsightsId(), inventoryHostFacts.getInsightsId());
+    assertEquals(host.getOrgId(), inventoryHostFacts.getOrgId());
+    assertEquals(host.getDisplayName(), inventoryHostFacts.getDisplayName());
+    assertEquals(host.getSubscriptionManagerId(), inventoryHostFacts.getSubscriptionManagerId());
+    assertFalse(host.isGuest());
+    assertTrue(host.isHypervisor());
+    assertEquals(host.getHypervisorUuid(), normalizedFacts.getHypervisorUuid());
+    assertEquals(2, host.getMeasurements().size());
+    assertEquals(host.getLastSeen(), inventoryHostFacts.getModifiedOn());
+    assertEquals(host.getHardwareType(), normalizedFacts.getHardwareType());
+  }
+
+  @Test
+  void testRemoveRangeRemovesMultipleMonths() {
+    Host host = new Host();
+    host.addToMonthlyTotal("2021-01", MetricIdUtils.getCores(), 1.0);
+    host.addToMonthlyTotal("2021-02", MetricIdUtils.getCores(), 2.0);
+    host.clearMonthlyTotals(
+        OffsetDateTime.parse("2021-01-01T00:00:00Z"), OffsetDateTime.parse("2021-02-01T00:00:00Z"));
+    assertTrue(host.getMonthlyTotals().values().stream().allMatch(v -> v == 0));
+  }
+
+  @Test
+  void testExistingBucketsAreUpdatedAndNotDuplicated() {
+    Host host = new Host();
+    host.setId(UUID.randomUUID());
+
+    HostTallyBucket b1 =
+        new HostTallyBucket(
+            null, // NOTE: it is important to pass null here to simulate a new bucket
+            "foo",
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider.AWS,
+            "bar",
+            true,
+            1,
+            1,
+            HardwareMeasurementType.PHYSICAL);
+    HostTallyBucket b2 =
+        new HostTallyBucket(
+            null, // NOTE: it is important to pass null here to simulate a new bucket
+            "foo",
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider.AWS,
+            "bar",
+            true,
+            2,
+            2,
+            HardwareMeasurementType.PHYSICAL);
+
+    host.addBucket(b1);
+    host.addBucket(b2);
+
+    assertEquals(1, host.getBuckets().size());
+    HostTallyBucket actualBucket = host.getBuckets().stream().findFirst().orElseThrow();
+    assertEquals(2, actualBucket.getCores());
+    assertEquals(2, actualBucket.getSockets());
+  }
+
+  @Test
+  void testExistingBucketsAreUpdatedWhenDifferentMeasurementType() {
+    Host host = new Host();
+    host.setId(UUID.randomUUID());
+
+    HostTallyBucket b1 =
+        new HostTallyBucket(
+            null, // NOTE: it is important to pass null here to simulate a new bucket
+            "foo",
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider.AWS,
+            "bar",
+            true,
+            1,
+            1,
+            HardwareMeasurementType.VIRTUAL);
+    HostTallyBucket b2 =
+        new HostTallyBucket(
+            null, // NOTE: it is important to pass null here to simulate a new bucket
+            "foo",
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider.AWS,
+            "bar",
+            true,
+            1,
+            1,
+            HardwareMeasurementType.PHYSICAL);
+
+    host.addBucket(b1);
+    host.addBucket(b2);
+
+    assertEquals(1, host.getBuckets().size());
+    HostTallyBucket actualBucket = host.getBuckets().stream().findFirst().orElseThrow();
+    assertEquals(HardwareMeasurementType.PHYSICAL, actualBucket.getMeasurementType());
+  }
+
+  @Test
+  void testIsMeteredTrueOrFalse() {
+    Host host = new Host();
+    HostTallyBucket hostTallyBucket = mock(HostTallyBucket.class);
+    HostBucketKey hostBucketKey = mock(HostBucketKey.class);
+    when(hostTallyBucket.getKey()).thenReturn(hostBucketKey);
+    when(hostBucketKey.getProductId()).thenReturn("test-prod");
+    MockedStatic subscriptionDefinitionMockedStatic =
+        Mockito.mockStatic(
+            SubscriptionDefinition.class,
+            Mockito.withSettings().defaultAnswer(Mockito.CALLS_REAL_METHODS));
+    SubscriptionDefinition subscriptionDefinition = mock(SubscriptionDefinition.class);
+    when(SubscriptionDefinition.lookupSubscriptionByTag("test-prod"))
+        .thenReturn(Optional.ofNullable(subscriptionDefinition));
+    host.addBucket(hostTallyBucket);
+
+    when(subscriptionDefinition.isPaygEligible()).thenReturn(true);
+    assertTrue(host.isMetered());
+    when(subscriptionDefinition.isPaygEligible()).thenReturn(false);
+    assertFalse(host.isMetered());
+    // remove the static mocking
+    subscriptionDefinitionMockedStatic.close();
+  }
+
+  @Test
+  void testPopulateHostFieldsFromHbiShouldSetInstanceIdFromProviderId() {
+    Host host = new Host();
+    InventoryHostFacts inventoryHostFacts = new InventoryHostFacts();
+    inventoryHostFacts.setProviderId(UUID.randomUUID().toString());
+
+    populateHostFieldsFromHbi(host, inventoryHostFacts, new NormalizedFacts());
+    assertEquals(inventoryHostFacts.getProviderId(), host.getInstanceId());
+  }
+
+  @Test
+  void testPopulateHostFieldsFromHbiShouldOverwriteInstanceId() {
+    Host host = new Host();
+    host.setInstanceId(UUID.randomUUID().toString());
+    InventoryHostFacts inventoryHostFacts = new InventoryHostFacts();
+    inventoryHostFacts.setProviderId(UUID.randomUUID().toString());
+
+    populateHostFieldsFromHbi(host, inventoryHostFacts, new NormalizedFacts());
+    assertEquals(inventoryHostFacts.getProviderId(), host.getInstanceId());
+  }
+
+  @Test
+  void testPopulateHostFieldsFromHbiShouldUseInventoryIdWhenProviderIdIsNotSet() {
+    Host host = new Host();
+    InventoryHostFacts inventoryHostFacts = new InventoryHostFacts();
+    inventoryHostFacts.setInventoryId(UUID.randomUUID());
+
+    populateHostFieldsFromHbi(host, inventoryHostFacts, new NormalizedFacts());
+    assertEquals(inventoryHostFacts.getInventoryId().toString(), host.getInstanceId());
+  }
+
+  private InventoryHostFacts getInventoryHostFactsFull() {
+    InventoryHostFacts inventoryHostFacts = new InventoryHostFacts();
+
+    inventoryHostFacts.setInventoryId(UUID.randomUUID());
+    inventoryHostFacts.setInsightsId("123");
+    inventoryHostFacts.setOrgId("345");
+    inventoryHostFacts.setDisplayName("test");
+    inventoryHostFacts.setSubscriptionManagerId("456");
+    inventoryHostFacts.setModifiedOn(OffsetDateTime.MIN);
+
+    return inventoryHostFacts;
+  }
+
+  private NormalizedFacts getNormalizedFactsMappedGuest() {
+    NormalizedFacts normalizedFacts = new NormalizedFacts();
+
+    normalizedFacts.setHardwareType(HostHardwareType.VIRTUALIZED);
+    normalizedFacts.setHypervisorUuid(UUID.randomUUID().toString());
+    normalizedFacts.setCores(1);
+    normalizedFacts.setSockets(1);
+    normalizedFacts.setCloudProviderType(HardwareMeasurementType.GOOGLE);
+
+    return normalizedFacts;
+  }
+
+  private NormalizedFacts getNormalizedFactsUnmappedGuest() {
+    NormalizedFacts normalizedFacts = new NormalizedFacts();
+
+    normalizedFacts.setHardwareType(HostHardwareType.VIRTUALIZED);
+    normalizedFacts.setHypervisorUuid("");
+    normalizedFacts.setCores(1);
+    normalizedFacts.setSockets(1);
+    normalizedFacts.setCloudProviderType(HardwareMeasurementType.GOOGLE);
+
+    return normalizedFacts;
+  }
+
+  private NormalizedFacts getNormalizedFactsPhysical() {
+    NormalizedFacts normalizedFacts = new NormalizedFacts();
+
+    normalizedFacts.setHardwareType(HostHardwareType.PHYSICAL);
+    normalizedFacts.setCores(1);
+    normalizedFacts.setSockets(1);
+
+    return normalizedFacts;
+  }
+
+  private NormalizedFacts getNormalizedFactsHypervisor() {
+    NormalizedFacts normalizedFacts = new NormalizedFacts();
+
+    normalizedFacts.setHardwareType(HostHardwareType.PHYSICAL);
+    normalizedFacts.setHypervisorUuid(UUID.randomUUID().toString());
+    normalizedFacts.setHypervisor(true);
+    normalizedFacts.setCores(1);
+    normalizedFacts.setSockets(1);
+
+    return normalizedFacts;
+  }
+}

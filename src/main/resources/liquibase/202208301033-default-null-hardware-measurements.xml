@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202208301033-1" author="lburnett">
+    <comment>Set null instances of hardware_measurements.instance_count to 0</comment>
+    <update tableName="hardware_measurements">
+      <column name="instance_count" value="0"/>
+      <where>instance_count IS NULL</where>
+    </update>
+    <addDefaultValue tableName="hardware_measurements" columnName="instance_count"
+      defaultValueNumeric="0"/>
+    <addNotNullConstraint tableName="hardware_measurements" columnName="instance_count"/>
+  </changeSet>
+
+  <changeSet id="202208301033-2" author="lburnett">
+    <comment>Set null instances of hardware_measurements.sockets to 0</comment>
+    <update tableName="hardware_measurements">
+      <column name="sockets" value="0"/>
+      <where>sockets IS NULL</where>
+    </update>
+    <addDefaultValue tableName="hardware_measurements" columnName="sockets"
+      defaultValueNumeric="0"/>
+    <addNotNullConstraint tableName="hardware_measurements" columnName="sockets"/>
+  </changeSet>
+
+</databaseChangeLog>
+  <!-- vim: set expandtab sts=4 sw=4 ai: -->

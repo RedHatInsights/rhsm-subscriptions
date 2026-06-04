@@ -1,0 +1,18 @@
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202312010920-1" author="mstead">
+    <comment>Add index to hosts for lookup during hourly tally.</comment>
+    <createIndex indexName="host_org_id_instance_id_idx" tableName="hosts">
+      <column name="org_id"/>
+      <column name="instance_id"/>
+    </createIndex>
+    <rollback>
+      <dropIndex indexName="host_org_id_instance_id_idx" tableName="hosts"/>
+    </rollback>
+  </changeSet>
+
+</databaseChangeLog>

@@ -1,0 +1,148 @@
+# This is a file maintained by the rhsm-subscriptions project and describes
+# a portion of the Prometheus Query API.
+openapi: "3.0.2"
+info:
+  title: "prometheus-query-api"
+  description: "Third-party specification for Prometheus Query API"
+  version: 1.0.0
+
+paths:
+  /query:
+    description: "Evaluates an instant query at a single point in time"
+    parameters:
+      - name: query
+        description: "Prometheus expression query string"
+        required: true
+        in: query
+        schema:
+          type: string
+      - name: time
+        description: "Evaluation timestamp."
+        in: query
+        schema:
+            type: string
+            format: date-time
+      - name: timeout
+        description: "Evaluation timeout. Optional. Defaults to and is capped by the value of the -query.timeout flag."
+        in: query
+        schema:
+          type: integer
+
+    get:
+      summary: "Evaluates an instant query at a single point in time"
+      operationId: "Query"
+      tags:
+        - query
+      responses:
+        '200':
+          description: "The operation completed successfully"
+          content:
+            application/json:
+              schema:
+                type: string
+                format: file
+
+  /query_range:
+    description: " Evaluates an expression query over a range of time"
+    parameters:
+      - name: query
+        description: "Prometheus expression query string"
+        required: true
+        in: query
+        schema:
+          type: string
+      - name: start
+        description: "Start Date (linux timestamp)."
+        in: query
+        schema:
+          type: integer
+          format: int64
+      - name: end
+        description: "End Date (linux timestamp)."
+        in: query
+        schema:
+          type: integer
+          format: int64
+      - name: step
+        description: "Query resolution step width in duration format or float number of seconds."
+        in: query
+        schema:
+          type: string
+      - name: timeout
+        description: "Evaluation timeout. Optional. Defaults to and is capped by the value of the -query.timeout flag."
+        in: query
+        schema:
+          type: integer
+    get:
+      summary: "Evaluates an instant query at a single point in time"
+      operationId: "QueryRange"
+      tags:
+        - query_range
+      responses:
+        '200':
+          description: "The operation completed successfully"
+          content:
+            application/json:
+              schema:
+                type: string
+                format: file
+components:
+  schemas:
+    ResultType:
+      type: string
+      enum:
+        - matrix
+        - vector
+        - scalar
+        - string
+    StatusType:
+      type: string
+      enum:
+        - success
+        - error
+    QueryResult:
+      properties:
+        status:
+          $ref: "#/components/schemas/StatusType"
+        data:
+          type: object
+          properties:
+            resultType:
+              $ref: "#/components/schemas/ResultType"
+            result:
+              type: array
+              items:
+                type: object
+                properties:
+                  metric:
+                    type: object
+                    additionalProperties:
+                      type: string
+                  value:
+                    type: array
+                    items:
+                      type: number
+                  values:
+                    type: array
+                    items:
+                      type: array
+                      items:
+                        type: number
+                # To force OpenAPI to generate default collections if not provided
+                # This marks the following fields as `@Notnull` and avoid null pointers.
+                required:
+                  - metric
+                  - value
+                  - values
+        errorType:
+          type: string
+        error:
+          type: string
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: token
+
+security:
+  - bearerAuth: []

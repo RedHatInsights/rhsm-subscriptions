@@ -1,0 +1,653 @@
+---
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: swatch-metrics
+parameters:
+  - name: JAVA_DEBUG
+    # Set to "true" to enable remote debugging
+    value: ''
+  - name: USER_OPTS_APPEND
+    value: ''
+  - name: QUARKUS_LAUNCH_DEVMODE
+    value: ''
+  - name: ENV_NAME
+    value: env-swatch-metrics
+  - name: REPLICAS
+    value: '1'
+  - name: METRICS_RHEL_REPLICAS
+    value: '1'
+  - name: IMAGE
+    value: quay.io/cloudservices/swatch-metrics
+  - name: IMAGE_TAG
+    value: latest
+  - name: IMAGE_PULL_SECRET
+    value: quay-cloudservices-pull
+  - name: CURL_CRON_IMAGE
+    value: registry.access.redhat.com/ubi8/ubi-minimal
+  - name: CURL_CRON_IMAGE_TAG
+    value: latest
+  - name: CURL_CRON_MEMORY_REQUEST
+    value: 50Mi
+  - name: CURL_CRON_MEMORY_LIMIT
+    value: 50Mi
+  - name: CURL_CRON_CPU_REQUEST
+    value: 100m
+  - name: CURL_CRON_CPU_LIMIT
+    value: 100m
+  - name: MEMORY_REQUEST
+    value: 1000Mi
+  - name: MEMORY_LIMIT
+    value: 1400Mi
+  - name: CPU_REQUEST
+    value: 350m
+  - name: CPU_LIMIT
+    value: 1500m
+  - name: METRICS_RHEL_MEMORY_REQUEST
+    value: 1000Mi
+  - name: METRICS_RHEL_MEMORY_LIMIT
+    value: 1400Mi
+  - name: METRICS_RHEL_CPU_REQUEST
+    value: 350m
+  - name: METRICS_RHEL_CPU_LIMIT
+    value: 1500m
+  - name: DEV_MODE
+    value: 'false'
+  - name: LOGGING_HEC_ENABLED
+    value: 'true'
+  - name: LOGGING_SOURCE
+    value: 'swatch-metrics'
+  - name: LOGGING_SOURCE_RHEL
+    value: 'swatch-metrics-rhel'
+  - name: LOGGING_SOURCE_TYPE
+    value: 'swatch'
+  - name: LOGGING_MESSAGE_FORMAT
+    value: 'text'
+  - name: LOGGING_HEC_URL
+    value: https://splunk-hec.redhat.com:8088
+  - name: LOGGING_HEC_CONNECT_TIMEOUT
+    value: '5000'
+  - name: LOGGING_HEC_BATCH_SIZE
+    value: '1000'
+  - name: LOGGING_HEC_TERMINATION_TIMEOUT
+    value: '2000'
+  - name: SERVER_MAX_HTTP_HEADER_SIZE
+    value: '96000'
+  - name: LOGGING_LEVEL_ROOT
+    value: WARN
+  - name: LOGGING_LEVEL
+    value: INFO
+  - name: METRICS_RHEL_LOGGING_LEVEL
+    value: INFO
+  - name: METRICS_CRON_LOGGING_LEVEL
+    value: INFO
+  - name: METRICS_RHEL_JOB_LOGGING_LEVEL
+    value: INFO
+  - name: KAFKA_MESSAGE_THREADS
+    value: '24'
+  - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
+    value: '3600000'
+  - name: KAFKA_SEEK_OVERRIDE_END
+    value: 'false'
+  - name: METRICS_RHEL_KAFKA_SEEK_OVERRIDE_END
+    value: 'false'
+  - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
+    value: ''
+  - name: METRICS_RHEL_KAFKA_SEEK_OVERRIDE_TIMESTAMP
+    value: ''
+  - name: PROM_URL
+    value: http://localhost:8082
+  - name: OPENSHIFT_BILLING_MODEL_FILTER
+    value: 'marketplace'
+  - name: USER_HOST
+    # required: true # FIXME Not sure where this is provided
+    value: 'user.stage.api.redhat.com'
+  - name: USER_MAX_CONNECTIONS
+    value: '100'
+  - name: USER_MAX_ATTEMPTS
+    value: '10'
+  - name: USER_BACK_OFF_MAX_INTERVAL
+    value: 64s
+  - name: USER_BACK_OFF_INITIAL_INTERVAL
+    value: 1s
+  - name: USER_BACK_OFF_MULTIPLIER
+    value: '2'
+  - name: METERING_SCHEDULE
+    value: '30 * * * *'
+  - name: RHEL_METERING_SCHEDULE
+    value: '30 * * * *'
+  - name: HOURLY_TALLY_OFFSET
+    value: '60'
+  - name: METRICS_RHEL_METERING_RANGE
+    value: '60'
+  - name: KAFKA_METERING_TASKS_REPLICAS
+    value: '3'
+  - name: KAFKA_METERING_TASKS_PARTITIONS
+    value: '3'
+  - name: KAFKA_SERVICE_INSTANCE_REPLICAS
+    value: '3'
+  - name: KAFKA_SERVICE_INSTANCE_PARTITIONS
+    value: '3'
+  - name: ENABLE_SYNCHRONOUS_OPERATIONS
+    value: 'false'
+  - name: OTEL_SERVICE_NAME
+    value: swatch-metrics
+  - name: OTEL_DISABLED
+    value: 'true'
+  - name: OTEL_SIDECAR_IMAGE
+    value: quay.io/signalfx/splunk-otel-collector:0.140.0
+  - name: OTEL_SIDECAR_CONFIG_MAP
+    value: swatch-otel-config-v1
+  - name: OTEL_SIDECAR_TRACES_CONFIG
+    value: '/etc/otelcol/relay'
+  - name: OTEL_ENV_NAME
+    value: env-swatch-metrics
+  - name: OTEL_K8S_CLUSTER_NAME
+    value: ephemeral
+  - name: OTEL_TRACES_TOKEN_SECRET_NAME
+    value: signalfx
+  - name: OTEL_TRACES_TOKEN_SECRET_KEY
+    value: token
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: 'http://localhost:4317'
+  - name: OTEL_EXPORTER_OTLP_PROTOCOL
+    value: 'grpc'
+  - name: METRICS_HEALTH_LIVENESS_PATH
+    value: /health/live
+  - name: METRICS_HEALTH_READY_PATH
+    value: /health/ready
+  - name: METRICS_HEALTH_PORT
+    value: '9000'
+objects:
+  - apiVersion: cloud.redhat.com/v1alpha1
+    kind: ClowdApp
+    metadata:
+      name: swatch-metrics
+      labels:
+        prometheus: rhsm
+    spec: # The name of the ClowdEnvironment providing the services
+      envName: ${ENV_NAME}
+
+      kafkaTopics:
+        - replicas: ${{KAFKA_METERING_TASKS_REPLICAS}}
+          partitions: ${{KAFKA_METERING_TASKS_PARTITIONS}}
+          topicName: platform.rhsm-subscriptions.metering-tasks
+        - replicas: ${{KAFKA_SERVICE_INSTANCE_REPLICAS}}
+          partitions: ${{KAFKA_SERVICE_INSTANCE_PARTITIONS}}
+          topicName: platform.rhsm-subscriptions.service-instance-ingress
+
+      pullSecrets:
+        name: ${IMAGE_PULL_SECRET}
+
+      deployments:
+        - name: service
+          webServices:
+            public:
+              enabled: true
+            metrics:
+              enabled: true
+          replicas: ${{REPLICAS}}
+          podSpec:
+            metadata:
+              annotations:
+                ignore-check.kube-linter.io/no-liveness-probe: The token refresher sidecar container doesn't have a liveness probe instrumented but the service container does
+                ignore-check.kube-linter.io/no-readiness-probe: The token refresher sidecar container doesn't have a readiness probe instrumented but the service container does
+            image: ${IMAGE}:${IMAGE_TAG}
+            command:
+            sidecars:
+              - name: token-refresher
+                enabled: true
+              - name: otel-collector
+                enabled: true
+                configMap: ${OTEL_SIDECAR_CONFIG_MAP}
+                image: ${OTEL_SIDECAR_IMAGE}
+                envVars:
+                  - name: ENV_NAME
+                    value: ${OTEL_ENV_NAME}
+                  - name: K8S_CLUSTER_NAME
+                    value: ${OTEL_K8S_CLUSTER_NAME}
+                  - name: TRACES_ACCESS_TOKEN
+                    valueFrom:
+                      secretKeyRef:
+                        name: ${OTEL_TRACES_TOKEN_SECRET_NAME}
+                        key: ${OTEL_TRACES_TOKEN_SECRET_KEY}
+                  - name: SPLUNK_CONFIG
+                    value: ${OTEL_SIDECAR_TRACES_CONFIG}
+                  - name: TRACES_MEMORY_TOTAL_MIB
+                    value: '1024'
+                  - name: LOGGING_HEC_URL
+                    value: ${LOGGING_HEC_URL}
+                  - name: LOGGING_HEC_TOKEN
+                    valueFrom:
+                      secretKeyRef:
+                        name: splunk-hec-external
+                        key: token
+                  - name: LOGGING_SOURCE
+                    value: ${LOGGING_SOURCE}
+                  - name: LOGGING_SOURCE_TYPE
+                    value: ${LOGGING_SOURCE_TYPE}
+                  - name: K8S_NAMESPACE
+                    valueFrom:
+                      fieldRef:
+                        apiVersion: v1
+                        fieldPath: metadata.namespace
+                  - name: K8S_POD_NAME
+                    valueFrom:
+                      fieldRef:
+                        apiVersion: v1
+                        fieldPath: metadata.name
+            env:
+              - name: JAVA_DEBUG
+                value: ${JAVA_DEBUG}
+              - name: USER_OPTS_APPEND
+                value: ${USER_OPTS_APPEND}
+              - name: QUARKUS_LAUNCH_DEVMODE
+                value: ${QUARKUS_LAUNCH_DEVMODE}
+              - name: LOGGING_HEC_ENABLED
+                value: ${LOGGING_HEC_ENABLED}
+              - name: LOGGING_NAMESPACE
+                valueFrom:
+                  fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.namespace
+              - name: HOST_NAME
+                valueFrom:
+                  fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.name
+              - name: LOGGING_HEC_URL
+                value: ${LOGGING_HEC_URL}
+              - name: LOGGING_HEC_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: splunk-hec-external
+                    key: token
+              - name: LOGGING_SOURCE
+                value: ${LOGGING_SOURCE}
+              - name: LOGGING_SOURCE_TYPE
+                value: ${LOGGING_SOURCE_TYPE}
+              - name: LOGGING_MESSAGE_FORMAT
+                value: ${LOGGING_MESSAGE_FORMAT}
+              - name: LOGGING_HEC_CONNECT_TIMEOUT
+                value: ${LOGGING_HEC_CONNECT_TIMEOUT}
+              - name: LOGGING_HEC_BATCH_SIZE
+                value: ${LOGGING_HEC_BATCH_SIZE}
+              - name: LOGGING_HEC_TERMINATION_TIMEOUT
+                value: ${LOGGING_HEC_TERMINATION_TIMEOUT}
+              - name: QUARKUS_HTTP_LIMITS_MAX_HEADER_SIZE
+                value: ${SERVER_MAX_HTTP_HEADER_SIZE}
+              - name: LOG_FILE
+                value: /logs/server.log
+              - name: JAVA_MAX_MEM_RATIO
+                value: '85'
+              - name: GC_MAX_METASPACE_SIZE
+                value: '256'
+              - name: LOGGING_LEVEL_ROOT
+                value: ${LOGGING_LEVEL_ROOT}
+              - name: LOGGING_LEVEL_ORG_CANDLEPIN
+                value: ${LOGGING_LEVEL}
+              - name: LOGGING_LEVEL_COM_REDHAT_SWATCH
+                value: ${LOGGING_LEVEL}
+              - name: KAFKA_MESSAGE_THREADS
+                value: ${KAFKA_MESSAGE_THREADS}
+              - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
+                value: ${KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS}
+              - name: KAFKA_SEEK_OVERRIDE_END
+                value: ${KAFKA_SEEK_OVERRIDE_END}
+              - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
+                value: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP}
+              - name: EVENT_SOURCE
+                value: 'prometheus'
+              - name: METERING_TASK_TOPIC
+                value: 'platform.rhsm-subscriptions.metering-tasks'
+              - name: PROM_URL
+                value: ${PROM_URL}
+              - name: OPENSHIFT_BILLING_MODEL_FILTER
+                value: ${OPENSHIFT_BILLING_MODEL_FILTER}
+              - name: USER_HOST
+                value: ${USER_HOST}
+              - name: USER_MAX_CONNECTIONS
+                value: ${USER_MAX_CONNECTIONS}
+              - name: USER_MAX_ATTEMPTS
+                value: ${USER_MAX_ATTEMPTS}
+              - name: USER_BACK_OFF_MAX_INTERVAL
+                value: ${USER_BACK_OFF_MAX_INTERVAL}
+              - name: USER_BACK_OFF_INITIAL_INTERVAL
+                value: ${USER_BACK_OFF_INITIAL_INTERVAL}
+              - name: USER_BACK_OFF_MULTIPLIER
+                value: ${USER_BACK_OFF_MULTIPLIER}
+              - name: RHSM_KEYSTORE_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: tls
+                    key: keystore_password
+              - name: RHSM_KEYSTORE
+                value: /pinhead/keystore.jks
+              - name: DEV_MODE
+                value: ${DEV_MODE}
+              - name: SWATCH_SELF_PSK
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-psks
+                    key: self
+              - name: ENABLE_SYNCHRONOUS_OPERATIONS
+                value: ${ENABLE_SYNCHRONOUS_OPERATIONS}
+              - name: OTEL_EXPORTER_OTLP_ENDPOINT
+                value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+              - name: OTEL_EXPORTER_OTLP_PROTOCOL
+                value: ${OTEL_EXPORTER_OTLP_PROTOCOL}
+              - name: OTEL_SERVICE_NAME
+                value: ${OTEL_SERVICE_NAME}
+              - name: OTEL_DISABLED
+                value: ${OTEL_DISABLED}
+            livenessProbe:
+              failureThreshold: 3
+              httpGet:
+                path: ${METRICS_HEALTH_LIVENESS_PATH}
+                port: ${{METRICS_HEALTH_PORT}}
+                scheme: HTTP
+              initialDelaySeconds: 15
+              periodSeconds: 20
+              successThreshold: 1
+              timeoutSeconds: 5
+            readinessProbe:
+              failureThreshold: 3
+              httpGet:
+                path: ${METRICS_HEALTH_READY_PATH}
+                port: ${{METRICS_HEALTH_PORT}}
+                scheme: HTTP
+              initialDelaySeconds: 15
+              periodSeconds: 20
+              successThreshold: 1
+              timeoutSeconds: 5
+            resources:
+              requests:
+                cpu: ${CPU_REQUEST}
+                memory: ${MEMORY_REQUEST}
+              limits:
+                cpu: ${CPU_LIMIT}
+                memory: ${MEMORY_LIMIT}
+            volumeMounts:
+              - name: logs
+                mountPath: /logs
+              - name: pinhead
+                mountPath: /pinhead
+            volumes:
+              - name: logs
+                emptyDir:
+              - name: pinhead
+                secret:
+                  secretName: pinhead
+      jobs:
+        - name: sync
+          schedule: ${METERING_SCHEDULE}
+          successfulJobsHistoryLimit: 2
+          restartPolicy: Never
+          podSpec:
+            image: ${CURL_CRON_IMAGE}:${CURL_CRON_IMAGE_TAG}
+            command:
+              - /usr/bin/bash
+              - -c
+              - >
+                /usr/bin/curl --fail -H "Origin: https://swatch-metrics-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X PUT "http://swatch-metrics-service:8000/api/swatch-metrics/v1/internal/metering/sync"
+            env:
+              - name: SWATCH_SELF_PSK
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-psks
+                    key: self
+            resources:
+              requests:
+                cpu: ${CURL_CRON_CPU_REQUEST}
+                memory: ${CURL_CRON_MEMORY_REQUEST}
+              limits:
+                cpu: ${CURL_CRON_CPU_LIMIT}
+                memory: ${CURL_CRON_MEMORY_LIMIT}
+  - apiVersion: cloud.redhat.com/v1alpha1
+    kind: ClowdApp
+    metadata:
+      name: swatch-metrics-rhel
+      labels:
+        prometheus: rhsm
+    spec:
+      envName: ${ENV_NAME}
+
+      kafkaTopics:
+        - replicas: ${{KAFKA_METERING_TASKS_REPLICAS}}
+          partitions: ${{KAFKA_METERING_TASKS_PARTITIONS}}
+          topicName: platform.rhsm-subscriptions.metering-rhel-tasks
+        - replicas: ${{KAFKA_SERVICE_INSTANCE_REPLICAS}}
+          partitions: ${{KAFKA_SERVICE_INSTANCE_PARTITIONS}}
+          topicName: platform.rhsm-subscriptions.service-instance-ingress
+
+      pullSecrets:
+        name: ${IMAGE_PULL_SECRET}
+      deployments:
+        - name: service
+          webServices:
+            public:
+              enabled: true
+            metrics:
+              enabled: true
+          replicas: ${{METRICS_RHEL_REPLICAS}}
+          podSpec:
+            metadata:
+              annotations:
+                ignore-check.kube-linter.io/no-liveness-probe: The token refresher sidecar container doesn't have a liveness probe instrumented but the service container does
+                ignore-check.kube-linter.io/no-readiness-probe: The token refresher sidecar container doesn't have a readiness probe instrumented but the service container does
+            image: ${IMAGE}:${IMAGE_TAG}
+            command:
+            sidecars:
+              - name: token-refresher
+                enabled: true
+              - name: otel-collector
+                enabled: true
+                configMap: ${OTEL_SIDECAR_CONFIG_MAP}
+                image: ${OTEL_SIDECAR_IMAGE}
+                envVars:
+                  - name: ENV_NAME
+                    value: ${OTEL_ENV_NAME}-rhel
+                  - name: K8S_CLUSTER_NAME
+                    value: ${OTEL_K8S_CLUSTER_NAME}
+                  - name: TRACES_ACCESS_TOKEN
+                    valueFrom:
+                      secretKeyRef:
+                        name: ${OTEL_TRACES_TOKEN_SECRET_NAME}
+                        key: ${OTEL_TRACES_TOKEN_SECRET_KEY}
+                  - name: SPLUNK_CONFIG
+                    value: ${OTEL_SIDECAR_TRACES_CONFIG}
+                  - name: TRACES_MEMORY_TOTAL_MIB
+                    value: '1024'
+                  - name: LOGGING_HEC_URL
+                    value: ${LOGGING_HEC_URL}
+                  - name: LOGGING_HEC_TOKEN
+                    valueFrom:
+                      secretKeyRef:
+                        name: splunk-hec-external
+                        key: token
+                  - name: LOGGING_SOURCE
+                    value: ${LOGGING_SOURCE_RHEL}
+                  - name: LOGGING_SOURCE_TYPE
+                    value: ${LOGGING_SOURCE_TYPE}
+                  - name: K8S_NAMESPACE
+                    valueFrom:
+                      fieldRef:
+                        apiVersion: v1
+                        fieldPath: metadata.namespace
+                  - name: K8S_POD_NAME
+                    valueFrom:
+                      fieldRef:
+                        apiVersion: v1
+                        fieldPath: metadata.name
+            env:
+              - name: JAVA_DEBUG
+                value: ${JAVA_DEBUG}
+              - name: USER_OPTS_APPEND
+                value: ${USER_OPTS_APPEND}
+              - name: LOGGING_HEC_ENABLED
+                value: ${LOGGING_HEC_ENABLED}
+              - name: LOGGING_NAMESPACE
+                valueFrom:
+                  fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.namespace
+              - name: HOST_NAME
+                valueFrom:
+                  fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.name
+              - name: LOGGING_HEC_URL
+                value: ${LOGGING_HEC_URL}
+              - name: LOGGING_HEC_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: splunk-hec-external
+                    key: token
+              - name: LOGGING_SOURCE
+                value: ${LOGGING_SOURCE_RHEL}
+              - name: LOGGING_SOURCE_TYPE
+                value: ${LOGGING_SOURCE_TYPE}
+              - name: LOGGING_MESSAGE_FORMAT
+                value: ${LOGGING_MESSAGE_FORMAT}
+              - name: LOGGING_HEC_CONNECT_TIMEOUT
+                value: ${LOGGING_HEC_CONNECT_TIMEOUT}
+              - name: LOGGING_HEC_BATCH_SIZE
+                value: ${LOGGING_HEC_BATCH_SIZE}
+              - name: LOGGING_HEC_TERMINATION_TIMEOUT
+                value: ${LOGGING_HEC_TERMINATION_TIMEOUT}
+              - name: QUARKUS_HTTP_LIMITS_MAX_HEADER_SIZE
+                value: ${SERVER_MAX_HTTP_HEADER_SIZE}
+              - name: LOG_FILE
+                value: /logs/server.log
+              - name: JAVA_MAX_MEM_RATIO
+                value: '85'
+              - name: GC_MAX_METASPACE_SIZE
+                value: '256'
+              - name: LOGGING_LEVEL_ROOT
+                value: ${LOGGING_LEVEL_ROOT}
+              - name: LOGGING_LEVEL_ORG_CANDLEPIN
+                value: ${METRICS_RHEL_LOGGING_LEVEL}
+              - name: LOGGING_LEVEL_COM_REDHAT_SWATCH
+                value: ${METRICS_RHEL_LOGGING_LEVEL}
+              - name: KAFKA_MESSAGE_THREADS
+                value: ${KAFKA_MESSAGE_THREADS}
+              - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
+                value: ${KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS}
+              - name: METRICS_RHEL_KAFKA_SEEK_OVERRIDE_END
+                value: ${METRICS_RHEL_KAFKA_SEEK_OVERRIDE_END}
+              - name: METRICS_RHEL_KAFKA_SEEK_OVERRIDE_TIMESTAMP
+                value: ${METRICS_RHEL_KAFKA_SEEK_OVERRIDE_TIMESTAMP}
+              - name: EVENT_SOURCE
+                value: 'rhelemeter'
+              - name: METERING_TASK_TOPIC
+                value: 'platform.rhsm-subscriptions.metering-rhel-tasks'
+              - name: PROM_URL
+                value: ${PROM_URL}
+              - name: OPENSHIFT_BILLING_MODEL_FILTER
+                value: ${OPENSHIFT_BILLING_MODEL_FILTER}
+              - name: USER_HOST
+                value: ${USER_HOST}
+              - name: USER_MAX_CONNECTIONS
+                value: ${USER_MAX_CONNECTIONS}
+              - name: USER_MAX_ATTEMPTS
+                value: ${USER_MAX_ATTEMPTS}
+              - name: USER_BACK_OFF_MAX_INTERVAL
+                value: ${USER_BACK_OFF_MAX_INTERVAL}
+              - name: USER_BACK_OFF_INITIAL_INTERVAL
+                value: ${USER_BACK_OFF_INITIAL_INTERVAL}
+              - name: USER_BACK_OFF_MULTIPLIER
+                value: ${USER_BACK_OFF_MULTIPLIER}
+              - name: RHSM_KEYSTORE_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: tls
+                    key: keystore_password
+              - name: RHSM_KEYSTORE
+                value: /pinhead/keystore.jks
+              - name: DEV_MODE
+                value: ${DEV_MODE}
+              - name: SWATCH_SELF_PSK
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-psks
+                    key: self
+              - name: ENABLE_SYNCHRONOUS_OPERATIONS
+                value: ${ENABLE_SYNCHRONOUS_OPERATIONS}
+              - name: OTEL_EXPORTER_OTLP_ENDPOINT
+                value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+              - name: OTEL_EXPORTER_OTLP_PROTOCOL
+                value: ${OTEL_EXPORTER_OTLP_PROTOCOL}
+              - name: OTEL_SERVICE_NAME
+                value: swatch-metrics-rhel
+              - name: OTEL_DISABLED
+                value: ${OTEL_DISABLED}
+            livenessProbe:
+              failureThreshold: 3
+              httpGet:
+                path: ${METRICS_HEALTH_LIVENESS_PATH}
+                port: ${{METRICS_HEALTH_PORT}}
+                scheme: HTTP
+              initialDelaySeconds: 15
+              periodSeconds: 20
+              successThreshold: 1
+              timeoutSeconds: 5
+            readinessProbe:
+              failureThreshold: 3
+              httpGet:
+                path: ${METRICS_HEALTH_READY_PATH}
+                port: ${{METRICS_HEALTH_PORT}}
+                scheme: HTTP
+              initialDelaySeconds: 15
+              periodSeconds: 20
+              successThreshold: 1
+              timeoutSeconds: 5
+            resources:
+              requests:
+                cpu: ${METRICS_RHEL_CPU_REQUEST}
+                memory: ${METRICS_RHEL_MEMORY_REQUEST}
+              limits:
+                cpu: ${METRICS_RHEL_CPU_LIMIT}
+                memory: ${METRICS_RHEL_MEMORY_LIMIT}
+            volumeMounts:
+              - name: logs
+                mountPath: /logs
+              - name: pinhead
+                mountPath: /pinhead
+            volumes:
+              - name: logs
+                emptyDir:
+              - name: pinhead
+                secret:
+                  secretName: pinhead
+
+      jobs:
+        - name: sync
+          schedule: ${RHEL_METERING_SCHEDULE}
+          successfulJobsHistoryLimit: 2
+          restartPolicy: Never
+          podSpec:
+            image: ${CURL_CRON_IMAGE}:${CURL_CRON_IMAGE_TAG}
+            command:
+              - /usr/bin/bash
+              - -c
+              - >
+                /usr/bin/curl --fail -H "Origin: https://swatch-metrics-rhel-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X PUT "http://swatch-metrics-rhel-service:8000/api/swatch-metrics/v1/internal/metering/sync"
+            env:
+              - name: SWATCH_SELF_PSK
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-psks
+                    key: self
+            resources:
+              requests:
+                cpu: ${CURL_CRON_CPU_REQUEST}
+                memory: ${CURL_CRON_MEMORY_REQUEST}
+              limits:
+                cpu: ${CURL_CRON_CPU_LIMIT}
+                memory: ${CURL_CRON_MEMORY_LIMIT}
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: swatch-psks
+    data:
+      self: cGxhY2Vob2xkZXI=

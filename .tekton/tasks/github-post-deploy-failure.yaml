@@ -1,0 +1,160 @@
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: github-post-deploy-failure
+spec:
+  description: Posts the last 100 lines of a deploy log as a PR comment when deployment fails.
+  params:
+    - name: PROJECT_REPO
+      type: string
+    - name: PR_NUMBER
+      type: string
+    - name: PIPELINE_NAME
+      type: string
+    - name: DEPLOY_LOG_FILE
+      type: string
+      description: Path to the deploy log file relative to the workspace
+      default: "deploy.log"
+    - name: DEPLOY_EXIT_CODE_FILE
+      type: string
+      description: Path to the deploy exit code file relative to the workspace
+      default: "deploy-exit-code"
+    - name: COMMENT_MARKER
+      type: string
+      default: "<!-- swatch-deploy-failure -->"
+    - name: COMMENT_TITLE
+      type: string
+      default: "Deploy Failed"
+    - name: GITHUB_TOKEN_SECRET
+      type: string
+      default: "swatch-ci-github-token"
+  workspaces:
+    - name: artifacts
+  steps:
+    - name: post-comment
+      image: quay.io/konflux-ci/appstudio-utils:latest
+      env:
+        - name: GITHUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: $(params.GITHUB_TOKEN_SECRET)
+              key: github_token
+      script: |
+        #!/usr/bin/env python3
+        import json, os, sys, time, traceback, urllib.request, urllib.error
+
+        GITHUB_TOKEN = os.environ["GITHUB_TOKEN"].strip()
+        REPO = "$(params.PROJECT_REPO)"
+        PR = "$(params.PR_NUMBER)"
+        PIPELINE = "$(params.PIPELINE_NAME)"
+        MARKER = "$(params.COMMENT_MARKER)"
+        COMMENT_TITLE = "$(params.COMMENT_TITLE)"
+        WS = "$(workspaces.artifacts.path)"
+        LOG_FILE = os.path.join(WS, "$(params.DEPLOY_LOG_FILE)")
+        EXIT_CODE_FILE = os.path.join(WS, "$(params.DEPLOY_EXIT_CODE_FILE)")
+
+        print("=== github-post-deploy-failure ===")
+        print(f"REPO: {REPO}")
+        print(f"PR: {PR}")
+        print(f"PIPELINE: {PIPELINE}")
+        print(f"LOG_FILE: {LOG_FILE}")
+        print(f"EXIT_CODE_FILE: {EXIT_CODE_FILE}")
+        print(f"Token length: {len(GITHUB_TOKEN)}")
+        print()
+
+        exit_code = 0
+        if os.path.isfile(EXIT_CODE_FILE):
+            try:
+                exit_code = int(open(EXIT_CODE_FILE).read().strip())
+            except ValueError:
+                exit_code = 1
+        else:
+            print(f"Exit code file not found: {EXIT_CODE_FILE}")
+
+        print(f"Deploy exit code: {exit_code}")
+
+        if exit_code == 0:
+            print("Deploy succeeded, skipping comment.")
+            sys.exit(0)
+
+        if not os.path.isfile(LOG_FILE):
+            print(f"Deploy log not found: {LOG_FILE}, skipping comment.")
+            sys.exit(0)
+
+        with open(LOG_FILE) as f:
+            all_lines = f.readlines()
+        tail = all_lines[-100:] if len(all_lines) > 100 else all_lines
+        log_text = "".join(tail).strip()
+        if not log_text:
+            print("Deploy log is empty, skipping comment.")
+            sys.exit(0)
+
+        print(f"Log has {len(all_lines)} lines, posting last {len(tail)} lines.")
+
+        def gh_api(method, path, data=None, retries=5):
+            url = f"https://api.github.com/repos/{REPO}{path}"
+            body = json.dumps(data).encode() if data else None
+            print(f"API call: {method} {url}")
+            for attempt in range(1, retries + 1):
+                req = urllib.request.Request(url, data=body, method=method, headers={
+                    "Authorization": f"token {GITHUB_TOKEN}",
+                    "Accept": "application/vnd.github.v3+json",
+                    "Content-Type": "application/json",
+                })
+                try:
+                    with urllib.request.urlopen(req, timeout=30) as resp:
+                        resp_body = resp.read().decode()
+                        print(f"  Attempt {attempt}/{retries}: HTTP {resp.status} (OK)")
+                        return resp.status, json.loads(resp_body)
+                except urllib.error.HTTPError as e:
+                    resp_body = ""
+                    try:
+                        resp_body = e.read().decode()
+                    except Exception:
+                        pass
+                    print(f"  Attempt {attempt}/{retries}: HTTP {e.code}")
+                    print(f"  Response: {resp_body[:500]}")
+                    if e.code >= 500 and attempt < retries:
+                        time.sleep(2 ** attempt)
+                        continue
+                    return e.code, {}
+                except Exception as e:
+                    print(f"  Attempt {attempt}/{retries}: Exception: {e}")
+                    traceback.print_exc()
+                    if attempt < retries:
+                        time.sleep(2 ** attempt)
+                        continue
+                    raise
+
+        if len(log_text) > 60000:
+            log_text = log_text[-60000:]
+
+        body = "\n".join([
+            MARKER,
+            f"**{COMMENT_TITLE}** -- `{PIPELINE}`",
+            "",
+            "<details>",
+            f"<summary>Last {len(tail)} lines of deploy output</summary>",
+            "",
+            "```",
+            log_text,
+            "```",
+            "</details>",
+        ])
+
+        print()
+        print(f"Comment body length: {len(body)} chars")
+        print()
+
+        print(f"Posting comment to PR #{PR}...")
+        status, resp = gh_api("POST", f"/issues/{PR}/comments", {"body": body})
+        if 200 <= status < 300:
+            print(f"Posted PR comment (HTTP {status})")
+            print(f"Comment URL: {resp.get('html_url', 'N/A')}")
+        else:
+            print(f"FAILED to post PR comment (HTTP {status})")
+            print(f"Response: {resp}")
+
+        print()
+        print("=== github-post-deploy-failure DONE ===")

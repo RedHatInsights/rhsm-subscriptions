@@ -1,0 +1,19 @@
+---
+platform: RHEL
+
+id: rhel-for-ibm-z
+
+vdcType: true
+
+variants:
+  - tag: RHEL for IBM z
+    engineeringIds:
+      - 72 # Red Hat Enterprise Linux for IBM z Systems
+
+
+defaults:
+  variant: RHEL for IBM z
+
+metrics:
+  - id: Sockets
+    type: gauge

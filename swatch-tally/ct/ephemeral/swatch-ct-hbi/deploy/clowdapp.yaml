@@ -1,0 +1,141 @@
+---
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: swatch-tally-ct-hbi
+parameters:
+  - name: ENV_NAME
+    value: env-swatch-tally-ct-hbi
+  - name: IMAGE_PULL_SECRET
+    value: quay-cloudservices-pull
+  - name: INVENTORY_IMAGE
+    value: quay.io/redhat-services-prod/insights-management-tenant/insights-host-inventory/insights-host-inventory
+  - name: INVENTORY_IMAGE_TAG
+    value: latest
+  - name: DB_MIGRATION_JOB_RUN_NUMBER
+    value: '1'
+
+objects:
+  - apiVersion: cloud.redhat.com/v1alpha1
+    kind: ClowdApp
+    metadata:
+      name: swatch-tally-ct-hbi
+    spec:
+      envName: ${ENV_NAME}
+
+      # Database only - Clowder will provision PostgreSQL and create the secret
+      database:
+        name: swatch-tally-ct-hbi
+        version: 16
+
+      # Deployment with replicas: 0 so Clowder provisions database but no service pods run
+      deployments:
+        - name: service
+          replicas: 0
+          podSpec:
+            image: ${INVENTORY_IMAGE}:${INVENTORY_IMAGE_TAG}
+            command: ["./run_gunicorn.py"]
+            env:
+              - name: INVENTORY_DB_HOST
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-tally-ct-hbi-db
+                    key: db.host
+              - name: INVENTORY_DB_PORT
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-tally-ct-hbi-db
+                    key: db.port
+              - name: INVENTORY_DB_USER
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-tally-ct-hbi-db
+                    key: db.user
+              - name: INVENTORY_DB_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-tally-ct-hbi-db
+                    key: db.password
+              - name: INVENTORY_DB_NAME
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-tally-ct-hbi-db
+                    key: db.name
+              - name: INVENTORY_DB_SCHEMA
+                value: hbi
+              - name: CLOWDER_ENABLED
+                value: "true"
+              - name: BYPASS_RBAC
+                value: "true"
+            resources:
+              requests:
+                cpu: 100m
+                memory: 256Mi
+              limits:
+                cpu: 500m
+                memory: 512Mi
+
+      pullSecrets:
+        name: ${IMAGE_PULL_SECRET}
+
+      # Migration job to load the host-inventory schema
+      jobs:
+        - name: schema-migration-${DB_MIGRATION_JOB_RUN_NUMBER}
+          restartPolicy: OnFailure
+          podSpec:
+            image: ${INVENTORY_IMAGE}:${INVENTORY_IMAGE_TAG}
+            command: ["/bin/bash", "-c"]
+            args:
+              - |
+                FLASK_APP=./manage.py flask db upgrade
+            env:
+              - name: INVENTORY_DB_HOST
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-tally-ct-hbi-db
+                    key: db.host
+              - name: INVENTORY_DB_PORT
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-tally-ct-hbi-db
+                    key: db.port
+              - name: INVENTORY_DB_USER
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-tally-ct-hbi-db
+                    key: db.user
+              - name: INVENTORY_DB_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-tally-ct-hbi-db
+                    key: db.password
+              - name: INVENTORY_DB_NAME
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-tally-ct-hbi-db
+                    key: db.name
+              - name: INVENTORY_DB_SCHEMA
+                value: hbi
+              - name: INVENTORY_DB_SSL_MODE
+                value: prefer
+              - name: CLOWDER_ENABLED
+                value: "true"
+              - name: MIGRATION_MODE
+                value: automated
+            resources:
+              requests:
+                cpu: 100m
+                memory: 256Mi
+              limits:
+                cpu: 500m
+                memory: 512Mi
+
+  # ClowdJobInvocation to trigger the migration job
+  - apiVersion: cloud.redhat.com/v1alpha1
+    kind: ClowdJobInvocation
+    metadata:
+      name: swatch-tally-ct-hbi-migration-${DB_MIGRATION_JOB_RUN_NUMBER}
+    spec:
+      appName: swatch-tally-ct-hbi
+      jobs:
+        - schema-migration-${DB_MIGRATION_JOB_RUN_NUMBER}

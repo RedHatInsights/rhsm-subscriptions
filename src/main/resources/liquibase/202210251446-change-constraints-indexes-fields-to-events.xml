@@ -1,0 +1,45 @@
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="202210251446-1" author="kshah" dbms="postgresql">
+        <comment>Drop unique constraints to accommodate org_id</comment>
+        <dropUniqueConstraint tableName="events"
+                              constraintName="events_event_type_event_source_instance_id_account_number_t_key"/>
+    </changeSet>
+
+    <changeSet id="202210251446-2" author="kshah">
+        <comment>Create constraint including org_id</comment>
+        <addUniqueConstraint tableName="events" constraintName="events_event_type_event_source_instance_id_org_id_t_key"
+            columnNames="event_type, event_source, instance_id, org_id, timestamp"/>
+    </changeSet>
+
+    <changeSet id="202210251446-3" author="kshah">
+        <comment>Drop index to remove account_number</comment>
+        <dropIndex tableName="events" indexName="events_event_type_idx"/>
+    </changeSet>
+
+    <changeSet id="202210251446-4" author="kshah">
+        <comment>Create index to add org_id</comment>
+        <createIndex tableName="events" indexName="events_event_type_idx">
+            <column name="org_id"/>
+            <column name="event_type"/>
+            <column name="timestamp"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="202210251446-5" author="kshah">
+        <comment>Drop index to remove account_number</comment>
+        <dropIndex tableName="events" indexName="events_account_timestamp_idx"/>
+    </changeSet>
+
+   <changeSet id="202210251446-6" author="kshah">
+        <comment>Create index to add org_id</comment>
+        <createIndex tableName="events" indexName="events_org_timestamp_idx">
+            <column name="org_id"/>
+            <column name="timestamp"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

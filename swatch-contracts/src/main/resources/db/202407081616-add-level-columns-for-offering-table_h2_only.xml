@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+  <changeSet id="202407081616-01" author="lburnett" dbms="h2">
+    <comment>Add level_1 and level_2 columns to the OFFERING table for tests only (since it's still managed by the
+      monolith)</comment>
+    <addColumn tableName="offering">
+      <column name="level_1" type="text"/>
+      <column name="level_2" type="text"/>
+    </addColumn>
+    <rollback>
+      <dropColumn tableName="offering" columnName="level_1"/>
+      <dropColumn tableName="offering" columnName="level_2"/>
+    </rollback>
+  </changeSet>
+</databaseChangeLog>

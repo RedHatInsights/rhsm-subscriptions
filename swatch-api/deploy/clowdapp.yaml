@@ -1,0 +1,496 @@
+---
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: swatch-api
+parameters:
+  - name: JAVA_DEBUG
+    # Set to "true" to enable remote debugging
+    value: ''
+  - name: USER_OPTS_APPEND
+    value: ''
+  - name: DEV_MODE
+    value: 'false'
+  - name: ENV_NAME
+    value: env-swatch-api
+  - name: IMAGE_PULL_SECRET
+    value: quay-cloudservices-pull
+  - name: IMAGE
+    value: quay.io/cloudservices/rhsm-subscriptions
+  - name: IMAGE_TAG
+    value: latest
+  - name: LOGGING_LEVEL_ROOT
+    value: WARN
+  - name: LOGGING_LEVEL
+    value: INFO
+  - name: LOGGING_SHOW_SQL_QUERIES
+    value: 'false'
+  - name: REPLICAS
+    value: '1'
+  - name: MEMORY_REQUEST
+    value: 800Mi
+  - name: MEMORY_LIMIT
+    value: 800Mi
+  - name: CPU_REQUEST
+    value: 200m
+  - name: CPU_LIMIT
+    value: 300m
+  - name: DATABASE_CONNECTION_TIMEOUT_MS
+    value: '30000'
+  - name: DATABASE_MAX_POOL_SIZE
+    value: '10'
+  - name: LOGGING_HEC_ENABLED
+    value: 'true'
+  - name: LOGGING_SOURCE
+    value: 'swatch-api'
+  - name: LOGGING_SOURCE_TYPE
+    value: 'swatch'
+  - name: LOGGING_MESSAGE_FORMAT
+    value: 'text'
+  - name: LOGGING_HEC_URL
+    value: https://splunk-hec.redhat.com:8088
+  - name: LOGGING_HEC_CONNECT_TIMEOUT
+    value: '5000'
+  - name: LOGGING_HEC_BATCH_SIZE
+    value: '1000'
+  - name: LOGGING_HEC_TERMINATION_TIMEOUT
+    value: '2000'
+  - name: OTEL_SERVICE_NAME
+    value: swatch-api
+  - name: NGINX_OTEL_IMAGE
+    value: quay.io/cloudservices/nginx-otel
+  - name: NGINX_OTEL_IMAGE_TAG
+    value: '58f1545'
+  - name: OTEL_ENABLED
+    value: 'off'
+  - name: OTEL_JAVAAGENT_ENABLED
+    value: 'false'
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: 'http://localhost:4317'
+  - name: OTEL_EXPORTER_OTLP_PROTOCOL
+    value: 'grpc'
+  # Disable OTLP export for logs and metrics when the collector only supports traces
+  - name: OTEL_LOGS_EXPORTER
+    value: 'none'
+  - name: OTEL_METRICS_EXPORTER
+    value: 'none'
+  - name: OTEL_SIDECAR_IMAGE
+    value: quay.io/signalfx/splunk-otel-collector:0.140.0
+  - name: OTEL_SIDECAR_CONFIG_MAP
+    value: swatch-otel-config-v1
+  - name: OTEL_SIDECAR_TRACES_CONFIG
+    value: '/etc/otelcol/relay'
+  - name: OTEL_ENV_NAME
+    value: env-swatch-api
+  - name: OTEL_K8S_CLUSTER_NAME
+    value: ephemeral
+  - name: OTEL_TRACES_TOKEN_SECRET_NAME
+    value: signalfx
+  - name: OTEL_TRACES_TOKEN_SECRET_KEY
+    value: token
+  - name: DB_POD
+    value: swatch-database
+
+objects:
+  - apiVersion: cloud.redhat.com/v1alpha1
+    kind: ClowdApp
+    metadata:
+      name: swatch-api
+      labels:
+        prometheus: rhsm
+    pullSecrets:
+      name: ${IMAGE_PULL_SECRET}
+
+    spec:
+      envName: ${ENV_NAME}
+      dependencies:
+        - ${DB_POD}
+        - swatch-tally
+        - rbac
+        - swatch-contracts
+        - swatch-utilization
+
+      database:
+        sharedDbAppName: ${DB_POD}
+
+      deployments:
+        - name: service
+          replicas: ${{REPLICAS}}
+          webServices:
+            public:
+              enabled: true
+          podSpec:
+            image: ${IMAGE}:${IMAGE_TAG}
+            initContainers:
+              - env:
+                  - name: JAVA_DEBUG
+                    value: ${JAVA_DEBUG}
+                  - name: SPRING_PROFILES_ACTIVE
+                    value: liquibase-only
+                  - name: JAVA_TOOL_OPTIONS
+                    value: ''
+                inheritEnv: true
+                resources:
+                  requests:
+                    cpu: ${CPU_REQUEST}
+                    memory: ${MEMORY_REQUEST}
+                  limits:
+                    cpu: ${CPU_LIMIT}
+                    memory: ${MEMORY_LIMIT}
+            env:
+              - name: JAVA_DEBUG
+                value: ${JAVA_DEBUG}
+              - name: USER_OPTS_APPEND
+                value: ${USER_OPTS_APPEND}
+              - name: DEV_MODE
+                value: ${DEV_MODE}
+              - name: LOG_FILE
+                value: /logs/server.log
+              - name: SPRING_PROFILES_ACTIVE
+                value: api
+              - name: JAVA_MAX_MEM_RATIO
+                value: '85'
+              - name: JAVA_TOOL_OPTIONS
+                value: -javaagent:/opt/splunk-otel-javaagent.jar
+              - name: GC_MAX_METASPACE_SIZE
+                value: '256'
+              - name: LOGGING_LEVEL_ROOT
+                value: ${LOGGING_LEVEL_ROOT}
+              - name: LOGGING_LEVEL_ORG_CANDLEPIN
+                value: ${LOGGING_LEVEL}
+              - name: LOGGING_LEVEL_COM_REDHAT_SWATCH
+                value: ${LOGGING_LEVEL}
+              - name: LOGGING_SHOW_SQL_QUERIES
+                value: ${LOGGING_SHOW_SQL_QUERIES}
+              - name: DATABASE_HOST
+                valueFrom:
+                  secretKeyRef:
+                    name: ${DB_POD}-db
+                    key: db.host
+              - name: DATABASE_PORT
+                valueFrom:
+                  secretKeyRef:
+                    name: ${DB_POD}-db
+                    key: db.port
+              - name: DATABASE_USERNAME
+                valueFrom:
+                  secretKeyRef:
+                    name: ${DB_POD}-db
+                    key: db.user
+              - name: DATABASE_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: ${DB_POD}-db
+                    key: db.password
+              - name: DATABASE_DATABASE
+                valueFrom:
+                  secretKeyRef:
+                    name: ${DB_POD}-db
+                    key: db.name
+              - name: DATABASE_CONNECTION_TIMEOUT_MS
+                value: ${DATABASE_CONNECTION_TIMEOUT_MS}
+              - name: DATABASE_MAX_POOL_SIZE
+                value: ${DATABASE_MAX_POOL_SIZE}
+              - name: SWATCH_SELF_PSK
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-psks
+                    key: self
+              - name: LOGGING_HEC_ENABLED
+                value: ${LOGGING_HEC_ENABLED}
+              - name: LOGGING_NAMESPACE
+                valueFrom:
+                  fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.namespace
+              - name: HOST_NAME
+                valueFrom:
+                  fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.name
+              - name: LOGGING_HEC_URL
+                value: ${LOGGING_HEC_URL}
+              - name: LOGGING_HEC_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: splunk-hec-external
+                    key: token
+              - name: LOGGING_SOURCE
+                value: ${LOGGING_SOURCE}
+              - name: LOGGING_SOURCE_TYPE
+                value: ${LOGGING_SOURCE_TYPE}
+              - name: LOGGING_MESSAGE_FORMAT
+                value: ${LOGGING_MESSAGE_FORMAT}
+              - name: LOGGING_HEC_CONNECT_TIMEOUT
+                value: ${LOGGING_HEC_CONNECT_TIMEOUT}
+              - name: LOGGING_HEC_BATCH_SIZE
+                value: ${LOGGING_HEC_BATCH_SIZE}
+              - name: LOGGING_HEC_TERMINATION_TIMEOUT
+                value: ${LOGGING_HEC_TERMINATION_TIMEOUT}
+              - name: OTEL_EXPORTER_OTLP_ENDPOINT
+                value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+              - name: OTEL_EXPORTER_OTLP_PROTOCOL
+                value: ${OTEL_EXPORTER_OTLP_PROTOCOL}
+              - name: OTEL_SERVICE_NAME
+                value: ${OTEL_SERVICE_NAME}
+              - name: OTEL_JAVAAGENT_ENABLED
+                value: ${OTEL_JAVAAGENT_ENABLED}
+              - name: OTEL_LOGS_EXPORTER
+                value: ${OTEL_LOGS_EXPORTER}
+              - name: OTEL_METRICS_EXPORTER
+                value: ${OTEL_METRICS_EXPORTER}
+            livenessProbe:
+              failureThreshold: 3
+              httpGet:
+                path: /health/liveness
+                port: 9000
+                scheme: HTTP
+              initialDelaySeconds: 160
+              periodSeconds: 20
+              successThreshold: 1
+              timeoutSeconds: 5
+            readinessProbe:
+              failureThreshold: 3
+              httpGet:
+                path: /health
+                port: 9000
+                scheme: HTTP
+              initialDelaySeconds: 160
+              periodSeconds: 20
+              successThreshold: 1
+              timeoutSeconds: 5
+            resources:
+              requests:
+                cpu: ${CPU_REQUEST}
+                memory: ${MEMORY_REQUEST}
+              limits:
+                cpu: ${CPU_LIMIT}
+                memory: ${MEMORY_LIMIT}
+            volumeMounts:
+              - name: logs
+                mountPath: /logs
+              - name: pinhead
+                mountPath: /pinhead
+            volumes:
+              - name: logs
+                emptyDir:
+              - name: pinhead
+                secret:
+                  secretName: pinhead
+            sidecars:
+              - name: otel-collector
+                enabled: true
+                configMap: ${OTEL_SIDECAR_CONFIG_MAP}
+                image: ${OTEL_SIDECAR_IMAGE}
+                envVars:
+                  - name: ENV_NAME
+                    value: ${OTEL_ENV_NAME}
+                  - name: K8S_CLUSTER_NAME
+                    value: ${OTEL_K8S_CLUSTER_NAME}
+                  - name: TRACES_ACCESS_TOKEN
+                    valueFrom:
+                      secretKeyRef:
+                        name: ${OTEL_TRACES_TOKEN_SECRET_NAME}
+                        key: ${OTEL_TRACES_TOKEN_SECRET_KEY}
+                  - name: SPLUNK_CONFIG
+                    value: ${OTEL_SIDECAR_TRACES_CONFIG}
+                  - name: TRACES_MEMORY_TOTAL_MIB
+                    value: '1024'
+                  - name: LOGGING_HEC_URL
+                    value: ${LOGGING_HEC_URL}
+                  - name: LOGGING_HEC_TOKEN
+                    valueFrom:
+                      secretKeyRef:
+                        name: splunk-hec-external
+                        key: token
+                  - name: LOGGING_SOURCE
+                    value: ${LOGGING_SOURCE}
+                  - name: LOGGING_SOURCE_TYPE
+                    value: ${LOGGING_SOURCE_TYPE}
+                  - name: K8S_NAMESPACE
+                    valueFrom:
+                      fieldRef:
+                        apiVersion: v1
+                        fieldPath: metadata.namespace
+                  - name: K8S_POD_NAME
+                    valueFrom:
+                      fieldRef:
+                        apiVersion: v1
+                        fieldPath: metadata.name
+        - name: nginx-proxy
+          replicas: ${{REPLICAS}}
+          webServices:
+            public:
+              enabled: true
+              apiPath: rhsm-subscriptions
+          podSpec:
+            image: ${NGINX_OTEL_IMAGE}:${NGINX_OTEL_IMAGE_TAG}
+            command:
+              - nginx
+              - "-g"
+              - "daemon off;"
+            env:
+              - name: DEV_MODE
+                value: ${DEV_MODE}
+              - name: OTEL_EXPORTER_OTLP_ENDPOINT
+                value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+              - name: OTEL_EXPORTER_OTLP_PROTOCOL
+                value: ${OTEL_EXPORTER_OTLP_PROTOCOL}
+              - name: OTEL_SERVICE_NAME
+                value: swatch-api-nginx-proxy
+            volumeMounts:
+              - name: swatch-api-nginx-conf
+                mountPath: /etc/nginx
+            volumes:
+              - name: swatch-api-nginx-conf
+                configMap:
+                  name: nginx-conf
+            sidecars:
+              - name: otel-collector
+                enabled: true
+                configMap: ${OTEL_SIDECAR_CONFIG_MAP}
+                image: ${OTEL_SIDECAR_IMAGE}
+                envVars:
+                  - name: ENV_NAME
+                    value: ${OTEL_ENV_NAME}
+                  - name: K8S_CLUSTER_NAME
+                    value: ${OTEL_K8S_CLUSTER_NAME}
+                  - name: TRACES_ACCESS_TOKEN
+                    valueFrom:
+                      secretKeyRef:
+                        name: ${OTEL_TRACES_TOKEN_SECRET_NAME}
+                        key: ${OTEL_TRACES_TOKEN_SECRET_KEY}
+                  - name: SPLUNK_CONFIG
+                    value: ${OTEL_SIDECAR_TRACES_CONFIG}
+                  - name: TRACES_MEMORY_TOTAL_MIB
+                    value: '1024'
+                  - name: LOGGING_HEC_URL
+                    value: ${LOGGING_HEC_URL}
+                  - name: LOGGING_HEC_TOKEN
+                    valueFrom:
+                      secretKeyRef:
+                        name: splunk-hec-external
+                        key: token
+                  - name: LOGGING_SOURCE
+                    value: swatch-api-nginx-proxy
+                  - name: LOGGING_SOURCE_TYPE
+                    value: ${LOGGING_SOURCE_TYPE}
+                  - name: K8S_NAMESPACE
+                    valueFrom:
+                      fieldRef:
+                        apiVersion: v1
+                        fieldPath: metadata.namespace
+                  - name: K8S_POD_NAME
+                    valueFrom:
+                      fieldRef:
+                        apiVersion: v1
+                        fieldPath: metadata.name
+
+  - kind: Service
+    apiVersion: v1
+    metadata:
+      name: rhsm-subscriptions
+    spec:
+      ports:
+        - port: 8000
+          name: "8000"
+          protocol: TCP
+          targetPort: 8000
+        - port: 8080
+          name: "8080"
+          protocol: TCP
+          targetPort: 8000
+      selector:
+        pod: swatch-api-nginx-proxy
+
+
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: nginx-conf
+    data:
+      nginx.conf: |-
+        load_module /opt/otel_ngx_module.so;
+        events {}
+        http {
+          opentelemetry ${OTEL_ENABLED};
+          opentelemetry_config /etc/nginx/otel.toml;
+
+          log_format json_combined escape=json
+            '{'
+              '"time_local":"$time_iso8601",'
+              '"remote_addr":"$remote_addr",'
+              '"request":"$request",'
+              '"status":$status,'
+              '"body_bytes_sent":$body_bytes_sent,'
+              '"request_time":$request_time,'
+              '"upstream_response_time":"$upstream_response_time",'
+              '"http_user_agent":"$http_user_agent",'
+              '"http_referer":"$http_referer"'
+            '}';
+
+          upstream swatch-api {
+            server swatch-api-service:8000;
+          }
+          upstream swatch-contracts {
+            server swatch-contracts-service:8000;
+          }
+          upstream swatch-utilization {
+            server swatch-utilization-service:8000;
+          }
+
+          server {
+            # TODO: Replace syslog with filelog once Clowder supports volumeMounts in sidecars:
+            # https://github.com/RedHatInsights/clowder/pull/1759
+            error_log  stderr;
+            error_log  syslog:server=127.0.0.1:54526,facility=local7,tag=nginx,severity=error;
+            access_log  /dev/stdout;
+            access_log  syslog:server=127.0.0.1:54526,facility=local7,tag=nginx,severity=info json_combined;
+            listen 8000;
+            client_max_body_size 500M;
+            client_header_buffer_size 46k;
+
+            location /healthz {
+                opentelemetry       off;
+                auth_basic          off;
+                allow               all;
+                return              200;
+            }
+
+            location /api/rhsm-subscriptions/v1/subscriptions/billing_account_ids {
+              rewrite ^/api/rhsm-subscriptions/v1/subscriptions/billing_account_ids$ /api/swatch-contracts/v1/subscriptions/billing_account_ids break;
+              proxy_pass http://swatch-contracts;
+            }
+        
+            location /api/rhsm-subscriptions/v1/subscriptions/products {
+              proxy_pass http://swatch-contracts;
+            }
+    
+            location /api/rhsm-subscriptions/v2/subscriptions/products {
+              proxy_pass http://swatch-contracts;
+            }
+    
+            location /api/rhsm-subscriptions/v1/capacity/products {
+              proxy_pass http://swatch-contracts;
+            }
+
+            location /api/rhsm-subscriptions/v1/utilization/org-preferences {
+              proxy_pass http://swatch-utilization;
+            }
+
+            location ^~/ {
+              proxy_pass http://swatch-api;
+            }
+          }
+        }
+      otel.toml: |-
+        exporter = "otlp"
+        processor = "batch"
+
+        [exporters.otlp]
+        # host and port are set via OTEL_EXPORTER_OTLP_ENDPOINT
+
+        [processors.batch]
+        max_queue_size = 2048
+        schedule_delay_millis = 5000
+        max_export_batch_size = 512

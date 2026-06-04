@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+  <changeSet id="202501081035-01" author="awood" dbms="postgresql">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="subscription_backup"/>
+    </preConditions>
+    <dropTable tableName="subscription_backup"/>
+  </changeSet>
+
+  <changeSet id="202501081035-02" author="awood" dbms="postgresql">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="subscription_product_ids_backup"/>
+    </preConditions>
+    <dropTable tableName="subscription_product_ids_backup"/>
+  </changeSet>
+
+  <changeSet id="202501081035-03" author="awood" dbms="postgresql">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="subscription_measurements_backup"/>
+    </preConditions>
+    <dropTable tableName="subscription_measurements_backup"/>
+  </changeSet>
+</databaseChangeLog>

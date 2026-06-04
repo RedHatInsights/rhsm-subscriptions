@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202311211112-01" author="kflahert">
+    <comment>Drop sockets and cores default value from host_tally_buckets table</comment>
+    <dropDefaultValue tableName="host_tally_buckets" columnName="cores"/>
+    <dropDefaultValue tableName="host_tally_buckets" columnName="sockets"/>
+
+    <rollback>
+      <addDefaultValue tableName="host_tally_buckets" columnName="cores" defaultValue="0"/>
+      <addDefaultValue tableName="host_tally_buckets" columnName="sockets" defaultValue="0"/>
+    </rollback>
+  </changeSet>
+
+</databaseChangeLog>

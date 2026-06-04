@@ -1,0 +1,74 @@
+*~
+*.class
+*.log*
+*.bak
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+
+**/.classpath
+**/*.iml
+**/*.iws
+**/*.ipr
+.ideaDataSources
+.idea
+
+**/build/
+**/target/
+**/.gradle/
+**/out
+**/lib
+
+**/prometheumultiprocess
+
+# Spring Boot reads local configuration from application.properties out of the
+# "config" directory under the working directory for a Spring Boot project.
+# We set these to ignore so each developer can control application settings as
+# they see fit.
+swatch-tally/config/application.properties
+swatch-system-conduit/config/application.properties
+
+config/export-service/tmp
+
+#VS Code
+.project
+.settings
+.vscode
+.editorconfig
+*.code-workspace
+
+# The logic here is complicated.  We want to ignore all bin directories because
+# build artifacts land there.  Except we want to track the bin directory at the
+# top level (where we keep our scripts).  But in that top level bin directory
+# we don't want to track the main or test directory since those also have build
+# artifacts.
+**/bin/
+!/bin
+/bin/main
+/bin/test
+
+.run/
+.env
+
+deploy/secrets.yaml
+
+#created when running pr_check.sh locally
+artifacts
+.bonfire_venv
+.cicd_bootstrap.sh
+.podman
+bonfire
+.bonfire
+.docker
+.kube
+
+stub/__files/
+
+# python tests
+pytest_swatch/*
+
+# maven
+.mvn/wrapper/maven-wrapper.jar
+**/*.dot

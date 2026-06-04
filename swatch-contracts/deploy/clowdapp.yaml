@@ -1,0 +1,1414 @@
+---
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: swatch-contracts
+parameters:
+  - name: JAVA_DEBUG
+    # Set to "true" to enable remote debugging
+    value: ''
+  - name: USER_OPTS_APPEND
+    value: ''
+  - name: QUARKUS_LAUNCH_DEVMODE
+    value: ''
+  - name: IMAGE_PULL_SECRET
+    value: quay-cloudservices-pull
+  - name: MEMORY_REQUEST
+    value: 1000Mi
+  - name: MEMORY_LIMIT
+    value: 1400Mi
+  - name: CPU_REQUEST
+    value: 350m
+  - name: CPU_LIMIT
+    value: 1500m
+  - name: ENV_NAME
+    value: env-swatch-contracts
+  - name: REPLICAS
+    value: '1'
+  - name: IMAGE
+    value: quay.io/cloudservices/swatch-contracts
+  - name: IMAGE_TAG
+    value: latest
+  - name: LOGGING_HEC_ENABLED
+    value: 'true'
+  - name: LOGGING_HEC_URL
+    value: https://splunk-hec.redhat.com:8088
+  - name: LOGGING_SOURCE
+    value: 'swatch-contracts'
+  - name: LOGGING_SOURCE_TYPE
+    value: 'swatch'
+  - name: LOGGING_HEC_BATCH_SIZE
+    value: '1000'
+  - name: LOGGING_HEC_BATCH_INTERVAL
+    value: '10S'
+  - name: LOGGING_HEC_RETRY_COUNT
+    value: '3'
+  - name: LOGGING_HEC_INCLUDE_EX
+    value: 'true'
+  - name: LOGGING_LEVEL_ROOT
+    value: 'INFO'
+  - name: LOGGING_LEVEL_COM_REDHAT_SWATCH
+    value: 'INFO'
+  - name: LOGGING_SHOW_SQL_QUERIES
+    value: 'false'
+  # allow overriding to support independent deploy with bonfire
+  - name: DB_POD
+    value: swatch-database
+  # Using a value of 'select 1' makes this job a no-op by default.
+  # When needed bump DB_CHANGELOG_CLEANUP_RUN_NUMBER, set DB_CHANGELOG_CLEANUP_SQL to 'delete from databasechangeloglock_swatch_contracts'
+  - name: DB_CHANGELOG_CLEANUP_RUN_NUMBER
+    value: '1'
+  - name: DB_CHANGELOG_CLEANUP_SQL
+    value: 'select 1'
+  - name: EGRESS_IMAGE
+    value: quay.io/redhat-services-prod/rh-subs-watch-tenant/rhsm-subscriptions-egress
+  - name: EGRESS_IMAGE_TAG
+    value: latest
+  - name: QUARKUS_PROFILE
+    value: prod
+  - name: UMB_KEYSTORE_PATH
+    value: /pinhead/keystore.jks
+  - name: SUBSCRIPTION_SYNC_ENABLED
+    value: 'true'
+  - name: SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN
+    value: 2M
+  - name: SUBSCRIPTION_IGNORE_STARTING_LATER_THAN
+    value: 2M
+  - name: ENABLE_PAYG_SUBSCRIPTION_FORCE_SYNC
+    value: 'true'
+  - name: OFFERING_SYNC_SCHEDULE
+    value: 0 2 * * *
+  # Nightly sync of all contracts from IT Partner Gateway (POST .../internal/rpc/contracts/sync).
+  # Default 03:30 UTC — after offering-sync (02:00), before subscription-sync (10:00). Not overlapping hourly tally.
+  - name: CONTRACTS_SYNC_SCHEDULE
+    value: 30 3 * * *
+  - name: SUBSCRIPTION_SYNC_SCHEDULE
+    value: 0 10 * * *
+  - name: KAFKA_ENABLED_ORGS_REPLICAS
+    value: '3'
+  - name: KAFKA_ENABLED_ORGS_PARTITIONS
+    value: '3'
+  - name: KAFKA_SUBSCRIPTION_SYNC_TASK_REPLICAS
+    value: '3'
+  - name: KAFKA_SUBSCRIPTION_SYNC_TASK_PARTITIONS
+    value: '3'
+  - name: KAFKA_CAPACITY_RECONCILE_REPLICAS
+    value: '3'
+  - name: KAFKA_CAPACITY_RECONCILE_PARTITIONS
+    value: '3'
+  - name: KAFKA_CONTRACT_SYNC_REPLICAS
+    value: '3'
+  - name: KAFKA_CONTRACT_SYNC_PARTITIONS
+    value: '3'
+  - name: KAFKA_OFFERING_SYNC_REPLICAS
+    value: '3'
+  - name: KAFKA_OFFERING_SYNC_PARTITIONS
+    value: '3'
+  - name: KAFKA_SUBSCRIPTIONS_EXPORT_REPLICAS
+    value: '3'
+  - name: KAFKA_SUBSCRIPTIONS_EXPORT_PARTITIONS
+    value: '3'
+  - name: KAFKA_TALLY_REPLICAS
+    value: '3'
+  - name: KAFKA_TALLY_PARTITIONS
+    value: '3'
+  - name: KAFKA_UTILIZATION_REPLICAS
+    value: '3'
+  - name: KAFKA_UTILIZATION_PARTITIONS
+    value: '3'
+  - name: KAFKA_PARTNER_GATEWAY_REPLICAS
+    value: '3'
+  - name: KAFKA_PARTNER_GATEWAY_PARTITIONS
+    value: '3'
+  - name: CURL_CRON_IMAGE
+    value: registry.access.redhat.com/ubi8/ubi-minimal
+  - name: CURL_CRON_IMAGE_TAG
+    value: latest
+  - name: CURL_CRON_MEMORY_REQUEST
+    value: 50Mi
+  - name: CURL_CRON_MEMORY_LIMIT
+    value: 50Mi
+  - name: CURL_CRON_CPU_REQUEST
+    value: 100m
+  - name: CURL_CRON_CPU_LIMIT
+    value: 100m
+  - name: OTEL_DISABLED
+    value: 'true'
+  - name: OTEL_SIDECAR_IMAGE
+    value: quay.io/signalfx/splunk-otel-collector:0.140.0
+  - name: OTEL_SIDECAR_CONFIG_MAP
+    value: swatch-otel-config-v1
+  - name: OTEL_SIDECAR_TRACES_CONFIG
+    value: '/etc/otelcol/relay'
+  - name: OTEL_ENV_NAME
+    value: env-swatch-contracts
+  - name: OTEL_K8S_CLUSTER_NAME
+    value: ephemeral
+  - name: OTEL_TRACES_TOKEN_SECRET_NAME
+    value: signalfx
+  - name: OTEL_TRACES_TOKEN_SECRET_KEY
+    value: token
+  - name: FLOORIST_DB_SECRET_NAME
+    description: database secret name
+    value: swatch-db-ro
+    # FloorPlan swatch-contracts: Stage=dev, Prod=prod
+  - name: FLOORIST_BUCKET_SECRET_NAME
+    description: bucket secret name
+    required: true
+    value: egress-s3
+    # FloorPlan swatch-contracts-test: Stage=sandbox, Prod=preprod
+  - name: FLOORIST_BUCKET_SECRET_NAME_TEST
+    description: bucket secret name for preprod
+    required: true
+    value: egress-s3
+  - name: FLOORIST_LOGLEVEL
+    description: Floorist loglevel config
+    value: 'DEBUG'
+  - name: FLOORIST_SUSPEND
+    description: Disable Floorist cronjob execution
+    required: true
+    value: 'false'
+  - name: FLOORIST_S3_SNOWPIPE_PATH
+    description: Path for dataproduct in snowpipe s3 bucket
+    value: 'swatch'
+
+# Shared FloorPlan specification for all environments (sandbox, dev, preprod, prod)
+# Only objectStore differs per environment
+.floorplan_spec: &floorplan_spec_base
+  database:
+    secretName: ${FLOORIST_DB_SECRET_NAME}
+  logLevel: ${FLOORIST_LOGLEVEL}
+  suspend: ${{FLOORIST_SUSPEND}}
+  resources:
+    limits:
+      cpu: 400m
+      memory: 500Mi
+    requests:
+      cpu: 200m
+      memory: 250Mi
+  queries:
+  - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/subscription
+    chunksize: 50000
+    query: >-
+      select * from subscription;
+  - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/subscription_measurements
+    chunksize: 50000
+    query: >-
+      select * from subscription_measurements;
+  - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/offering
+    chunksize: 50000
+    query: >-
+      select * from offering;
+  - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/sku_oid
+    chunksize: 50000
+    query: >-
+      select * from sku_oid;
+  - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/sku_product_tag
+    chunksize: 50000
+    query: >-
+      select * from sku_product_tag;
+  - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/sku_child_sku
+    chunksize: 50000
+    query: >-
+      select * from sku_child_sku;
+  - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/contracts
+    chunksize: 50000
+    query: >-
+      select * from contracts;
+  - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/contract_metrics
+    chunksize: 50000
+    query: >-
+      select * from contract_metrics;
+
+objects:
+  - apiVersion: cloud.redhat.com/v1alpha1
+    kind: ClowdApp
+    metadata:
+      name: swatch-contracts
+      labels:
+        prometheus: quarkus
+    spec:
+      envName: ${ENV_NAME}
+
+      pullSecrets:
+        name: ${IMAGE_PULL_SECRET}
+
+      database:
+        sharedDbAppName: ${DB_POD}
+      dependencies:
+        - ${DB_POD}
+        - rbac
+        - export-service
+
+      featureFlags: true
+
+      kafkaTopics:
+        - replicas: ${{KAFKA_ENABLED_ORGS_REPLICAS}}
+          partitions: ${{KAFKA_ENABLED_ORGS_PARTITIONS}}
+          topicName: platform.rhsm-subscriptions.enabled-orgs-for-tasks
+        - replicas: ${{KAFKA_SUBSCRIPTION_SYNC_TASK_REPLICAS}}
+          partitions: ${{KAFKA_SUBSCRIPTION_SYNC_TASK_PARTITIONS}}
+          topicName: platform.rhsm-subscriptions.subscription-sync-task
+        - replicas: ${{KAFKA_CONTRACT_SYNC_REPLICAS}}
+          partitions: ${{KAFKA_CONTRACT_SYNC_PARTITIONS}}
+          topicName: platform.rhsm-subscriptions.contract-sync
+        - replicas: ${{KAFKA_CAPACITY_RECONCILE_REPLICAS}}
+          partitions: ${{KAFKA_CAPACITY_RECONCILE_PARTITIONS}}
+          topicName: platform.rhsm-subscriptions.capacity-reconcile
+        - replicas: ${{KAFKA_OFFERING_SYNC_REPLICAS}}
+          partitions: ${{KAFKA_OFFERING_SYNC_PARTITIONS}}
+          topicName: platform.rhsm-subscriptions.offering-sync
+        - replicas: ${{KAFKA_SUBSCRIPTIONS_EXPORT_REPLICAS}}
+          partitions: ${{KAFKA_SUBSCRIPTIONS_EXPORT_PARTITIONS}}
+          topicName: platform.export.requests
+        - replicas: ${{KAFKA_TALLY_REPLICAS}}
+          partitions: ${{KAFKA_TALLY_PARTITIONS}}
+          topicName: platform.rhsm-subscriptions.tally
+        - replicas: ${{KAFKA_UTILIZATION_REPLICAS}}
+          partitions: ${{KAFKA_UTILIZATION_PARTITIONS}}
+          topicName: platform.rhsm-subscriptions.utilization
+        - replicas: ${{KAFKA_PARTNER_GATEWAY_REPLICAS}}
+          partitions: ${{KAFKA_PARTNER_GATEWAY_PARTITIONS}}
+          topicName: partner-integration.entitlement-gateway.partner-entitlement.protected
+
+      deployments:
+        - name: service
+          replicas: ${{REPLICAS}}
+          webServices:
+            public:
+              enabled: true
+          podSpec:
+            image: ${IMAGE}:${IMAGE_TAG}
+            livenessProbe:
+              failureThreshold: 3
+              httpGet:
+                path: /health/live
+                port: 9000
+                scheme: HTTP
+              initialDelaySeconds: 20
+              periodSeconds: 20
+              successThreshold: 1
+              timeoutSeconds: 5
+            readinessProbe:
+              failureThreshold: 3
+              httpGet:
+                path: /health/ready
+                port: 9000
+                scheme: HTTP
+              initialDelaySeconds: 20
+              periodSeconds: 20
+              successThreshold: 1
+              timeoutSeconds: 5
+            resources:
+              requests:
+                cpu: ${CPU_REQUEST}
+                memory: ${MEMORY_REQUEST}
+              limits:
+                cpu: ${CPU_LIMIT}
+                memory: ${MEMORY_LIMIT}
+            env:
+              - name: JAVA_DEBUG
+                value: ${JAVA_DEBUG}
+              - name: USER_OPTS_APPEND
+                value: ${USER_OPTS_APPEND}
+              - name: QUARKUS_LAUNCH_DEVMODE
+                value: ${QUARKUS_LAUNCH_DEVMODE}
+              - name: LOGGING_LEVEL_ROOT
+                value: ${LOGGING_LEVEL_ROOT}
+              - name: LOGGING_LEVEL_COM_REDHAT_SWATCH
+                value: ${LOGGING_LEVEL_COM_REDHAT_SWATCH}
+              - name: LOGGING_SHOW_SQL_QUERIES
+                value: ${LOGGING_SHOW_SQL_QUERIES}
+              - name: DATABASE_HOST
+                valueFrom:
+                  secretKeyRef:
+                    name: ${DB_POD}-db
+                    key: db.host
+              - name: DATABASE_PORT
+                valueFrom:
+                  secretKeyRef:
+                    name: ${DB_POD}-db
+                    key: db.port
+              - name: DATABASE_USERNAME
+                valueFrom:
+                  secretKeyRef:
+                    name: ${DB_POD}-db
+                    key: db.user
+              - name: DATABASE_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: ${DB_POD}-db
+                    key: db.password
+              - name: DATABASE_DATABASE
+                valueFrom:
+                  secretKeyRef:
+                    name: ${DB_POD}-db
+                    key: db.name
+              - name: LOGGING_HEC_ENABLED
+                value: ${LOGGING_HEC_ENABLED}
+              - name: LOGGING_NAMESPACE
+                valueFrom:
+                  fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.namespace
+              - name: HOST_NAME
+                valueFrom:
+                  fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.name
+              - name: LOGGING_HEC_URL
+                value: ${LOGGING_HEC_URL}
+              - name: LOGGING_HEC_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: splunk-hec-external
+                    key: token
+              - name: LOGGING_SOURCE
+                value: ${LOGGING_SOURCE}
+              - name: LOGGING_SOURCE_TYPE
+                value: ${LOGGING_SOURCE_TYPE}
+              - name: LOGGING_HEC_BATCH_SIZE
+                value: ${LOGGING_HEC_BATCH_SIZE}
+              - name: LOGGING_HEC_BATCH_INTERVAL
+                value: ${LOGGING_HEC_BATCH_INTERVAL}
+              - name: LOGGING_HEC_RETRY_COUNT
+                value: ${LOGGING_HEC_RETRY_COUNT}
+              - name: LOGGING_HEC_INCLUDE_EX
+                value: ${LOGGING_HEC_INCLUDE_EX}
+              - name: SWATCH_SELF_PSK
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-psks
+                    key: self
+              - name: SWATCH_EXPORT_PSK
+                valueFrom:
+                  secretKeyRef:
+                    name: export-psk
+                    key: export_psk
+              - name: QUARKUS_PROFILE
+                value: ${QUARKUS_PROFILE}
+              - name: KEYSTORE_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: tls
+                    key: keystore_password
+              - name: KEYSTORE_PATH
+                value: /pinhead/keystore.jks
+              - name: KEYSTORE_RESOURCE
+                # Note the parenthesis for a dependent variable reference!
+                value: "file:$(KEYSTORE_PATH)"
+              - name: UMB_KEYSTORE_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: tls
+                    key: keystore_password
+              - name: UMB_KEYSTORE_PATH
+                value: ${UMB_KEYSTORE_PATH}
+              - name: TRUSTSTORE_PATH
+                # Used by UMB which is unique in not using the system truststore
+                value: /pinhead/truststore.jks
+              - name: TRUSTSTORE_RESOURCE
+                # Unset in production and stage so that the system truststore will be used
+                value: ""
+              - name: TRUSTSTORE_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: tls
+                    key: keystore_password
+              - name: UMB_NAMESPACE
+                valueFrom:
+                  fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.namespace
+              - name: PRODUCT_DENYLIST_RESOURCE_LOCATION
+                value: file:/denylist/product-denylist.txt
+              - name: PRODUCT_KEYSTORE_RESOURCE
+                # Note the parenthesis for a dependent variable reference!
+                value: "$(KEYSTORE_RESOURCE)"
+              - name: PRODUCT_KEYSTORE_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: tls
+                    key: keystore_password
+              - name: SUBSCRIPTION_KEYSTORE_RESOURCE
+                # Note the parenthesis for a dependent variable reference!
+                value: "$(KEYSTORE_RESOURCE)"
+              - name: SUBSCRIPTION_KEYSTORE_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: tls
+                    key: keystore_password
+              - name: IT_MANAGED_KAFKA_USERNAME
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-managed-kafka
+                    key: username
+              - name: IT_MANAGED_KAFKA_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-managed-kafka
+                    key: password
+              - name: IT_MANAGED_KAFKA_SERVERS
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-managed-kafka
+                    key: servers
+              - name: SUBSCRIPTION_SYNC_ENABLED
+                value: ${SUBSCRIPTION_SYNC_ENABLED}
+              - name: SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN
+                value: ${SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN}
+              - name: SUBSCRIPTION_IGNORE_STARTING_LATER_THAN
+                value: ${SUBSCRIPTION_IGNORE_STARTING_LATER_THAN}
+              - name: ENABLE_PAYG_SUBSCRIPTION_FORCE_SYNC
+                value: ${ENABLE_PAYG_SUBSCRIPTION_FORCE_SYNC}
+              - name: OTEL_DISABLED
+                value: ${OTEL_DISABLED}
+            volumeMounts:
+              - name: logs
+                mountPath: /logs
+              - name: denylist
+                mountPath: /denylist
+              - name: pinhead
+                mountPath: /pinhead
+            sidecars:
+            - name: otel-collector
+              enabled: true
+              configMap: ${OTEL_SIDECAR_CONFIG_MAP}
+              image: ${OTEL_SIDECAR_IMAGE}
+              envVars:
+                - name: ENV_NAME
+                  value: ${OTEL_ENV_NAME}
+                - name: K8S_CLUSTER_NAME
+                  value: ${OTEL_K8S_CLUSTER_NAME}
+                - name: TRACES_ACCESS_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: ${OTEL_TRACES_TOKEN_SECRET_NAME}
+                      key: ${OTEL_TRACES_TOKEN_SECRET_KEY}
+                - name: SPLUNK_CONFIG
+                  value: ${OTEL_SIDECAR_TRACES_CONFIG}
+                - name: TRACES_MEMORY_TOTAL_MIB
+                  value: '1024'
+                - name: LOGGING_HEC_URL
+                  value: ${LOGGING_HEC_URL}
+                - name: LOGGING_HEC_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: splunk-hec-external
+                      key: token
+                - name: LOGGING_SOURCE
+                  value: ${LOGGING_SOURCE}
+                - name: LOGGING_SOURCE_TYPE
+                  value: ${LOGGING_SOURCE_TYPE}
+                - name: K8S_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      apiVersion: v1
+                      fieldPath: metadata.namespace
+                - name: K8S_POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      apiVersion: v1
+                      fieldPath: metadata.name
+            volumes:
+              - name: logs
+                emptyDir:
+              - name: denylist
+                configMap:
+                  name: denylist
+              - name: pinhead
+                secret:
+                  secretName: pinhead
+      jobs:
+        - name: subscription-sync
+          schedule: ${SUBSCRIPTION_SYNC_SCHEDULE}
+          successfulJobsHistoryLimit: 2
+          restartPolicy: Never
+          podSpec:
+            image: ${CURL_CRON_IMAGE}:${CURL_CRON_IMAGE_TAG}
+            command:
+              - /usr/bin/bash
+              - -c
+              - >
+                /usr/bin/curl --fail -H "Origin: https://swatch-contracts-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X POST "http://swatch-contracts-service:8000/api/swatch-contracts/internal/rpc/subscriptions/sync"
+            env:
+              - name: SWATCH_SELF_PSK
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-psks
+                    key: self
+            resources:
+              requests:
+                cpu: ${CURL_CRON_CPU_REQUEST}
+                memory: ${CURL_CRON_MEMORY_REQUEST}
+              limits:
+                cpu: ${CURL_CRON_CPU_LIMIT}
+                memory: ${CURL_CRON_MEMORY_LIMIT}
+
+        - name: offering-sync
+          schedule: ${OFFERING_SYNC_SCHEDULE}
+          successfulJobsHistoryLimit: 2
+          restartPolicy: Never
+          podSpec:
+            image: ${CURL_CRON_IMAGE}:${CURL_CRON_IMAGE_TAG}
+            command:
+              - /usr/bin/bash
+              - -c
+              - >
+                /usr/bin/curl --fail -H "Origin: https://swatch-contracts-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X POST "http://swatch-contracts-service:8000/api/swatch-contracts/internal/rpc/offerings/sync"
+            env:
+              - name: SWATCH_SELF_PSK
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-psks
+                    key: self
+            resources:
+              requests:
+                cpu: ${CURL_CRON_CPU_REQUEST}
+                memory: ${CURL_CRON_MEMORY_REQUEST}
+              limits:
+                cpu: ${CURL_CRON_CPU_LIMIT}
+                memory: ${CURL_CRON_MEMORY_LIMIT}
+
+        - name: contracts-sync
+          schedule: ${CONTRACTS_SYNC_SCHEDULE}
+          successfulJobsHistoryLimit: 2
+          restartPolicy: Never
+          podSpec:
+            image: ${CURL_CRON_IMAGE}:${CURL_CRON_IMAGE_TAG}
+            command:
+              - /usr/bin/bash
+              - -c
+              - >
+                /usr/bin/curl --fail -H "Origin: https://swatch-contracts-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X POST "http://swatch-contracts-service:8000/api/swatch-contracts/internal/rpc/contracts/sync"
+            env:
+              - name: SWATCH_SELF_PSK
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-psks
+                    key: self
+            resources:
+              requests:
+                cpu: ${CURL_CRON_CPU_REQUEST}
+                memory: ${CURL_CRON_MEMORY_REQUEST}
+              limits:
+                cpu: ${CURL_CRON_CPU_LIMIT}
+                memory: ${CURL_CRON_MEMORY_LIMIT}
+
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: swatch-psks
+    data:
+      self: cGxhY2Vob2xkZXI=
+
+  - apiVersion: cloud.redhat.com/v1alpha1
+    kind: ClowdApp
+    metadata:
+      name: swatch-contracts-db-cleanup
+    spec:
+      # The name of the ClowdEnvironment providing the services
+      envName: ${ENV_NAME}
+
+      database:
+        sharedDbAppName: ${DB_POD}
+
+      dependencies:
+        - ${DB_POD}
+
+      pullSecrets:
+        name: ${IMAGE_PULL_SECRET}
+
+      kafkaTopics: []
+      deployments: []
+      jobs:
+        - name: changelog-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
+          restartPolicy: Never
+          podSpec:
+            image: ${EGRESS_IMAGE}:${EGRESS_IMAGE_TAG}
+            name: db-changelog-cleanup
+            command: ["/bin/sh", "-c"]
+            args:
+              - psql -h $POSTGRESQL_SERVICE_HOST -U $POSTGRESQL_USER $POSTGRESQL_DATABASE -c "$DB_CHANGELOG_CLEANUP_SQL"
+            resources:
+              requests:
+                cpu: 100m
+                memory: 50Mi
+              limits:
+                cpu: 100m
+                memory: 100Mi
+            env:
+              - name: POSTGRESQL_SERVICE_HOST
+                valueFrom:
+                  secretKeyRef:
+                    name: ${DB_POD}-db
+                    key: db.host
+              - name: POSTGRESQL_USER
+                valueFrom:
+                  secretKeyRef:
+                    name: ${DB_POD}-db
+                    key: db.user
+              - name: POSTGRESQL_DATABASE
+                valueFrom:
+                  secretKeyRef:
+                    name: ${DB_POD}-db
+                    key: db.name
+              - name: PGPASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: ${DB_POD}-db
+                    key: db.password
+              - name: DB_CHANGELOG_CLEANUP_SQL
+                value: ${DB_CHANGELOG_CLEANUP_SQL}
+
+  - apiVersion: cloud.redhat.com/v1alpha1
+    kind: ClowdJobInvocation
+    metadata:
+      name: contracts-db-changelog-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
+    spec:
+      appName: swatch-contracts-db-cleanup
+      jobs:
+        - changelog-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
+
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: export-psk
+    data:
+      export_psk: dGVzdGluZy1hLXBzaw==
+
+  - apiVersion: metrics.console.redhat.com/v1alpha1
+    kind: FloorPlan
+    metadata:
+      name: swatch-contracts
+    spec:
+      <<: *floorplan_spec_base
+      objectStore:
+        secretName: ${FLOORIST_BUCKET_SECRET_NAME}
+
+  - apiVersion: metrics.console.redhat.com/v1alpha1
+    kind: FloorPlan
+    metadata:
+      name: swatch-contracts-test
+    spec:
+      <<: *floorplan_spec_base
+      objectStore:
+        secretName: ${FLOORIST_BUCKET_SECRET_NAME_TEST}
+
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: denylist
+    data:
+      product-denylist.txt: |-
+        BUN0063US
+        ES0113909
+        MCT0150US
+        MCT0151JP
+        MCT0151US
+        MCT0152US
+        MCT0163US
+        MCT0164US
+        MCT0165US
+        MCT0217US
+        MCT0218US
+        MCT0219US
+        MCT0220US
+        MCT0227US
+        MCT0228US
+        MCT0238JP
+        MCT0238US
+        MCT0240JP
+        MCT0240US
+        MCT0242JP
+        MCT0252JP
+        MCT0252US
+        MCT0254US
+        MCT0255US
+        MCT0256US
+        MCT0257US
+        MCT0267US
+        MCT0270US
+        MCT0271US
+        MCT0282RW
+        MCT0292JP
+        MCT0299JP
+        MCT0299US
+        MCT0300JP
+        MCT0300US
+        MCT0301JP
+        MCT0301US
+        MCT0302JP
+        MCT0302US
+        MCT0303US
+        MCT0304US
+        MCT0305US
+        MCT0306US
+        MCT0308US
+        MCT0317JP
+        MCT0317US
+        MCT0318JP
+        MCT0318US
+        MCT0319US
+        MCT0321US
+        MCT0322US
+        MCT0325US
+        MCT0326US
+        MCT0335
+        MCT0335F3
+        MCT0335F3RN
+        MCT0335RN
+        MCT0336
+        MCT0336F3
+        MCT0336F3RN
+        MCT0336RN
+        MCT0337
+        MCT0338
+        MCT0339
+        MCT0340
+        MCT0341
+        MCT0343
+        MCT0343F3
+        MCT0343F3RN
+        MCT0343RN
+        MCT0344
+        MCT0344F3
+        MCT0344F3RN
+        MCT0344RN
+        MCT0357
+        MCT0358
+        MCT0359
+        MCT0360
+        MCT0369
+        MCT0369F2
+        MCT0369F3
+        MCT0369F3RN
+        MCT0369F5
+        MCT0369RN
+        MCT0369S
+        MCT0370
+        MCT0370F2
+        MCT0370F3
+        MCT0370F3RN
+        MCT0370F4
+        MCT0370F5
+        MCT0370RN
+        MCT0370S
+        MCT0371US
+        MCT0372US
+        MCT0375JP
+        MCT0375US
+        MCT0381US
+        MCT0403
+        MCT0403F3
+        MCT0403F3RN
+        MCT0403RN
+        MCT0406
+        MCT0406F3
+        MCT0406F3RN
+        MCT0406RN
+        MCT0413
+        MCT0414
+        MCT0415
+        MCT0416
+        MCT0417
+        MCT0427
+        MCT0428
+        MCT0437
+        MCT0438
+        MCT0439
+        MCT0442
+        MCT0462
+        MCT0479JP
+        MCT0479US
+        MCT0480JP
+        MCT0483JP
+        MCT0483US
+        MCT0484JP
+        MCT0485JP
+        MCT0485US
+        MCT0486JP
+        MCT0486US
+        MCT0515US
+        MCT0516US
+        MCT0517US
+        MCT0518US
+        MCT0519US
+        MCT0553US
+        MCT0554US
+        MCT0556US
+        MCT0557US
+        MCT0558US
+        MCT0559US
+        MCT0561US
+        MCT0562US
+        MCT0563US
+        MCT0601US
+        MCT0602US
+        MCT0603US
+        MCT0604US
+        MCT0605US
+        MCT0606US
+        MCT0615US
+        MCT0616US
+        MCT0617US
+        MCT0618US
+        MCT0619US
+        MCT0620US
+        MCT0638US
+        MCT0646US
+        MCT0647US
+        MCT0649US
+        MCT0703US
+        MCT0704JP
+        MCT0704US
+        MCT0705JP
+        MCT0705US
+        MCT0711JP
+        MCT0711US
+        MCT0712US
+        MCT0718US
+        MCT0721US
+        MCT0722US
+        MCT0729US
+        MCT0730JP
+        MCT0730US
+        MCT0731JP
+        MCT0731US
+        MCT0737US
+        MCT0738US
+        MCT0744US
+        MCT0745US
+        MCT0748US
+        MCT0778US
+        MCT0779US
+        MCT0780US
+        MCT0781US
+        MCT0786
+        MCT0786RN
+        MCT0786S
+        MCT0804US
+        MCT0867
+        MCT0867F3
+        MCT0867F3RN
+        MCT0867RN
+        MCT0868
+        MCT0873
+        MCT0875
+        MCT0885
+        MCT0888
+        MCT0889
+        MCT0891
+        MCT0892
+        MCT0894
+        MCT0895
+        MCT0897
+        MCT0900
+        MCT0901
+        MCT0903
+        MCT0903F3
+        MCT0907
+        MCT0907F3
+        MCT0909
+        MCT0909F3
+        MCT0909F3RN
+        MCT0909RN
+        MCT0911
+        MCT0911F3
+        MCT0911RN
+        MCT0913
+        MCT0913F3
+        MCT0926
+        MCT0927
+        MCT0927F3
+        MCT0934
+        MCT0941
+        MCT0945
+        MCT0950
+        MCT0950F3
+        MCT0950F3RN
+        MCT0950RN
+        MCT0951
+        MCT0951F3
+        MCT0951F3RN
+        MCT0951RN
+        MCT0967
+        MCT0967F3
+        MCT0967F3RN
+        MCT0968F3
+        MCT0969
+        MCT0973
+        MCT0982
+        MCT0982-IPP
+        MCT0982F2
+        MCT0982F3
+        MCT0982F3RN
+        MCT0982F5
+        MCT0982RN
+        MCT0983
+        MCT0983F3
+        MCT0983F3RN
+        MCT0983F5
+        MCT0983RN
+        MCT0984
+        MCT0984F3
+        MCT0984F3RN
+        MCT0984RN
+        MCT0985
+        MCT0985F3
+        MCT0985F3RN
+        MCT0985RN
+        MCT0986
+        MCT0986F3
+        MCT0986F3RN
+        MCT0986F5
+        MCT0986RN
+        MCT0987
+        MCT0987F3
+        MCT0987F3RN
+        MCT0987RN
+        MCT0992
+        MCT0992F3
+        MCT0992F3RN
+        MCT0992F5
+        MCT0992RN
+        MCT1015
+        MCT1028
+        MCT1035
+        MCT1035F3
+        MCT1035F3RN
+        MCT1035F5
+        MCT1035RN
+        MCT1036
+        MCT1036F3
+        MCT1036F4
+        MCT1036F5
+        MCT1036RN
+        MCT1037
+        MCT1037F3
+        MCT1038
+        MCT1038F3
+        MCT1038RN
+        MCT1039
+        MCT1039F3
+        MCT1041
+        MCT1041F3
+        MCT1041RN
+        MCT1042
+        MCT1042F3
+        MCT1042F3RN
+        MCT1042F5
+        MCT1042RN
+        MCT1065
+        MCT1065F3
+        MCT1065F3RN
+        MCT1065F5
+        MCT1065RN
+        MCT1067
+        MCT1067F3
+        MCT1067F3RN
+        MCT1067RN
+        MCT1068
+        MCT1070
+        MCT1073
+        MCT1089
+        MCT1089F3
+        MCT1089F3RN
+        MCT1089RN
+        MCT1172
+        MCT1172F3
+        MCT1172F3RN
+        MCT1172RN
+        MCT1173
+        MCT1173F3
+        MCT1173RN
+        MCT1252
+        MCT1252F3
+        MCT1252RN
+        MCT1253
+        MCT1253F3
+        MCT1253F3RN
+        MCT1253RN
+        MCT1254
+        MCT1254F3
+        MCT1254RN
+        MCT1255
+        MCT1255F3
+        MCT1255RN
+        MCT1316
+        MCT1316F3
+        MCT1324
+        MCT1324F3
+        MCT1327
+        MCT1327F3
+        MCT1333
+        MCT1333F3
+        MCT1334F3
+        MCT1339
+        MCT1339F3
+        MCT1340
+        MCT1340F3
+        MCT1344
+        MCT1344F3
+        MCT1550
+        MCT1577
+        MCT1577F3
+        MCT1577RN
+        MCT1578
+        MCT1578F3
+        MCT1578F3RN
+        MCT1578RN
+        MCT1579
+        MCT1579RN
+        MCT1580
+        MCT1580RN
+        MCT1581
+        MCT1584
+        MCT1584F3
+        MCT1584F3RN
+        MCT1584RN
+        MCT1611
+        MCT1611F3
+        MCT1611F3RN
+        MCT1611RN
+        MCT1638
+        MCT1638F3
+        MCT1639
+        MCT1650
+        MCT1650F3
+        MCT1650F3RN
+        MCT1650RN
+        MCT1650S
+        MCT1652
+        MCT1652F3
+        MCT1653
+        MCT1653F3
+        MCT1692
+        MCT1692F3
+        MCT1692F3RN
+        MCT1692RN
+        MCT1697
+        MCT1697F3
+        MCT1697RN
+        MCT1731
+        MCT1731F3
+        MCT1731RN
+        MCT1732
+        MCT1732F3
+        MCT1741
+        MCT1742
+        MCT1742F3
+        MCT1747
+        MCT1749F3
+        MCT1756F3
+        MCT1756S
+        MCT1757
+        MCT1757S
+        MCT1771
+        MCT1771F3
+        MCT1780
+        MCT1789
+        MCT1789F3
+        MCT1789RN
+        MCT1790
+        MCT1790F3
+        MCT1790F3RN
+        MCT1790RN
+        MCT1791
+        MCT1791F3
+        MCT1791RN
+        MCT1792
+        MCT1792F3
+        MCT1792RN
+        MCT1799
+        MCT1799F3
+        MCT1799F3RN
+        MCT1799RN
+        MCT1800
+        MCT1800F3
+        MCT1842
+        MCT1842F3
+        MCT1843
+        MCT1844
+        MCT1851
+        MCT1851F3
+        MCT1851RN
+        MCT1852
+        MCT1852F3
+        MCT1852F3RN
+        MCT1852RN
+        MCT1853
+        MCT1853F3
+        MCT1853RN
+        MCT1854
+        MCT1854F3
+        MCT1860
+        MCT1861
+        MCT1861F3
+        MCT1865
+        MCT1865F3
+        MCT1869F3
+        MCT1869F3RN
+        MCT1871
+        MCT1871RN
+        MCT1872
+        MCT1872F3
+        MCT1873
+        MCT1874
+        MCT1874F3
+        MCT1901
+        MCT1901F3
+        MCT1914F3
+        MCT1914S
+        MCT1931
+        MCT1933
+        MCT1936
+        MCT1937
+        MCT1954
+        MCT1957
+        MCT1957F3
+        MCT1959
+        MCT1959F3
+        MCT2008
+        MCT2008RN
+        MCT2021
+        MCT2021F3
+        MCT2021RN
+        MCT2027
+        MCT2027F3
+        MCT2027F3RN
+        MCT2027RN
+        MCT2043
+        MCT2043F3
+        MCT2047
+        MCT2047RN
+        MCT2048
+        MCT2048RN
+        MCT2051
+        MCT2060
+        MCT2061
+        MCT2062
+        MCT2063
+        MCT2434F3
+        MCT2434F3RN
+        MCT2434RN
+        MCT2435
+        MCT2435F3
+        MCT2435F3RN
+        MCT2435RN
+        MCT2436
+        MCT2436F3RN
+        MCT2535
+        MCT2535F3
+        MCT2535F3RN
+        MCT2535RN
+        MCT2537
+        MCT2537F3
+        MCT2537F3RN
+        MCT2537F5
+        MCT2537RN
+        MCT2660
+        MCT2667
+        MCT2741
+        MCT2741F3
+        MCT2883
+        MCT3097
+        MCT3131
+        MCT3132
+        MCT3133
+        MCT3262
+        MCT3262F3
+        MCT3262F3RN
+        MCT3262RN
+        MCT3262S
+        MCT3267
+        MCT3632
+        MCT3718
+        MCT3719
+        MCT3857
+        MCT3857RN
+        MCT3857S
+        MCT4149
+        MCT4159
+        MCT4159F3
+        MW00420
+        MW00423
+        MW00567
+        MW00567F3
+        MW00571
+        MW00571F3
+        MW00571RN
+        MW00571S
+        MW00700
+        MW00701
+        MW00784
+        MW00787
+        MW00792
+        MW01426
+        MW01429
+        MW01618
+        MW01620
+        RH00798
+        RH01157
+        RH02427
+        RH02427F3
+        RH3310120
+        RH3387200
+        RHF0084JP
+        RHF0084RW
+        RHF0084US
+        RHF0085JP
+        RHF0085RW
+        RHF0085US
+        RHF0090JP
+        RHF0090US
+        RHF0116US
+        RHF0117JP
+        RHF0118US
+        RHF0119US
+        RHF0131AP
+        RHF0131AP-R5
+        RHF0131JP
+        RHF0131KR
+        RHF0131SC
+        RHF0131TC
+        RHF0131US
+        RHF0132AP
+        RHF0132JP
+        RHF0132KR
+        RHF0132US
+        RHF0134JP
+        RHF0134US
+        RHF0135AP
+        RHF0135US
+        RHF0137AP
+        RHF0137JP
+        RHF0137US
+        RHF0138US
+        RHF0140AP
+        RHF0140US
+        RHF0141US
+        RHF0143AP
+        RHF0143US
+        RHF0144US
+        RHF0164JP
+        RHF0166JP
+        RHF0182US
+        RHF0183US
+        RHF0184US
+        RHF0187US
+        RHF0188US
+        RHF0189US
+        RHF0202US
+        RHF0205US
+        RHF0263AP
+        RHF0263JP
+        RHF0263US
+        RHF0265AP
+        RHF0265JP
+        RHF0265US
+        RHF0294US
+        RHF0310AP
+        RHF0310AP-R2
+        RHF0310US
+        RHF0311AP
+        RHF0311US
+        RHF0320AP
+        RHF0320US
+        RHF0321US
+        RHF0329US
+        RHF0330US
+        RHF0335AP
+        RHF0335US
+        RHF0336AP
+        RHF0336US
+        RHF0341US
+        RHF0347US
+        RHF0348US
+        RHN019
+        RHN019-SYS
+        RHN019-SYSRW
+        RHN019RW
+        RHN020
+        RHN020-SYS
+        RHN020-SYSRW
+        RHN020RW
+        RHN021
+        RHN021-SYS
+        RHN039
+        RHN039-SYS
+        RHN040
+        RHN040-SYS
+        RV0130225
+        RV0130225RN
+        SER0085US
+        SER0086US
+        SER0091US
+        SER0093US
+        SER0094US
+        SER0100RW
+        SER0100US
+        SER0104RW
+        SER0104US
+        SER0105RW
+        SER0105US
+        SER0117US
+        SER0118US
+        SER0119US
+        SER0120US
+        SER0123US
+        SER0132US
+        SER0133US
+        SER0134US
+        SER0135US
+        SER0138US
+        SER0189US
+        SER0195US
+        SER0198US
+        SER0202US
+        SER0206US
+        SER0207US
+        SER0211US
+        SER0212US
+        SER0218US
+        SER0219US
+        SER0228US
+        SER0232US
+        SER0235US
+        SER0241US
+        SER0258US
+        SER0259US
+        SER0263-SI
+        SER0269
+        SER0270
+        SER0274
+        SER0281
+        SER0301
+        SER0302
+        SER0303
+        SER0355
+        SER0356
+        SER0357
+        SER0358
+        SER0360
+        SER0373
+        SER0375
+        SER0377
+        SER0378
+        SER0402
+        SER0403
+        SER0419
+        SER0440
+        SER0572
+        SER0573
+        SER0587
+        SVC1882
+        SVC2461
+        SVC2462
+        SVC2463
+        SVC3026
+        SVC3027
+        SVC3028
+        SVC3029
+        SVC3030
+        SVC3031

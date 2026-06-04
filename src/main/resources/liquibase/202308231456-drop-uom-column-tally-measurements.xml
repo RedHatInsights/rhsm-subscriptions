@@ -1,0 +1,14 @@
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202308231456-1" author="jcarvaja" dbms="postgresql">
+    <comment>Drop tally_measurements.uom column.</comment>
+    <dropColumn tableName="tally_measurements" columnName="uom"/>
+    <rollback>
+      alter table tally_measurements add column uom varchar(255) generated always as (metric_id) stored;
+    </rollback>
+  </changeSet>
+</databaseChangeLog>

@@ -1,0 +1,477 @@
+openapi: "3.0.2"
+info:
+  title: "rhsm-subscriptions internal tally API"
+  version: 1.0.0
+servers:
+  - url: /{PATH_PREFIX}/{APP_NAME}
+    variables:
+      PATH_PREFIX:
+        default: api
+      APP_NAME:
+        default: rhsm-subscriptions
+  - url: https://{HOSTNAME}/{PATH_PREFIX}/{APP_NAME}
+    variables:
+      HOSTNAME:
+        enum:
+          - ci.cloud.redhat.com
+          - qa.cloud.redhat.com
+          - stage.cloud.redhat.com
+          - cloud.redhat.com
+        default: ci.cloud.redhat.com
+      PATH_PREFIX:
+        default: api
+      APP_NAME:
+        default: rhsm-subscriptions
+
+paths:
+  /v1/internal/tally/resend:
+    description: 'Operations to resend specific tally snapshots to marketplaces'
+    post:
+      operationId: resendTally
+      summary: "Resend specific tally snapshots"
+      requestBody:
+        $ref: '#/components/requestBodies/UuidListBody'
+      responses:
+        '202':
+          description: "The request for resending the tally snapshots was accepted"
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/TallyResend"
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags:
+        - internalTally
+  /v1/internal/tally/hourly:
+    description: 'Operations pertaining to the hourly tally.'
+    post:
+      operationId: performHourlyTallyForOrg
+      summary: "Immediately perform the hourly tally for a specific org."
+      tags:
+        - internalTally
+      parameters:
+        - name: org
+          in: query
+          required: true
+          schema:
+            type: string
+          description: "The orgId to tally."
+        - name: x-rh-swatch-use-thread-pool-executor
+          in: header
+          required: false
+          schema:
+            type: boolean
+            default: "false"
+            description: "When present, the request is processed asynchronously using the thread-pool executor instead of using the Kafka executor."
+      responses:
+        '200':
+          description: "The hourly tally operation succeeded for the specified orgId."
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+  /internal-tally-openapi.json:
+    $ref: "../../../spec/openapi-paths.yaml#/openapi-json"
+  /internal-tally-openapi.yaml:
+    $ref: "../../../spec/openapi-paths.yaml#/openapi-yaml"
+  /v1/internal/rpc/tally/purge:
+    description: 'Operations to purge existing tally snapshots matching the configured retention policy.'
+    post:
+      operationId: purgeTallySnapshots
+      summary: 'Purge existing tally snapshots matching the configured retention policy.'
+      responses:
+        '200':
+          description: 'The request for purging tally snapshots was successful.'
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DefaultResponse"
+        '401':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Unauthorized"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags: [internalTally]
+  /v1/internal/rpc/tally/{org_id}:
+    description: Clear tallies, hosts, and events for a given org ID. Enabled via ENABLE_ACCOUNT_RESET environment variable.
+    delete:
+      operationId: deleteDataAssociatedWithOrg
+      parameters:
+        - in: path
+          name: org_id
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Finished deleting data associated with organization
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TallyResponse"
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags: [internalTally]
+  /v1/internal/rpc/tally/events/{org_id}:
+    description: Fetch events by Org
+    get:
+      operationId: fetchEventsForOrgIdInTimeRange
+      parameters:
+        - name: org_id
+          in: path
+          schema:
+            type: string
+          required: true
+        - name: begin
+          in: query
+          schema:
+            format: date-time
+            description: Beginning of time range (inclusive)
+            type: string
+            example: 2022-01-01T00:00:00Z
+        - name: end
+          in: query
+          schema:
+           format: date-time
+           description: ""
+           type: string
+           example: 2023-03-01T00:00:00Z
+      responses:
+        '200':
+          description: Finished deleting data associated with organization
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventsResponse"
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags: [ internalTally ]
+  /v1/internal/rpc/tally/events:
+    description: Save a list of events. Supported only in dev-mode.
+    post:
+      operationId: saveEvents
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: string
+            examples:
+              EventDetail:
+                value:
+                  - event_id: 0998c49b-9552-463f-b363-0a4b046dd6e9
+                    event_source: prometheus
+                    event_type: 'snapshot_redhat.com:BASILISK:storage_gb'
+                    account_number: account123
+                    org_id: org123
+                    service_type: BASILISK Instance
+                    instance_id: c5mu16smf1c22rn8e730
+                    timestamp: '2021-10-18T22:00:00Z'
+                    expiration: '2021-10-19T22:00:00Z'
+                    display_name: c5mu16smf1c22rn8e730
+                    measurements:
+                      - value: 1.5
+                        metric_id: Storage-gibibyte-months
+                    role: BASILISK
+                    sla: Premium
+                    billing_provider: red hat
+                    billing_account_id: placeholderId
+      responses:
+        '200':
+          description: Save a list of events
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventsResponse"
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags: [ internalTally ]
+  /v1/internal/rpc/tally/events/purge:
+    description: 'Purge event records'
+    delete:
+      operationId: purgeEventRecords
+      responses:
+        '200':
+          description: "Purge was successful."
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags: [internalTally]
+  /v1/internal/rpc/tally/events/{event_id}:
+    description: Delete an event. Supported only in dev-mode.
+    delete:
+      operationId: deleteEvent
+      parameters:
+        - in: path
+          name: event_id
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successfully deleted Event with ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventsResponse"
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags: [internalTally]
+  /v1/internal/rpc/tally/snapshots/{org_id}:
+    description: Trigger and update tally snapshot for an org.
+    put:
+      operationId: tallyOrg
+      parameters:
+        - in: path
+          name: org_id
+          schema:
+            type: string
+          required: true
+        - name: x-rh-swatch-synchronous-request
+          in: header
+          required: false
+          schema:
+            type: boolean
+            default: "false"
+            description: "When present, a synchronous request is made."
+      responses:
+        '200':
+          description: Updated snapshots for the org.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DefaultResponse"
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags: [ internalTally ]
+  /v1/internal/rpc/tally/all-org-snapshots:
+    description: Trigger and update tally for all configured org.
+    put:
+      operationId: tallyConfiguredOrgs
+      responses:
+        '200':
+          description: Updated snapshots for all org.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DefaultResponse"
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags: [internalTally]
+  /v1/internal/rpc/tally/snapshots:
+    description: Trigger hourly tally for all configured orgs for the specified range.
+    put:
+      operationId: tallyAllOrgsByHourly
+      responses:
+        '200':
+          description: Updated snapshots for the orgs.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DefaultResponse"
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags: [ internalTally ]
+  /v1/internal/rpc/tally/opt-in:
+    description: Create or update an opt in configuration. This operation is idempotent.
+    put:
+      operationId: createOrUpdateOptInConfig
+      parameters:
+        - name: org_id
+          in: query
+          schema:
+            description: Red Hat Org ID
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Completed opt in for account and org
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OptInResponse"
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags: [ internalTally ]
+  /v1/internal/rpc/tally/hosts/merge:
+    description: 'Merge existing host entries that arrived from different sources.'
+    post:
+      operationId: mergeHostsFromMultipleSources
+      parameters:
+        - in: query
+          name: org_id
+          schema:
+            type: string
+          required: false
+      responses:
+        '200':
+          description: 'The request for merging hosts was successful.'
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DefaultResponse"
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '401':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Unauthorized"
+        '404':
+          $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags: [internalTally]
+  /v1/internal/rpc/tally/is-primary:
+    description: 'Update is_primary column for tally snapshots by product and date range.'
+    post:
+      operationId: updateIsPrimary
+      summary: "Batch update is_primary column for PAYG and non-PAYG products"
+      parameters:
+        - name: product_id
+          in: query
+          required: true
+          schema:
+            type: string
+          description: "The product ID to update (e.g.'rosa')"
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+          description: "Start date for snapshot_date range"
+        - name: end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+          description: "End date for snapshot_date range"
+        - name: org_id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "org Id (optional, processes all orgs if not specified)"
+        - name: x-rh-swatch-synchronous-request
+          in: header
+          required: false
+          schema:
+            type: boolean
+            default: "false"
+          description: "When true, the request is processed synchronously and waits for completion."
+      responses:
+        '202':
+          description: "The request to update is_primary was accepted and will be processed asynchronously."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DefaultResponse"
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags: [internalTally]
+components:
+  requestBodies:
+    UuidListBody:
+      description: "A list of UUIDs"
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/UuidList"
+  schemas:
+    UuidList:
+      type: object
+      properties:
+        uuids:
+          type: array
+          items:
+            type: string
+    TallyResend:
+      properties:
+        data:
+          type: object
+          required:
+            - tallies_resent
+          properties:
+            tallies_resent:
+              type: integer
+    DefaultResponse:
+      properties:
+        status:
+          type: string
+    EventsResponse:
+      properties:
+        detail:
+          type: string
+    OptInResponse:
+      properties:
+        detail:
+          type: string
+    TallyResponse:
+      properties:
+        detail:
+          type: string
+  securitySchemes:
+    PskIdentity:
+      type: apiKey
+      in: header
+      name: x-rh-swatch-psk
+      description: |
+        Psk header containing Pre Shared Key. Contains an
+        UUID string:
+        ```
+        c9a98753-2092-4617-b226-5c2653330b3d
+        ``` 
+
+security:
+  - PskIdentity: []

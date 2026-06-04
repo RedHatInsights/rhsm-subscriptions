@@ -1,0 +1,32 @@
+{
+  "products": [
+    {
+      "sku": "MW00330",
+      "description": "Red Hat OpenShift Container Platform for Customer Entitlement qty",
+      "status": "ACTIVE",
+      "attributes": [
+        {
+          "code": "PRODUCT_FAMILY",
+          "value": "OpenShift Enterprise"
+        },
+        {
+          "code": "ENTITLEMENT_QTY",
+          "value": "32"
+        },
+        {
+          "code": "CORES",
+          "value": "16"
+        },
+        {
+          "code": "SERVICE_TYPE",
+          "value": "Standard"
+        },
+        {
+          "code": "PRODUCT_NAME",
+          "value": "Red Hat OpenShift Container Platform, Standard (16 Cores or 32 vCPUs)"
+        }
+      ],
+      "roles": []
+    }
+  ]
+}

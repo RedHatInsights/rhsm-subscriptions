@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202211301043-1" author="mstead">
+    <comment>
+      Some erroneous host data was found in our databases that will need to
+      be cleaned up. Delete all hosts that do not have an org_id and an empty
+      account_number.
+    </comment>
+    <delete tableName="hosts">
+      <where>org_id is null and account_number=''</where>
+    </delete>
+  </changeSet>
+
+  <changeSet id="202211301043-2" author="mstead">
+    <comment>Drop not null constraint on account_number in hosts table</comment>
+    <dropNotNullConstraint tableName="hosts" columnName="account_number"/>
+    <addNotNullConstraint tableName="hosts" columnName="org_id" />
+  </changeSet>
+
+  <changeSet id="202211301043-3" author="mstead">
+    <comment>Add null constraint on org_id column in hosts table</comment>
+    <addNotNullConstraint tableName="hosts" columnName="org_id" />
+  </changeSet>
+
+</databaseChangeLog>
+<!-- vim: set expandtab sts=4 sw=4 ai: -->

@@ -1,0 +1,6 @@
+{
+  "invokerPackage": "org.candlepin.subscriptions.tally.admin",
+  "apiPackage": "org.candlepin.subscriptions.tally.admin.api",
+  "modelPackage": "org.candlepin.subscriptions.tally.admin.api.model",
+  "groupId": "org.candlepin"
+}

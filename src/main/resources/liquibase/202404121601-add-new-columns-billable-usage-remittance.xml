@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
+
+  <changeSet id="202404121601-1" author="karshah">
+    <!-- 
+      Only add columns if they don't exist. If swatch-billable-usage starts first,
+      the consolidated script already includes these columns.
+    -->
+    <preConditions onFail="MARK_RAN">
+      <and>
+        <not>
+          <columnExists tableName="billable_usage_remittance" columnName="billed_on"/>
+        </not>
+        <not>
+          <columnExists tableName="billable_usage_remittance" columnName="error_code"/>
+        </not>
+        <not>
+          <columnExists tableName="billable_usage_remittance" columnName="status"/>
+        </not>
+      </and>
+    </preConditions>
+    <comment>Add new columns for billable usage retries</comment>
+    <addColumn tableName="billable_usage_remittance">
+      <column name="billed_on" type="TIMESTAMP WITH TIME ZONE" />
+    </addColumn>
+
+    <addColumn tableName="billable_usage_remittance">
+      <column name="error_code" type="VARCHAR(255)" />
+    </addColumn>
+
+    <addColumn tableName="billable_usage_remittance">
+      <column name="status" type="VARCHAR(255)" />
+    </addColumn>
+  </changeSet>
+
+</databaseChangeLog>

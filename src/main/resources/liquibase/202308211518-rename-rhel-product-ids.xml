@@ -1,0 +1,43 @@
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+  <changeSet id="202308211518" author="lburnett">
+    <comment>Consider "RHEL Server" as "RHEL for x86" product id for snapshots.</comment>
+    <update tableName="tally_snapshots">
+      <column name="product_id" value="z_RHEL for x86"/>
+      <where>product_id='RHEL for x86'</where>
+    </update>
+    <update tableName="tally_snapshots">
+      <column name="product_id" value="RHEL for x86"/>
+      <where>product_id='RHEL Server'</where>
+    </update>
+    <update tableName="host_tally_buckets">
+      <column name="product_id" value="z_RHEL for x86"/>
+      <where>product_id='RHEL for x86'</where>
+    </update>
+    <update tableName="host_tally_buckets">
+      <column name="product_id" value="RHEL for x86"/>
+      <where>product_id='RHEL Server'</where>
+    </update>
+    <rollback>
+      <update tableName="tally_snapshots">
+        <column name="product_id" value="RHEL Server"/>
+        <where>product_id='RHEL for x86'</where>
+      </update>
+      <update tableName="tally_snapshots">
+        <column name="product_id" value="RHEL for x86"/>
+        <where>product_id='z_RHEL for x86'</where>
+      </update>
+      <update tableName="host_tally_buckets">
+        <column name="product_id" value="RHEL Server"/>
+        <where>product_id='RHEL for x86'</where>
+      </update>
+      <update tableName="host_tally_buckets">
+        <column name="product_id" value="RHEL for x86"/>
+        <where>product_id='z_RHEL for x86'</where>
+      </update>
+    </rollback>
+  </changeSet>
+</databaseChangeLog>

@@ -1,0 +1,32 @@
+{
+  "products": [
+    {
+      "sku": "RH02781MO",
+      "description": "Red Hat Enterprise Linux for Third Party Linux Migration with Extended Life Cycle Support (On-Demand, Monthly Production Support)",
+      "status": "ACTIVE",
+      "attributes": [
+        {
+          "code": "PRODUCT_FAMILY",
+          "value": "RHEL"
+        },
+        {
+          "code": "SOCKET_LIMIT",
+          "value": "Unlimited"
+        },
+        {
+          "code": "SERVICE_TYPE",
+          "value": "Premium"
+        },
+        {
+          "code": "PRODUCT_NAME",
+          "value": "RHEL Server"
+        },
+        {
+          "code": "SPECIAL_PRICING_FLAG",
+          "value": "MIGRATION_OFFERING"
+        }
+      ],
+      "roles": []
+    }
+  ]
+}

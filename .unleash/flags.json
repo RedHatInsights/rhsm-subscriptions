@@ -1,0 +1,160 @@
+{
+    "version": 1,
+    "features": [
+        {
+            "name": "swatch.swatch-metrics-hbi.emit-events",
+            "description": "Enable sending of HBI events to the Swatch events after conversion.",
+            "type": "operational",
+            "project": "default",
+            "stale": false,
+            "strategies": [
+                {
+                    "name": "default",
+                    "parameters": {}
+                }
+            ],
+            "variants": [],
+            "createdAt": "2024-10-01T09:18:27.111Z"
+        },
+        {
+          "name": "swatch.swatch-notifications.send-notifications",
+          "description": "Enable sending of over-usage notifications to platform.notifications.ingress",
+          "type": "operational",
+          "project": "default",
+          "enabled": true,
+          "stale": false,
+          "strategies": [
+            {
+              "name": "default",
+              "parameters": {}
+            }
+          ],
+          "variants": [],
+          "createdAt": "2025-11-28T10:00:00.000Z"
+        },
+        {
+          "name": "swatch.swatch-notifications.send-notifications-orgs-allowlist",
+          "description": "Comma-separated list of org IDs allowed to receive over-usage notifications regardless of the global send-notifications flag. Used for targeted testing in production without affecting other users.",
+          "type": "operational",
+          "project": "default",
+          "enabled": true,
+          "stale": false,
+          "strategies": [
+            {
+              "name": "default",
+              "parameters": {}
+            }
+          ],
+          "variants": [],
+          "createdAt": "2026-02-26T10:00:00.000Z"
+        },
+        {
+            "name": "hbi.api.disable-xjoin",
+            "description": "A list of org_id for customers allow listed for postgres direct querying.",
+            "type": "operational",
+            "project": "default",
+            "enabled": true,
+            "stale": false,
+            "strategies": [
+                {
+                    "name": "default",
+                    "parameters": {}
+                }
+            ],
+            "variants": [],
+            "createdAt": "2024-01-09T18:49:38.445Z"
+        },
+        {
+            "name": "hbi.group-assignment-rules",
+            "description": "If active, newly-created hosts will automatically be assigned to groups based on the account's assignment rules.",
+            "type": "release",
+            "project": "default",
+            "stale": false,
+            "enabled": true,
+            "strategies": [
+                {
+                    "name": "default",
+                    "parameters": {}
+                }
+            ],
+            "variants": [],
+            "createdAt": "2024-01-10T20:16:35.042Z"
+        },
+        {
+            "name": "hbi.custom-staleness",
+            "description": "If active, Custom host staleness/culling features will be enabled in the API and UI",
+            "type": "release",
+            "project": "default",
+            "stale": false,
+            "enabled": true,
+            "strategies": [
+                {
+                    "name": "default",
+                    "parameters": {}
+                }
+            ],
+            "variants": [],
+            "createdAt": "2024-01-10T20:18:18.842Z"
+        },
+        {
+            "name": "hbi.api.hide-edge-by-default",
+            "description": "If this is toggled, the HBI API will hide Edge hosts by default on all requests. If the request has a host-type filter, that is used instead.",
+            "type": "release",
+            "project": "default",
+            "stale": false,
+            "strategies": [
+                {
+                    "name": "default",
+                    "parameters": {}
+                }
+            ],
+            "variants": [],
+            "createdAt": "2024-01-10T20:19:30.848Z"
+        },
+        {
+            "name": "edgeParity.groups-migration",
+            "description": "In the context of edge-parity, enables the migrate of edge management groups to insights inventory groups.",
+            "type": "release",
+            "project": "default",
+            "stale": false,
+            "strategies": [
+                {
+                    "name": "default",
+                    "parameters": {}
+                }
+            ],
+            "variants": [],
+            "createdAt": "2024-01-10T20:20:42.531Z"
+        },
+        {
+            "name": "swatch.swatch-tally.enable-primary-row-searches",
+            "description": "Enable the use of the primary row search for snapshots and buckets.",
+            "type": "operational",
+            "project": "default",
+            "enabled": false,
+            "stale": false,
+            "strategies": [
+                {
+                    "name": "default",
+                    "parameters": {}
+                }
+            ],
+            "variants": [],
+            "createdAt": "2026-03-30T015:18:27.111Z"
+        }
+    ],
+    "strategies": [
+        {
+            "name": "schema-strategy",
+            "description": "Enablement based on account/schema number",
+            "parameters": [
+                {
+                    "name": "schema-name",
+                    "type": "list",
+                    "description": "values must begin with `acct` or `org`",
+                    "required": false
+                }
+            ]
+        }
+    ]
+}

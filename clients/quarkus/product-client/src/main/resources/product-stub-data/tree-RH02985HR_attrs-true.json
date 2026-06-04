@@ -1,0 +1,21 @@
+{
+  "products": [
+    {
+      "sku": "RH02985HR",
+      "description": "Red Hat Enterprise Linux Extended Life Cycle Support (On-Demand, Hourly Production Support)",
+      "status": "ACTIVE",
+      "attributes": [
+        {
+          "code": "SERVICE_TYPE",
+          "value": "Premium"
+        },
+        {
+          "code": "METERED",
+          "value": "Y"
+        }
+      ],
+      "roles": []
+    }
+  ],
+  "parentMap": []
+}

@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <contextName>rhsm-subscriptions</contextName>
+    <evaluator name="SECURITY_STACKTRACE_EVAL" class="ch.qos.logback.classic.boolex.OnMarkerEvaluator">
+        <marker>SECURITY_STACKTRACE</marker>
+    </evaluator>
+
+    <evaluator name="MDC_STACKTRACE_EVAL" class="org.candlepin.subscriptions.logback.OnMdcEvaluator">
+        <!-- Log events with the MDC keys listed below set to "true" will not have their stacktraces printed -->
+        <mdcKey>INVALID_GRANULARITY</mdcKey>
+        <mdcKey>INVALID_USAGETYPE</mdcKey>
+        <mdcKey>INVALID_SERVICELEVELTYPE</mdcKey>
+        <mdcKey>ACCOUNT_LOOKUP_FAILED</mdcKey>
+    </evaluator>
+
+    <appender name="ConsoleAppender" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <!-- %ex{full, SECURITY_STACKTRACE_EVAL} will display the full stack trace of the exception only
+             if the evaluator called SECURITY_STACKTRACE_EVAL returns false. -->
+            <pattern>%d{ISO8601} [thread=%thread] [%-5p] [%c] %X{user}- %m%n%ex{full, SECURITY_STACKTRACE_EVAL, MDC_STACKTRACE_EVAL}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="FileAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_FILE:-/tmp/rhsm-subscriptions.log}</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+        <!-- daily rollover -->
+        <fileNamePattern>${LOG_FILE:-/tmp/rhsm-subscriptions.log}.%d{yyyy-MM-dd-HH-mm}.log</fileNamePattern>
+        <maxHistory>1</maxHistory>
+        <totalSizeCap>100MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSS'+0000'} [thread=%t] [level=%p] [category=%c] %X{user} - %m%n%ex{full, SECURITY_STACKTRACE_EVAL}</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="org.candlepin" level="INFO"/>
+
+    <root level="WARN">
+        <appender-ref ref="ConsoleAppender" />
+        <appender-ref ref="FileAppender" />
+    </root>
+
+    <!-- See https://logback.qos.ch/manual/configuration.html#conditional -->
+    <condition class="ch.qos.logback.core.boolex.PropertyEqualityCondition">
+      <key>LOGGING_HEC_ENABLED</key>
+      <value>true</value>
+    </condition>
+    <if>
+        <then>
+         <!--
+          "During substitution, properties are looked up in the local scope first, in the context
+           scope second, in the system properties scope third, and in the OS environment fourth and
+           last." source: http://logback.qos.ch/manual/configuration.html#scopes
+         -->
+            <appender name="http" class="com.splunk.logging.HttpEventCollectorLogbackAppender">
+                <url>${LOGGING_HEC_URL}</url>
+                <token>${LOGGING_HEC_TOKEN}</token>
+                <source>${LOGGING_SOURCE:-rhsm-subscription-hec}</source>
+                <sourcetype>${LOGGING_SOURCE_TYPE}</sourcetype>
+                <host>${HOST_NAME:-${LOGNAME}@${HOSTNAME}}</host>
+                <messageFormat>${LOGGING_MESSAGE_FORMAT}</messageFormat>
+                <middleware>HttpEventCollectorResendMiddleware</middleware>
+                <connectTimeout>${LOGGING_HEC_CONNECT_TIMEOUT:-5000}</connectTimeout>
+                <terminationTimeout>${LOGGING_HEC_TERMINATION_TIMEOUT:-2000}</terminationTimeout>
+                <batch_size_count>${LOGGING_HEC_BATCH_SIZE:-10}</batch_size_count>
+                <disableCertificateValidation>${LOGGING_DISABLE_CERTIFICATE_VALIDATION:-false}</disableCertificateValidation>
+                <eventHeaderSerializer>org.candlepin.subscriptions.logback.RhsmSplunkHecEventHeaderSerializer</eventHeaderSerializer>
+                <layout class="ch.qos.logback.classic.PatternLayout">
+                    <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSS'+0000'} [thread=%t] [level=%p] [category=%c] %X{user} - %m%n%ex{full, SECURITY_STACKTRACE_EVAL}</pattern>
+                </layout>
+            </appender>
+
+            <logger name="splunk.logger" additivity="false" level="INFO">
+                <appender-ref ref="http"/>
+            </logger>
+
+            <root level="WARN">
+                <appender-ref ref="http"/>
+            </root>
+        </then>
+    </if>
+
+</configuration>

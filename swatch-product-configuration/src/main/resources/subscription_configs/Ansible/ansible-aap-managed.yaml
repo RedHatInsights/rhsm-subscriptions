@@ -1,0 +1,29 @@
+---
+platform: Ansible
+
+id: ansible-aap-managed
+
+variants:
+  - tag: ansible-aap-managed
+    level1:
+      - Ansible
+    level2:
+      - Ansible Automation Platform
+
+defaults:
+  variant: ansible-aap-managed
+  sla: PREMIUM
+  usage: PRODUCTION
+
+serviceType: Ansible Managed Node
+
+contractEnabled: true
+
+metrics:
+  - id: Managed-nodes
+    type: gauge
+    awsDimension: managed_node
+    enableGratisUsage: true
+  - id: Instance-hours
+    type: counter
+    awsDimension: infrastructure

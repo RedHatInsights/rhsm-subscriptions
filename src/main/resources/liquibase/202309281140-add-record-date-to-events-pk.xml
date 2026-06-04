@@ -1,0 +1,29 @@
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202309011316-1" author="mstead">
+    <comment>Include the record_date column in the PK.</comment>
+    <dropPrimaryKey tableName="events" />
+    <addPrimaryKey constraintName="events_pkey"
+      tableName="events"
+      columnNames="org_id,event_type,event_source,instance_id,record_date,timestamp"/>
+    <rollback>
+      <dropPrimaryKey tableName="events" />
+      <addPrimaryKey constraintName="events_pkey"
+        tableName="events"
+        columnNames="org_id,event_type,event_source,instance_id,timestamp"/>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202309011316-2" author="mstead" dbms="postgresql">
+    <comment>Copy the record_date value into the JSON data.</comment>
+    <sql>update events set data = jsonb_set(data, '{record_date}', to_jsonb(record_date))</sql>
+    <rollback>
+      <sql>update events set data = data - 'record_date'</sql>
+    </rollback>
+  </changeSet>
+
+</databaseChangeLog>

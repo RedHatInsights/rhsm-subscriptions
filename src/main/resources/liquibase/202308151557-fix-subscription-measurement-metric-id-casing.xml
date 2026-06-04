@@ -1,0 +1,26 @@
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+  <changeSet id="202308151557-1" author="khowell">
+    <comment>Change CORES to Cores.</comment>
+    <update tableName="subscription_measurements">
+      <column name="metric_id" value="Cores"/>
+      <where>metric_id='CORES'</where>
+    </update>
+    <rollback>
+      update subscription_measurements set metric_id='CORES' where metric_id='Cores'
+    </rollback>
+  </changeSet>
+  <changeSet id="202308151557-2" author="khowell">
+    <comment>Change SOCKETS to Sockets.</comment>
+    <update tableName="subscription_measurements">
+      <column name="metric_id" value="Sockets"/>
+      <where>metric_id='SOCKETS'</where>
+    </update>
+    <rollback>
+      update subscription_measurements set metric_id='SOCKETS' where metric_id='Sockets'
+    </rollback>
+  </changeSet>
+</databaseChangeLog>

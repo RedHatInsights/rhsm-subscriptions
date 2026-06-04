@@ -1,0 +1,90 @@
+TASKS_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.tasks".name:platform.rhsm-subscriptions.tasks}
+TALLY_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.tally".name:platform.rhsm-subscriptions.tally}
+SERVICE_INSTANCE_INGRESS_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.service-instance-ingress".name:platform.rhsm-subscriptions.service-instance-ingress}
+SERVICE_INSTANCE_INGRESS_DEAD_LETTER_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.service-instance-ingress.dlt".name:platform.rhsm-subscriptions.service-instance-ingress.dlt}
+ENABLED_ORGS_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.enabled-orgs-for-tasks".name:platform.rhsm-subscriptions.enabled-orgs-for-tasks}
+SUBSCRIPTION_EXPORT_TOPIC: ${clowder.kafka.topics."platform.export.requests".name:platform.export.requests}
+
+rhsm-subscriptions:
+  hourlyTallyDurationLimitDays: 90d
+  # Defines the number of Events to process in a batch during the hourly tally. Since a Host
+  # update can require many DB inserts (host,buckets,measurements,monthly totals), increasing
+  # the batch size too high has a direct negative impact hourly tally performance due to the
+  # increase of resulting DB insert/update statements.
+  #
+  # A default value of 16000 was chosen since it provided a good balance between memory usage and
+  # performance when executing an hourly tally requiring many batches.
+  hourlyTallyEventBatchSize: ${HOURLY_TALLY_EVENT_BATCH_SIZE:16000}
+  inventory-service:
+    datasource:
+      url: jdbc:postgresql://${INVENTORY_DATABASE_HOST:localhost}/${INVENTORY_DATABASE_DATABASE:insights}?currentSchema=${INVENTORY_DATABASE_SCHEMA:hbi}&ApplicationName=${clowder.metadata.name:rhsm-subscriptions}
+      username: ${INVENTORY_DATABASE_USERNAME:insights}
+      password: ${INVENTORY_DATABASE_PASSWORD:insights}
+      driver-class-name: org.postgresql.Driver
+      platform: postgresql
+      hikari:
+        connection-timeout: ${INVENTORY_DATABASE_CONNECTION_TIMEOUT_MS:30000}
+        maximum-pool-size: ${INVENTORY_DATABASE_MAX_POOL_SIZE:10}
+        auto-commit: false  # required to enable cursor-based streaming in native queries
+  culling-offset-days: ${CULLING_OFFSET_DAYS:14}
+  staleness-offset: ${STALENESS_OFFSET:29h}
+  account-list-resource-location: ${ACCOUNT_LIST_RESOURCE_LOCATION:}
+  event-retention-policy:
+    eventRetentionDuration: ${EVENT_RECORD_RETENTION:P6M}
+  tally-retention-policy:
+    # 70 days worth
+    hourly: ${TALLY_RETENTION_HOURLY:1680}
+    # A year and change
+    daily: ${TALLY_RETENTION_DAILY:370}
+    # Roughly 3 months worth
+    weekly: ${TALLY_RETENTION_WEEKLY:12}
+    # A year's worth
+    monthly: ${TALLY_RETENTION_MONTHLY:12}
+    # Five years' worth
+    quarterly: ${TALLY_RETENTION_QUARTERLY:20}
+    yearly: ${TALLY_RETENTION_YEARLY:5}
+    # Batch size to fetch organizations using pagination
+    organizations-batch-limit: 1000
+    snapshots-to-delete-in-batches: 1000
+  tally-summary-producer:
+    back-off-initial-interval: ${TALLY_SUMMARY_PRODUCER_BACK_OFF_INITIAL_INTERVAL:1s}
+    back-off-max-interval: ${TALLY_SUMMARY_PRODUCER_BACK_OFF_MAX_INTERVAL:1m}
+    back-off-multiplier: ${TALLY_SUMMARY_PRODUCER_BACK_OFF_MULTIPLIER:2}
+    max-attempts: ${TALLY_SUMMARY_PRODUCER_MAX_ATTEMPTS:5}
+    topic: ${TALLY_TOPIC}
+  service-instance-ingress:
+    incoming:
+      topic: ${SERVICE_INSTANCE_INGRESS_TOPIC}
+      kafka-group-id: swatch-instance-ingress
+      seek-override-end: ${SERVICE_INSTANCE_INGRESS_KAFKA_SEEK_OVERRIDE_END:false}
+      seek-override-timestamp: ${SERVICE_INSTANCE_INGRESS_KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
+      max-poll-records: ${SERVICE_INSTANCE_INGRESS_KAFKA_MAX_POLL_RECORDS:500}
+  service-instance-ingress-dead-letter:
+    outgoing:
+      topic: ${SERVICE_INSTANCE_INGRESS_DEAD_LETTER_TOPIC}
+  tasks:
+    topic: ${TASKS_TOPIC}
+    kafka-group-id: ${KAFKA_GROUP_ID:rhsm-subscriptions-task-processor}
+    seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
+    seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
+  enabled-orgs:
+    target-topics-allowed: platform.rhsm-subscriptions.subscription-sync-task, platform.rhsm-subscriptions.remittances-purge-task
+    incoming:
+      topic: ${ENABLED_ORGS_TOPIC}
+      kafka-group-id: ${KAFKA_GROUP_ID:rhsm-subscriptions-enabled-orgs-processor}
+      seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
+      seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
+  tally-max-hbi-account-size: ${TALLY_MAX_HBI_ACCOUNT_SIZE:2147483647}  # Integer.MAX_VALUE by default
+  hbi-reconciliation-flush-interval: ${HBI_RECONCILIATION_FLUSH_INTERVAL:1024}
+  use-cpu-system-facts-to-all-products: ${USE_CPU_SYSTEM_FACTS_TO_ALL_PRODUCTS:true}
+  host-last-sync-threshold: ${HOST_LAST_SYNC_THRESHOLD:24h}
+  export-service:
+    url: ${clowder.privateEndpoints.export-service-service.url:http://localhost:10000}
+    truststore: ${clowder.privateEndpoints.export-service-service.trust-store-path}
+    truststore-password: ${clowder.privateEndpoints.export-service-service.trust-store-password}
+    truststore-type: ${clowder.privateEndpoints.export-service-service.trust-store-type}
+    psk: ${SWATCH_EXPORT_PSK:placeholder}
+  export:
+    tasks:
+      topic: ${SUBSCRIPTION_EXPORT_TOPIC}
+      kafka-group-id: swatch-tally-export

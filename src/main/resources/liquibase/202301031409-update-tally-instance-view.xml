@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202301031409-1" author="kflahert">
+    <dropView viewName="tally_instance_view"/>
+  </changeSet>
+
+  <changeSet id="202301031409-2" author="kflahert">
+    <comment>Create view of hosts and host_tally_buckets for use in Instance API</comment>
+    <createView
+      replaceIfExists="true"
+      viewName="tally_instance_view">
+      select distinct org_id,
+                      h.id,
+                      cast(h.instance_id as UUID) as instance_id,
+                      display_name,
+                      h.billing_provider as host_billing_provider,
+                      h.billing_account_id as host_billing_account_id,
+                      b.billing_provider as bucket_billing_provider,
+                      b.billing_account_id as bucket_billing_account_id,
+                      last_seen,
+                      num_of_guests,
+                      product_id,
+                      sla,
+                      usage,
+                      COALESCE(b.measurement_type, 'EMPTY') AS measurement_type,
+                      m.uom,
+                      m.value,
+                      b.sockets,
+                      b.cores
+      from hosts h
+        join host_tally_buckets b on h.id = b.host_id left outer join instance_measurements m on h.id = m.instance_id;
+    </createView>
+  </changeSet>
+
+</databaseChangeLog>
+  <!-- vim: set expandtab sts=4 sw=4 ai: -->

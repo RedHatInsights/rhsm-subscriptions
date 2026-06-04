@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="202003261146-1" author="mstead">
+        <comment>Add table for account configuration for tally/conduit</comment>
+        <createTable tableName="account_config">
+            <column name="account_number" type="VARCHAR(255)" />
+            <column name="sync_enabled" type="BOOLEAN">
+                <constraints nullable="false" />
+            </column>
+            <column name="reporting_enabled" type="BOOLEAN">
+                <constraints nullable="false" />
+            </column>
+            <column name="opt_in_type" type="VARCHAR(255)">
+                <constraints nullable="false" />
+            </column>
+            <column name="created" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false" />
+            </column>
+            <column name="updated" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false" />
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="202003261146-2" author="mstead">
+        <addPrimaryKey constraintName="acc_num_pkey"
+                       tableName="account_config"
+                       columnNames="account_number"/>
+    </changeSet>
+
+</databaseChangeLog>
+<!-- vim: set expandtab sts=4 sw=4 ai: -->

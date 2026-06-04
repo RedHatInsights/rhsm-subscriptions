@@ -1,0 +1,9 @@
+$schema: http://json-schema.org/draft-07/schema#
+title: SubscriptionExportMeasurement
+properties:
+  metric_id:
+    type: string
+  capacity:
+    type: number
+  measurement_type:
+    type: string

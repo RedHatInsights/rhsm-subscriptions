@@ -1,0 +1,32 @@
+---
+platform: OpenShift
+id: rhacs
+
+variants:
+  - tag: rhacs
+    roles:
+      - rhacs
+    level1:
+      - OpenShift
+    level2:
+      - "ACS - Advanced Cluster Security"
+defaults:
+  variant: rhacs
+  sla: PREMIUM
+  usage: PRODUCTION
+
+serviceType: Rhacs Cluster
+
+metrics:
+  - id: Cores
+    type: counter
+    rhmMetricId: redhat.com:rhacs:cpu_hour
+    awsDimension: vCPU_Hour
+    azureDimension: vcpu_hour
+    prometheus:
+      queryKey: default
+      queryParams:
+        instanceKey: _id
+        product: rhacs
+        metric: rhacs:rox_central_cluster_metrics_cpu_capacity:avg_over_time1h
+        metadataMetric: ocm_subscription

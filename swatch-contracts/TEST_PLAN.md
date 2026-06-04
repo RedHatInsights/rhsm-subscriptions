@@ -1,0 +1,1912 @@
+# Introduction
+
+The **swatch-contracts** module is a critical service within the Subscription Watch platform that serves as the central hub for managing Red Hat subscription contracts purchased through cloud marketplaces (AWS and Azure) and their underlying product offerings. It acts as the authoritative system for tracking Pay-As-You-Go (PAYG) subscription contracts, their associated metrics, and billing information. The service also handles regular non-PAYG subscriptions, as evidenced by the test cases managing all subscription types.
+
+This comprehensive management of both contracts and offerings enables accurate capacity reporting and usage-based billing for Red Hat products sold via cloud marketplace partnerships.
+
+This document outlines the test plan for SWATCH-3765, which involves Subscriptions in Swatch contracts.
+
+**Purpose:** To ensure the Swatch-contracts subscription is functional, reliable, and meets all defined requirements.
+
+**Scope**:
+
+* Contract Lifecycle Management.
+* Data Enrichment & Normalization.
+* Subscription Management.
+* Cloud Marketplace Context Provisioning.
+
+**Assumptions:**
+
+* The Swatch-contracts service is a stable and functional platform.
+* The Subscription Watch service provides accurate data.
+
+**Constraints**:
+
+* Testing is limited to the functionality of the Swatch-contracts subscription at a component level.
+* End-to-end testing in ephemeral or stage environments is out of scope for this test plan.
+
+# Test Strategy
+
+This test plan focuses on covering the test scenario for component-level tests, utilizing the new Java component test framework.
+
+**Test Approach:**
+
+* The testing will follow a **risk-based approach**, prioritizing test cases for critical functionality and high-risk areas.
+* **Automated tests** will be developed for component-level checks on the new Java component test framework, while integration and end-to-end testing will be covered in another document and developed on iqe-rhsm-subscription-plugin.
+
+**Testing Strategy:**
+
+Test cases should be testable locally and in an ephemeral environment.
+
+- UMB and Kafka messages can be injected for event-driven testing. 
+- The services' API can be mocked. 
+- System state can be verified through internal API calls.
+
+# Test Cases
+
+## Contract Creation via Event messages
+
+**contracts-creation-TC001 - Process a valid PAYG contract with one valid dimension for AWS Marketplace**  
+- **Description**: Verify that an AWS PAYG contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
+- **Setup**:  
+  - Ensure `UMB_ENABLED=true`
+  - Ensure Unleash toggle `swatch.swatch-contracts.enable-partner-gateway-contracts` is enabled (UMB contract consumer from IT Partner Gateway)
+  - Kafka topic `contracts` is available  
+  - Prepare a valid AWS partner entitlement message  
+- **Action:**  
+  - Publish message to Kafka topic  
+- **Verification**:   
+  - Query contract via internal API: GET /internal/contracts?org_id=org123  
+  - Verify contract exists with correct fields  
+- **Expected Result**:  
+  - HTTP 200 response  
+  - Response contains status.status: "SUCCESS"  
+  - Contract object contains all expected fields (uuid, `subscription_number`, sku, `start_date`, `end_date`, org_id, `billing_provider`, etc.)  
+  - Validate  
+  - `billing_provider`: "aws"  
+  - `billing_provider_id` formatted as `{vendorProductCode};{awsCustomerId};{sellerAccountId}`  
+  - billing_account_id contains customerAwsAccountId
+
+**contracts-creation-TC002 - Process a valid PURE PAYG contract (without dimensions) for AWS Marketplace**  
+- **Description:** Verify that a contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
+- **Setup:**   
+  - Ensure `UMB_ENABLED=true`
+  - Ensure Unleash toggle `swatch.swatch-contracts.enable-partner-gateway-contracts` is enabled (UMB contract consumer from IT Partner Gateway)
+  - Kafka topic `contracts` is available  
+  - Prepare a valid AWS partner entitlement message  
+- **Action:**     
+  - Publish message to Kafka topic  
+- **Verification:**   
+  - Query contract via internal API: GET /internal/contracts?org_id=org123  
+  - Verify contract exists with correct fields  
+- **Expected Result:**  
+  - HTTP 200 response  
+  - Response contains status.status: "SUCCESS"  
+  - Contract object contains all expected fields (uuid, `subscription_number`, sku, `start_date`, `end_date`, org_id, `billing_provider`, etc.)
+
+**contracts-creation-TC003 - Process a valid PAYG contract with one valid dimension for the Azure Marketplace**  
+- **Description**: Verify that a contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
+- **Setup**:  
+  - Ensure `UMB_ENABLED=true`
+  - Ensure Unleash toggle `swatch.swatch-contracts.enable-partner-gateway-contracts` is enabled (UMB contract consumer from IT Partner Gateway)
+  - Kafka topic available  
+  - Prepare a valid Azure partner entitlement message  
+- **Action**:  
+  - Publish message to Kafka topic  
+- **Verification**:   
+  - Query contract via internal API: GET /internal/contracts?org_id=org123  
+  - Verify contract exists with correct fields  
+- **Expected Result**:  
+  - HTTP 200 response  
+  - Response contains status.status: "SUCCESS"  
+  - Contract object contains all expected fields (uuid, `subscription_number`, sku, `start_date`, `end_date`, org_id, `billing_provider`, etc.)
+  - Validate
+  - `billing_provider=azure`
+  - `billing_provider_id` formatted as `{azureResourceId};{planId};{vendorProductCode};{customer};{clientId}`
+  - `billing_account_id` contains azureTenantId
+
+**contracts-creation-TC004 -** **Process a valid PURE PAYG contract (without dimensions) for the Azure Marketplace**  
+- **Description**: Verify that a contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
+- **Setup**:  
+  - Ensure `UMB_ENABLED=true`
+  - Ensure Unleash toggle `swatch.swatch-contracts.enable-partner-gateway-contracts` is enabled (UMB contract consumer from IT Partner Gateway)
+  - Kafka topic available  
+  - Prepare a valid Azure partner entitlement message  
+- **Action**:  
+  - Publish message to Kafka topic  
+- **Verification**:   
+  - Query contract via internal API: GET /internal/contracts?org_id=org123  
+  - Verify contract exists with correct fields  
+- **Expected Result**:  
+  - HTTP 200 response
+  - Response contains status.status: "SUCCESS"
+  - Contract object contains all expected fields (uuid, `subscription_number`, sku, `start_date`, `end_date`, org_id, `billing_provider`, etc.)
+  - Validate
+  - `billing_provider=azure`
+  - `billing_provider_id` formatted as `{azureResourceId};{planId};{vendorProductCode};{customer};{clientId}`
+  - `billing_account_id` contains azureTenantId
+
+**contracts-creation-TC005 - Process contract with multiple metrics/dimensions**  
+- **Description**: Verify contracts can store multiple metrics from partner entitlement dimensions.  
+- **Setup**:  
+  - Ensure `UMB_ENABLED=true`
+  - Ensure Unleash toggle `swatch.swatch-contracts.enable-partner-gateway-contracts` is enabled (UMB contract consumer from IT Partner Gateway)
+  - Kafka topic available  
+  - Prepare a valid partner entitlement message with multiple metrics/dimensions  
+- **Action**:  
+  - Publish message to Kafka topic with multiple metrics/dimensions  
+- **Verification**:  
+  - Query contract via internal API: GET /internal/contracts?org_id=org123  
+  - Verify contract exists with correct fields  
+- **Expected Result**:  
+  - HTTP 200 response  
+  - Response contains status.status: "SUCCESS"  
+  - Contract object contains all expected fields (uuid, `subscription_number`, sku, `start_date`, `end_date`, org_id, `billing_provider`, etc.)  
+  - Contract object contains multiple metrics/dimensions
+
+**contracts-creation-TC006 - Process contract with multiple metrics/dimensions (WITH AN INVALID ONE)**  
+- **Description**:  Verify contracts with multiple metrics/dimensions where one of those metrics is an invalid metric, and generate a valid contract with the valid metric.  
+- **Setup**:  
+  - Ensure `UMB_ENABLED=true`
+  - Ensure Unleash toggle `swatch.swatch-contracts.enable-partner-gateway-contracts` is enabled (UMB contract consumer from IT Partner Gateway)
+  - Kafka topic available  
+  - Prepare a valid partner entitlement message with multiple metrics/dimensions where one of those metrics is invalid.  
+- **Action**:  
+  - Publish message to Kafka topic with multiple metrics/dimensions  
+- **Verification**:  
+  - Query contract via internal API: GET /internal/contracts?org_id=org123  
+  - Verify the contract exists with the correct fields without the invalid metric.  
+- **Expected Result**:  
+  - HTTP 200 response  
+  - Response contains status.status: "SUCCESS"  
+  - Contract object contains all expected fields (uuid, `subscription_number`, sku, `start_date`, `end_date`, org_id, `billing_provider`, etc.)  
+  - Contract object contains only valid metrics
+
+**contracts-creation-TC007 - Process contract message with missing required fields shouldn’t persist**  
+- **Description**: Verify validation errors are handled gracefully.  
+- **Setup**:   
+  - Ensure `UMB_ENABLED=true`
+  - Ensure Unleash toggle `swatch.swatch-contracts.enable-partner-gateway-contracts` is enabled (UMB contract consumer from IT Partner Gateway)
+  - Kafka topic available  
+  - Prepare an invalid partner entitlement message with missing required fields.  
+- **Action**:  
+  - Publish message to Kafka topic with missing required fields  
+- **Verification**:  
+  - Check error response.  
+  - Query contract via internal API: GET /internal/contracts?org_id=org123  
+  - Ensure the contract was not created  
+- **Expected Result**:  
+  - HTTP 400 Bad Request  
+  - Error message indicates a missing required field
+
+**contracts-creation-TC016 - Process a valid PAYG contract sent as an object instead of text via message broker (UMB)**
+- **Description**: Verify that an AWS PAYG contract can be successfully created when receiving the message as an object instead of text.
+- **Setup**:
+  - Ensure `UMB_ENABLED=true`
+  - Ensure Unleash toggle `swatch.swatch-contracts.enable-partner-gateway-contracts` is enabled (UMB contract consumer from IT Partner Gateway)
+  - Prepare a valid AWS partner entitlement message
+- **Action:**
+  - Publish message to UMB channel as an object instead of text
+- **Verification**:
+  - Query contract via internal API: GET /internal/contracts?org_id=org123
+  - Verify contract exists with correct fields
+  - Verify service is UP and running
+- **Expected Result**:
+  - HTTP 200 response
+  - Response contains the created contract
+
+## Contract Creation via Internal API
+
+**contracts-creation-TC008** - **Create a valid PAYG contract with one valid dimension for AWS marketplace**  
+- **Description:** Verify that a contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
+- **Setup:** Ensure partner entitlement data, metrics, and subscription ID are available.  
+- **Action:** POST to `/api/swatch-contracts/internal/contracts` with a valid `ContractRequest` payload including partner_entitlement, metrics, and subscription_id.  
+- **Verification:** Check response status and returned contract object.  
+  - **Expected Result:**  
+  - HTTP 200 response  
+  - Response contains status.status: "SUCCESS"  
+  - Contract object contains all expected fields (uuid, `subscription_number`, sku, `start_date`, `end_date`, org_id, `billing_provider`, etc.)  
+  - Validate  
+  - `billing_provider`: "aws"  
+  - `billing_provider_id` follows format: "{vendorProductCode};{awsCustomerId};{sellerAccountId}"  
+  - billing_account_id contains customerAwsAccountId
+
+**contracts-creation-TC009** - **Create a valid PURE PAYG contract (without dimensions) for AWS marketplace**  
+- **Description:** Verify that a contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
+- **Setup:** Ensure partner entitlement data, metrics, and subscription ID are available.  
+- **Action:** POST to `/api/swatch-contracts/internal/contracts` with a valid `ContractRequest` payload including partner_entitlement, metrics, and subscription_id.  
+- **Verification:** Check response status and returned contract object.  
+- **Expected Result:**  
+  - HTTP 200 response  
+  - Response contains status.status: "SUCCESS"  - Contract object contains all expected fields (uuid, `subscription_number`, sku, `start_date`, `end_date`, org_id, `billing_provider`, etc.)
+
+**contracts-creation-TC010** - **Create a valid PAYG contract with one valid dimension for the Azure marketplace**  
+- **Description:** Verify that a contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
+- **Setup:** Ensure partner entitlement data, metrics, and subscription ID are available.  
+- **Action:** POST to `/api/swatch-contracts/internal/contracts` with a valid `ContractRequest` payload including partner_entitlement, metrics, and subscription_id.  
+- **Verification:** Check response status and returned contract object.  
+- **Expected Result:**  
+  - HTTP 200 response  
+  - Response contains status.status: "SUCCESS"  
+  - Contract object contains all expected fields (uuid, `subscription_number`, sku, `start_date`, `end_date`, org_id, `billing_provider`, etc.)  
+  - Validate  
+  - `billing_provider`: "azure"  
+  - `billing_provider_id` follows Azure format  
+  - billing_account_id populated correctly
+
+**contracts-creation-TC011** - **Create a valid PURE PAYG contract (without dimensions) for the Azure marketplace**  
+- **Description:** Verify that a contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
+- **Setup:** Ensure partner entitlement data, metrics, and subscription ID are available.  
+- **Action:** POST to `/api/swatch-contracts/internal/contracts` with a valid `ContractRequest` payload including partner_entitlement, metrics, and subscription_id.  
+- **Verification:** Check response status and returned contract object.  
+- **Expected Result:**  
+  - HTTP 200 response  
+  - Response contains status.status: "SUCCESS"  
+  - Contract object contains all expected fields (uuid, `subscription_number`, sku, `start_date`, `end_date`, org_id, `billing_provider`, etc.)
+
+**contracts-creation-TC012** - **Create contract with multiple metrics/dimensions**  
+- **Description**: Verify contracts can store multiple metrics from partner entitlement dimensions.  
+- **Setup:** Prepare entitlement with multiple dimensions (e.g., cpu-hours, instance-hours).  
+- **Action:** POST contract with multiple dimensions in purchase.contracts[*].dimensions.  
+- **Verification:** Query created contract.  
+- **Expected Result:**  
+  - All metrics are stored  
+  - Each metric has a correct metric_id and value
+
+**contracts-creation-TC013** - **Create contract with multiple metrics/dimensions, but with an invalid one**  
+- **Description**: Verify contracts with multiple metrics/dimensions where one of those metrics is an invalid metric, and generate a valid contract with the valid metric.  
+- **Setup:** Prepare entitlement with multiple dimensions with one invalid (e.g., cpu-hours, ins-hours).  
+- **Action:** POST contract with multiple dimensions in purchase.contracts[*].dimensions.  
+- **Verification:** Query created contract.  
+- **Expected Result:**  
+  - Only valid metrics are stored  
+  - Each metric stored has a correct metric_id and value
+
+**contracts-creation-TC014** - **Create contract with missing required fields shouldn't persist**  
+- **Description:** Verify validation for missing required fields.  
+- **Setup:** Prepare incomplete contract request.  
+- **Action:** POST contract missing partner_entitlement, or subscription_id.  
+- **Verification:** Check error response.  
+- **Expected Result:**  
+  - HTTP 400 Bad Request  
+  - Error message indicates a missing required field
+
+**contracts-creation-TC015** - **Process contract with invalid dimensions for unconfigured SKU**  
+- **Description:** Verify that contracts with invalid dimensions for SKUs without configured product tags are processed correctly by filtering invalid dimensions and logging the filtering action.  
+- **Setup:**  
+  - Ensure test SKU has no product tag configured in sku_product_tag table  
+  - Prepare contract request with invalid dimension that doesn't match any configured metric  
+- **Action:** POST contract containing invalid dimensions for unconfigured SKU  
+- **Verification:**  
+  - Query contract via internal API
+  - Check application logs for filtering information
+- **Expected Result:**  
+  - HTTP 200 response  
+  - Response contains status.status: "SUCCESS"  
+  - Contract created successfully with valid dimensions only  
+  - Invalid dimensions filtered out from contract  
+  - Info-level log entry indicates filtered dimensions for debugging purposes  
+  - System handles unconfigured SKUs with invalid dimensions gracefully without errors
+
+## Contract Retrieval
+
+**contracts-retrieval-TC001** - **Get contracts by org_id**  
+- **Description:** Verify contracts can be retrieved by organization ID.  
+- **Setup:** Create multiple contracts for org "org123" and "org456".  
+- **Action:** GET `/api/swatch-contracts/internal/contracts?org_id=org123`.  
+- **Verification:** Check the returned contract list.  
+  - **Expected Result:**  
+  - Only contracts for org123 are returned  
+  - All contracts have the correct org_id
+
+**contracts-retrieval-TC002** - **Get contracts active at a specific timestamp**  
+- **Description:** Verify temporal filtering using the timestamp parameter.  
+- **Setup:** Create contracts with different `start_date` and `end_date` ranges.  
+- **Action:** GET contracts with a timestamp parameter set to a specific date.  
+- **Verification:** Validate temporal filtering.  
+- **Expected Result:**  
+  - Only contracts active at the specified timestamp are returned  
+  - Contracts where `start_date` <= timestamp < `end_date`
+
+**contracts-retrieval-TC003** - **Get contracts by `billing_provider`**  
+- **Description:** Verify filtering by billing provider (AWS/Azure).  
+- **Setup:** Create contracts with AWS and Azure billing providers.  
+- **Action:** GET contracts with `billing_provider=aws`.  
+- **Verification:** Check response.  
+- **Expected Result:**  
+  - Only AWS contracts returned  
+  - All have `billing_provider`: "aws"
+
+**contracts-retrieval-TC004 - Get contracts with multiple parameters**  
+- **Description**: Verify multiple filter parameters on the same request.  
+- **Setup**: Create contracts.  
+- **Action**: GET contracts with multiple parameters (timestamp, org_id, `billing_provider`).  
+- **Verification**: Validate all filters.  
+- **Expected** **Result**:  
+  - Only contracts matching the multiple parameters should be returned.
+
+**contracts-retrieval-TC005** - **Get contracts with no results in a specific time range**  
+- **Description:** Verify behavior when no contracts match the time range criteria.  
+- **Setup:** Create contracts with `start_date` and `end_date` ranges.  
+- **Action:** GET contracts with a different time range from the one used on the contract creation.  
+- **Verification:** Check response.  
+- **Expected Result:**  
+  - HTTP 200 with empty array  
+  - No errors
+
+**contracts-retrieval-TC006** - **Get contracts with no results**  
+- **Description:** Verify behavior when no contracts match the criteria.  
+- **Setup:** Ensure no contracts exist for org_id.  
+- **Action:** GET contracts for non-existent org.  
+- **Verification:** Check response.  
+- **Expected Result:**  
+  - HTTP 200 with empty array  
+  - No errors
+
+## Contract Update via Kafka
+
+**contracts-update-TC001 - Process contract update message (existing contract)**  
+- **Description**: Verify contract updates via messaging.  
+- **Setup**:   
+  - Create initial contract via message  
+  - Send an updated message with the same subscription but different dates  
+- **Action**:  
+  - Create first message (initial contract)  
+  - Wait for processing…  
+  - Second message (update with different end date)  
+- **Verification**: Query contract and check update timestamp and fields  
+- **Expected Result**:  
+  - Initial contract created  
+  - Second message updates existing contract  
+  - StatusResponse: "Existing contracts and subscriptions updated"  
+  - End date updated to new value
+
+**contracts-update-TC002 - Process redundant contract message**  
+- **Description**: Verify idempotency - same message sent twice doesn't duplicate.  
+- **Setup**: Send identical message twice  
+- **Action**:* Publish the same contract message twice  
+- **Verification**: Check the database for a single contract only  
+- **Expected Result**:  
+  - First message creates a contract  
+  - Second message: StatusResponse "Redundant message ignored"  
+  - No duplicate contracts created
+
+## Contract Update via API
+
+**contracts-update-TC003 - Replace contract when start_date changes**
+- **Description**: Verify that changing the contract start_date deletes the old contract and creates a new one (the service matches contracts by billing_provider_id + start_date, so changing start_date means it can't find the existing contract to update).
+- **Setup:**
+  - Create a contract with:
+  - `subscription_number`: "12585274"
+  - `start_date`: "2024-01-01T00:00:00Z"
+  - `end_date`: "2024-12-31T23:59:59Z"
+  - Cores: 8
+- **Action:** Submit contract update with new start_date: "2024-02-01T00:00:00Z" and end_date: "2025-01-31T23:59:59Z"
+- **Verification:**
+  - Query all contracts by `org_id`
+  - Verify only 1 contract exists (old deleted, new created)
+  - Verify UUID is different from original
+- **Expected Result:**
+  - Old contract is deleted
+  - New contract is created with new start_date "2024-02-01T00:00:00Z" and end_date "2025-01-31T23:59:59Z"
+  - UUID is different from original (proves new contract created, not updated)
+  - Only 1 contract exists for the org
+  - Other fields unchanged on new contract (org_id, sku, metrics)
+  - Response status: "SUCCESS" (new contract created)
+  - Log message: "Deleting contract that does not align to IT partner gateway"
+
+**contracts-update-TC004 - Update contract end date (renewal)**  
+- **Description**: Verify updating the contract end date ( with a date in the future ) when the customer renews the subscription.  
+- **Setup:**  
+  - Create a contract with:   
+  - `subscription_number`: "12585274"  
+  - `start_date`: "2024-01-01T00:00:00Z"  
+  - `end_date`:  "2024-12-31T23:59:59Z"  
+  - Cores: 8  
+- **Action:** Update the contract end-date with a date in the future ("2025-12-31T23:59:59Z") 
+- **Verification:**   
+  - Query contract by `subscription_number` and verify changes  
+  - Check end-date  
+- **Expected Result:**  
+  - Existing contract located by `subscription_number` + `start_date` match  
+  - `end_date` updated from "2024-12-31T23:59:59Z" to "2025-12-31T23:59:59Z"  
+  - UUID remains the same (no new contract created)  
+  - Other fields unchanged (org_id, sku, metrics)  
+  - Response status: "EXISTING_CONTRACTS_SYNCED"
+
+**contracts-update-TC005 - Update contract metrics for Payg**   
+- **Description**: Verify updating contract metrics when the customer upgrades the tier.  
+- **Setup**:  
+  - Create a contract with Cores: 8, Instance-hours: 100  
+- **Action**: Submit updated entitlement with Cores: 16, Instance-hours: 200  
+- **Expected Result**:  
+  - Existing contract found and updated  
+  - Cores metric updated: 8 → 16  
+  - Instance-hours metric updated: 100 → 200  
+  - contract.status.message == "Existing contracts and subscriptions updated"  
+  - contract.status.status == "SUCCESS"
+
+**contracts-update-TC006 - Update contract metrics from pure payg(no metrics before) to payg(with metrics)**
+- **Description**: Verify upgrading from pure PAYG (no prepaid capacity) to PAYG with prepaid metrics when customer upgrades tier.
+- **Setup**:
+  - Create a pure PAYG contract with 0 metrics (create contract with invalid metric like SOCKETS for ROSA, which gets filtered out)
+- **Action**: Submit updated entitlement with valid metrics: Cores: 8, Instance-hours: 100
+- **Expected Result**:
+  - Existing contract found and updated
+  - Metrics count updated: 0 → 2
+  - New metrics added: Cores: 8, Instance-hours: 100
+  - contract.status.message == "Existing contracts and subscriptions updated"
+  - contract.status.status == "SUCCESS"
+
+**contracts-update-TC007 - Update contract - terminate (set end date)**  
+- **Description**: Verify terminating contract by setting end date to current time.  
+- **Setup**:  
+  - Create a contract with an end date in the future date  
+- **Action**: Submit entitlement with `end_date`: current timestamp  
+- **Expected** **Result**:  
+  - `end_date` set to termination timestamp  
+  - Contract becomes inactive  
+  - Subscription `end_date` also updated
+
+**contracts-update-TC008 - Update contract - add new metric**  
+- **Description:** Verify adding a new metric to an existing contract.  
+- **Setup**:  
+  - Create a contract with one metric.  
+- **Action**: Update the contract with another metric  
+- **Expected** **Result**:  
+  - Existing contract found and updated  
+  - Old metric remains  
+  - New metric added  
+  - contract.status.message == "Existing contracts and subscriptions updated"  
+  - contract.status.status == "SUCCESS"
+
+**contracts-update-TC009 - Update contract - remove metric**  
+- **Description**: Verify that a metric is removed from an existing contract.  
+- **Setup**:  
+  - Create a contract with multiple metrics.  
+- **Action**: Remove one metric from the contract.  
+- **Expected** **Result**:  
+  - Existing contract found and updated  
+  - The specified metric was removed from the contract  
+  - The metric that was not removed from the contract remains unchanged  
+  - contract.status.message == "Existing contracts and subscriptions updated"  
+  - contract.status.status == "SUCCESS"
+
+## Contract Termination
+
+**contracts-termination-TC001 - A contract remains active after receiving a message with a future end date.**
+- **Description:** Verify that a UMB message with an end date in the future does not cause a contract to be terminated. The backend determines contract state solely based on start/end dates, not the status field.
+- **Setup:** Ensure a contract exists and is currently in an active state (end date in the future).
+- **Action:** Simulate a UMB message from the IT partner gateway for the active contract, with an end date in the future.
+- **Verification:** Check the contract using the GET API.
+- **Expected Result:**
+  - The end date remains in the future (contract stays active).
+
+**contracts-termination-TC002 - Update the end date of an existing and active contract.**
+- **Description:** Verify that an active contract's end date is updated when a UMB message with a different end date is received. The backend uses the entitlement dates from the message, not the status field.
+- **Setup:** Ensure a contract exists and is currently in an active state.
+- **Action:** Simulate a UMB message from the IT partner gateway for the active contract, with a new end date.
+- **Verification:** Check the contract using the GET API.
+- **Expected Result:**
+  - The end date should be the one contained in the UMB message.
+
+**contracts-termination-TC003 - Update the end date for an already terminated contract.**
+- **Description:** Verify that receiving a UMB message for a contract that is already terminated (end date in the past) updates the end date without errors.
+- **Setup:** Ensure a contract exists and is already terminated (end date in the past).
+- **Action:** Simulate a UMB message from the IT partner gateway for the terminated contract, with a new end date.
+- **Verification:** Check the contract using the GET API.
+- **Expected Result:**
+  - No errors should be logged.
+  - The end date is updated to the value from the message.
+
+**contracts-termination-TC004 - Process a message for a non-existing contract.**
+- **Description:** Verify that a UMB message for a contract that does not yet exist in the database results in the contract being created.
+- **Setup:** Ensure a contract does not exist in the Contract table.
+- **Action:** Simulate a UMB message from the IT partner gateway for the non-existing contract.
+- **Verification:** Check the contract using the GET API.
+- **Expected result:**
+  - The contract is created.
+  - Its end date matches the value from the message.
+
+**contracts-termination-TC005 - Update a terminated contract with a future end date to reactivate it.**
+- **Description:** Verify that a terminated contract (end date in the past) becomes active again when a UMB message with a future end date is received for the same org, SKU, subscription, and billing account ID.
+- **Setup:** Ensure a contract exists and is currently in a terminated state (end date in the past).
+- **Action:** Simulate a UMB message from the IT partner gateway for the terminated contract, with a future end date.
+- **Verification:** Check the contract using the GET API.
+- **Expected Result:**
+  1. The contract is updated.
+  2. The contract's end date is set to the future date from the message.
+  3. The contract is effectively active again (end date > now).
+
+**contracts-termination-TC006 - Ensure capacity has decreased after a contract is terminated.**
+- **Description:** Verify that the capacity of the contract is decreased after a contract is terminated.
+- **Setup:** Ensure a contract exists and is currently in an active state.
+- **Action:** Simulate a message to the subscription service to terminate an active contract.
+- **Verification:** Check the capacity of the contract using the GET API.
+- **Expected Result:**
+  1. The capacity of the contract is decreased.
+  
+**contracts-termination-TC007 - Ensure the subscription table is updated after a contract is terminated.**
+- **Description:** Verify that the subscription table is updated after a contract is terminated.
+- **Setup:** Ensure a contract exists and is currently in an active state.
+- **Action:** Simulate a message to the subscription service to terminate an active contract.
+- **Verification:** Check the subscription table using the GET API.
+- **Expected Result:**
+  1. The subscription table is updated with the correct next_event_date of tomorrow and 23:59:59.
+  2. The subscription table is updated with the correct next_event_type of 'Subscription End'
+
+## Contract Deletion
+
+**contracts-deletion-TC001** - **Delete contract by UUID**  
+- **Description:** Verify hard deletion of contract by UUID.  
+- **Setup:** Create a contract and note its UUID.  
+- **Action:** DELETE `/api/swatch-contracts/internal/contracts/{uuid}`.  
+- **Verification:** 
+  - Verify contract is no longer retrievable
+- **Expected Result:**  
+  - HTTP 204 No Content response
+  - Contract no longer returned by organization contract lookup
+
+**contracts-deletion-TC002** - **Delete non-existent contract**  
+- **Description:** Verify graceful handling for deleting a non-existent UUID.  
+- **Setup:** Generate a random UUID that doesn't exist.  
+- **Action:** DELETE contract with invalid UUID.  
+- **Verification:** Check response for idempotent behavior.  
+- **Expected Result:**  
+  - HTTP 204 No Content (idempotent behavior - delete succeeds regardless)  
+  - Graceful handling of non-existent contracts
+
+## Contract Sync
+
+**contracts-sync-TC001 - Sync contracts for a single organization**  
+- **Description**: Verify contract sync triggers for a specific org.  
+- **Setup**: Have upstream contracts available for the org.  
+- **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/{org_id}`.  
+- **Verification**: Check contracts are synced.  
+- **Expected Result**:  
+  - HTTP 200 with StatusResponse  
+  - Contracts from upstream are created/updated  
+  - Status: "Success"
+
+**contracts-sync-TC002 - Sync with delete contracts and subscriptions**  
+- **Description**: Verify the `delete_contracts_and_subs` parameter.  
+- **Setup**: Create contracts and subscriptions for org.  
+- **Action**: POST sync with `delete_contracts_and_subs=true`.  
+- **Verification**: Check database state.  
+  - **Expected Result**:  
+  - All contracts deleted before sync  
+  - All PAYG subscriptions deleted before sync  
+  - Fresh sync performed
+
+**contracts-sync-TC003 - Sync all contracts across all organizations**  
+- **Description**: Verify syncAllContracts triggers sync for all orgs with contracts.  
+- **Setup**: Have multiple orgs with contracts.  
+- **Action**: POST `/api/swatch-contracts/internal/rpc/contracts/sync`.  
+- **Verification**: Monitor sync progress.  
+- **Expected Result**:  
+  - HTTP 200 OK
+  - StatusResponse: "All Contracts are Synced"
+  - Each org's contracts synced
+
+**contracts-sync-TC004** - Sync subscriptions for contracts by org**  
+- **Description**: Verify subscription sync for all contracts of an org.  
+- **Setup**: Have contracts for org without subscriptions.  
+- **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/{org_id}/subscriptions`.  
+- **Verification**: Check subscriptions are created.  
+  - **Expected Result**:  
+  - StatusResponse success  
+  - Subscriptions synced from Subscription API
+
+**contracts-sync-TC005 - Clear all contracts for the organization**
+- **Description**: Verify that deleteContractsByOrg removes all org contracts.
+- **Setup**: Create multiple contracts for the org.
+- **Action**: DELETE `/api/swatch-contracts/internal/rpc/reset/{org_id}`.
+- **Verification**: Query contracts for org.
+- **Expected Result**:
+  - HTTP 204 No Content
+  - No contracts remain for the org
+
+**contracts-sync-TC006 - Running contracts sync all twice does not create duplicate contracts**
+- **Description**: Verify that contracts sync all is idempotent.
+- **Setup**: An org has one contract created and stubbed upstream.
+- **Action**: POST `/api/swatch-contracts/internal/rpc/contracts/sync` twice.
+- **Verification**: Query contracts after each call.
+- **Expected Result**:
+  - Contract count stays at 1 after both calls
+  - Contract UUID is the same after both calls
+  - Billing provider is unchanged
+
+**contracts-sync-TC007 - Contracts sync all preserves all contracts for an org with multiple providers**
+- **Description**: Verify that when an org has both an AWS and an Azure contract, running contracts sync all leaves both intact.
+- **Setup**: An org has one AWS contract and one Azure contract.
+- **Action**: POST `/api/swatch-contracts/internal/rpc/contracts/sync`.
+- **Verification**: Query contracts for the org.
+- **Expected Result**:
+  - Both the AWS and Azure contracts still exist
+  - UUIDs of both contracts are unchanged
+
+**contracts-sync-TC008 - Contracts sync all after a per-org sync does not add extra records**
+- **Description**: Verify that running contracts sync all on top of an already-synced org does not accumulate additional rows in any of the four related tables (contracts, contract metrics, subscriptions, subscription measurements).
+- **Setup**: An org is fully synced via the per-org endpoint; record counts and IDs across all four tables are captured as a baseline.
+- **Action**: POST `/api/swatch-contracts/internal/rpc/contracts/sync`.
+- **Verification**: Re-query all four tables.
+- **Expected Result**:
+  - Contract count, UUID, and metric count are unchanged
+  - Subscription count, subscription ID, and measurement count are unchanged
+
+**contracts-sync-TC009 - Sync correctly populates all related data**
+- **Description**: Verify that after a sync, all contract and subscription data is fully populated and internally consistent — no missing fields, no mismatched identifiers between related tables.
+- **Setup**: An org has one AWS ROSA contract with a known capacity value.
+- **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/{org_id}`.
+- **Verification**: Inspect contract fields, contract metrics, subscription fields, and subscription measurements.
+- **Expected Result**:
+  - All contract fields are present and match the upstream definition (org, SKU, billing provider, billing account, dates, subscription number, product tags)
+  - At least one metric exists with a valid ID and positive value; no duplicate metrics per contract
+  - Subscription fields match the parent contract (subscription number, org, SKU, billing provider, dates)
+  - At least one subscription measurement exists with a valid metric ID, positive value, and measurement type
+  - The number of contract metrics equals the number of subscription measurements
+
+**contracts-sync-TC010 - Per-org sync fetches all pages of upstream entitlements**
+- **Description**: Verify that `syncContractByOrgId` fetches and processes all pages of partner entitlements, not just the first page. The IT Partner Gateway returns paginated results (page size 20). If an org has more entitlements than fit on a single page, subsequent pages must also be fetched and upserted.
+- **Setup**:
+  - Prepare more contracts than the Partner Gateway page size (e.g., 21 AWS contracts for the same org)
+  - Stub the Partner API to return paginated responses: page 0 with 20 entitlements and page 1 with 1 entitlement
+- **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/{org_id}`
+- **Verification**: Query contracts for the org after sync.
+- **Expected Result**:
+  - HTTP 200 with StatusResponse
+  - All 21 contracts are created in the database (not just the first 20)
+  - Contracts from the second page are present and correctly upserted
+  - Status: "Success"
+
+## Contract Termination During Sync
+
+This section verifies the automatic contract termination behavior when contracts are missing from upstream during synchronization. Contracts are soft-deleted (endDate set to current timestamp) rather than hard-deleted to preserve historical records for audit and billing purposes. This behavior applies to both individual contract sync and contracts sync all operations.
+
+**contracts-sync-TC011 - Contract missing from upstream is terminated (not deleted)**
+- **Description**: Verify that when a contract exists in SWATCH but is no longer returned by the upstream partner API during sync, it is terminated (endDate set) rather than deleted.
+- **Setup**:
+  - Create a contract for org "org123" with a valid `billing_provider_id` (format: `{vendorProductCode};{awsCustomerId};{sellerAccountId}`) and `end_date` in the future
+  - Stub upstream Partner API to return empty entitlements for the org
+- **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/org123`
+- **Verification**:
+  - Query contract by UUID or `billing_provider_id`
+  - Verify contract record still exists in database
+  - Check `end_date` timestamp
+- **Expected Result**:
+  - HTTP 200 with StatusResponse
+  - StatusResponse message: "No contracts found in upstream for the org org123"
+  - StatusResponse status: "FAILED"
+  - Contract still exists in database (not hard deleted)
+  - Contract `end_date` is set to current timestamp (within 5 seconds of sync time)
+  - Associated subscription also has `end_date` set to same timestamp
+
+**contracts-sync-TC012 - Partial entitlement disappearance terminates only missing contracts**
+- **Description**: Verify that when an org has a contract but upstream returns a different entitlement (different `billing_provider_id`), the original contract is terminated while the new entitlement's contract is created. This handles the case where specific entitlements disappear but others remain.
+- **Setup**:
+  - Create a contract for org "org123" with a known `billing_provider_id` and `end_date` in future
+  - Stub upstream to return a different entitlement (different `vendorProductCode`, `awsCustomerId`, `sellerAccountId`)
+- **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/org123`
+- **Verification**:
+  - Query contracts for the org
+  - Check `end_date` values for both original and new contracts
+  - Verify StatusResponse
+- **Expected Result**:
+  - HTTP 200 with StatusResponse
+  - StatusResponse message: "Contracts Synced for org123"
+  - StatusResponse status: "SUCCESS"
+  - Original contract is terminated (`end_date` set to sync timestamp)
+  - New contract from upstream is active (`end_date` null or in future)
+  - Total contract count is 2 (both preserved in database)
+
+**contracts-sync-TC013 - Already-terminated contracts are not re-terminated**
+- **Description**: Verify that contracts with an `end_date` in the past are not modified during sync when they're missing from upstream. Uses a two-phase sync approach: the first sync terminates the contract, the second sync should leave the termination timestamp unchanged.
+- **Setup**:
+  - Create a contract for org "org123" with a valid `billing_provider_id`
+  - Stub upstream to return empty entitlements
+- **Action**:
+  1. POST `/api/swatch-contracts/internal/rpc/sync/contracts/org123` (terminates the contract)
+  2. Record the `end_date` timestamp
+  3. POST `/api/swatch-contracts/internal/rpc/sync/contracts/org123` (sync again)
+- **Verification**:
+  - Query contract after both syncs
+  - Compare `end_date` values from first and second sync
+- **Expected Result**:
+  - HTTP 200 with StatusResponse on both syncs
+  - Contract `end_date` after second sync equals `end_date` after first sync (not re-terminated)
+
+**contracts-sync-TC014 - Subscription termination follows contract termination**
+- **Description**: Verify that when a contract is terminated due to being missing from upstream, its associated subscription is also terminated.
+- **Setup**:
+  - Create a contract with a valid `billing_provider_id` and `subscription_number`
+  - Stub upstream to return no entitlements for the org
+- **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/org123`
+- **Verification**:
+  - Query contract and subscription after sync
+  - Check both `end_date` timestamps
+- **Expected Result**:
+  - HTTP 200 with StatusResponse
+  - StatusResponse message: "No contracts found in upstream for the org org123"
+  - Contract is terminated (`end_date` set to sync timestamp)
+  - Associated subscription is also terminated (`end_date` set)
+  - Both contract and subscription `end_date` values are approximately the same timestamp
+
+**contracts-sync-TC015 - Azure contract present in upstream is not terminated**
+- **Description**: Verify that an Azure contract with a `billing_provider_id` matching the upstream response is recognized as present and NOT terminated during sync. This is the positive counterpart to TC011, confirming that the termination logic correctly identifies matched contracts by their Azure `billing_provider_id` format (`{azureResourceId};{planId};{vendorProductCode};{azureCustomerId};{clientId}`).
+- **Setup**:
+  - Create an Azure contract for org "org123" with a valid `billing_provider_id`
+  - Stub upstream Partner API to return the same Azure entitlement (same `azureResourceId`, `planId`, `vendorProductCode`, `azureCustomerId`, `clientId`)
+- **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/org123`
+- **Verification**:
+  - Query contract after sync
+  - Compare `end_date` before and after sync
+- **Expected Result**:
+  - HTTP 200 with StatusResponse
+  - StatusResponse message: "Contracts Synced for org123"
+  - StatusResponse status: "SUCCESS"
+  - Contract `end_date` is unchanged (still in the future, not terminated)
+  - Contract count remains 1
+
+**contracts-sync-TC016 - Sync does not crash when upstream returns entitlement with null purchase**
+- **Description**: Verify that when upstream returns a mix of valid entitlements and entitlements with null `purchase` field, the sync skips the ones with null purchase and processes the valid contracts. Reproduces SWATCH-4954 NPE.
+- **Setup**:
+  - Stub upstream Partner API to return one valid AWS contract and one entitlement with `purchase: null`
+  - Stub offering and search API for the valid contract
+- **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/{orgId}`
+- **Verification**:
+  - Sync returns HTTP 200 with status "SUCCESS"
+  - Only the valid contract is persisted
+- **Expected Result**:
+  - HTTP 200 with StatusResponse
+  - StatusResponse status: "SUCCESS"
+  - Exactly 1 contract persisted (the valid one)
+  - The entitlement with null purchase is skipped without crashing the sync
+
+**contracts-sync-TC017 - Orphaned contract termination clears subscription's contract-provided state**
+- **Description**: Reproduces SWATCH-4954 subscription blocking. When a contract is orphaned (not found in upstream), the termination should clear the subscription's billing provider and measurements so subscription sync can update it.
+- **Setup**:
+  - Create a contract-enabled subscription for the org (AWS ROSA contract)
+  - Verify the subscription has billing provider and measurements set
+  - Re-stub upstream Partner API to return no valid contracts for the org
+- **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/{orgId}`
+- **Verification**:
+  - Contract is terminated (end_date set)
+  - Subscription's billing provider is cleared
+  - Subscription's measurements are cleared
+- **Expected Result**:
+  - HTTP 200 with StatusResponse
+  - Contract still exists but is terminated
+  - Subscription billing provider cleared and measurements cleared — subscription sync will no longer skip it
+
+**contracts-sync-TC018 - Legitimate contract termination preserves subscription's contract-provided state**
+- **Description**: When a contract is legitimately terminated (still present in upstream but with end_date in the past), the subscription should retain its billing provider, billing_account_id, and measurements — unlike orphaned contracts (TC017) which clear them.
+- **Setup**:
+  - Create a contract-enabled subscription (AWS ROSA contract with future end_date)
+  - Verify the subscription has billing provider and measurements set
+  - Re-stub upstream Partner API to return the same contract but with end_date in the past
+- **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/{orgId}`
+- **Verification**:
+  - Contract's end_date is updated to the past date from upstream
+  - Subscription billing provider is preserved (NOT cleared)
+  - Subscription measurements are preserved (NOT cleared)
+- **Expected Result**:
+  - HTTP 200 with StatusResponse status: "SUCCESS"
+  - Contract synced with upstream end_date
+  - Subscription retains all contract-provided state
+
+## Subscription Management via UMB
+
+**subscriptions-creation-TC001 - Process a valid UMB subscription XML message from UMB**  
+- **Description**: Verify subscription creation via UMB XML message.  
+- **Setup**:  
+  - Ensure `UMB_ENABLED=true`
+- **Action**:  
+  - Publish message to `VirtualTopic.canonical.subscription` channel
+- **Verification**:  
+  - Query subscription via internal API  
+  - Verify subscription created  
+- **Expected Result**:  
+- XML parsed successfully via `CanonicalMessage.createMapper()`  
+- Subscription entity created for org  
+- `subscription_number`  
+- quantity  
+- sku
+- Start and end dates are correctly parsed  
+
+**subscriptions-creation-TC002 - Process UMB subscription with AWS external references**  
+- **Description**: Verify AWS marketplace subscription data extraction from UMB.  
+- **Action**:  
+  - Publish message to `VirtualTopic.canonical.subscription` channel  
+- **Verification**: Query subscription and check AWS fields  
+- **Expected Result**:  
+  - Subscription created with AWS external references  
+  - `billing_provider`  
+  - `billing_provider_id` contains AWS identifiers  
+  - `billing_account_id`
+
+**subscriptions-creation-TC003 - Process UMB subscription with Azure external references**  
+- **Description**: Verify Azure marketplace subscription data from UMB.  
+- **Action**:  
+  - Publish message to `SUBSCRIPTION_SYNC_TASK_UMB` Kafka topic  
+- **Verification**: Check Azure-specific fields  
+- **Expected Result**:  
+- Subscription created with null references since subscription sync does not populate the Azure external references
+
+**subscriptions-creation-TC004 - Process malformed UMB XML message**  
+- **Description**: Verify error handling for invalid XML.  
+- **Action**:  
+  - Publish malformed UMB XML message to `VirtualTopic.canonical.subscription` channel  
+- **Verification**: Subscription not created  
+- **Expected Result**:  
+  - `JsonProcessingException` thrown (XML parsing error)  
+  - No subscription created  
+  - Message handling fails gracefully
+
+**subscriptions-creation-TC005 - Process UMB message with missing required fields**  
+- **Description**: Verify validation for incomplete subscription data.  
+- **Action**:  
+  - Publish the UMB message with missing required fields to `VirtualTopic.canonical.subscription` channel  
+- **Verification**: Check for validation errors  
+- **Expected Result**:  
+  - Validation failure or graceful error handling  
+  - No subscription created with incomplete data  
+  - Error logged with details
+
+**subscriptions-creation-TC006 - Process subscription update via UMB**  
+- **Description**: Verify subscription updates through messaging.  
+- **Setup**:  
+  - Send initial subscription message  
+  - Send an update with a different quantity or dates  
+- **Action**: Publish initial message, then update the message  
+- **Verification**: Check that the subscription record is updated  
+- **Expected Result**:  
+  - Initial subscription created  
+  - Update message modifies existing subscription  
+  - Updated fields reflected in the database  
+  - No duplicate subscriptions
+
+**subscriptions-creation-TC007 - Process terminated subscription via UMB**  
+- **Description**: Verify subscription termination messages.  
+- **Action**:  
+  - Publish message to `VirtualTopic.canonical.subscription` channel  
+  - Update the end date to the current timestamp  
+- **Verification**: Check subscription `end_date` updated  
+- **Expected Result**:  
+  - Subscription marked as terminated  
+  - `end_date` set to termination date  
+  - Status reflects termination
+
+## Subscription Management via API
+
+**subscriptions-creation-TC009** - **Create a valid PAYG contract and verify the Contract/Subscription table**  
+- **Description:** Verify the contract/subscription after a contract/subscription creation.  
+- **Setup:** Ensure partner entitlement data, metrics, and subscription ID are available.  
+- **Action:** POST to `/api/swatch-contracts/internal/contracts`   
+- **Verification:** Check response status and returned contract/subscription object.  
+- **Expected Result:**  
+  - HTTP 200 response  
+  - Response contains status.status: "SUCCESS"  
+  - Contract object contains all expected fields (uuid, `subscription_number`, sku, `start_date`, `end_date`, org_id, `billing_provider`, etc.)  
+  - Validate  
+  - Contract/subscription table.
+
+**subscriptions-creation-TC010** - **Save subscriptions PAYG**  
+- **Description:** Verify subscription saving when enabled.  
+- **Setup:** Prepare subscriptions with JSON array  
+- **Action:**   
+  - POST `/api/swatch-contracts/internal/subscriptions` with JSON array.  
+  - Sync subscriptions  
+- **Verification:** Query saved subscriptions.  
+  - Expected Result:  
+  - SubscriptionResponse: "Success"  
+  - Subscriptions persisted  
+  - Multiple subscriptions created from an array  
+- **Note:** This endpoint **SUPPORTS multiple subscriptions** via JSON array
+
+**subscriptions-sync-TC001 - Sync all subscriptions for enabled orgs**  
+- **Description**: Verify POST /rpc/subscriptions/sync enqueues org subscriptions.  
+- **Setup**: Configure sync-enabled orgs.  
+- **Action:** POST `/api/swatch-contracts/internal/rpc/subscriptions/sync`.  
+- **Verification**: Monitor sync queue.  
+- **Expected Result:**  
+  - RpcResponse with success
+
+**subscriptions-sync-TC002** - **Sync UMB subscription XML message**  
+- **Description:** Verify processing of UMB CanonicalMessage XML.  
+- **Setup:** Prepare a valid UMB subscription XML.  
+ **Action:**   
+  - POST `/api/swatch-contracts/internal/subscriptions/umb` with XML.  
+  - Sync subscriptions  
+- **Verification:** Check subscription created.  
+- **Expected Result:**  
+  - XML parsed correctly  
+  - Subscription entity created  
+  - SubscriptionResponse: "Success"
+
+**subscriptions-termination-TC001** - **Terminate subscription with timestamp**  
+- **Description:** Verify manual subscription termination.  
+- **Setup:** Create an active subscription.  
+- **Action:** POST `/api/swatch-contracts/internal/subscriptions/terminate/{subscription_id}?timestamp=2024-01-01T00:00:00Z`.  
+- **Verification:** Check subscription end date.  
+- **Expected Result:**  
+  - TerminationRequest with message  
+  - Subscription `end_date` set to timestamp  
+  - Subscription effectively terminated
+
+## Offering Synchronization
+
+**offering-sync-TC001** - **Synchronize offering from external product data**
+- **Description:** Verify that offerings can be synchronized using external product information and result in correct database state.
+- **Setup:** Create test product data with specific attributes (level_1, level_2, metered flag) in the external product service.
+- **Action:** Send UMB message to trigger offering synchronization from external product data.
+- **Verification:** Use internal GET API to verify offering synchronization and product tag mapping.
+- **Expected Result:**
+  - API returns HTTP 200 response with correct product tag.
+  - Product tag matches expected value based on level_1/level_2 attributes.
+  - Offering synchronization completes without errors.
+
+**offering-sync-TC002: Handle synchronization of non-existent offering**
+- **Description:** Verify that attempting to synchronize an invalid or non-existent SKU is handled appropriately.
+- **Setup:** Ensure no product data exists for test SKU "INVALID_SKU" in external product service.
+- **Action:** Send UMB message for non-existent SKU to test error handling.
+- **Verification:** Check that no offering data is created.
+- **Expected Result:**
+  - No offering record created for invalid SKU.
+  - No database corruption occurs.
+  - The system handles invalid SKU gracefully.
+
+**offering-sync-TC003: Synchronize metered offering**
+- **Description:** Verify that metered offerings are synchronized correctly with proper metered flag.
+- **Setup:** Create test product data with metered="y" attribute in external product service.
+- **Action:** Send UMB message to trigger offering synchronization.
+- **Verification:** Use internal GET API to verify offering synchronization succeeded for metered SKU.
+- **Expected Result:**
+  - API returns HTTP 200 response indicating successful synchronization.
+  - Product tag returned matches expected value for metered offering.
+  - Offering synchronization completes without errors.
+
+**offering-sync-TC004: Synchronize unlimited capacity offering**
+- **Description:** Verify that unlimited capacity offerings are synchronized correctly with proper unlimited flag.
+- **Setup:** Create test product data with has_unlimited_usage=True attribute in external product service.
+- **Action:** Send UMB message to trigger offering synchronization.
+- **Verification:** Use internal GET API to verify offering synchronization succeeded for unlimited capacity SKU.
+- **Expected Result:**
+  - API returns HTTP 200 response indicating successful synchronization.
+  - Product tag returned matches expected value for unlimited offering.
+  - Offering synchronization completes without errors.
+
+**offering-sync-TC005: Upstream product service unavailable during offering sync**
+- **Description:** Verify that when the upstream product API returns HTTP 503 for the product tree, `syncOffering` returns the same HTTP status (503), not HTTP 404.
+- **Setup:** Stub the product tree endpoint (WireMock) to return 503 for the test SKU.
+- **Action:** Call internal sync offering for that SKU.
+- **Verification:** Response status matches upstream (503).
+- **Expected Result:**
+  - Callers can distinguish upstream unavailability from “offering not found”; status code reflects the product API response.
+
+## Product Tag Management
+
+**offering-tags-TC001: Retrieve product tags for synchronized offering**
+- **Description:** Verify that product tags can be retrieved correctly for offerings that have been synchronized.
+- **Setup:** Create test product with specific level_1 and level_2 values (`product_id`, sku, level_1, level_2) in external product service.
+- **Action:** Query public API endpoint to retrieve product tags for the SKU.
+- **Verification:** Use internal GET API and verify the response contains the expected product tag.
+- **Expected Result:**
+  - API returns HTTP 200 response with correct product tag.
+  - Product tag matches expected value based on level_1 and level_2 values.
+  - Subsequent API calls return consistent tag data.
+
+**offering-tags-TC002: Verify product tag mapping for different product types**
+- **Description:** Verify that different level_1/level_2 combinations result in correct product tag assignments.
+- **Setup:** Create test products with various level_1/level_2 combinations to test different product structures.
+- **Action:** Query public API endpoint to retrieve product tags for each product type.
+- **Verification:** Verify each product returns appropriate product tags based on level_1/level_2 values.
+- **Expected Result:**
+  - Product tags correctly generated from level_1/level_2 combinations.
+  - API responses for different SKUs are consistent and accurate.
+  - Different level combinations produce distinct product tags.
+
+**offering-tags-TC003: Handle product tag retrieval for non-existent offering**
+- **Description:** Verify that retrieving product tags for non-existent offerings is handled appropriately.
+- **Setup:** Ensure no offering exists for test SKU "`NONEXISTENT_SKU`".
+- **Action:** Query public API endpoint for product tags of non-existent SKU.
+- **Verification:** Check that the operation handles missing offering gracefully.
+- **Expected Result:**
+  - Operation completes without causing system errors.
+  - API response properly handles non-existent SKU (appropriate error code or message).
+
+## Capacity Management
+
+**offering-capacity-TC001: Verify capacity calculation for metered offerings**
+- **Description:** Verify that capacity calculations for metered offerings accurately reflect subscription quantity and offering attributes.
+- **Setup:** Create test metered offering and subscription with a set quantity.
+- **Action:** Query public capacity report API endpoint for the SKU.
+- **Verification:** Verify API response contains correct capacity values based on subscription quantity and offering metrics.
+- **Expected Result:**
+  - Capacity calculation reflects subscription quantity multiplied by offering metrics.
+  - Multiple metric dimensions (Sockets, Cores) calculated correctly.
+  - API response contains subscription reference and capacity details.
+
+**offering-capacity-TC002: Verify unlimited capacity offering handling**
+- **Description:** Verify that unlimited capacity SKUs display correct unlimited status in capacity reports.
+- **Setup:** Create test unlimited offering (metered="n", `has_unlimited_usage`=True) and subscription.
+- **Action:** Query public capacity report API endpoint for the SKU.
+- **Verification:** Verify API response indicates unlimited capacity status.
+- **Expected Result:**
+  - API response shows unlimited capacity flag set.
+  - Capacity values indicate unlimited status appropriately.
+  - Subscription correctly linked to unlimited offering in response.
+
+## Offering Update
+
+**offering-update-TC001: Process product update event**
+- **Description:** Verify that UMB update events correctly modify existing offering attributes without data loss.
+- **Setup:** Create existing offering through external product service, then prepare UMB update message with different attributes.
+- **Action:** Send UMB product update event through message broker.
+- **Verification:** Use internal GET API to verify offering updates were applied correctly.
+- **Expected Result:**
+  - API returns HTTP 200 response with updated product tag.
+  - Product tag reflects changes from updated attributes.
+  - Update operation completes without errors.
+
+**offering-update-TC002: Handle malformed event**
+- **Description:** Verify that the malformed UMB message is handled gracefully without affecting system stability.
+- **Setup:** Prepare one malformed UMB message (invalid JSON).
+- **Action:** Send the malformed UMB message through message broker.
+- **Verification:** Check system logs and verify no offering data corruption, system remains operational.
+- **Expected Result:**
+  - System processes the malformed event without crashing or data corruption.
+  - Valid offerings remain unaffected by malformed UMB events.
+  - Appropriate error handling and logging for debugging malformed events.
+
+## Contract Integration
+
+**offering-contract-TC001: Create contract with offering capacity**
+
+- **Description:** Verify that contracts correctly reference and allocate offering capacity during creation.
+- **Setup:** Create test offering and subscription.
+- **Action:** Create a contract using public contract API with offering-based capacity.
+- **Verification:** Query contract API to verify contract creation and capacity allocation matches offering attributes.
+- **Expected Result:**
+  - Contract created successfully with capacity reflecting offering definitions.
+  - Contract dimensions reference offering capacity metrics.
+  - Contract capacity calculations integrate offering attributes correctly.
+
+**offering-contract-TC002: Verify contract capacity with different offering types**
+
+- **Description:** Verify that contracts with different offering types (metered vs unlimited) handle capacity correctly.
+- **Setup:** Create test offerings with different capacity types (metered="y", `has_unlimited_usage`=True).
+- **Action:** Create contracts for each offering type using public contract API.
+- **Verification:** Query contract API and compare capacity allocation for metered vs unlimited offerings.
+- **Expected Result:**
+  - Metered offerings result in quantified contract capacity.
+  - Unlimited offerings show appropriate unlimited capacity flags.
+  - Contract creation adapts correctly to different offering capacity types.
+
+## Marketplace Integration
+
+**offering-marketplace-TC001: Create marketplace contract with offering dimensions**
+- **Description:** Verify that marketplace contracts correctly integrate offering capacity with billing provider specific dimensions.
+- **Setup:** Create test marketplace product, configure billing provider dimensions.
+- **Action:** Create marketplace contract using public API with billing_provider (aws/azure) and offering-based capacity.
+- **Verification:** Query contract API to verify marketplace dimensions are correctly mapped to offering attributes.
+- **Expected Result:**
+  - Marketplace contract created with billing provider specific capacity metrics.
+  - Offering dimensions correctly mapped to marketplace contract structure.
+  - Contract capacity reflects both offering attributes and marketplace billing model.
+
+**offering-marketplace-TC002: Handle offering capacity with different billing providers**
+- **Description:** Verify that the same offering can be used with different marketplace billing providers correctly.
+- **Setup:** Create test offering, prepare for multiple billing provider contracts.
+- **Action:** Create contracts using public API with billing_provider="aws" and billing_provider="azure" for the same offering.
+- **Verification:** Query contract API to verify both contracts handle offering capacity correctly for their respective billing models.
+- **Expected Result:**
+  - Same offering supports multiple marketplace billing providers.
+  - AWS and Azure contracts correctly adapt offering capacity to their billing models.
+  - Offering attributes preserved across different marketplace implementations.
+
+## Basic Capacity Report Generation
+
+*capacity-report-TC001 - Get V2 SKU capacity report**
+- **Description:** Verify the V2 endpoint with an enhanced measurement array.
+- **Setup:** Create subscriptions with multiple metrics for a product that supports multiple dimensions.
+- **Action:** GET /api/rhsm-subscriptions/v2/subscriptions/products/{product_id}
+- **Verification:** Ensure the subscription was successfully created.
+- **Expected Result:**
+  - SkuCapacityReport_V2 returned
+  - The measurements field is an array of doubles, matching the received values (e.g., [8.0, 2.0])
+  - Meta includes measurements array with metric names corresponding to product metrics
+
+**capacity-report-TC002 -  Get Capacity Report by Product and Metric**
+- **Description**: Verify capacity report retrieval for a specific product and metric
+- **Setup**:
+  - Subscriptions exist with capacity data
+  - User authenticated with a valid org_id
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}`
+- **Test Steps**:
+  1. Create subscriptions for a product with a specific metric
+  2. GET capacity report for the product and metric
+  3. Specify granularity=DAILY, time range (beginning, ending)
+- **Expected Results**:
+  - HTTP 200 OK
+  - Response contains a data array with CapacitySnapshotByMetricId objects
+  - Each snapshot has: date, value, hasData
+  - Meta object includes: product, metricId, granularity, count
+  - Capacity values match subscription measurements
+
+**capacity-report-TC003 - Capacity Report with Multiple Subscriptions**
+- **Description**: Verify capacity aggregation across multiple subscriptions
+- **Setup**:
+  - User authenticated with a valid org_id
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}`
+- **Test Steps**:
+  1. Create 3 subscriptions for the same product with varying capacity values
+  2. All subscriptions active in the queried time range
+  3. GET capacity report
+- **Expected Results**:
+  - Capacity value = sum of all subscriptions
+  - Single data point per time period
+
+**capacity-report-TC004 - Capacity Report with No Data**
+- **Description**: Verify behavior when no subscriptions match the criteria
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}`
+- **Test Steps**:
+  1. GET capacity report for a product with no subscriptions
+- **Expected Results**:
+  - HTTP 200 OK
+  - data array has entries with value=0 and hasData=false
+  - One entry per time period
+
+**capacity-report-TC005 - Capacity Report with Expired Subscriptions**
+- **Description**: Verify only active subscriptions are included
+- **Setup**:
+  - User authenticated with a valid org_id
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}`
+- **Test Steps**:
+  1. Create a subscription with an end_date in the past
+  2. Create an active subscription for the same product
+  3. GET capacity report
+- **Expected Results**:
+  - Only active subscription capacity included
+  - Expired subscription excluded
+
+## Capacity Granularity Testing
+**capacity-report-granularity-TC001 - Hourly Granularity Report**
+- **Description**: Verify capacity report with hourly granularity
+- **Setup**:
+  - User authenticated with a valid org_id
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}`
+- **Test Steps**:
+  1. Create a subscription with capacity
+  2. GET capacity with granularity=HOURLY for 24-hour range
+- **Expected Results**:
+  - 24 data points returned (one per hour)
+  - Each snapshot is aligned to the hour boundary
+  - Consistent capacity values across hours
+
+**capacity-report-granularity-TC002 - Daily Granularity Report**
+- **Description**: Verify the daily granularity capacity report
+- **Setup**:
+  - User authenticated with a valid org_id
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}`
+- **Test Steps**:
+  1. Create a subscription with capacity
+  2. GET capacity with granularity=DAILY for 7-day range
+- **Expected Results**:
+  - 7 data points (one per day)
+  - Timestamps aligned to the day start
+
+**capacity-report-granularity-TC003 - Weekly Granularity Report**
+- **Description**: Verify weekly granularity
+- **Setup**:
+  - User authenticated with a valid org_id
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}`
+- **Test Steps**:
+  1. Create a subscription with capacity
+  2. GET capacity with granularity=WEEKLY for a 4-week range
+- **Expected Results**:
+  - 4 data points
+  - Weekly boundaries respected
+
+**capacity-report-granularity-TC004 - Monthly Granularity Report**
+- **Description**: Verify monthly granularity
+- **Setup**:
+  - User authenticated with a valid org_id
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}`
+- **Test Steps**:
+  1. Create a subscription with capacity
+  2. GET capacity with granularity=MONTHLY for a 6-month range
+- **Expected Results**:
+  - 6 data points
+  - Month boundaries are correctly handled
+
+**capacity-report-granularity-TC005 - Quarterly Granularity Report**
+- **Description**: Verify quarterly granularity
+- **Setup**:
+  - User authenticated with a valid org_id
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}`
+- **Test Steps**:
+  1. Create a subscription with capacity
+  2. GET capacity with granularity=QUARTERLY for a 1-year range
+- **Expected Results**:
+  - 4 data points
+  - Quarter boundaries (Jan 1, Apr 1, Jul 1, Oct 1)
+
+**capacity-report-granularity-TC006 - Yearly Granularity Report**
+- **Description**: Verify yearly granularity
+- **Setup**:
+  - User authenticated with a valid org_id
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}`
+- **Test Steps**:
+  1. Create a subscription with capacity
+  2. GET capacity with granularity=YEARLY for a 3-year range
+- **Expected Results**:
+  - 3 data points
+  - Year boundaries aligned
+
+**capacity-report-granularity-TC007 - Invalid Granularity for Product**
+- **Description**: Verify error when requesting unsupported granularity
+- **Setup**:
+  - User authenticated with a valid org_id
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}`
+- **Test Steps**:
+  1. Create a subscription with capacity
+  2. GET capacity for unsupported granularity with granularity=HOURLLY
+- **Expected Results**:
+  - HTTP 400 Bad Request
+
+## Capacity Filtering
+**capacity-report-filtering-TC001 - Filter by Service Level**
+- **Description**: Verify capacity filtering by service level
+- **Setup**:
+  - User authenticated with a valid org_id
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}?sla={service_level}`
+- **Test Steps**:
+  1. Create subscriptions with different SLAs (Premium, Standard)
+  2. GET capacity with sla=Premium
+- **Expected Results**:
+  - Only Premium subscription capacity included
+  - Standard subscriptions excluded
+
+**capacity-report-filtering-TC002 - Filter by Usage**
+- **Description**: Verify capacity filtering by usage type
+- **Setup**:
+  - User authenticated with a valid org_id
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}?usage={usage}`
+- **Test Steps**:
+  1. Create subscriptions with Production and Development usage
+  2. GET capacity with usage=Production
+- **Expected Results**:
+  - Only Production subscription capacity included
+
+**capacity-report-filtering-TC003 - Filter by Billing Account**
+- **Description**: Verify capacity filtering by billing account ID
+- **Setup**:
+  - User authenticated with a valid org_id
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}?billing_account_id={account_id}`
+- **Test Steps**:
+  1. Create subscriptions for different billing accounts (AWS/Azure account IDs)
+  2. GET capacity with billing_account_id filter
+- **Expected Results**:
+  - Only specified billing account capacity returned
+
+**capacity-report-filtering-TC004 - Filter by Report Category (Physical)**
+- **Description**: Verify filtering for PHYSICAL capacity only
+- **Setup**:
+  - User authenticated with a valid org_id
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}?category=NON_HYPERVISOR`
+- **Test Steps**:
+  1. Create a subscription with PHYSICAL Cores and HYPERVISOR Cores
+  2. GET capacity with category=NON_HYPERVISOR
+- **Expected Results**:
+  - Only PHYSICAL measurements are included in the capacity
+  - HYPERVISOR excluded
+
+**capacity-report-filtering-TC005 - Filter by Report Category (Hypervisor)**
+- **Description**: Verify filtering for HYPERVISOR capacity only
+- **Setup**:
+  - User authenticated with a valid org_id
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}?category=HYPERVISOR`
+- **Test Steps**:
+  1. Create a subscription with both measurement types
+  2. GET capacity with category=HYPERVISOR
+- **Expected Results**:
+  - Only HYPERVISOR measurements included
+  - PHYSICAL excluded
+
+**capacity-report-filtering-TC006 - Combined Filters**
+- **Description**: Verify multiple filters work together
+- **Setup**:
+  - User authenticated with a valid org_id
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}?sla={sla}&usage={usage}&category={category}`
+- **Test Steps**:
+  1. Create a diverse subscription set
+  2. GET capacity with multiple filters (sla=Premium, usage=Production, category=PHYSICAL)
+- **Expected Results**:
+  - Only subscriptions matching ALL criteria included
+  - Correct AND logic applied
+
+## Capacity Pagination
+**capacity-report-pagination-TC001- Paginated Capacity Report**
+- **Description**: Verify pagination of capacity data
+- **Setup**:
+  - User authenticated with a valid org_id
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}?offset={offset}&limit={limit}`
+- **Test Steps**:
+  1. Generate capacity data with 100 data points
+  2. GET capacity with offset=0, limit=10
+- **Expected Results**:
+  - Response contains 10 data points
+  - Links object populated with first, last, next, previous
+  - Meta.count = 100
+
+**capacity-report-pagination-TC002 - Navigate Pagination Links**
+- **Description**: Verify pagination navigation
+- **Setup**:
+  - User authenticated with a valid org_id
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}?offset={offset}&limit={limit}`
+- **Test Steps**:
+  1. GET first page (offset=0, limit=10)
+  2. Follow the "next" link
+  3. Verify the second page
+- **Expected Results**:
+  - Second page has offset=10
+  - Different data points returned
+  - The previous link points to the first page
+
+**capacity-report-pagination-TC003 - Last Page Pagination**
+- **Description**: Verify the last page has no "next" link
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}?offset={offset}&limit={limit}`
+- **Test Steps**:
+  1. GET the last page of results
+- **Expected Results**:
+  - Next link is null
+  - Previous link populated
+
+## Unlimited Capacity
+**capacity-report-unlimited-quantity-TC001 - Subscription with Unlimited Usage**
+- **Description**: Verify the has_infinite_quantity flag for unlimited subscriptions
+- **Setup**:
+  - User authenticated with a valid org_id
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}`
+- **Test Steps**:
+  1. Create a subscription with has_unlimited_usage=true
+  2. GET capacity report
+- **Expected Results**:
+  - CapacitySnapshot.hasInfiniteQuantity = true
+  - Capacity value still calculated from measurements
+
+**capacity-report-unlimited-quantity-TC002 - Mixed Limited and Unlimited Subscriptions**
+- **Description**: Verify the unlimited flag when both types exist
+- **Setup**:
+  - User authenticated with a valid org_id
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}`
+- **Test Steps**:
+  1. Create an unlimited subscription active in the time range
+  2. Create regular subscriptions
+  3. GET capacity
+- **Expected Results**:
+  - hasInfiniteQuantity = true for snapshots where unlimited subscription is active
+  - hasInfiniteQuantity = false for time periods outside the unlimited subscription range
+
+## Temporal Boundaries
+
+This section validates capacity calculations across time boundaries. Tests verify correct handling of subscriptions that start or end during report periods, subscriptions completely outside the time range, and proper aggregation when multiple subscriptions have overlapping date ranges.
+
+**capacity-report-temporal-boundaries-TC001 - Subscription Starts During Report Period**
+- **Description**: Verify capacity when subscription starts mid-period
+- **Setup**:
+  - User authenticated with a valid org_id
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}`
+- **Test Steps**:
+  1. Create a subscription starting on day 5 of the 10-day report period
+  2. GET daily capacity report
+- **Expected Results**:
+  - Days 1-4: value=0, hasData=false (or absent subscription)
+  - Days 5-10: value=subscription capacity, hasData=true
+
+**capacity-report-temporal-boundaries-TC002 - Subscription Ends During Report Period**
+- **Description**: Verify capacity when subscription ends mid-period
+- **Setup**:
+  - User authenticated with a valid org_id
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}`
+- **Test Steps**:
+  1. Create a subscription ending on day 5 of 10 days
+  2. GET capacity
+- **Expected Results**:
+  - Days 1-4: capacity included
+  - Days 5-10: capacity excluded
+
+**capacity-report-temporal-boundaries-TC003 - Subscription Completely Outside Range**
+- **Description**: Verify subscription outside the time range is excluded
+- **Setup**:
+  - User authenticated with a valid org_id
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}`
+- **Test Steps**:
+  1. Create a subscription with dates outside the report range
+  2. GET capacity
+- **Expected Results**:
+  - Subscription not included in any snapshots
+  - All snapshots have value=0 or a minimal value from other subscriptions
+
+## Subscription Table vs Capacity Graph Consistency
+
+This section validates that the subscription table API (V2 SKU capacity) and the capacity graph API (V1 capacity report) return consistent capacity values. These are the two primary consumer-facing views of subscription capacity, and SWATCH-15 requires they agree.
+
+**subscription-table-capacity-graph-TC001 - Subscription table matches capacity graph for active subscription**
+- **Description**: Verify that the subscription table API and the capacity graph API return the same capacity value for a subscription that is currently active. Each product is tested with its primary metric (RHEL → Sockets, OpenShift → Cores).
+- **Setup**:
+  - Create an offering with capacity for the product's primary metric
+  - Sync the offering
+  - Create a subscription ensuring "today" falls within the active window
+  - Save the subscription
+- **Action**:
+  - `GET /api/rhsm-subscriptions/v2/subscriptions/products/{product_id}` — read measurements from the subscription table
+  - `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}` — read today's capacity from the capacity graph
+- **Verification**: Compare the capacity values returned by both APIs.
+- **Expected Results**:
+  - Both APIs return the same non-zero capacity value
+  - Capacity value is greater than 0 (confirming subscription was successfully created and reconciled)
+- **Products tested**:
+  - "RHEL for x86" with metric Sockets
+  - "OpenShift Container Platform" with metric Cores
+
+## Capacity Reconciliation
+### Offering-Level Reconciliation
+**capacity-reconciliation-TC001 - Reconcile Capacity for Single Offering**
+- **Description**: Verify reconciliation triggers for all subscriptions of an offering
+- **Action**: `CapacityReconciliationService.reconcileCapacityForOffering(String sku)`
+- **Test Steps**:
+  1. Create an offering.
+  2. Create 5 subscriptions for this offering
+  3. Call capacityReconciliationService.reconcileCapacityForOffering(SKU_NUMBER)
+- **Expected Results**:
+  - ReconcileCapacityByOfferingTask messages published to Kafka
+  - All subscriptions processed
+  - Subscription measurements updated
+
+**capacity-reconciliation-TC002 - Reconcile Non-existent Offering**
+- **Description**: Verify handling when the offering doesn't exist
+- **Action**: `CapacityReconciliationService.reconcileCapacityForOffering(String sku)`
+- **Test Steps**:
+  1. Call reconcileCapacityForOffering with an invalid SKU
+- **Expected Results**:
+  - No errors thrown
+  - No tasks published (subscription count = 0)
+
+**capacity-reconciliation-TC003 - Force Reconcile via API**
+- **Description**: Verify force reconciliation endpoint
+- **Action**: `POST /api/swatch-contracts/internal/rpc/forceReconcileOffering`
+- **Test Steps**:
+  1. POST request with SKU
+  2. Verify reconciliation triggered
+- **Expected Results**:
+  - HTTP 200 OK
+  - Reconciliation task enqueued
+
+### Subscription-Level Reconciliation
+
+**Note**: The product data model does not support both physical and hypervisor capacity in the same offering (DERIVED_SKU determines mapping: absent = physical, present = hypervisor). Physical and hypervisor scenarios are covered in separate test cases.
+
+**capacity-reconciliation-TC004 - Reconcile Subscription with Physical Cores**
+- **Description**: Verify capacity calculation for subscription with physical Cores offering
+- **Action**: `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`
+- **Test Steps**:
+  1. Create offering with cores=4 (physical, no DERIVED_SKU)
+  2. Create a subscription with quantity=10
+  3. Reconcile subscription
+- **Expected Results**:
+  - PHYSICAL Cores measurement = 4 * 10 = 40
+  - Measurements persisted in subscription_measurements
+
+**capacity-reconciliation-TC004b - Reconcile Subscription with Hypervisor Cores**
+- **Description**: Verify capacity calculation for subscription with hypervisor Cores offering
+- **Action**: `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`
+- **Test Steps**:
+  1. Create hypervisor offering (with DERIVED_SKU) with hypervisorCores=2
+  2. Create a subscription with quantity=10
+  3. Reconcile subscription
+- **Expected Results**:
+  - HYPERVISOR Cores measurement = 2 * 10 = 20
+  - Measurements persisted in subscription_measurements
+
+**capacity-reconciliation-TC005 - Reconcile Subscription with Physical Sockets**
+- **Description**: Verify capacity calculation for subscription with physical Sockets offering
+- **Action**: `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`
+- **Test Steps**:
+  1. Create offering with sockets=2 (physical, no DERIVED_SKU)
+  2. Create a subscription with quantity=5
+  3. Reconcile
+- **Expected Results**:
+  - PHYSICAL Sockets = 2 * 5 = 10
+
+**capacity-reconciliation-TC005b - Reconcile Subscription with Hypervisor Sockets**
+- **Description**: Verify capacity calculation for subscription with hypervisor Sockets offering
+- **Action**: `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`
+- **Test Steps**:
+  1. Create hypervisor offering (with DERIVED_SKU) with hypervisorSockets=1
+  2. Create a subscription with quantity=5
+  3. Reconcile
+- **Expected Results**:
+  - HYPERVISOR Sockets = 1 * 5 = 5
+
+**capacity-reconciliation-TC006 - Reconcile Subscription with Mixed Physical Metrics**
+- **Description**: Verify subscription with both physical Cores and Sockets
+- **Action**: `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`
+- **Test Steps**:
+  1. Offering has cores=8, sockets=2 (physical only)
+  2. Subscription quantity=3
+  3. Reconcile
+- **Expected Results**:
+  - PHYSICAL Cores = 24
+  - PHYSICAL Sockets = 6
+
+**capacity-reconciliation-TC006b - Reconcile Subscription with Mixed Hypervisor Metrics**
+- **Description**: Verify subscription with both hypervisor Cores and Sockets
+- **Action**: `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`
+- **Test Steps**:
+  1. Create hypervisor offering with hypervisorCores=4, hypervisorSockets=1
+  2. Subscription quantity=3
+  3. Reconcile
+- **Expected Results**:
+  - HYPERVISOR Cores = 12
+  - HYPERVISOR Sockets = 3
+
+**capacity-reconciliation-TC007 - Update Existing Physical Measurements**
+- **Description**: Verify existing physical measurements are updated when offering changes
+- **Action**: `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`
+- **Test Steps**:
+  1. Subscription has PHYSICAL Cores = 40 (cores=8, quantity=5)
+  2. Offering updated with cores=6
+  3. Reconcile subscription
+- **Expected Results**:
+  - Existing measurement updated to new value (6 * 5 = 30)
+  - measurementsUpdated counter incremented
+  - Log message indicates update
+
+**capacity-reconciliation-TC007b - Update Existing Hypervisor Measurements**
+- **Description**: Verify existing hypervisor measurements are updated when offering changes
+- **Action**: `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`
+- **Test Steps**:
+  1. Subscription has HYPERVISOR Cores = 20 (hypervisorCores=2, quantity=10)
+  2. Offering updated with hypervisorCores=3
+  3. Reconcile subscription
+- **Expected Results**:
+  - Existing measurement updated to new value (3 * 10 = 30)
+  - measurementsUpdated counter incremented
+
+**capacity-reconciliation-TC008 - Create New Physical Measurements**  
+- **Description:** Verify new physical measurements are created  
+- **Action:** `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`  
+- **Test Steps:**
+  1. Subscription has no measurements (saved with reconcileCapacity=false)
+  2. Reconcile with the offering that has physical capacity
+- **Expected Results**:
+  - New measurements created
+  - measurementsCreated counter incremented
+
+**capacity-reconciliation-TC008b - Create New Hypervisor Measurements**  
+- **Description:** Verify new hypervisor measurements are created  
+- **Action:** `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`  
+- **Test Steps:**
+  1. Subscription has no measurements (saved with reconcileCapacity=false)
+  2. Reconcile with the hypervisor offering that has capacity
+- **Expected Results**:
+  - New hypervisor measurements created
+  - measurementsCreated counter incremented
+
+**capacity-reconciliation-TC009 - Delete Stale Physical Measurements**
+- **Description**: Verify removal of physical measurements no longer in offering
+- **Action**: `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`
+- **Test Steps**:
+  1. Subscription has PHYSICAL Cores and PHYSICAL Sockets (offering has cores=8, sockets=2)
+  2. Offering updates to have PHYSICAL Cores only (sockets = null)
+  3. Reconcile
+- **Expected Results**:
+  - PHYSICAL Cores measurement retained
+  - PHYSICAL Sockets measurement deleted
+  - measurementsDeleted counter incremented
+
+**capacity-reconciliation-TC009b - Delete Stale Hypervisor Measurements**
+- **Description**: Verify removal of hypervisor measurements no longer in offering
+- **Action**: `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`
+- **Test Steps**:
+  1. Subscription has HYPERVISOR Cores and HYPERVISOR Sockets (offering has hypervisorCores=4, hypervisorSockets=1)
+  2. Offering updates to have HYPERVISOR Cores only (hypervisorSockets = null)
+  3. Reconcile
+- **Expected Results**:
+  - HYPERVISOR Cores measurement retained
+  - HYPERVISOR Sockets measurement deleted
+  - measurementsDeleted counter incremented
+
+**capacity-reconciliation-TC010 - Null or Zero Capacity Values**
+- **Description**: Verify measurements not created for null/zero values
+- **Action**: `CapacityReconciliationService.reconcileCapacityForSubscription(SubscriptionEntity)`
+- **Test Steps**:
+  1. Offering has cores=null, sockets=0
+  2. Reconcile subscription
+- **Expected Results**:
+  - No measurements created for null or zero values
+  - Only non-null, positive values result in measurements
+
+## Reconciliation Consumer (Kafka)
+
+**capacity-reconciliation-kafka-TC001 - Process Reconciliation Task from Kafka**
+- **Description**: Verify CapacityReconciliationConsumer processes tasks
+- **Kafka Topic**: `platform.rhsm-subscriptions.capacity-reconcile`
+- **Consumer**: `CapacityReconciliationConsumer.consume(ReconcileCapacityByOfferingTask)`
+- **Test Steps**:
+  1. Publish ReconcileCapacityByOfferingTask to the capacity_reconcile_task topic
+  2. Verify the consumer picks up the message
+- **Expected Results**:
+  - Consumer receives task
+  - reconcileCapacityForOffering called with sku, offset, limit from task
+  - Log: "Capacity Reconciliation Worker is reconciling capacity for offering..."
+
+**capacity-reconciliation-kafka-TC002 - Handle Malformed Reconciliation Task**
+- **Description**: Verify error handling for invalid task messages
+- **Kafka Topic**: `platform.rhsm-subscriptions.capacity-reconcile`
+- **Consumer**: `CapacityReconciliationConsumer.consume(ReconcileCapacityByOfferingTask)`
+- **Test Steps**:
+  1. Publish malformed JSON to the topic
+- **Expected Results**:
+  - Consumer logs an error
+  - Service remains stable
+  - Other messages continue processing
+
+## Capacity Metrics & Measurements
+**capacity-metrics-TC001 - Cores Metric Calculation**
+- **Description**: Verify Cores metric capacity
+- **Test Steps**:
+  1. Offering: cores=8
+  2. Subscription: quantity=5
+  3. Reconcile
+- **Expected Results**:
+  - PHYSICAL Cores measurement = 40
+
+**capacity-metrics-TC002 - Sockets Metric Calculation**
+- **Description**: Verify Sockets metric capacity
+- **Test Steps**:
+  1. Offering: sockets=4
+  2. Subscription: quantity=10
+  3. Reconcile
+- **Expected Results**:
+  - PHYSICAL Sockets measurement = 40
+
+**capacity-metrics-TC003 - Hypervisor Cores**
+- **Description**: Verify hypervisor cores calculation
+- **Test Steps**:
+  1. Offering: hypervisorCores=16
+  2. Subscription: quantity=2
+  3. Reconcile
+- **Expected Results**:
+  - HYPERVISOR Cores measurement = 32
+
+**capacity-metrics-TC004 - Hypervisor Sockets**
+- **Description**: Verify hypervisor sockets calculation
+- **Test Steps**:
+  1. Offering: hypervisorSockets=2
+  2. Subscription: quantity=20
+  3. Reconcile
+- **Expected Results**:
+  - HYPERVISOR Sockets measurement = 40
+
+## Metered Cores
+**capacity-metrics-TC005 - Decreasing metered Cores**
+- **Description**: Verify that a metered capacity decreases when the cores quantity is decreased
+- **Test Steps**:
+  1. Given: Create a contract with Rosa (rosa) product that has Core:8
+  2. When: Update the Cores to 4 and run Subscriptions sync
+  3. Then: Verify that the cores are updated (decreased) and the capacity reflects the update sku
+- **Expected Results**: 
+  - the Cores will reflect 4 cores 
+
+**capacity-metrics-TC006 - Increasing metered Cores**
+- **Description**: Verify that a metered capacity increases when the core quantity is increased
+- **Test Steps**:
+  1. Given: Create a contract with a Rosa (rosa) product that has Core:4
+  2. When: Update the Cores to 8 and run Subscriptions sync
+  3. Then: Verify that the cores are updated (increased) and the capacity reflects the updated sku
+- **Expected Results**: 
+  - the Cores will reflect 8 cores 
+
+## Non-metered cores
+**capacity-metrics-TC007 - Decreasing Non metered cores**
+- **Description**: Verify that a non-metered capacity decreases when the core quantity is decreased
+- **Test Steps**:
+  1. Given: create a subscription with OpenShift Container Platform (openshift-container-platform) Cores 8
+  2. When: Update the cores to be 4 and run Subscription sync
+  3. Then: Verify that the cores are updated (decreased) and the capacity reflects the updated sku
+- **Expected Results**: 
+  - the Cores will reflect the 4 cores
+
+**capacity-metrics-TC008 - Increasing Non metered cores**
+- **Description**: Verify that a non-metered capacity increases when the core quantity is increased
+- **Test Steps**:
+  1. Given: create a subscription with OpenShift Container Platform (openshift-container-platform) Cores 4
+  2. When: Update the cores to be 8 and run Subscription sync
+  3. Then: Verify that the cores are updated (increased) and the capacity reflects the updated sku
+- **Expected Results**: 
+  - the Cores will reflect the 8 cores
+
+## Non-metered Sockets
+**capacity-metrics-TC009 - Decreasing Non metered sockets**
+- **Description**: Verify that a non-metered capacity decreases when the sockets quantity is decreased
+- **Test Steps**:
+  1. Given: create a subscription with Satellite Server product (satellite-server) sockets 8
+  2. When: Update the sockets to be 4 and run Subscription sync
+  3. Then: Verify that the sockets are updated (decreased) and the capacity reflects the updated sku
+- **Expected Results**: 
+  - the sockets will reflect the 4 sockets
+
+**capacity-metrics-TC010 - Increasing Non metered sockets**
+- **Description**: Verify that a RHEL for x86 (rhel-for-x86) capacity increases when the sockets quantity is increased
+- **Test Steps**: 
+  1. Given: create a subscription with sku sockets 4
+  2. When: Update the RHEL for x86 (rhel-for-x86) sockets to be 8 and run Subscription sync/Reconcile (?)
+  3. Then: Verify that the sockets are updated (increased) and the capacity reflects the updated sku
+- **Expected Results**: 
+  - the sockets will reflect the 8 sockets
+
+## Accounts with Subscriptions and or contracts
+**capacity-metrics-TC011 - Increasing subscription on an account with multiple contracts**
+- **Description**: Verify that an account with multiple contracts and a subscription increases when the capacity quantity is increased
+- **Test Steps**:
+  1. Given: Create an account with two contracts and a subscription
+  2. When: Increase the sku related to the subscription and run Subscription sync
+  3. Then: Verify that the capacity increases
+- **Expected Results**: 
+  - that the capacity increases
+
+**capacity-metrics-TC012 - Decreasing subscription on an account with multiple contracts**
+- **Description**: Verify that an account with multiple contracts and a subscription decreases when the capacity quantity is decreased
+- **Test Steps**:
+  1. Given: Create an account with two contracts and a subscription
+  2. When: Decrease the sku related to the subscription and run Subscription sync
+  3. Then: Verify that the capacity decreases
+- **Expected Results**: 
+  - that the capacity decreases 
+
+**capacity-metrics-TC013 - Increasing contract on an account with multiple subscriptions**
+- **Description**: Verify that an account with multiple subscriptions and a contract increases when the capacity quantity is increased
+- **Test Steps**:
+  1. Given: Create an account with two subscriptions and a contract
+  2. When: Increase the metrics related to the contract and run Subscription sync
+  3. Then: Verify that the capacity increases
+- **Expected Results**: 
+  - that the capacity increases
+
+**capacity-metrics-TC014 - Decreasing contract on an account with multiple subscriptions**
+- **Description**: Verify that an Account with multiple subscriptions and a contract decreases when the capacity quantity is decreased
+- **Test Steps**:
+  1. Given: Create an account with two subscriptions and a contract
+  2. When: Decrease the metrics related to the contract and run Subscription sync
+  3. Then: Verify that the capacity decreases
+- **Expected Results**: 
+  - that the capacity decreases 
+
+**capacity-metrics-TC015 - Increasing capacity with multiple subscriptions**
+- **Description**: Verify that an account with multiple subscriptions and multiple contracts increases when the capacity quantity is increased
+- **Test Steps**:
+  1. Given: Create an account with two subscriptions and two contracts
+  2. When: Increase the metrics related to one of the contracts, increase the sku related to one of the subscriptions and run Subscription sync
+  3. Then: Verify that the capacity increases for both
+- **Expected Results**: 
+  - that the capacity increases for both
+
+**capacity-metrics-TC016 - Decreasing capacity with multiple subscriptions**
+- **Description**: Verify that an account with multiple subscriptions and multiple contracts decreases when the capacity quantity is decreased
+- **Test Steps**:
+  1. Given: Create an account with two subscriptions and two contracts
+  2. When: Decrease the metrics related to the contract, decrease the sku related to one of the subscriptions and run Subscription sync
+  3. Then: Verify that the capacity decreases for both
+- **Expected Results**: 
+  - that the capacity decreases for both 
+
+## Tally Snapshot Summary Consumer
+
+This section validates the tally-to-utilization pipeline, where `swatch-contracts` consumes tally snapshot summaries from Kafka, enriches them with subscription capacity data, and produces utilization summaries on the utilization Kafka topic. These utilization summaries are consumed downstream by `swatch-utilization` for over-usage detection.
+
+**tally-consumer-TC001 - Tally summary with matching PAYG contract produces enriched utilization summary**  
+- **Description**: Verify that a tally snapshot matching an existing PAYG contract (e.g., ROSA on AWS) produces a utilization summary with the correct capacity and subscription found.  
+- **Setup**:  
+  - Create a ROSA contract with AWS billing provider and a Cores capacity of 10  
+  - Prepare a tally snapshot matching the contract's org, product, and billing dimensions  
+- **Action**:  
+  - Publish the tally summary to the tally Kafka topic  
+- **Verification**:  
+  - Wait for a utilization summary on the utilization Kafka topic  
+- **Expected Result**:  
+  - Utilization summary is produced with `subscriptionFound=true`  
+  - The Cores measurement has `capacity=10` and `value=1.0`  
+  - Org ID and product ID match the contract  
+
+**tally-consumer-TC002 - Tally summary with matching non-PAYG subscription produces enriched utilization summary**  
+- **Description**: Verify that a tally snapshot matching an existing non-PAYG subscription (e.g., RHEL) produces a utilization summary with the correct capacity.  
+- **Setup**:  
+  - Create a RHEL subscription with a Sockets capacity of 10  
+  - Prepare a tally snapshot matching the subscription's org and product  
+- **Action**:  
+  - Publish the tally summary to the tally Kafka topic  
+- **Verification**:  
+  - Wait for a utilization summary on the utilization Kafka topic  
+- **Expected Result**:  
+  - Utilization summary is produced with `subscriptionFound=true`  
+  - The Sockets measurement has `capacity=10` and `value=1.0`  
+  - Org ID and product ID match the subscription  
+
+**tally-consumer-TC003 - Tally summary with no matching subscription produces utilization summary with subscriptionFound=false**  
+- **Description**: Verify that when a tally snapshot doesn't match any existing subscription or contract, the system still produces a utilization summary but flags that no subscription was found.  
+- **Setup**:  
+  - Prepare a tally snapshot for an org/product/billing combination that has no corresponding subscription or contract in the database  
+- **Action**:  
+  - Publish the tally summary to the tally Kafka topic  
+- **Verification**:  
+  - Wait for a utilization summary on the utilization Kafka topic  
+- **Expected Result**:  
+  - Utilization summary is produced  
+  - `subscriptionFound=false`  
+
+**tally-consumer-TC004 - Tally summary with multiple matching subscriptions aggregates capacity**  
+- **Description**: Verify that when multiple subscriptions with the same SKU match a tally snapshot, their capacities are summed in the resulting utilization summary.  
+- **Setup**:  
+  - Create two RHEL subscriptions with the same SKU, each with a Sockets capacity of 10  
+  - Prepare a tally snapshot matching these subscriptions  
+- **Action**:  
+  - Publish the tally summary to the tally Kafka topic  
+- **Verification**:  
+  - Wait for a utilization summary on the utilization Kafka topic  
+- **Expected Result**:  
+  - Utilization summary is produced with `subscriptionFound=true`  
+  - The Sockets measurement has `capacity=20` (aggregated from both subscriptions)  
+
+**tally-consumer-TC005 - Tally summary with subscriptions from different billing accounts produces separate utilization summaries**  
+- **Description**: Verify that tally snapshots linked to subscriptions with different billing accounts produce separate utilization summaries (one per snapshot), and capacity is not aggregated across them.  
+- **Setup**:  
+  - Create two ROSA contracts with different billing account IDs, each with Cores capacity of 10  
+  - Prepare tally snapshots for each contract  
+- **Action**:  
+  - Publish the tally summary containing both snapshots to the tally Kafka topic  
+- **Verification**:  
+  - Wait for utilization summaries on the utilization Kafka topic  
+- **Expected Result**:  
+  - Two separate utilization summaries are produced (one per billing account)  
+  - Each has its own capacity, not aggregated  
+
+**tally-consumer-TC006 - Tally summary with mixed contract and subscription produces two utilization summaries**  
+- **Description**: Verify that a single tally summary containing snapshots for both a PAYG contract (ROSA) and a non-PAYG subscription (RHEL) produces two independent utilization summaries, each enriched with the correct capacity.  
+- **Setup**:  
+  - Create a ROSA contract with Cores capacity of 10  
+  - Create a RHEL subscription with Sockets capacity of 10  
+  - Prepare one tally snapshot per product  
+- **Action**:  
+  - Publish the tally summary (with both snapshots) to the tally Kafka topic  
+- **Verification**:  
+  - Wait for two utilization summaries on the utilization Kafka topic  
+- **Expected Result**:  
+  - One utilization summary for ROSA with `subscriptionFound=true`, Cores `capacity=10`  
+  - One utilization summary for RHEL with `subscriptionFound=true`, Sockets `capacity=10`  
+
+**tally-consumer-TC007 - Capacity is enriched when tally snapshot uses _ANY into the SLA and Usage fields**  
+- **Description**: Verify that a tally snapshot with `sla=_ANY` and `usage=_ANY` matches a subscription regardless of its specific SLA/Usage values, and gets the correct capacity.  
+- **Setup**:  
+  - Create a RHEL subscription with `SLA=Premium`, `Usage=Production`, and Sockets capacity  
+  - Prepare a tally snapshot with `sla=_ANY`, `usage=_ANY` for the same product  
+- **Action**:  
+  - Publish the tally summary to the tally Kafka topic  
+- **Verification**:  
+  - Wait for a utilization summary on the utilization Kafka topic  
+- **Expected Result**:  
+  - Utilization summary is produced with the correct Sockets capacity from the subscription  
+
+**tally-consumer-TC008 - Capacity is null when tally snapshot SLA/Usage does not match any subscription**  
+- **Description**: Verify that when a tally snapshot has specific SLA and Usage dimensions (e.g., `Self-Support` / `Development/Test`) that don't match any existing subscription, the capacity enrichment returns null, preventing false over-usage notifications.  
+- **Setup**:  
+  - Create a RHEL subscription with `SLA=Premium`, `Usage=Production`, and Sockets capacity  
+  - Prepare a tally snapshot with `sla=Self-Support`, `usage=Development/Test` for the same product  
+- **Action**:  
+  - Publish the tally summary to the tally Kafka topic  
+- **Verification**:  
+  - Wait for a utilization summary on the utilization Kafka topic  
+- **Expected Result**:  
+  - Utilization summary is produced but with `capacity=null` for the Sockets measurement (no subscription matches that SLA/Usage combination)  
+  - This snapshot should not be eligible to trigger an over-usage notification

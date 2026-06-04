@@ -1,0 +1,52 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="202309011316-1" author="jcarvaja" dbms="postgresql">
+        <comment>Rename events.id to event_id and support both.</comment>
+        <renameColumn tableName="events" oldColumnName="id" newColumnName="event_id"/>
+        <dropUniqueConstraint tableName="events" constraintName="events_event_type_event_source_instance_id_org_id_t_key"/>
+        <dropPrimaryKey tableName="events" />
+        <addPrimaryKey constraintName="events_pkey"
+                       tableName="events"
+                       columnNames="org_id,event_type,event_source,instance_id,timestamp"/>
+        <sql>
+            alter table events add column id UUID generated always as (event_id) stored
+        </sql>
+        <rollback>
+            <sql>
+                alter table events drop column id
+            </sql>
+            <renameColumn tableName="events" oldColumnName="event_id" newColumnName="id"/>
+            <dropPrimaryKey tableName="events" />
+            <addPrimaryKey constraintName="events_pkey"
+                           tableName="events"
+                           columnNames="id"/>
+            <addUniqueConstraint tableName="events" constraintName="events_event_type_event_source_instance_id_org_id_t_key"
+                                 columnNames="event_type, event_source, instance_id, org_id, timestamp"/>
+        </rollback>
+    </changeSet>
+
+    <!-- NOTE: below changeset is the hsql alternative (only run for unit tests) -->
+    <changeSet id="202309011316-2" author="jcarvaja" dbms="!postgresql">
+        <comment>Rename events.id to event_id.</comment>
+        <renameColumn tableName="events" oldColumnName="id" newColumnName="event_id"/>
+        <dropUniqueConstraint tableName="events" constraintName="events_event_type_event_source_instance_id_org_id_t_key"/>
+        <dropPrimaryKey tableName="events" />
+        <addPrimaryKey constraintName="events_pkey"
+                       tableName="events"
+                       columnNames="org_id,event_type,event_source,instance_id,timestamp"/>
+        <rollback>
+            <renameColumn tableName="events" oldColumnName="event_id" newColumnName="id"/>
+            <dropPrimaryKey tableName="events" />
+            <addPrimaryKey constraintName="events_pkey"
+                           tableName="events"
+                           columnNames="id"/>
+            <addUniqueConstraint tableName="events" constraintName="events_event_type_event_source_instance_id_org_id_t_key"
+                                 columnNames="event_type, event_source, instance_id, org_id, timestamp"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

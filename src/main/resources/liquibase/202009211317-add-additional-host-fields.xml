@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="202009211317-1" author="mstead">
+        <comment>Add usage to host buckets.</comment>
+        <addColumn tableName="hosts">
+            <column name="is_unmapped_guest" type="BOOLEAN" />
+        </addColumn>
+        <addColumn tableName="hosts">
+            <column name="is_hypervisor" type="BOOLEAN" />
+        </addColumn>
+        <addColumn tableName="hosts">
+            <column name="cloud_provider" type="VARCHAR(32)" />
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>
+<!-- vim: set expandtab sts=4 sw=4 ai: -->

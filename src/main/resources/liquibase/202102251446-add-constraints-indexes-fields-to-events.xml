@@ -1,0 +1,32 @@
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+    <changeSet id="202102251446-1" author="awood">
+        <comment>
+            These columns will store data extracted from the JSON in the data column. With
+            Postgresql, we could apply the unique constraint and indexes below using JSON operator
+            expressions but that does not work in HSQLDB.
+        </comment>
+        <addColumn tableName="events">
+            <column name="event_type" type="VARCHAR(60)"/>
+            <column name="event_source" type="VARCHAR(60)"/>
+            <column name="instance_id" type="VARCHAR(60)"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="202102251446-2" author="awood">
+        <comment>Prevent duplicate event records from being created</comment>
+        <addUniqueConstraint tableName="events"
+            columnNames="event_type, event_source, instance_id, account_number, timestamp"/>
+    </changeSet>
+
+    <changeSet id="202102251446-3" author="awood">
+        <createIndex tableName="events" indexName="events_event_type_idx">
+            <column name="account_number"/>
+            <column name="event_type"/>
+            <column name="timestamp"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

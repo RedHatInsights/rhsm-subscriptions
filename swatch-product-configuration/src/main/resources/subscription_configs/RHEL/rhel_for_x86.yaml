@@ -1,0 +1,34 @@
+---
+platform: RHEL
+
+id: rhel-for-x86
+
+vdcType: true
+
+variants:
+  - tag: RHEL for x86
+    engineeringIds:
+      - 69 # Red Hat Enterprise Linux Server
+      - 479 # RHEL for x86 catch-all
+    roles:
+      - Red Hat Enterprise Linux Server
+
+  - tag: RHEL Workstation
+    engineeringIds:
+      - 71 # Red Hat Enterprise Linux Workstation
+    roles:
+      - Red Hat Enterprise Linux Workstation
+
+  - tag: RHEL Compute Node
+    engineeringIds:
+      - 76 # Red Hat Enterprise Linux for Scientific Computing
+    roles:
+      - Red Hat Enterprise Linux Compute Node
+
+
+defaults:
+  variant: RHEL for x86
+
+metrics:
+  - id: Sockets
+    type: gauge

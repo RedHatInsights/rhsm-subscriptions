@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+  <changeSet id="202604161200-001" author="jcarvaja">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <tableExists tableName="org_utilization_preference"/>
+      </not>
+    </preConditions>
+
+    <comment>Store per-organization utilization notification preferences</comment>
+    <createTable tableName="org_utilization_preference">
+      <column name="org_id" type="VARCHAR(32)">
+        <constraints nullable="false" primaryKey="true" primaryKeyName="org_utilization_preference_pkey"/>
+      </column>
+      <column name="custom_threshold" type="INTEGER">
+        <constraints nullable="false"/>
+      </column>
+      <column name="last_updated" type="TIMESTAMP WITH TIME ZONE">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+
+    <rollback>
+      <dropTable tableName="org_utilization_preference"/>
+    </rollback>
+  </changeSet>
+
+</databaseChangeLog>

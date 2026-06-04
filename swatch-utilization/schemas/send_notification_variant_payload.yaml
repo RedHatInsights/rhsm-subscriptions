@@ -1,0 +1,10 @@
+$schema: http://json-schema.org/draft-07/schema#
+title: SendNotificationVariantPayload
+description: JSON payload for the send-notifications feature toggle variant.
+type: object
+properties:
+  event_types_denylist:
+    description: Notification event types that must be suppressed when the toggle is enabled.
+    type: array
+    items:
+      type: string

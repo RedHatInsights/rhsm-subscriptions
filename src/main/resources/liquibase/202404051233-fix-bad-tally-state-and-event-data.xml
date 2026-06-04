@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+  <changeSet id="202404051233-01" author="mstead">
+    <comment>
+      1. Copy the record_date value into the JSON data for records that currently have
+          data->'record_date' set to null.
+      2. Set the tally_state.latest_event_record_date to the end of March for any
+         record that has a null latest_event_record_date.
+      3. Add a non-null constrain to the tally_state column.
+    </comment>
+    <sql dbms="postgresql">
+        update events
+         set data = jsonb_set(data, '{record_date}', to_jsonb(record_date))
+         where data->'record_date' is null</sql>
+    <sql dbms="postgresql">
+        update tally_state
+        set latest_event_record_date = '2024-04-01T01:00Z'
+        where latest_event_record_date is null;
+    </sql>
+    <addNotNullConstraint tableName="tally_state" columnName="latest_event_record_date" />
+    <rollback>
+      <dropNotNullConstraint tableName="tally_state" columnName="latest_event_record_date" />
+      <!-- NOTE: Unable to determine the records to roll back -->
+    </rollback>
+  </changeSet>
+</databaseChangeLog>

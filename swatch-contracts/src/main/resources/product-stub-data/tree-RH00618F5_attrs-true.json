@@ -1,0 +1,61 @@
+{
+  "products": [
+    {
+      "sku": "RH00618F5",
+      "description": "Red Hat Enterprise Linux Server for SAP HANA for Virtual Datacenters with Smart Management, Premium",
+      "status": "ACTIVE",
+      "attributes": [
+        {
+          "code": "USAGE",
+          "value": "Production"
+        },
+        {
+          "code": "SERVICE_TYPE",
+          "value": "Premium"
+        },
+        {
+          "code": "SOCKET_LIMIT",
+          "value": "2"
+        },
+        {
+          "code": "PRODUCT_FAMILY",
+          "value": "Red Hat Enterprise Linux"
+        },
+        {
+          "code": "PRODUCT_NAME",
+          "value": "RHEL for SAP HANA"
+        }
+      ],
+      "roles": []
+    },
+    {
+      "sku": "SVCRH00618",
+      "description": "Red Hat Enterprise Linux Server for SAP HANA for Virtual Datacenters with Smart Management, Premium",
+      "status": "ACTIVE",
+      "attributes": [
+        {
+          "code": "SERVICE_TYPE",
+          "value": "Premium"
+        },
+        {
+          "code": "SOCKET_LIMIT",
+          "value": "2"
+        },
+        {
+          "code": "PRODUCT_FAMILY",
+          "value": "Red Hat Enterprise Linux"
+        },
+        {
+          "code": "PRODUCT_NAME",
+          "value": "RHEL for SAP HANA"
+        }
+      ],
+      "roles": []
+    }
+  ],
+  "parentMap": [
+    {
+      "child": "SVCRH00618"
+    }
+  ]
+}

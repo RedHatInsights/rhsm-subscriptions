@@ -1,0 +1,26 @@
+# by default ignore everything
+**/build
+# ignore dockerfiles so subproject can build using cache
+**/Dockerfile
+**/Dockerfile.jvm
+# allow the build libs for spring-boot based contexts
+!build/libs
+!build/javaagent
+# allow the quarkus-app build folder for quarkus based builds
+!build/quarkus-app
+# ignore bonfire CI working files
+.bonfire
+.bonfire_venv
+.cicd_bootstrap.sh
+.cicd_tools_bootstrap.sh
+.kube
+.docker
+artifacts
+
+# Files that churn after every build.  You can track what's changing after
+# a build with the command inotifywait -e modify,create,delete -r . -m --exclude '.*/build/.*'
+.idea
+buildSrc/.gradle
+.gradle
+!.gradle/wrapper
+.git/index.lock

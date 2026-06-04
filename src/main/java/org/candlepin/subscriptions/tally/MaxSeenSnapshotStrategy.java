@@ -1,0 +1,91 @@
+/*
+ * Copyright Red Hat, Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Red Hat trademarks are not licensed under GPLv3. No permission is
+ * granted to use or replicate Red Hat trademarks that are incorporated
+ * in this software or its documentation.
+ */
+package org.candlepin.subscriptions.tally;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.TallySnapshot;
+import org.candlepin.subscriptions.tally.roller.BaseSnapshotRoller;
+import org.candlepin.subscriptions.tally.roller.DailySnapshotRoller;
+import org.candlepin.subscriptions.tally.roller.HourlySnapshotRoller;
+import org.candlepin.subscriptions.tally.roller.MonthlySnapshotRoller;
+import org.candlepin.subscriptions.tally.roller.QuarterlySnapshotRoller;
+import org.candlepin.subscriptions.tally.roller.WeeklySnapshotRoller;
+import org.candlepin.subscriptions.tally.roller.YearlySnapshotRoller;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/** Strategy for producing snapshots that captures the largest value recorded. */
+@Slf4j
+@Service
+public class MaxSeenSnapshotStrategy {
+
+  private final HourlySnapshotRoller hourlyRoller;
+  private final DailySnapshotRoller dailyRoller;
+  private final WeeklySnapshotRoller weeklyRoller;
+  private final MonthlySnapshotRoller monthlyRoller;
+  private final YearlySnapshotRoller yearlyRoller;
+  private final QuarterlySnapshotRoller quarterlyRoller;
+  private final SnapshotSummaryProducer summaryProducer;
+
+  @Autowired
+  public MaxSeenSnapshotStrategy(
+      HourlySnapshotRoller hourlyRoller,
+      DailySnapshotRoller dailyRoller,
+      WeeklySnapshotRoller weeklyRoller,
+      MonthlySnapshotRoller monthlyRoller,
+      YearlySnapshotRoller yearlyRoller,
+      QuarterlySnapshotRoller quarterlyRoller,
+      SnapshotSummaryProducer summaryProducer) {
+    this.summaryProducer = summaryProducer;
+    this.hourlyRoller = hourlyRoller;
+    this.dailyRoller = dailyRoller;
+    this.weeklyRoller = weeklyRoller;
+    this.monthlyRoller = monthlyRoller;
+    this.yearlyRoller = yearlyRoller;
+    this.quarterlyRoller = quarterlyRoller;
+  }
+
+  @Transactional
+  public List<TallySnapshot> produceSnapshotsFromCalculations(AccountUsageCalculation accountCalc) {
+    Stream<BaseSnapshotRoller> rollers =
+        Stream.of(
+            hourlyRoller, dailyRoller, weeklyRoller, monthlyRoller, quarterlyRoller, yearlyRoller);
+    var orgId = accountCalc.getOrgId();
+    var newAndUpdatedSnapshots =
+        rollers
+            .map(roller -> roller.rollSnapshots(accountCalc))
+            .flatMap(Collection::stream)
+            .collect(Collectors.toList());
+    summaryProducer.produceTallySummaryMessages(
+        Map.of(orgId, newAndUpdatedSnapshots),
+        List.of(Granularity.DAILY),
+        SnapshotSummaryProducer.NIGHTLY_SNAP_FILTER);
+    log.info("Finished producing snapshots for orgId={}", orgId);
+    return newAndUpdatedSnapshots;
+  }
+}

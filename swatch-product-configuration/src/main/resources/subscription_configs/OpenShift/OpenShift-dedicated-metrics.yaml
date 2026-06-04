@@ -1,0 +1,43 @@
+---
+platform: OpenShift
+
+id: openshift-dedicated-metrics
+
+variants:
+  - tag: OpenShift-dedicated-metrics
+    roles:
+      - osd
+    level1:
+      - OpenShift
+    level2:
+      - "OSD - OpenShift Dedicated"
+
+defaults:
+  variant: OpenShift-dedicated-metrics
+  sla: PREMIUM
+  usage: PRODUCTION
+
+serviceType: OpenShift Cluster
+
+metrics:
+  - id: Cores
+    type: counter
+    rhmMetricId: redhat.com:openshift_dedicated:4cpu_hour
+    billingFactor: 0.25
+    prometheus:
+      queryKey: default
+      queryParams:
+        instanceKey: _id
+        product: osd
+        metric: cluster:usage:workload:capacity_physical_cpu_hours
+        metadataMetric: ocm_subscription
+  - id: Instance-hours
+    type: counter
+    rhmMetricId: redhat.com:openshift_dedicated:cluster_hour
+    prometheus:
+      queryKey: default
+      queryParams:
+        instanceKey: _id
+        product: osd
+        metric: cluster:usage:workload:capacity_physical_instance_hours
+        metadataMetric: ocm_subscription

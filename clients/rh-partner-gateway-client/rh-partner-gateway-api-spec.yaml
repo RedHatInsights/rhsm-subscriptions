@@ -1,0 +1,179 @@
+openapi: 3.0.3
+info:
+  title: rh-partner-gateway
+  description: Third-party specification for the RH partner gateway API.
+  version: 1.0.0
+
+paths:
+  /v1/partnerSubscriptions:
+    post:
+      operationId: getPartnerEntitlements
+      tags:
+        - partner
+      requestBody:
+        description: query
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryPartnerEntitlementV1'
+      responses:
+        200:
+          description: Partner summary information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerEntitlements'
+        400:
+          description: Order does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderDoesNotExistV1'
+        500:
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalServerErrorV1'
+
+components:
+  schemas:
+    PartnerEntitlements:
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/PartnerEntitlementV1'
+        page:
+          type: object
+          properties:
+            size:
+              type: integer
+            totalElements:
+              type: integer
+            totalPages:
+              type: integer
+            number:
+              type: integer
+    QueryPartnerEntitlementV1:
+      properties:
+        rhAccountId:
+          description: The org_id of the Red Hat account
+          type: string
+        source:
+          type: string
+        customerAwsAccountId:
+          type: string
+        vendorProductCode:
+          type: string
+        azureResourceId :
+          type: string
+        page:
+          $ref: '#/components/schemas/PageRequest'
+    PageRequest:
+      properties:
+        number:
+          type: integer
+        size:
+          type: integer
+    PageMetadata:
+      properties:
+        number:
+          type: integer
+          format: i64
+        size:
+          type: integer
+          format: i64
+    PartnerEntitlementV1:
+      properties:
+        rhAccountId:
+          description: The org_id of the Red Hat account
+          type: string
+        sourcePartner:
+          description: Where the entitlement/contract came from (e.g. aws_marketplace)
+          type: string
+        partnerIdentities:
+          $ref: '#/components/schemas/PartnerIdentityV1'
+        rhEntitlements:
+          type: array
+          items:
+            $ref: '#/components/schemas/RhEntitlementV1'
+        purchase:
+          $ref: '#/components/schemas/PurchaseV1'
+        status:
+          type: string
+        entitlementDates:
+          type: object
+          properties:
+            startDate:
+              type: string
+              format: date-time
+            endDate:
+              type: string
+              format: date-time
+    PartnerIdentityV1:
+      properties:
+        awsCustomerId:
+          type: string
+        customerAwsAccountId:
+          type: string
+        sellerAccountId:
+          type: string
+        azureSubscriptionId:
+          type: string
+        azureTenantId:
+          type: string
+        azureCustomerId:
+          type: string
+        clientId:
+          type: string
+    PurchaseV1:
+      properties:
+        vendorProductCode:
+          type: string
+        azureResourceId:
+          type: string
+        contracts:
+          type: array
+          items:
+            $ref: '#/components/schemas/SaasContractV1'
+    SaasContractV1:
+      properties:
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        planId:
+          type: string
+        dimensions:
+          type: array
+          items:
+            $ref: '#/components/schemas/DimensionV1'
+    DimensionV1:
+      properties:
+        name:
+          type: string
+        value:
+          type: string
+    RhEntitlementV1:
+      properties:
+        sku:
+          type: string
+        subscriptionNumber:
+          type: string
+    ApiErrorV1:
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        detail:
+          type: string
+    OrderDoesNotExistV1:
+      allOf:
+        - $ref: '#/components/schemas/ApiErrorV1'
+    InternalServerErrorV1:
+      allOf:
+        - $ref: '#/components/schemas/ApiErrorV1'

@@ -1,0 +1,278 @@
+/*
+ * Copyright Red Hat, Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Red Hat trademarks are not licensed under GPLv3. No permission is
+ * granted to use or replicate Red Hat trademarks that are incorporated
+ * in this software or its documentation.
+ */
+package org.candlepin.subscriptions.tally;
+
+import static org.candlepin.subscriptions.tally.SnapshotSummaryProducer.removeTotalMeasurementsForHourly;
+
+import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import com.redhat.swatch.configuration.registry.Variant;
+import io.micrometer.core.annotation.Timed;
+import io.micrometer.core.instrument.MeterRegistry;
+import java.time.OffsetDateTime;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
+import org.candlepin.clock.ApplicationClock;
+import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.db.TallyStateRepository;
+import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.TallySnapshot;
+import org.candlepin.subscriptions.db.model.TallyState;
+import org.candlepin.subscriptions.db.model.TallyStateKey;
+import org.candlepin.subscriptions.event.EventController;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.retry.support.RetryTemplate;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+/** Provides the logic for updating Tally snapshots. */
+@Slf4j
+@Component
+public class TallySnapshotController {
+
+  protected static final String TALLIED_USAGE_TOTAL_METRIC = "swatch_tally_tallied_usage_total";
+
+  private final ApplicationProperties appProps;
+  private final InventoryAccountUsageCollector usageCollector;
+  private final EventController eventController;
+  private final MetricUsageCollector metricUsageCollector;
+  private final MaxSeenSnapshotStrategy maxSeenSnapshotStrategy;
+  private final CombiningRollupSnapshotStrategy combiningRollupSnapshotStrategy;
+  private final RetryTemplate retryTemplate;
+  private final SnapshotSummaryProducer summaryProducer;
+  private final TallyStateRepository tallyStateRepository;
+  private final ApplicationClock clock;
+  private final MeterRegistry meterRegistry;
+
+  @Autowired
+  public TallySnapshotController(
+      ApplicationProperties appProps,
+      InventoryAccountUsageCollector usageCollector,
+      EventController eventController,
+      MaxSeenSnapshotStrategy maxSeenSnapshotStrategy,
+      @Qualifier("collectorRetryTemplate") RetryTemplate retryTemplate,
+      MetricUsageCollector metricUsageCollector,
+      CombiningRollupSnapshotStrategy combiningRollupSnapshotStrategy,
+      SnapshotSummaryProducer summaryProducer,
+      TallyStateRepository tallyStateRepository,
+      MeterRegistry meterRegistry,
+      ApplicationClock clock) {
+    this.appProps = appProps;
+    this.usageCollector = usageCollector;
+    this.eventController = eventController;
+    this.maxSeenSnapshotStrategy = maxSeenSnapshotStrategy;
+    this.retryTemplate = retryTemplate;
+    this.metricUsageCollector = metricUsageCollector;
+    this.combiningRollupSnapshotStrategy = combiningRollupSnapshotStrategy;
+    this.summaryProducer = summaryProducer;
+    this.tallyStateRepository = tallyStateRepository;
+    this.clock = clock;
+    this.meterRegistry = meterRegistry;
+  }
+
+  @Timed("rhsm-subscriptions.snapshots.single")
+  public void produceSnapshotsForOrg(String orgId) {
+    if (Objects.isNull(orgId)) {
+      throw new IllegalArgumentException("A non-null orgId is required for tally operations.");
+    }
+
+    log.info("Producing snapshots for Org ID {} ", orgId);
+
+    AccountUsageCalculation accountCalc;
+    try {
+      accountCalc = performTally(orgId);
+
+    } catch (Exception e) {
+      log.error("Error collecting existing usage snapshots ", e);
+      return;
+    }
+
+    var snapshots = maxSeenSnapshotStrategy.produceSnapshotsFromCalculations(accountCalc);
+    // Record tally values on the counter now that the transaction has closed.
+    recordTallyCount(snapshots);
+  }
+
+  // Because we want to ensure that our DB operations have been completed before
+  // any messages are sent, message sending must be done outside a DB transaction
+  // boundary. We use Propagation.NEVER here so that if this method should ever be called
+  // from within an existing DB transaction, an exception will be thrown.
+  @Transactional(propagation = Propagation.NEVER)
+  @Timed("rhsm-subscriptions.snapshots.single.hourly")
+  public void produceHourlySnapshotsForOrg(String orgId) {
+    if (Objects.isNull(orgId)) {
+      throw new IllegalArgumentException("A non-null orgId is required for tally operations.");
+    }
+
+    log.info("Producing hourly snapshots for Org ID {}.", orgId);
+    // Because we would have already seen the events once by service type, the loop will result in a
+    // retally if we fetch duplicate service types and loop through again, which is why we must use
+    // Set in this situation rather than List. Set enables us to guarantee that each event is
+    // fetched by service type just once.
+    Set<String> serviceTypes = SubscriptionDefinition.getAllServiceTypes();
+    for (String serviceType : serviceTypes) {
+      log.debug("Producing hourly snapshots for orgId {} for service type {} ", orgId, serviceType);
+
+      try {
+        TallyState currentState =
+            tallyStateRepository
+                .findById(new TallyStateKey(orgId, serviceType))
+                .orElseGet(() -> initializeTallyState(orgId, serviceType));
+
+        AccountUsageCalculationCache calcCache = new AccountUsageCalculationCache();
+
+        // We use a functional interface for processing event batches to allow
+        // us to wrap the Event fetch in a read only transaction without needing
+        // to annotate this method with a DB transaction.
+        eventController.processEventsInBatches(
+            orgId,
+            serviceType,
+            currentState.getLatestEventRecordDate(),
+            appProps.getHourlyTallyEventBatchSize(),
+            nextBatch ->
+                retryTemplate.execute(
+                    context -> {
+                      metricUsageCollector.updateHosts(orgId, serviceType, nextBatch);
+                      metricUsageCollector.calculateUsage(nextBatch, calcCache);
+                      currentState.setLatestEventRecordDate(
+                          nextBatch.get(nextBatch.size() - 1).getRecordDate());
+                      return null;
+                    }));
+
+        if (!calcCache.isEmpty()) {
+          var applicableUsageCalculations =
+              calcCache.getCalculations().entrySet().stream()
+                  .filter(this::isCombiningRollupStrategySupported)
+                  .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+          Set<String> tags =
+              SubscriptionDefinition.findByServiceType(serviceType).stream()
+                  .map(SubscriptionDefinition::getVariants)
+                  .flatMap(Set::stream)
+                  .map(Variant::getTag)
+                  .collect(Collectors.toSet());
+
+          Map<String, List<TallySnapshot>> totalSnapshots =
+              combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
+                  orgId,
+                  calcCache.getCalculationRange(),
+                  tags,
+                  applicableUsageCalculations,
+                  Granularity.HOURLY,
+                  Double::sum);
+
+          tallyStateRepository.update(currentState);
+          recordTallyCount(totalSnapshots.values().stream().flatMap(Collection::stream).toList());
+          summaryProducer.produceTallySummaryMessages(
+              totalSnapshots,
+              List.of(Granularity.HOURLY),
+              SnapshotSummaryProducer.HOURLY_SNAP_FILTER);
+        }
+
+        log.debug("Finished producing {} hourly snapshots for orgId {}", serviceType, orgId);
+      } catch (Exception e) {
+        log.error(
+            "Could not collect {} metrics and/or produce snapshots for with orgId {}",
+            serviceType,
+            orgId,
+            e);
+      }
+    }
+    log.info("Finished producing hourly snapshots for Org ID {}.", orgId);
+  }
+
+  private void recordTallyCount(List<TallySnapshot> snapshots) {
+    // Only increment the counter at the finest granularity level to prevent over-counting
+    snapshots.stream()
+        .filter(this::filterByFinestGranularityAndNotAnySnapshots)
+        .map(
+            snapshot -> {
+              removeTotalMeasurementsForHourly(snapshot);
+              return snapshot;
+            })
+        .forEach(
+            snap ->
+                snap.getTallyMeasurements()
+                    .entrySet()
+                    .forEach(
+                        entry -> {
+                          List<String> tags =
+                              List.of(
+                                  "product",
+                                  snap.getProductId(),
+                                  "metric_id",
+                                  MetricId.tryGetValueFromString(entry.getKey().getMetricId()),
+                                  "billing_provider",
+                                  snap.getBillingProvider().getValue());
+                          meterRegistry
+                              .counter(TALLIED_USAGE_TOTAL_METRIC, tags.toArray(new String[0]))
+                              .increment(entry.getValue());
+                        }));
+  }
+
+  private boolean filterByFinestGranularityAndNotAnySnapshots(TallySnapshot snapshot) {
+    return SnapshotSummaryProducer.filterByGranularityAndNotAnySnapshots(
+        snapshot, SubscriptionDefinition.getFinestGranularity(snapshot.getProductId()));
+  }
+
+  private boolean isCombiningRollupStrategySupported(
+      Map.Entry<OffsetDateTime, AccountUsageCalculation> usageCalculations) {
+
+    var calculatedProducts = usageCalculations.getValue().getProducts();
+    return calculatedProducts.stream()
+        .map(SubscriptionDefinition::lookupSubscriptionByTag)
+        .anyMatch(x -> x.map(SubscriptionDefinition::isPaygEligible).orElse(false));
+  }
+
+  private AccountUsageCalculation performTally(String orgId) {
+    retryTemplate.execute(
+        context -> {
+          usageCollector.reconcileSystemDataWithHbi(
+              orgId,
+              SubscriptionDefinition.filterVariants(
+                      variant ->
+                          variant.getSubscription() != null
+                              && !variant.getSubscription().isPaygEligible())
+                  .stream()
+                  .map(Variant::getTag)
+                  .collect(Collectors.toUnmodifiableSet()));
+          return null;
+        });
+    return usageCollector.tally(orgId);
+  }
+
+  private TallyState initializeTallyState(String orgId, String serviceType) {
+    OffsetDateTime defaultLastEventRecordDate = clock.startOfToday().minusDays(1);
+    log.info(
+        "Initializing tally state orgId={} serviceType={} lastEventRecordDate={}",
+        orgId,
+        serviceType,
+        defaultLastEventRecordDate);
+    return tallyStateRepository.save(
+        new TallyState(orgId, serviceType, defaultLastEventRecordDate));
+  }
+}

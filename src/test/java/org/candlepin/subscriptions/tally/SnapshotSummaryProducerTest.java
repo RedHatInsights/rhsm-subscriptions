@@ -1,0 +1,548 @@
+/*
+ * Copyright Red Hat, Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Red Hat trademarks are not licensed under GPLv3. No permission is
+ * granted to use or replicate Red Hat trademarks that are incorporated
+ * in this software or its documentation.
+ */
+package org.candlepin.subscriptions.tally;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+
+import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.util.MetricIdUtils;
+import java.time.OffsetDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.candlepin.clock.ApplicationClock;
+import org.candlepin.subscriptions.configuration.FeatureFlags;
+import org.candlepin.subscriptions.db.TallySnapshotRepository;
+import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
+import org.candlepin.subscriptions.db.model.TallySnapshot;
+import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.json.TallyMeasurement;
+import org.candlepin.subscriptions.json.TallySummary;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.retry.support.RetryTemplate;
+
+@ExtendWith(MockitoExtension.class)
+class SnapshotSummaryProducerTest {
+
+  @Mock private KafkaTemplate<String, TallySummary> kafka;
+  @Mock TallySnapshotRepository snapshotRepository;
+  @Mock ApplicationClock clock;
+  @Mock FeatureFlags featureFlags;
+  @InjectMocks TallySummaryMapper tallySummaryMapper;
+
+  @Captor private ArgumentCaptor<TallySummary> summaryCaptor;
+
+  private TallySummaryProperties props;
+
+  private SnapshotSummaryProducer producer;
+
+  @BeforeEach
+  void setup() {
+    props = new TallySummaryProperties();
+    props.setTopic("summary-topic");
+    RetryTemplate retryTemplate = new RetryTemplate();
+    this.producer = new SnapshotSummaryProducer(kafka, retryTemplate, props, tallySummaryMapper);
+  }
+
+  static Stream<Pair> snapshotSummaryProducerParams() {
+    return Stream.of(
+        Pair.of("hourly", SnapshotSummaryProducer.HOURLY_SNAP_FILTER),
+        Pair.of("daily", SnapshotSummaryProducer.NIGHTLY_SNAP_FILTER));
+  }
+
+  static class Pair {
+    String value;
+    Predicate<TallySnapshot> predicate;
+
+    Pair(String value, Predicate<TallySnapshot> predicate) {
+      this.value = value;
+      this.predicate = predicate;
+    }
+
+    static Pair of(String value, Predicate<TallySnapshot> predicate) {
+      return new Pair(value, predicate);
+    }
+  }
+
+  @ParameterizedTest
+  @MockitoSettings(strictness = Strictness.LENIENT)
+  @ValueSource(booleans = {true, false})
+  void testProduceSummaryDaily(boolean isPrimaryRowSearch) {
+    when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(isPrimaryRowSearch);
+    Map<String, List<TallySnapshot>> updateMap = new HashMap<>();
+    updateMap.put(
+        "org1",
+        List.of(
+            buildSnapshot(
+                "org1",
+                "RHEL for x86",
+                Granularity.DAILY,
+                ServiceLevel.PREMIUM,
+                Usage.PRODUCTION,
+                BillingProvider.RED_HAT,
+                "12345",
+                MetricIdUtils.getSockets().getValue(),
+                20.4,
+                isPrimaryRowSearch)));
+    updateMap.put(
+        "org2",
+        List.of(
+            buildSnapshot(
+                "org2",
+                "RHEL Compute Node",
+                Granularity.DAILY,
+                ServiceLevel.PREMIUM,
+                Usage.PRODUCTION,
+                BillingProvider.AWS,
+                "12345",
+                MetricIdUtils.getSockets().getValue(),
+                22.2,
+                isPrimaryRowSearch)));
+    producer.produceTallySummaryMessages(
+        updateMap, List.of(Granularity.DAILY), SnapshotSummaryProducer.NIGHTLY_SNAP_FILTER);
+    verify(kafka, times(2)).send(eq(props.getTopic()), any(), summaryCaptor.capture());
+
+    List<TallySummary> summaries = summaryCaptor.getAllValues();
+    assertEquals(2, summaries.size());
+    Map<String, List<TallySummary>> results =
+        summaries.stream().collect(Collectors.groupingBy(TallySummary::getOrgId));
+    assertSummary(
+        results,
+        "org1",
+        "RHEL for x86",
+        Granularity.DAILY,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        MetricIdUtils.getSockets(),
+        20.4,
+        1,
+        false);
+    assertSummary(
+        results,
+        "org2",
+        "RHEL Compute Node",
+        Granularity.DAILY,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        MetricIdUtils.getSockets(),
+        22.2,
+        1,
+        false);
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void testProduceSummaryHourly(boolean isPrimaryRowSearch) {
+    when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(isPrimaryRowSearch);
+    Map<String, List<TallySnapshot>> updateMap = new HashMap<>();
+    updateMap.put(
+        "org1",
+        List.of(
+            buildSnapshot(
+                "org1",
+                "rosa",
+                Granularity.HOURLY,
+                ServiceLevel.PREMIUM,
+                Usage.PRODUCTION,
+                BillingProvider.RED_HAT,
+                "12345",
+                MetricIdUtils.getCores().getValue(),
+                20.4,
+                isPrimaryRowSearch)));
+    updateMap.put(
+        "org2",
+        List.of(
+            buildSnapshot(
+                "org2",
+                "rhods",
+                Granularity.HOURLY,
+                ServiceLevel.PREMIUM,
+                Usage.PRODUCTION,
+                BillingProvider.AWS,
+                "12345",
+                MetricIdUtils.getCores().getValue(),
+                22.2,
+                isPrimaryRowSearch)));
+    producer.produceTallySummaryMessages(
+        updateMap, List.of(Granularity.HOURLY), SnapshotSummaryProducer.HOURLY_SNAP_FILTER);
+    verify(kafka, times(2)).send(eq(props.getTopic()), any(), summaryCaptor.capture());
+
+    List<TallySummary> summaries = summaryCaptor.getAllValues();
+    assertEquals(2, summaries.size());
+    Map<String, List<TallySummary>> results =
+        summaries.stream().collect(Collectors.groupingBy(TallySummary::getOrgId));
+    assertSummary(
+        results,
+        "org1",
+        "rosa",
+        Granularity.HOURLY,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        MetricIdUtils.getCores(),
+        20.4,
+        1,
+        false);
+    assertSummary(
+        results,
+        "org2",
+        "rhods",
+        Granularity.HOURLY,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        MetricIdUtils.getCores(),
+        22.2,
+        1,
+        false);
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void testProduceMultiGranularitySummaries(boolean isPrimaryRowSearch) {
+    when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(isPrimaryRowSearch);
+    Map<String, List<TallySnapshot>> updateMap = new HashMap<>();
+    updateMap.put(
+        "org1",
+        List.of(
+            buildSnapshot(
+                "org1",
+                "rhods",
+                Granularity.HOURLY,
+                ServiceLevel.PREMIUM,
+                Usage.PRODUCTION,
+                BillingProvider.RED_HAT,
+                "12345",
+                MetricIdUtils.getCores().getValue(),
+                20.4,
+                isPrimaryRowSearch)));
+    updateMap.put(
+        "org2",
+        List.of(
+            buildSnapshot(
+                "org2",
+                "rosa",
+                Granularity.HOURLY,
+                ServiceLevel.PREMIUM,
+                Usage.PRODUCTION,
+                BillingProvider.AWS,
+                "12345",
+                MetricIdUtils.getCores().getValue(),
+                22.2,
+                isPrimaryRowSearch)));
+    updateMap.put(
+        "org3",
+        List.of(
+            buildSnapshot(
+                "org3",
+                "RHEL for x86",
+                Granularity.DAILY,
+                ServiceLevel.PREMIUM,
+                Usage.PRODUCTION,
+                BillingProvider.AWS,
+                "12345",
+                MetricIdUtils.getCores().getValue(),
+                42.2,
+                isPrimaryRowSearch)));
+    producer.produceTallySummaryMessages(
+        updateMap, List.of(Granularity.HOURLY), SnapshotSummaryProducer.HOURLY_SNAP_FILTER);
+    verify(kafka, times(2)).send(eq(props.getTopic()), any(), summaryCaptor.capture());
+
+    List<TallySummary> summaries = summaryCaptor.getAllValues();
+    assertEquals(2, summaries.size());
+    Map<String, List<TallySummary>> results =
+        summaries.stream().collect(Collectors.groupingBy(TallySummary::getOrgId));
+    assertSummary(
+        results,
+        "org1",
+        "rhods",
+        Granularity.HOURLY,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        MetricIdUtils.getCores(),
+        20.4,
+        1,
+        false);
+    assertSummary(
+        results,
+        "org2",
+        "rosa",
+        Granularity.HOURLY,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        MetricIdUtils.getCores(),
+        22.2,
+        1,
+        false);
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void testProduceSummariesNoBilling(boolean isPrimaryRowSearch) {
+    when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(isPrimaryRowSearch);
+    Map<String, List<TallySnapshot>> updateMap = new HashMap<>();
+    updateMap.put(
+        "org1",
+        List.of(
+            buildSnapshot(
+                "org1",
+                "rosa",
+                Granularity.HOURLY,
+                ServiceLevel.PREMIUM,
+                Usage.PRODUCTION,
+                BillingProvider.RED_HAT,
+                "12345",
+                MetricIdUtils.getCores().getValue(),
+                20.4,
+                isPrimaryRowSearch)));
+    updateMap.put(
+        "org2",
+        List.of(
+            buildSnapshot(
+                "org2",
+                "rhods",
+                Granularity.HOURLY,
+                ServiceLevel.PREMIUM,
+                Usage.PRODUCTION,
+                BillingProvider.AWS,
+                "12345",
+                MetricIdUtils.getCores().getValue(),
+                22.2,
+                isPrimaryRowSearch)));
+    updateMap.put(
+        "org3",
+        List.of(
+            buildSnapshot(
+                "org3",
+                "rhods",
+                Granularity.DAILY,
+                ServiceLevel.PREMIUM,
+                Usage.PRODUCTION,
+                BillingProvider._ANY,
+                null,
+                MetricIdUtils.getCores().getValue(),
+                42.2,
+                isPrimaryRowSearch)));
+    producer.produceTallySummaryMessages(
+        updateMap, List.of(Granularity.HOURLY), SnapshotSummaryProducer.HOURLY_SNAP_FILTER);
+    verify(kafka, times(2)).send(eq(props.getTopic()), any(), summaryCaptor.capture());
+
+    List<TallySummary> summaries = summaryCaptor.getAllValues();
+    assertEquals(2, summaries.size());
+    Map<String, List<TallySummary>> results =
+        summaries.stream().collect(Collectors.groupingBy(TallySummary::getOrgId));
+    assertSummary(
+        results,
+        "org1",
+        "rosa",
+        Granularity.HOURLY,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        MetricIdUtils.getCores(),
+        20.4,
+        1,
+        false);
+    assertSummary(
+        results,
+        "org2",
+        "rhods",
+        Granularity.HOURLY,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        MetricIdUtils.getCores(),
+        22.2,
+        1,
+        false);
+  }
+
+  void assertSummary(
+      Map<String, List<TallySummary>> results,
+      String orgId,
+      String product,
+      Granularity granularity,
+      ServiceLevel sla,
+      Usage usage,
+      MetricId metricId,
+      double value,
+      int expectedMeasurements,
+      boolean hasTotalMeasurements) {
+    assertTrue(results.containsKey(orgId));
+    List<TallySummary> accountSummaries = results.get(orgId);
+    assertEquals(1, accountSummaries.size());
+    TallySummary expectedSummary = accountSummaries.get(0);
+    assertEquals(orgId, expectedSummary.getOrgId());
+
+    assertEquals(1, expectedSummary.getTallySnapshots().size());
+    org.candlepin.subscriptions.json.TallySnapshot snapshot =
+        expectedSummary.getTallySnapshots().get(0);
+    assertEquals(product, snapshot.getProductId());
+    assertEquals(granularity.toString(), snapshot.getGranularity().value().toUpperCase());
+    assertEquals(sla.toString(), snapshot.getSla().value().toUpperCase());
+    assertEquals(usage.toString(), snapshot.getUsage().value().toUpperCase());
+    assertEquals(expectedMeasurements, snapshot.getTallyMeasurements().size());
+
+    Map<String, List<TallyMeasurement>> measurements =
+        snapshot.getTallyMeasurements().stream()
+            .collect(Collectors.groupingBy(TallyMeasurement::getHardwareMeasurementType));
+    assertTrue(Optional.ofNullable(measurements.get("TOTAL")).isEmpty() || hasTotalMeasurements);
+    assertMeasurement(measurements, "PHYSICAL", metricId, value);
+  }
+
+  @ParameterizedTest
+  @MethodSource("snapshotSummaryProducerParams")
+  void testSummarySkippedWhenItHasNoMeasurements(Pair params) {
+    Granularity granularity = Granularity.valueOf(params.value.toUpperCase());
+    Map<String, List<TallySnapshot>> updateMap = new HashMap<>();
+    updateMap.put(
+        "a1",
+        List.of(
+            buildSnapshot(
+                "org_1",
+                "OSD",
+                granularity,
+                ServiceLevel.PREMIUM,
+                Usage.PRODUCTION,
+                BillingProvider.RED_HAT,
+                "12345",
+                MetricIdUtils.getCores().getValue(),
+                20.4,
+                true)));
+    updateMap.get("a1").get(0).getTallyMeasurements().clear();
+    producer.produceTallySummaryMessages(updateMap, List.of(granularity), params.predicate);
+    verifyNoInteractions(kafka);
+  }
+
+  void assertMeasurement(
+      Map<String, List<TallyMeasurement>> measurements,
+      String hardwareType,
+      MetricId metricId,
+      double value) {
+    Optional<List<TallyMeasurement>> optionalTotal =
+        Optional.ofNullable(measurements.get(hardwareType));
+    assertTrue(optionalTotal.isPresent());
+    assertEquals(1, optionalTotal.get().size());
+    TallyMeasurement measurement = optionalTotal.get().get(0);
+
+    assertEquals(hardwareType, measurement.getHardwareMeasurementType());
+    assertEquals(metricId.toUpperCaseFormatted(), measurement.getMetricId());
+    assertEquals(value, measurement.getValue());
+  }
+
+  @Test
+  void testDeepCopy() {
+    // Test with fully populated snapshot
+    OffsetDateTime snapshotDate = OffsetDateTime.now();
+    Map<TallyMeasurementKey, Double> measurements = new HashMap<>();
+    TallyMeasurementKey key =
+        new TallyMeasurementKey(
+            HardwareMeasurementType.PHYSICAL, MetricIdUtils.getCores().getValue());
+    measurements.put(key, 42.0);
+
+    TallySnapshot original =
+        TallySnapshot.builder()
+            .orgId("org-456")
+            .productId("RHEL for x86")
+            .snapshotDate(snapshotDate)
+            .granularity(Granularity.DAILY)
+            .serviceLevel(ServiceLevel.PREMIUM)
+            .usage(Usage.PRODUCTION)
+            .billingProvider(BillingProvider.RED_HAT)
+            .billingAccountId("billing-789")
+            .tallyMeasurements(measurements)
+            .build();
+
+    TallySnapshot copy = SnapshotSummaryProducer.deepCopy(original);
+
+    // Verify all fields are copied
+    assertEquals(original.getOrgId(), copy.getOrgId());
+    assertEquals(original.getProductId(), copy.getProductId());
+    assertEquals(original.getSnapshotDate(), copy.getSnapshotDate());
+    assertEquals(original.getGranularity(), copy.getGranularity());
+    assertEquals(original.getServiceLevel(), copy.getServiceLevel());
+    assertEquals(original.getUsage(), copy.getUsage());
+    assertEquals(original.getBillingProvider(), copy.getBillingProvider());
+    assertEquals(original.getBillingAccountId(), copy.getBillingAccountId());
+    assertEquals(original.getTallyMeasurements(), copy.getTallyMeasurements());
+
+    // Verify the copy is independent (deep copy)
+    copy.getTallyMeasurements()
+        .put(
+            new TallyMeasurementKey(
+                HardwareMeasurementType.TOTAL, MetricIdUtils.getCores().getValue()),
+            100.0);
+    assertEquals(1, original.getTallyMeasurements().size());
+    assertEquals(2, copy.getTallyMeasurements().size());
+  }
+
+  TallySnapshot buildSnapshot(
+      String orgId,
+      String productId,
+      Granularity granularity,
+      ServiceLevel sla,
+      Usage usage,
+      BillingProvider billingProvider,
+      String billingAccountId,
+      String metricId,
+      double val,
+      boolean isPrimaryRowSearch) {
+    Map<TallyMeasurementKey, Double> measurements = new HashMap<>();
+    measurements.put(new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, metricId), val);
+    measurements.put(new TallyMeasurementKey(HardwareMeasurementType.TOTAL, metricId), val);
+    return TallySnapshot.builder()
+        .orgId(orgId)
+        .productId(productId)
+        .snapshotDate(OffsetDateTime.now())
+        .tallyMeasurements(measurements)
+        .granularity(granularity)
+        .serviceLevel(sla)
+        .usage(usage)
+        .billingProvider(billingProvider)
+        .billingAccountId(billingAccountId)
+        .isPrimary(isPrimaryRowSearch)
+        .build();
+  }
+}

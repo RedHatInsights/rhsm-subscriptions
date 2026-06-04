@@ -1,0 +1,47 @@
+@startuml
+
+' see https://forum.plantuml.net/8356/white-backgrounds-are-rendered-transparent-in-svg
+skinparam backgroundColor #FEFEFE
+
+title Admin/Internal API Dataflow\n\
+<sub>See [[https://github.com/RedHatInsights/turnpike]] for more details.</sub>
+
+autoactivate on
+
+participant Browser
+
+box cloud.redhat.com
+participant turnpike
+participant service as "rhsm-subscriptions-worker k8s Service\n\
+(e.g. rhsm-subscriptions-worker-monitoring.rhsm-prod.svc.cluster.local)"
+participant pod as "rhsm-subscriptions-worker Deployment Pod"
+end box
+
+participant sso as "RH SSO"
+
+Browser -> turnpike: https\n\
+(port 443)
+
+return redirect to saml login
+
+Browser -> sso: authentication
+return saml assertion
+
+Browser -> turnpike: login via SAML assertion
+return redirect to original request
+
+Browser -> turnpike: (original request)
+
+turnpike -> service: http w/ x-rh-identity header\n\
+having info from SAML assertion\n\
+(port 9000)
+note right: You can see an example of the info from the saml assertion by visiting\n\
+[[https://internal.cloud.redhat.com/api/turnpike/identity/]]
+
+service -> pod: http w/ x-rh-identity header\n\
+having info from SAML assertion\n\
+(port 9000)
+
+pod --> Browser : Response JSON
+
+@enduml

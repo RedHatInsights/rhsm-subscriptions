@@ -1,0 +1,22 @@
+rhsm-subscriptions:
+  inventory-service.datasource:
+    url: jdbc:hsqldb:mem:inventory-testdb
+    username: test
+    password: test
+    driver-class-name: org.hsqldb.jdbc.JDBCDriver
+    platform: hsqldb
+  account-batch-size: 2
+logging:
+  level:
+    org:
+      candlepin: INFO
+spring:
+  jpa:
+    database: postgresql
+    properties:
+      hibernate:
+        jdbc:
+          # Force the testing database into UTC to prevent test failures when the database
+          # determines the 'current' time in a query. NOTE: This is primarily when tests
+          # are run in a local environment and the DB is running in local time zone.
+          time_zone: UTC

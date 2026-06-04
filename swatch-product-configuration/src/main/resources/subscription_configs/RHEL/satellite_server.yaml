@@ -1,0 +1,22 @@
+---
+platform: RHEL
+
+id: satellite-server
+
+includedSubscriptions:
+  - rhel-for-x86
+  - rhel-for-x86-eus
+  - rhel-for-x86-ha
+  - rhel-for-x86-rs
+
+variants:
+  - tag: Satellite Server
+    engineeringIds:
+      - 250 # Red Hat Satellite
+
+defaults:
+  variant: Satellite Server
+
+metrics:
+  - id: Sockets
+    type: gauge

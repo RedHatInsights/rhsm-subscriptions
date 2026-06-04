@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="202306291611-1" author="kflahert">
+        <comment>Add indexes for tally_instance_view queries</comment>
+        <createIndex indexName="idx_instance_id_uom_measure" tableName="instance_measurements">
+            <column name="instance_id"/>
+            <column name="uom"/>
+            <column name="value"/>
+        </createIndex>
+        <createIndex indexName="idx_hosts_view" tableName="hosts">
+            <column name="org_id"/>
+            <column name="id"/>
+            <column name="instance_id"/>
+            <column name="display_name"/>
+            <column name="billing_provider"/>
+            <column name="billing_account_id"/>
+            <column name="last_seen"/>
+            <column name="num_of_guests"/>
+            <column name="subscription_manager_id"/>
+        </createIndex>
+        <createIndex indexName="idx_buckets_pid" tableName="host_tally_buckets">
+            <column name="product_id"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>
+<!-- vim: set expandtab sts=4 sw=4 ai: -->

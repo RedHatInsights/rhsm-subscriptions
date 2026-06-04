@@ -1,0 +1,4 @@
+rhsm-conduit:
+  inventory-service:
+    url: https://localhost/api/hostinventory
+    use-stub: false

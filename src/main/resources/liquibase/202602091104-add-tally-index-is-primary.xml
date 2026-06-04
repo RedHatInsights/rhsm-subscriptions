@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+  <changeSet id="202602091104-01" author="wpoteat">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <indexExists tableName="tally_snapshots" indexName="tally_snapshots_primary_idx"/>
+      </not>
+    </preConditions>
+    <comment>
+      Add index to tally snapshots for lookup of primary rows only.
+      This should only run in new databases.
+      The index will be applied alternately in stage and production environments.
+    </comment>
+    <sql dbms="postgresql">
+      CREATE INDEX tally_snapshots_primary_idx ON tally_snapshots (
+        org_id,
+        product_id,
+        snapshot_date,
+        granularity) WHERE is_primary = TRUE;
+    </sql>
+    <rollback>
+      <dropIndex indexName="tally_snapshots_primary_idx" tableName="tally_snapshots"/>
+    </rollback>
+  </changeSet>
+</databaseChangeLog>

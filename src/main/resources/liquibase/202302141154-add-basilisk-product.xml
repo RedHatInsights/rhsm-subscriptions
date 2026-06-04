@@ -1,0 +1,22 @@
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202302141154-1" author="khowell">
+    <comment>Add offering for BASILISK SKU</comment>
+    <insert tableName="offering">
+      <column name="sku" value="BASILISK"/>
+      <column name="product_name" value="BASILISK"/>
+      <column name="role" value="BASLISK"/>
+      <column name="sla" value="Premium"/>
+      <column name="usage" value="Production"/>
+      <column name="cores" value="0"/>
+      <column name="sockets" value="0"/>
+      <column name="hypervisor_cores" value="0"/>
+      <column name="hypervisor_sockets" value="0"/>
+    </insert>
+  </changeSet>
+
+</databaseChangeLog>

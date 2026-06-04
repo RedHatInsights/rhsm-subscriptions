@@ -1,0 +1,3 @@
+cd /tmp/src
+./mvnw package -DskipTests
+cp build/libs/* /deployments/

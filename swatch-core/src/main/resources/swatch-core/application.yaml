@@ -1,0 +1,176 @@
+# This file defines properties that are common to all swatch services.
+# import via:
+# spring:
+#   config:
+#     import: classpath:swatch-core/application.yaml
+
+# Variables derived from Clowder should have their defaults defined here. Failure to do so will
+# result in an exception at start-up when the clowder property cannot be successfully resolved.
+# The values can still be overridden using environment variables as they have a higher precedence
+# than the defaults defined here.
+DATABASE_SSL_MODE: ${clowder.database.sslMode:disable}
+DATABASE_SSL_CERT: ${clowder.database.rdsCa:}
+SERVER_PORT: ${clowder.publicPort:8000}
+
+# Values assigned to management.path-mapping.* shouldn't have a leading slash. However, Clowder
+# only provides a path starting with a leading slash.  I have elected to set the default to do the
+# same for the sake of consistency.  The leading slash can potentially cause problems with Spring
+# Security since the path now becomes (assuming management.base-path is "/") "//metrics".  Browser
+# requests to "/metrics" aren't going to match according to Spring Security's path matching rules
+# and the end result is that any security rule applied to EndpointRequest.to("prometheus") will be
+# applied to the defined path ("//metrics") rather than the de facto path ("/metrics").
+#
+# Accordingly, I've put in a custom rule in the security config to grant access to "/metrics"
+METRICS_PROMETHEUS_PATH: ${clowder.metricsPath:/metrics}
+METRICS_BASE_PATH: /
+METRICS_SERVER_PORT: ${clowder.metricsPort:9000}
+
+JDBC_BATCH_SIZE: 128
+KAFKA_MESSAGE_THREADS: 1
+KAFKA_IDLE_EVENT_INTERVAL: 5s
+KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS: 1800000
+KAFKA_CONSUMER_RECONNECT_BACKOFF_MS: 2000
+KAFKA_CONSUMER_RECONNECT_BACKOFF_MAX_MS: 10000
+KAFKA_API_RECONNECT_TIMEOUT_MS: 480000
+
+DEV_MODE: false
+DEVTEST_EVENT_EDITING_ENABLED: false
+ENABLE_ACCOUNT_RESET: false
+PATH_PREFIX: api
+APP_NAME: rhsm-subscriptions
+
+DATABASE_HOST: ${clowder.database.hostname:localhost}
+DATABASE_PORT: ${clowder.database.port:5432}
+DATABASE_DATABASE: ${clowder.database.name:rhsm-subscriptions}
+DATABASE_USERNAME: ${clowder.database.username:rhsm-subscriptions}
+DATABASE_PASSWORD: ${clowder.database.password:rhsm-subscriptions}
+DATABASE_CONNECTION_TIMEOUT_MS: 30000
+DATABASE_MAX_POOL_SIZE: 10
+POSTGRES_STATEMENT_TIMEOUT: 5min
+
+UNLEASH_HOST: ${clowder.featureFlags.hostname:localhost}
+UNLEASH_PORT: ${clowder.featureFlags.port:4242}
+UNLEASH_SCHEME: ${clowder.featureFlags.scheme:http}
+UNLEASH_API_TOKEN: ${clowder.featureFlags.clientAccessToken:default:development.unleash-insecure-api-token}
+UNLEASH_URL: ${UNLEASH_SCHEME}://${UNLEASH_HOST}:${UNLEASH_PORT}/api
+
+FILTER_ORGS:
+
+server:
+  port: ${SERVER_PORT}
+
+management:
+  server:
+    port: ${METRICS_SERVER_PORT}
+  endpoints:
+    web:
+      exposure:
+        include:
+          - health
+          - info
+          - prometheus
+      path-mapping:
+        prometheus: ${METRICS_PROMETHEUS_PATH}
+      base-path: ${METRICS_BASE_PATH}
+  endpoint:
+    shutdown:
+      enabled: true
+    prometheus:
+      enabled: true
+    # The liveness and readiness probes are enabled automatically when Spring Boot detects
+    # kubernetes environment variables.  This setting just enables them always so that we see them
+    # when running in a local deployment.
+    health:
+      probes:
+        enabled: true
+  info:
+    certs:
+      enabled: true
+
+spring:
+  # general hibernate configurations
+  jpa:
+    show-sql: ${LOGGING_SHOW_SQL_QUERIES:false}
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: ${LOGGING_SHOW_SQL_QUERIES:false}
+        jdbc:
+          batch_size: ${JDBC_BATCH_SIZE}
+        order_inserts: true
+        order_updates: true
+  liquibase:
+    change-log: classpath:/liquibase/changelog.xml
+    show-summary: summary
+    show-summary-output: all
+  kafka:
+    bootstrap-servers: ${clowder.kafka.brokers:localhost:9092}
+    properties:
+      security.protocol: ${clowder.kafka.brokers.sasl.securityProtocol:PLAINTEXT}
+      sasl.mechanism: ${clowder.kafka.brokers.sasl.mechanism:}
+      sasl.jaas.config: ${clowder.kafka.brokers.sasl.jaas.config:}
+    ssl:
+      # This needs to be a PEM encoded certificate string.  If you want to point to a file you can use
+      # spring.kafka.ssl.trust-store-location property but that property is mutually exclusive with the
+      # spring.kafka.ssl.trust-store-certificates property.  Since Clowder gives us the actual
+      # certificate PEM, we have to use the trust-store-certificates property here.
+      #
+      # The value of this property must match a regular expression defined in Kafka's
+      # DefaultSslEngineFactory.PemParser class.  The regular expression is (with Java escapes)
+      # -+BEGIN\\s*.*CERTIFICATE[^-]*-+\\s+(?:\\s*[^\\r\\n]*:[^\\r\\n]*[\\r\\n]+)*([a-zA-Z0-9/+=\\s]*)-+END\\s*.*CERTIFICATE[^-]*-+\\s+")
+      # A notable point about this expression is that the "----BEGIN CERTIFICATE-----" piece must be
+      # followed by a newline which makes it challenging to place the value in a properties or YAML file.
+
+      # Important: these values need to default to the empty string.  An empty string is what tells
+      # the KafkaSslBeanPostProcessor to reset the values back to null in the KafkaProperties.Ssl
+      # object (which will result in Kafka using the system truststore).  See SWATCH-2088.
+      trust-store-certificates: ${clowder.kafka.brokers.cacert:}
+      trust-store-type: ${clowder.kafka.brokers.cacert.type:}
+    listener:
+      # The number of threads that will be processing messages (should match
+      # the number of partitions on the queue)
+      concurrency: ${KAFKA_MESSAGE_THREADS:1}
+      idle-event-interval: ${KAFKA_IDLE_EVENT_INTERVAL:5s}
+      observation-enabled: true
+    template:
+      observation-enabled: true
+    consumer:
+      properties:
+        # Required kafka defaults
+        max.poll.interval.ms: ${KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS:1800000}
+        reconnect.backoff.ms: ${KAFKA_CONSUMER_RECONNECT_BACKOFF_MS:2000}
+        reconnect.backoff.max.ms: ${KAFKA_CONSUMER_RECONNECT_BACKOFF_MAX_MS:10000}
+        default.api.timeout.ms: ${KAFKA_API_RECONNECT_TIMEOUT_MS:480000}
+      # if no offset commit exists yet, set to earliest
+      auto-offset-reset: earliest
+      max-poll-records: 1
+
+rhsm-subscriptions:
+  security:
+    dev-mode: ${DEV_MODE}
+    manual-event-editing-enabled: ${DEVTEST_EVENT_EDITING_ENABLED}
+    reset-account-enabled: ${ENABLE_ACCOUNT_RESET}
+  datasource:
+    url: jdbc:postgresql://${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_DATABASE}?reWriteBatchedInserts=true&stringtype=unspecified&options=-c%20statement_timeout=${POSTGRES_STATEMENT_TIMEOUT}&ApplicationName=${clowder.metadata.name:swatch-core}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    platform: postgresql
+    hikari:
+      connection-timeout: ${DATABASE_CONNECTION_TIMEOUT_MS}
+      maximum-pool-size: ${DATABASE_MAX_POOL_SIZE}
+  product:
+    useStub: ${PRODUCT_USE_STUB:false}
+    url: ${PRODUCT_URL:https://product.stage.api.redhat.com/svcrest/product/v3}
+    keystore: file:${PRODUCT_KEYSTORE:}
+    keystorePassword: ${PRODUCT_KEYSTORE_PASSWORD:redhat}
+    maxConnections: ${PRODUCT_MAX_CONNECTIONS:100}
+  auth:
+    swatchPsks:
+      self: ${SWATCH_SELF_PSK:placeholder}
+logging:
+  level:
+    org:
+      candlepin:
+        subscriptions:
+          resteasy:

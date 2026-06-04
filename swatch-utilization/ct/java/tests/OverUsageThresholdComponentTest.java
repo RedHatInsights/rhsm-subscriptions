@@ -1,0 +1,300 @@
+/*
+ * Copyright Red Hat, Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Red Hat trademarks are not licensed under GPLv3. No permission is
+ * granted to use or replicate Red Hat trademarks that are incorporated
+ * in this software or its documentation.
+ */
+package tests;
+
+import static com.redhat.swatch.component.tests.utils.AwaitilityUtils.untilAsserted;
+import static com.redhat.swatch.component.tests.utils.Topics.UTILIZATION;
+import static org.awaitility.Awaitility.await;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+
+import com.redhat.swatch.component.tests.utils.RandomUtils;
+import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.util.MetricIdUtils;
+import com.redhat.swatch.utilization.test.model.Measurement;
+import com.redhat.swatch.utilization.test.model.UtilizationSummary;
+import com.redhat.swatch.utilization.test.model.UtilizationSummary.Granularity;
+import domain.Product;
+import domain.Severity;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+public class OverUsageThresholdComponentTest extends BaseUtilizationComponentTest {
+
+  private static final String DEFAULT_THRESHOLD_EVENT_TYPE = "exceeded-utilization-threshold";
+
+  // Test data constants - aligned with CUSTOMER_OVER_USAGE_DEFAULT_THRESHOLD_PERCENT=5.0
+  private static final double BASELINE_CAPACITY = 100.0;
+  private static final double USAGE_EXCEEDING_THRESHOLD = 110.0; // 10% over capacity
+  private static final double USAGE_BELOW_THRESHOLD = 103.0; // 3% over capacity
+  private static final double ARBITRARY_USAGE = 200.0;
+
+  // Test timing and assertion constants
+  private static final Duration MESSAGE_PROCESSING_DELAY = Duration.ofSeconds(2);
+  private static final double EXPECTED_SINGLE_INCREMENT = 1.0;
+
+  private final Map<String, Double> initialCounters = new HashMap<>();
+  private UtilizationSummary utilizationSummary;
+
+  @BeforeAll
+  static void enableSendNotificationsFeatureFlag() {
+    unleash.enableSendNotificationsFlag();
+  }
+
+  @AfterAll
+  static void disableSendNotificationsFeatureFlag() {
+    unleash.disableSendNotificationsFlag();
+  }
+
+  /**
+   * Verify over-usage counter is incremented when usage exceeds capacity by more than threshold.
+   */
+  @Test
+  void shouldIncrementOverUsageCounter_whenUsageExceedsThreshold() {
+    // 10% over capacity exceeds the 5% threshold
+    givenUtilizationSummaryForPaygProduct(Granularity.HOURLY);
+    givenMetricUsageExceedsThreshold(MetricIdUtils.getCores());
+
+    whenUtilizationEventIsReceived();
+
+    thenOverUsageCounterShouldBeIncremented();
+    thenThresholdNotificationShouldBeSent(
+        DEFAULT_THRESHOLD_EVENT_TYPE,
+        Severity.IMPORTANT,
+        Product.ROSA.getName(),
+        MetricIdUtils.getCores(),
+        USAGE_EXCEEDING_THRESHOLD,
+        BASELINE_CAPACITY,
+        null,
+        null);
+  }
+
+  /**
+   * Verify that when the summary carries a specific service level and usage type, the counter
+   * increments on that time series (not on the series where both {@code sla} and {@code usage} are
+   * {@code _ANY}, which applies when neither dimension is specific on the payload) and the
+   * notification context includes them.
+   */
+  @Test
+  void shouldIncrementOverUsageCounter_whenSlaAndUsageAreSet() {
+    givenUtilizationSummaryForPaygProduct(Granularity.HOURLY);
+    utilizationSummary
+        .withSla(UtilizationSummary.Sla.PREMIUM)
+        .withUsage(UtilizationSummary.Usage.PRODUCTION);
+    givenMetricUsageExceedsThreshold(MetricIdUtils.getCores());
+
+    double initialLabeled =
+        overUsageMetricCount(
+            MetricIdUtils.getCores(),
+            UtilizationSummary.Sla.PREMIUM,
+            UtilizationSummary.Usage.PRODUCTION);
+    double initialBothSlaUsageAny = overUsageMetricCount(MetricIdUtils.getCores());
+
+    whenUtilizationEventIsReceived();
+
+    untilAsserted(
+        () -> {
+          assertThat(
+              "Labeled series (Premium, Production) should gain one increment",
+              overUsageMetricCount(
+                      MetricIdUtils.getCores(),
+                      UtilizationSummary.Sla.PREMIUM,
+                      UtilizationSummary.Usage.PRODUCTION)
+                  - initialLabeled,
+              equalTo(EXPECTED_SINGLE_INCREMENT));
+          assertThat(
+              "Series with both sla and usage _ANY should be unchanged",
+              overUsageMetricCount(MetricIdUtils.getCores()) - initialBothSlaUsageAny,
+              equalTo(0.0));
+        });
+
+    thenThresholdNotificationShouldBeSent(
+        DEFAULT_THRESHOLD_EVENT_TYPE,
+        Severity.IMPORTANT,
+        Product.ROSA.getName(),
+        MetricIdUtils.getCores(),
+        USAGE_EXCEEDING_THRESHOLD,
+        BASELINE_CAPACITY,
+        "Premium",
+        "Production");
+  }
+
+  /** Verify over-usage counter is not incremented when usage is below threshold. */
+  @Test
+  void shouldNotIncrementOverUsageCounter_whenUsageBelowThreshold() {
+    // 3% over capacity is below the 5% threshold
+    givenUtilizationSummaryForPaygProduct(Granularity.HOURLY);
+    givenMetricUsageDoesNotExceedThreshold(MetricIdUtils.getCores());
+
+    whenUtilizationEventIsReceived();
+
+    thenOverUsageCounterShouldNotChange();
+  }
+
+  /** Verify over-usage counter is not incremented for unlimited capacity subscriptions. */
+  @Test
+  void shouldNotIncrementOverUsageCounter_whenCapacityIsUnlimited() {
+    givenUtilizationSummaryForPaygProduct(Granularity.HOURLY);
+    givenMetricIsUnlimited(MetricIdUtils.getCores());
+
+    whenUtilizationEventIsReceived();
+
+    thenOverUsageCounterShouldNotChange();
+  }
+
+  @Test
+  void shouldIncrementOverUsageCounter_whenGranularityIsDaily() {
+    givenUtilizationSummaryForNonPaygProduct(Granularity.DAILY);
+    givenMetricUsageExceedsThreshold(MetricIdUtils.getSockets());
+
+    whenUtilizationEventIsReceived();
+
+    thenOverUsageCounterShouldBeIncremented();
+    thenThresholdNotificationShouldBeSent(
+        DEFAULT_THRESHOLD_EVENT_TYPE,
+        Severity.IMPORTANT,
+        Product.RHEL.getName(),
+        MetricIdUtils.getSockets(),
+        USAGE_EXCEEDING_THRESHOLD,
+        BASELINE_CAPACITY,
+        null,
+        null);
+  }
+
+  /** Verify no exceptions thrown when measurements list is empty. */
+  @Test
+  void shouldHandleEmptyMeasurementsList_withoutErrors() {
+    givenUtilizationSummaryForPaygProduct(Granularity.HOURLY);
+
+    whenUtilizationEventIsReceived();
+
+    thenOverUsageCounterShouldNotChange();
+  }
+
+  /** Verify only measurements exceeding threshold increment counter. */
+  @Test
+  void shouldIncrementCounterOnlyForMeasurementsExceedingThreshold() {
+    double initialInstanceHoursCount = overUsageMetricCount(MetricIdUtils.getInstanceHours());
+
+    givenUtilizationSummaryForPaygProduct(Granularity.HOURLY);
+    givenMetricUsageDoesNotExceedThreshold(MetricIdUtils.getCores());
+    givenMetricUsageExceedsThreshold(MetricIdUtils.getInstanceHours());
+
+    whenUtilizationEventIsReceived();
+
+    // Counter should increment by exactly 1 (only the second measurement)
+    untilAsserted(
+        () -> {
+          double currentCount = overUsageMetricCount(MetricIdUtils.getInstanceHours());
+          assertThat(
+              "Counter should increment by exactly 1 for the one measurement exceeding threshold",
+              currentCount - initialInstanceHoursCount,
+              equalTo(EXPECTED_SINGLE_INCREMENT));
+        });
+  }
+
+  // Given helpers
+  private void givenMetricUsageExceedsThreshold(MetricId metric) {
+    givenMetricInUtilizationSummary(metric, USAGE_EXCEEDING_THRESHOLD, false);
+  }
+
+  private void givenMetricUsageDoesNotExceedThreshold(MetricId metric) {
+    givenMetricInUtilizationSummary(metric, USAGE_BELOW_THRESHOLD, false);
+  }
+
+  private void givenMetricIsUnlimited(MetricId metric) {
+    givenMetricInUtilizationSummary(metric, ARBITRARY_USAGE, true);
+  }
+
+  private void givenMetricInUtilizationSummary(
+      MetricId metric, double currentTotal, boolean unlimited) {
+    utilizationSummary
+        .getMeasurements()
+        .add(
+            new Measurement()
+                .withMetricId(metric.getValue())
+                .withValue(currentTotal)
+                .withCurrentTotal(currentTotal)
+                .withCapacity(BASELINE_CAPACITY)
+                .withUnlimited(unlimited));
+  }
+
+  void givenUtilizationSummaryForPaygProduct(Granularity granularity) {
+    givenUtilizationSummary(Product.ROSA, granularity);
+  }
+
+  void givenUtilizationSummaryForNonPaygProduct(Granularity granularity) {
+    givenUtilizationSummary(Product.RHEL, granularity);
+  }
+
+  void givenUtilizationSummary(Product product, Granularity granularity) {
+    utilizationSummary =
+        new UtilizationSummary()
+            .withOrgId(orgId)
+            .withProductId(product.getName())
+            .withGranularity(granularity)
+            .withBillingAccountId(RandomUtils.generateRandom())
+            .withMeasurements(new ArrayList<>());
+
+    initialCounters.put(OVER_USAGE_METRIC, overUsageMetricCount(product.getFirstMetricId()));
+  }
+
+  // When helpers
+  void whenUtilizationEventIsReceived() {
+    kafkaBridge.produceKafkaMessage(UTILIZATION, utilizationSummary);
+  }
+
+  // Then helpers
+  void thenOverUsageCounterShouldBeIncremented() {
+    thenCounterShouldBeIncremented(OVER_USAGE_METRIC);
+  }
+
+  void thenCounterShouldBeIncremented(String metric) {
+    Double initialCount = initialCounters.getOrDefault(metric, 0.0);
+    MetricId metricId = Product.fromString(utilizationSummary.getProductId()).getFirstMetricId();
+    untilAsserted(
+        () -> {
+          double currentCount = overUsageMetricCount(metricId);
+          assertThat(
+              metric + " counter should be incremented by exactly 1",
+              currentCount - initialCount,
+              equalTo(EXPECTED_SINGLE_INCREMENT));
+        });
+  }
+
+  void thenOverUsageCounterShouldNotChange() {
+    Double initialCount = initialCounters.getOrDefault(OVER_USAGE_METRIC, 0.0);
+    MetricId metricId = Product.fromString(utilizationSummary.getProductId()).getFirstMetricId();
+    await()
+        .pollDelay(MESSAGE_PROCESSING_DELAY)
+        .untilAsserted(
+            () -> {
+              double currentCount = overUsageMetricCount(metricId);
+              assertThat(
+                  "Over-usage counter should not change", currentCount, equalTo(initialCount));
+            });
+  }
+}

@@ -1,0 +1,433 @@
+---
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: swatch-system-conduit
+parameters:
+  - name: JAVA_DEBUG
+    # Set to "true" to enable remote debugging
+    value: ''
+  - name: USER_OPTS_APPEND
+    value: ''
+  - name: TOLERATE_MISSING_ACCOUNT_NUMBER
+    value: 'false'
+  - name: LOGGING_LEVEL_ROOT
+    value: WARN
+  - name: LOGGING_LEVEL
+    value: INFO
+  - name: KAFKA_MESSAGE_THREADS
+    value: '24'
+  - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
+    value: '3600000'
+  - name: KAFKA_SEEK_OVERRIDE_END
+    value: 'false'
+  - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
+    value: ''
+  - name: REPLICAS
+    value: '1'
+  - name: IMAGE
+    value: quay.io/cloudservices/swatch-system-conduit
+  - name: IMAGE_TAG
+    value: latest
+  - name: IMAGE_PULL_SECRET
+    value: quay-cloudservices-pull
+  - name: MEMORY_REQUEST
+    value: 1000Mi
+  - name: MEMORY_LIMIT
+    value: 1400Mi
+  - name: CPU_REQUEST
+    value: 350m
+  - name: CPU_LIMIT
+    value: 1500m
+  - name: RHSM_URL
+    value: https://api.rhsm.stage.redhat.com/v1
+  - name: RHSM_MAX_ATTEMPTS
+    value: '10'
+  - name: RHSM_BACK_OFF_MAX_INTERVAL
+    value: 64s
+  - name: RHSM_BACK_OFF_INITIAL_INTERVAL
+    value: 1s
+  - name: RHSM_BACK_OFF_MULTIPLIER
+    value: '2'
+  - name: ENABLE_SYNCHRONOUS_OPERATIONS
+    value: 'false'
+  - name: DATABASE_CONNECTION_TIMEOUT_MS
+    value: '30000'
+  # TODO This has been lowered from what it was in the previous environment (from 25 to 10)
+  # We were running the clowder DB out of connections.  If we need more, we need to investigate
+  # tuning the database to allow more
+  - name: DATABASE_MAX_POOL_SIZE
+    value: '10'
+  - name: ENV_NAME
+    value: env-swatch-system-conduit
+  - name: ORG_SYNC_SCHEDULE
+    value: 0 0 * * *
+  - name: LOGGING_HEC_ENABLED
+    value: 'true'
+  - name: LOGGING_SOURCE
+    value: 'swatch-system-conduit'
+  - name: LOGGING_SOURCE_TYPE
+    value: 'swatch'
+  - name: LOGGING_MESSAGE_FORMAT
+    value: 'text'
+  - name: LOGGING_HEC_URL
+    value: https://splunk-hec.redhat.com:8088
+  - name: LOGGING_HEC_CONNECT_TIMEOUT
+    value: '5000'
+  - name: LOGGING_HEC_BATCH_SIZE
+    value: '1'
+  - name: LOGGING_HEC_TERMINATION_TIMEOUT
+    value: '2000'
+  - name: CURL_CRON_IMAGE
+    value: registry.access.redhat.com/ubi8/ubi-minimal
+  - name: CURL_CRON_IMAGE_TAG
+    value: latest
+  - name: CURL_CRON_MEMORY_REQUEST
+    value: 50Mi
+  - name: CURL_CRON_MEMORY_LIMIT
+    value: 50Mi
+  - name: CURL_CRON_CPU_REQUEST
+    value: 100m
+  - name: CURL_CRON_CPU_LIMIT
+    value: 100m
+  - name: KAFKA_CONDUIT_TASKS_REPLICAS
+    value: '3'
+  - name: KAFKA_CONDUIT_TASKS_PARTITIONS
+    value: '3'
+  - name: KAFKA_HOST_INGRESS_REPLICAS
+    value: '3'
+  - name: KAFKA_HOST_INGRESS_PARTITIONS
+    value: '3'
+  - name: HOST_LAST_SYNC_THRESHOLD
+    value: '30h'
+  - name: RHSM_API_MAX_CONCURRENT_CALLS
+    value: '5'
+  - name: RHSM_API_MAX_WAIT_DURATION
+    value: 3m
+  - name: OTEL_SERVICE_NAME
+    value: swatch-system-conduit
+  - name: OTEL_JAVAAGENT_ENABLED
+    value: 'false'
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: 'http://localhost:4317'
+  - name: OTEL_EXPORTER_OTLP_PROTOCOL
+    value: 'grpc'
+  # Disable OTLP export for logs and metrics when the collector only supports traces
+  - name: OTEL_LOGS_EXPORTER
+    value: 'none'
+  - name: OTEL_METRICS_EXPORTER
+    value: 'none'
+  - name: DB_POD
+    value: swatch-database
+  - name: JAVA_TOOL_OPTIONS
+    value: '-javaagent:/opt/splunk-otel-javaagent.jar'
+  - name: OTEL_SIDECAR_IMAGE
+    value: quay.io/signalfx/splunk-otel-collector:0.140.0
+  - name: OTEL_SIDECAR_CONFIG_MAP
+    value: swatch-otel-config-v1
+  - name: OTEL_SIDECAR_TRACES_CONFIG
+    value: '/etc/otelcol/relay'
+  - name: OTEL_ENV_NAME
+    value: env-swatch-system-conduit
+  - name: OTEL_K8S_CLUSTER_NAME
+    value: ephemeral
+  - name: OTEL_TRACES_TOKEN_SECRET_NAME
+    value: signalfx
+  - name: OTEL_TRACES_TOKEN_SECRET_KEY
+    value: token
+
+objects:
+- apiVersion: cloud.redhat.com/v1alpha1
+  kind: ClowdApp
+  metadata:
+    name: swatch-system-conduit
+    labels:
+      prometheus: rhsm
+  spec:
+    # The name of the ClowdEnvironment providing the services
+    envName: ${ENV_NAME}
+
+    kafkaTopics:
+      - replicas: ${{KAFKA_CONDUIT_TASKS_REPLICAS}}
+        partitions: ${{KAFKA_CONDUIT_TASKS_PARTITIONS}}
+        topicName: platform.rhsm-conduit.tasks
+      - replicas: ${{KAFKA_HOST_INGRESS_REPLICAS}}
+        partitions: ${{KAFKA_HOST_INGRESS_PARTITIONS}}
+        topicName: platform.inventory.host-ingress
+
+    database:
+      sharedDbAppName: ${DB_POD}
+    dependencies:
+      - ${DB_POD}
+      - swatch-tally
+
+    pullSecrets:
+      name: ${IMAGE_PULL_SECRET}
+
+    deployments:
+      - name: service
+        webServices:
+          public:
+            enabled: true
+          metrics:
+            enable: true
+        replicas: ${{REPLICAS}}
+        podSpec:
+          image: ${IMAGE}:${IMAGE_TAG}
+          env:
+            - name: JAVA_DEBUG
+              value: ${JAVA_DEBUG}
+            - name: USER_OPTS_APPEND
+              value: ${USER_OPTS_APPEND}
+            - name: JAVA_TOOL_OPTIONS
+              value: ${JAVA_TOOL_OPTIONS}
+            - name: SPRING_LIQUIBASE_ENABLED
+              value: 'false'
+            - name: LOGGING_HEC_ENABLED
+              value: ${LOGGING_HEC_ENABLED}
+            - name: LOGGING_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: HOST_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: LOGGING_HEC_URL
+              value: ${LOGGING_HEC_URL}
+            - name: LOGGING_HEC_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: splunk-hec-external
+                  key: token
+            - name: TOLERATE_MISSING_ACCOUNT_NUMBER
+              value: ${TOLERATE_MISSING_ACCOUNT_NUMBER}
+            - name: LOGGING_SOURCE
+              value: ${LOGGING_SOURCE}
+            - name: LOGGING_SOURCE_TYPE
+              value: ${LOGGING_SOURCE_TYPE}
+            - name: LOGGING_MESSAGE_FORMAT
+              value: ${LOGGING_MESSAGE_FORMAT}
+            - name: LOGGING_HEC_CONNECT_TIMEOUT
+              value: ${LOGGING_HEC_CONNECT_TIMEOUT}
+            - name: LOGGING_HEC_BATCH_SIZE
+              value: ${LOGGING_HEC_BATCH_SIZE}
+            - name: LOGGING_HEC_TERMINATION_TIMEOUT
+              value: ${LOGGING_HEC_TERMINATION_TIMEOUT}
+            - name: SPRING_PROFILES_ACTIVE
+              value: kafka-queue
+            - name: LOG_FILE
+              value: /logs/server.log
+            - name: JAVA_MAX_MEM_RATIO
+              value: '85'
+            - name: GC_MAX_METASPACE_SIZE
+              value: '256'
+            - name: TASK_QUEUE_TYPE
+              value: kafka
+            - name: RHSM_URL
+              value: ${RHSM_URL}
+            - name: RHSM_MAX_ATTEMPTS
+              value: ${RHSM_MAX_ATTEMPTS}
+            - name: RHSM_BACK_OFF_MAX_INTERVAL
+              value: ${RHSM_BACK_OFF_MAX_INTERVAL}
+            - name: RHSM_BACK_OFF_INITIAL_INTERVAL
+              value: ${RHSM_BACK_OFF_INITIAL_INTERVAL}
+            - name: RHSM_BACK_OFF_MULTIPLIER
+              value: ${RHSM_BACK_OFF_MULTIPLIER}
+            - name: LOGGING_LEVEL_ROOT
+              value: ${LOGGING_LEVEL_ROOT}
+            - name: LOGGING_LEVEL_ORG_CANDLEPIN
+              value: ${LOGGING_LEVEL}
+            - name: LOGGING_LEVEL_COM_REDHAT_SWATCH
+              value: ${LOGGING_LEVEL}
+            - name: KAFKA_TASK_GROUP
+              value: platform.rhsm-conduit.tasks
+            - name: KAFKA_MESSAGE_THREADS
+              value: ${KAFKA_MESSAGE_THREADS}
+            - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
+              value: ${KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS}
+            - name: KAFKA_SEEK_OVERRIDE_END
+              value: ${KAFKA_SEEK_OVERRIDE_END}
+            - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
+              value: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP}
+            - name: ENABLE_SYNCHRONOUS_OPERATIONS
+              value: ${ENABLE_SYNCHRONOUS_OPERATIONS}
+            - name: HOST_LAST_SYNC_THRESHOLD
+              value: ${HOST_LAST_SYNC_THRESHOLD}
+            - name: DATABASE_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: ${DB_POD}-db
+                  key: db.host
+            - name: DATABASE_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: ${DB_POD}-db
+                  key: db.port
+            - name: DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: ${DB_POD}-db
+                  key: db.user
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ${DB_POD}-db
+                  key: db.password
+            - name: DATABASE_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: ${DB_POD}-db
+                  key: db.name
+            - name: DATABASE_CONNECTION_TIMEOUT_MS
+              value: ${DATABASE_CONNECTION_TIMEOUT_MS}
+            - name: DATABASE_MAX_POOL_SIZE
+              value: ${DATABASE_MAX_POOL_SIZE}
+            - name: RHSM_KEYSTORE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: tls
+                  key: keystore_password
+            - name: RHSM_KEYSTORE
+              value: /pinhead/keystore.jks
+            - name: RHSM_TRUSTSTORE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: tls
+                  key: keystore_password
+            - name: RHSM_TRUSTSTORE
+              value: /pinhead/truststore.jks
+            - name: SWATCH_SELF_PSK
+              valueFrom:
+                secretKeyRef:
+                  name: swatch-psks
+                  key: self
+            - name: RHSM_API_MAX_CONCURRENT_CALLS
+              value: ${RHSM_API_MAX_CONCURRENT_CALLS}
+            - name: RHSM_API_MAX_WAIT_DURATION
+              value: ${RHSM_API_MAX_WAIT_DURATION}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: ${OTEL_EXPORTER_OTLP_PROTOCOL}
+            - name: OTEL_SERVICE_NAME
+              value: ${OTEL_SERVICE_NAME}
+            - name: OTEL_JAVAAGENT_ENABLED
+              value: ${OTEL_JAVAAGENT_ENABLED}
+            - name: OTEL_LOGS_EXPORTER
+              value: ${OTEL_LOGS_EXPORTER}
+            - name: OTEL_METRICS_EXPORTER
+              value: ${OTEL_METRICS_EXPORTER}
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health/liveness
+              port: 9000
+              scheme: HTTP
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            successThreshold: 1
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health
+              port: 9000
+              scheme: HTTP
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            successThreshold: 1
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: ${CPU_REQUEST}
+              memory: ${MEMORY_REQUEST}
+            limits:
+              cpu: ${CPU_LIMIT}
+              memory: ${MEMORY_LIMIT}
+          volumeMounts:
+            - name: logs
+              mountPath: /logs
+            - name: pinhead
+              mountPath: /pinhead
+          volumes:
+            - name: logs
+              emptyDir:
+            - name: pinhead
+              secret:
+                secretName: pinhead
+          sidecars:
+          - name: otel-collector
+            enabled: true
+            configMap: ${OTEL_SIDECAR_CONFIG_MAP}
+            image: ${OTEL_SIDECAR_IMAGE}
+            envVars:
+              - name: ENV_NAME
+                value: ${OTEL_ENV_NAME}
+              - name: K8S_CLUSTER_NAME
+                value: ${OTEL_K8S_CLUSTER_NAME}
+              - name: TRACES_ACCESS_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: ${OTEL_TRACES_TOKEN_SECRET_NAME}
+                    key: ${OTEL_TRACES_TOKEN_SECRET_KEY}
+              - name: SPLUNK_CONFIG
+                value: ${OTEL_SIDECAR_TRACES_CONFIG}
+              - name: TRACES_MEMORY_TOTAL_MIB
+                value: '1024'
+              - name: LOGGING_HEC_URL
+                value: ${LOGGING_HEC_URL}
+              - name: LOGGING_HEC_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: splunk-hec-external
+                    key: token
+              - name: LOGGING_SOURCE
+                value: ${LOGGING_SOURCE}
+              - name: LOGGING_SOURCE_TYPE
+                value: ${LOGGING_SOURCE_TYPE}
+              - name: K8S_NAMESPACE
+                valueFrom:
+                  fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.namespace
+              - name: K8S_POD_NAME
+                valueFrom:
+                  fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.name
+
+    jobs:
+      - name: sync
+        schedule: ${ORG_SYNC_SCHEDULE}
+        successfulJobsHistoryLimit: 2
+        restartPolicy: Never
+        podSpec:
+          image: ${CURL_CRON_IMAGE}:${CURL_CRON_IMAGE_TAG}
+          command:
+            - /usr/bin/bash
+            - -c
+            - >
+              /usr/bin/curl --fail -H "Origin: https://swatch-system-conduit-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X POST "http://swatch-system-conduit-service:8000/api/rhsm-subscriptions/v1/internal/rpc/syncAllOrgs"
+          env:
+            - name: SWATCH_SELF_PSK
+              valueFrom:
+                secretKeyRef:
+                  name: swatch-psks
+                  key: self
+        resources:
+          requests:
+            cpu: ${CURL_CRON_CPU_REQUEST}
+            memory: ${CURL_CRON_MEMORY_REQUEST}
+          limits:
+            cpu: ${CURL_CRON_CPU_LIMIT}
+            memory: ${CURL_CRON_MEMORY_LIMIT}
+
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: swatch-psks
+  data:
+    self: cGxhY2Vob2xkZXI=

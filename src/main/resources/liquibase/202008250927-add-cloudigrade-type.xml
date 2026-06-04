@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="202008250927-1" author="khowell" dbms="postgresql">
+        <createProcedure>
+            CREATE OR REPLACE FUNCTION copy_measurement() RETURNS trigger AS $$
+            BEGIN
+                IF (NEW.measurement_type = 'TOTAL') THEN
+                    UPDATE tally_snapshots SET
+                        cores = NEW.cores,
+                        instance_count = NEW.instance_count,
+                        sockets = NEW.sockets
+                    WHERE id = NEW.snapshot_id;
+                ELSIF (NEW.measurement_type = 'PHYSICAL') THEN
+                    UPDATE tally_snapshots SET
+                        physical_cores = NEW.cores,
+                        physical_instance_count = NEW.instance_count,
+                        physical_sockets = NEW.sockets
+                    WHERE id = NEW.snapshot_id;
+                ELSIF (NEW.measurement_type = 'HYPERVISOR') THEN
+                    UPDATE tally_snapshots SET
+                        hypervisor_cores = NEW.cores,
+                        hypervisor_instance_count = NEW.instance_count,
+                        hypervisor_sockets = NEW.sockets
+                    WHERE id = NEW.snapshot_id;
+                ELSIF (not NEW.measurement_type = ANY('{AWS,GOOGLE,AZURE,ALIBABA,AWS_CLOUDIGRADE}'::text[])) THEN
+                    RAISE EXCEPTION 'Unknown measurement_type %', NEW.measurement_type;
+                END IF;
+
+                RETURN NEW;
+            END;
+            $$ LANGUAGE plpgsql;
+        </createProcedure>
+
+    </changeSet>
+
+</databaseChangeLog>
+<!-- vim: set expandtab sts=4 sw=4 ai: -->

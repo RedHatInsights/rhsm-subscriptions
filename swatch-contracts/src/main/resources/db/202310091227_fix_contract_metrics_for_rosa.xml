@@ -1,0 +1,23 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+<changeSet id="202310091227-1" author="ksynvrit">
+    <comment>Change four_vcpu_hour to valid dimension for rosa.</comment>
+    <update tableName="contract_metrics">
+        <column name="metric_id" value="four_vcpu_0"/>
+        <where>metric_id='four_vcpu_hour'</where>
+    </update>
+</changeSet>
+
+<changeSet id="202310091227-2" author="ksynvrit">
+<comment>Change control_plane to valid dimension for rosa.</comment>
+<update tableName="contract_metrics">
+    <column name="metric_id" value="control_plane_0"/>
+    <where>metric_id='control_plane'</where>
+</update>
+</changeSet>
+
+</databaseChangeLog>

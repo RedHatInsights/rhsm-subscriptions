@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202208241637-1" author="mstead">
+    <comment>Delete copied INSTANCE and SOCKETS data from tally snapshots.</comment>
+    <delete tableName="tally_measurements">
+      <where>uom in ('SOCKETS', 'INSTANCES')</where>
+    </delete>
+  </changeSet>
+
+  <changeSet id="202208241637-2" author="mstead">
+    <comment>Delete copied CORES data from tally snapshots for non-metered products.</comment>
+    <delete tableName="tally_measurements">
+      <where>uom='CORES' and snapshot_id in (select snapshot_id from tally_measurements m join tally_snapshots s on s.id=m.snapshot_id where m.uom = 'CORES' and s.product_id not in ('OpenShift-metrics', 'OpenShift-dedicated-metrics', 'rhacs'))</where>
+    </delete>
+  </changeSet>
+</databaseChangeLog>
+<!-- vim: set expandtab sts=4 sw=4 ai: -->

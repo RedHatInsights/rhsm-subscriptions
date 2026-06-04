@@ -1,0 +1,26 @@
+---
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: swatch-database
+parameters:
+  - name: IMAGE_PULL_SECRET
+    value: quay-cloudservices-pull
+  - name: ENV_NAME
+    value: env-swatch-database
+  - name: DATABASE
+    value: rhsm
+
+objects:
+  - apiVersion: cloud.redhat.com/v1alpha1
+    kind: ClowdApp
+    metadata:
+      name: swatch-database
+    spec:
+      envName: ${ENV_NAME}
+      pullSecrets:
+        name: ${IMAGE_PULL_SECRET}
+
+      database:
+        name: ${DATABASE}
+        version: 16
