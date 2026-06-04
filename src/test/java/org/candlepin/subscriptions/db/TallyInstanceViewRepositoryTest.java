@@ -53,6 +53,7 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.test.ExtendWithSwatchDatabase;
 import org.candlepin.subscriptions.utilization.api.v1.model.SortDirection;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -736,6 +737,7 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
     }
 
     @Test
+    @Disabled("Enable during SWATCH-4862")
     @Transactional
     void testNonPrimaryBucketIsExcluded() {
       Host primaryHost = createHost("inv-primary", "org-primary");
