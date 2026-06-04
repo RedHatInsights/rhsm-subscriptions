@@ -25,6 +25,7 @@ import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
+import org.candlepin.subscriptions.util.PrimaryRecordUtils;
 
 /** The default product usage collection rules. */
 public class DefaultProductUsageCollector implements ProductUsageCollector {
@@ -63,7 +64,7 @@ public class DefaultProductUsageCollector implements ProductUsageCollector {
             appliedCores,
             appliedSockets,
             appliedType);
-
+    appliedBucket.setPrimary(PrimaryRecordUtils.isPrimaryRecord(appliedBucket));
     return Optional.of(appliedBucket);
   }
 

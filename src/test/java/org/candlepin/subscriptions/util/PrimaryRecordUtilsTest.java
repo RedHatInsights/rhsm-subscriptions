@@ -25,6 +25,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.db.model.Host;
+import org.candlepin.subscriptions.db.model.HostBucketKey;
+import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
@@ -40,7 +44,8 @@ class PrimaryRecordUtilsTest {
   void testNullSnapshotThrowsException() {
     IllegalArgumentException exception =
         assertThrows(
-            IllegalArgumentException.class, () -> PrimaryRecordUtils.isPrimaryRecord(null));
+            IllegalArgumentException.class,
+            () -> PrimaryRecordUtils.isPrimaryRecord((TallySnapshot) null));
     assertTrue(exception.getMessage().contains("TallySnapshot cannot be null"));
   }
 
@@ -260,5 +265,227 @@ class PrimaryRecordUtilsTest {
             .build();
 
     assertFalse(PrimaryRecordUtils.isPrimaryRecord(snapshot));
+  }
+
+  // Helper method to create a HostTallyBucket for testing
+  private HostTallyBucket createHostTallyBucket(
+      String productId,
+      ServiceLevel sla,
+      Usage usage,
+      BillingProvider billingProvider,
+      String billingAccountId) {
+    Host host = new Host();
+    HostBucketKey key =
+        new HostBucketKey(host, productId, sla, usage, billingProvider, billingAccountId, false);
+    HostTallyBucket bucket = new HostTallyBucket();
+    bucket.setKey(key);
+    bucket.setHost(host);
+    bucket.setCores(4);
+    bucket.setSockets(2);
+    bucket.setMeasurementType(HardwareMeasurementType.PHYSICAL);
+    return bucket;
+  }
+
+  // HostTallyBucket Tests
+
+  @Test
+  void testNullBucketThrowsException() {
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> PrimaryRecordUtils.isPrimaryRecord((HostTallyBucket) null));
+    assertTrue(exception.getMessage().contains("HostTallyBucket cannot be null"));
+  }
+
+  @Test
+  void testBucketWithNullKeyThrowsException() {
+    HostTallyBucket bucket = new HostTallyBucket();
+    bucket.setKey(null);
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class, () -> PrimaryRecordUtils.isPrimaryRecord(bucket));
+    assertTrue(exception.getMessage().contains("key cannot be null"));
+  }
+
+  @Test
+  void testBucketWithNullProductIdThrowsException() {
+    Host host = new Host();
+    HostBucketKey key =
+        new HostBucketKey(
+            host,
+            null,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider.AWS,
+            "123456",
+            false);
+    HostTallyBucket bucket = new HostTallyBucket();
+    bucket.setKey(key);
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class, () -> PrimaryRecordUtils.isPrimaryRecord(bucket));
+    assertTrue(exception.getMessage().contains("productId cannot be null"));
+  }
+
+  @Test
+  void testBucketProductNotFoundThrowsException() {
+    HostTallyBucket bucket =
+        createHostTallyBucket(
+            "unknown-product",
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider.AWS,
+            "123456");
+
+    IllegalStateException exception =
+        assertThrows(IllegalStateException.class, () -> PrimaryRecordUtils.isPrimaryRecord(bucket));
+    assertTrue(exception.getMessage().contains("unknown-product"));
+    assertTrue(exception.getMessage().contains("missing in subscription configuration"));
+  }
+
+  @Test
+  void testPaygBucketWithAllFieldsNotAnyReturnsTrue() {
+    HostTallyBucket bucket =
+        createHostTallyBucket(
+            PAYG_PRODUCT, ServiceLevel.PREMIUM, Usage.PRODUCTION, BillingProvider.AWS, "123456");
+
+    assertTrue(PrimaryRecordUtils.isPrimaryRecord(bucket));
+  }
+
+  @Test
+  void testPaygBucketWithSlaAnyReturnsFalse() {
+    HostTallyBucket bucket =
+        createHostTallyBucket(
+            PAYG_PRODUCT, ServiceLevel._ANY, Usage.PRODUCTION, BillingProvider.AWS, "123456");
+
+    assertFalse(PrimaryRecordUtils.isPrimaryRecord(bucket));
+  }
+
+  @Test
+  void testPaygBucketWithUsageAnyReturnsFalse() {
+    HostTallyBucket bucket =
+        createHostTallyBucket(
+            PAYG_PRODUCT, ServiceLevel.PREMIUM, Usage._ANY, BillingProvider.AWS, "123456");
+
+    assertFalse(PrimaryRecordUtils.isPrimaryRecord(bucket));
+  }
+
+  @Test
+  void testPaygBucketWithBillingProviderAnyReturnsFalse() {
+    HostTallyBucket bucket =
+        createHostTallyBucket(
+            PAYG_PRODUCT, ServiceLevel.PREMIUM, Usage.PRODUCTION, BillingProvider._ANY, "123456");
+
+    assertFalse(PrimaryRecordUtils.isPrimaryRecord(bucket));
+  }
+
+  @Test
+  void testPaygBucketWithNullBillingAccountIdReturnsFalse() {
+    HostTallyBucket bucket =
+        createHostTallyBucket(
+            PAYG_PRODUCT, ServiceLevel.PREMIUM, Usage.PRODUCTION, BillingProvider.AWS, null);
+
+    assertFalse(PrimaryRecordUtils.isPrimaryRecord(bucket));
+  }
+
+  @Test
+  void testPaygBucketWithBillingAccountIdAnyReturnsFalse() {
+    HostTallyBucket bucket =
+        createHostTallyBucket(
+            PAYG_PRODUCT, ServiceLevel.PREMIUM, Usage.PRODUCTION, BillingProvider.AWS, "_ANY");
+
+    assertFalse(PrimaryRecordUtils.isPrimaryRecord(bucket));
+  }
+
+  @Test
+  void testPaygBucketWithEmptyStringBillingAccountIdReturnsTrue() {
+    HostTallyBucket bucket =
+        createHostTallyBucket(
+            PAYG_PRODUCT, ServiceLevel.PREMIUM, Usage.PRODUCTION, BillingProvider.AWS, "");
+
+    assertTrue(PrimaryRecordUtils.isPrimaryRecord(bucket));
+  }
+
+  @Test
+  void testTraditionalBucketWithSlaAndUsageNotAnyReturnsTrue() {
+    HostTallyBucket bucket =
+        createHostTallyBucket(
+            TRADITIONAL_PRODUCT,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            "_ANY");
+
+    assertTrue(PrimaryRecordUtils.isPrimaryRecord(bucket));
+  }
+
+  @Test
+  void testTraditionalBucketWithSlaAnyReturnsFalse() {
+    HostTallyBucket bucket =
+        createHostTallyBucket(
+            TRADITIONAL_PRODUCT, ServiceLevel._ANY, Usage.PRODUCTION, BillingProvider._ANY, "_ANY");
+
+    assertFalse(PrimaryRecordUtils.isPrimaryRecord(bucket));
+  }
+
+  @Test
+  void testTraditionalBucketWithUsageAnyReturnsFalse() {
+    HostTallyBucket bucket =
+        createHostTallyBucket(
+            TRADITIONAL_PRODUCT, ServiceLevel.PREMIUM, Usage._ANY, BillingProvider._ANY, "_ANY");
+
+    assertFalse(PrimaryRecordUtils.isPrimaryRecord(bucket));
+  }
+
+  @Test
+  void testTraditionalBucketRequiresBillingFieldsToBeAny() {
+    HostTallyBucket bucket =
+        createHostTallyBucket(
+            TRADITIONAL_PRODUCT,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            "_ANY");
+
+    assertTrue(PrimaryRecordUtils.isPrimaryRecord(bucket));
+  }
+
+  @Test
+  void testTraditionalBucketWithNonAnyBillingProviderReturnsFalse() {
+    HostTallyBucket bucket =
+        createHostTallyBucket(
+            TRADITIONAL_PRODUCT,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider.AWS,
+            "_ANY");
+
+    assertFalse(PrimaryRecordUtils.isPrimaryRecord(bucket));
+  }
+
+  @Test
+  void testTraditionalBucketWithNonAnyBillingAccountIdReturnsFalse() {
+    HostTallyBucket bucket =
+        createHostTallyBucket(
+            TRADITIONAL_PRODUCT,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            "123456");
+
+    assertFalse(PrimaryRecordUtils.isPrimaryRecord(bucket));
+  }
+
+  @Test
+  void testTraditionalBucketWithNullBillingAccountIdReturnsFalse() {
+    HostTallyBucket bucket =
+        createHostTallyBucket(
+            TRADITIONAL_PRODUCT,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            null);
+
+    assertFalse(PrimaryRecordUtils.isPrimaryRecord(bucket));
   }
 }

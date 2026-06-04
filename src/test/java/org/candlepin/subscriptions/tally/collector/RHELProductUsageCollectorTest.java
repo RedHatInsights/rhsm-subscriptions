@@ -69,8 +69,93 @@ class RHELProductUsageCollectorTest {
     assertTrue(bucket.get().getKey().getAsHypervisor());
   }
 
+  @Test
+  void testTraditionalProductBucketIsPrimaryWhenBillingFieldsAreAny() {
+    var key =
+        new UsageCalculation.Key(
+            "rhel-for-x86-els-unconverted",
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            "_ANY");
+    var facts = new NormalizedFacts();
+    facts.setHardwareType(HostHardwareType.PHYSICAL);
+    var bucket = collector.buildBucket(key, facts);
+    assertTrue(bucket.isPresent());
+    assertTrue(
+        bucket.get().isPrimary(),
+        "Traditional product with non-_ANY SLA/Usage and _ANY billing fields should be primary");
+  }
+
+  @Test
+  void testTraditionalProductBucketIsNotPrimaryWhenSlaIsAny() {
+    var key =
+        new UsageCalculation.Key(
+            "rhel-for-x86-els-unconverted",
+            ServiceLevel._ANY,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            "_ANY");
+    var facts = new NormalizedFacts();
+    facts.setHardwareType(HostHardwareType.PHYSICAL);
+    var bucket = collector.buildBucket(key, facts);
+    assertTrue(bucket.isPresent());
+    assertFalse(
+        bucket.get().isPrimary(), "Traditional product with _ANY SLA should not be primary");
+  }
+
+  @Test
+  void testPaygProductBucketIsPrimaryWhenAllFieldsAreNotAny() {
+    var key =
+        new UsageCalculation.Key(
+            "rhel-for-x86-els-payg",
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider.AWS,
+            "123456");
+    var facts = new NormalizedFacts();
+    facts.setHardwareType(HostHardwareType.PHYSICAL);
+    var bucket = collector.buildBucket(key, facts);
+    assertTrue(bucket.isPresent());
+    assertTrue(bucket.get().isPrimary(), "PAYG product with all non-_ANY fields should be primary");
+  }
+
+  @Test
+  void testPaygProductBucketIsNotPrimaryWhenBillingProviderIsAny() {
+    var key =
+        new UsageCalculation.Key(
+            "rhel-for-x86-els-payg",
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            "123456");
+    var facts = new NormalizedFacts();
+    facts.setHardwareType(HostHardwareType.PHYSICAL);
+    var bucket = collector.buildBucket(key, facts);
+    assertTrue(bucket.isPresent());
+    assertFalse(
+        bucket.get().isPrimary(), "PAYG product with _ANY billing provider should not be primary");
+  }
+
+  @Test
+  void testHypervisorBucketIsPrimaryBasedOnProductAndAttributes() {
+    var key =
+        new UsageCalculation.Key(
+            "rhel-for-x86-els-unconverted",
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            "_ANY");
+    var facts = new NormalizedFacts();
+    var bucket = collector.buildBucketForHypervisor(key, facts);
+    assertTrue(bucket.isPresent());
+    assertTrue(
+        bucket.get().isPrimary(),
+        "Hypervisor bucket should have isPrimary set based on product rules");
+  }
+
   private UsageCalculation.Key createUsageKey() {
     return new UsageCalculation.Key(
-        "RHEL", ServiceLevel.EMPTY, Usage.EMPTY, BillingProvider.EMPTY, "_ANY");
+        "RHEL for x86", ServiceLevel.EMPTY, Usage.EMPTY, BillingProvider.EMPTY, "_ANY");
   }
 }

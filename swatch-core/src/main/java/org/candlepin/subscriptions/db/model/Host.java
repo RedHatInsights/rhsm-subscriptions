@@ -237,8 +237,11 @@ public class Host extends ModificationTrackedEntity implements Serializable {
       b.setCores(bucket.getCores());
       b.setMeasurementType(bucket.getMeasurementType());
       b.setStale(false);
+      // isPrimary is set by the caller before adding the bucket
+      b.setPrimary(bucket.isPrimary());
     } else {
       bucket.setHost(this);
+      // isPrimary is set by the caller before adding the bucket
       getBuckets().add(bucket);
     }
   }
