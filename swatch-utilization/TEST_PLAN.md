@@ -542,7 +542,7 @@ Additional cases can be added under the same `utilization-notifications-featuref
     - Wait for notification message on notifications topic
     - Verify notification payload
 - **Expected Result**:
-    - Notification event contains correct information (org_id, product_id, metric_id, utilization_percentage and last_modified_hash)
+    - Notification event contains correct information (org_id, product_id, metric_id, utilization_percentage and preferences_hash)
     - Notification action `severity` is `MODERATE`
 
 **custom-threshold-TC002 - Notification sent when utilization is exactly at custom threshold**
@@ -557,7 +557,7 @@ Additional cases can be added under the same `utilization-notifications-featuref
     - Wait for notification message on notifications topic
     - Verify notification payload
 - **Expected Result**:
-    - Notification event contains correct information (org_id, product_id, metric_id, utilization_percentage and last_modified_hash)
+    - Notification event contains correct information (org_id, product_id, metric_id, utilization_percentage and preferences_hash)
     - Notification action `severity` is `MODERATE`
     - Notification is sent (threshold comparison uses greater-than-or-equal)
 

@@ -20,7 +20,6 @@
  */
 package com.redhat.swatch.utilization.service;
 
-import com.redhat.cloud.notifications.ingress.Event;
 import com.redhat.swatch.utilization.model.Measurement;
 import com.redhat.swatch.utilization.model.Severity;
 import com.redhat.swatch.utilization.model.UtilizationSummary;
@@ -37,6 +36,7 @@ public class CustomThresholdUtilizationHandlerService
     extends BaseThresholdUtilizationHandlerService {
 
   public static final String CUSTOM_THRESHOLD_METRIC = "swatch_utilization_custom_threshold";
+  public static final String PREFERENCES_HASH = "preferences_hash";
 
   static final String EVENT_TYPE = "exceeded-custom-utilization-threshold";
 
@@ -44,7 +44,7 @@ public class CustomThresholdUtilizationHandlerService
   @Inject CustomThresholdValidator customThresholdValidator;
 
   @Override
-  protected Optional<Event> evaluateThreshold(
+  protected Optional<HandlerEvent> evaluateThreshold(
       double utilizationPercent, UtilizationSummary payload, Measurement measurement) {
     var preference = orgPreferencesService.getOrgPreferences(payload.getOrgId());
     // In SWATCH-4990, we need to remove this condition, so all orgs are opted in.
@@ -77,8 +77,8 @@ public class CustomThresholdUtilizationHandlerService
           String.format(PERCENT_FORMAT, utilizationPercent),
           threshold);
       var event = buildEvent(utilizationPercent);
-      String lastModifiedHash = hashLastModified(preference.getLastModified().toInstant());
-      event.getPayload().getAdditionalProperties().put("last_modified_hash", lastModifiedHash);
+      event.addContextProperty(
+          PREFERENCES_HASH, hashLastModified(preference.getLastModified().toInstant()));
       return Optional.of(event);
     }
 

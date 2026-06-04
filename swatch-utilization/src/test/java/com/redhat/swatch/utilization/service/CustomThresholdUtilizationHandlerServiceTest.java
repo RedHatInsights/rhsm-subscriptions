@@ -22,9 +22,11 @@ package com.redhat.swatch.utilization.service;
 
 import static com.redhat.swatch.utilization.service.CustomThresholdUtilizationHandlerService.CUSTOM_THRESHOLD_METRIC;
 import static com.redhat.swatch.utilization.service.CustomThresholdUtilizationHandlerService.EVENT_TYPE;
+import static com.redhat.swatch.utilization.service.CustomThresholdUtilizationHandlerService.PREFERENCES_HASH;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.atLeastOnce;
@@ -45,6 +47,7 @@ import io.micrometer.core.instrument.search.Search;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -230,7 +233,7 @@ class CustomThresholdUtilizationHandlerServiceTest {
   }
 
   @Test
-  void shouldIncludeLastModifiedHashInPayload() {
+  void shouldIncludePreferencesHashInContext() {
     givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD, LAST_MODIFIED);
     UtilizationSummary summary =
         givenUtilizationSummary(
@@ -240,16 +243,37 @@ class CustomThresholdUtilizationHandlerServiceTest {
 
     var captor = ArgumentCaptor.forClass(Action.class);
     verify(notificationsProducer, times(1)).produce(captor.capture());
-    Action action = captor.getValue();
-
-    var eventPayload = action.getEvents().get(0).getPayload().getAdditionalProperties();
-    String expectedHash =
-        CustomThresholdUtilizationHandlerService.hashLastModified(LAST_MODIFIED.toInstant());
-    assertEquals(expectedHash, eventPayload.get("last_modified_hash"));
+    var context = captor.getValue().getContext().getAdditionalProperties();
+    assertNotNull(context.get(PREFERENCES_HASH), PREFERENCES_HASH + " must be present in context");
   }
 
   @Test
-  void shouldProduceDifferentHash_whenLastModifiedChanges() {
+  void shouldProduceSameHash_whenThresholdUnchanged() {
+    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD, LAST_MODIFIED);
+    UtilizationSummary summary =
+        givenUtilizationSummary(
+            PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
+    whenCheckSummary(summary);
+
+    var captor = ArgumentCaptor.forClass(Action.class);
+    verify(notificationsProducer, times(1)).produce(captor.capture());
+    String firstHash =
+        (String) captor.getValue().getContext().getAdditionalProperties().get(PREFERENCES_HASH);
+
+    Mockito.reset(notificationsProducer);
+    whenCheckSummary(summary);
+
+    verify(notificationsProducer, times(1)).produce(captor.capture());
+    String secondHash =
+        (String) captor.getValue().getContext().getAdditionalProperties().get(PREFERENCES_HASH);
+
+    assertNotNull(firstHash);
+    assertNotNull(secondHash);
+    assertEquals(firstHash, secondHash, "Same preference state should produce same hash");
+  }
+
+  @Test
+  void shouldProduceDifferentHash_whenPreferenceIsUpdated() {
     var later = OffsetDateTime.of(2026, 4, 21, 10, 0, 0, 0, ZoneOffset.UTC);
 
     givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD, LAST_MODIFIED);
@@ -261,14 +285,7 @@ class CustomThresholdUtilizationHandlerServiceTest {
     var captor = ArgumentCaptor.forClass(Action.class);
     verify(notificationsProducer, times(1)).produce(captor.capture());
     String firstHash =
-        (String)
-            captor
-                .getValue()
-                .getEvents()
-                .get(0)
-                .getPayload()
-                .getAdditionalProperties()
-                .get("last_modified_hash");
+        (String) captor.getValue().getContext().getAdditionalProperties().get(PREFERENCES_HASH);
 
     Mockito.reset(notificationsProducer);
     givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD, later);
@@ -276,18 +293,11 @@ class CustomThresholdUtilizationHandlerServiceTest {
 
     verify(notificationsProducer, times(1)).produce(captor.capture());
     String secondHash =
-        (String)
-            captor
-                .getValue()
-                .getEvents()
-                .get(0)
-                .getPayload()
-                .getAdditionalProperties()
-                .get("last_modified_hash");
+        (String) captor.getValue().getContext().getAdditionalProperties().get(PREFERENCES_HASH);
 
     assertNotNull(firstHash);
     assertNotNull(secondHash);
-    assertNotEquals(firstHash, secondHash);
+    assertNotEquals(firstHash, secondHash, "Updated preference should produce a different hash");
   }
 
   @Test
@@ -441,6 +451,25 @@ class CustomThresholdUtilizationHandlerServiceTest {
 
     double count = getCounterValue(PAYG_PRODUCT_ID, CORES_METRIC_ID, sla, usage);
     assertEquals(EXPECTED_SINGLE_INCREMENT, count);
+  }
+
+  @Test
+  void hashLastModified_shouldProduceConsistentResults() {
+    Instant timestamp = Instant.parse("2026-05-27T14:30:00Z");
+    String hash1 = CustomThresholdUtilizationHandlerService.hashLastModified(timestamp);
+    String hash2 = CustomThresholdUtilizationHandlerService.hashLastModified(timestamp);
+
+    assertEquals(hash1, hash2, "Same timestamp should always produce same hash");
+  }
+
+  @Test
+  void hashLastModified_shouldProduceLowercaseHexString() {
+    Instant timestamp = Instant.parse("2026-05-27T14:30:00Z");
+    String hash = CustomThresholdUtilizationHandlerService.hashLastModified(timestamp);
+
+    assertNotNull(hash);
+    assertEquals(64, hash.length(), "SHA-256 hash should be 64 hex characters");
+    assertTrue(hash.matches("^[a-f0-9]+$"), "Hash should be lowercase hexadecimal");
   }
 
   // Helper methods

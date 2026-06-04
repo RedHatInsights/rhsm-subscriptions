@@ -40,7 +40,9 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.inject.Inject;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.UUID;
@@ -81,7 +83,7 @@ public abstract class BaseThresholdUtilizationHandlerService implements Utilizat
     return false;
   }
 
-  protected abstract Optional<Event> evaluateThreshold(
+  protected abstract Optional<HandlerEvent> evaluateThreshold(
       double utilizationPercent, UtilizationSummary payload, Measurement measurement);
 
   protected abstract String eventType();
@@ -90,14 +92,10 @@ public abstract class BaseThresholdUtilizationHandlerService implements Utilizat
 
   protected abstract String metricName();
 
-  protected Event buildEvent(double utilizationPercent) {
-    var event = new Event();
-    event.setMetadata(new Metadata());
-    event.setPayload(
-        new Payload.PayloadBuilder()
-            .withAdditionalProperty(
-                "utilization_percentage", String.format(PERCENT_FORMAT, utilizationPercent))
-            .build());
+  protected HandlerEvent buildEvent(double utilizationPercent) {
+    var event = new HandlerEvent();
+    event.addPayloadProperty(
+        "utilization_percentage", String.format(PERCENT_FORMAT, utilizationPercent));
     return event;
   }
 
@@ -156,7 +154,7 @@ public abstract class BaseThresholdUtilizationHandlerService implements Utilizat
       MetricId metricId,
       String eventType,
       Severity severity,
-      Event event) {
+      HandlerEvent event) {
     var action = new Action();
     action.setBundle(BUNDLE);
     action.setApplication(APPLICATION);
@@ -164,24 +162,45 @@ public abstract class BaseThresholdUtilizationHandlerService implements Utilizat
     action.setOrgId(payload.getOrgId());
     action.setTimestamp(LocalDateTime.now());
     action.setId(UUID.randomUUID());
-    action.setEvents(List.of(event));
-    action.setContext(buildContext(payload, metricId));
+    action.setEvents(List.of(buildNotificationEvent(event)));
+    action.setContext(buildContext(payload, metricId, event));
     action.setRecipients(List.of(buildRecipient()));
     action.setSeverity(severity.name());
     return action;
   }
 
-  private Context buildContext(UtilizationSummary payload, MetricId metricId) {
-    var builder =
-        new Context.ContextBuilder()
-            .withAdditionalProperty("product_id", payload.getProductId())
-            .withAdditionalProperty("metric_id", metricId.getValue());
+  private Event buildNotificationEvent(HandlerEvent handlerEvent) {
+    Event event = new Event();
+    event.setMetadata(handlerEvent.metadata);
+
+    Payload.PayloadBuilder builder = new Payload.PayloadBuilder();
+    for (Map.Entry<String, String> entry : handlerEvent.payload.entrySet()) {
+      builder.withAdditionalProperty(entry.getKey(), entry.getValue());
+    }
+
+    event.setPayload(builder.build());
+    return event;
+  }
+
+  private Context buildContext(UtilizationSummary payload, MetricId metricId, HandlerEvent event) {
+    Context.ContextBuilder builder =
+        (Context.ContextBuilder)
+            new Context.ContextBuilder()
+                .withAdditionalProperty("product_id", payload.getProductId())
+                .withAdditionalProperty("metric_id", metricId.getValue());
 
     if (isServiceLevelSet(payload.getSla())) {
       builder.withAdditionalProperty("service_level", payload.getSla().value());
     }
     if (isUsageSet(payload.getUsage())) {
       builder.withAdditionalProperty("usage", payload.getUsage().value());
+    }
+    if (payload.getBillingAccountId() != null && !payload.getBillingAccountId().isEmpty()) {
+      builder.withAdditionalProperty("billing_account_id", payload.getBillingAccountId());
+    }
+
+    for (Map.Entry<String, String> entry : event.context.entrySet()) {
+      builder.withAdditionalProperty(entry.getKey(), entry.getValue());
     }
 
     return builder.build();
@@ -192,7 +211,7 @@ public abstract class BaseThresholdUtilizationHandlerService implements Utilizat
       MetricId metricId,
       String eventType,
       Severity severity,
-      Event event,
+      HandlerEvent event,
       String metricName) {
     var action = buildNotificationAction(payload, metricId, eventType, severity, event);
     incrementCounter(payload, metricId, metricName);
@@ -242,5 +261,19 @@ public abstract class BaseThresholdUtilizationHandlerService implements Utilizat
     recipient.setIgnoreUserPreferences(IGNORE_USER_PREFERENCES);
     recipient.setUsers(List.of());
     return recipient;
+  }
+
+  protected static class HandlerEvent {
+    private final Metadata metadata = new Metadata();
+    private final Map<String, String> payload = new HashMap<>();
+    private final Map<String, String> context = new HashMap<>();
+
+    public void addPayloadProperty(String key, String value) {
+      payload.put(key, value);
+    }
+
+    public void addContextProperty(String key, String value) {
+      context.put(key, value);
+    }
   }
 }

@@ -86,7 +86,7 @@ public class CustomThresholdComponentTest extends BaseUtilizationComponentTest {
             FULL_CAPACITY,
             null,
             null);
-    thenLastModifiedHashShouldBePresent(notification);
+    thenPreferencesHashShouldBePresent(notification);
   }
 
   @TestPlanName("custom-threshold-TC002")
@@ -108,7 +108,7 @@ public class CustomThresholdComponentTest extends BaseUtilizationComponentTest {
             FULL_CAPACITY,
             null,
             null);
-    thenLastModifiedHashShouldBePresent(notification);
+    thenPreferencesHashShouldBePresent(notification);
   }
 
   @TestPlanName("custom-threshold-TC003")
@@ -145,15 +145,17 @@ public class CustomThresholdComponentTest extends BaseUtilizationComponentTest {
 
     whenUtilizationEventIsReceived();
 
-    thenThresholdNotificationShouldBeSent(
-        CUSTOM_THRESHOLD_EVENT_TYPE,
-        Severity.MODERATE,
-        utilizationSummary.getProductId(),
-        metricId,
-        USAGE_OVER_CAPACITY,
-        FULL_CAPACITY,
-        null,
-        null);
+    var customNotification =
+        thenThresholdNotificationShouldBeSent(
+            CUSTOM_THRESHOLD_EVENT_TYPE,
+            Severity.MODERATE,
+            utilizationSummary.getProductId(),
+            metricId,
+            USAGE_OVER_CAPACITY,
+            FULL_CAPACITY,
+            null,
+            null);
+    thenPreferencesHashShouldBePresent(customNotification);
     thenThresholdNotificationShouldBeSent(
         DEFAULT_THRESHOLD_EVENT_TYPE,
         Severity.IMPORTANT,
@@ -175,14 +177,9 @@ public class CustomThresholdComponentTest extends BaseUtilizationComponentTest {
     kafkaBridge.produceKafkaMessage(UTILIZATION, utilizationSummary);
   }
 
-  private void thenLastModifiedHashShouldBePresent(Action notification) {
+  private void thenPreferencesHashShouldBePresent(Action notification) {
     assertThat(
-        notification
-            .getEvents()
-            .get(0)
-            .getPayload()
-            .getAdditionalProperties()
-            .get("last_modified_hash"),
+        notification.getContext().getAdditionalProperties().get("preferences_hash"),
         notNullValue());
   }
 }

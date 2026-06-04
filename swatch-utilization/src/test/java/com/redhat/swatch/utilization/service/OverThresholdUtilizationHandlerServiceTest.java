@@ -125,7 +125,7 @@ class OverThresholdUtilizationHandlerServiceTest {
             PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
 
     // When
-    whenCheckSummary(summary);
+    whenHandleSummary(summary);
 
     // Then
     double count = getCounterValue(PAYG_PRODUCT_ID, CORES_METRIC_ID);
@@ -139,7 +139,7 @@ class OverThresholdUtilizationHandlerServiceTest {
         givenUtilizationSummary(PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, USAGE_BELOW_THRESHOLD);
 
     // When
-    whenCheckSummary(summary);
+    whenHandleSummary(summary);
 
     // Then
     double count = getCounterValue(PAYG_PRODUCT_ID, CORES_METRIC_ID);
@@ -170,7 +170,7 @@ class OverThresholdUtilizationHandlerServiceTest {
                         .withUnlimited(false)));
 
     // When
-    whenCheckSummary(summary);
+    whenHandleSummary(summary);
 
     // Then - each measurement creates its own counter, check cores counter
     double coresCount = getCounterValue(PAYG_PRODUCT_ID, CORES_METRIC_ID);
@@ -210,7 +210,7 @@ class OverThresholdUtilizationHandlerServiceTest {
                         .withUnlimited(false)));
 
     // When
-    whenCheckSummary(summary);
+    whenHandleSummary(summary);
 
     // Then - only instance hours should be incremented
     double coresCount = getCounterValue(PAYG_PRODUCT_ID, CORES_METRIC_ID);
@@ -231,7 +231,7 @@ class OverThresholdUtilizationHandlerServiceTest {
             PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
 
     // When
-    whenCheckSummary(summary);
+    whenHandleSummary(summary);
 
     // Then
     verify(notificationsProducer, times(1))
@@ -246,7 +246,7 @@ class OverThresholdUtilizationHandlerServiceTest {
             PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
 
     // When
-    whenCheckSummary(summary);
+    whenHandleSummary(summary);
 
     // Then
     var captor = ArgumentCaptor.forClass(Action.class);
@@ -265,7 +265,7 @@ class OverThresholdUtilizationHandlerServiceTest {
         givenUtilizationSummary(PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, USAGE_BELOW_THRESHOLD);
 
     // When
-    whenCheckSummary(summary);
+    whenHandleSummary(summary);
 
     // Then
     verify(notificationsProducer, never()).produce(any(Action.class));
@@ -293,7 +293,7 @@ class OverThresholdUtilizationHandlerServiceTest {
                         .withUnlimited(false)));
 
     // When
-    whenCheckSummary(summary);
+    whenHandleSummary(summary);
 
     // Then - should send one notification per measurement
     verify(notificationsProducer, times(2))
@@ -312,7 +312,7 @@ class OverThresholdUtilizationHandlerServiceTest {
             PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, USAGE_BELOW_PRODUCT_THRESHOLD);
 
     // When
-    whenCheckSummary(summary);
+    whenHandleSummary(summary);
 
     // Then - should NOT increment because 7% < 8% product threshold
     double count = getCounterValue(PAYG_PRODUCT_ID, CORES_METRIC_ID);
@@ -337,7 +337,7 @@ class OverThresholdUtilizationHandlerServiceTest {
             PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, USAGE_ABOVE_DEFAULT_THRESHOLD);
 
     // When
-    whenCheckSummary(summary);
+    whenHandleSummary(summary);
 
     // Then - should increment because 6% > 5% default threshold
     double count = getCounterValue(PAYG_PRODUCT_ID, CORES_METRIC_ID);
@@ -362,7 +362,7 @@ class OverThresholdUtilizationHandlerServiceTest {
         givenUtilizationSummary(PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, usage);
 
     // When
-    whenCheckSummary(summary);
+    whenHandleSummary(summary);
 
     // Then - should NOT increment because negative threshold disables detection
     double count = getCounterValue(PAYG_PRODUCT_ID, CORES_METRIC_ID);
@@ -421,7 +421,7 @@ class OverThresholdUtilizationHandlerServiceTest {
             .withUsage(usage);
 
     // When
-    whenCheckSummary(summary);
+    whenHandleSummary(summary);
 
     // Then
     var captor = ArgumentCaptor.forClass(Action.class);
@@ -443,7 +443,7 @@ class OverThresholdUtilizationHandlerServiceTest {
     UtilizationSummary summary =
         givenUtilizationSummary(NON_PAYG_PRODUCT_ID, SOCKETS_METRIC_ID, 2.0, 1.0, 31.0);
 
-    whenCheckSummary(summary);
+    whenHandleSummary(summary);
 
     verify(notificationsProducer, never()).produce(any(Action.class));
   }
@@ -454,7 +454,7 @@ class OverThresholdUtilizationHandlerServiceTest {
     UtilizationSummary summary =
         givenUtilizationSummary(NON_PAYG_PRODUCT_ID, SOCKETS_METRIC_ID, 2.0, 3.0, 93.0);
 
-    whenCheckSummary(summary);
+    whenHandleSummary(summary);
 
     verify(notificationsProducer, times(1))
         .produce(argThat(action -> EVENT_TYPE.equals(action.getEventType())));
@@ -467,7 +467,7 @@ class OverThresholdUtilizationHandlerServiceTest {
         givenUtilizationSummary(
             PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, 4.0, USAGE_EXCEEDING_THRESHOLD);
 
-    whenCheckSummary(summary);
+    whenHandleSummary(summary);
 
     verify(notificationsProducer, times(1))
         .produce(argThat(action -> EVENT_TYPE.equals(action.getEventType())));
@@ -480,7 +480,7 @@ class OverThresholdUtilizationHandlerServiceTest {
     UtilizationSummary summary =
         givenUtilizationSummary(PAYG_MIXED_PRODUCT_ID, MANAGED_NODES_METRIC_ID, 10.0, 5.0, 150.0);
 
-    whenCheckSummary(summary);
+    whenHandleSummary(summary);
 
     verify(notificationsProducer, never()).produce(any(Action.class));
   }
@@ -497,7 +497,7 @@ class OverThresholdUtilizationHandlerServiceTest {
             4.0,
             USAGE_EXCEEDING_THRESHOLD);
 
-    whenCheckSummary(summary);
+    whenHandleSummary(summary);
 
     verify(notificationsProducer, times(1))
         .produce(argThat(action -> EVENT_TYPE.equals(action.getEventType())));
@@ -509,7 +509,7 @@ class OverThresholdUtilizationHandlerServiceTest {
     UtilizationSummary summary =
         givenUtilizationSummary(NON_PAYG_PRODUCT_ID, "Unknown-metric", 2.0, 1.0, 500.0);
 
-    whenCheckSummary(summary);
+    whenHandleSummary(summary);
 
     verify(notificationsProducer, never()).produce(any(Action.class));
   }
@@ -520,7 +520,7 @@ class OverThresholdUtilizationHandlerServiceTest {
     UtilizationSummary summary =
         givenUtilizationSummary("totally-unknown-product", SOCKETS_METRIC_ID, 2.0, 1.0, 500.0);
 
-    whenCheckSummary(summary);
+    whenHandleSummary(summary);
 
     verify(notificationsProducer, never()).produce(any(Action.class));
   }
@@ -547,7 +547,7 @@ class OverThresholdUtilizationHandlerServiceTest {
                     .withUnlimited(false)));
   }
 
-  private void whenCheckSummary(UtilizationSummary summary) {
+  private void whenHandleSummary(UtilizationSummary summary) {
     for (Measurement measurement : summary.getMeasurements()) {
       service.handle(summary, measurement);
     }
