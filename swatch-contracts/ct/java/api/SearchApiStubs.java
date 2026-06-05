@@ -22,6 +22,7 @@ package api;
 
 import domain.Subscription;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -61,6 +62,65 @@ public class SearchApiStubs {
    */
   public void stubSearchApiNotFound(String subscriptionNumber) {
     stubSubscriptionBySubscriptionNumber(subscriptionNumber, List.of());
+  }
+
+  public void stubSearchSubscriptionsByOrgId(String orgId, Subscription... subscriptions) {
+    var responseBody = Arrays.stream(subscriptions).map(this::mapToApiModel).toList();
+    wiremockService
+        .given()
+        .contentType("application/json")
+        .body(
+            Map.of(
+                "request",
+                Map.of(
+                    "method",
+                    "GET",
+                    "urlPathPattern",
+                    String.format(
+                        "/mock/subscriptionApi/search/criteria;web_customer_id=%s/options;products=ALL;showExternalReferences=true.*",
+                        orgId)),
+                "response",
+                Map.of(
+                    "status",
+                    200,
+                    "headers",
+                    Map.of("Content-Type", "application/json"),
+                    "jsonBody",
+                    responseBody),
+                "priority",
+                9,
+                "metadata",
+                wiremockService.getMetadataTags()))
+        .when()
+        .post("/__admin/mappings")
+        .then()
+        .statusCode(201);
+  }
+
+  public void stubSearchSubscriptionsByOrgIdFailure(String orgId, int httpStatus) {
+    wiremockService
+        .given()
+        .contentType("application/json")
+        .body(
+            Map.of(
+                "request",
+                Map.of(
+                    "method",
+                    "GET",
+                    "urlPathPattern",
+                    String.format(
+                        "/mock/subscriptionApi/search/criteria;web_customer_id=%s/options;products=ALL;showExternalReferences=true.*",
+                        orgId)),
+                "response",
+                Map.of("status", httpStatus),
+                "priority",
+                9,
+                "metadata",
+                wiremockService.getMetadataTags()))
+        .when()
+        .post("/__admin/mappings")
+        .then()
+        .statusCode(201);
   }
 
   /**
