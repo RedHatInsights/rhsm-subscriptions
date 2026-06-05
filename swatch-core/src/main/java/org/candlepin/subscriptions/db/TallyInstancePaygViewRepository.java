@@ -20,13 +20,16 @@
  */
 package org.candlepin.subscriptions.db;
 
-import java.util.UUID;
 import org.candlepin.subscriptions.db.model.TallyInstancePaygView;
+import org.candlepin.subscriptions.db.model.TallyInstanceViewKey;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-/** Provides access to TallyInstanceView database entities. */
-@SuppressWarnings({"linelength", "indentation"})
+/**
+ * Provides access to TallyInstanceView database entities. This is a legacy class that will be
+ * retired when the is_primary migration effort is complete
+ */
+@Deprecated
 public interface TallyInstancePaygViewRepository
-    extends JpaRepository<TallyInstancePaygView, UUID>,
+    extends JpaRepository<TallyInstancePaygView, TallyInstanceViewKey>,
         JpaSpecificationExecutor<TallyInstancePaygView> {}

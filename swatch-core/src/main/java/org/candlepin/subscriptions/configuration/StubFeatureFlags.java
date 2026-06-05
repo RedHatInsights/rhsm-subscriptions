@@ -18,18 +18,24 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.db;
+package org.candlepin.subscriptions.configuration;
 
-import org.candlepin.subscriptions.db.model.TallyInstanceNonPaygView;
-import org.candlepin.subscriptions.db.model.TallyInstanceViewKey;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.stereotype.Component;
 
 /**
- * Provides access to TallyInstanceView database entities. This is a legacy class that will be
- * retired when the is_primary migration effort is complete
+ * A stub implementation since both swatch-system-conduit and swatch-tally import swatch-core and we
+ * don't have Unleash functionality in swatch-system-conduit.
  */
-@Deprecated
-public interface TallyInstanceNonPaygViewRepository
-    extends JpaRepository<TallyInstanceNonPaygView, TallyInstanceViewKey>,
-        JpaSpecificationExecutor<TallyInstanceNonPaygView> {}
+@Component
+public class StubFeatureFlags implements FeatureFlags {
+
+  @Override
+  public boolean isEnabled(String featureName) {
+    return false;
+  }
+
+  @Override
+  public boolean isEnabled(String featureName, boolean defaultWhenUnavailable) {
+    return defaultWhenUnavailable;
+  }
+}

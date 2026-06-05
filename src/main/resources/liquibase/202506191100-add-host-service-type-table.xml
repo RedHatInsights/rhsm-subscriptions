@@ -244,7 +244,7 @@
                       h.hypervisor_uuid
       from hosts h
              join host_tally_buckets b on h.id = b.host_id
-             inner join MaxHostServiceTypeDate mhstd ON h.id = mhstd.host_id
+             left join MaxHostServiceTypeDate mhstd ON h.id = mhstd.host_id
     </createView>
     <createView
       replaceIfExists="true"
