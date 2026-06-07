@@ -21,46 +21,38 @@
 package org.candlepin.subscriptions.configuration;
 
 import io.getunleash.Unleash;
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Primary;
+import org.springframework.stereotype.Component;
 
-/**
- * Feature flags service for managing Unleash feature toggles in the Spring Boot application.
- *
- * <p>This class provides methods to check feature flag status using Unleash. Feature flags allow
- * runtime control of application features without redeployment.
- */
-@Slf4j
-public class FeatureFlags {
-
-  // Feature flag names
-  public static final String ENABLE_PRIMARY_ROW_SEARCHES =
-      "swatch.swatch-tally.enable-primary-row-searches";
+@Component
+@Primary
+public class UnleashFeatureFlags implements FeatureFlags {
 
   private final Unleash unleash;
 
-  public FeatureFlags(Unleash unleash) {
+  public UnleashFeatureFlags(@Autowired(required = false) Unleash unleash) {
     this.unleash = unleash;
   }
 
   /**
-   * Check if primary row searches are enabled.
+   * Wrapper to {@link Unleash#isEnabled(String, boolean)}; however, if Unleash is null the default
+   * will be returned instead of an NPE.
    *
-   * @return true if primary row searches feature flag is enabled
+   * @param featureName Unleash feature flag name.
+   * @param flagDefault default value for the feature flag.
+   * @return a boolean indicating whether the flag is enabled or not.
    */
-  public boolean isPrimaryRowSearchesEnabled() {
+  @Override
+  public boolean isEnabled(String featureName, boolean flagDefault) {
     if (unleash == null) {
-      return false; // Default to disabled when Unleash is not available
+      return flagDefault;
     }
-    return unleash.isEnabled(ENABLE_PRIMARY_ROW_SEARCHES);
+    return unleash.isEnabled(featureName, flagDefault);
   }
 
-  /**
-   * Check if a feature flag is enabled by name.
-   *
-   * @param featureName the feature flag name
-   * @return true if the feature flag is enabled
-   */
+  @Override
   public boolean isEnabled(String featureName) {
-    return unleash.isEnabled(featureName);
+    return isEnabled(featureName, false);
   }
 }
