@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+  <changeSet id="202605191440-01" author="awood" dbms="postgresql">
+    <createView viewName="tally_instance_primary_view" replaceIfExists="true">
+      SELECT DISTINCT
+        h.org_id,
+        h.id,
+        h.instance_id AS instance_id,
+        h.display_name,
+        h.billing_provider AS host_billing_provider,
+        h.billing_account_id AS host_billing_account_id,
+        b.billing_provider AS bucket_billing_provider,
+        b.billing_account_id AS bucket_billing_account_id,
+        h.last_seen,
+        mhstd.max_last_applied_event_record_date AS last_applied_event_record_date,
+        COALESCE(h.num_of_guests, 0) AS num_of_guests,
+        b.product_id,
+        b.sla,
+        b.usage,
+        COALESCE(b.measurement_type, 'EMPTY') AS measurement_type,
+        b.sockets,
+        b.cores,
+        h.subscription_manager_id,
+        h.inventory_id,
+        h.hypervisor_uuid
+      FROM hosts h
+        JOIN host_tally_buckets b ON h.id = b.host_id
+        LEFT JOIN LATERAL (
+          SELECT MAX(last_applied_event_record_date) AS max_last_applied_event_record_date
+          FROM host_tally_service_type
+          WHERE host_id = h.id
+        ) mhstd ON true
+      WHERE b.is_primary = true;
+    </createView>
+  </changeSet>
+
+  <changeSet id="202605191440-02" author="awood" dbms="postgresql">
+    <createView viewName="tally_instance_non_payg_primary_view" replaceIfExists="true">
+      SELECT DISTINCT
+        v.*,
+        jsonb_agg(jsonb_build_object('metric_id', m.metric_id, 'value', m.value)) AS metrics
+      FROM tally_instance_primary_view v
+        LEFT JOIN instance_measurements m ON v.id = m.host_id
+      GROUP BY
+        v.org_id,
+        v.id,
+        v.instance_id,
+        v.display_name,
+        v.host_billing_provider,
+        v.host_billing_account_id,
+        v.bucket_billing_provider,
+        v.bucket_billing_account_id,
+        v.last_seen,
+        v.last_applied_event_record_date,
+        v.num_of_guests,
+        v.product_id,
+        v.sla,
+        v.usage,
+        v.measurement_type,
+        v.sockets,
+        v.cores,
+        v.subscription_manager_id,
+        v.inventory_id,
+        v.hypervisor_uuid;
+    </createView>
+  </changeSet>
+
+  <changeSet id="202605191440-03" author="awood" dbms="postgresql">
+    <createView viewName="tally_instance_payg_primary_view" replaceIfExists="true">
+      SELECT DISTINCT
+        v.*,
+        m.month,
+        jsonb_agg(jsonb_build_object('metric_id', m.metric_id, 'value', m.value)) AS metrics
+      FROM tally_instance_primary_view v
+        LEFT JOIN instance_monthly_totals m ON v.id = m.host_id
+      GROUP BY
+        v.org_id,
+        v.id,
+        v.instance_id,
+        v.display_name,
+        v.host_billing_provider,
+        v.host_billing_account_id,
+        v.bucket_billing_provider,
+        v.bucket_billing_account_id,
+        v.last_seen,
+        v.last_applied_event_record_date,
+        v.num_of_guests,
+        v.product_id,
+        v.sla,
+        v.usage,
+        v.measurement_type,
+        v.sockets,
+        v.cores,
+        v.subscription_manager_id,
+        v.inventory_id,
+        v.hypervisor_uuid,
+        m.month;
+    </createView>
+  </changeSet>
+
+  <changeSet id="202605191440-04" author="awood" dbms="hsqldb">
+    <createView viewName="tally_instance_primary_view">
+      WITH MaxHostServiceTypeDate AS (
+        SELECT host_id,
+          MAX(last_applied_event_record_date) AS max_last_applied_event_record_date
+        FROM host_tally_service_type
+        GROUP BY host_id
+      )
+      SELECT DISTINCT
+        h.org_id,
+        h.id,
+        h.instance_id as instance_id,
+        h.display_name,
+        h.billing_provider as host_billing_provider,
+        h.billing_account_id as host_billing_account_id,
+        b.billing_provider as bucket_billing_provider,
+        b.billing_account_id as bucket_billing_account_id,
+        h.last_seen,
+        mhstd.max_last_applied_event_record_date AS last_applied_event_record_date,
+        COALESCE(h.num_of_guests, 0) AS num_of_guests,
+        b.product_id,
+        b.sla,
+        b.usage,
+        COALESCE(b.measurement_type, 'EMPTY') AS measurement_type,
+        b.sockets,
+        b.cores,
+        h.subscription_manager_id,
+        h.inventory_id,
+        h.hypervisor_uuid
+        FROM hosts h
+          JOIN host_tally_buckets b ON h.id = b.host_id
+          LEFT JOIN MaxHostServiceTypeDate mhstd ON h.id = mhstd.host_id
+        WHERE b.is_primary = true;
+    </createView>
+  </changeSet>
+
+  <changeSet id="202605191440-05" author="awood" dbms="hsqldb">
+    <createView viewName="tally_instance_non_payg_primary_view">
+      SELECT DISTINCT
+        v.*,
+        CONCAT('[{"metric_id":"', m.metric_id, '","value":',m.value , '}]') AS metrics
+      FROM tally_instance_primary_view v
+        LEFT JOIN instance_measurements m ON v.id = m.host_id;
+    </createView>
+  </changeSet>
+
+  <changeSet id="202605191440-06" author="awood" dbms="hsqldb">
+    <createView viewName="tally_instance_payg_primary_view">
+      SELECT DISTINCT
+        v.*,
+        m.month,
+        CONCAT('[{"metric_id":"', m.metric_id, '","value":',m.value , '}]') AS metrics
+      FROM tally_instance_primary_view v
+        LEFT JOIN instance_monthly_totals m ON v.id = m.host_id
+    </createView>
+  </changeSet>
+</databaseChangeLog>

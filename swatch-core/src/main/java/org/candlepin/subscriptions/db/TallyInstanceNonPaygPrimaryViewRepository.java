@@ -20,16 +20,13 @@
  */
 package org.candlepin.subscriptions.db;
 
-import org.candlepin.subscriptions.db.model.TallyInstanceNonPaygView;
+import org.candlepin.subscriptions.db.model.TallyInstanceNonPaygPrimaryView;
 import org.candlepin.subscriptions.db.model.TallyInstanceViewKey;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-/**
- * Provides access to TallyInstanceView database entities. This is a legacy class that will be
- * retired when the is_primary migration effort is complete
- */
-@Deprecated
-public interface TallyInstanceNonPaygViewRepository
-    extends JpaRepository<TallyInstanceNonPaygView, TallyInstanceViewKey>,
-        JpaSpecificationExecutor<TallyInstanceNonPaygView> {}
+/** Provides access to {@link TallyInstanceNonPaygPrimaryView} database entities. */
+@SuppressWarnings({"linelength", "indentation"})
+public interface TallyInstanceNonPaygPrimaryViewRepository
+    extends JpaRepository<TallyInstanceNonPaygPrimaryView, TallyInstanceViewKey>,
+        JpaSpecificationExecutor<TallyInstanceNonPaygPrimaryView> {}
