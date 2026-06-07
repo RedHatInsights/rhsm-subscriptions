@@ -169,7 +169,7 @@ public class TallyResource implements TallyApi {
 
     // Execute query based on feature flag - each path returns unified result
     TallyQueryResult queryResult =
-        featureFlags.isPrimaryRowSearchesEnabled()
+        featureFlags.isEnabled(FeatureFlags.ENABLE_PRIMARY_ROW_SEARCHES)
             ? executeAggregateQuery(reportCriteria, metricId, category)
             : executeSnapshotBasedQuery(reportCriteria, metricId, category);
     List<UnroundedTallyReportDataPoint> snaps = queryResult.dataPoints();

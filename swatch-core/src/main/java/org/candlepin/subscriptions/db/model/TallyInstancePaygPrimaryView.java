@@ -37,14 +37,12 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.Immutable;
 
-/** This is a legacy class that will be retired when the is_primary migration effort is complete */
 @Setter
 @Getter
 @Entity
 @Immutable
-@Table(name = "tally_instance_payg_view")
-@Deprecated
-public class TallyInstancePaygView extends TallyInstanceView {
+@Table(name = "tally_instance_payg_primary_view")
+public class TallyInstancePaygPrimaryView extends TallyInstanceView {
 
   @Column(name = "month")
   private String month;

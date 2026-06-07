@@ -114,7 +114,8 @@ class SnapshotSummaryProducerTest {
   @MockitoSettings(strictness = Strictness.LENIENT)
   @ValueSource(booleans = {true, false})
   void testProduceSummaryDaily(boolean isPrimaryRowSearch) {
-    when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(isPrimaryRowSearch);
+    when(featureFlags.isEnabled(FeatureFlags.ENABLE_PRIMARY_ROW_SEARCHES))
+        .thenReturn(isPrimaryRowSearch);
     Map<String, List<TallySnapshot>> updateMap = new HashMap<>();
     updateMap.put(
         "org1",
@@ -179,7 +180,8 @@ class SnapshotSummaryProducerTest {
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
   void testProduceSummaryHourly(boolean isPrimaryRowSearch) {
-    when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(isPrimaryRowSearch);
+    when(featureFlags.isEnabled(FeatureFlags.ENABLE_PRIMARY_ROW_SEARCHES))
+        .thenReturn(isPrimaryRowSearch);
     Map<String, List<TallySnapshot>> updateMap = new HashMap<>();
     updateMap.put(
         "org1",
@@ -244,7 +246,8 @@ class SnapshotSummaryProducerTest {
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
   void testProduceMultiGranularitySummaries(boolean isPrimaryRowSearch) {
-    when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(isPrimaryRowSearch);
+    when(featureFlags.isEnabled(FeatureFlags.ENABLE_PRIMARY_ROW_SEARCHES))
+        .thenReturn(isPrimaryRowSearch);
     Map<String, List<TallySnapshot>> updateMap = new HashMap<>();
     updateMap.put(
         "org1",
@@ -323,7 +326,8 @@ class SnapshotSummaryProducerTest {
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
   void testProduceSummariesNoBilling(boolean isPrimaryRowSearch) {
-    when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(isPrimaryRowSearch);
+    when(featureFlags.isEnabled(FeatureFlags.ENABLE_PRIMARY_ROW_SEARCHES))
+        .thenReturn(isPrimaryRowSearch);
     Map<String, List<TallySnapshot>> updateMap = new HashMap<>();
     updateMap.put(
         "org1",
