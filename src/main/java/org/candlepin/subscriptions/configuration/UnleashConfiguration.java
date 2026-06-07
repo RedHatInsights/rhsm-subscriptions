@@ -20,23 +20,20 @@
  */
 package org.candlepin.subscriptions.configuration;
 
-import io.getunleash.Unleash;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
+import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
+import org.springframework.boot.context.TypeExcludeFilter;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.FilterType;
 
-/** Configuration class for Unleash feature flags. */
 @Configuration
-public class UnleashConfiguration {
-
-  /**
-   * Creates the FeatureFlags bean for managing feature toggles.
-   *
-   * @param unleash the Unleash client instance (optional)
-   * @return FeatureFlags service
-   */
-  @Bean
-  public FeatureFlags featureFlags(@Autowired(required = false) Unleash unleash) {
-    return new FeatureFlags(unleash);
-  }
-}
+@ComponentScan(
+    basePackages = "org.candlepin.subscriptions.configuration",
+    // Prevent TestConfiguration annotated classes from being picked up by ComponentScan
+    excludeFilters = {
+      @ComponentScan.Filter(type = FilterType.CUSTOM, classes = TypeExcludeFilter.class),
+      @ComponentScan.Filter(
+          type = FilterType.CUSTOM,
+          classes = AutoConfigurationExcludeFilter.class)
+    })
+public class UnleashConfiguration {}

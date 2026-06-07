@@ -69,7 +69,9 @@ class TallySummaryMapperTest {
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
   void testMapSnapshots(boolean isPrimaryRowSearch) {
-    when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(true);
+    when(featureFlags.isEnabled(FeatureFlags.ENABLE_PRIMARY_ROW_SEARCHES))
+        .thenReturn(isPrimaryRowSearch);
+
     when(clock.startOfMonth(any(OffsetDateTime.class)))
         .thenAnswer(inv -> ((OffsetDateTime) inv.getArgument(0)).minusDays(10));
 
@@ -115,7 +117,7 @@ class TallySummaryMapperTest {
   @Test
   @MockitoSettings(strictness = Strictness.LENIENT)
   void testMapSnapshotsPrimayRowsWithAny() {
-    when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(true);
+    when(featureFlags.isEnabled(FeatureFlags.ENABLE_PRIMARY_ROW_SEARCHES)).thenReturn(true);
     when(clock.startOfMonth(any(OffsetDateTime.class)))
         .thenAnswer(inv -> ((OffsetDateTime) inv.getArgument(0)).minusDays(10));
 
@@ -210,7 +212,7 @@ class TallySummaryMapperTest {
       if (!isNonAnsibleGauge) {
         // SQL call should be made for non-GAUGE or Ansible products
         sqlCallCount++;
-        if (featureFlags.isPrimaryRowSearchesEnabled()) {
+        if (featureFlags.isEnabled(FeatureFlags.ENABLE_PRIMARY_ROW_SEARCHES)) {
           verify(snapshotRepository)
               .sumMeasurementValueForPeriodWithPrimary(
                   eq(expected.getOrgId()),
@@ -299,7 +301,7 @@ class TallySummaryMapperTest {
     } else {
       // All other metrics: use SQL query result (value * 2)
       expectedTotalValues.put(measurementKey, value * 2);
-      if (featureFlags.isPrimaryRowSearchesEnabled()) {
+      if ((featureFlags.isEnabled(FeatureFlags.ENABLE_PRIMARY_ROW_SEARCHES))) {
         when(snapshotRepository.sumMeasurementValueForPeriodWithPrimary(
                 any(), any(), any(), any(), any(), any(), any(), any(), any(), eq(measurementKey)))
             .thenReturn(value * 2);
@@ -380,7 +382,7 @@ class TallySummaryMapperTest {
   @Test
   @MockitoSettings(strictness = Strictness.LENIENT)
   void testGetCurrentlyMeasuredTotalNonAnsibleGaugeMetricUsesEventValue() {
-    when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(false);
+    when(featureFlags.isEnabled(FeatureFlags.ENABLE_PRIMARY_ROW_SEARCHES)).thenReturn(false);
 
     String org = "O1";
     // RHEL is non-Ansible and has GAUGE metrics like "Sockets"
@@ -432,7 +434,7 @@ class TallySummaryMapperTest {
    */
   @Test
   void testGetCurrentlyMeasuredTotalCounterMetricUsesSqlQuery() {
-    when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(false);
+    when(featureFlags.isEnabled(FeatureFlags.ENABLE_PRIMARY_ROW_SEARCHES)).thenReturn(false);
 
     String org = "O1";
     // OpenShift-metrics is non-Ansible
@@ -484,7 +486,7 @@ class TallySummaryMapperTest {
    */
   @Test
   void testGetCurrentlyMeasuredTotalPaygProductCounterUsesSqlQuery() {
-    when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(false);
+    when(featureFlags.isEnabled(FeatureFlags.ENABLE_PRIMARY_ROW_SEARCHES)).thenReturn(false);
 
     String org = "O1";
     // ROSA is a PAYG product
@@ -536,7 +538,7 @@ class TallySummaryMapperTest {
    */
   @Test
   void testGetCurrentlyMeasuredTotalAnsibleGaugeMetricUsesSqlQuery() {
-    when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(false);
+    when(featureFlags.isEnabled(FeatureFlags.ENABLE_PRIMARY_ROW_SEARCHES)).thenReturn(false);
 
     String org = "O1";
     // Ansible product
@@ -586,7 +588,7 @@ class TallySummaryMapperTest {
    */
   @Test
   void testGetCurrentlyMeasuredTotalPrimaryRowSearchEnabledUsesPrimaryQuery() {
-    when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(true);
+    when(featureFlags.isEnabled(FeatureFlags.ENABLE_PRIMARY_ROW_SEARCHES)).thenReturn(true);
 
     String org = "O1";
     String productId = "OpenShift-metrics";
@@ -647,7 +649,7 @@ class TallySummaryMapperTest {
    */
   @Test
   void testGetCurrentlyMeasuredTotalMixedGaugeAndCounter() {
-    when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(false);
+    when(featureFlags.isEnabled(FeatureFlags.ENABLE_PRIMARY_ROW_SEARCHES)).thenReturn(false);
 
     String org = "O1";
     String productId = "ansible-aap-managed";

@@ -128,7 +128,7 @@ class TallyResourceTest {
   class WithPrimaryRowSearchesEnabled {
     @BeforeEach
     void setup() {
-      when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(true);
+      when(featureFlags.isEnabled(FeatureFlags.ENABLE_PRIMARY_ROW_SEARCHES)).thenReturn(true);
     }
 
     @Test
@@ -1035,7 +1035,7 @@ class TallyResourceTest {
   class WithPrimaryRowSearchesDisabled {
     @BeforeEach
     void setup() {
-      when(featureFlags.isPrimaryRowSearchesEnabled()).thenReturn(false);
+      when(featureFlags.isEnabled(FeatureFlags.ENABLE_PRIMARY_ROW_SEARCHES)).thenReturn(false);
     }
 
     @Test

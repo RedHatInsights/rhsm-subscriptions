@@ -133,7 +133,7 @@ public class TallySummaryMapper {
     }
 
     // For all other cases (Ansible, or COUNTER metrics): use existing SQL logic
-    if (featureFlags.isPrimaryRowSearchesEnabled()) {
+    if (featureFlags.isEnabled(FeatureFlags.ENABLE_PRIMARY_ROW_SEARCHES)) {
       gateOnAnyValues(snapshot);
       return snapshotRepository.sumMeasurementValueForPeriodWithPrimary(
           snapshot.getOrgId(),
