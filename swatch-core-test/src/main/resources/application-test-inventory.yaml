@@ -12,7 +12,6 @@ logging:
       candlepin: INFO
 spring:
   jpa:
-    database: postgresql
     properties:
       hibernate:
         jdbc:

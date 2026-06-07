@@ -41,7 +41,10 @@ import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.configuration.FeatureFlags;
+import org.candlepin.subscriptions.db.TallyInstanceNonPaygPrimaryViewRepository;
 import org.candlepin.subscriptions.db.TallyInstanceNonPaygViewRepository;
+import org.candlepin.subscriptions.db.TallyInstancePaygPrimaryViewRepository;
 import org.candlepin.subscriptions.db.TallyInstancePaygViewRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
@@ -52,6 +55,7 @@ import org.candlepin.subscriptions.db.model.Usage;
 // NOTE(khowell): this couples our export implementation to the v1 REST API
 import org.candlepin.subscriptions.utilization.api.v1.model.ReportCategory;
 import org.springframework.context.annotation.Profile;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.repository.query.FluentQuery;
 import org.springframework.stereotype.Component;
 
@@ -94,8 +98,14 @@ public class InstancesDataExporterService implements DataExporterService<TallyIn
 
   private final TallyInstancePaygViewRepository paygViewRepository;
   private final TallyInstanceNonPaygViewRepository nonPaygViewRepository;
+
+  private final TallyInstancePaygPrimaryViewRepository paygPrimaryViewRepository;
+  private final TallyInstanceNonPaygPrimaryViewRepository nonPaygPrimaryViewRepository;
+
   private final InstancesJsonDataMapperService jsonDataMapperService;
   private final InstancesCsvDataMapperService csvDataMapperService;
+
+  private final FeatureFlags featureFlags;
 
   @Override
   public boolean handles(ExportServiceRequest request) {
@@ -105,12 +115,24 @@ public class InstancesDataExporterService implements DataExporterService<TallyIn
   @Override
   public Stream<TallyInstanceView> fetchData(ExportServiceRequest request) {
     log.debug("Fetching data for {}", request.getOrgId());
+
     var reportCriteria = extractExportFilter(request);
-    boolean isPayg = reportCriteria.getProductId().isPayg();
-    var repository = isPayg ? paygViewRepository : nonPaygViewRepository;
+    var repository = selectRepository(reportCriteria.getProductId());
+
     return repository
         .findBy(buildSearchSpecification(reportCriteria), FluentQuery.FetchableFluentQuery::stream)
         .map(TallyInstanceView.class::cast);
+  }
+
+  private JpaSpecificationExecutor<? extends TallyInstanceView> selectRepository(
+      ProductId productId) {
+    // TODO Enable with featureFlags.isEnabled(FeatureFlags.ENABLE_PRIMARY_ROW_SEARCHES, false);
+    //  for SWATCH-4862
+    boolean usePrimary = false;
+    if (productId.isPayg()) {
+      return usePrimary ? paygPrimaryViewRepository : paygViewRepository;
+    }
+    return usePrimary ? nonPaygPrimaryViewRepository : nonPaygViewRepository;
   }
 
   @Override

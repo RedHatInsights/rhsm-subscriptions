@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import lombok.AllArgsConstructor;
+import org.candlepin.subscriptions.configuration.FeatureFlags;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
@@ -50,6 +51,7 @@ import org.candlepin.subscriptions.utilization.api.v1.model.SortDirection;
 import org.hibernate.query.criteria.JpaOrder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
@@ -78,13 +80,18 @@ public class TallyInstanceViewRepository {
   private final TallyInstancePaygViewRepository paygViewRepository;
   private final TallyInstanceNonPaygViewRepository nonPaygViewRepository;
 
+  private final TallyInstancePaygPrimaryViewRepository paygPrimaryViewRepository;
+  private final TallyInstanceNonPaygPrimaryViewRepository nonPaygPrimaryViewRepository;
+
+  private final FeatureFlags featureFlags;
+
   /**
    * Find all Hosts by bucket criteria and return a page of TallyInstanceView objects. A
    * TallyInstanceView is a Host representation detailing what 'bucket' was applied to the current
    * daily snapshots.
    *
    * @param orgId The organization ID of the hosts to query (required).
-   * @param productId The bucket product ID to filter Host by (pass null to ignore).
+   * @param productId The bucket product ID to filter Host by (required).
    * @param sla The bucket service level to filter Hosts by (pass null to ignore).
    * @param usage The bucket usage to filter Hosts by (pass null to ignore).
    * @param displayNameSubstring Case-insensitive string to filter Hosts' display name by (pass null
@@ -113,7 +120,10 @@ public class TallyInstanceViewRepository {
       Integer limit,
       String sort,
       SortDirection dir) {
-    var repository = productId.isPayg() ? paygViewRepository : nonPaygViewRepository;
+
+    Objects.requireNonNull(productId, "productId must be provided");
+    var repository = selectRepository(productId);
+
     return (Page<TallyInstanceView>)
         repository.findAll(
             buildSearchSpecification(
@@ -134,6 +144,17 @@ public class TallyInstanceViewRepository {
                     .sortDirection(dir)
                     .build()),
             ResourceUtils.getPageable(offset, limit));
+  }
+
+  private JpaSpecificationExecutor<? extends TallyInstanceView> selectRepository(
+      ProductId productId) {
+    // TODO Enable with featureFlags.isEnabled(FeatureFlags.ENABLE_PRIMARY_ROW_SEARCHES, false);
+    //  for SWATCH-4862
+    boolean usePrimary = false;
+    if (productId.isPayg()) {
+      return usePrimary ? paygPrimaryViewRepository : paygViewRepository;
+    }
+    return usePrimary ? nonPaygPrimaryViewRepository : nonPaygViewRepository;
   }
 
   static <T extends TallyInstanceView> Specification<T> socketsAndCoresGreaterThanOrEqualTo(

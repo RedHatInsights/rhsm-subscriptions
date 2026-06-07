@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# See https://docs.coderabbit.ai/reference/configuration for all fields and default values
+language: en
+reviews:
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  collapse_walkthrough: true
+  auto_review:
+    enabled: true
+    drafts: false
+    # Skip automated dependency/version bump PRs from Konflux (Renovate/Tekton).
+    # Username must match GitHub login exactly (case-sensitive).
+    ignore_usernames:
+      - "red-hat-konflux[bot]"
+chat:
+  auto_reply: true

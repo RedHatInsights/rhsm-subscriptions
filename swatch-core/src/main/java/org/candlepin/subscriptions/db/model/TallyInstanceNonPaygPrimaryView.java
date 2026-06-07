@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.db.model;
 import static java.util.Optional.ofNullable;
 
 import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.util.MetricIdUtils;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -37,33 +38,28 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.Immutable;
 
-/** This is a legacy class that will be retired when the is_primary migration effort is complete */
 @Setter
 @Getter
 @Entity
 @Immutable
-@Table(name = "tally_instance_payg_view")
-@Deprecated
-public class TallyInstancePaygView extends TallyInstanceView {
-
-  @Column(name = "month")
-  private String month;
-
+@Table(name = "tally_instance_non_payg_primary_view")
+public class TallyInstanceNonPaygPrimaryView extends TallyInstanceView {
   /** This is only used when filtering/sorting instances. */
   @ElementCollection(fetch = FetchType.LAZY)
   @CollectionTable(
-      name = "instance_monthly_totals",
-      joinColumns = {
-        @JoinColumn(name = "host_id", referencedColumnName = "id"),
-        @JoinColumn(name = "month", referencedColumnName = "month")
-      })
+      name = "instance_measurements",
+      joinColumns = @JoinColumn(name = "host_id", referencedColumnName = "id"))
   @MapKeyColumn(name = "metric_id")
   @Column(name = "value")
   private Map<String, Double> filteredMetrics = new HashMap<>();
 
   @Override
   public double getMetricValue(MetricId metricId) {
-    if (getMetrics().containsKey(metricId)) {
+    if (MetricIdUtils.getSockets().equals(metricId)) {
+      return Double.valueOf(ofNullable(getSockets()).orElse(0));
+    } else if (MetricIdUtils.getCores().equals(metricId)) {
+      return Double.valueOf(ofNullable(getCores()).orElse(0));
+    } else if (getMetrics().containsKey(metricId)) {
       return ofNullable(getMetrics().get(metricId)).orElse(0.0);
     }
 

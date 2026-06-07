@@ -38,11 +38,13 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.Immutable;
 
+/** This is a legacy class that will be retired when the is_primary migration effort is complete */
 @Setter
 @Getter
 @Entity
 @Immutable
 @Table(name = "tally_instance_non_payg_view")
+@Deprecated
 public class TallyInstanceNonPaygView extends TallyInstanceView {
 
   /** This is only used when filtering/sorting instances. */
