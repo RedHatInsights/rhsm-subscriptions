@@ -732,7 +732,7 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
   class WithPrimaryRowSearchesEnabled extends FeatureFlagTests {
     @BeforeEach
     void setup() {
-      when(featureFlags.isEnabled(FeatureFlags.ENABLE_PRIMARY_ROW_SEARCHES, false))
+      when(featureFlags.isEnabled(FeatureFlags.ENABLE_HTB_PRIMARY_ROW_SEARCHES, false))
           .thenReturn(true);
     }
 
@@ -794,7 +794,7 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
   class WithPrimaryRowSearchesDisabled extends FeatureFlagTests {
     @BeforeEach
     void setup() {
-      when(featureFlags.isEnabled(FeatureFlags.ENABLE_PRIMARY_ROW_SEARCHES, false))
+      when(featureFlags.isEnabled(FeatureFlags.ENABLE_HTB_PRIMARY_ROW_SEARCHES, false))
           .thenReturn(false);
     }
 

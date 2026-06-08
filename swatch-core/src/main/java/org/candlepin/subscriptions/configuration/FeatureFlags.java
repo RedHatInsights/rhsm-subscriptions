@@ -23,6 +23,8 @@ package org.candlepin.subscriptions.configuration;
 public interface FeatureFlags {
 
   String ENABLE_PRIMARY_ROW_SEARCHES = "swatch.swatch-tally.enable-primary-row-searches";
+  String ENABLE_HTB_PRIMARY_ROW_SEARCHES =
+      "swatch.swatch-tally.enable-host-tally-bucket-primary-row-searches";
 
   boolean isEnabled(String featureName);
 

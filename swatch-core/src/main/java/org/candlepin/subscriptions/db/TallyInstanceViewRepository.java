@@ -148,7 +148,7 @@ public class TallyInstanceViewRepository {
 
   private JpaSpecificationExecutor<? extends TallyInstanceView> selectRepository(
       ProductId productId) {
-    // TODO Enable with featureFlags.isEnabled(FeatureFlags.ENABLE_PRIMARY_ROW_SEARCHES, false);
+    // TODO Enable with featureFlags.isEnabled(FeatureFlags.ENABLE_HTB_PRIMARY_ROW_SEARCHES, false);
     //  for SWATCH-4862
     boolean usePrimary = false;
     if (productId.isPayg()) {
