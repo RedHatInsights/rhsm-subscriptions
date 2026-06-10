@@ -41,6 +41,7 @@ import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.test.ExtendWithSwatchDatabase;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,7 +50,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
 @ActiveProfiles({"worker", "test"})
-class IsPrimaryUpdateServiceIT {
+class IsPrimaryUpdateServiceIT implements ExtendWithSwatchDatabase {
 
   private static final String PRODUCT_PAYG = "rosa";
   private static final String PRODUCT_NON_PAYG = "RHEL for x86";

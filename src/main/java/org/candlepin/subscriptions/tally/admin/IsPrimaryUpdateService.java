@@ -160,20 +160,42 @@ public class IsPrimaryUpdateService {
             .map(SubscriptionDefinition::isPaygEligible)
             .orElse(false);
 
-    int rowsUpdated =
-        isPayg
-            ? bucketRepository.setIsPrimaryForPayg(
-                orgId, productId, ServiceLevel._ANY, Usage._ANY, BillingProvider._ANY)
-            : bucketRepository.setIsPrimaryForNonPayg(
-                orgId, productId, ServiceLevel._ANY, Usage._ANY, BillingProvider._ANY);
+    int totalUpdated = 0;
+    int updated;
+    do {
+      updated =
+          isPayg
+              ? bucketRepository.setIsPrimaryForPayg(
+                  orgId,
+                  productId,
+                  ServiceLevel._ANY.getValue(),
+                  Usage._ANY.getValue(),
+                  BillingProvider._ANY.getValue())
+              : bucketRepository.setIsPrimaryForNonPayg(
+                  orgId,
+                  productId,
+                  ServiceLevel._ANY.getValue(),
+                  Usage._ANY.getValue(),
+                  BillingProvider._ANY.getValue());
+      totalUpdated += updated;
+      if (updated > 0) {
+        log.info(
+            "Batch updated {} rows (running total: {}, org={}, product={}, payg={})",
+            updated,
+            totalUpdated,
+            orgId != null ? orgId : "ALL",
+            productId,
+            isPayg);
+      }
+    } while (updated > 0);
 
     log.info(
-        "Updated is_primary=true for {} rows (org={}, product={}, payg={})",
-        rowsUpdated,
+        "Completed is_primary update: {} total rows (org={}, product={}, payg={})",
+        totalUpdated,
         orgId != null ? orgId : "ALL",
         productId,
         isPayg);
 
-    return rowsUpdated;
+    return totalUpdated;
   }
 }
