@@ -286,7 +286,7 @@ spec:
             description: Updated EXTRA_DEPLOY_ARGS with template refs for all monorepo components
         steps:
           - name: build-args
-            image: quay.io/konflux-ci/appstudio-utils:latest
+            image: quay.io/konflux-ci/task-runner@sha256:b9ef0479b57a494368a12a02886c650314c9ac7391c6228f21065865aab71c9e
             script: |
               #!/usr/bin/env bash
               set -euo pipefail
@@ -943,7 +943,7 @@ spec:
             type: string
         steps:
           - name: check
-            image: quay.io/konflux-ci/appstudio-utils:latest
+            image: quay.io/konflux-ci/task-runner@sha256:b9ef0479b57a494368a12a02886c650314c9ac7391c6228f21065865aab71c9e
             script: |
               #!/bin/bash
               FAILED=false
