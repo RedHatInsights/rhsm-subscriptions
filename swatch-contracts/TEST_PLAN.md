@@ -923,6 +923,89 @@ This section verifies the automatic contract termination behavior when contracts
   - Subscription entity created  
   - SubscriptionResponse: "Success"
 
+**subscriptions-sync-TC003 - Empty upstream org subscription list**
+- **Description**: When IT subscription search returns an empty list, all subscription rows previously stored for the org are removed.
+- **Setup**:
+  - One active subscription stored for the org
+  - IT subscription search returns HTTP 200 with an empty list
+- **Action**:
+  - Run subscription sync for the org
+- **Verification**:
+  - List subscriptions for the org via internal API
+- **Expected Results**:
+  - No subscription rows remain for the org
+
+**subscriptions-sync-TC004 - Upstream org subscription search failure**
+- **Description**: When IT subscription search fails, the previously stored subscriptions must remain unchanged.
+- **Setup**:
+  - One active subscription stored for the org
+  - IT subscription search returns an HTTP error code (bad gateway or internal server error)
+- **Action**:
+  - Run subscription sync for the org
+- **Verification**:
+  - List subscriptions for the org via internal API
+- **Expected Results**:
+  - The stored subscription is still present and unchanged
+
+**subscriptions-sync-TC005 - Subscription missing from subscription search list**
+- **Description**: When IT subscription search returns only one subscription for the org, any DB row whose `subscription_id` is not in that response is removed. Covers partial upstream responses and renewal: only the replacement is returned, it has a different `subscription_id`, and its start date is after the expired row — so days in the report window before the replacement start lose the expired row’s capacity in the capacity API.
+- **Setup**:
+  - Subscription A stored for the org, recently expired but within the configured sync retention window
+  - Replacement subscription B (different subscription id) with a later start date
+  - IT subscription search returns only B
+  - Report window: last 30 days through today (daily granularity)
+- **Action**:
+  - Run subscription sync for the org
+- **Verification**:
+  - List subscriptions for the org via internal API
+  - `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}` for the report window (RHEL, Sockets)
+- **Expected Results**:
+  - Subscription A is absent
+  - Subscription B is present
+  - Capacity API: zero sockets on each day before B’s start date; B’s socket capacity on each day from B’s start through window end
+
+**subscriptions-sync-TC006 - Expired and replacement both returned from subscription search**
+- **Description**: When IT subscription search returns both the expired subscription and its replacement, both rows remain in SWATCH so the capacity API can still count the expired row for days when it was active within the report window.
+- **Setup**:
+  - Subscription A stored for the org, recently expired but within the configured sync retention window
+  - Replacement subscription B with a later start date
+  - IT subscription search returns both A and B
+  - Report window: last 30 days through today (daily granularity)
+  - **Segment dates depend on `SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN` and `SUBSCRIPTION_IGNORE_STARTING_LATER_THAN`**: A’s end date must be after `now minus SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN` and B’s start must be before `now plus SUBSCRIPTION_IGNORE_STARTING_LATER_THAN`, or `shouldSyncSub` filters the DTO and reconcile deletes the stored row. 
+- **Action**:
+  - Run subscription sync for the org
+- **Verification**:
+  - List subscriptions for the org via internal API
+  - Capacity API for the report window (RHEL, Sockets)
+- **Expected Results**:
+  - Subscription A is present
+  - Subscription B is present
+  - Capacity API: A’s socket capacity on each day from window start through A’s end date; B’s socket capacity on each day from B’s start through window end
+
+**subscriptions-sync-TC007 - Subscription filtered because upstream start date is null**
+- **Description**: When IT subscription search returns a subscription with a null effective start date, `shouldSyncSub` rejects the DTO. The subscription id is not added to `seenIds`, and an existing row for that id is deleted on reconcile.
+- **Setup**:
+  - One active subscription stored for the org
+  - IT subscription search returns the same subscription id with no `effectiveStartDate`
+- **Action**:
+  - Run subscription sync for the org
+- **Verification**:
+  - List subscriptions for the org via internal API
+- **Expected Results**:
+  - The stored subscription row is removed
+
+**subscriptions-sync-TC008 - Subscription filtered because upstream start date is too far in the future**
+- **Description**: When IT subscription search returns a subscription whose start date is beyond `SUBSCRIPTION_IGNORE_STARTING_LATER_THAN`, `shouldSyncSub` rejects the DTO. The subscription is not synced from upstream; an existing row for that id is deleted on reconcile.
+- **Setup**:
+  - One active subscription stored for the org
+  - IT subscription search returns the same subscription id with a start date more than `SUBSCRIPTION_IGNORE_STARTING_LATER_THAN` in the future.
+- **Action**:
+  - Run subscription sync for the org
+- **Verification**:
+  - List subscriptions for the org via internal API
+- **Expected Results**:
+  - The stored subscription row is removed
+
 **subscriptions-termination-TC001** - **Terminate subscription with timestamp**  
 - **Description:** Verify manual subscription termination.  
 - **Setup:** Create an active subscription.  
