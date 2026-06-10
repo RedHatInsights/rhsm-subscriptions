@@ -241,10 +241,11 @@ Test cases should be testable locally and in deployed environments.
 
 The tally report filtering test cases are organized into two component test files:
 
-- **TallyReportFiltersPaygTest.java** - Contains 20 test cases (TC001-TC023, excluding TC009, TC010, TC024) covering PAYG (Pay-As-You-Go) scenarios:
+- **TallyReportFiltersPaygTest.java** - Contains 21 test cases (TC001-TC023, TC025, excluding TC009, TC010, TC024) covering PAYG (Pay-As-You-Go) scenarios:
   - TC001-TC008: Basic filtering by granularity, SLA, usage, billing provider, and billing account ID
   - TC011-TC014: Validation errors and metadata verification
   - TC016-TC023: Daily granularity filtering, monthly/quarterly/yearly granularity support
+  - TC025: Invalid granularity enum value
   - Product: RHEL for x86 ELS PAYG (supports hourly granularity)
 
 - **TallyReportFiltersEdgeCaseTest.java** - Contains 3 test cases for edge cases requiring special event patterns:
@@ -652,6 +653,18 @@ All test files use `@BeforeAll` to create test data once and share it across all
 - **Expected Result**:
     - API accepts and processes yearly granularity queries
     - All filter parameters are properly reflected in response metadata
+
+**tally-report-filters-TC025 - Invalid granularity enum value**
+
+- **Description**: Verify that tally report API returns validation error when granularity is not a valid enum value
+- **Setup**:
+    - Organization is opted in
+- **Action**:
+    - Request tally report with granularity=HOURLLY (typo)
+- **Verification**:
+    - HTTP 400 Bad Request
+- **Expected Result**:
+    - Invalid enum query parameters return client error instead of server error
 
 **tally-report-filters-TC024 - Daily report tracks billing account change for same instance**
 
