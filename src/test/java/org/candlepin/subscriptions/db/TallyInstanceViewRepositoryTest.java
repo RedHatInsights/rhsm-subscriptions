@@ -744,8 +744,8 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
       addBucketToHost(
           primaryHost,
           RHEL,
-          ServiceLevel._ANY,
-          Usage._ANY,
+          ServiceLevel.PREMIUM,
+          Usage.PRODUCTION,
           HardwareMeasurementType.PHYSICAL,
           BillingProvider._ANY,
           2,
@@ -770,8 +770,8 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
           repo.findAllBy(
               "org-primary",
               RHEL,
-              ServiceLevel._ANY,
-              Usage._ANY,
+              null,
+              null,
               "",
               0,
               0,
@@ -805,8 +805,8 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
       addBucketToHost(
           primaryHost,
           RHEL,
-          ServiceLevel._ANY,
-          Usage._ANY,
+          ServiceLevel.PREMIUM,
+          Usage.PRODUCTION,
           HardwareMeasurementType.PHYSICAL,
           BillingProvider._ANY,
           2,
@@ -831,8 +831,8 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
           repo.findAllBy(
               "org-primary",
               RHEL,
-              ServiceLevel._ANY,
-              Usage._ANY,
+              null,
+              null,
               "",
               0,
               0,
