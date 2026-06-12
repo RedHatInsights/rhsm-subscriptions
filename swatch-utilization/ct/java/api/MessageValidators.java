@@ -26,6 +26,8 @@ import com.redhat.swatch.component.tests.api.DefaultMessageValidator;
 /** Message validators for notification messages in utilization component tests. */
 public class MessageValidators {
 
+  private static final String OVERUSAGE_EVENT_TYPE = "exceeded-utilization-threshold";
+
   /** Matches notifications by organization ID. */
   public static DefaultMessageValidator<Action> matchesOrgId(String orgId) {
     return new DefaultMessageValidator<>(a -> orgId.equals(a.getOrgId()), Action.class);
@@ -39,12 +41,15 @@ public class MessageValidators {
         Action.class);
   }
 
-  /** Matches overage notifications by org_id, product_id, and metric_id. */
-  public static DefaultMessageValidator<Action> matchesOverageNotification(
+  /** Matches over-usage threshold notifications by org_id, product_id, and metric_id. */
+  public static DefaultMessageValidator<Action> matchesOverUsageNotification(
       String orgId, String productId, String metricId) {
     return new DefaultMessageValidator<>(
         action -> {
           if (!orgId.equals(action.getOrgId())) {
+            return false;
+          }
+          if (!OVERUSAGE_EVENT_TYPE.equals(action.getEventType())) {
             return false;
           }
           var context = action.getContext();

@@ -21,7 +21,7 @@
 package tests;
 
 import static api.MessageValidators.matchesOrgId;
-import static api.MessageValidators.matchesOverageNotification;
+import static api.MessageValidators.matchesOverUsageNotification;
 import static com.redhat.swatch.component.tests.utils.Topics.NOTIFICATIONS;
 import static com.redhat.swatch.component.tests.utils.Topics.UTILIZATION;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -43,6 +43,7 @@ public class UtilizationNotificationsFeatureFlagsComponentTest
     extends BaseUtilizationComponentTest {
 
   private static final String OVERUSAGE_EVENT_TYPE = "exceeded-utilization-threshold";
+  private static final String CUSTOM_THRESHOLD_EVENT_TYPE = "exceeded-custom-utilization-threshold";
   private static final double BASELINE_CAPACITY = 100.0;
   private static final double USAGE_EXCEEDING_THRESHOLD = 110.0;
 
@@ -89,7 +90,8 @@ public class UtilizationNotificationsFeatureFlagsComponentTest
   @Test
   @TestPlanName("utilization-notifications-featureflags-TC004")
   void shouldSuppressNotification_whenOverusageEventTypeIsDenylisted() {
-    givenSendNotificationsEnabledWithDenylistedEventTypes(OVERUSAGE_EVENT_TYPE);
+    givenSendNotificationsEnabledWithDenylistedEventTypes(
+        OVERUSAGE_EVENT_TYPE, CUSTOM_THRESHOLD_EVENT_TYPE);
 
     whenOverUsageRhelExceedsThreshold();
 
@@ -111,7 +113,8 @@ public class UtilizationNotificationsFeatureFlagsComponentTest
   void shouldDifferByAllowlist_whenDenylistedEventAndTwoOrgs() {
     var orgIdNotOnAllowlist = RandomUtils.generateRandom();
 
-    givenSendNotificationsEnabledWithDenylistedEventTypes(OVERUSAGE_EVENT_TYPE);
+    givenSendNotificationsEnabledWithDenylistedEventTypes(
+        OVERUSAGE_EVENT_TYPE, CUSTOM_THRESHOLD_EVENT_TYPE);
     givenOrgOnNotificationsAllowlist(orgId);
 
     whenOverUsageRhelExceedsThresholdForOrg(orgId);
@@ -180,7 +183,7 @@ public class UtilizationNotificationsFeatureFlagsComponentTest
     Action notification =
         kafkaBridge.waitForKafkaMessage(
             NOTIFICATIONS,
-            matchesOverageNotification(
+            matchesOverUsageNotification(
                 expectedOrgId, Product.RHEL.getName(), Product.RHEL.getFirstMetric().getId()));
     assertNotNull(notification, "Notification should be sent");
     assertEquals(

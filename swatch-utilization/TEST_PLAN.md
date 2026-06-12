@@ -561,18 +561,22 @@ Additional cases can be added under the same `utilization-notifications-featuref
     - Notification action `severity` is `MODERATE`
     - Notification is sent (threshold comparison uses greater-than-or-equal)
 
-**custom-threshold-TC003 - No notification when no org preference exists**
+**custom-threshold-TC003 - Notification sent using default 80% threshold when no org preference exists**
 
-- **Description**: Verify no custom threshold notification is sent when the organization has not configured a custom threshold.
+- **Description**: Verify that a custom threshold notification is sent using the default 80% threshold when the organization has not configured a custom threshold.
 - **Setup**:
     - The organization has not configured a custom threshold
-    - A utilization summary is produced with positive usage
+    - A utilization summary is produced with usage above 80%
 - **Action**:
     - Send the utilization summary to the utilization topic
 - **Verification**:
-    - Check absence of notification message on notifications topic
+    - Wait for notification message on notifications topic
+    - Verify notification payload
 - **Expected Result**:
-    - No notification event created
+    - Notification event is created using the default 80% threshold
+    - Notification event contains correct information (org_id, product_id, metric_id, utilization_percentage)
+    - Notification action `severity` is `MODERATE`
+    - `preferences_hash` is absent from notification context (no persisted preference)
 
 **custom-threshold-TC004 - No notification when utilization is below custom threshold**
 
@@ -602,3 +606,16 @@ Additional cases can be added under the same `utilization-notifications-featuref
     - Both notifications are sent. The two notification types are independent (neither suppresses the other)
     - One custom threshold notification with `severity` `MODERATE`
     - One over-usage notification with `severity` `IMPORTANT`
+
+**custom-threshold-TC006 - No notification when utilization is below default threshold and no org preference exists**
+
+- **Description**: Verify that no custom threshold notification is sent when the organization has not configured a custom threshold and usage is below the default 80% threshold.
+- **Setup**:
+    - The organization has not configured a custom threshold
+    - A utilization summary is produced with usage below 80%
+- **Action**:
+    - Send the utilization summary to the utilization topic
+- **Verification**:
+    - Check absence of notification message on notifications topic
+- **Expected Result**:
+    - No notification event created

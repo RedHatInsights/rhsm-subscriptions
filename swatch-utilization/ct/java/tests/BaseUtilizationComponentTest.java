@@ -21,7 +21,7 @@
 package tests;
 
 import static api.MessageValidators.matchesNotificationByEventType;
-import static api.MessageValidators.matchesOverageNotification;
+import static api.MessageValidators.matchesOverUsageNotification;
 import static com.redhat.swatch.component.tests.utils.Topics.NOTIFICATIONS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
@@ -182,7 +182,7 @@ public class BaseUtilizationComponentTest {
       Severity expectedSeverity) {
     Action notification =
         kafkaBridge.waitForKafkaMessage(
-            NOTIFICATIONS, matchesOverageNotification(orgId, productId, metricId.getValue()));
+            NOTIFICATIONS, matchesOverUsageNotification(orgId, productId, metricId.getValue()));
 
     assertThat("Notification should be sent", notification, notNullValue());
     assertThat("Notification should have timestamp", notification.getTimestamp(), notNullValue());
