@@ -21,6 +21,7 @@
 package com.redhat.swatch.contract.product.umb;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import java.io.IOException;
@@ -127,5 +128,49 @@ class SubscriptionMessageTests {
             .build();
     assertEquals(expected, actual);
     actual.getPayload().getSync().getSubscription().getEffectiveStartDateInUtc();
+  }
+
+  @Test
+  void testTerminatedSubscriptionHelpers() throws IOException {
+    XmlMapper mapper = CanonicalMessage.createMapper();
+    CanonicalMessage message =
+        mapper.readValue(
+            getClass().getClassLoader().getResource("mocked-subscription-message.xml"),
+            CanonicalMessage.class);
+    UmbSubscription subscription = message.getPayload().getSync().getSubscription();
+
+    assertEquals("MW01882", subscription.findSku().orElseThrow());
+    assertTrue(subscription.findTerminatedStatus().isPresent());
+  }
+
+  @Test
+  void testSubscriptionWithoutProductIsNotTerminated() {
+    UmbSubscription subscription =
+        UmbSubscription.builder()
+            .identifiers(
+                Identifiers.builder()
+                    .references(
+                        new Reference[] {
+                          Reference.builder()
+                              .system("WEB")
+                              .entityName("Customer")
+                              .qualifier("id")
+                              .value("org123_ICUST")
+                              .build()
+                        })
+                    .ids(
+                        new Reference[] {
+                          Reference.builder()
+                              .system("SUBSCRIPTION")
+                              .entityName("Subscription")
+                              .qualifier("number")
+                              .value("1234")
+                              .build()
+                        })
+                    .build())
+            .build();
+
+    assertTrue(subscription.findSku().isEmpty());
+    assertTrue(subscription.findTerminatedStatus().isEmpty());
   }
 }
