@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.common.resteasy;
 
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.ext.ParamConverter;
 import jakarta.ws.rs.ext.ParamConverterProvider;
 import jakarta.ws.rs.ext.Provider;
@@ -79,8 +80,7 @@ public class EnumParamConverterProvider implements ParamConverterProvider {
         // Combined with our logging configuration, this tells the OnMdcEvaluator class to suppress
         // the stacktrace
         MDC.put("INVALID_" + className.getSimpleName().toUpperCase(), Boolean.TRUE.toString());
-        throw new IllegalArgumentException(
-            String.format(INVALID_VALUE_EXCEPTION_MSG, value, className));
+        throw new BadRequestException(String.format(INVALID_VALUE_EXCEPTION_MSG, value, className));
       }
     }
 

@@ -45,6 +45,7 @@ import java.util.UUID;
 import org.apache.http.HttpStatus;
 import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -740,5 +741,28 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
     TallyReportDataMeta meta = response.getMeta();
     assertNotNull(meta, "Metadata should not be null");
     assertEquals(GranularityType.YEARLY, meta.getGranularity(), "Granularity should be YEARLY");
+  }
+
+  @TestPlanName("tally-report-filters-TC025")
+  @Test
+  void shouldReturnBadRequestForInvalidGranularity() {
+    // When: Querying report with an invalid granularity enum value
+    Map<String, Object> queryParams =
+        Map.of(
+            "granularity",
+            "HOURLLY",
+            "beginning",
+            timeRanges.dailyBeginning().toString(),
+            "ending",
+            timeRanges.dailyEnding().toString());
+
+    Response response =
+        service.getTallyReportDataRaw(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams);
+
+    // Then: API returns 400 Bad Request
+    assertEquals(
+        HttpStatus.SC_BAD_REQUEST,
+        response.getStatusCode(),
+        "Invalid granularity should return 400 Bad Request");
   }
 }
