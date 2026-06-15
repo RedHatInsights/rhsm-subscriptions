@@ -21,11 +21,11 @@
 package com.redhat.swatch.contract.service.export;
 
 import static com.redhat.swatch.contract.service.export.SubscriptionDataExporterService.PRODUCT_ID;
+import static com.redhat.swatch.contract.test.LoggerCaptor.thenErrorLogWithMessage;
 import static com.redhat.swatch.export.ExportRequestHandler.ADMIN_ROLE;
 import static com.redhat.swatch.export.ExportRequestHandler.MISSING_PERMISSIONS;
 import static com.redhat.swatch.export.ExportRequestHandler.SWATCH_APP;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -52,6 +52,7 @@ import com.redhat.swatch.contract.repository.SubscriptionCapacityViewRepository;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.repository.SubscriptionMeasurementKey;
 import com.redhat.swatch.contract.repository.SubscriptionRepository;
+import com.redhat.swatch.contract.test.LoggerCaptor;
 import com.redhat.swatch.contract.test.resources.ExportServiceWireMockResource;
 import com.redhat.swatch.contract.test.resources.InMemoryMessageBrokerKafkaResource;
 import com.redhat.swatch.contract.test.resources.InjectWireMock;
@@ -70,10 +71,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.logging.Handler;
-import java.util.logging.Level;
-import java.util.logging.LogRecord;
-import org.jboss.logmanager.LogContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -84,7 +81,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.testcontainers.shaded.org.awaitility.Awaitility;
 
 @QuarkusTest
 @QuarkusTestResource(ExportServiceWireMockResource.class)
@@ -95,7 +91,6 @@ class SubscriptionDataExporterServiceTest {
   private static final String ROSA = "rosa";
   private static final String ORG_ID = "13259775";
   private static final String BILLING_ACCOUNT_ID = "123";
-  private static final LoggerCaptor LOGGER_CAPTOR = new LoggerCaptor();
 
   @Inject SubscriptionRepository subscriptionRepository;
   @Inject SubscriptionCapacityViewRepository subscriptionCapacityViewRepository;
@@ -115,9 +110,7 @@ class SubscriptionDataExporterServiceTest {
 
   @BeforeAll
   static void configureLogging() {
-    LogContext.getLogContext()
-        .getLogger(ExportRequestConsumer.class.getName())
-        .addHandler(LOGGER_CAPTOR);
+    LoggerCaptor.registerHandler(ExportRequestConsumer.class);
   }
 
   @Transactional
@@ -502,41 +495,5 @@ class SubscriptionDataExporterServiceTest {
             new SubscriptionMeasurementKey(MetricIdUtils.getCores().toString(), "HYPERVISOR"),
             5.0));
     return subscription;
-  }
-
-  private void thenErrorLogWithMessage(String str) {
-    Awaitility.await()
-        .untilAsserted(
-            () ->
-                assertTrue(
-                    LOGGER_CAPTOR.records.stream()
-                        .anyMatch(
-                            r ->
-                                r.getLevel().equals(Level.SEVERE)
-                                    && r.getMessage().contains(str))));
-  }
-
-  public static class LoggerCaptor extends Handler {
-
-    private final List<LogRecord> records = new ArrayList<>();
-
-    @Override
-    public void publish(LogRecord trace) {
-      records.add(trace);
-    }
-
-    @Override
-    public void flush() {
-      // no need to flush any sink
-    }
-
-    @Override
-    public void close() throws SecurityException {
-      clearRecords();
-    }
-
-    public void clearRecords() {
-      records.clear();
-    }
   }
 }

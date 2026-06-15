@@ -22,13 +22,13 @@ package com.redhat.swatch.contract.resource;
 
 import static com.redhat.swatch.contract.config.Channels.CONTRACTS_FROM_GATEWAY;
 import static org.awaitility.Awaitility.await;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.contract.config.FeatureFlags;
+import com.redhat.swatch.contract.test.LoggerCaptor;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectSpy;
@@ -37,12 +37,6 @@ import io.smallrye.reactive.messaging.memory.InMemorySource;
 import jakarta.enterprise.inject.Any;
 import jakarta.inject.Inject;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.logging.Handler;
-import java.util.logging.LogRecord;
-import org.jboss.logmanager.Level;
-import org.jboss.logmanager.LogContext;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -88,8 +82,6 @@ class ContractsPartnerEntitlementMessageConsumerTest {
         }
         """;
 
-  private static final LoggerCaptor LOGGER_CAPTOR = new LoggerCaptor();
-
   @Inject @Any InMemoryConnector connector;
 
   @InjectMock FeatureFlags featureFlags;
@@ -99,15 +91,13 @@ class ContractsPartnerEntitlementMessageConsumerTest {
 
   @BeforeAll
   static void configureLogging() {
-    LogContext.getLogContext()
-        .getLogger(ContractsPartnerEntitlementMessageConsumer.class.getName())
-        .addHandler(LOGGER_CAPTOR);
+    LoggerCaptor.registerHandler(ContractsPartnerEntitlementMessageConsumer.class);
   }
 
   @BeforeEach
   void setUp() {
     contractsKafkaChannel = connector.source(CONTRACTS_FROM_GATEWAY);
-    LOGGER_CAPTOR.clearRecords();
+    LoggerCaptor.clearRecords();
     when(featureFlags.isPartnerGatewayContractsKafkaConsumerEnabled()).thenReturn(true);
   }
 
@@ -153,38 +143,7 @@ class ContractsPartnerEntitlementMessageConsumerTest {
   }
 
   private static void thenKafkaContractDeserializedSuccessfully() {
-    assertTrue(
-        LOGGER_CAPTOR.records.stream()
-            .anyMatch(
-                r ->
-                    Level.INFO.equals(r.getLevel())
-                        && r.getMessage().contains("IT Partner message consumed: source=kafka")));
-    assertTrue(
-        LOGGER_CAPTOR.records.stream()
-            .noneMatch(r -> r.getMessage().contains("Unable to read IT Partner Kafka message")));
-  }
-
-  static class LoggerCaptor extends Handler {
-
-    private final List<LogRecord> records = new ArrayList<>();
-
-    @Override
-    public void publish(LogRecord trace) {
-      records.add(trace);
-    }
-
-    @Override
-    public void flush() {
-      // no sink
-    }
-
-    @Override
-    public void close() throws SecurityException {
-      clearRecords();
-    }
-
-    void clearRecords() {
-      records.clear();
-    }
+    LoggerCaptor.thenInfoLogWithMessage("IT Partner message consumed: source=kafka");
+    LoggerCaptor.thenNoErrorLogWithMessage("Unable to read IT Partner Kafka message");
   }
 }
