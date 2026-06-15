@@ -103,6 +103,7 @@
               <sourceDirectory>${maven.multiModuleProjectDirectory}/swatch-contracts/schemas</sourceDirectory>
               <sourcePaths>
                 <sourcePath>enable_partner_gateway_contracts_variant_payload.yaml</sourcePath>
+                <sourcePath>subscription_delete_reason.yaml</sourcePath>
               </sourcePaths>
             </configuration>
           </execution>

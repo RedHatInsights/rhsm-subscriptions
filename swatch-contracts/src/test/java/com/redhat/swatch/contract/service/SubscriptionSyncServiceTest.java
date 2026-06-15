@@ -28,6 +28,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
@@ -47,7 +49,6 @@ import com.redhat.swatch.contract.repository.BillingProvider;
 import com.redhat.swatch.contract.repository.OfferingEntity;
 import com.redhat.swatch.contract.repository.OfferingRepository;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
-import com.redhat.swatch.contract.repository.SubscriptionRepository;
 import com.redhat.swatch.contract.utils.SubscriptionDtoUtil;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -64,6 +65,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatcher;
 import org.mockito.Mockito;
@@ -75,7 +77,7 @@ class SubscriptionSyncServiceTest {
   private static final String SKU = "testsku";
 
   @InjectMock OfferingRepository offeringRepository;
-  @InjectMock SubscriptionRepository subscriptionRepository;
+  @InjectMock SubscriptionService subscriptionService;
   @InjectMock ContractService contractService;
   @InjectMock ProductDenylist denylist;
   @InjectMock SubscriptionSearchService subscriptionSearchService;
@@ -83,6 +85,12 @@ class SubscriptionSyncServiceTest {
   @InjectMock OfferingSyncService offeringSyncService;
   @Inject ApplicationClock clock;
   @Inject SubscriptionSyncService subscriptionSyncService;
+
+  @BeforeEach
+  void defaultSubscriptionServiceStubs() {
+    doNothing().when(subscriptionService).flushAndClearPersistenceContext();
+    when(subscriptionService.streamByOrgId(any())).thenReturn(Stream.empty());
+  }
 
   @Test
   void shouldCreateNewRecordOnQuantityChange() {
@@ -95,9 +103,8 @@ class SubscriptionSyncServiceTest {
     when(denylist.productIdMatches(any())).thenReturn(false);
     subscriptionSyncService.syncSubscription(dto, Optional.of(subscription));
     // for existing subscription:
-    verify(subscriptionRepository).persist(any(SubscriptionEntity.class));
-    // for the new one:
-    verify(subscriptionRepository).merge(any(SubscriptionEntity.class));
+    verify(subscriptionService).terminate(any(SubscriptionEntity.class));
+    verify(subscriptionService).save(any(SubscriptionEntity.class));
     verify(capacityReconciliationService, Mockito.times(2))
         .reconcileCapacityForSubscription(Mockito.any(SubscriptionEntity.class));
   }
@@ -140,7 +147,7 @@ class SubscriptionSyncServiceTest {
     // from the value in the quantityChangedSub.
     when(denylist.productIdMatches(any())).thenReturn(false);
     when(subscriptionSearchService.getSubscriptionsByOrgId("123")).thenReturn(List.of(dto));
-    when(subscriptionRepository.streamByOrgId("123")).thenReturn(subscriptions.stream());
+    when(subscriptionService.streamByOrgId("123")).thenReturn(subscriptions.stream());
     subscriptionSyncService.reconcileSubscriptionsWithSubscriptionService("123", false);
 
     verify(initialSubSpy, never()).endSubscription();
@@ -186,7 +193,7 @@ class SubscriptionSyncServiceTest {
     // the quantity has changed for a second time
     when(denylist.productIdMatches(any())).thenReturn(false);
     when(subscriptionSearchService.getSubscriptionsByOrgId("123")).thenReturn(List.of(dto));
-    when(subscriptionRepository.streamByOrgId("123")).thenReturn(subscriptions.stream());
+    when(subscriptionService.streamByOrgId("123")).thenReturn(subscriptions.stream());
     subscriptionSyncService.reconcileSubscriptionsWithSubscriptionService("123", false);
 
     // We don't want to modify the original subscription that has already been ended.  We want to
@@ -203,7 +210,7 @@ class SubscriptionSyncServiceTest {
     when(denylist.productIdMatches(any())).thenReturn(false);
     var dto = createDto("456", 4);
     subscriptionSyncService.syncSubscription(dto, Optional.of(createSubscription()));
-    verify(subscriptionRepository).persist(any(SubscriptionEntity.class));
+    verify(subscriptionService).save(any(SubscriptionEntity.class));
     verify(capacityReconciliationService, Mockito.times(2))
         .reconcileCapacityForSubscription(any(SubscriptionEntity.class));
   }
@@ -216,7 +223,7 @@ class SubscriptionSyncServiceTest {
     when(denylist.productIdMatches(any())).thenReturn(false);
     var dto = createDto("456", 10);
     subscriptionSyncService.syncSubscription(dto, Optional.empty());
-    verify(subscriptionRepository, Mockito.times(1)).merge(any(SubscriptionEntity.class));
+    verify(subscriptionService, Mockito.times(1)).save(any(SubscriptionEntity.class));
     verify(capacityReconciliationService)
         .reconcileCapacityForSubscription(any(SubscriptionEntity.class));
   }
@@ -226,7 +233,7 @@ class SubscriptionSyncServiceTest {
     String sku = "MW0001";
     when(denylist.productIdMatches(sku)).thenReturn(true);
     subscriptionSyncService.syncSubscription(sku, new SubscriptionEntity(), Optional.empty());
-    verify(subscriptionRepository, never()).persist(any(SubscriptionEntity.class));
+    verify(subscriptionService, never()).save(any(SubscriptionEntity.class));
   }
 
   @Test
@@ -236,7 +243,7 @@ class SubscriptionSyncServiceTest {
     when(offeringRepository.findByIdOptional(sku)).thenReturn(Optional.empty());
     when(offeringSyncService.syncOffering(sku)).thenReturn(SyncResult.SKIPPED_NOT_FOUND);
     subscriptionSyncService.syncSubscription(sku, new SubscriptionEntity(), Optional.empty());
-    verify(subscriptionRepository, never()).persist(any(SubscriptionEntity.class));
+    verify(subscriptionService, never()).save(any(SubscriptionEntity.class));
   }
 
   @Test
@@ -291,14 +298,15 @@ class SubscriptionSyncServiceTest {
     var dto = createDto(123, "456", "890", 4);
     givenOfferingWithProductIds(290);
     subscriptionSyncService.syncSubscription(dto, Optional.empty());
-    verify(subscriptionRepository).merge(any(SubscriptionEntity.class));
+    verify(subscriptionService).save(any(SubscriptionEntity.class));
     verify(capacityReconciliationService).reconcileCapacityForSubscription(any());
 
     // let's update only the product IDs
     givenOfferingWithProductIds(290, 69);
-    reset(subscriptionRepository, capacityReconciliationService);
+    reset(capacityReconciliationService, subscriptionService);
+    defaultSubscriptionServiceStubs();
     subscriptionSyncService.syncSubscription(dto, Optional.empty());
-    verify(subscriptionRepository).merge(any(SubscriptionEntity.class));
+    verify(subscriptionService).save(any(SubscriptionEntity.class));
     verify(capacityReconciliationService).reconcileCapacityForSubscription(any());
   }
 
@@ -318,7 +326,7 @@ class SubscriptionSyncServiceTest {
     subscriptionSyncService.reconcileSubscriptionsWithSubscriptionService("100", false);
 
     verify(subscriptionSearchService).getSubscriptionsByOrgId("100");
-    verify(subscriptionRepository).merge(any(SubscriptionEntity.class));
+    verify(subscriptionService).save(any(SubscriptionEntity.class));
   }
 
   @Test
@@ -333,7 +341,7 @@ class SubscriptionSyncServiceTest {
 
     verify(subscriptionSearchService).getSubscriptionsByOrgId("100");
     verifyNoInteractions(denylist, offeringRepository);
-    verify(subscriptionRepository, times(0)).persist(any(SubscriptionEntity.class));
+    verify(subscriptionService, times(0)).save(any(SubscriptionEntity.class));
   }
 
   @Test
@@ -348,7 +356,7 @@ class SubscriptionSyncServiceTest {
 
     verify(subscriptionSearchService).getSubscriptionsByOrgId("100");
     verifyNoInteractions(denylist, offeringRepository);
-    verify(subscriptionRepository, times(0)).persist(any(SubscriptionEntity.class));
+    verify(subscriptionService, times(0)).save(any(SubscriptionEntity.class));
   }
 
   @Test
@@ -364,7 +372,7 @@ class SubscriptionSyncServiceTest {
 
     verify(subscriptionSearchService).getSubscriptionsByOrgId("100");
     verifyNoInteractions(denylist, offeringRepository);
-    verify(subscriptionRepository, times(0)).persist(any(SubscriptionEntity.class));
+    verify(subscriptionService, times(0)).save(any(SubscriptionEntity.class));
   }
 
   @Test
@@ -384,12 +392,12 @@ class SubscriptionSyncServiceTest {
         Map.of(
             SubscriptionDtoUtil.AWS_MARKETPLACE,
             new ExternalReference().customerAccountID("new1BillingAccountId")));
-    Mockito.when(subscriptionRepository.findBySubscriptionNumber(dto.getSubscriptionNumber()))
+    Mockito.when(subscriptionService.findBySubscriptionNumber(dto.getSubscriptionNumber()))
         .thenReturn(List.of(existingSub));
     subscriptionSyncService.reconcileSubscriptionsWithSubscriptionService("100", false);
     verify(subscriptionSearchService).getSubscriptionsByOrgId("100");
-    verify(subscriptionRepository)
-        .persist(
+    verify(subscriptionService)
+        .save(
             argThat(
                 (ArgumentMatcher<SubscriptionEntity>)
                     s ->
@@ -406,7 +414,7 @@ class SubscriptionSyncServiceTest {
     when(offeringRepository.findById(SKU)).thenReturn(offering);
     String subscriptionsJson = mapper.writeValueAsString(new Subscription[] {subscription});
     subscriptionSyncService.saveSubscriptions(subscriptionsJson, true);
-    verify(subscriptionRepository).persist(any(SubscriptionEntity.class));
+    verify(subscriptionService).save(any(SubscriptionEntity.class));
     verify(capacityReconciliationService).reconcileCapacityForSubscription(any());
   }
 
@@ -430,7 +438,7 @@ class SubscriptionSyncServiceTest {
     var subscription = createDto("123", 1);
     String subscriptionsJson = mapper.writeValueAsString(new Subscription[] {subscription});
     subscriptionSyncService.saveSubscriptions(subscriptionsJson, false);
-    verify(subscriptionRepository).persist(any(SubscriptionEntity.class));
+    verify(subscriptionService).save(any(SubscriptionEntity.class));
     verifyNoInteractions(capacityReconciliationService);
   }
 
@@ -446,7 +454,7 @@ class SubscriptionSyncServiceTest {
     when(offeringRepository.findByIdOptional(SKU)).thenReturn(Optional.of(offering));
     when(offeringRepository.findById(SKU)).thenReturn(offering);
     subscriptionSyncService.forceSyncSubscriptionsForOrg("123", false);
-    verify(subscriptionRepository, times(2)).merge(any(SubscriptionEntity.class));
+    verify(subscriptionService, times(2)).save(any(SubscriptionEntity.class));
   }
 
   @Test
@@ -465,7 +473,7 @@ class SubscriptionSyncServiceTest {
     when(offeringRepository.findByIdOptional(SKU)).thenReturn(Optional.of(offering));
     when(offeringRepository.findById(SKU)).thenReturn(offering);
     subscriptionSyncService.forceSyncSubscriptionsForOrg("123", true);
-    verify(subscriptionRepository, atLeastOnce()).merge(any(SubscriptionEntity.class));
+    verify(subscriptionService, atLeastOnce()).save(any(SubscriptionEntity.class));
   }
 
   @Test
@@ -482,9 +490,9 @@ class SubscriptionSyncServiceTest {
     dao2.setOffering(offering2);
 
     when(subscriptionSearchService.getSubscriptionsByOrgId("123")).thenReturn(subList);
-    when(subscriptionRepository.stream("123")).thenReturn(Stream.of(dao1, dao2));
+    when(subscriptionService.streamByOrgId("123")).thenReturn(Stream.of(dao1, dao2));
     subscriptionSyncService.forceSyncSubscriptionsForOrg("123", false);
-    verify(subscriptionRepository).streamByOrgId("123");
+    verify(subscriptionService).streamByOrgId("123");
   }
 
   @Test
@@ -559,7 +567,7 @@ class SubscriptionSyncServiceTest {
     subscriptionSyncService.syncSubscription(SKU, incoming, Optional.of(existing));
 
     verifyNoInteractions(subscriptionSearchService);
-    verify(subscriptionRepository).persist(any(SubscriptionEntity.class));
+    verify(subscriptionService).save(any(SubscriptionEntity.class));
     assertNull(incoming.getBillingAccountId());
   }
 
@@ -582,7 +590,7 @@ class SubscriptionSyncServiceTest {
     subscriptionSyncService.syncSubscription(SKU, incoming, Optional.of(existing));
 
     verifyNoInteractions(subscriptionSearchService);
-    verify(subscriptionRepository).persist(existing);
+    verify(subscriptionService).save(existing);
     assertEquals(BillingProvider.RED_HAT, existing.getBillingProvider());
     assertEquals("newBillingProviderId", existing.getBillingProviderId());
     assertEquals("newBillingAccountId", existing.getBillingAccountId());
@@ -601,7 +609,7 @@ class SubscriptionSyncServiceTest {
     subscriptionSyncService.syncSubscription(SKU, incoming, Optional.empty());
 
     verify(offeringSyncService).syncOffering(SKU);
-    verify(subscriptionRepository).merge(incoming);
+    verify(subscriptionService).save(incoming);
     assertNull(incoming.getBillingAccountId());
   }
 
@@ -618,27 +626,75 @@ class SubscriptionSyncServiceTest {
     subscriptionSyncService.syncSubscription(SKU, incoming, Optional.empty());
 
     verify(offeringSyncService).syncOffering(SKU);
-    verify(subscriptionRepository, times(0)).persist(incoming);
+    verify(subscriptionService, times(0)).save(incoming);
+  }
+
+  @Test
+  void shouldDeleteStoredSubscriptionWhenUpstreamFilteredByNullStartDate() {
+    var subscription = createSubscription();
+    var dto = createDto("456", 1);
+    dto.setEffectiveStartDate(null);
+    when(subscriptionService.streamByOrgId(any())).thenReturn(Stream.of(subscription));
+    when(subscriptionSearchService.getSubscriptionsByOrgId(any())).thenReturn(List.of(dto));
+
+    subscriptionSyncService.reconcileSubscriptionsWithSubscriptionService("org123", false);
+
+    verify(subscriptionService)
+        .delete(subscription, SubscriptionDeleteReason.FILTERED_NULL_START_DATE);
+    verify(subscriptionService, never()).save(any(SubscriptionEntity.class));
+  }
+
+  @Test
+  void shouldDeleteStoredSubscriptionWhenUpstreamFilteredByFutureStart() {
+    var subscription = createSubscription();
+    var dto = createDto("456", 1);
+    dto.setEffectiveStartDate(toEpochMillis(NOW.plusMonths(2).plusDays(1)));
+    dto.setEffectiveEndDate(toEpochMillis(NOW.plusMonths(14)));
+    when(subscriptionService.streamByOrgId(any())).thenReturn(Stream.of(subscription));
+    when(subscriptionSearchService.getSubscriptionsByOrgId(any())).thenReturn(List.of(dto));
+
+    subscriptionSyncService.reconcileSubscriptionsWithSubscriptionService("org123", false);
+
+    verify(subscriptionService)
+        .delete(subscription, SubscriptionDeleteReason.FILTERED_START_TOO_FAR_IN_FUTURE);
+    verify(subscriptionService, never()).save(any(SubscriptionEntity.class));
+  }
+
+  @Test
+  void shouldDeleteStoredSubscriptionWhenUpstreamFilteredByExpiredEnd() {
+    var subscription = createSubscription();
+    var dto = createDto("456", 1);
+    dto.setEffectiveStartDate(toEpochMillis(NOW.minusMonths(14)));
+    dto.setEffectiveEndDate(toEpochMillis(NOW.minusDays(61)));
+    when(subscriptionService.streamByOrgId(any())).thenReturn(Stream.of(subscription));
+    when(subscriptionSearchService.getSubscriptionsByOrgId(any())).thenReturn(List.of(dto));
+
+    subscriptionSyncService.reconcileSubscriptionsWithSubscriptionService("org123", false);
+
+    verify(subscriptionService)
+        .delete(subscription, SubscriptionDeleteReason.FILTERED_END_TOO_FAR_IN_PAST);
+    verify(subscriptionService, never()).save(any(SubscriptionEntity.class));
   }
 
   @Test
   void testShouldRemoveStaleSubscriptionsNotPresentInSubscriptionService() {
     var subscription = createSubscription();
-    when(subscriptionRepository.streamByOrgId(any())).thenReturn(Stream.of(subscription));
+    when(subscriptionService.streamByOrgId(any())).thenReturn(Stream.of(subscription));
     subscriptionSyncService.reconcileSubscriptionsWithSubscriptionService("org123", false);
-    verify(subscriptionRepository).delete(subscription);
+    verify(subscriptionService)
+        .delete(subscription, SubscriptionDeleteReason.NOT_IN_UPSTREAM_RESPONSE);
   }
 
   @Test
   void testShouldRemoveStaleSubscriptionsPresentInSubscriptionServiceButDenylisted() {
     var subscription = createSubscription();
     var subServiceSub = createDto("456", 1);
-    when(subscriptionRepository.streamByOrgId(any())).thenReturn(Stream.of(subscription));
+    when(subscriptionService.streamByOrgId(any())).thenReturn(Stream.of(subscription));
     when(subscriptionSearchService.getSubscriptionsByOrgId(any()))
         .thenReturn(List.of(subServiceSub));
     when(denylist.productIdMatches(any())).thenReturn(true);
     subscriptionSyncService.reconcileSubscriptionsWithSubscriptionService("org123", false);
-    verify(subscriptionRepository).delete(subscription);
+    verify(subscriptionService).delete(subscription, SubscriptionDeleteReason.PRODUCT_DENYLIST);
   }
 
   @Test
@@ -646,12 +702,18 @@ class SubscriptionSyncServiceTest {
     var subscription = createSubscription();
     var subServiceSub = createDto("456", 1);
     subscription.setStartDate(clock.dateFromMilliseconds(subServiceSub.getEffectiveStartDate()));
-    when(subscriptionRepository.streamByOrgId(any())).thenReturn(Stream.of(subscription));
+    OfferingEntity offering = OfferingEntity.builder().sku(SKU).build();
+    when(offeringRepository.findByIdOptional(SKU)).thenReturn(Optional.of(offering));
+    when(offeringRepository.findById(SKU)).thenReturn(offering);
+    when(subscriptionService.streamByOrgId(any())).thenReturn(Stream.of(subscription));
     when(subscriptionSearchService.getSubscriptionsByOrgId(any()))
         .thenReturn(List.of(subServiceSub));
     when(denylist.productIdMatches(any())).thenReturn(false);
+    doAnswer(invocation -> invocation.getArgument(0))
+        .when(subscriptionService)
+        .save(any(SubscriptionEntity.class));
     subscriptionSyncService.reconcileSubscriptionsWithSubscriptionService("org124", false);
-    verify(subscriptionRepository, times(0)).delete(subscription);
+    verify(subscriptionService, times(0)).delete(any(), any());
   }
 
   @Test
@@ -661,13 +723,19 @@ class SubscriptionSyncServiceTest {
     subscription2.setEndDate(subscription1.getEndDate().plusDays(2));
     var subServiceSub = createDto("456", 1);
     subscription2.setStartDate(clock.dateFromMilliseconds(subServiceSub.getEffectiveStartDate()));
-    when(subscriptionRepository.streamByOrgId(any()))
+    OfferingEntity offering = OfferingEntity.builder().sku(SKU).build();
+    when(offeringRepository.findByIdOptional(SKU)).thenReturn(Optional.of(offering));
+    when(offeringRepository.findById(SKU)).thenReturn(offering);
+    when(subscriptionService.streamByOrgId(any()))
         .thenReturn(Stream.of(subscription1, subscription2));
     when(subscriptionSearchService.getSubscriptionsByOrgId(any()))
         .thenReturn(List.of(subServiceSub));
     when(denylist.productIdMatches(any())).thenReturn(false);
+    doAnswer(invocation -> invocation.getArgument(0))
+        .when(subscriptionService)
+        .save(any(SubscriptionEntity.class));
     subscriptionSyncService.reconcileSubscriptionsWithSubscriptionService("org123", false);
-    verify(subscriptionRepository, times(0)).delete(any());
+    verify(subscriptionService, times(0)).delete(any(), any());
   }
 
   @Test
@@ -683,8 +751,8 @@ class SubscriptionSyncServiceTest {
     existingSubscription.setQuantity(10);
     var dto = createDto("456", 10);
     subscriptionSyncService.syncSubscription(dto, Optional.of(existingSubscription));
-    verify(subscriptionRepository)
-        .persist(
+    verify(subscriptionService)
+        .save(
             argThat(
                 (ArgumentMatcher<SubscriptionEntity>)
                     s ->
@@ -699,7 +767,7 @@ class SubscriptionSyncServiceTest {
     OfferingEntity o = new OfferingEntity();
     o.setMetered(true);
     when(offeringRepository.findById(SKU)).thenReturn(o);
-    when(subscriptionRepository.findActiveSubscription("456")).thenReturn(List.of(s));
+    when(subscriptionService.findActiveSubscription("456")).thenReturn(List.of(s));
 
     var termination = OffsetDateTime.now();
     var result = subscriptionSyncService.terminateSubscription("456", termination);
@@ -713,7 +781,7 @@ class SubscriptionSyncServiceTest {
     OfferingEntity offering = OfferingEntity.builder().metered(true).build();
     s.setOffering(offering);
     when(offeringRepository.findById(SKU)).thenReturn(offering);
-    when(subscriptionRepository.findActiveSubscription("456")).thenReturn(List.of(s));
+    when(subscriptionService.findActiveSubscription("456")).thenReturn(List.of(s));
 
     var termination = OffsetDateTime.now().minusDays(1);
     var result = subscriptionSyncService.terminateSubscription("456", termination);
@@ -727,7 +795,7 @@ class SubscriptionSyncServiceTest {
   void terminateInTheFutureActivePAYGSubscriptionTest() {
     SubscriptionEntity s = createSubscription();
     s.getOffering().setMetered(true);
-    when(subscriptionRepository.findActiveSubscription("456")).thenReturn(List.of(s));
+    when(subscriptionService.findActiveSubscription("456")).thenReturn(List.of(s));
 
     var termination = OffsetDateTime.now().plusDays(1);
     var result = subscriptionSyncService.terminateSubscription("456", termination);
@@ -740,7 +808,7 @@ class SubscriptionSyncServiceTest {
   @Test
   void terminateActiveNonPAYGSubscriptionTest() {
     SubscriptionEntity s = createSubscription();
-    when(subscriptionRepository.findActiveSubscription("456")).thenReturn(List.of(s));
+    when(subscriptionService.findActiveSubscription("456")).thenReturn(List.of(s));
 
     var termination = OffsetDateTime.now();
     var result = subscriptionSyncService.terminateSubscription("456", termination);

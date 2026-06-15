@@ -394,6 +394,7 @@ Test cases should be testable locally and in an ephemeral environment.
   - Other fields unchanged on new contract (org_id, sku, metrics)
   - Response status: "SUCCESS" (new contract created)
   - Log message: "Deleting contract that does not align to IT partner gateway"
+  - Application logs contain `Subscription deleted` with `delete_reason=PARTNER_ENTITLEMENT_START_DATE_NOT_IN_GATEWAY` for the prior subscription segment
 
 **contracts-update-TC004 - Update contract end date (renewal)**  
 - **Description**: Verify updating the contract end date ( with a date in the future ) when the customer renews the subscription.  
@@ -546,6 +547,7 @@ Test cases should be testable locally and in an ephemeral environment.
 - **Expected Result:**  
   - HTTP 204 No Content response
   - Contract no longer returned by organization contract lookup
+  - Application logs contain `Subscription deleted` with `delete_reason=CONTRACT_DELETED` for the contract's subscription row
 
 **contracts-deletion-TC002** - **Delete non-existent contract**  
 - **Description:** Verify graceful handling for deleting a non-existent UUID.  
@@ -932,6 +934,7 @@ This section verifies the automatic contract termination behavior when contracts
   - Run subscription sync for the org
 - **Verification**:
   - List subscriptions for the org via internal API
+  - Application logs contain `Subscription deleted` with `delete_reason=NOT_IN_UPSTREAM_RESPONSE` for the removed row
 - **Expected Results**:
   - No subscription rows remain for the org
 
@@ -959,6 +962,7 @@ This section verifies the automatic contract termination behavior when contracts
 - **Verification**:
   - List subscriptions for the org via internal API
   - `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}` for the report window (RHEL, Sockets)
+  - Application logs contain `Subscription deleted` with `delete_reason=NOT_IN_UPSTREAM_RESPONSE` for subscription A and `Subscription created/updated` for subscription B
 - **Expected Results**:
   - Subscription A is absent
   - Subscription B is present
@@ -983,7 +987,7 @@ This section verifies the automatic contract termination behavior when contracts
   - Capacity API: A’s socket capacity on each day from window start through A’s end date; B’s socket capacity on each day from B’s start through window end
 
 **subscriptions-sync-TC007 - Subscription filtered because upstream start date is null**
-- **Description**: When IT subscription search returns a subscription with a null effective start date, `shouldSyncSub` rejects the DTO. The subscription id is not added to `seenIds`, and an existing row for that id is deleted on reconcile.
+- **Description**: When IT subscription search returns a subscription with a null effective start date, the upstream DTO is filtered. An existing row for that id is deleted on reconcile with a specific filter reason.
 - **Setup**:
   - One active subscription stored for the org
   - IT subscription search returns the same subscription id with no `effectiveStartDate`
@@ -993,6 +997,7 @@ This section verifies the automatic contract termination behavior when contracts
   - List subscriptions for the org via internal API
 - **Expected Results**:
   - The stored subscription row is removed
+  - Application logs contain `Subscription deleted` with `delete_reason=FILTERED_NULL_START_DATE`
 
 **subscriptions-sync-TC008 - Subscription filtered because upstream start date is too far in the future**
 - **Description**: When IT subscription search returns a subscription whose start date is beyond `SUBSCRIPTION_IGNORE_STARTING_LATER_THAN`, `shouldSyncSub` rejects the DTO. The subscription is not synced from upstream; an existing row for that id is deleted on reconcile.
@@ -1005,6 +1010,20 @@ This section verifies the automatic contract termination behavior when contracts
   - List subscriptions for the org via internal API
 - **Expected Results**:
   - The stored subscription row is removed
+  - Application logs contain `Subscription deleted` with `delete_reason=FILTERED_START_TOO_FAR_IN_FUTURE`
+
+**subscriptions-sync-TC009 - Subscription filtered because upstream end date is too far in the past**
+- **Description**: When IT subscription search returns a subscription whose end date is before `SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN`, `shouldSyncSub` rejects the DTO. An existing row for that subscription id is deleted on reconcile.
+- **Setup**:
+  - One active subscription stored for the org
+  - IT subscription search returns the same subscription id with an end date more than `SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN` in the past
+- **Action**:
+  - Run subscription sync for the org
+- **Verification**:
+  - List subscriptions for the org via internal API
+- **Expected Results**:
+  - The stored subscription row is removed
+  - Application logs contain `Subscription deleted` with `delete_reason=FILTERED_END_TOO_FAR_IN_PAST`
 
 **subscriptions-termination-TC001** - **Terminate subscription with timestamp**  
 - **Description:** Verify manual subscription termination.  

@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
+import com.redhat.swatch.contract.test.model.SubscriptionDeleteReason;
 import domain.BillingProvider;
 import domain.Contract;
 import io.restassured.response.Response;
@@ -49,6 +50,7 @@ public class ContractsDeletionComponentTest extends BaseContractComponentTest {
 
     // Then: Contract should no longer exist
     thenContractShouldNotExist(orgId);
+    thenSubscriptionAuditDeleteLog(SubscriptionDeleteReason.CONTRACT_DELETED);
   }
 
   @TestPlanName("contracts-deletion-TC002")

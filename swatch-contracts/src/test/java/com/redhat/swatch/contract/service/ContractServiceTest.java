@@ -31,6 +31,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -82,6 +84,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -110,6 +113,7 @@ class ContractServiceTest extends BaseUnitTest {
   @InjectSpy ContractRepository contractRepository;
   @Inject OfferingRepository offeringRepository;
   @InjectSpy SubscriptionRepository subscriptionRepository;
+  @InjectSpy SubscriptionService subscriptionService;
   @InjectWireMock WireMockServer wireMockServer;
   @InjectSpy MeasurementMetricIdTransformer measurementMetricIdTransformer;
 
@@ -136,7 +140,7 @@ class ContractServiceTest extends BaseUnitTest {
         request.getPartnerEntitlement().getRhEntitlements().get(0).getSku(),
         entity.getOffering().getSku());
     assertEquals(response.getUuid(), entity.getUuid().toString());
-    verify(subscriptionRepository).persist(any(SubscriptionEntity.class));
+    verify(subscriptionService).save(any(SubscriptionEntity.class));
     verify(measurementMetricIdTransformer).mapContractMetricsToSubscriptionMeasurements(any());
   }
 
@@ -154,7 +158,7 @@ class ContractServiceTest extends BaseUnitTest {
     var contract = givenPartnerEntitlementContractRequest();
     StatusResponse statusResponse = contractService.createPartnerContract(contract);
     assertEquals("New contract created", statusResponse.getMessage());
-    verify(subscriptionRepository, times(2)).persist(any(SubscriptionEntity.class));
+    verify(subscriptionService, times(2)).save(any(SubscriptionEntity.class));
     verify(measurementMetricIdTransformer, times(2))
         .mapContractMetricsToSubscriptionMeasurements(any());
   }
@@ -193,7 +197,7 @@ class ContractServiceTest extends BaseUnitTest {
     var request = givenPartnerEntitlementContractRequest();
 
     StatusResponse statusResponse = contractService.createPartnerContract(request);
-    verify(subscriptionRepository, times(2)).persist(any(SubscriptionEntity.class));
+    verify(subscriptionService, times(2)).save(any(SubscriptionEntity.class));
     assertEquals("New contract created", statusResponse.getMessage());
   }
 
@@ -205,7 +209,7 @@ class ContractServiceTest extends BaseUnitTest {
     var request = givenPartnerEntitlementContractRequest();
 
     StatusResponse statusResponse = contractService.createPartnerContract(request);
-    verify(subscriptionRepository, times(2)).persist(any(SubscriptionEntity.class));
+    verify(subscriptionService, times(2)).save(any(SubscriptionEntity.class));
     verify(contractRepository, times(2)).persist(any(ContractEntity.class));
     verify(contractRepository).delete(existingContract);
     assertEquals("New contract created", statusResponse.getMessage());
@@ -216,7 +220,7 @@ class ContractServiceTest extends BaseUnitTest {
     givenExistingContract();
     StatusResponse statusResponse = contractService.syncContractsByOrgId(ORG_ID);
     assertEquals("Contracts Synced for " + ORG_ID, statusResponse.getMessage());
-    verify(subscriptionRepository, times(4)).persist(any(SubscriptionEntity.class));
+    verify(subscriptionService, times(3)).save(any(SubscriptionEntity.class));
     verify(measurementMetricIdTransformer, times(4))
         .mapContractMetricsToSubscriptionMeasurements(any());
   }
@@ -238,7 +242,7 @@ class ContractServiceTest extends BaseUnitTest {
     StatusResponse statusResponse = contractService.syncContractsByOrgId(ORG_ID);
 
     assertEquals("Contracts Synced for " + ORG_ID, statusResponse.getMessage());
-    verify(subscriptionRepository, times(2)).persist(any(SubscriptionEntity.class));
+    verify(subscriptionService, times(2)).save(any(SubscriptionEntity.class));
   }
 
   @Test
@@ -249,7 +253,7 @@ class ContractServiceTest extends BaseUnitTest {
     StatusResponse statusResponse = contractService.syncContractsByOrgId(ORG_ID);
 
     assertEquals("Contracts Synced for " + ORG_ID, statusResponse.getMessage());
-    verify(subscriptionRepository).persist(any(SubscriptionEntity.class));
+    verify(subscriptionService).save(any(SubscriptionEntity.class));
   }
 
   @Test
@@ -468,7 +472,7 @@ class ContractServiceTest extends BaseUnitTest {
     ArgumentCaptor<SubscriptionEntity> subscriptionSaveCapture =
         ArgumentCaptor.forClass(SubscriptionEntity.class);
     contractService.createPartnerContract(PartnerEntitlementsRequest.from(contract));
-    verify(subscriptionRepository).persist(subscriptionSaveCapture.capture());
+    verify(subscriptionService).save(subscriptionSaveCapture.capture());
     subscriptionSaveCapture.getValue();
     assertEquals(
         "a69ff71c-aa8b-43d9-dea8-822fab4bbb86;rh-rhel-sub-1yr;azureProductCode;eadf26ee-6fbc-4295-9a9e-25d4fea8951d_2019-05-31;",
@@ -478,16 +482,18 @@ class ContractServiceTest extends BaseUnitTest {
   @Test
   void testDeleteContractDeletesSubscription() {
     ContractEntity contract = givenExistingContract();
-    SubscriptionEntity subscription = givenExistingSubscription();
+    SubscriptionEntity subscription = subscriptionService.findByContract(contract).getFirst();
     contractService.deleteContract(contract.getUuid().toString());
-    verify(subscriptionRepository).delete(argThat(sameSubscription(subscription)));
+    verify(subscriptionService)
+        .delete(
+            argThat(sameSubscription(subscription)), eq(SubscriptionDeleteReason.CONTRACT_DELETED));
     verify(contractRepository).delete(argThat(c -> c.getUuid().equals(contract.getUuid())));
   }
 
   @Test
   void testDeleteContractNoopWhenMissing() {
     contractService.deleteContract(UUID.randomUUID().toString());
-    verify(subscriptionRepository, times(0)).delete(any());
+    verify(subscriptionService, times(0)).delete(any(), any());
     verify(contractRepository, times(0)).delete(any());
   }
 
@@ -497,15 +503,16 @@ class ContractServiceTest extends BaseUnitTest {
     givenExistingSubscription();
     contractService.deleteContractsByOrgId(ORG_ID);
     verify(contractRepository).delete(any());
-    verify(subscriptionRepository).delete(any());
+    verify(subscriptionService)
+        .delete(any(SubscriptionEntity.class), eq(SubscriptionDeleteReason.CONTRACT_DELETED));
   }
 
   @Test
   void testSyncSubscriptionsForContractsByOrg() {
-    givenExistingContract();
-    var expectedSubscription = givenExistingSubscription();
+    ContractEntity contract = givenExistingContract();
+    var expectedSubscription = subscriptionService.findByContract(contract).getFirst();
     contractService.syncSubscriptionsForContractsByOrg(ORG_ID);
-    verify(subscriptionRepository).persist(argThat(sameSubscription(expectedSubscription)));
+    verify(subscriptionService).save(argThat(sameSubscription(expectedSubscription)));
   }
 
   @Test
@@ -517,10 +524,10 @@ class ContractServiceTest extends BaseUnitTest {
     ArgumentCaptor<SubscriptionEntity> subscriptionsSaveCapture =
         ArgumentCaptor.forClass(SubscriptionEntity.class);
     assertEquals("New contract created", statusResponse.getMessage());
-    verify(subscriptionRepository).persist(subscriptionsSaveCapture.capture());
+    verify(subscriptionService).save(subscriptionsSaveCapture.capture());
     var persistedSubscriptions = subscriptionsSaveCapture.getValue();
     assertEquals(DEFAULT_END_DATE, persistedSubscriptions.getEndDate());
-    verify(subscriptionRepository, times(0)).delete(any());
+    verify(subscriptionService, times(0)).delete(any(), any());
   }
 
   @Test
@@ -531,8 +538,11 @@ class ContractServiceTest extends BaseUnitTest {
     mockPartnerApi();
     StatusResponse statusResponse = contractService.createPartnerContract(contract);
     assertEquals("New contract created", statusResponse.getMessage());
-    verify(subscriptionRepository).persist(any(SubscriptionEntity.class));
-    verify(subscriptionRepository, times(1)).delete(argThat(sameSubscription(subscription)));
+    verify(subscriptionService).save(any(SubscriptionEntity.class));
+    verify(subscriptionService, times(1))
+        .delete(
+            argThat(sameSubscription(subscription)),
+            eq(SubscriptionDeleteReason.PARTNER_ENTITLEMENT_START_DATE_NOT_IN_GATEWAY));
   }
 
   @Test
@@ -541,7 +551,7 @@ class ContractServiceTest extends BaseUnitTest {
     var stub = mockPartnerApi(createPartnerApiResponseNoContractDimensions());
     StatusResponse statusResponse = contractService.createPartnerContract(contract);
     assertEquals("New contract created", statusResponse.getMessage());
-    verify(subscriptionRepository).persist(any(SubscriptionEntity.class));
+    verify(subscriptionService).save(any(SubscriptionEntity.class));
     wireMockServer.removeStub(stub);
   }
 
@@ -676,6 +686,7 @@ class ContractServiceTest extends BaseUnitTest {
     subscriptionRepository.persist(subscription);
     // to not interfere with the verifications
     reset(subscriptionRepository);
+    clearInvocations(subscriptionService);
     return subscription;
   }
 
@@ -710,6 +721,7 @@ class ContractServiceTest extends BaseUnitTest {
     var entity = contractRepository.findById(UUID.fromString(created.getContract().getUuid()));
     // reset the invocations of this repository, so it does not mix up with the assertions.
     reset(contractRepository);
+    clearInvocations(subscriptionService);
     return entity;
   }
 
@@ -874,7 +886,10 @@ class ContractServiceTest extends BaseUnitTest {
   }
 
   private static ArgumentMatcher<SubscriptionEntity> sameSubscription(SubscriptionEntity expected) {
-    return actual -> actual.getSubscriptionNumber().equals(expected.getSubscriptionNumber());
+    return actual ->
+        actual.getSubscriptionNumber().equals(expected.getSubscriptionNumber())
+            && Objects.equals(actual.getSubscriptionId(), expected.getSubscriptionId())
+            && Objects.equals(actual.getStartDate(), expected.getStartDate());
   }
 
   private PartnerEntitlementV1 givenAwsEntitlement(

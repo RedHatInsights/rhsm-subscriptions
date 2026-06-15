@@ -36,13 +36,11 @@ import com.redhat.swatch.contract.repository.BillingProvider;
 import com.redhat.swatch.contract.repository.OfferingEntity;
 import com.redhat.swatch.contract.repository.OfferingRepository;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
-import com.redhat.swatch.contract.repository.SubscriptionRepository;
 import com.redhat.swatch.contract.utils.CustomBatchIterator;
 import com.redhat.swatch.contract.utils.SubscriptionDtoUtil;
 import io.micrometer.common.util.StringUtils;
 import io.micrometer.core.annotation.Timed;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.BadRequestException;
@@ -51,15 +49,15 @@ import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -71,7 +69,7 @@ import org.eclipse.microprofile.faulttolerance.Asynchronous;
 @AllArgsConstructor
 public class SubscriptionSyncService {
 
-  private final SubscriptionRepository subscriptionRepository;
+  private final SubscriptionService subscriptionService;
   private final OfferingRepository offeringRepository;
   private final SubscriptionSearchService subscriptionSearchService;
   private final ApplicationClock clock;
@@ -81,7 +79,6 @@ public class SubscriptionSyncService {
   private final ApplicationConfiguration properties;
   private final ObjectMapper objectMapper;
   private final ProductDenylist productDenylist;
-  private final EntityManager entityManager;
 
   public void syncSubscription(
       Subscription subscription, Optional<SubscriptionEntity> subscriptionOptional) {
@@ -193,7 +190,7 @@ public class SubscriptionSyncService {
        */
       if (existingSubscription.quantityHasChanged(newOrUpdated.getQuantity())) {
         existingSubscription.endSubscription();
-        subscriptionRepository.persist(existingSubscription);
+        subscriptionService.terminate(existingSubscription);
         final SubscriptionEntity newSub =
             SubscriptionEntity.builder()
                 .subscriptionId(existingSubscription.getSubscriptionId())
@@ -208,19 +205,13 @@ public class SubscriptionSyncService {
                 .billingProvider(newOrUpdated.getBillingProvider())
                 .build();
         capacityReconciliationService.reconcileCapacityForSubscription(newSub);
-        // merge is needed here because the existing subscription might not be found if we only use
-        // the subscription number (since primary keys are subscription ID and start date).
-        // To be fixed in SWATCH-2801.
-        subscriptionRepository.merge(newSub);
+        subscriptionService.save(newSub);
       } else {
         updateExistingSubscription(newOrUpdated, existingSubscription);
-        subscriptionRepository.persist(existingSubscription);
+        subscriptionService.save(existingSubscription);
       }
     } else {
-      // Same as above, the newOrUpdated entity might not be in the persistence context, so we need
-      // to use the merge operation here as well.
-      // To be fixed in SWATCH-2801.
-      subscriptionRepository.merge(newOrUpdated);
+      subscriptionService.save(newOrUpdated);
     }
   }
 
@@ -298,39 +289,59 @@ public class SubscriptionSyncService {
 
     // Filter out non PAYG subscriptions for faster processing when they are not needed.
     // Slow processing was causing: https://issues.redhat.com/browse/ENT-5083
-
     if (paygOnly) {
       dtos =
           dtos.filter(
               subscription -> SubscriptionDtoUtil.extractBillingProviderId(subscription) != null);
     }
 
-    var subIdToDtoMap =
-        dtos.filter(this::shouldSyncSub)
-            .collect(
-                Collectors.toMap(
-                    dto -> dto.getId().toString(),
-                    Function.identity(),
-                    (firstMatch, secondMatch) -> firstMatch));
+    // Partition upstream IT Search DTOs by subscription id: sync vs delete (filtered out).
+    Map<String, Subscription> subIdsToSync = new HashMap<>();
+    Map<String, SubscriptionDeleteReason> subIdsToDelete = new HashMap<>();
+    dtos.forEach(
+        dto -> {
+          String subId = dto.getId().toString();
+          var filteredByReason = shouldSyncSub(dto);
+          if (filteredByReason.isPresent()) {
+            subIdsToDelete.putIfAbsent(subId, filteredByReason.get());
+          } else {
+            subIdsToSync.putIfAbsent(subId, dto);
+          }
+        });
 
-    List<SubscriptionEntity> subEntitiesForDeletion = new ArrayList<>();
+    if (subIdsToSync.isEmpty() && subIdsToDelete.isEmpty()) {
+      log.warn("No subscriptions found in upstream for orgId={}", orgId);
+    }
 
-    Set<String> seenIds = new HashSet<>(subIdToDtoMap.keySet());
+    List<Map.Entry<SubscriptionEntity, SubscriptionDeleteReason>> subEntitiesForDeletion =
+        new ArrayList<>();
+
+    Set<String> subscriptionIdsToSync = new HashSet<>(subIdsToSync.keySet());
 
     var batchSize = 1024;
-    CustomBatchIterator.batchStreamOf(subscriptionRepository.streamByOrgId(orgId), batchSize)
+    CustomBatchIterator.batchStreamOf(subscriptionService.streamByOrgId(orgId), batchSize)
         .forEach(
             batch -> {
               batch.forEach(
                   subEntity -> {
                     var subId = subEntity.getSubscriptionId();
-                    var dto = subIdToDtoMap.remove(subId);
+                    var dto = subIdsToSync.remove(subId);
+
+                    if (subIdsToDelete.containsKey(subId)) {
+                      subEntitiesForDeletion.add(Map.entry(subEntity, subIdsToDelete.get(subId)));
+                      return;
+                    }
 
                     // delete from swatch because it didn't appear in the latest list from the
                     // subscription service, or it's in the denylist
-                    if (!seenIds.contains(subId)
-                        || (productDenylist.productIdMatches(subEntity.getOffering().getSku()))) {
-                      subEntitiesForDeletion.add(subEntity);
+                    if (!subscriptionIdsToSync.contains(subId)) {
+                      subEntitiesForDeletion.add(
+                          Map.entry(subEntity, SubscriptionDeleteReason.NOT_IN_UPSTREAM_RESPONSE));
+                      return;
+                    }
+                    if (productDenylist.productIdMatches(subEntity.getOffering().getSku())) {
+                      subEntitiesForDeletion.add(
+                          Map.entry(subEntity, SubscriptionDeleteReason.PRODUCT_DENYLIST));
                       return;
                     }
 
@@ -341,12 +352,11 @@ public class SubscriptionSyncService {
 
                     syncSubscription(dto, Optional.of(subEntity));
                   });
-              subscriptionRepository.flush();
-              entityManager.clear();
+              subscriptionService.flushAndClearPersistenceContext();
             });
 
-    // These are additional subs that should be sync'd but weren't previously in the database
-    Stream<Subscription> stream = subIdToDtoMap.values().stream();
+    // These are additional subs that should be synced but weren't previously in the database
+    Stream<Subscription> stream = subIdsToSync.values().stream();
 
     CustomBatchIterator.batchStreamOf(stream, batchSize)
         .forEach(
@@ -356,15 +366,14 @@ public class SubscriptionSyncService {
                     // Contract provided subscriptions will have a different start_date than what is
                     // stored in Subscription SearchAPI
                     var existingSubscription =
-                        subscriptionRepository
+                        subscriptionService
                             .findBySubscriptionNumber(dto.getSubscriptionNumber())
                             .stream()
                             .findFirst();
                     syncSubscription(dto, existingSubscription);
                   });
 
-              subscriptionRepository.flush();
-              entityManager.clear();
+              subscriptionService.flushAndClearPersistenceContext();
             });
 
     if (paygOnly) {
@@ -377,12 +386,13 @@ public class SubscriptionSyncService {
       log.info("Removing {} stale/incorrect subscription records", subEntitiesForDeletion.size());
     }
 
-    subEntitiesForDeletion.forEach(subscriptionRepository::delete);
+    subEntitiesForDeletion.forEach(
+        deletion -> subscriptionService.delete(deletion.getKey(), deletion.getValue()));
 
     log.info("Finished syncing subscriptions for orgId {}", orgId);
   }
 
-  private boolean shouldSyncSub(Subscription sub) {
+  private Optional<SubscriptionDeleteReason> shouldSyncSub(Subscription sub) {
     // Reject subs expired long ago, or subs that won't be active quite yet.
     OffsetDateTime now = clock.now();
 
@@ -397,7 +407,7 @@ public class SubscriptionSyncService {
           sub.getId(),
           sub.getSubscriptionNumber(),
           sub.getWebCustomerId());
-      return false;
+      return Optional.of(SubscriptionDeleteReason.FILTERED_NULL_START_DATE);
     }
 
     long earliestAllowedFutureStartDate =
@@ -405,8 +415,15 @@ public class SubscriptionSyncService {
     long latestAllowedExpiredEndDate =
         now.minus(properties.getSubscriptionIgnoreExpiredOlderThan()).toInstant().toEpochMilli();
 
-    return startDate < earliestAllowedFutureStartDate
-        && (endDate == null || endDate > latestAllowedExpiredEndDate);
+    if (startDate >= earliestAllowedFutureStartDate) {
+      return Optional.of(SubscriptionDeleteReason.FILTERED_START_TOO_FAR_IN_FUTURE);
+    }
+
+    if (endDate != null && endDate <= latestAllowedExpiredEndDate) {
+      return Optional.of(SubscriptionDeleteReason.FILTERED_END_TOO_FAR_IN_PAST);
+    }
+
+    return Optional.empty();
   }
 
   private SubscriptionEntity convertDto(UmbSubscription subscription) {
@@ -485,7 +502,7 @@ public class SubscriptionSyncService {
                   determineSubscriptionOffering(subscription);
                   capacityReconciliationService.reconcileCapacityForSubscription(subscription);
                 }
-                subscriptionRepository.persist(subscription);
+                subscriptionService.save(subscription);
               });
     } catch (JsonProcessingException e) {
       throw new IllegalArgumentException("Error parsing subscriptionsJson", e);
@@ -509,7 +526,7 @@ public class SubscriptionSyncService {
   public void saveUmbSubscription(UmbSubscription umbSubscription) {
     SubscriptionEntity subscription = convertDto(umbSubscription);
     var subscriptions =
-        subscriptionRepository.findBySubscriptionNumber(subscription.getSubscriptionNumber());
+        subscriptionService.findBySubscriptionNumber(subscription.getSubscriptionNumber());
     if (subscriptions.size() > 1) {
       log.warn(
           "Skipping UMB message because multiple subscriptions were found for subscriptionNumber={}",
@@ -538,7 +555,7 @@ public class SubscriptionSyncService {
 
   @Transactional
   public String terminateSubscription(String subscriptionId, OffsetDateTime terminationDate) {
-    var subscriptions = subscriptionRepository.findActiveSubscription(subscriptionId);
+    var subscriptions = subscriptionService.findActiveSubscription(subscriptionId);
     if (subscriptions.isEmpty()) {
       throw new EntityNotFoundException(
           String.format(
