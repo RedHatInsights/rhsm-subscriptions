@@ -34,11 +34,11 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
-class SubscriptionServiceTest {
+class SubscriptionSearchServiceTest {
 
   @InjectMock @RestClient SearchApi searchApi;
 
-  @Inject SubscriptionService subject;
+  @Inject SubscriptionSearchService subject;
 
   @Test
   void verifySearchByOrgIdTest() throws ApiException {
