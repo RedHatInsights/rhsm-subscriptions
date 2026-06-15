@@ -33,6 +33,7 @@ import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import com.redhat.swatch.utilization.test.model.UtilizationSummary;
+import domain.EventTypes;
 import domain.Severity;
 import java.time.Duration;
 import org.junit.jupiter.api.AfterAll;
@@ -225,7 +226,7 @@ public class UtilizationOverUsageComponentTest extends BaseUtilizationComponentT
     var notifications =
         kafkaBridge.waitForKafkaMessage(
             NOTIFICATIONS,
-            matchesNotificationByEventType(orgId, "exceeded-utilization-threshold"),
+            matchesNotificationByEventType(orgId, EventTypes.EXCEEDED_UTILIZATION_THRESHOLD),
             0,
             AwaitilitySettings.usingTimeout(Duration.ofSeconds(5)));
 

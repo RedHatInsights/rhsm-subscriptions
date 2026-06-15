@@ -49,7 +49,6 @@ public class CustomThresholdUtilizationHandlerService
     var preference = orgPreferencesService.getOrgPreferences(payload.getOrgId());
 
     int threshold = preference.getCustomThreshold();
-    boolean thresholdOverridden = false;
     if (!customThresholdValidator.isValid(threshold)) {
       int defaultThreshold = orgPreferencesService.getDefaultThreshold();
       log.warn(
@@ -58,7 +57,6 @@ public class CustomThresholdUtilizationHandlerService
           payload.getOrgId(),
           defaultThreshold);
       threshold = defaultThreshold;
-      thresholdOverridden = true;
     } else if (preference.getLastModified() == null) {
       log.debug(
           "No persisted preference for orgId={}, threshold value {}% returned by preferences service matches default",
@@ -76,7 +74,7 @@ public class CustomThresholdUtilizationHandlerService
           String.format(PERCENT_FORMAT, utilizationPercent),
           threshold);
       var event = buildEvent(utilizationPercent);
-      if (!thresholdOverridden && preference.getLastModified() != null) {
+      if (preference.getLastModified() != null) {
         event.addContextProperty(
             PREFERENCES_HASH, hashLastModified(preference.getLastModified().toInstant()));
       }

@@ -22,11 +22,10 @@ package api;
 
 import com.redhat.cloud.notifications.ingress.Action;
 import com.redhat.swatch.component.tests.api.DefaultMessageValidator;
+import domain.EventTypes;
 
 /** Message validators for notification messages in utilization component tests. */
 public class MessageValidators {
-
-  private static final String OVERUSAGE_EVENT_TYPE = "exceeded-utilization-threshold";
 
   /** Matches notifications by organization ID. */
   public static DefaultMessageValidator<Action> matchesOrgId(String orgId) {
@@ -49,7 +48,7 @@ public class MessageValidators {
           if (!orgId.equals(action.getOrgId())) {
             return false;
           }
-          if (!OVERUSAGE_EVENT_TYPE.equals(action.getEventType())) {
+          if (!EventTypes.EXCEEDED_UTILIZATION_THRESHOLD.equals(action.getEventType())) {
             return false;
           }
           var context = action.getContext();

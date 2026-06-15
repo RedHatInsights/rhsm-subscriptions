@@ -31,6 +31,7 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import com.redhat.swatch.utilization.openapi.model.OrgPreferencesRequest;
 import com.redhat.swatch.utilization.test.model.UtilizationSummary;
+import domain.EventTypes;
 import domain.Severity;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -39,9 +40,6 @@ import org.junit.jupiter.api.Test;
 
 /** Component tests for custom usage threshold notification (TC001-TC006). */
 public class CustomThresholdComponentTest extends BaseUtilizationComponentTest {
-
-  private static final String CUSTOM_THRESHOLD_EVENT_TYPE = "exceeded-custom-utilization-threshold";
-  private static final String DEFAULT_THRESHOLD_EVENT_TYPE = "exceeded-utilization-threshold";
 
   private static final int CUSTOM_THRESHOLD = 80;
   private static final double FULL_CAPACITY = 100.0;
@@ -79,7 +77,7 @@ public class CustomThresholdComponentTest extends BaseUtilizationComponentTest {
 
     var notification =
         thenThresholdNotificationShouldBeSent(
-            CUSTOM_THRESHOLD_EVENT_TYPE,
+            EventTypes.EXCEEDED_CUSTOM_UTILIZATION_THRESHOLD,
             Severity.MODERATE,
             utilizationSummary.getProductId(),
             metricId,
@@ -101,7 +99,7 @@ public class CustomThresholdComponentTest extends BaseUtilizationComponentTest {
 
     var notification =
         thenThresholdNotificationShouldBeSent(
-            CUSTOM_THRESHOLD_EVENT_TYPE,
+            EventTypes.EXCEEDED_CUSTOM_UTILIZATION_THRESHOLD,
             Severity.MODERATE,
             utilizationSummary.getProductId(),
             metricId,
@@ -123,7 +121,7 @@ public class CustomThresholdComponentTest extends BaseUtilizationComponentTest {
 
     var notification =
         thenThresholdNotificationShouldBeSent(
-            CUSTOM_THRESHOLD_EVENT_TYPE,
+            EventTypes.EXCEEDED_CUSTOM_UTILIZATION_THRESHOLD,
             Severity.MODERATE,
             utilizationSummary.getProductId(),
             metricId,
@@ -143,7 +141,7 @@ public class CustomThresholdComponentTest extends BaseUtilizationComponentTest {
 
     whenUtilizationEventIsReceived();
 
-    thenNoThresholdNotificationShouldBeSent(CUSTOM_THRESHOLD_EVENT_TYPE);
+    thenNoThresholdNotificationShouldBeSent(EventTypes.EXCEEDED_CUSTOM_UTILIZATION_THRESHOLD);
   }
 
   @TestPlanName("custom-threshold-TC004")
@@ -156,7 +154,7 @@ public class CustomThresholdComponentTest extends BaseUtilizationComponentTest {
 
     whenUtilizationEventIsReceived();
 
-    thenNoThresholdNotificationShouldBeSent(CUSTOM_THRESHOLD_EVENT_TYPE);
+    thenNoThresholdNotificationShouldBeSent(EventTypes.EXCEEDED_CUSTOM_UTILIZATION_THRESHOLD);
   }
 
   @TestPlanName("custom-threshold-TC005")
@@ -170,7 +168,7 @@ public class CustomThresholdComponentTest extends BaseUtilizationComponentTest {
 
     var customNotification =
         thenThresholdNotificationShouldBeSent(
-            CUSTOM_THRESHOLD_EVENT_TYPE,
+            EventTypes.EXCEEDED_CUSTOM_UTILIZATION_THRESHOLD,
             Severity.MODERATE,
             utilizationSummary.getProductId(),
             metricId,
@@ -180,7 +178,7 @@ public class CustomThresholdComponentTest extends BaseUtilizationComponentTest {
             null);
     thenPreferencesHashShouldBePresent(customNotification);
     thenThresholdNotificationShouldBeSent(
-        DEFAULT_THRESHOLD_EVENT_TYPE,
+        EventTypes.EXCEEDED_UTILIZATION_THRESHOLD,
         Severity.IMPORTANT,
         utilizationSummary.getProductId(),
         metricId,

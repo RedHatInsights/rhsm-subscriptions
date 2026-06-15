@@ -33,6 +33,7 @@ import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.utilization.test.model.Measurement;
 import com.redhat.swatch.utilization.test.model.UtilizationSummary;
 import com.redhat.swatch.utilization.test.model.UtilizationSummary.Granularity;
+import domain.EventTypes;
 import domain.Product;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,8 +43,6 @@ import org.junit.jupiter.api.Test;
 public class UtilizationNotificationsFeatureFlagsComponentTest
     extends BaseUtilizationComponentTest {
 
-  private static final String OVERUSAGE_EVENT_TYPE = "exceeded-utilization-threshold";
-  private static final String CUSTOM_THRESHOLD_EVENT_TYPE = "exceeded-custom-utilization-threshold";
   private static final double BASELINE_CAPACITY = 100.0;
   private static final double USAGE_EXCEEDING_THRESHOLD = 110.0;
 
@@ -91,7 +90,8 @@ public class UtilizationNotificationsFeatureFlagsComponentTest
   @TestPlanName("utilization-notifications-featureflags-TC004")
   void shouldSuppressNotification_whenOverusageEventTypeIsDenylisted() {
     givenSendNotificationsEnabledWithDenylistedEventTypes(
-        OVERUSAGE_EVENT_TYPE, CUSTOM_THRESHOLD_EVENT_TYPE);
+        EventTypes.EXCEEDED_UTILIZATION_THRESHOLD,
+        EventTypes.EXCEEDED_CUSTOM_UTILIZATION_THRESHOLD);
 
     whenOverUsageRhelExceedsThreshold();
 
@@ -114,7 +114,8 @@ public class UtilizationNotificationsFeatureFlagsComponentTest
     var orgIdNotOnAllowlist = RandomUtils.generateRandom();
 
     givenSendNotificationsEnabledWithDenylistedEventTypes(
-        OVERUSAGE_EVENT_TYPE, CUSTOM_THRESHOLD_EVENT_TYPE);
+        EventTypes.EXCEEDED_UTILIZATION_THRESHOLD,
+        EventTypes.EXCEEDED_CUSTOM_UTILIZATION_THRESHOLD);
     givenOrgOnNotificationsAllowlist(orgId);
 
     whenOverUsageRhelExceedsThresholdForOrg(orgId);
