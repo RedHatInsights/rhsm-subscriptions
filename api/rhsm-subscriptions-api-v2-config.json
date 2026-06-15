@@ -1,0 +1,7 @@
+{
+  "modelPackage": "org.candlepin.subscriptions.utilization.api.v2.model",
+  "apiPackage": "org.candlepin.subscriptions.utilization.api.v2.resources",
+  "invokerPackage": "org.candlepin.subscriptions.utilization",
+  "groupId": "org.candlepin",
+  "artifactId": "rhsm-subscriptions"
+}
