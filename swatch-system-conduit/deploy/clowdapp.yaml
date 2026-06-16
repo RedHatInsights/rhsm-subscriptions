@@ -160,6 +160,8 @@ objects:
     dependencies:
       - ${DB_POD}
       - swatch-tally
+    optionalDependencies:
+      - kessel-inventory
 
     pullSecrets:
       name: ${IMAGE_PULL_SECRET}

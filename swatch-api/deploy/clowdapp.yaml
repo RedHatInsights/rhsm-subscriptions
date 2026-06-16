@@ -109,6 +109,8 @@ objects:
         - rbac
         - swatch-contracts
         - swatch-utilization
+      optionalDependencies:
+        - kessel-inventory
 
       database:
         sharedDbAppName: ${DB_POD}
