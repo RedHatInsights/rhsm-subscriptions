@@ -20,9 +20,11 @@
  */
 package org.candlepin.subscriptions.security;
 
+import io.getunleash.Unleash;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import org.candlepin.subscriptions.rbac.KesselService;
 import org.candlepin.subscriptions.rbac.RbacApiException;
 import org.candlepin.subscriptions.rbac.RbacProperties;
 import org.candlepin.subscriptions.rbac.RbacService;
@@ -51,16 +53,32 @@ public class IdentityHeaderAuthenticationDetailsService
   private RbacProperties rbacProps;
   private RoleProvider roleProvider;
   private RbacService rbacController;
+  private KesselService kesselService;
+  private Unleash unleash;
+
+  static final String KESSEL_FLAG = "swatch.common-security.use-kessel-rbac";
 
   public IdentityHeaderAuthenticationDetailsService(
       SecurityProperties props,
       RbacProperties rbacProps,
       Attributes2GrantedAuthoritiesMapper authMapper,
       RbacService rbacController) {
+    this(props, rbacProps, authMapper, rbacController, null, null);
+  }
+
+  public IdentityHeaderAuthenticationDetailsService(
+      SecurityProperties props,
+      RbacProperties rbacProps,
+      Attributes2GrantedAuthoritiesMapper authMapper,
+      RbacService rbacController,
+      KesselService kesselService,
+      Unleash unleash) {
     this.rbacProps = rbacProps;
     this.authMapper = authMapper;
     this.props = props;
     this.rbacController = rbacController;
+    this.kesselService = kesselService;
+    this.unleash = unleash;
 
     if (props.isDevMode()) {
       log.info("Running in DEV mode. Security will be disabled.");
@@ -100,10 +118,30 @@ public class IdentityHeaderAuthenticationDetailsService
   }
 
   private List<String> getPermissions() {
+    if (isKesselEnabled()) {
+      return getKesselPermissions();
+    }
     try {
       return rbacController.getPermissions(rbacProps.getApplicationName());
     } catch (RbacApiException e) {
       log.warn("Unable to determine roles from RBAC service.", e);
+      return Collections.emptyList();
+    }
+  }
+
+  private boolean isKesselEnabled() {
+    return kesselService != null && unleash != null && unleash.isEnabled(KESSEL_FLAG);
+  }
+
+  private List<String> getKesselPermissions() {
+    try {
+      Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+      if (auth != null && auth.getPrincipal() instanceof InsightsUserPrincipal user) {
+        return kesselService.getPermissions(user.getOrgId());
+      }
+      return Collections.emptyList();
+    } catch (Exception e) {
+      log.warn("Unable to determine roles from Kessel service.", e);
       return Collections.emptyList();
     }
   }
