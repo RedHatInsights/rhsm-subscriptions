@@ -31,6 +31,28 @@
     </dependency>
 
     <dependency>
+      <groupId>org.project-kessel</groupId>
+      <artifactId>kessel-sdk</artifactId>
+      <version>1.7.1</version>
+    </dependency>
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-netty-shaded</artifactId>
+      <version>1.78.0</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.nimbusds</groupId>
+      <artifactId>oauth2-oidc-sdk</artifactId>
+      <version>11.30.2</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.quarkiverse.unleash</groupId>
+      <artifactId>quarkus-unleash</artifactId>
+    </dependency>
+
+    <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
     </dependency>
@@ -69,6 +91,12 @@
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-testing</artifactId>
+      <version>1.78.0</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
