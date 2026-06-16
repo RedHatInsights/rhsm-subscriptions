@@ -37,7 +37,6 @@ import io.restassured.response.Response;
 import java.time.OffsetDateTime;
 import java.util.List;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class CapacityReportGranularityComponentTest extends BaseContractComponentTest {
@@ -240,7 +239,6 @@ public class CapacityReportGranularityComponentTest extends BaseContractComponen
     thenLastSnapshotShouldEndAt(snapshots, beginning.plusYears(yearRange - 1));
   }
 
-  @Disabled(value = "Test disabled due to a known issue to be fixed in SWATCH-4482.")
   @TestPlanName("capacity-report-granularity-TC007")
   @Test
   void shouldNotGetCapacityReportInvalidGranularity() {

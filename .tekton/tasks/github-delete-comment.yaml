@@ -18,7 +18,7 @@ spec:
       default: "swatch-ci-github-token"
   steps:
     - name: delete-comments
-      image: quay.io/konflux-ci/appstudio-utils:latest
+      image: quay.io/konflux-ci/task-runner@sha256:b9ef0479b57a494368a12a02886c650314c9ac7391c6228f21065865aab71c9e
       env:
         - name: GITHUB_TOKEN
           valueFrom:

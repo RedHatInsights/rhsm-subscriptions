@@ -21,7 +21,7 @@
 package tests;
 
 import static api.MessageValidators.matchesOrgId;
-import static api.MessageValidators.matchesOverageNotification;
+import static api.MessageValidators.matchesOverUsageNotification;
 import static com.redhat.swatch.component.tests.utils.Topics.NOTIFICATIONS;
 import static com.redhat.swatch.component.tests.utils.Topics.UTILIZATION;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -33,6 +33,7 @@ import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.utilization.test.model.Measurement;
 import com.redhat.swatch.utilization.test.model.UtilizationSummary;
 import com.redhat.swatch.utilization.test.model.UtilizationSummary.Granularity;
+import domain.EventTypes;
 import domain.Product;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,7 +43,6 @@ import org.junit.jupiter.api.Test;
 public class UtilizationNotificationsFeatureFlagsComponentTest
     extends BaseUtilizationComponentTest {
 
-  private static final String OVERUSAGE_EVENT_TYPE = "exceeded-utilization-threshold";
   private static final double BASELINE_CAPACITY = 100.0;
   private static final double USAGE_EXCEEDING_THRESHOLD = 110.0;
 
@@ -89,7 +89,9 @@ public class UtilizationNotificationsFeatureFlagsComponentTest
   @Test
   @TestPlanName("utilization-notifications-featureflags-TC004")
   void shouldSuppressNotification_whenOverusageEventTypeIsDenylisted() {
-    givenSendNotificationsEnabledWithDenylistedEventTypes(OVERUSAGE_EVENT_TYPE);
+    givenSendNotificationsEnabledWithDenylistedEventTypes(
+        EventTypes.EXCEEDED_UTILIZATION_THRESHOLD,
+        EventTypes.EXCEEDED_CUSTOM_UTILIZATION_THRESHOLD);
 
     whenOverUsageRhelExceedsThreshold();
 
@@ -111,7 +113,9 @@ public class UtilizationNotificationsFeatureFlagsComponentTest
   void shouldDifferByAllowlist_whenDenylistedEventAndTwoOrgs() {
     var orgIdNotOnAllowlist = RandomUtils.generateRandom();
 
-    givenSendNotificationsEnabledWithDenylistedEventTypes(OVERUSAGE_EVENT_TYPE);
+    givenSendNotificationsEnabledWithDenylistedEventTypes(
+        EventTypes.EXCEEDED_UTILIZATION_THRESHOLD,
+        EventTypes.EXCEEDED_CUSTOM_UTILIZATION_THRESHOLD);
     givenOrgOnNotificationsAllowlist(orgId);
 
     whenOverUsageRhelExceedsThresholdForOrg(orgId);
@@ -180,7 +184,7 @@ public class UtilizationNotificationsFeatureFlagsComponentTest
     Action notification =
         kafkaBridge.waitForKafkaMessage(
             NOTIFICATIONS,
-            matchesOverageNotification(
+            matchesOverUsageNotification(
                 expectedOrgId, Product.RHEL.getName(), Product.RHEL.getFirstMetric().getId()));
     assertNotNull(notification, "Notification should be sent");
     assertEquals(

@@ -59,19 +59,24 @@ public class SubscriptionSyncTaskConsumer {
   @Blocking
   @Incoming(SUBSCRIPTION_SYNC_TASK_UMB)
   public void consumeFromUmb(String subscriptionMessageXml) throws JsonProcessingException {
-    log.info("Received message from UMB for subscription sync service. {}", subscriptionMessageXml);
     if (!umbEnabled) {
+      log.debug("UMB processing is not enabled");
       return;
     }
     CanonicalMessage subscriptionMessage =
         xmlMapper.readValue(subscriptionMessageXml, CanonicalMessage.class);
     UmbSubscription subscription = subscriptionMessage.getPayload().getSync().getSubscription();
     log.info(
-        "Received UMB message for subscriptionNumber={} webCustomerId={} startDate={} endDate={}",
+        "IT Subscription message consumed: source=umb, "
+            + "subscriptionNumber={}, webCustomerId={}, sku={}, quantity={}, "
+            + "effectiveStartDate={}, effectiveEndDate={}, terminated={}",
         subscription.getSubscriptionNumber(),
         subscription.getWebCustomerId(),
+        subscription.findSku().orElse(null),
+        subscription.getQuantity(),
         subscription.getEffectiveStartDate(),
-        subscription.getEffectiveEndDate());
+        subscription.getEffectiveEndDate(),
+        subscription.findTerminatedStatus().isPresent());
     service.saveUmbSubscription(subscription);
   }
 }

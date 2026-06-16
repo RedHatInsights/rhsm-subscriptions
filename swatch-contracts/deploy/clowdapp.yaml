@@ -71,9 +71,9 @@ parameters:
   - name: SUBSCRIPTION_SYNC_ENABLED
     value: 'true'
   - name: SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN
-    value: 2M
+    value: '60d'
   - name: SUBSCRIPTION_IGNORE_STARTING_LATER_THAN
-    value: 2M
+    value: '60d'
   - name: ENABLE_PAYG_SUBSCRIPTION_FORCE_SYNC
     value: 'true'
   - name: OFFERING_SYNC_SCHEDULE

@@ -218,17 +218,26 @@ public class ContractsSwatchService extends SwatchService {
   }
 
   public SkuCapacityReportV2 getSkuCapacityByProductIdForOrg(Product product, String orgId) {
+    return getSkuCapacityByProductIdForOrg(product, orgId, null, null);
+  }
+
+  public SkuCapacityReportV2 getSkuCapacityByProductIdForOrg(
+      Product product, String orgId, OffsetDateTime beginning, OffsetDateTime ending) {
     Objects.requireNonNull(product, "product id must not be null");
     Objects.requireNonNull(orgId, "org id must not be null");
 
-    return given()
-        .headers(securityHeadersWithServiceRole(orgId))
-        .accept("application/vnd.api+json")
-        .pathParam("product_id", product.getName())
-        .get(GET_SKU_ENDPOINT)
-        .then()
-        .extract()
-        .as(SkuCapacityReportV2.class);
+    var request =
+        given()
+            .headers(securityHeadersWithServiceRole(orgId))
+            .accept("application/vnd.api+json")
+            .pathParam("product_id", product.getName());
+    if (beginning != null) {
+      request = request.queryParam("beginning", beginning.toString());
+    }
+    if (ending != null) {
+      request = request.queryParam("ending", ending.toString());
+    }
+    return request.get(GET_SKU_ENDPOINT).then().extract().as(SkuCapacityReportV2.class);
   }
 
   public CapacityReportByMetricId getCapacityReportByMetricId(

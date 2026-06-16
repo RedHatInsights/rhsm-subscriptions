@@ -73,7 +73,7 @@ public class SubscriptionSyncService {
 
   private final SubscriptionRepository subscriptionRepository;
   private final OfferingRepository offeringRepository;
-  private final SubscriptionService subscriptionService;
+  private final SubscriptionSearchService subscriptionSearchService;
   private final ApplicationClock clock;
   private final CapacityReconciliationService capacityReconciliationService;
   private final OfferingSyncService offeringSyncService;
@@ -285,7 +285,8 @@ public class SubscriptionSyncService {
 
   private Optional<? extends SubscriptionEntity> fetchSubscription(String subscriptionNumber) {
     return Optional.of(
-        convertDto(subscriptionService.getSubscriptionBySubscriptionNumber(subscriptionNumber)));
+        convertDto(
+            subscriptionSearchService.getSubscriptionBySubscriptionNumber(subscriptionNumber)));
   }
 
   @Transactional
@@ -293,7 +294,7 @@ public class SubscriptionSyncService {
   public void reconcileSubscriptionsWithSubscriptionService(String orgId, boolean paygOnly) {
     log.info("Syncing subscriptions for orgId={}", orgId);
 
-    var dtos = subscriptionService.getSubscriptionsByOrgId(orgId).stream();
+    var dtos = subscriptionSearchService.getSubscriptionsByOrgId(orgId).stream();
 
     // Filter out non PAYG subscriptions for faster processing when they are not needed.
     // Slow processing was causing: https://issues.redhat.com/browse/ENT-5083
@@ -417,21 +418,13 @@ public class SubscriptionSyncService {
      * date.
      */
 
-    if (Objects.nonNull(subscription.getProductStatusState())) {
-      Optional<SubscriptionProductStatus> status =
-          Arrays.stream(subscription.getProductStatusState())
-              .filter(x -> "Terminated".equalsIgnoreCase(x.getState()))
-              .findFirst();
-
-      boolean isSubscriptionTerminated = status.isPresent();
-
-      /*
-       * Note that a status only has a "StartDate", which indicates the start of the corresponding
-       * status - this doesn't directly correlate to the StartDate of a subscription.
-       */
-      if (isSubscriptionTerminated) {
-        endDate = UmbSubscription.convertToUtc(status.get().getStartDate());
-      }
+    /*
+     * Note that a status only has a "StartDate", which indicates the start of the corresponding
+     * status - this doesn't directly correlate to the StartDate of a subscription.
+     */
+    Optional<SubscriptionProductStatus> terminatedStatus = subscription.findTerminatedStatus();
+    if (terminatedStatus.isPresent()) {
+      endDate = UmbSubscription.convertToUtc(terminatedStatus.get().getStartDate());
     }
     // NOTE: we are not setting the offering yet
     return SubscriptionEntity.builder()
@@ -522,7 +515,7 @@ public class SubscriptionSyncService {
           "Skipping UMB message because multiple subscriptions were found for subscriptionNumber={}",
           subscription.getSubscriptionNumber());
     } else {
-      syncSubscription(umbSubscription.getSku(), subscription, subscriptions.stream().findFirst());
+      syncSubscription(getSku(umbSubscription), subscription, subscriptions.stream().findFirst());
     }
   }
 
@@ -581,5 +574,14 @@ public class SubscriptionSyncService {
       return msg;
     }
     return String.format("Subscription %s terminated at %s.", subscriptionId, terminationDate);
+  }
+
+  private static String getSku(UmbSubscription subscription) {
+    return subscription
+        .findSku()
+        .orElseThrow(
+            () ->
+                new IllegalStateException(
+                    "Could not find top level SKU for subscription " + subscription));
   }
 }

@@ -29,6 +29,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.Optional;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -90,23 +91,29 @@ public class UmbSubscription {
         .orElseThrow();
   }
 
-  public String getSku() {
-    if (products.length != 1) {
-      throw new IllegalStateException("Could not find top level SKU for subscription " + this);
-    }
-    return products[0].getSku();
+  public Optional<String> findSku() {
+    return findProduct().map(SubscriptionProduct::getSku);
   }
 
-  public SubscriptionProductStatus[] getProductStatusState() {
-    if (products.length != 1) {
-      throw new IllegalStateException(
-          "Could not find top level product with a status for subscription " + this);
+  public Optional<SubscriptionProduct> findProduct() {
+    if (products == null || products.length != 1) {
+      return Optional.empty();
     }
-    return products[0].getProduct().getStatus();
+    return Optional.ofNullable(products[0]);
   }
 
-  public String getEbsAccountNumber() {
-    return getReference("EBS", "Account", "number").orElse(null);
+  public Optional<SubscriptionProductStatus> findTerminatedStatus() {
+    return findProduct()
+        .map(SubscriptionProduct::getProduct)
+        .filter(Objects::nonNull)
+        .map(SubscriptionProduct::getStatus)
+        .filter(Objects::nonNull)
+        .flatMap(
+            statuses ->
+                Arrays.stream(statuses)
+                    .filter(Objects::nonNull)
+                    .filter(status -> "Terminated".equalsIgnoreCase(status.getState()))
+                    .findFirst());
   }
 
   public static OffsetDateTime convertToUtc(LocalDateTime timestamp) {

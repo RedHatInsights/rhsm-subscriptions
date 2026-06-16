@@ -66,6 +66,13 @@ public class ProductStatusUMBMessageConsumer {
       OperationalProductEvent productEvent =
           mapper.readValue(message, OperationalProductEvent.class);
 
+      log.info(
+          "IT Product message consumed: source=umb, productCode={}, eventType={}, "
+              + "productCategory={}",
+          productEvent.getProductCode(),
+          productEvent.getEventType(),
+          productEvent.getProductCategory());
+
       service.syncUmbProductFromEvent(productEvent);
     } catch (Exception e) {
       log.error("Unable to read UMB product message for JSON: {}", message, e);

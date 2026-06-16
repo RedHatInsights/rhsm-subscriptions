@@ -40,14 +40,6 @@ public interface ExtendWithSwatchDatabase {
   static void registerSwatchDbProperties(DynamicPropertyRegistry registry) {
     registry.add("DATABASE_HOST", swatchDatabase::getHost);
     registry.add("DATABASE_PORT", swatchDatabase::getFirstMappedPort);
-    // Override the full datasource URL, driver, credentials, and dialect so that the test
-    // profile's HSQLDB settings (from application-test.yaml) don't shadow these values.
-    registry.add("rhsm-subscriptions.datasource.url", swatchDatabase::getJdbcUrl);
-    registry.add("rhsm-subscriptions.datasource.username", swatchDatabase::getUsername);
-    registry.add("rhsm-subscriptions.datasource.password", swatchDatabase::getPassword);
-    registry.add("rhsm-subscriptions.datasource.driver-class-name", () -> "org.postgresql.Driver");
-    registry.add(
-        "spring.jpa.properties.hibernate.dialect", () -> "org.hibernate.dialect.PostgreSQLDialect");
     registry.add("spring.liquibase.change-log", () -> "classpath:/liquibase/changelog.xml");
     registry.add("spring.liquibase.show-summary", () -> "summary");
   }

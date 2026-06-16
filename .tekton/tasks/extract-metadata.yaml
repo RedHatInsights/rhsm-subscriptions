@@ -33,7 +33,7 @@ spec:
       description: IQE image tag from PR body /use-iqe-image-tag=VALUE if present and valid; empty or XXX uses IQE_IMAGE_TAG_DEFAULT
   steps:
     - name: extract
-      image: quay.io/konflux-ci/appstudio-utils:latest
+      image: quay.io/konflux-ci/task-runner@sha256:b9ef0479b57a494368a12a02886c650314c9ac7391c6228f21065865aab71c9e
       env:
         - name: EVENT_TYPE
           valueFrom:

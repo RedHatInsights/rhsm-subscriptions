@@ -96,7 +96,7 @@ public class ContractService {
   @Inject protected ContractEntityMapper contractEntityMapper;
   @Inject protected ContractDtoMapper contractDtoMapper;
   @Inject protected SubscriptionEntityMapper subscriptionEntityMapper;
-  @Inject protected SubscriptionService subscriptionService;
+  @Inject protected SubscriptionSearchService subscriptionSearchService;
   @Inject @RestClient protected PartnerApi partnerApi;
   @Inject protected Validator validator;
   private final List<BasePartnerEntitlementsProvider> partnerEntitlementsProviders;
@@ -764,7 +764,7 @@ public class ContractService {
     }
 
     try {
-      return subscriptionService
+      return subscriptionSearchService
           .getSubscriptionBySubscriptionNumber(subscriptionNumber)
           .getId()
           .toString();
