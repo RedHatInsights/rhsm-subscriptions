@@ -20,7 +20,7 @@
  */
 package tests;
 
-import static api.MessageValidators.matchesOverageNotification;
+import static api.MessageValidators.matchesOverUsageNotification;
 import static com.redhat.swatch.component.tests.utils.AwaitilityUtils.untilAsserted;
 import static com.redhat.swatch.component.tests.utils.Topics.NOTIFICATIONS;
 import static com.redhat.swatch.component.tests.utils.Topics.UTILIZATION;
@@ -210,12 +210,11 @@ public class UtilizationMultiComponentTest extends BaseUtilizationComponentTest 
 
   /** Verifies no notification is sent for the given product and metric. */
   private void thenNoNotificationShouldBeSent(String productId, MetricId metricId) {
-    // Use a short timeout to verify no notification messages arrive for this product/metric
     var notifications =
         kafkaBridge.waitForKafkaMessage(
             NOTIFICATIONS,
-            matchesOverageNotification(orgId, productId, metricId.getValue()),
-            0, // Expected count is 0
+            matchesOverUsageNotification(orgId, productId, metricId.getValue()),
+            0,
             AwaitilitySettings.usingTimeout(Duration.ofSeconds(5)));
 
     assertThat(

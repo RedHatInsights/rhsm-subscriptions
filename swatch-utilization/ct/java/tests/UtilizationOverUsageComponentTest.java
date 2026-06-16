@@ -20,8 +20,8 @@
  */
 package tests;
 
-import static api.MessageValidators.matchesOrgId;
-import static api.MessageValidators.matchesOverageNotification;
+import static api.MessageValidators.matchesNotificationByEventType;
+import static api.MessageValidators.matchesOverUsageNotification;
 import static com.redhat.swatch.component.tests.utils.Topics.NOTIFICATIONS;
 import static com.redhat.swatch.component.tests.utils.Topics.UTILIZATION;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -33,6 +33,7 @@ import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import com.redhat.swatch.utilization.test.model.UtilizationSummary;
+import domain.EventTypes;
 import domain.Severity;
 import java.time.Duration;
 import org.junit.jupiter.api.AfterAll;
@@ -212,7 +213,7 @@ public class UtilizationOverUsageComponentTest extends BaseUtilizationComponentT
     var notification =
         kafkaBridge.waitForKafkaMessage(
             NOTIFICATIONS,
-            matchesOverageNotification(
+            matchesOverUsageNotification(
                 orgId, utilizationSummary.getProductId(), metricId.getValue()));
     assertEquals(
         Severity.IMPORTANT.name(),
@@ -222,12 +223,11 @@ public class UtilizationOverUsageComponentTest extends BaseUtilizationComponentT
 
   // Helper methods - Then
   private void thenNoNotificationShouldBeSent() {
-    // Use a short timeout to verify no notification messages arrive
     var notifications =
         kafkaBridge.waitForKafkaMessage(
             NOTIFICATIONS,
-            matchesOrgId(orgId),
-            0, // Expected count is 0
+            matchesNotificationByEventType(orgId, EventTypes.EXCEEDED_UTILIZATION_THRESHOLD),
+            0,
             AwaitilitySettings.usingTimeout(Duration.ofSeconds(5)));
 
     assertThat("No notification should be sent to Kafka topic", notifications, empty());
