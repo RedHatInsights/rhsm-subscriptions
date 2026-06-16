@@ -73,7 +73,7 @@ public class SubscriptionSyncService {
 
   private final SubscriptionRepository subscriptionRepository;
   private final OfferingRepository offeringRepository;
-  private final SubscriptionService subscriptionService;
+  private final SubscriptionSearchService subscriptionSearchService;
   private final ApplicationClock clock;
   private final CapacityReconciliationService capacityReconciliationService;
   private final OfferingSyncService offeringSyncService;
@@ -285,7 +285,8 @@ public class SubscriptionSyncService {
 
   private Optional<? extends SubscriptionEntity> fetchSubscription(String subscriptionNumber) {
     return Optional.of(
-        convertDto(subscriptionService.getSubscriptionBySubscriptionNumber(subscriptionNumber)));
+        convertDto(
+            subscriptionSearchService.getSubscriptionBySubscriptionNumber(subscriptionNumber)));
   }
 
   @Transactional
@@ -293,7 +294,7 @@ public class SubscriptionSyncService {
   public void reconcileSubscriptionsWithSubscriptionService(String orgId, boolean paygOnly) {
     log.info("Syncing subscriptions for orgId={}", orgId);
 
-    var dtos = subscriptionService.getSubscriptionsByOrgId(orgId).stream();
+    var dtos = subscriptionSearchService.getSubscriptionsByOrgId(orgId).stream();
 
     // Filter out non PAYG subscriptions for faster processing when they are not needed.
     // Slow processing was causing: https://issues.redhat.com/browse/ENT-5083
