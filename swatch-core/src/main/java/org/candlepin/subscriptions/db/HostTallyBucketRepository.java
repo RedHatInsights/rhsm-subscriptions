@@ -111,4 +111,54 @@ public interface HostTallyBucketRepository
       @Param("anyServiceLevel") String anyServiceLevel,
       @Param("anyUsage") String anyUsage,
       @Param("anyBillingProvider") String anyBillingProvider);
+
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  @Modifying
+  @Query(
+      nativeQuery = true,
+      value =
+          """
+    UPDATE host_tally_buckets
+    SET is_primary = true
+    WHERE ctid IN (
+      SELECT ctid FROM host_tally_buckets
+      WHERE product_id = :productId
+        AND sla <> :anyServiceLevel
+        AND usage <> :anyUsage
+        AND billing_provider <> :anyBillingProvider
+        AND billing_account_id <> '_ANY'
+        AND is_primary = false
+      LIMIT 20000
+    )
+  """)
+  int setIsPrimaryForPaygAllOrgs(
+      @Param("productId") String productId,
+      @Param("anyServiceLevel") String anyServiceLevel,
+      @Param("anyUsage") String anyUsage,
+      @Param("anyBillingProvider") String anyBillingProvider);
+
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  @Modifying
+  @Query(
+      nativeQuery = true,
+      value =
+          """
+    UPDATE host_tally_buckets
+    SET is_primary = true
+    WHERE ctid IN (
+      SELECT ctid FROM host_tally_buckets
+      WHERE product_id = :productId
+        AND sla <> :anyServiceLevel
+        AND usage <> :anyUsage
+        AND billing_provider = :anyBillingProvider
+        AND billing_account_id = '_ANY'
+        AND is_primary = false
+      LIMIT 20000
+    )
+  """)
+  int setIsPrimaryForNonPaygAllOrgs(
+      @Param("productId") String productId,
+      @Param("anyServiceLevel") String anyServiceLevel,
+      @Param("anyUsage") String anyUsage,
+      @Param("anyBillingProvider") String anyBillingProvider);
 }

@@ -160,34 +160,50 @@ public class IsPrimaryUpdateService {
             .map(SubscriptionDefinition::isPaygEligible)
             .orElse(false);
 
-    int totalUpdated = 0;
-    int updated;
-    do {
-      updated =
+    int totalUpdated;
+    if (orgId != null) {
+      totalUpdated = 0;
+      int updated;
+      do {
+        updated =
+            isPayg
+                ? bucketRepository.setIsPrimaryForPayg(
+                    orgId,
+                    productId,
+                    ServiceLevel._ANY.getValue(),
+                    Usage._ANY.getValue(),
+                    BillingProvider._ANY.getValue())
+                : bucketRepository.setIsPrimaryForNonPayg(
+                    orgId,
+                    productId,
+                    ServiceLevel._ANY.getValue(),
+                    Usage._ANY.getValue(),
+                    BillingProvider._ANY.getValue());
+        totalUpdated += updated;
+        if (updated > 0) {
+          log.info(
+              "Batch updated {} rows (running total: {}, org={}, product={}, payg={})",
+              updated,
+              totalUpdated,
+              orgId,
+              productId,
+              isPayg);
+        }
+      } while (updated > 0);
+    } else {
+      totalUpdated =
           isPayg
-              ? bucketRepository.setIsPrimaryForPayg(
-                  orgId,
+              ? bucketRepository.setIsPrimaryForPaygAllOrgs(
                   productId,
                   ServiceLevel._ANY.getValue(),
                   Usage._ANY.getValue(),
                   BillingProvider._ANY.getValue())
-              : bucketRepository.setIsPrimaryForNonPayg(
-                  orgId,
+              : bucketRepository.setIsPrimaryForNonPaygAllOrgs(
                   productId,
                   ServiceLevel._ANY.getValue(),
                   Usage._ANY.getValue(),
                   BillingProvider._ANY.getValue());
-      totalUpdated += updated;
-      if (updated > 0) {
-        log.info(
-            "Batch updated {} rows (running total: {}, org={}, product={}, payg={})",
-            updated,
-            totalUpdated,
-            orgId != null ? orgId : "ALL",
-            productId,
-            isPayg);
-      }
-    } while (updated > 0);
+    }
 
     log.info(
         "Completed is_primary update: {} total rows (org={}, product={}, payg={})",
