@@ -32,6 +32,7 @@ import com.redhat.swatch.configuration.util.MetricIdUtils;
 import com.redhat.swatch.utilization.test.model.Measurement;
 import com.redhat.swatch.utilization.test.model.UtilizationSummary;
 import com.redhat.swatch.utilization.test.model.UtilizationSummary.Granularity;
+import domain.EventTypes;
 import domain.Product;
 import domain.Severity;
 import java.time.Duration;
@@ -43,8 +44,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 public class OverUsageThresholdComponentTest extends BaseUtilizationComponentTest {
-
-  private static final String DEFAULT_THRESHOLD_EVENT_TYPE = "exceeded-utilization-threshold";
 
   // Test data constants - aligned with CUSTOMER_OVER_USAGE_DEFAULT_THRESHOLD_PERCENT=5.0
   private static final double BASELINE_CAPACITY = 100.0;
@@ -82,7 +81,7 @@ public class OverUsageThresholdComponentTest extends BaseUtilizationComponentTes
 
     thenOverUsageCounterShouldBeIncremented();
     thenThresholdNotificationShouldBeSent(
-        DEFAULT_THRESHOLD_EVENT_TYPE,
+        EventTypes.EXCEEDED_UTILIZATION_THRESHOLD,
         Severity.IMPORTANT,
         Product.ROSA.getName(),
         MetricIdUtils.getCores(),
@@ -132,7 +131,7 @@ public class OverUsageThresholdComponentTest extends BaseUtilizationComponentTes
         });
 
     thenThresholdNotificationShouldBeSent(
-        DEFAULT_THRESHOLD_EVENT_TYPE,
+        EventTypes.EXCEEDED_UTILIZATION_THRESHOLD,
         Severity.IMPORTANT,
         Product.ROSA.getName(),
         MetricIdUtils.getCores(),
@@ -174,7 +173,7 @@ public class OverUsageThresholdComponentTest extends BaseUtilizationComponentTes
 
     thenOverUsageCounterShouldBeIncremented();
     thenThresholdNotificationShouldBeSent(
-        DEFAULT_THRESHOLD_EVENT_TYPE,
+        EventTypes.EXCEEDED_UTILIZATION_THRESHOLD,
         Severity.IMPORTANT,
         Product.RHEL.getName(),
         MetricIdUtils.getSockets(),

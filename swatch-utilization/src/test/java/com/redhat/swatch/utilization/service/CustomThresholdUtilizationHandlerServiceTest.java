@@ -26,6 +26,7 @@ import static com.redhat.swatch.utilization.service.CustomThresholdUtilizationHa
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -193,20 +194,52 @@ class CustomThresholdUtilizationHandlerServiceTest {
 
     whenCheckSummary(summary);
 
+    verify(orgPreferencesService, atLeastOnce()).getDefaultThreshold();
+    assertEquals(EXPECTED_SINGLE_INCREMENT, getCounterValue(PAYG_PRODUCT_ID, CORES_METRIC_ID));
+    var captor = ArgumentCaptor.forClass(Action.class);
+    verify(notificationsProducer, times(1)).produce(captor.capture());
+    assertNull(
+        captor.getValue().getContext().getAdditionalProperties().get(PREFERENCES_HASH),
+        "preferences_hash must be absent when the stored threshold was invalid and the default was used");
+  }
+
+  @Test
+  void shouldSendNotification_whenOrgHasNoPersistedPreferences_usesDefaultThreshold() {
+    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD, null);
+    UtilizationSummary summary =
+        givenUtilizationSummary(
+            PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
+
+    whenCheckSummary(summary);
+
     verify(notificationsProducer, times(1))
         .produce(argThat(action -> EVENT_TYPE.equals(action.getEventType())));
-    verify(orgPreferencesService, atLeastOnce()).getDefaultThreshold();
+    verify(orgPreferencesService, never()).getDefaultThreshold();
     assertEquals(EXPECTED_SINGLE_INCREMENT, getCounterValue(PAYG_PRODUCT_ID, CORES_METRIC_ID));
   }
 
   @Test
-  void shouldNotSendNotification_whenOrgHasNoPersistedPreferences() {
-    var response = new OrgPreferencesResponse();
-    response.setCustomThreshold(CUSTOM_THRESHOLD);
-    when(orgPreferencesService.getOrgPreferences(ORG_ID)).thenReturn(response);
+  void shouldNotIncludePreferencesHash_whenOrgHasNoPersistedPreferences() {
+    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD, null);
     UtilizationSummary summary =
         givenUtilizationSummary(
             PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, USAGE_EXCEEDING_THRESHOLD);
+
+    whenCheckSummary(summary);
+
+    var captor = ArgumentCaptor.forClass(Action.class);
+    verify(notificationsProducer, times(1)).produce(captor.capture());
+    assertNull(
+        captor.getValue().getContext().getAdditionalProperties().get(PREFERENCES_HASH),
+        "preferences_hash must be absent when no preference is persisted");
+  }
+
+  @Test
+  void
+      shouldNotSendNotification_whenOrgHasNoPersistedPreferences_andUsageIsBelowDefaultThreshold() {
+    givenOrgPreference(ORG_ID, CUSTOM_THRESHOLD, null);
+    UtilizationSummary summary =
+        givenUtilizationSummary(PAYG_PRODUCT_ID, CORES_METRIC_ID, CAPACITY, USAGE_BELOW_THRESHOLD);
 
     whenCheckSummary(summary);
 

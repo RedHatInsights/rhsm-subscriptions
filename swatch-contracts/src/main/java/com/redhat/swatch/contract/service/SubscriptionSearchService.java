@@ -44,7 +44,7 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 /** The Subscription Service wrapper for all subscription service interfaces. */
 @ApplicationScoped
 @Slf4j
-public class SubscriptionService {
+public class SubscriptionSearchService {
 
   private static final String ERROR_DURING_ATTEMPT_TO_REQUEST_SUBSCRIPTION_INFO_MSG =
       "Error during attempt to request subscription info";
