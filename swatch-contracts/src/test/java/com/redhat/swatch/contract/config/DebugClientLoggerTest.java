@@ -24,13 +24,13 @@ import static com.redhat.swatch.resteasy.client.DebugClientLogger.LOG_RESPONSES_
 import static com.redhat.swatch.resteasy.client.DebugClientLogger.URI_FILTER_PROPERTY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.PartnerApi;
 import com.redhat.swatch.clients.subscription.api.model.Subscription;
 import com.redhat.swatch.clients.subscription.api.resources.ApiException;
 import com.redhat.swatch.clients.subscription.api.resources.SearchApi;
+import com.redhat.swatch.contract.test.LoggerCaptor;
 import com.redhat.swatch.contract.test.resources.InjectWireMock;
 import com.redhat.swatch.contract.test.resources.WireMockResource;
 import com.redhat.swatch.resteasy.client.DebugClientLogger;
@@ -38,15 +38,9 @@ import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Handler;
-import java.util.logging.LogRecord;
-import org.awaitility.Awaitility;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
-import org.jboss.logmanager.Level;
-import org.jboss.logmanager.LogContext;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -59,7 +53,6 @@ public class DebugClientLoggerTest {
       "https://localhost:%s"
           + "/mock/subscription/search/criteria;"
           + "subscription_number=any/options;products=ALL;showExternalReferences=true/";
-  private static final LoggerCaptor LOGGER_CAPTOR = new LoggerCaptor();
 
   @RestClient SearchApi searchApi;
   @RestClient PartnerApi partnerApi;
@@ -67,14 +60,12 @@ public class DebugClientLoggerTest {
 
   @BeforeAll
   static void configureLogging() {
-    LogContext.getLogContext()
-        .getLogger(DebugClientLogger.class.getName())
-        .addHandler(LOGGER_CAPTOR);
+    LoggerCaptor.registerHandler(DebugClientLogger.class);
   }
 
   @BeforeEach
   void setUp() {
-    LOGGER_CAPTOR.records.clear();
+    LoggerCaptor.clearRecords();
   }
 
   @Test
@@ -106,42 +97,11 @@ public class DebugClientLoggerTest {
   }
 
   private void thenLogWithMessage(String str) {
-    Awaitility.await()
-        .untilAsserted(
-            () ->
-                assertTrue(
-                    LOGGER_CAPTOR.records.stream()
-                        .anyMatch(
-                            r ->
-                                r.getLevel().equals(Level.DEBUG) && r.getMessage().contains(str))));
+    LoggerCaptor.thenDebugLogWithMessage(str);
   }
 
   private void thenLogNothing() {
-    assertTrue(LOGGER_CAPTOR.records.isEmpty());
-  }
-
-  public static class LoggerCaptor extends Handler {
-
-    private final List<LogRecord> records = new ArrayList<>();
-
-    @Override
-    public void publish(LogRecord trace) {
-      records.add(trace);
-    }
-
-    @Override
-    public void flush() {
-      // no need to flush any sink
-    }
-
-    @Override
-    public void close() throws SecurityException {
-      clearRecords();
-    }
-
-    public void clearRecords() {
-      records.clear();
-    }
+    LoggerCaptor.thenLogNothing();
   }
 
   public static class LogAll implements QuarkusTestProfile {

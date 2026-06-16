@@ -38,6 +38,11 @@ import org.apache.qpid.jms.JmsConnectionFactory;
 
 public class ArtemisService extends BaseService<ArtemisService> {
 
+  /**
+   * Prevents component tests from hanging indefinitely when the broker does not accept messages.
+   */
+  private static final long SEND_TIMEOUT_MS = 30_000;
+
   public void sendTextAsJson(String channel, Object message) {
     String jsonMessage = JsonUtils.toJson(message);
     this.sendText(channel, jsonMessage, ContentType.JSON.toString());
@@ -92,6 +97,7 @@ public class ArtemisService extends BaseService<ArtemisService> {
 
     try {
       var factory = new JmsConnectionFactory(this.getUmbBrokerUrl());
+      factory.setSendTimeout(SEND_TIMEOUT_MS);
 
       connection = factory.createConnection();
       connection.start();

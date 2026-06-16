@@ -47,15 +47,9 @@ public class CustomThresholdUtilizationHandlerService
   protected Optional<HandlerEvent> evaluateThreshold(
       double utilizationPercent, UtilizationSummary payload, Measurement measurement) {
     var preference = orgPreferencesService.getOrgPreferences(payload.getOrgId());
-    // In SWATCH-4990, we need to remove this condition, so all orgs are opted in.
-    if (preference.getLastModified() == null) {
-      log.debug(
-          "No org preference found for orgId={}, skipping custom threshold check",
-          payload.getOrgId());
-      return Optional.empty();
-    }
 
     int threshold = preference.getCustomThreshold();
+    boolean thresholdOverridden = false;
     if (!customThresholdValidator.isValid(threshold)) {
       int defaultThreshold = orgPreferencesService.getDefaultThreshold();
       log.warn(
@@ -64,6 +58,11 @@ public class CustomThresholdUtilizationHandlerService
           payload.getOrgId(),
           defaultThreshold);
       threshold = defaultThreshold;
+      thresholdOverridden = true;
+    } else if (preference.getLastModified() == null) {
+      log.debug(
+          "No persisted preference for orgId={}, threshold value {}% returned by preferences service matches default",
+          payload.getOrgId(), threshold);
     }
 
     if (utilizationPercent >= threshold) {
@@ -77,8 +76,10 @@ public class CustomThresholdUtilizationHandlerService
           String.format(PERCENT_FORMAT, utilizationPercent),
           threshold);
       var event = buildEvent(utilizationPercent);
-      event.addContextProperty(
-          PREFERENCES_HASH, hashLastModified(preference.getLastModified().toInstant()));
+      if (!thresholdOverridden && preference.getLastModified() != null) {
+        event.addContextProperty(
+            PREFERENCES_HASH, hashLastModified(preference.getLastModified().toInstant()));
+      }
       return Optional.of(event);
     }
 
