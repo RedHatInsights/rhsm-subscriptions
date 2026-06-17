@@ -299,42 +299,42 @@ public class ContractService {
                       return contract1;
                     }));
 
-    existingContracts.forEach(
-        existingContract -> {
-          var matchingUpdatedContract =
-              contractStartDateMap.remove(existingContract.getStartDate().toInstant());
+    boolean hasDeletedContracts = false;
+    for (ContractEntity existingContract : existingContracts) {
+      var matchingUpdatedContract =
+          contractStartDateMap.remove(existingContract.getStartDate().toInstant());
 
-          if (matchingUpdatedContract == null) {
-            log.info(
-                "Deleting contract that does not align to IT partner gateway: {}",
-                existingContract);
-            contractRepository.delete(existingContract);
-          } else {
-            if (!matchingUpdatedContract.equals(existingContract)) {
-              log.info(
-                  "Contract updated. Old values: {} New values: {}",
-                  existingContract,
-                  matchingUpdatedContract);
-              if (existingContract.getMetrics() != matchingUpdatedContract.getMetrics()) {
-                var metrics =
-                    existingContract.getMetrics().stream()
-                        .filter(metric -> !matchingUpdatedContract.getMetrics().contains(metric))
-                        .toList();
-                metrics.forEach(metric -> deleteContractMetric(existingContract, metric));
-              }
-              contractEntityMapper.updateContract(existingContract, matchingUpdatedContract);
-              contractsToPersist.add(existingContract);
-            } else {
-              log.debug("No change in contract: {}", existingContract);
-            }
+      if (matchingUpdatedContract == null) {
+        log.info(
+            "Deleting contract that does not align to IT partner gateway: {}", existingContract);
+        contractRepository.delete(existingContract);
+        hasDeletedContracts = true;
+      } else {
+        if (!matchingUpdatedContract.equals(existingContract)) {
+          log.info(
+              "Contract updated. Old values: {} New values: {}",
+              existingContract,
+              matchingUpdatedContract);
+          if (existingContract.getMetrics() != matchingUpdatedContract.getMetrics()) {
+            var metrics =
+                existingContract.getMetrics().stream()
+                    .filter(metric -> !matchingUpdatedContract.getMetrics().contains(metric))
+                    .toList();
+            metrics.forEach(metric -> deleteContractMetric(existingContract, metric));
           }
-        });
+          contractEntityMapper.updateContract(existingContract, matchingUpdatedContract);
+          contractsToPersist.add(existingContract);
+        } else {
+          log.debug("No change in contract: {}", existingContract);
+        }
+      }
+    }
 
     // If not found in existing Contracts then create new ones.
     contractsToPersist.addAll(contractStartDateMap.values());
 
-    boolean areRecordsUpdated = !contractsToPersist.isEmpty();
-    if (areRecordsUpdated) {
+    boolean areRecordsUpdated = !contractsToPersist.isEmpty() || hasDeletedContracts;
+    if (!contractsToPersist.isEmpty()) {
       contractsToPersist.forEach(
           contractEntity -> {
             log.info("Updating or creating contract: {}", contractEntity);
@@ -377,47 +377,48 @@ public class ContractService {
         subscriptionService.findBySubscriptionNumber(
             contractEntities.get(0).getSubscriptionNumber());
 
-    existingSubscriptionRecords.forEach(
-        existingSubscription -> {
-          var matchingUpdatedSubscription =
-              subscriptionStartDateMap.remove(existingSubscription.getStartDate().toInstant());
+    boolean hasDeletedSubscriptions = false;
+    for (SubscriptionEntity existingSubscription : existingSubscriptionRecords) {
+      var matchingUpdatedSubscription =
+          subscriptionStartDateMap.remove(existingSubscription.getStartDate().toInstant());
 
-          if (matchingUpdatedSubscription == null) {
-            subscriptionService.delete(
-                existingSubscription,
-                SubscriptionDeleteReason.PARTNER_ENTITLEMENT_START_DATE_NOT_IN_GATEWAY);
-          } else {
-            var measurementsEqual =
-                Objects.equals(
-                    existingSubscription.getSubscriptionMeasurements(),
-                    matchingUpdatedSubscription.getSubscriptionMeasurements());
-            if (!matchingUpdatedSubscription.equals(existingSubscription) || !measurementsEqual) {
-              log.info(
-                  "Subscription updated. Old values: {} New values: {}",
-                  existingSubscription,
-                  matchingUpdatedSubscription);
-              if (!measurementsEqual) {
-                log.info(
-                    "Subscription measurements updated. Old values: {} New values: {}",
-                    existingSubscription.getSubscriptionMeasurements(),
-                    matchingUpdatedSubscription.getSubscriptionMeasurements());
-                deleteMisalignedSubscriptionMeasurements(
-                    existingSubscription, matchingUpdatedSubscription);
-              }
-              subscriptionEntityMapper.updateSubscription(
-                  existingSubscription, matchingUpdatedSubscription);
-              subscriptionsToPersist.add(existingSubscription);
-            } else {
-              log.debug("No change in subscription: {}", existingSubscription);
-            }
+      if (matchingUpdatedSubscription == null) {
+        subscriptionService.delete(
+            existingSubscription,
+            SubscriptionDeleteReason.PARTNER_ENTITLEMENT_START_DATE_NOT_IN_GATEWAY);
+        hasDeletedSubscriptions = true;
+      } else {
+        var measurementsEqual =
+            Objects.equals(
+                existingSubscription.getSubscriptionMeasurements(),
+                matchingUpdatedSubscription.getSubscriptionMeasurements());
+        if (!matchingUpdatedSubscription.equals(existingSubscription) || !measurementsEqual) {
+          log.info(
+              "Subscription updated. Old values: {} New values: {}",
+              existingSubscription,
+              matchingUpdatedSubscription);
+          if (!measurementsEqual) {
+            log.info(
+                "Subscription measurements updated. Old values: {} New values: {}",
+                existingSubscription.getSubscriptionMeasurements(),
+                matchingUpdatedSubscription.getSubscriptionMeasurements());
+            deleteMisalignedSubscriptionMeasurements(
+                existingSubscription, matchingUpdatedSubscription);
           }
-        });
+          subscriptionEntityMapper.updateSubscription(
+              existingSubscription, matchingUpdatedSubscription);
+          subscriptionsToPersist.add(existingSubscription);
+        } else {
+          log.debug("No change in subscription: {}", existingSubscription);
+        }
+      }
+    }
 
     // If not found in existing subscriptions then create new ones.
     subscriptionsToPersist.addAll(subscriptionStartDateMap.values());
 
-    boolean areRecordsUpdated = !subscriptionsToPersist.isEmpty();
-    if (areRecordsUpdated) {
+    boolean areRecordsUpdated = !subscriptionsToPersist.isEmpty() || hasDeletedSubscriptions;
+    if (!subscriptionsToPersist.isEmpty()) {
       log.info("Persisting subscriptions: {}", subscriptionsToPersist);
       subscriptionsToPersist.forEach(subscriptionService::save);
     }

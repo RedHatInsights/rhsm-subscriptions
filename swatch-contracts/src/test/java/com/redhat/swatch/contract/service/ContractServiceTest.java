@@ -26,6 +26,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static com.redhat.swatch.contract.model.MeasurementMetricIdTransformer.MEASUREMENT_TYPE_DEFAULT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -33,6 +34,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -107,6 +109,9 @@ class ContractServiceTest extends BaseUnitTest {
       OffsetDateTime.parse("2023-06-09T13:59:43.035365Z");
   private static final OffsetDateTime DEFAULT_END_DATE =
       OffsetDateTime.now(ZoneOffset.UTC).plusYears(4).truncatedTo(ChronoUnit.MICROS);
+  private static final String AZURE_PARTNER_ORG_ID = "7186626";
+  private static final OffsetDateTime ORPHAN_SEGMENT_START_DATE =
+      OffsetDateTime.parse("2023-06-09T04:00:00.035365Z");
 
   @Inject ContractService contractService;
   @Inject ObjectMapper objectMapper;
@@ -172,6 +177,43 @@ class ContractServiceTest extends BaseUnitTest {
     StatusResponse statusResponse = contractService.createPartnerContract(contract);
     // we should get redundant message ignored
     assertEquals("Redundant message ignored", statusResponse.getMessage());
+  }
+
+  @Test
+  void createPartnerContractWhenOrphanSubscriptionDeletedIsNotRedundant() throws Exception {
+    var contract = givenAzurePartnerEntitlementContract();
+    mockPartnerApi();
+    contractService.createPartnerContract(contract);
+
+    var orphanSubscription = givenExistingSubscriptionWithStartDate(ORPHAN_SEGMENT_START_DATE);
+    clearInvocations(subscriptionService);
+
+    StatusResponse statusResponse = contractService.createPartnerContract(contract);
+
+    assertNotEquals("Redundant message ignored", statusResponse.getMessage());
+    verify(subscriptionService)
+        .delete(
+            argThat(sameSubscription(orphanSubscription)),
+            eq(SubscriptionDeleteReason.PARTNER_ENTITLEMENT_START_DATE_NOT_IN_GATEWAY));
+    verify(subscriptionService, never()).save(any(SubscriptionEntity.class));
+  }
+
+  @Test
+  void createPartnerContractWhenOrphanContractDeletedIsNotRedundant() throws Exception {
+    var contract = givenAzurePartnerEntitlementContract();
+    mockPartnerApi();
+    contractService.createPartnerContract(contract);
+
+    var existingContract = contractRepository.getContractsByOrgId(AZURE_PARTNER_ORG_ID).getFirst();
+    var orphanContract = givenOrphanContractSegment(existingContract, ORPHAN_SEGMENT_START_DATE);
+    clearInvocations(subscriptionService);
+    reset(contractRepository);
+
+    StatusResponse statusResponse = contractService.createPartnerContract(contract);
+
+    assertNotEquals("Redundant message ignored", statusResponse.getMessage());
+    verify(contractRepository).delete(argThat(c -> c.getUuid().equals(orphanContract.getUuid())));
+    verify(subscriptionService, never()).save(any(SubscriptionEntity.class));
   }
 
   @Test
@@ -723,6 +765,28 @@ class ContractServiceTest extends BaseUnitTest {
     reset(contractRepository);
     clearInvocations(subscriptionService);
     return entity;
+  }
+
+  @Transactional
+  ContractEntity givenOrphanContractSegment(ContractEntity template, OffsetDateTime startDate) {
+    ContractEntity orphan =
+        ContractEntity.builder()
+            .uuid(UUID.randomUUID())
+            .subscriptionNumber(template.getSubscriptionNumber())
+            .startDate(startDate)
+            .endDate(template.getEndDate())
+            .orgId(template.getOrgId())
+            .offering(template.getOffering())
+            .billingProvider(template.getBillingProvider())
+            .billingProviderId(template.getBillingProviderId())
+            .billingAccountId(template.getBillingAccountId())
+            .vendorProductCode(template.getVendorProductCode())
+            .lastUpdated(OffsetDateTime.now(ZoneOffset.UTC))
+            .build();
+    contractRepository.persist(orphan);
+    reset(contractRepository);
+    clearInvocations(subscriptionService);
+    return orphan;
   }
 
   private ContractRequest givenContractRequest() {
