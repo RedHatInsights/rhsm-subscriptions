@@ -39,6 +39,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.candlepin.subscriptions.db.model.converters.EventRecordConverter;
 import org.candlepin.subscriptions.json.Event;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 /**
  * DB entity for an event record.
@@ -105,7 +107,8 @@ public class EventRecord {
   private OffsetDateTime recordDate;
 
   @Valid
-  @Column(name = "data")
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Column(name = "data", columnDefinition = "jsonb")
   @Convert(converter = EventRecordConverter.class)
   private Event event;
 
