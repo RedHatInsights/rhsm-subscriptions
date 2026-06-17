@@ -239,7 +239,7 @@ public class TallyWorkerConfiguration {
     return kafkaTemplate;
   }
 
-  @Bean(name = "updatePrimaryTallySnapshotsTaskExecutor")
+  @Bean(name = "updatePrimaryTaskExecutor")
   public Executor getAsyncExecutor() {
     ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
     executor.setThreadNamePrefix("is-primary-update-");

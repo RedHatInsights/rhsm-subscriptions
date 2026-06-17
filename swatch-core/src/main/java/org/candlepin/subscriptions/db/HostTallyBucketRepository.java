@@ -28,12 +28,16 @@ import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.AccountBucketTally;
 import org.candlepin.subscriptions.db.model.HostBucketKey;
 import org.candlepin.subscriptions.db.model.HostTallyBucket;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.QueryHints;
-import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 public interface HostTallyBucketRepository
-    extends CrudRepository<HostTallyBucket, HostBucketKey>, EntityManagerLookup {
+    extends JpaRepository<HostTallyBucket, HostBucketKey>, EntityManagerLookup {
 
   @Query(
       """
@@ -51,4 +55,110 @@ public interface HostTallyBucketRepository
         @QueryHint(name = HINT_READ_ONLY, value = "true")
       })
   Stream<AccountBucketTally> tallyHostBuckets(String orgId, String instanceType);
+
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  @Modifying
+  @Query(
+      nativeQuery = true,
+      value =
+          """
+    UPDATE host_tally_buckets
+    SET is_primary = true
+    WHERE ctid IN (
+      SELECT b.ctid FROM host_tally_buckets b
+      JOIN hosts h ON h.id = b.host_id
+      WHERE b.product_id = :productId
+        AND (CAST(:orgId AS VARCHAR) IS NULL OR h.org_id = :orgId)
+        AND b.sla <> :anyServiceLevel
+        AND b.usage <> :anyUsage
+        AND b.billing_provider <> :anyBillingProvider
+        AND b.billing_account_id <> '_ANY'
+        AND b.is_primary = false
+      LIMIT 20000
+    )
+  """)
+  int setIsPrimaryForPayg(
+      @Param("orgId") String orgId,
+      @Param("productId") String productId,
+      @Param("anyServiceLevel") String anyServiceLevel,
+      @Param("anyUsage") String anyUsage,
+      @Param("anyBillingProvider") String anyBillingProvider);
+
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  @Modifying
+  @Query(
+      nativeQuery = true,
+      value =
+          """
+    UPDATE host_tally_buckets
+    SET is_primary = true
+    WHERE ctid IN (
+      SELECT b.ctid FROM host_tally_buckets b
+      JOIN hosts h ON h.id = b.host_id
+      WHERE b.product_id = :productId
+        AND (CAST(:orgId AS VARCHAR) IS NULL OR h.org_id = :orgId)
+        AND b.sla <> :anyServiceLevel
+        AND b.usage <> :anyUsage
+        AND b.billing_provider = :anyBillingProvider
+        AND b.billing_account_id = '_ANY'
+        AND b.is_primary = false
+      LIMIT 20000
+    )
+  """)
+  int setIsPrimaryForNonPayg(
+      @Param("orgId") String orgId,
+      @Param("productId") String productId,
+      @Param("anyServiceLevel") String anyServiceLevel,
+      @Param("anyUsage") String anyUsage,
+      @Param("anyBillingProvider") String anyBillingProvider);
+
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  @Modifying
+  @Query(
+      nativeQuery = true,
+      value =
+          """
+    UPDATE host_tally_buckets
+    SET is_primary = true
+    WHERE ctid IN (
+      SELECT ctid FROM host_tally_buckets
+      WHERE product_id = :productId
+        AND sla <> :anyServiceLevel
+        AND usage <> :anyUsage
+        AND billing_provider <> :anyBillingProvider
+        AND billing_account_id <> '_ANY'
+        AND is_primary = false
+      LIMIT 20000
+    )
+  """)
+  int setIsPrimaryForPaygAllOrgs(
+      @Param("productId") String productId,
+      @Param("anyServiceLevel") String anyServiceLevel,
+      @Param("anyUsage") String anyUsage,
+      @Param("anyBillingProvider") String anyBillingProvider);
+
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  @Modifying
+  @Query(
+      nativeQuery = true,
+      value =
+          """
+    UPDATE host_tally_buckets
+    SET is_primary = true
+    WHERE ctid IN (
+      SELECT ctid FROM host_tally_buckets
+      WHERE product_id = :productId
+        AND sla <> :anyServiceLevel
+        AND usage <> :anyUsage
+        AND billing_provider = :anyBillingProvider
+        AND billing_account_id = '_ANY'
+        AND is_primary = false
+      LIMIT 20000
+    )
+  """)
+  int setIsPrimaryForNonPaygAllOrgs(
+      @Param("productId") String productId,
+      @Param("anyServiceLevel") String anyServiceLevel,
+      @Param("anyUsage") String anyUsage,
+      @Param("anyBillingProvider") String anyBillingProvider);
 }

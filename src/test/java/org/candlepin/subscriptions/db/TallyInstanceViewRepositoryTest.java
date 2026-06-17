@@ -732,7 +732,7 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
   class WithPrimaryRowSearchesEnabled extends FeatureFlagTests {
     @BeforeEach
     void setup() {
-      when(featureFlags.isEnabled(FeatureFlags.ENABLE_PRIMARY_ROW_SEARCHES, false))
+      when(featureFlags.isEnabled(FeatureFlags.ENABLE_HTB_PRIMARY_ROW_SEARCHES, false))
           .thenReturn(true);
     }
 
@@ -744,8 +744,8 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
       addBucketToHost(
           primaryHost,
           RHEL,
-          ServiceLevel._ANY,
-          Usage._ANY,
+          ServiceLevel.PREMIUM,
+          Usage.PRODUCTION,
           HardwareMeasurementType.PHYSICAL,
           BillingProvider._ANY,
           2,
@@ -770,8 +770,8 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
           repo.findAllBy(
               "org-primary",
               RHEL,
-              ServiceLevel._ANY,
-              Usage._ANY,
+              null,
+              null,
               "",
               0,
               0,
@@ -794,7 +794,7 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
   class WithPrimaryRowSearchesDisabled extends FeatureFlagTests {
     @BeforeEach
     void setup() {
-      when(featureFlags.isEnabled(FeatureFlags.ENABLE_PRIMARY_ROW_SEARCHES, false))
+      when(featureFlags.isEnabled(FeatureFlags.ENABLE_HTB_PRIMARY_ROW_SEARCHES, false))
           .thenReturn(false);
     }
 
@@ -805,8 +805,8 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
       addBucketToHost(
           primaryHost,
           RHEL,
-          ServiceLevel._ANY,
-          Usage._ANY,
+          ServiceLevel.PREMIUM,
+          Usage.PRODUCTION,
           HardwareMeasurementType.PHYSICAL,
           BillingProvider._ANY,
           2,
@@ -831,8 +831,8 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
           repo.findAllBy(
               "org-primary",
               RHEL,
-              ServiceLevel._ANY,
-              Usage._ANY,
+              null,
+              null,
               "",
               0,
               0,

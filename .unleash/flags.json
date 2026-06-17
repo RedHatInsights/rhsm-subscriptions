@@ -128,7 +128,7 @@
         },
         {
             "name": "swatch.swatch-tally.enable-primary-row-searches",
-            "description": "Enable the use of the primary row search for snapshots and buckets.",
+            "description": "Enable the use of the primary row search for snapshots.",
             "type": "operational",
             "project": "default",
             "enabled": false,
@@ -140,7 +140,23 @@
                 }
             ],
             "variants": [],
-            "createdAt": "2026-03-30T015:18:27.111Z"
+            "createdAt": "2026-03-30T15:18:27.111Z"
+        },
+        {
+            "name": "swatch.swatch-tally.enable-host-tally-bucket-primary-row-searches",
+            "description": "Enable the use of the primary row search for host tally buckets.",
+            "type": "operational",
+            "project": "default",
+            "enabled": false,
+            "stale": false,
+            "strategies": [
+                {
+                    "name": "default",
+                    "parameters": {}
+                }
+            ],
+            "variants": [],
+            "createdAt": "2026-06-08T015:01:49.265Z"
         }
     ],
     "strategies": [

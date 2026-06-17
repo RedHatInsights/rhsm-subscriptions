@@ -13,7 +13,7 @@ refers to the environment.  Thus, the client token is scoped.  The admin token
 uses wildcards and is not scoped to a project or environment.
 
 The REST API is [documented](https://docs.getunleash.io/reference/api/unleash)
-extensively, but the most important operation is creating a simple flag.  
+extensively, but the most important operation is creating a simple flag.
 You can use the Web UI which is fairly self-explanatory (with the help of the
 documentation).  There is also a very useful feature where the web UI
 automatically generates a corresponding `curl` command.  Here's the command
@@ -136,8 +136,15 @@ to interrogate the value of flags.  The flags still must be created in an
 out-of-band fashion either through the web UI or through `oc port-forward` and
 `curl`.
 
-# Populating Unleash - Potential Solutions
+# Populating Unleash
 
+## Development
+For local development, flags can be created via a JSON files under
+`.unleash/flags.json`.  When you run a `podman compose up` to create the local
+Unleash server, that file is automatically read, and flags are populated based
+on its contents.
+
+## Ephemeral Environments
 Unleash will accept a bulk import of flags or one-off creation.  Oddly, bulk
 import of flags requires a different type of API token from the admin token.
 Bulk importing via
@@ -171,3 +178,10 @@ to this, however, so read the fine print.
 The alternative is to create feature flags one at a time via
 [`/api/admin/projects/:projectId/features`](https://docs.getunleash.io/reference/api/unleash/create-feature)
 which does accept a admin API token.
+
+## Production
+
+App SRE creates the feature flags for us based on files under
+`data/dependencies/unleash/feature_toggles/insights/rhsm/`.  Each file creates a
+single feature flag.  The particulars are discussed [in the AppSRE
+documentation](https://gitlab.cee.redhat.com/service/app-interface/-/blob/master/docs/platform-users/platform-services/unleash-feature-toggles.md).

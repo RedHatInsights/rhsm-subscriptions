@@ -407,6 +407,43 @@ public class InternalTallyResource implements InternalTallyApi {
     }
   }
 
+  @Override
+  public DefaultResponse updateHostTallyBucketsIsPrimary(
+      String productId, String orgId, Boolean xRhSwatchSynchronousRequest) {
+    log.info(
+        "Received request to update host_tally_buckets is_primary for org={}, product={}, sync={}",
+        orgId,
+        productId,
+        xRhSwatchSynchronousRequest);
+
+    try {
+      if (Boolean.TRUE.equals(xRhSwatchSynchronousRequest)) {
+        int rowsUpdated =
+            isPrimaryUpdateService.updateHostTallyBucketsIsPrimarySync(orgId, productId);
+        log.info(
+            "Synchronous host_tally_buckets is_primary update completed. Rows updated: {}",
+            rowsUpdated);
+        return getDefaultResponse(rowsUpdated + " rows updated");
+      } else {
+        isPrimaryUpdateService.updateHostTallyBucketsIsPrimaryAsync(orgId, productId);
+        return getDefaultResponse("Accepted");
+      }
+    } catch (TaskRejectedException e) {
+      log.warn(
+          "host_tally_buckets is_primary update task rejected (queue full) for org={}, product={}",
+          orgId,
+          productId);
+      return getDefaultResponse(REJECTED_STATUS);
+    } catch (Exception e) {
+      log.error(
+          "host_tally_buckets is_primary update failed for org={}, product={}",
+          orgId,
+          productId,
+          e);
+      throw e;
+    }
+  }
+
   @NotNull
   private DefaultResponse getDefaultResponse(String status) {
     var response = new DefaultResponse();
