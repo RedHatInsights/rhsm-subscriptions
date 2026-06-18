@@ -100,12 +100,14 @@ class SubscriptionKafkaMessageConsumerTest {
     await()
         .atMost(Duration.ofMillis(500))
         .untilAsserted(() -> verify(consumer).consumeSubscription("this is not xml"));
-    LoggerCaptor.thenNoErrorLogWithMessage("IT Subscription message consumed");
+    LoggerCaptor.thenWarnLogWithMessage("Unable to process IT Subscription Kafka message");
   }
 
   @Test
   void shouldIgnoreNullMessage() {
-    consumer.consumeSubscription(null);
+    consumer.consumeFromKafka(null);
+
+    LoggerCaptor.thenLogNothing();
   }
 
   private void whenSendMessage(String message) {
