@@ -1,6 +1,6 @@
 # Observability playbook
 
-This guide will help us to set up the environment with Kafka, Database and Splunk into local with all our swatch services. 
+This guide will help us to set up the environment with Kafka, Database and centralized logging into local with all our swatch services.
 
 We'll exercise all the swatch integrations that are part of the diagram in [here](https://miro.com/app/board/uXjVLZZFmEc=/?share_link_id=967248979294).
 
@@ -10,7 +10,7 @@ Read more about the prerequisites in [here](../../CONTRIBUTING.md#build).
 
 ## Set Up
 - Dependant services: instructions [here](../../README.md#dependent-services).
-- splunk: instructions [here](../../README.md#splunk).
+- Logging HEC: instructions [here](../../README.md#logging-hec).
 - Opentelemetry (OTEL) Exporter: instructions [here](../../README.md#opentelemetry-otel-exporter).
 - Wiremock (for prometheus): instructions [here](../../README.md#wiremock-service).
 - perform database migrations: `./mvnw -f swatch-database/pom.xml exec:java`
@@ -128,7 +128,7 @@ traceresponse: 00-314bf601e06b4c76d199a71b0abc119b-bd13c0fb161d55fd-00
 ```
 
 Note that "314bf601e06b4c76d199a71b0abc119b" is the trace ID of the whole operation. 
-Running the splunk query `properties.traceId="314bf601e06b4c76d199a71b0abc119b"` will return all the logs within the spring boot and quarkus services.
+You can search for this trace ID in the centralized logging platform to find all the logs within the spring boot and quarkus services.
 
 ### Sync Accounts (Organizations) by Swatch Conduit
 
@@ -159,7 +159,7 @@ traceresponse: 00-e861d11055c4675e01093c73ed606fa9-344caadf992b1d6c-01
 
 The trace ID is the second token "e861d11055c4675e01093c73ed606fa9".
 
-Searching in Splunk by this trace ID: `properties.traceId="e861d11055c4675e01093c73ed606fa9"`, we should see at least the following messages correlated: 
+Searching in the centralized logging platform by this trace ID (see [swatch-internal-docs/Observability/logging.md](https://gitlab.cee.redhat.com/rhsm/swatch-internal-docs/-/blob/main/docs/Observability/logging.md) for query guidance), we should see at least the following messages correlated:
 
 ```
 2024-11-20 06:58:55,295 [thread=http-nio-8005-exec-3] [INFO ] [org.candlepin.subscriptions.security.LogPrincipalFilter] self- Internal API: /api/rhsm-subscriptions/v1/internal/rpc/syncOrg requested by user: self
@@ -173,4 +173,4 @@ Searching in Splunk by this trace ID: `properties.traceId="e861d11055c4675e01093
 - [Quarkus OTel Tracing docs](https://quarkus.io/guides/opentelemetry-tracing)
 - [Spring Boot Tracing docs](https://docs.spring.io/spring-boot/reference/actuator/tracing.html)
 - [OTel Spring Boot docs](https://opentelemetry.io/docs/zero-code/java/spring-boot-starter/)
-- [Configure the Java agent for Splunk Observability Cloud](https://docs.splunk.com/observability/en/gdi/get-data-in/application/java/configuration/advanced-java-otel-configuration.html)
+- [OpenTelemetry Java Agent Configuration](https://opentelemetry.io/docs/zero-code/java/agent/configuration/)

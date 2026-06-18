@@ -757,7 +757,7 @@ data:
                 "type": "prometheus",
                 "uid": "${datasource}"
               },
-              "description": "Per-second Splunk HEC transmission failure rate over the past 10 minutes.  The y-axis is the total number of log messages that failed transmission.",
+              "description": "Per-second Logging HEC transmission failure rate over the past 10 minutes.  The y-axis is the total number of log messages that failed transmission.",
               "fieldConfig": {
                 "defaults": {
                   "color": {
@@ -840,11 +840,11 @@ data:
                   "refId": "A"
                 }
               ],
-              "title": "Splunk HEC Failures",
+              "title": "Logging HEC Failures",
               "type": "timeseries"
             }
           ],
-          "title": "Splunk HEC",
+          "title": "Logging HEC",
           "type": "row"
         },
         {

@@ -167,38 +167,37 @@ The OTEL exporter will be listening for gRPC connections on port 4317.
 for the SWATCH contracts service, we need to provide the OTEL_ENDPOINT property to point out to the
 local otel exporter: `java -DOTEL_ENDPOINT=http://localhost:4317 -jar swatch-contracts/build/quarkus-app/quarkus-run.jar`
 
-### Splunk
+### Logging HEC
 
-Some services integrate the log traces into Splunk. For these services, we can start Splunk via:
+In deployed environments, services forward logs via Logging HEC (HTTP Event
+Collector) to the enterprise log stack. By default, Logging HEC is
+**disabled** in the `dev` profile (`LOGGING_HEC_ENABLED=false`), so local
+development logs go to the console only.
 
-```
-podman-compose -f config/splunk/docker-compose.yml up -d
-```
+The following environment variables control Logging HEC forwarding:
 
-Splunk will be accepting events over port 8088.  The web interface is on port
-8000 and you can log in as `admin`/`admin123`.  There are several different
-environment variables you can pass to the container and the
-[documentation](https://splunk.github.io/docker-splunk/) is helpful.
+| Variable | Purpose |
+|----------|---------|
+| `LOGGING_HEC_ENABLED` | Toggle Logging HEC forwarding (`true`/`false`) |
+| `LOGGING_HEC_URL` | Logging HEC endpoint URL |
+| `LOGGING_HEC_TOKEN` | Authentication token for the Logging HEC endpoint |
 
-*NOTE*: We need to configure our services to work with this Splunk instance. For example,
-for the SWATCH Azure producer, we need:
+These map to the `quarkus.log.handler.splunk` Quarkus extension properties.
+If you ever need to test Logging HEC forwarding locally (for example against a
+local collector), set the variables above when starting the service:
 
 ```
 SERVER_PORT=8001 \
 LOGGING_HEC_ENABLED=true \
 LOGGING_HEC_URL=https://localhost:8088 \
-LOGGING_HEC_TOKEN=29fe2838-cab6-4d17-a392-37b7b8f41f75 \
+LOGGING_HEC_TOKEN=<your-token> \
 ./mvnw quarkus:dev
 ```
 
-Some of these environment variables are our own (e.g. `LOGGING_HEC_URL`) and are
-piped into the `quarkus.log.handler.splunk` namespace which is what ultimately
-controls the Splunk HEC configuration.  By default SSL/TLS certificate
-validation is disabled in the `dev` profile for the `swatch-producer-aws`,
-`swatch-producer-azure`, and `swatch-contracts` projects.  If you are seeing
-SSL/TLS error (generally something like `unable to find valid certification path
-to requested target`), then setting `QUARKUS_LOG_HANDLER_SPLUNK_DISABLE_CERTIFICATE_VALIDATION=true`
-is the sure-fire way to disable SSL/TLS certificate validation.
+SSL/TLS certificate validation is disabled by default in the `dev` profile
+for `swatch-producer-aws`, `swatch-producer-azure`, and `swatch-contracts`.
+If you see SSL/TLS errors elsewhere, set
+`QUARKUS_LOG_HANDLER_SPLUNK_DISABLE_CERTIFICATE_VALIDATION=true`.
 
 ### Export Service
 

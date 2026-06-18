@@ -17,7 +17,7 @@ Quarkus profiles allow different configurations to be applied based on the runti
 - **Local Ports**: Each service runs on a specific development port (e.g., swatch-contracts on 8011, swatch-billable-usage on 8012)
 - **Management Ports**: Management/metrics endpoints run on port + 1000 (e.g., 9011, 9012)
 - **Mock Services**: Points to local WireMock services for external dependencies
-- **Splunk Disabled**: `LOGGING_HEC_ENABLED=false` - logging goes to console instead
+- **Logging HEC Disabled**: `LOGGING_HEC_ENABLED=false` - logging goes to console instead
 - **CORS Relaxed**: `CORS_ORIGINS=/.*/` - allows any origin for local testing
 - **Security Disabled**: Authentication disabled in dev mode for easier testing
 - **Live Reload**: Quarkus live reload enabled with configurable password
@@ -102,7 +102,7 @@ Quarkus profiles allow different configurations to be applied based on the runti
 **Key Features**:
 - **Production APIs**: Points to production Red Hat services
 - **Test APIs Disabled**: `SWATCH_TEST_APIS_ENABLED=false` for security
-- **Full Observability**: OpenTelemetry and Splunk logging enabled
+- **Full Observability**: OpenTelemetry and centralized log forwarding (Logging HEC) enabled
 - **Secure Configuration**: Strict CORS, authentication required, secure defaults
 - **Subscription Editing Disabled**: `DEVTEST_SUBSCRIPTION_EDITING_ENABLED=false`
 
@@ -165,7 +165,7 @@ QUARKUS_PROFILE=dev,kafka-queue
 - **Test**: Disabled or mocked
 
 ### Observability
-- **Production/Stage**: Full OpenTelemetry and Splunk integration
+- **Production/Stage**: Full OpenTelemetry and centralized log forwarding
 - **Dev**: Console logging only
 - **Test**: Minimal logging
 - **Ephemeral**: Simplified configuration for quick validation
