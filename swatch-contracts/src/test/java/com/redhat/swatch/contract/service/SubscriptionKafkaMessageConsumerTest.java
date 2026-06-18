@@ -22,15 +22,9 @@ package com.redhat.swatch.contract.service;
 
 import static com.redhat.swatch.contract.config.Channels.IT_SUBSCRIPTION_SYNC;
 import static org.awaitility.Awaitility.await;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
-import com.redhat.swatch.contract.config.FeatureFlags;
-import com.redhat.swatch.contract.product.umb.UmbSubscription;
 import com.redhat.swatch.contract.test.LoggerCaptor;
-import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectSpy;
 import io.smallrye.reactive.messaging.memory.InMemoryConnector;
@@ -73,8 +67,6 @@ class SubscriptionKafkaMessageConsumerTest {
       </CanonicalMessage>
       """;
 
-  @InjectMock FeatureFlags featureFlags;
-  @InjectMock SubscriptionSyncService service;
   @InjectSpy SubscriptionKafkaMessageConsumer consumer;
   @Inject @Any InMemoryConnector connector;
 
@@ -89,7 +81,6 @@ class SubscriptionKafkaMessageConsumerTest {
   void setUp() {
     subscriptionKafkaChannel = connector.source(IT_SUBSCRIPTION_SYNC);
     LoggerCaptor.clearRecords();
-    when(featureFlags.isSubscriptionKafkaConsumerEnabled()).thenReturn(true);
   }
 
   @Test
@@ -98,40 +89,23 @@ class SubscriptionKafkaMessageConsumerTest {
 
     await()
         .atMost(Duration.ofMillis(500))
-        .untilAsserted(
-            () -> {
-              verify(consumer).consumeSubscription(SUBSCRIPTION_XML);
-              verify(service).saveUmbSubscription(any(UmbSubscription.class));
-            });
+        .untilAsserted(() -> verify(consumer).consumeSubscription(SUBSCRIPTION_XML));
     thenKafkaSubscriptionDeserializedSuccessfully();
   }
 
   @Test
-  void shouldNotSaveWhenMalformedXml() {
+  void shouldNotLogSuccessWhenMalformedXml() {
     whenSendMessage("this is not xml");
 
     await()
         .atMost(Duration.ofMillis(500))
         .untilAsserted(() -> verify(consumer).consumeSubscription("this is not xml"));
-    verify(service, never()).saveUmbSubscription(any());
+    LoggerCaptor.thenNoErrorLogWithMessage("IT Subscription message consumed");
   }
 
   @Test
   void shouldIgnoreNullMessage() {
     consumer.consumeSubscription(null);
-
-    verify(service, never()).saveUmbSubscription(any());
-  }
-
-  @Test
-  void shouldNotProcessWhenDisabled() {
-    when(featureFlags.isSubscriptionKafkaConsumerEnabled()).thenReturn(false);
-    whenSendMessage(SUBSCRIPTION_XML);
-
-    await()
-        .atMost(Duration.ofMillis(500))
-        .untilAsserted(() -> verify(consumer).consumeFromKafka(SUBSCRIPTION_XML));
-    verify(service, never()).saveUmbSubscription(any());
   }
 
   private void whenSendMessage(String message) {

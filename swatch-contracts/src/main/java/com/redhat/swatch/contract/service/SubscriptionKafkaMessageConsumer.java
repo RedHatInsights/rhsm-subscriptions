@@ -23,12 +23,10 @@ package com.redhat.swatch.contract.service;
 import static com.redhat.swatch.contract.config.Channels.IT_SUBSCRIPTION_SYNC;
 
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
-import com.redhat.swatch.contract.config.FeatureFlags;
 import com.redhat.swatch.contract.product.umb.CanonicalMessage;
 import com.redhat.swatch.contract.product.umb.UmbSubscription;
 import io.smallrye.common.annotation.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 
@@ -36,18 +34,11 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 @Slf4j
 public class SubscriptionKafkaMessageConsumer {
 
-  @Inject FeatureFlags featureFlags;
-  @Inject SubscriptionSyncService service;
-
   private final XmlMapper xmlMapper = CanonicalMessage.createMapper();
 
   @Blocking
   @Incoming(IT_SUBSCRIPTION_SYNC)
   public void consumeFromKafka(String subscriptionMessageXml) {
-    if (!featureFlags.isSubscriptionKafkaConsumerEnabled()) {
-      log.debug("IT Subscription Kafka consumer is disabled.");
-      return;
-    }
     log.debug("IT Subscription Kafka consumer was called");
     if (subscriptionMessageXml == null) {
       return;
@@ -56,7 +47,6 @@ public class SubscriptionKafkaMessageConsumer {
   }
 
   public void consumeSubscription(String subscriptionMessageXml) {
-    log.info(subscriptionMessageXml);
     try {
       CanonicalMessage subscriptionMessage =
           xmlMapper.readValue(subscriptionMessageXml, CanonicalMessage.class);
@@ -72,7 +62,6 @@ public class SubscriptionKafkaMessageConsumer {
           subscription.getEffectiveStartDate(),
           subscription.getEffectiveEndDate(),
           subscription.findTerminatedStatus().isPresent());
-      service.saveUmbSubscription(subscription);
     } catch (Exception e) {
       log.warn("Unable to process IT Subscription Kafka message.", e);
     }

@@ -22,7 +22,6 @@ package com.redhat.swatch.contract.config;
 
 import static com.redhat.swatch.contract.config.FeatureFlags.CONFIG_VARIANT;
 import static com.redhat.swatch.contract.config.FeatureFlags.DEFAULT_IS_ENABLED;
-import static com.redhat.swatch.contract.config.FeatureFlags.IT_SUBSCRIPTION_KAFKA_CONSUMER;
 import static com.redhat.swatch.contract.config.FeatureFlags.PARTNER_GATEWAY_CONTRACTS;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -49,20 +48,6 @@ class FeatureFlagsTest {
   @BeforeEach
   void setUp() {
     featureFlags = new FeatureFlags(unleash, OBJECT_MAPPER);
-  }
-
-  @Test
-  void shouldReturnFalse_whenSubscriptionKafkaDisabled() {
-    when(unleash.isEnabled(IT_SUBSCRIPTION_KAFKA_CONSUMER, DEFAULT_IS_ENABLED)).thenReturn(false);
-
-    assertFalse(featureFlags.isSubscriptionKafkaConsumerEnabled());
-  }
-
-  @Test
-  void shouldReturnTrue_whenSubscriptionKafkaEnabled() {
-    when(unleash.isEnabled(IT_SUBSCRIPTION_KAFKA_CONSUMER, DEFAULT_IS_ENABLED)).thenReturn(true);
-
-    assertTrue(featureFlags.isSubscriptionKafkaConsumerEnabled());
   }
 
   @Test

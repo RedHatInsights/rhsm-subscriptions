@@ -37,18 +37,12 @@ import lombok.extern.slf4j.Slf4j;
 public class FeatureFlags {
   public static final String PARTNER_GATEWAY_CONTRACTS =
       "swatch.swatch-contracts.enable-partner-gateway-contracts";
-  public static final String IT_SUBSCRIPTION_KAFKA_CONSUMER =
-      "swatch.swatch-contracts.enable-it-subscription-kafka-consumer";
   public static final String CONFIG_VARIANT = "config";
 
   protected static final boolean DEFAULT_IS_ENABLED = true;
 
   private final Unleash unleash;
   private final ObjectMapper mapper;
-
-  public boolean isSubscriptionKafkaConsumerEnabled() {
-    return unleash.isEnabled(IT_SUBSCRIPTION_KAFKA_CONSUMER, DEFAULT_IS_ENABLED);
-  }
 
   /** Whether the Kafka consumer for partner-gateway contracts is allowed. */
   public boolean isPartnerGatewayContractsKafkaConsumerEnabled() {
