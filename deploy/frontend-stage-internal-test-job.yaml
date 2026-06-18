@@ -22,6 +22,30 @@ objects:
             - name: pw-shm
               emptyDir:
                 medium: Memory
+          initContainers:
+            - name: playwright-chromium-${IMAGE_TAG}-${UID}
+              image: ${PLAYWRIGHT_IMAGE}
+              imagePullPolicy: Always
+              restartPolicy: Always
+              env:
+                - name: PW_HEADLESS
+                  value: "true"
+              resources:
+                requests:
+                  cpu: "1"
+                  memory: 1Gi
+                limits:
+                  cpu: 1500m
+                  memory: 3Gi
+              volumeMounts:
+                - name: pw-shm
+                  mountPath: /dev/shm
+              ports:
+                - containerPort: 5900
+                  name: vnc
+                  protocol: TCP
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
           containers:
             - name: curiosity-frontend-stage-post-deploy-tests-${IMAGE_TAG}-${UID}
               args:
@@ -89,28 +113,6 @@ objects:
               volumeMounts:
                 - name: pw-shm
                   mountPath: /dev/shm
-              terminationMessagePath: /dev/termination-log
-              terminationMessagePolicy: File
-            - name: playwright-chromium-${IMAGE_TAG}-${UID}
-              image: ${PLAYWRIGHT_IMAGE}
-              imagePullPolicy: Always
-              env:
-                - name: PW_HEADLESS
-                  value: "false"
-              resources:
-                requests:
-                  cpu: "1"
-                  memory: 1Gi
-                limits:
-                  cpu: 1500m
-                  memory: 3Gi
-              volumeMounts:
-                - name: pw-shm
-                  mountPath: /dev/shm
-              ports:
-                - containerPort: 5900
-                  name: vnc
-                  protocol: TCP
               terminationMessagePath: /dev/termination-log
               terminationMessagePolicy: File
 
