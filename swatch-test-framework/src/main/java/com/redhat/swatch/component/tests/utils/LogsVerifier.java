@@ -21,7 +21,9 @@
 package com.redhat.swatch.component.tests.utils;
 
 import com.redhat.swatch.component.tests.api.Service;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Assertions;
 
 public class LogsVerifier {
@@ -32,17 +34,26 @@ public class LogsVerifier {
     this.service = service;
   }
 
-  public void assertContains(String expectedLog) {
-    assertContains(expectedLog, AwaitilitySettings.defaults());
+  /**
+   * Asserts that the service logs contain at least one of the expected texts.
+   *
+   * @param expectedTextsInLogLine the expected texts in a single log line
+   */
+  public void assertContains(String... expectedTextsInLogLine) {
+    assertContains(expectedTextsInLogLine, AwaitilitySettings.defaults());
   }
 
-  public void assertContains(String expectedLog, AwaitilitySettings settings) {
+  private void assertContains(String[] expectedTextsInLogLine, AwaitilitySettings settings) {
     AwaitilityUtils.untilAsserted(
         () -> {
           List<String> actualLogs = service.getLogs();
           Assertions.assertTrue(
-              actualLogs.stream().anyMatch(line -> line.contains(expectedLog)),
-              "Log does not contain " + expectedLog + ". Full logs: " + actualLogs);
+              actualLogs.stream()
+                  .anyMatch(line -> Stream.of(expectedTextsInLogLine).allMatch(line::contains)),
+              "Log does not contain "
+                  + Arrays.toString(expectedTextsInLogLine)
+                  + ". Full logs: "
+                  + actualLogs);
         },
         settings);
   }

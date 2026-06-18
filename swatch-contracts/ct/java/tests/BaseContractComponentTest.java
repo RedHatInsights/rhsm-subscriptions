@@ -42,6 +42,7 @@ import com.redhat.swatch.contract.test.model.CapacityReportByMetricId;
 import com.redhat.swatch.contract.test.model.CapacitySnapshotByMetricId;
 import com.redhat.swatch.contract.test.model.GranularityType;
 import com.redhat.swatch.contract.test.model.ReportCategory;
+import com.redhat.swatch.contract.test.model.SubscriptionDeleteReason;
 import domain.BillingProvider;
 import domain.Contract;
 import domain.Product;
@@ -292,5 +293,12 @@ public class BaseContractComponentTest {
         service.getCapacityReportByMetricId(
             product, orgId, metric.toString(), beginning, ending, GranularityType.DAILY, category);
     return getCapacityValueFromReport(report);
+  }
+
+  protected void thenSubscriptionAuditDeleteLog(SubscriptionDeleteReason deleteReason) {
+    service
+        .logs()
+        .assertContains(
+            "Subscription deleted org_id=" + orgId, "delete_reason=" + deleteReason.name());
   }
 }

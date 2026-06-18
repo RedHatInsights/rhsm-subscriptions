@@ -36,6 +36,7 @@ import com.redhat.swatch.contract.test.model.CapacitySnapshotByMetricId;
 import com.redhat.swatch.contract.test.model.EnabledOrgsRequest;
 import com.redhat.swatch.contract.test.model.EnabledOrgsResponse;
 import com.redhat.swatch.contract.test.model.GranularityType;
+import com.redhat.swatch.contract.test.model.SubscriptionDeleteReason;
 import domain.Offering;
 import domain.Product;
 import domain.Subscription;
@@ -95,6 +96,7 @@ public class SubscriptionsSyncComponentTest extends BaseContractComponentTest {
     whenSubscriptionSyncRunsForOrg();
 
     thenSubscriptionIsAbsent(subscription.getSubscriptionId());
+    thenSubscriptionAuditDeleteLog(SubscriptionDeleteReason.NOT_IN_UPSTREAM_RESPONSE);
   }
 
   @TestPlanName("subscriptions-sync-TC004")
@@ -121,6 +123,8 @@ public class SubscriptionsSyncComponentTest extends BaseContractComponentTest {
 
     thenSubscriptionIsAbsent(expiredSubscription.getSubscriptionId());
     thenSubscriptionIsPresent(replacementSubscription.getSubscriptionId());
+    thenSubscriptionAuditDeleteLog(SubscriptionDeleteReason.NOT_IN_UPSTREAM_RESPONSE);
+    thenSubscriptionAuditSaveLog(replacementSubscription.getSubscriptionId());
     thenDailyCapacityShowsSocketsOnDaysInRange(REPORT_START, REPLACEMENT_START.minusDays(1), 0.0);
     thenDailyCapacityShowsSocketsOnDaysInRange(REPLACEMENT_START, REPORT_END, SOCKETS_CAPACITY);
   }
@@ -150,6 +154,7 @@ public class SubscriptionsSyncComponentTest extends BaseContractComponentTest {
     whenSubscriptionSyncRunsWithUpstream(upstreamWithNullStart);
 
     thenSubscriptionIsAbsent(subscription.getSubscriptionId());
+    thenSubscriptionAuditDeleteLog(SubscriptionDeleteReason.FILTERED_NULL_START_DATE);
   }
 
   @TestPlanName("subscriptions-sync-TC008")
@@ -167,6 +172,24 @@ public class SubscriptionsSyncComponentTest extends BaseContractComponentTest {
     whenSubscriptionSyncRunsWithUpstream(upstreamFarFutureStart);
 
     thenSubscriptionIsAbsent(subscription.getSubscriptionId());
+    thenSubscriptionAuditDeleteLog(SubscriptionDeleteReason.FILTERED_START_TOO_FAR_IN_FUTURE);
+  }
+
+  @TestPlanName("subscriptions-sync-TC009")
+  @Test
+  void shouldDeleteSubscriptionWhenUpstreamEndTooFarInPast() {
+    Subscription subscription = givenExistingSubscription(ACTIVE_SUBSCRIPTION_START, REPORT_END);
+    OffsetDateTime expiredEnd = clock.now().minusDays(61);
+    Subscription upstreamExpiredEnd =
+        subscription.toBuilder()
+            .startDate(clock.startOfToday().minusDays(90))
+            .endDate(expiredEnd)
+            .build();
+
+    whenSubscriptionSyncRunsWithUpstream(upstreamExpiredEnd);
+
+    thenSubscriptionIsAbsent(subscription.getSubscriptionId());
+    thenSubscriptionAuditDeleteLog(SubscriptionDeleteReason.FILTERED_END_TOO_FAR_IN_PAST);
   }
 
   private Subscription givenSubscription() {
@@ -179,6 +202,21 @@ public class SubscriptionsSyncComponentTest extends BaseContractComponentTest {
   private Subscription givenExistingSubscription(OffsetDateTime startDate, OffsetDateTime endDate) {
     String seed = RandomUtils.generateRandom();
     String sku = RandomUtils.generateRandom();
+    return givenExistingSubscriptionWithSku(sku, seed, seed, startDate, endDate);
+  }
+
+  private Subscription givenExistingSubscriptionWithSku(
+      String sku, OffsetDateTime startDate, OffsetDateTime endDate) {
+    String seed = RandomUtils.generateRandom();
+    return givenExistingSubscriptionWithSku(sku, seed, seed, startDate, endDate);
+  }
+
+  private Subscription givenExistingSubscriptionWithSku(
+      String sku,
+      String subscriptionId,
+      String subscriptionNumber,
+      OffsetDateTime startDate,
+      OffsetDateTime endDate) {
     wiremock
         .forProductAPI()
         .stubOfferingData(Offering.buildRhelOffering(sku, 4.0, SOCKETS_CAPACITY));
@@ -188,8 +226,8 @@ public class SubscriptionsSyncComponentTest extends BaseContractComponentTest {
     Subscription subscription =
         Subscription.buildRhelSubscriptionUsingSku(orgId, Map.of(SOCKETS, SOCKETS_CAPACITY), sku)
             .toBuilder()
-            .subscriptionId(seed)
-            .subscriptionNumber(seed)
+            .subscriptionId(subscriptionId)
+            .subscriptionNumber(subscriptionNumber)
             .startDate(startDate)
             .endDate(endDate)
             .build();
@@ -351,5 +389,12 @@ public class SubscriptionsSyncComponentTest extends BaseContractComponentTest {
       return 0.0;
     }
     return snapshot.getValue().doubleValue();
+  }
+
+  private void thenSubscriptionAuditSaveLog(String subscriptionId) {
+    service
+        .logs()
+        .assertContains(
+            "Subscription created/updated org_id=" + orgId + " subscription_id=" + subscriptionId);
   }
 }

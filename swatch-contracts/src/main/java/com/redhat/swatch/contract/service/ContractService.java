@@ -45,13 +45,11 @@ import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.ContractRequest;
 import com.redhat.swatch.contract.openapi.model.ContractResponse;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
-import com.redhat.swatch.contract.repository.BillingProvider;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractMetricEntity;
 import com.redhat.swatch.contract.repository.ContractMetricRepository;
 import com.redhat.swatch.contract.repository.ContractRepository;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
-import com.redhat.swatch.contract.repository.SubscriptionRepository;
 import com.redhat.swatch.contract.utils.ContractMessageProcessingResult;
 import com.redhat.swatch.panache.Specification;
 import io.micrometer.core.annotation.Timed;
@@ -91,7 +89,7 @@ public class ContractService {
 
   private final ContractRepository contractRepository;
   private final ContractMetricRepository contractMetricRepository;
-  private final SubscriptionRepository subscriptionRepository;
+  private final SubscriptionService subscriptionService;
   private final MeasurementMetricIdTransformer measurementMetricIdTransformer;
   @Inject protected ContractEntityMapper contractEntityMapper;
   @Inject protected ContractDtoMapper contractDtoMapper;
@@ -104,13 +102,13 @@ public class ContractService {
   ContractService(
       ContractRepository contractRepository,
       ContractMetricRepository contractMetricRepository,
-      SubscriptionRepository subscriptionRepository,
+      SubscriptionService subscriptionService,
       MeasurementMetricIdTransformer measurementMetricIdTransformer,
       AwsPartnerEntitlementsProvider awsPartnerEntitlementsProvider,
       AzurePartnerEntitlementsProvider azurePartnerEntitlementsProvider) {
     this.contractRepository = contractRepository;
     this.contractMetricRepository = contractMetricRepository;
-    this.subscriptionRepository = subscriptionRepository;
+    this.subscriptionService = subscriptionService;
     this.measurementMetricIdTransformer = measurementMetricIdTransformer;
     this.partnerEntitlementsProviders =
         List.of(awsPartnerEntitlementsProvider, azurePartnerEntitlementsProvider);
@@ -301,42 +299,42 @@ public class ContractService {
                       return contract1;
                     }));
 
-    existingContracts.forEach(
-        existingContract -> {
-          var matchingUpdatedContract =
-              contractStartDateMap.remove(existingContract.getStartDate().toInstant());
+    boolean hasDeletedContracts = false;
+    for (ContractEntity existingContract : existingContracts) {
+      var matchingUpdatedContract =
+          contractStartDateMap.remove(existingContract.getStartDate().toInstant());
 
-          if (matchingUpdatedContract == null) {
-            log.info(
-                "Deleting contract that does not align to IT partner gateway: {}",
-                existingContract);
-            contractRepository.delete(existingContract);
-          } else {
-            if (!matchingUpdatedContract.equals(existingContract)) {
-              log.info(
-                  "Contract updated. Old values: {} New values: {}",
-                  existingContract,
-                  matchingUpdatedContract);
-              if (existingContract.getMetrics() != matchingUpdatedContract.getMetrics()) {
-                var metrics =
-                    existingContract.getMetrics().stream()
-                        .filter(metric -> !matchingUpdatedContract.getMetrics().contains(metric))
-                        .toList();
-                metrics.forEach(metric -> deleteContractMetric(existingContract, metric));
-              }
-              contractEntityMapper.updateContract(existingContract, matchingUpdatedContract);
-              contractsToPersist.add(existingContract);
-            } else {
-              log.debug("No change in contract: {}", existingContract);
-            }
+      if (matchingUpdatedContract == null) {
+        log.info(
+            "Deleting contract that does not align to IT partner gateway: {}", existingContract);
+        contractRepository.delete(existingContract);
+        hasDeletedContracts = true;
+      } else {
+        if (!matchingUpdatedContract.equals(existingContract)) {
+          log.info(
+              "Contract updated. Old values: {} New values: {}",
+              existingContract,
+              matchingUpdatedContract);
+          if (existingContract.getMetrics() != matchingUpdatedContract.getMetrics()) {
+            var metrics =
+                existingContract.getMetrics().stream()
+                    .filter(metric -> !matchingUpdatedContract.getMetrics().contains(metric))
+                    .toList();
+            metrics.forEach(metric -> deleteContractMetric(existingContract, metric));
           }
-        });
+          contractEntityMapper.updateContract(existingContract, matchingUpdatedContract);
+          contractsToPersist.add(existingContract);
+        } else {
+          log.debug("No change in contract: {}", existingContract);
+        }
+      }
+    }
 
     // If not found in existing Contracts then create new ones.
     contractsToPersist.addAll(contractStartDateMap.values());
 
-    boolean areRecordsUpdated = !contractsToPersist.isEmpty();
-    if (areRecordsUpdated) {
+    boolean areRecordsUpdated = !contractsToPersist.isEmpty() || hasDeletedContracts;
+    if (!contractsToPersist.isEmpty()) {
       contractsToPersist.forEach(
           contractEntity -> {
             log.info("Updating or creating contract: {}", contractEntity);
@@ -376,53 +374,53 @@ public class ContractService {
                     }));
 
     var existingSubscriptionRecords =
-        subscriptionRepository.findBySubscriptionNumber(
+        subscriptionService.findBySubscriptionNumber(
             contractEntities.get(0).getSubscriptionNumber());
 
-    existingSubscriptionRecords.forEach(
-        existingSubscription -> {
-          var matchingUpdatedSubscription =
-              subscriptionStartDateMap.remove(existingSubscription.getStartDate().toInstant());
+    boolean hasDeletedSubscriptions = false;
+    for (SubscriptionEntity existingSubscription : existingSubscriptionRecords) {
+      var matchingUpdatedSubscription =
+          subscriptionStartDateMap.remove(existingSubscription.getStartDate().toInstant());
 
-          if (matchingUpdatedSubscription == null) {
+      if (matchingUpdatedSubscription == null) {
+        subscriptionService.delete(
+            existingSubscription,
+            SubscriptionDeleteReason.PARTNER_ENTITLEMENT_START_DATE_NOT_IN_GATEWAY);
+        hasDeletedSubscriptions = true;
+      } else {
+        var measurementsEqual =
+            Objects.equals(
+                existingSubscription.getSubscriptionMeasurements(),
+                matchingUpdatedSubscription.getSubscriptionMeasurements());
+        if (!matchingUpdatedSubscription.equals(existingSubscription) || !measurementsEqual) {
+          log.info(
+              "Subscription updated. Old values: {} New values: {}",
+              existingSubscription,
+              matchingUpdatedSubscription);
+          if (!measurementsEqual) {
             log.info(
-                "Deleting subscription that does not align to IT partner gateway: {}",
-                existingSubscription);
-            subscriptionRepository.delete(existingSubscription);
-          } else {
-            var measurementsEqual =
-                Objects.equals(
-                    existingSubscription.getSubscriptionMeasurements(),
-                    matchingUpdatedSubscription.getSubscriptionMeasurements());
-            if (!matchingUpdatedSubscription.equals(existingSubscription) || !measurementsEqual) {
-              log.info(
-                  "Subscription updated. Old values: {} New values: {}",
-                  existingSubscription,
-                  matchingUpdatedSubscription);
-              if (!measurementsEqual) {
-                log.info(
-                    "Subscription measurements updated. Old values: {} New values: {}",
-                    existingSubscription.getSubscriptionMeasurements(),
-                    matchingUpdatedSubscription.getSubscriptionMeasurements());
-                deleteMisalignedSubscriptionMeasurements(
-                    existingSubscription, matchingUpdatedSubscription);
-              }
-              subscriptionEntityMapper.updateSubscription(
-                  existingSubscription, matchingUpdatedSubscription);
-              subscriptionsToPersist.add(existingSubscription);
-            } else {
-              log.debug("No change in subscription: {}", existingSubscription);
-            }
+                "Subscription measurements updated. Old values: {} New values: {}",
+                existingSubscription.getSubscriptionMeasurements(),
+                matchingUpdatedSubscription.getSubscriptionMeasurements());
+            deleteMisalignedSubscriptionMeasurements(
+                existingSubscription, matchingUpdatedSubscription);
           }
-        });
+          subscriptionEntityMapper.updateSubscription(
+              existingSubscription, matchingUpdatedSubscription);
+          subscriptionsToPersist.add(existingSubscription);
+        } else {
+          log.debug("No change in subscription: {}", existingSubscription);
+        }
+      }
+    }
 
     // If not found in existing subscriptions then create new ones.
     subscriptionsToPersist.addAll(subscriptionStartDateMap.values());
 
-    boolean areRecordsUpdated = !subscriptionsToPersist.isEmpty();
-    if (areRecordsUpdated) {
+    boolean areRecordsUpdated = !subscriptionsToPersist.isEmpty() || hasDeletedSubscriptions;
+    if (!subscriptionsToPersist.isEmpty()) {
       log.info("Persisting subscriptions: {}", subscriptionsToPersist);
-      subscriptionsToPersist.forEach(subscriptionRepository::persist);
+      subscriptionsToPersist.forEach(subscriptionService::save);
     }
     return areRecordsUpdated;
   }
@@ -518,9 +516,7 @@ public class ContractService {
 
   private void terminateActiveSubscriptionsForContract(
       ContractEntity contract, OffsetDateTime terminationDate) {
-    subscriptionRepository
-        .find(SubscriptionEntity.class, SubscriptionEntity.forContract(contract))
-        .stream()
+    subscriptionService.findByContract(contract).stream()
         .filter(sub -> sub.getEndDate() == null || sub.getEndDate().isAfter(terminationDate))
         .forEach(
             sub -> {
@@ -532,7 +528,7 @@ public class ContractService {
               sub.setBillingProviderId(null);
               sub.setBillingAccountId(null);
               sub.getSubscriptionMeasurements().clear();
-              subscriptionRepository.persist(sub);
+              subscriptionService.terminate(sub);
             });
   }
 
@@ -623,16 +619,12 @@ public class ContractService {
 
       log.debug("Synchronizing the subscription for contract {}", existingContract);
       SubscriptionEntity subscription = createOrUpdateSubscription(existingContract);
-      subscriptionRepository.persist(subscription);
+      subscriptionService.save(subscription);
     }
   }
 
   private SubscriptionEntity createOrUpdateSubscription(ContractEntity contract) {
-    Optional<SubscriptionEntity> existingSubscription =
-        subscriptionRepository
-            .find(SubscriptionEntity.class, SubscriptionEntity.forContract(contract))
-            .stream()
-            .findFirst();
+    Optional<SubscriptionEntity> existingSubscription = findFirstSubscriptionByContract(contract);
     if (existingSubscription.isEmpty()) {
       return createSubscriptionForContract(contract, null);
     } else {
@@ -659,15 +651,10 @@ public class ContractService {
 
   private void deleteContract(ContractEntity contract) {
     if (contract != null) {
-      var subscription =
-          subscriptionRepository
-              .find(SubscriptionEntity.class, SubscriptionEntity.forContract(contract))
-              .stream()
-              .findFirst()
-              .orElse(null);
+      var subscription = findFirstSubscriptionByContract(contract).orElse(null);
       contractRepository.delete(contract);
       if (subscription != null) {
-        subscriptionRepository.delete(subscription);
+        subscriptionService.delete(subscription, SubscriptionDeleteReason.CONTRACT_DELETED);
       }
     }
   }
@@ -782,6 +769,10 @@ public class ContractService {
     return null;
   }
 
+  private Optional<SubscriptionEntity> findFirstSubscriptionByContract(ContractEntity contract) {
+    return subscriptionService.findByContract(contract).stream().findFirst();
+  }
+
   private static StatusResponse buildContractDetailsMissingStatus(
       ContractValidationFailedException e) {
     var violations = e.getViolations();
@@ -790,20 +781,5 @@ public class ContractService {
       log.warn("Property {} {}", violation.getPropertyPath(), violation.getMessage());
     }
     return ContractMessageProcessingResult.CONTRACT_DETAILS_MISSING.toStatus();
-  }
-
-  @Transactional
-  public void deletePaygSubscriptionsByOrgId(String orgId) {
-    var paygSubs =
-        subscriptionRepository
-            .streamByOrgId(orgId)
-            .filter(
-                s ->
-                    s.getBillingProvider() != null
-                        && List.of(BillingProvider.AWS, BillingProvider.AZURE)
-                            .contains(s.getBillingProvider()))
-            .toList();
-    paygSubs.forEach(subscriptionRepository::delete);
-    log.info("Deleted {} PAYG subs for org id {}", paygSubs.size(), orgId);
   }
 }
