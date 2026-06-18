@@ -50,15 +50,15 @@ public class ContractUMBMessageConsumer {
   @Blocking
   @Incoming("contracts")
   public void consumeMessage(Object dtoContract) {
-    log.info("Consumer was called");
     if (!featureFlags.isPartnerGatewayContractsUmbConsumerEnabled()) {
       log.debug("IT Partner UMB consumer for contracts is disabled by feature flag.");
       return;
     }
+    log.debug("IT Partner UMB consumer was called");
 
     if (umbEnabled && dtoContract != null) {
       try {
-        String dtoContractString = MessageUtils.toString(dtoContract);
+
         if (dtoContractString == null) {
           log.error(
               "Unsupported message type: {}. Expected byte[] or String",
