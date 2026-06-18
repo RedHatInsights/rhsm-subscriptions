@@ -87,6 +87,9 @@ public class ApiSecurityConfiguration {
         // Public v1 API specs (e.g. /api/rhsm-subscriptions/v1/openapi.yaml):
         "/api/rhsm-subscriptions/v1/*openapi.yaml",
         "/api/rhsm-subscriptions/v1/*openapi.json",
+        // Public v2 API specs (e.g. /api/rhsm-subscriptions/v2/openapi.yaml):
+        "/api/rhsm-subscriptions/v2/*openapi.yaml",
+        "/api/rhsm-subscriptions/v2/*openapi.json",
         "/api/rhsm-subscriptions/v1/version",
         "/api-docs/**",
         "/api/rhsm-subscriptions/*spec.yaml",
