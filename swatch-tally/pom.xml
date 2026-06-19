@@ -307,13 +307,43 @@
       </plugin>
 
       <plugin>
+        <groupId>io.github.git-commit-id</groupId>
+        <artifactId>git-commit-id-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>get-the-git-infos</id>
+            <goals>
+              <goal>revision</goal>
+            </goals>
+            <phase>initialize</phase>
+          </execution>
+        </executions>
+        <configuration>
+          <generateGitPropertiesFile>false</generateGitPropertiesFile>
+          <failOnNoGitDirectory>false</failOnNoGitDirectory>
+          <failOnUnableToExtractRepoInfo>false</failOnUnableToExtractRepoInfo>
+        </configuration>
+      </plugin>
+
+      <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
         <executions>
           <execution>
+            <id>build-info</id>
+            <goals>
+              <goal>build-info</goal>
+            </goals>
+            <phase>generate-resources</phase>
+            <configuration>
+              <additionalProperties>
+                <git.commit.id.abbrev>${git.commit.id.abbrev}</git.commit.id.abbrev>
+              </additionalProperties>
+            </configuration>
+          </execution>
+          <execution>
             <goals>
               <goal>repackage</goal>
-              <goal>build-info</goal>
             </goals>
           </execution>
         </executions>

@@ -41,14 +41,14 @@ class VersionResourceTest {
 
   @Test
   void getVersion() {
-    when(buildProperties.getVersion()).thenReturn("VERSION");
+    when(buildProperties.get(VersionResource.GIT_COMMIT_PROPERTY)).thenReturn("abc1234");
     when(buildProperties.getArtifact()).thenReturn("ARTIFACT");
     when(buildProperties.getName()).thenReturn("NAME");
     when(buildProperties.getGroup()).thenReturn("GROUP");
 
     VersionInfo versionInfo = versionResource.getVersion();
     VersionInfoBuild expected = versionInfo.getBuild();
-    assertEquals("VERSION", expected.getVersion());
+    assertEquals("abc1234", expected.getVersion());
     assertEquals("ARTIFACT", expected.getArtifact());
     assertEquals("NAME", expected.getName());
     assertEquals("GROUP", expected.getGroup());

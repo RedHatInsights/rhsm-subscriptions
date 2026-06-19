@@ -1210,3 +1210,18 @@ All test files use `@BeforeAll` to create test data once and share it across all
     - Only matching category rows return
 - **Expected Result**:
     - Category sorting works and shows expected results
+
+## Version API
+
+**version-TC001 - Build metadata from version endpoint**
+
+- **Description**: Verify `GET /v1/version` returns service metadata for the deployed swatch-tally application
+- **Setup**: Component test environment with swatch-tally running
+- **Action**: Call the public version endpoint
+- **Verification**:
+    - HTTP 200
+    - Response includes non-empty `build.version`, `build.artifact`, `build.name`, and
+      `build.group`
+    - `build.version` is the git commit SHA (7–40 hex chars)
+    - `build.artifact` is `swatch-tally`
+- **Expected Result**: Version endpoint is available and exposes build info suitable for test-run traceability
