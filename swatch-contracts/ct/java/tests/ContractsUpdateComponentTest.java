@@ -30,6 +30,7 @@ import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.contract.test.model.ContractResponse;
+import com.redhat.swatch.contract.test.model.SubscriptionDeleteReason;
 import domain.BillingProvider;
 import domain.Contract;
 import domain.Product;
@@ -119,6 +120,8 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
         initialUuid, newContract.getUuid(), "UUID should be different (new contract created)");
     thenContractDatesShouldBeUpdated(newContract, updatedStartDate, updatedEndDate);
     thenContractFieldsShouldRemainUnchanged(newContract, initialContract);
+    thenSubscriptionAuditDeleteLog(
+        SubscriptionDeleteReason.PARTNER_ENTITLEMENT_START_DATE_NOT_IN_GATEWAY);
   }
 
   @TestPlanName("contracts-update-TC004")

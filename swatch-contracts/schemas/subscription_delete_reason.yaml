@@ -1,0 +1,12 @@
+$schema: http://json-schema.org/draft-07/schema#
+title: SubscriptionDeleteReason
+description: Why a subscription row was removed during sync reconcile or partner entitlement upsert.
+type: string
+enum:
+  - NOT_IN_UPSTREAM_RESPONSE
+  - PRODUCT_DENYLIST
+  - FILTERED_NULL_START_DATE
+  - FILTERED_START_TOO_FAR_IN_FUTURE
+  - FILTERED_END_TOO_FAR_IN_PAST
+  - PARTNER_ENTITLEMENT_START_DATE_NOT_IN_GATEWAY
+  - CONTRACT_DELETED
