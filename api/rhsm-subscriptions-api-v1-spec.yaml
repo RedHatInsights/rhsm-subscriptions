@@ -516,6 +516,7 @@ components:
           properties:
             version:
               type: string
+              description: Git commit SHA (abbreviated) of the deployed application build
             artifact:
               type: string
             name:

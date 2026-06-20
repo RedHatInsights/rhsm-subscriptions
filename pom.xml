@@ -58,6 +58,7 @@
     <maven-antrun-plugin.version>3.2.0</maven-antrun-plugin.version>
     <sonar-maven-plugin.version>5.7.0.6970</sonar-maven-plugin.version>
     <swagger-codegen-maven-plugin.version>3.0.81</swagger-codegen-maven-plugin.version>
+    <git-commit-id-maven-plugin.version>10.0.0</git-commit-id-maven-plugin.version>
 
     <!-- Sonar configuration -->
     <sonar.host.url>https://sonarcloud.io</sonar.host.url>
@@ -354,6 +355,12 @@
           <groupId>org.springframework.boot</groupId>
           <artifactId>spring-boot-maven-plugin</artifactId>
           <version>${spring.boot.version}</version>
+        </plugin>
+
+        <plugin>
+          <groupId>io.github.git-commit-id</groupId>
+          <artifactId>git-commit-id-maven-plugin</artifactId>
+          <version>${git-commit-id-maven-plugin.version}</version>
         </plugin>
 
         <!-- Required to start Quarkus services in dev mode from the Maven command -->

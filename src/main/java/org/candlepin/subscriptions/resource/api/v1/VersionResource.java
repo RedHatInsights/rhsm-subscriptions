@@ -30,6 +30,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class VersionResource implements VersionApi {
 
+  static final String GIT_COMMIT_PROPERTY = "git.commit.id.abbrev";
+
   private final BuildProperties buildProperties;
 
   public VersionResource(BuildProperties buildProperties) {
@@ -39,7 +41,7 @@ public class VersionResource implements VersionApi {
   @Override
   public VersionInfo getVersion() {
     VersionInfoBuild versionInfoBuild = new VersionInfoBuild();
-    versionInfoBuild.setVersion(buildProperties.getVersion());
+    versionInfoBuild.setVersion(resolveBuildVersion());
     versionInfoBuild.setArtifact(buildProperties.getArtifact());
     versionInfoBuild.setName(buildProperties.getName());
     versionInfoBuild.setGroup(buildProperties.getGroup());
@@ -47,5 +49,13 @@ public class VersionResource implements VersionApi {
     VersionInfo versionInfo = new VersionInfo();
     versionInfo.setBuild(versionInfoBuild);
     return versionInfo;
+  }
+
+  private String resolveBuildVersion() {
+    String gitCommit = buildProperties.get(GIT_COMMIT_PROPERTY);
+    if (gitCommit != null && !gitCommit.isBlank()) {
+      return gitCommit;
+    }
+    return buildProperties.getVersion();
   }
 }

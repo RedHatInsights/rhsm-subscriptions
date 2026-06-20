@@ -29,6 +29,7 @@ import com.redhat.swatch.component.tests.logging.Log;
 import com.redhat.swatch.component.tests.utils.SwatchUtils;
 import com.redhat.swatch.tally.test.model.InstanceResponse;
 import com.redhat.swatch.tally.test.model.TallyReportData;
+import com.redhat.swatch.tally.test.model.VersionInfo;
 import io.restassured.response.Response;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
@@ -51,6 +52,30 @@ public class TallySwatchService extends SwatchService {
 
   private static final String API_PATH = "/api/rhsm-subscriptions/v1";
   private static final String INTERNAL_API_PATH = API_PATH + "/internal";
+
+  // --- Version methods ---
+
+  /**
+   * Retrieves build and version metadata from the public version endpoint.
+   *
+   * @return version information for the deployed application
+   */
+  public VersionInfo getVersion() {
+    Response response =
+        given().headers(SECURITY_HEADERS).get(API_PATH + "/version").then().extract().response();
+
+    assertEquals(
+        HttpStatus.SC_OK,
+        response.getStatusCode(),
+        "Get version failed with status code: "
+            + response.getStatusCode()
+            + ", response body: "
+            + response.getBody().asString());
+
+    Log.debug(this, "Version endpoint response: %s", response.getBody().asString());
+
+    return response.as(VersionInfo.class);
+  }
 
   // --- Configuration methods ---
 
