@@ -83,7 +83,7 @@ public class SubscriptionCapacityView implements Serializable {
   private BillingProvider billingProvider;
 
   @Column(name = "billing_provider_id")
-  private BillingProvider billingProviderId;
+  private String billingProviderId;
 
   @Column(name = "billing_account_id")
   private String billingAccountId;
