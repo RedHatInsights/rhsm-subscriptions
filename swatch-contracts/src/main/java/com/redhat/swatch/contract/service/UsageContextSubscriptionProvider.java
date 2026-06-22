@@ -22,6 +22,7 @@ package com.redhat.swatch.contract.service;
 
 import com.redhat.swatch.contract.exception.ErrorCode;
 import com.redhat.swatch.contract.exception.ServiceException;
+import com.redhat.swatch.contract.exception.UsageContextSubscriptionNotFoundException;
 import com.redhat.swatch.contract.repository.DbReportCriteria;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.repository.SubscriptionEntity_;
@@ -29,7 +30,6 @@ import com.redhat.swatch.contract.repository.SubscriptionRepository;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.quarkus.panache.common.Sort;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.Response.Status;
 import java.util.List;
 import java.util.Optional;
@@ -55,7 +55,7 @@ public class UsageContextSubscriptionProvider {
     if (subscriptions.isEmpty()) {
       log.warn("No subscription found for criteria {}", criteria);
       incrementCounter(MISSING_SUBSCRIPTIONS_COUNTER_NAME, criteria);
-      throw new NotFoundException();
+      throw new UsageContextSubscriptionNotFoundException();
     }
 
     var existsRecentlyTerminatedSubscription =
@@ -85,7 +85,7 @@ public class UsageContextSubscriptionProvider {
       } else {
         log.warn("No active subscription found for criteria {}", criteria);
         incrementCounter(MISSING_SUBSCRIPTIONS_COUNTER_NAME, criteria);
-        throw new NotFoundException();
+        throw new UsageContextSubscriptionNotFoundException();
       }
     }
 

@@ -22,6 +22,7 @@ package com.redhat.swatch.contract.resource;
 
 import com.redhat.swatch.contract.exception.ErrorCode;
 import com.redhat.swatch.contract.exception.ServiceException;
+import com.redhat.swatch.contract.exception.UsageContextSubscriptionNotFoundException;
 import com.redhat.swatch.contract.openapi.model.Error;
 import jakarta.ws.rs.ClientErrorException;
 import jakarta.ws.rs.WebApplicationException;
@@ -41,8 +42,10 @@ public class DefaultExceptionMapper implements ExceptionMapper<Exception> {
 
   @Override
   public Response toResponse(Exception exception) {
-    log.error(
-        "Request '{}' failed with error '{}'", info.getPath(), exception.getMessage(), exception);
+    if (!(exception instanceof UsageContextSubscriptionNotFoundException)) {
+      log.error(
+          "Request '{}' failed with error '{}'", info.getPath(), exception.getMessage(), exception);
+    }
     if (exception instanceof ServiceException e) {
       return Response.status(e.getStatus()).entity(e.error()).build();
     } else if (exception instanceof ClientErrorException clientErrorException) {
