@@ -42,10 +42,14 @@ public class DefaultExceptionMapper implements ExceptionMapper<Exception> {
 
   @Override
   public Response toResponse(Exception exception) {
-    if (!(exception instanceof UsageContextSubscriptionNotFoundException)) {
-      log.error(
-          "Request '{}' failed with error '{}'", info.getPath(), exception.getMessage(), exception);
+    // Usage-context subscription misses are expected; do not log them at ERROR here.
+    if (exception instanceof UsageContextSubscriptionNotFoundException e) {
+      return e.getResponse();
     }
+
+    // Proceed with the rest of unexpected exceptions
+    log.error(
+        "Request '{}' failed with error '{}'", info.getPath(), exception.getMessage(), exception);
     if (exception instanceof ServiceException e) {
       return Response.status(e.getStatus()).entity(e.error()).build();
     } else if (exception instanceof ClientErrorException clientErrorException) {
