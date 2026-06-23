@@ -500,22 +500,29 @@ class EventControllerTest {
     when(eventRecordRepository.saveAll(any())).thenReturn(new ArrayList<>());
 
     verify(eventRecordRepository).saveAll(eventsSaved.capture());
-    List<EventRecord> events = eventsSaved.getAllValues().get(0).stream().toList();
 
-    // After fix: Only paygo-tagged EventRecords should be saved
+    List<EventRecord> events = eventsSaved.getAllValues().getFirst().stream().toList();
+    assertEquals(1, events.size(), "Expected exactly one filtered PAYGO EventRecord to be saved");
+
+    // Only paygo-tagged EventRecords should be saved.
     // Each EventRecord should only have the paygo tag "rhel-for-x86-els-payg-addon"
-    // Non-paygo tag "rhel-for-x86-els-converted" should be filtered out
+    // containing applicable measurements only.
+    EventRecord eventRecord = events.getFirst();
+    assertEquals(
+        1,
+        eventRecord.getEvent().getProductTag().size(),
+        "EventRecord should have exactly 1 product tag");
     assertTrue(
-        events.stream().allMatch(e -> e.getEvent().getProductTag().size() == 1),
-        "All EventRecords should have exactly 1 product tag");
-    assertTrue(
-        events.stream()
-            .allMatch(e -> e.getEvent().getProductTag().contains("rhel-for-x86-els-payg-addon")),
-        "All EventRecords should only contain the paygo tag");
-    assertTrue(
-        events.stream()
-            .noneMatch(e -> e.getEvent().getProductTag().contains("rhel-for-x86-els-converted")),
-        "No EventRecords should contain the non-paygo tag");
+        eventRecord.getEvent().getProductTag().contains("rhel-for-x86-els-payg-addon"),
+        "EventRecord should only contain the paygo tag");
+    assertEquals(
+        1,
+        eventRecord.getEvent().getMeasurements().size(),
+        "EventRecord should have exactly 1 measurement");
+
+    Measurement measurement = eventRecord.getEvent().getMeasurements().getFirst();
+    assertEquals("vCPUs", measurement.getMetricId(), "Measurement should have metric_id 'vCPUs'");
+    assertEquals(4.0, measurement.getValue(), "Measurement should have value 4.0");
   }
 
   @ParameterizedTest
