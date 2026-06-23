@@ -40,7 +40,8 @@ public class AzureContractRequestMapper extends ContractRequestMapper {
   protected PartnerIdentityV1 buildPartnerIdentities(Contract contract) {
     return new PartnerIdentityV1()
         .azureCustomerId(contract.getCustomerId())
-        .clientId(contract.getClientId());
+        .clientId(contract.getClientId())
+        .azureSubscriptionId(contract.getBillingAccountId());
   }
 
   @Override
