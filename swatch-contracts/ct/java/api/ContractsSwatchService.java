@@ -77,6 +77,10 @@ public class ContractsSwatchService extends SwatchService {
   private static final String SYNC_ALL_SUBSCRIPTIONS_ENDPOINT =
       ENDPOINT_PREFIX + "/rpc/subscriptions/sync";
   private static final String SUBSCRIPTIONS_UMB_ENDPOINT = ENDPOINT_PREFIX + "/subscriptions/umb";
+  private static final String AWS_USAGE_CONTEXT_ENDPOINT =
+      SUBSCRIPTIONS_ENDPOINT + "/awsUsageContext";
+  private static final String AZURE_USAGE_CONTEXT_ENDPOINT =
+      SUBSCRIPTIONS_ENDPOINT + "/azureUsageContext";
   private static final String SYNC_SUBSCRIPTIONS_FOR_CONTRACTS_BY_ORG_ENDPOINT =
       ENDPOINT_PREFIX + "/rpc/sync/contracts/%s/subscriptions";
   private static final String SKU_PRODUCT_TAGS_ENDPOINT =
@@ -471,6 +475,66 @@ public class ContractsSwatchService extends SwatchService {
 
     String endpoint = String.format(FORCE_RECONCILE_OFFERING_ENDPOINT, sku);
     return given().headers(SECURITY_HEADERS).when().post(endpoint);
+  }
+
+  public Response getAwsUsageContext(
+      String orgId,
+      Product product,
+      OffsetDateTime date,
+      ServiceLevelType sla,
+      UsageType usage,
+      String awsAccountId) {
+    Objects.requireNonNull(product, "product must not be null");
+    Objects.requireNonNull(date, "date must not be null");
+
+    var request =
+        given()
+            .headers(SECURITY_HEADERS)
+            .queryParam("productId", product.getName())
+            .queryParam("date", date.toString());
+    if (orgId != null) {
+      request.queryParam("orgId", orgId);
+    }
+    if (sla != null) {
+      request.queryParam("sla", sla);
+    }
+    if (usage != null) {
+      request.queryParam("usage", usage);
+    }
+    if (awsAccountId != null) {
+      request.queryParam("awsAccountId", awsAccountId);
+    }
+    return request.when().get(AWS_USAGE_CONTEXT_ENDPOINT);
+  }
+
+  public Response getAzureMarketplaceContext(
+      String orgId,
+      Product product,
+      OffsetDateTime date,
+      ServiceLevelType sla,
+      UsageType usage,
+      String azureAccountId) {
+    Objects.requireNonNull(product, "product must not be null");
+    Objects.requireNonNull(date, "date must not be null");
+
+    var request =
+        given()
+            .headers(SECURITY_HEADERS)
+            .queryParam("productId", product.getName())
+            .queryParam("date", date.toString());
+    if (orgId != null) {
+      request.queryParam("orgId", orgId);
+    }
+    if (sla != null) {
+      request.queryParam("sla", sla);
+    }
+    if (usage != null) {
+      request.queryParam("usage", usage);
+    }
+    if (azureAccountId != null) {
+      request.queryParam("azureAccountId", azureAccountId);
+    }
+    return request.when().get(AZURE_USAGE_CONTEXT_ENDPOINT);
   }
 
   private List<com.redhat.swatch.contract.test.model.Contract> getContracts(

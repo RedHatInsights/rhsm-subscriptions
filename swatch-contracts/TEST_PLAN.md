@@ -343,6 +343,72 @@ Test cases should be testable locally and in an ephemeral environment.
   - HTTP 200 with empty array  
   - No errors
 
+## AWS Usage Context
+
+Component tests for GET `/api/swatch-contracts/internal/subscriptions/awsUsageContext`. Test class: `AwsUsageContextComponentTest`.
+
+**aws-usage-context-TC001** - **Get AWS usage context for an existing PAYG subscription**  
+- **Description:** Verify that `getAwsUsageContext` returns marketplace billing fields for an active AWS contract.  
+- **Setup:**  
+  - Sync offering and create an AWS ROSA contract via internal API for a known org  
+  - Note `billing_provider_id` on the created contract (`{productCode};{customerId};{sellerAccountId}`)  
+- **Action:** GET `/api/swatch-contracts/internal/subscriptions/awsUsageContext` with `orgId`, `productId=rosa`, `date` (current), `sla=Premium`, `usage=Production`, `awsAccountId` matching the contract `billing_account_id`.  
+- **Verification:** Parse response body as `AwsUsageContext`.  
+- **Expected Result:**  
+  - HTTP 200  
+  - `productCode`, `customerId`, and `awsSellerAccountId` match the semicolon-delimited `billing_provider_id` from the contract
+
+**aws-usage-context-TC002** - **AWS usage context returns 404 when no subscription matches**  
+- **Description:** Verify not-found behavior when lookup criteria do not match any AWS subscription.  
+- **Setup:** Ensure no AWS contract exists for the org/product/billing account used in the request (fresh org, no contract created).  
+- **Action:** GET `/api/swatch-contracts/internal/subscriptions/awsUsageContext` with `orgId`, `productId=rosa`, `date` (current), `sla=Premium`, `usage=Production`, and a non-existent `awsAccountId`.  
+- **Verification:** Check HTTP status and response body.  
+- **Expected Result:**  
+  - HTTP 404  
+  - Empty response body (no `code` field)
+
+**aws-usage-context-TC003** - **AWS usage context returns 404 when matched subscriptions are inactive**  
+- **Description:** Verify not-found when subscriptions match lookup criteria but none are active at the lookup date.  
+- **Setup:** Create an AWS ROSA contract, then terminate it with an end date within the lookup window (before the lookup `date`).  
+- **Action:** GET `/api/swatch-contracts/internal/subscriptions/awsUsageContext` with matching `orgId`, `productId`, `awsAccountId`, and `date` after termination.  
+- **Verification:** Check HTTP status and error body.  
+- **Expected Result:**  
+  - HTTP 404  
+  - Error code `CONTRACTS1005` (`SUBSCRIPTION_RECENTLY_TERMINATED`)
+
+## Azure Usage Context
+
+Component tests for GET `/api/swatch-contracts/internal/subscriptions/azureUsageContext`. Test class: `AzureUsageContextComponentTest`.
+
+**azure-usage-context-TC001** - **Get Azure usage context for an existing PAYG subscription**  
+- **Description:** Verify that `getAzureMarketplaceContext` returns marketplace billing fields for an active Azure contract.  
+- **Setup:**  
+  - Sync offering and create an Azure ROSA contract via internal API for a known org  
+  - Note `billing_provider_id` on the created contract (`{azureResourceId};{planId};{offerId};…`)  
+- **Action:** GET `/api/swatch-contracts/internal/subscriptions/azureUsageContext` with `orgId`, `productId=rosa`, `date` (current), `sla=Premium`, `usage=Production`, `azureAccountId` matching the contract `billing_account_id`.  
+- **Verification:** Parse response body as `AzureUsageContext`.  
+- **Expected Result:**  
+  - HTTP 200  
+  - `azureResourceId`, `planId`, and `offerId` match the corresponding fields from `billing_provider_id`
+
+**azure-usage-context-TC002** - **Azure usage context returns 404 when no subscription matches**  
+- **Description:** Verify not-found behavior when lookup criteria do not match any Azure subscription.  
+- **Setup:** Ensure no Azure contract exists for the org/product/billing account used in the request (fresh org, no contract created).  
+- **Action:** GET `/api/swatch-contracts/internal/subscriptions/azureUsageContext` with `orgId`, `productId=rosa`, `date` (current), `sla=Premium`, `usage=Production`, and a non-existent `azureAccountId`.  
+- **Verification:** Check HTTP status and response body.  
+- **Expected Result:**  
+  - HTTP 404  
+  - Empty response body (no `code` field)
+
+**azure-usage-context-TC003** - **Azure usage context returns 404 when matched subscriptions are inactive**  
+- **Description:** Verify not-found when subscriptions match lookup criteria but none are active at the lookup date.  
+- **Setup:** Create an Azure ROSA contract, then terminate it with an end date within the lookup window (before the lookup `date`).  
+- **Action:** GET `/api/swatch-contracts/internal/subscriptions/azureUsageContext` with matching `orgId`, `productId`, `azureAccountId`, and `date` after termination.  
+- **Verification:** Check HTTP status and error body.  
+- **Expected Result:**  
+  - HTTP 404  
+  - Error code `CONTRACTS1005` (`SUBSCRIPTION_RECENTLY_TERMINATED`)
+
 ## Contract Update via Kafka
 
 **contracts-update-TC001 - Process contract update message (existing contract)**  
