@@ -211,5 +211,6 @@
     <include file="liquibase/202605111456-remove-last-modified-triggers.xml"/>
     <include file="liquibase/202605151359-host-tally-buckets-partial-index.xml"/>
     <include file="liquibase/202605191440-update-views-with-is-primary.xml"/>
+    <include file="liquibase/202606181400-add-not-null-constraint-to-host-tally-buckets-sla.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
