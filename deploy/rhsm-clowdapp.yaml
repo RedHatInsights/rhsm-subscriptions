@@ -112,3 +112,25 @@ objects:
       password: ZHVtbXktcGFzc3dvcmQ=
       # dummy-web-name:dummy-web-client:13345
       servers: ZHVtbXktd2ViLW5hbWU6ZHVtbXktd2ViLWNsaWVudDoxMzM0NQ==
+
+  # Placeholder cdappconfig for Clowder/IQE: ingress is excluded from ephemeral deploy
+  # but Clowder still expects this secret when reconciling the rhsm ClowdJobInvocation.
+  # IQE does not use the upload pipeline in clowder_smoke.
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: ingress
+    type: Opaque
+    stringData:
+      cdappconfig.json: >-
+        {"logging":{"type":"null","cloudwatch":{"accessKeyId":"","logGroup":"","region":"","secretAccessKey":""}},"metricsPath":"/metrics","metricsPort":9000,"privatePort":10000,"publicPort":8000,"webPort":8000,"dependencyEndpoints":{"v2":{}},"endpoints":[],"metadata":{"envName":"${ENV_NAME}","name":"ingress"}}
+
+  # Same as ingress above: required dependency secret only; storage-broker is not deployed.
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: storage-broker
+    type: Opaque
+    stringData:
+      cdappconfig.json: >-
+        {"logging":{"type":"null","cloudwatch":{"accessKeyId":"","logGroup":"","region":"","secretAccessKey":""}},"metricsPath":"/metrics","metricsPort":9000,"privatePort":10000,"publicPort":8000,"webPort":8000,"dependencyEndpoints":{"v2":{}},"endpoints":[],"metadata":{"envName":"${ENV_NAME}","name":"storage-broker"}}

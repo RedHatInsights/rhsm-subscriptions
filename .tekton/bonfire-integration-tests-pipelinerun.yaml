@@ -37,9 +37,12 @@ spec:
     - name: COMPONENTS_W_RESOURCES
       value: "app:rhsm app:export-service"
     
-    # Deployment configuration
+    # Deployment configuration (keep in sync with bonfire-integration-tests-pipeline.yaml)
     - name: EXTRA_DEPLOY_ARGS
-      value: "--timeout 1800"
+      value: >-
+        --timeout 1800
+        --exclude-components puptoo,ingress,storage-broker
+        --remove-dependencies host-inventory/ingress
     - name: DEPLOY_FRONTENDS
       value: "false"
     - name: DEPLOY_TIMEOUT

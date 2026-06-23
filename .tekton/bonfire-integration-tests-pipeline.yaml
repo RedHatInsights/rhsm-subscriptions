@@ -73,10 +73,11 @@ spec:
     - name: EXTRA_DEPLOY_ARGS
       type: string
       description: Extra arguments for the deployment
-      # Skip not required components:
-      # - puptoo: insights-puptoo is the service that processes Ingress flow uploads
+      # Skip platform upload pipeline (not used by IQE clowder_smoke).
       default: >-
-        --timeout 1800 --remove-dependencies ingress/puptoo
+        --timeout 1800
+        --exclude-components puptoo,ingress,storage-broker
+        --remove-dependencies host-inventory/ingress
     - name: DEPLOY_FRONTENDS
       type: string
       description: Deploy frontend in the env or not
