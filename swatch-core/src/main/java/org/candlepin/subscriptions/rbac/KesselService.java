@@ -135,6 +135,10 @@ public class KesselService {
   }
 
   public List<String> getPermissions(String subjectId) {
+    if (subjectId == null || subjectId.isBlank()) {
+      log.warn("Missing Kessel subject id; denying access");
+      return List.of();
+    }
     var granted = new ArrayList<String>();
     for (var permission : SWATCH_PERMISSIONS) {
       if (checkAccess(subjectId, permission)) {

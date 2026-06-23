@@ -41,6 +41,9 @@ public class Identity {
   @JsonProperty("org_id")
   private String orgId;
 
+  @JsonProperty("user_id")
+  private String userId;
+
   @JsonProperty("associate")
   private SamlAssertions samlAssertions;
 

@@ -130,12 +130,19 @@ public class KesselAuthorizationService {
       log.warn("Kessel client not initialized; denying access");
       return false;
     }
-    var subjectId = extractSubjectId(principal);
+    var subjectId = KesselPrincipalIds.fromRhIdentityPrincipal(principal);
+    if (subjectId.isEmpty()) {
+      log.warn(
+          "Cannot determine Kessel principal id for identity type={} orgId={}; denying access",
+          principal.getIdentity().getType(),
+          principal.getIdentity().getOrgId());
+      return false;
+    }
     var relation = mapPermissionToRelation(permission);
 
     var request =
         CheckRequest.newBuilder()
-            .setSubject(Utils.principalSubject(subjectId, KESSEL_DOMAIN))
+            .setSubject(Utils.principalSubject(subjectId.get(), KESSEL_DOMAIN))
             .setRelation(relation)
             .setObject(Utils.workspaceResource("default"))
             .build();
@@ -145,8 +152,9 @@ public class KesselAuthorizationService {
       return response.getAllowed() == Allowed.ALLOWED_TRUE;
     } catch (StatusRuntimeException e) {
       log.warn(
-          "Kessel check failed for subject={}, permission={}: {}",
-          subjectId,
+          "Kessel check failed for subject={}/{}, permission={}: {}",
+          KESSEL_DOMAIN,
+          subjectId.get(),
           permission,
           e.getStatus());
       return false;
@@ -174,10 +182,6 @@ public class KesselAuthorizationService {
    */
   static String mapPermissionToRelation(String rbacPermission) {
     return rbacPermission.replace(':', '_').replace("*", "all");
-  }
-
-  private static String extractSubjectId(RhIdentityPrincipal principal) {
-    return principal.getIdentity().getOrgId();
   }
 
   // Visible for testing

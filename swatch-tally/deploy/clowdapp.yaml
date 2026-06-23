@@ -270,6 +270,16 @@ parameters:
     value: signalfx
   - name: OTEL_TRACES_TOKEN_SECRET_KEY
     value: token
+  - name: KESSEL_INSECURE
+    value: 'true'
+  - name: KESSEL_AUTH_ENABLED
+    value: 'false'
+  - name: KESSEL_AUTH_CLIENT_ID
+    value: ''
+  - name: KESSEL_AUTH_CLIENT_SECRET
+    value: ''
+  - name: KESSEL_AUTH_OIDC_ISSUER
+    value: ''
 
 # Shared FloorPlan specification for all environments (sandbox, dev, preprod, prod)
 # Only objectStore differs per environment
@@ -399,7 +409,6 @@ objects:
       - swatch-contracts
       - rbac
       - export-service
-    optionalDependencies:
       - kessel-inventory
     # IQE plugin your ClowdApp is associated with
     testing:
@@ -466,6 +475,16 @@ objects:
               value: ${JAVA_DEBUG}
             - name: USER_OPTS_APPEND
               value: ${USER_OPTS_APPEND}
+            - name: KESSEL_INSECURE
+              value: ${KESSEL_INSECURE}
+            - name: KESSEL_AUTH_ENABLED
+              value: ${KESSEL_AUTH_ENABLED}
+            - name: KESSEL_AUTH_CLIENT_ID
+              value: ${KESSEL_AUTH_CLIENT_ID}
+            - name: KESSEL_AUTH_CLIENT_SECRET
+              value: ${KESSEL_AUTH_CLIENT_SECRET}
+            - name: KESSEL_AUTH_OIDC_ISSUER
+              value: ${KESSEL_AUTH_OIDC_ISSUER}
             - name: JAVA_TOOL_OPTIONS
               value: -javaagent:/opt/splunk-otel-javaagent.jar
             - name: CONTRACT_CLIENT_BACK_OFF_INITIAL_INTERVAL_MILLIS

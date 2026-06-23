@@ -137,7 +137,15 @@ public class IdentityHeaderAuthenticationDetailsService
     try {
       Authentication auth = SecurityContextHolder.getContext().getAuthentication();
       if (auth != null && auth.getPrincipal() instanceof InsightsUserPrincipal user) {
-        return kesselService.getPermissions(user.getOrgId());
+        return user.getKesselPrincipalId()
+            .map(kesselService::getPermissions)
+            .orElseGet(
+                () -> {
+                  log.warn(
+                      "Cannot determine Kessel principal id for orgId={}; denying access",
+                      user.getOrgId());
+                  return Collections.emptyList();
+                });
       }
       return Collections.emptyList();
     } catch (Exception e) {

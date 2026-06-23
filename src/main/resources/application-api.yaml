@@ -13,7 +13,8 @@ rhsm-subscriptions:
     truststore-type: ${clowder.endpoints.rbac-service.trust-store-type}
     max-connections: ${RHSM_RBAC_MAX_CONNECTIONS:100}
   kessel:
-    endpoint: ${KESSEL_URL:localhost:9000}
+    # inventory-api gRPC listens on port 9000 (Clowder public HTTP port is 8000)
+    endpoint: ${clowder.endpoints.kessel-inventory-api.hostname:localhost}:9000
     insecure: ${KESSEL_INSECURE:true}
     auth-enabled: ${KESSEL_AUTH_ENABLED:false}
     client-id: ${KESSEL_AUTH_CLIENT_ID:}

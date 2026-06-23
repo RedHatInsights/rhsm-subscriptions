@@ -119,7 +119,7 @@ class KesselAuthorizationServiceTest {
     var request = captor.getValue();
     assertEquals("subscriptions_reports_read", request.getRelation());
     assertEquals("principal", request.getSubject().getResource().getResourceType());
-    assertEquals("redhat/org123", request.getSubject().getResource().getResourceId());
+    assertEquals("redhat/user123", request.getSubject().getResource().getResourceId());
     assertEquals("workspace", request.getObject().getResourceType());
   }
 
@@ -144,6 +144,21 @@ class KesselAuthorizationServiceTest {
     List<String> permissions = service.getPermissions(principal);
 
     assertTrue(permissions.isEmpty());
+  }
+
+  @Test
+  void checkAccessReturnsFalseWhenPrincipalIdMissing() {
+    var principal =
+        principalFromJson(
+            """
+            {
+              "identity": {
+                "type": "User",
+                "org_id": "org123"
+              }
+            }
+            """);
+    assertFalse(service.checkAccess(principal, "subscriptions:*:*"));
   }
 
   @Test
