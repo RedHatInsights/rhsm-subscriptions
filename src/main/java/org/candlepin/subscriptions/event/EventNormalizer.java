@@ -101,7 +101,7 @@ public class EventNormalizer {
       event.setProductTag(null);
     } else {
       if (paygoTags.size() < productTags.size()) {
-        log.warn("Filtered non-paygo tags from {}. Keeping: {}", productTags, paygoTags);
+        log.debug("Filtered non-paygo tags from {}. Keeping: {}", productTags, paygoTags);
         event.setProductTag(paygoTags);
       }
       filterUnsupportedMeasurements(event, paygoTags);
@@ -130,7 +130,7 @@ public class EventNormalizer {
     if (validMeasurements.size() < measurements.size()) {
       List<Measurement> filteredOut =
           measurements.stream().filter(m -> !supportedMetrics.contains(m.getMetricId())).toList();
-      log.warn(
+      log.debug(
           "Filtered out unsupported measurements for paygo tags {}: {}. Keeping: {}",
           paygoTags,
           filteredOut.stream().map(Measurement::getMetricId).collect(Collectors.toList()),
