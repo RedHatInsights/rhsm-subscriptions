@@ -28,10 +28,8 @@ import com.redhat.swatch.component.tests.api.Quarkus;
 import com.redhat.swatch.component.tests.api.Unleash;
 import com.redhat.swatch.component.tests.api.UnleashService;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
-import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.component.tests.utils.Topics;
 import com.redhat.swatch.hbi.events.ct.api.SwatchMetricsHbiRestService;
-import java.time.Duration;
 import org.candlepin.subscriptions.json.Event;
 
 @ComponentTest(name = "swatch-metrics-hbi")
@@ -50,20 +48,12 @@ public class BaseSMHBIComponentTest {
 
   @SafeVarargs
   protected final void thenSwatchEventsAppear(DefaultMessageValidator<Event>... expectedMessages) {
-    AwaitilitySettings settings =
-        AwaitilitySettings.using(Duration.ofSeconds(2), Duration.ofSeconds(30))
-            .timeoutMessage(
-                "Expected Swatch events did not appear in Kafka within the timeout: %s events expected",
-                expectedMessages.length);
-
-    AwaitilityUtils.untilAsserted(
-        () -> {
-          service.flushOutboxSynchronously();
-          for (var expectedMessage : expectedMessages) {
-            kafkaBridge.waitForKafkaMessage(
-                Topics.SWATCH_SERVICE_INSTANCE_INGRESS, expectedMessage, 1);
-          }
-        },
-        settings);
+    for (var expectedMessage : expectedMessages) {
+      kafkaBridge.waitForKafkaMessage(
+          Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
+          expectedMessage,
+          1,
+          AwaitilitySettings.defaults().onConditionNotMet(service::flushOutboxSynchronously));
+    }
   }
 }
