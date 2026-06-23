@@ -22,6 +22,9 @@ package tests;
 
 import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG_ADDON;
 import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_UNCONVERTED;
 
@@ -69,7 +72,7 @@ public class TallyFilterNonPaygoProductsTest extends BaseTallyComponentTest {
     float vcpuValue = 4.0f;
     float socketsValue = 2.0f;
 
-    createRealisticMixedTagsEvent(setup.start, vcpuValue, socketsValue);
+    createMixedTagsEvent(setup.start, vcpuValue, socketsValue);
 
     // When: Performing hourly tally
     service.performHourlyTallyForOrg(setup.orgId);
@@ -82,32 +85,30 @@ public class TallyFilterNonPaygoProductsTest extends BaseTallyComponentTest {
         "vCPUs",
         setup.start,
         setup.start.plusHours(1),
-        (double) vcpuValue);
+        vcpuValue);
 
     // Note: We cannot query hourly tally reports for TRADITIONAL products as they don't support
-    // hourly granularity. The filtering is verified by checking instances reports instead.
+    // hourly granularity. The filtering is verified by checking instance reports instead.
 
     // And: Verify instance was created for PAYGO product with correct measurements
     InstanceData paygoInstance =
         getInstanceByDisplayName(
             setup.orgId, paygoProductTag, setup.start, setup.start.plusHours(1), setup.instanceId);
-    assertEquals(true, paygoInstance != null, "PAYGO instance should be created from the event");
+    assertNotNull(paygoInstance, "PAYGO instance should be created from the event");
     assertEquals(
         setup.instanceId,
         paygoInstance.getDisplayName(),
         "PAYGO instance should have correct display name");
-    assertEquals(
-        true,
-        paygoInstance.getMeasurements() != null && !paygoInstance.getMeasurements().isEmpty(),
+    assertNotNull(paygoInstance.getMeasurements(), "PAYGO instance should have measurements");
+    assertFalse(paygoInstance.getMeasurements().isEmpty(),
         "PAYGO instance should have measurements applied from the event");
     assertEquals(
         1,
         paygoInstance.getMeasurements().size(),
         "PAYGO instance should have only vCPUs measurement, not Sockets (filtered out)");
     assertEquals(
-        (double) vcpuValue,
-        paygoInstance.getMeasurements().get(0),
-        0.0001,
+        vcpuValue,
+        paygoInstance.getMeasurements().getFirst(),
         "PAYGO instance should have correct vCPUs measurement value from the original event");
 
     // And: TRADITIONAL product should have NO instances in hourly report
@@ -177,7 +178,7 @@ public class TallyFilterNonPaygoProductsTest extends BaseTallyComponentTest {
   public void testEventWithOnlyPaygoTagsProcessedNormally() {
     // Given: An event with ONLY PAYG product tags (no TRADITIONAL tags)
     String paygoProductTag = RHEL_FOR_X86_ELS_PAYG_ADDON.productTag();
-    String metricId = RHEL_FOR_X86_ELS_PAYG_ADDON.metricIds().get(0); // vCPUs
+    String metricId = RHEL_FOR_X86_ELS_PAYG_ADDON.metricIds().getFirst(); // vCPUs
     float value = 4.0f;
 
     createMixedTagsEvent(setup.start, Set.of(paygoProductTag), metricId, value);
@@ -256,7 +257,7 @@ public class TallyFilterNonPaygoProductsTest extends BaseTallyComponentTest {
     float secondVcpuValue = 8.0f;
     float secondSocketsValue = 4.0f;
 
-    createRealisticMixedTagsEvent(setup.start, firstVcpuValue, firstSocketsValue);
+    createMixedTagsEvent(setup.start, firstVcpuValue, firstSocketsValue);
 
     // When: Performing first hourly tally
     service.performHourlyTallyForOrg(setup.orgId);
@@ -271,14 +272,13 @@ public class TallyFilterNonPaygoProductsTest extends BaseTallyComponentTest {
             setup.start.plusHours(1),
             (double) firstVcpuValue);
     assertEquals(
-        (double) firstVcpuValue,
+        firstVcpuValue,
         firstTally,
-        0.0001,
         "First tally should reflect initial vCPU value");
 
     // Given: Second conflicting event with mixed tags for SAME instance and SAME timestamp (higher
     // values)
-    createRealisticMixedTagsEvent(
+    createMixedTagsEvent(
         setup.start, // Same exact timestamp to trigger conflict resolution
         secondVcpuValue,
         secondSocketsValue);
@@ -294,27 +294,26 @@ public class TallyFilterNonPaygoProductsTest extends BaseTallyComponentTest {
             "vCPUs",
             setup.start,
             setup.start.plusHours(1),
-            (double) secondVcpuValue);
+            secondVcpuValue);
     assertEquals(
-        (double) secondVcpuValue,
+        secondVcpuValue,
         secondTally,
-        0.0001,
         "Conflict resolution should update to higher vCPU value from second event");
 
     // And: Verify instance has updated vCPU measurement after conflict resolution
     InstanceData paygoInstance =
         getInstanceByDisplayName(
             setup.orgId, paygoProductTag, setup.start, setup.start.plusHours(1), setup.instanceId);
-    assertEquals(
-        true, paygoInstance != null, "PAYGO instance should exist after conflict resolution");
+    assertNotNull(paygoInstance, "PAYGO instance should exist after conflict resolution");
+    assertNotNull(paygoInstance.getMeasurements(), "PAYGO instance should have measurements");
+    assertFalse(paygoInstance.getMeasurements().isEmpty(), "PAYGO instance should have measurements");
     assertEquals(
         1,
         paygoInstance.getMeasurements().size(),
         "PAYGO instance should have only vCPUs measurement after conflict resolution");
     assertEquals(
-        (double) secondVcpuValue,
-        paygoInstance.getMeasurements().get(0),
-        0.0001,
+        secondVcpuValue,
+        paygoInstance.getMeasurements().getFirst(),
         "Instance vCPU measurement should be updated to second (higher) value after conflict resolution");
 
     // And: TRADITIONAL product should have NO instances in either tally run
@@ -354,20 +353,21 @@ public class TallyFilterNonPaygoProductsTest extends BaseTallyComponentTest {
         "vCPUs",
         setup.start,
         setup.start.plusHours(1),
-        (double) vcpuValue);
+        vcpuValue);
 
     // And: PAYG instance should exist with correct measurement
     InstanceData paygoInstance =
         getInstanceByDisplayName(
             setup.orgId, paygoProductTag, setup.start, setup.start.plusHours(1), setup.instanceId);
+    assertNotNull(paygoInstance, "PAYGO instance should be created from the event");
+    assertNotNull(paygoInstance.getMeasurements(), "PAYGO instance should have measurements");
+    assertFalse(paygoInstance.getMeasurements().isEmpty(),
+        "PAYGO instance should have measurements applied from the event");
+    assertEquals(1, paygoInstance.getMeasurements().size(),
+        "PAYGO instance should have 1 measurement");
     assertEquals(
-        true,
-        paygoInstance != null,
-        "PAYGO instance should be created even with incomplete metrics");
-    assertEquals(
-        (double) vcpuValue,
-        paygoInstance.getMeasurements().get(0),
-        0.0001,
+        vcpuValue,
+        paygoInstance.getMeasurements().getFirst(),
         "PAYGO instance should have vCPUs measurement");
 
     // And: TRADITIONAL product should have NO instances (filtered out)
@@ -418,15 +418,7 @@ public class TallyFilterNonPaygoProductsTest extends BaseTallyComponentTest {
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event);
   }
 
-  /**
-   * Creates a realistic event with mixed PAYG and TRADITIONAL tags, including appropriate metrics
-   * for each product type.
-   *
-   * @param timestamp event timestamp
-   * @param vcpuValue vCPUs value (for PAYG product: rhel-for-x86-els-payg-addon)
-   * @param socketsValue Sockets value (for TRADITIONAL product: rhel-for-x86-els-unconverted)
-   */
-  private void createRealisticMixedTagsEvent(
+  private void createMixedTagsEvent(
       OffsetDateTime timestamp, float vcpuValue, float socketsValue) {
     Event event =
         helpers.createPaygEventWithTimestamp(

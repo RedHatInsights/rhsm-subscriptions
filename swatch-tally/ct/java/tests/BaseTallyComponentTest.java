@@ -112,16 +112,6 @@ public class BaseTallyComponentTest {
 
   // --- Shared tally report query helpers ---
 
-  /**
-   * Retrieves the hourly tally sum for a product and metric within a time range.
-   *
-   * @param orgId the organization ID
-   * @param productTag the product tag
-   * @param metricId the metric ID
-   * @param beginning the start of the time range
-   * @param ending the end of the time range
-   * @return the sum of all tally values, or 0.0 if no data
-   */
   protected double getHourlyTallySum(
       String orgId,
       String productTag,
