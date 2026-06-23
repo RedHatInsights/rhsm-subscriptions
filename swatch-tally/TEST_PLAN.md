@@ -217,6 +217,24 @@ Test cases should be testable locally and in deployed environments.
     - TRADITIONAL tags remain filtered out during conflict resolution
     - Instance data reflects the resolved measurement value
 
+**tally-payg-filter-TC006 - Mixed tags with single-metric edge case**
+
+- **Description**: Verify mixed PAYG/TRADITIONAL tag events still process correctly when only PAYG metric data is present.
+- **Setup**:
+    - Organization is opted in
+    - Event with PAYG + TRADITIONAL tags
+    - Event includes only vCPUs metric value (no TRADITIONAL metric)
+- **Action**:
+    - Send mixed-tag single-metric event
+    - Perform hourly tally
+- **Verification**:
+    - PAYG product has expected vCPUs tally
+    - PAYG instance is present with expected measurement
+    - TRADITIONAL product has 0 instances in hourly instances report
+- **Expected Result**:
+    - PAYG data is retained and tallied
+    - TRADITIONAL tag remains filtered out, even with incomplete metric payload
+
 ## Hypervisor Handling
 
 **tally-hypervisor-TC001 - RHEL hypervisor without guests appears in instances report**
