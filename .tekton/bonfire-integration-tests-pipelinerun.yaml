@@ -39,7 +39,12 @@ spec:
     
     # Deployment configuration
     - name: EXTRA_DEPLOY_ARGS
-      value: "--timeout 1800"
+      value: >-
+        --timeout 1800
+        --exclude-components puptoo,ingress,storage-broker
+        --remove-dependencies host-inventory/ingress
+    - name: DEPLOY_OPTIONAL_DEPS_METHOD
+      value: "none"
     - name: DEPLOY_FRONTENDS
       value: "false"
     - name: DEPLOY_TIMEOUT
