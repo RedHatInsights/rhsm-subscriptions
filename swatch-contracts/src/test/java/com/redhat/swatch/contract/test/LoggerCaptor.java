@@ -91,6 +91,10 @@ public class LoggerCaptor extends Handler {
     return message != null && message.contains(str);
   }
 
+  public static void thenWarnLogWithMessage(String str) {
+    thenLogWithMessage(Level.WARNING, msg -> msg.contains(str));
+  }
+
   public static void thenDebugLogWithMessage(String str) {
     thenLogWithMessage(Level.FINE, msg -> msg.contains(str));
   }
