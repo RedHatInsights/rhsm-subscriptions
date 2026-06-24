@@ -50,6 +50,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.http.HttpStatus;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -60,6 +61,11 @@ public class SubscriptionsCreationComponentTest extends BaseContractComponentTes
   @Artemis static ContractsArtemisService artemis = new ContractsArtemisService();
 
   private String sku;
+
+  @BeforeAll
+  static void enableItSubscriptionServiceFeatureFlag() {
+    unleash.enableItSubscriptionService();
+  }
 
   @BeforeEach
   void setUp() {

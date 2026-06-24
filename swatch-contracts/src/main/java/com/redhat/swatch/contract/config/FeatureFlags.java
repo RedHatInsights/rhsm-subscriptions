@@ -22,6 +22,7 @@ package com.redhat.swatch.contract.config;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.redhat.swatch.contract.model.ItSubscriptionServiceFeatureFlagVariantPayload;
 import com.redhat.swatch.contract.model.PartnerGatewayContractsFeatureFlagVariantPayload;
 import io.getunleash.Unleash;
 import io.getunleash.variant.Variant;
@@ -37,6 +38,8 @@ import lombok.extern.slf4j.Slf4j;
 public class FeatureFlags {
   public static final String PARTNER_GATEWAY_CONTRACTS =
       "swatch.swatch-contracts.enable-partner-gateway-contracts";
+  public static final String IT_SUBSCRIPTION_SERVICE =
+      "swatch.swatch-contracts.enable-it-subscription-service";
   public static final String CONFIG_VARIANT = "config";
 
   protected static final boolean DEFAULT_IS_ENABLED = true;
@@ -46,18 +49,40 @@ public class FeatureFlags {
 
   /** Whether the Kafka consumer for partner-gateway contracts is allowed. */
   public boolean isPartnerGatewayContractsKafkaConsumerEnabled() {
-    return isPartnerGatewayContractsEnabled(
+    return isFeatureFlagEnabled(
+        PARTNER_GATEWAY_CONTRACTS,
+        this::mapToPartnerGatewayContractsPayload,
         PartnerGatewayContractsFeatureFlagVariantPayload::getKafkaConsumerEnabled);
   }
 
   /** Whether the UMB consumer for partner-gateway contracts is allowed. */
   public boolean isPartnerGatewayContractsUmbConsumerEnabled() {
-    return isPartnerGatewayContractsEnabled(
+    return isFeatureFlagEnabled(
+        PARTNER_GATEWAY_CONTRACTS,
+        this::mapToPartnerGatewayContractsPayload,
         PartnerGatewayContractsFeatureFlagVariantPayload::getUmbConsumerEnabled);
   }
 
+  /** Whether the Kafka consumer for IT Subscription Service is allowed. */
+  public boolean isItSubscriptionServiceKafkaConsumerEnabled() {
+    return isFeatureFlagEnabled(
+        IT_SUBSCRIPTION_SERVICE,
+        this::mapToItSubscriptionServicePayload,
+        ItSubscriptionServiceFeatureFlagVariantPayload::getKafkaConsumerEnabled);
+  }
+
+  /** Whether the UMB consumer for IT Subscription Service is allowed. */
+  public boolean isItSubscriptionServiceUmbConsumerEnabled() {
+    return isFeatureFlagEnabled(
+        IT_SUBSCRIPTION_SERVICE,
+        this::mapToItSubscriptionServicePayload,
+        ItSubscriptionServiceFeatureFlagVariantPayload::getUmbConsumerEnabled);
+  }
+
   /**
-   * If {@value #PARTNER_GATEWAY_CONTRACTS} is disabled, returns {@code false}.
+   * Generic feature flag evaluation logic.
+   *
+   * <p>If the feature flag is disabled, returns {@code false}.
    *
    * <p>If the toggle is enabled and Unleash returns a variant whose name is not {@value
    * #CONFIG_VARIANT}, returns {@code true} (no structured payload to interpret).
@@ -69,15 +94,17 @@ public class FeatureFlags {
    * JSON; this method returns the consumer_enabled flag from that object. Missing payload, invalid
    * JSON, or a null/false flag yields {@code true}.
    */
-  private boolean isPartnerGatewayContractsEnabled(
-      Function<PartnerGatewayContractsFeatureFlagVariantPayload, Boolean> condition) {
-    if (!unleash.isEnabled(PARTNER_GATEWAY_CONTRACTS, DEFAULT_IS_ENABLED)) {
+  private <T> boolean isFeatureFlagEnabled(
+      String featureFlagName,
+      Function<Variant, Optional<T>> payloadMapper,
+      Function<T, Boolean> condition) {
+    if (!unleash.isEnabled(featureFlagName, DEFAULT_IS_ENABLED)) {
       return false;
     }
 
-    Variant variant = unleash.getVariant(PARTNER_GATEWAY_CONTRACTS);
+    Variant variant = unleash.getVariant(featureFlagName);
     if (!CONFIG_VARIANT.equals(variant.getName())) {
-      log.debug("Feature flag '{}' with no valid variant '{}'", PARTNER_GATEWAY_CONTRACTS, variant);
+      log.debug("Feature flag '{}' with no valid variant '{}'", featureFlagName, variant);
       return true;
     }
 
@@ -85,11 +112,23 @@ public class FeatureFlags {
       return true;
     }
 
-    return mapToPartnerGatewayContractsPayload(variant).map(condition).orElse(true);
+    return payloadMapper.apply(variant).map(condition).orElse(true);
   }
 
   private Optional<PartnerGatewayContractsFeatureFlagVariantPayload>
       mapToPartnerGatewayContractsPayload(Variant variant) {
+    return mapToPayload(
+        variant, PartnerGatewayContractsFeatureFlagVariantPayload.class, PARTNER_GATEWAY_CONTRACTS);
+  }
+
+  private Optional<ItSubscriptionServiceFeatureFlagVariantPayload>
+      mapToItSubscriptionServicePayload(Variant variant) {
+    return mapToPayload(
+        variant, ItSubscriptionServiceFeatureFlagVariantPayload.class, IT_SUBSCRIPTION_SERVICE);
+  }
+
+  private <T> Optional<T> mapToPayload(
+      Variant variant, Class<T> payloadClass, String featureFlagName) {
     var payload = variant.getPayload();
     if (payload.isEmpty()) {
       return Optional.empty();
@@ -97,13 +136,12 @@ public class FeatureFlags {
 
     String payloadValue = payload.get().getValue();
     try {
-      return Optional.ofNullable(
-          mapper.readValue(payloadValue, PartnerGatewayContractsFeatureFlagVariantPayload.class));
+      return Optional.ofNullable(mapper.readValue(payloadValue, payloadClass));
     } catch (JsonProcessingException e) {
       log.warn(
           "Failed to parse the payload '{}' for feature flag '{}'",
           payloadValue,
-          PARTNER_GATEWAY_CONTRACTS,
+          featureFlagName,
           e);
       return Optional.empty();
     }

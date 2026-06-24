@@ -25,6 +25,7 @@ import static com.redhat.swatch.contract.config.Channels.SUBSCRIPTION_SYNC_TASK_
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import com.redhat.swatch.contract.config.FeatureFlags;
 import com.redhat.swatch.contract.model.EnabledOrgsResponse;
 import com.redhat.swatch.contract.product.umb.CanonicalMessage;
 import com.redhat.swatch.contract.product.umb.UmbSubscription;
@@ -41,11 +42,15 @@ public class SubscriptionSyncTaskConsumer {
   private final SubscriptionSyncService service;
   private final boolean umbEnabled;
   private final XmlMapper xmlMapper;
+  private final FeatureFlags featureFlags;
 
   public SubscriptionSyncTaskConsumer(
-      SubscriptionSyncService service, @ConfigProperty(name = "UMB_ENABLED") boolean umbEnabled) {
+      SubscriptionSyncService service,
+      @ConfigProperty(name = "UMB_ENABLED") boolean umbEnabled,
+      FeatureFlags featureFlags) {
     this.service = service;
     this.umbEnabled = umbEnabled;
+    this.featureFlags = featureFlags;
     this.xmlMapper = CanonicalMessage.createMapper();
   }
 
@@ -61,6 +66,10 @@ public class SubscriptionSyncTaskConsumer {
   public void consumeFromUmb(String subscriptionMessageXml) throws JsonProcessingException {
     if (!umbEnabled) {
       log.debug("UMB processing is not enabled");
+      return;
+    }
+    if (!featureFlags.isItSubscriptionServiceUmbConsumerEnabled()) {
+      log.debug("IT Subscription UMB consumer is disabled by feature flag.");
       return;
     }
     CanonicalMessage subscriptionMessage =
