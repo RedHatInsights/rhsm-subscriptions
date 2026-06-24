@@ -771,10 +771,8 @@ going to `Dashboards -> +Import` from the left nav.
 
 Links to Swagger UI and API specs:
 
-* [Customer-facing v1 API][customer-v1-api]
-  ([source](api/rhsm-subscriptions-api-v1-spec.yaml))
-* [Customer-facing v2 API][customer-v2-api]
-  ([source](api/rhsm-subscriptions-api-v2-spec.yaml))
+* Customer-facing **v1** API — [console (prod)](https://console.redhat.com/docs/api/rhsm-subscriptions/v1) · [console (stage)](https://console.stage.redhat.com/docs/api/rhsm-subscriptions/v1) · [petstore][customer-v1-api] · [source](api/rhsm-subscriptions-api-v1-spec.yaml)
+* Customer-facing **v2** API — [console (stage)](https://console.stage.redhat.com/docs/api/rhsm-subscriptions/v2) · [console (prod)](https://console.redhat.com/docs/api/rhsm-subscriptions/v2) · [petstore][customer-v2-api] · [source](api/rhsm-subscriptions-api-v2-spec.yaml)
 * [Internal Billing Producer API][billing-api]
   ([source](swatch-billable-usage/src/main/resources/META-INF/openapi.yaml))
 * [Internal Metering API][metering-api]
