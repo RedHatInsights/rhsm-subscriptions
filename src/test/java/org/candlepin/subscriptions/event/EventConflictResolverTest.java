@@ -66,14 +66,11 @@ class EventConflictResolverTest {
 
   private static final ApplicationClock CLOCK = new TestClockConfiguration().adjustableClock();
   private static final ObjectMapper MAPPER;
-  public static final String TAG1 = "T1";
-  public static final String TAG2 = "T2";
-  public static final String TAG3 = "T3";
+  public static final String ROSA = "rosa";
+  public static final String OSD = "OpenShift-dedicated-metrics";
+  public static final String RHODS = "rhods";
   public static final String CORES = "cores";
   public static final String INSTANCE_HOURS = "instance-hours";
-  public static final String INSTANCE_HOURS1 = "Instance-hours";
-  public static final String CORES1 = "Cores";
-  public static final String CORES_IGNORED = "CoresIgnored";
 
   static {
     MAPPER = new ObjectMapper();
@@ -93,43 +90,43 @@ class EventConflictResolverTest {
   static Stream<Arguments> noResolutionRequiredScenarios() {
     return Stream.of(
         Arguments.of(
-            List.of(event(Set.of(TAG1), Map.of(CORES, 6.0))),
-            List.of(event(Set.of(TAG1), Map.of(CORES, 6.0))),
+            List.of(event(Set.of(ROSA), Map.of(CORES, 6.0))),
+            List.of(event(Set.of(ROSA), Map.of(CORES, 6.0))),
             List.of()),
         Arguments.of(
-            List.of(event(Set.of(TAG1, TAG2, TAG3), Map.of(CORES, 6.0))),
-            List.of(event(Set.of(TAG1, TAG2, TAG3), Map.of(CORES, 6.0))),
+            List.of(event(Set.of(ROSA, OSD, RHODS), Map.of(CORES, 6.0))),
+            List.of(event(Set.of(ROSA, OSD, RHODS), Map.of(CORES, 6.0))),
             List.of()),
         Arguments.of(
-            List.of(event(Set.of(TAG1, TAG2, TAG3), Map.of(CORES, 6.0))),
+            List.of(event(Set.of(ROSA, OSD, RHODS), Map.of(CORES, 6.0))),
             List.of(
-                event(Set.of(TAG1), Map.of(CORES, 6.0)),
-                event(Set.of(TAG2), Map.of(CORES, 6.0)),
-                event(Set.of(TAG3), Map.of(CORES, 6.0))),
-            List.of()),
-        Arguments.of(
-            List.of(
-                event(Set.of(TAG1), Map.of(CORES, 6.0)),
-                event(Set.of(TAG2), Map.of(CORES, 6.0)),
-                event(Set.of(TAG3), Map.of(CORES, 6.0))),
-            List.of(event(Set.of(TAG1, TAG2, TAG3), Map.of(CORES, 6.0))),
+                event(Set.of(ROSA), Map.of(CORES, 6.0)),
+                event(Set.of(OSD), Map.of(CORES, 6.0)),
+                event(Set.of(RHODS), Map.of(CORES, 6.0))),
             List.of()),
         Arguments.of(
             List.of(
-                event(Set.of(TAG1), Map.of(CORES, 6.0)),
-                event(Set.of(TAG1), Map.of(INSTANCE_HOURS, 10.0))),
-            List.of(
-                event(Set.of(TAG1), Map.of(CORES, 6.0)),
-                event(Set.of(TAG1), Map.of(INSTANCE_HOURS, 10.0))),
+                event(Set.of(ROSA), Map.of(CORES, 6.0)),
+                event(Set.of(OSD), Map.of(CORES, 6.0)),
+                event(Set.of(RHODS), Map.of(CORES, 6.0))),
+            List.of(event(Set.of(ROSA, OSD, RHODS), Map.of(CORES, 6.0))),
             List.of()),
         Arguments.of(
             List.of(
-                event(Set.of(TAG1, TAG2), Map.of(CORES, 6.0)),
-                event(Set.of(TAG2), Map.of(INSTANCE_HOURS, 10.0))),
+                event(Set.of(ROSA), Map.of(CORES, 6.0)),
+                event(Set.of(ROSA), Map.of(INSTANCE_HOURS, 10.0))),
             List.of(
-                event(Set.of(TAG1), Map.of(CORES, 6.0)),
-                event(Set.of(TAG2), Map.of(CORES, 6.0)),
-                event(Set.of(TAG2), Map.of(INSTANCE_HOURS, 10.0))),
+                event(Set.of(ROSA), Map.of(CORES, 6.0)),
+                event(Set.of(ROSA), Map.of(INSTANCE_HOURS, 10.0))),
+            List.of()),
+        Arguments.of(
+            List.of(
+                event(Set.of(ROSA, OSD), Map.of(CORES, 6.0)),
+                event(Set.of(OSD), Map.of(INSTANCE_HOURS, 10.0))),
+            List.of(
+                event(Set.of(ROSA), Map.of(CORES, 6.0)),
+                event(Set.of(OSD), Map.of(CORES, 6.0)),
+                event(Set.of(OSD), Map.of(INSTANCE_HOURS, 10.0))),
             List.of()));
   }
 
@@ -146,48 +143,48 @@ class EventConflictResolverTest {
     return Stream.of(
         // Different value triggers amendments
         Arguments.of(
-            List.of(event(Set.of(TAG1), Map.of(CORES, 6.0))),
-            List.of(event(Set.of(TAG1), Map.of(CORES, 8.0))),
+            List.of(event(Set.of(ROSA), Map.of(CORES, 6.0))),
+            List.of(event(Set.of(ROSA), Map.of(CORES, 8.0))),
             List.of(
-                deduction(Set.of(TAG1), Map.of(CORES, -6.0)),
-                event(Set.of(TAG1), Map.of(CORES, 8.0)))),
+                deduction(Set.of(ROSA), Map.of(CORES, -6.0)),
+                event(Set.of(ROSA), Map.of(CORES, 8.0)))),
         // Different hardware type triggers amendments.
         Arguments.of(
-            List.of(event(Set.of(TAG1), Map.of(CORES, 6.0))),
-            List.of(event(Set.of(TAG1), Map.of(CORES, 6.0)).withHardwareType(HardwareType.CLOUD)),
+            List.of(event(Set.of(ROSA), Map.of(CORES, 6.0))),
+            List.of(event(Set.of(ROSA), Map.of(CORES, 6.0)).withHardwareType(HardwareType.CLOUD)),
             List.of(
-                deduction(Set.of(TAG1), Map.of(CORES, -6.0)),
-                event(Set.of(TAG1), Map.of(CORES, 6.0)).withHardwareType(HardwareType.CLOUD))),
+                deduction(Set.of(ROSA), Map.of(CORES, -6.0)),
+                event(Set.of(ROSA), Map.of(CORES, 6.0)).withHardwareType(HardwareType.CLOUD))),
         // Different SLA triggers amendments.
         Arguments.of(
-            List.of(event(Set.of(TAG1), Map.of(CORES, 6.0))),
-            List.of(event(Set.of(TAG1), Map.of(CORES, 6.0)).withSla(Sla.SELF_SUPPORT)),
+            List.of(event(Set.of(ROSA), Map.of(CORES, 6.0))),
+            List.of(event(Set.of(ROSA), Map.of(CORES, 6.0)).withSla(Sla.SELF_SUPPORT)),
             List.of(
-                deduction(Set.of(TAG1), Map.of(CORES, -6.0)),
-                event(Set.of(TAG1), Map.of(CORES, 6.0)).withSla(Sla.SELF_SUPPORT))),
+                deduction(Set.of(ROSA), Map.of(CORES, -6.0)),
+                event(Set.of(ROSA), Map.of(CORES, 6.0)).withSla(Sla.SELF_SUPPORT))),
         // Different Usage triggers amendments.
         Arguments.of(
-            List.of(event(Set.of(TAG1), Map.of(CORES, 6.0))),
-            List.of(event(Set.of(TAG1), Map.of(CORES, 6.0)).withUsage(Usage.PRODUCTION)),
+            List.of(event(Set.of(ROSA), Map.of(CORES, 6.0))),
+            List.of(event(Set.of(ROSA), Map.of(CORES, 6.0)).withUsage(Usage.PRODUCTION)),
             List.of(
-                deduction(Set.of(TAG1), Map.of(CORES, -6.0)),
-                event(Set.of(TAG1), Map.of(CORES, 6.0)).withUsage(Usage.PRODUCTION))),
+                deduction(Set.of(ROSA), Map.of(CORES, -6.0)),
+                event(Set.of(ROSA), Map.of(CORES, 6.0)).withUsage(Usage.PRODUCTION))),
         // Different Billing provider triggers amendments.
         Arguments.of(
-            List.of(event(Set.of(TAG1), Map.of(CORES, 6.0))),
+            List.of(event(Set.of(ROSA), Map.of(CORES, 6.0))),
             List.of(
-                event(Set.of(TAG1), Map.of(CORES, 6.0)).withBillingProvider(BillingProvider.GCP)),
+                event(Set.of(ROSA), Map.of(CORES, 6.0)).withBillingProvider(BillingProvider.GCP)),
             List.of(
-                deduction(Set.of(TAG1), Map.of(CORES, -6.0)),
-                event(Set.of(TAG1), Map.of(CORES, 6.0)).withBillingProvider(BillingProvider.GCP))),
+                deduction(Set.of(ROSA), Map.of(CORES, -6.0)),
+                event(Set.of(ROSA), Map.of(CORES, 6.0)).withBillingProvider(BillingProvider.GCP))),
         // Different billing account ID triggers amendment
         Arguments.of(
-            List.of(event(Set.of(TAG1), Map.of(CORES, 6.0))),
+            List.of(event(Set.of(ROSA), Map.of(CORES, 6.0))),
             List.of(
-                event(Set.of(TAG1), Map.of(CORES, 6.0)).withBillingProvider(BillingProvider.GCP)),
+                event(Set.of(ROSA), Map.of(CORES, 6.0)).withBillingProvider(BillingProvider.GCP)),
             List.of(
-                deduction(Set.of(TAG1), Map.of(CORES, -6.0)),
-                event(Set.of(TAG1), Map.of(CORES, 6.0)).withBillingProvider(BillingProvider.GCP))));
+                deduction(Set.of(ROSA), Map.of(CORES, -6.0)),
+                event(Set.of(ROSA), Map.of(CORES, 6.0)).withBillingProvider(BillingProvider.GCP))));
   }
 
   @ParameterizedTest
@@ -369,58 +366,58 @@ class EventConflictResolverTest {
   static Stream<Arguments> tagResolutionScenarios() {
     return Stream.of(
         Arguments.of(
-            List.of(event(Set.of(TAG1), Map.of(CORES, 10.0))),
-            List.of(event(Set.of(TAG1), Map.of(CORES, 4.0))),
+            List.of(event(Set.of(ROSA), Map.of(CORES, 10.0))),
+            List.of(event(Set.of(ROSA), Map.of(CORES, 4.0))),
             List.of(
-                deduction(Set.of(TAG1), Map.of(CORES, -10.0)),
-                event(Set.of(TAG1), Map.of(CORES, 4.0)))),
+                deduction(Set.of(ROSA), Map.of(CORES, -10.0)),
+                event(Set.of(ROSA), Map.of(CORES, 4.0)))),
         Arguments.of(
-            List.of(event(Set.of(TAG1, TAG2), Map.of(CORES, 10.0))),
-            List.of(event(Set.of(TAG1, TAG2), Map.of(CORES, 4.0))),
+            List.of(event(Set.of(ROSA, OSD), Map.of(CORES, 10.0))),
+            List.of(event(Set.of(ROSA, OSD), Map.of(CORES, 4.0))),
             List.of(
-                deduction(Set.of(TAG1), Map.of(CORES, -10.0)),
-                deduction(Set.of(TAG2), Map.of(CORES, -10.0)),
-                event(Set.of(TAG1), Map.of(CORES, 4.0)),
-                event(Set.of(TAG2), Map.of(CORES, 4.0)))),
+                deduction(Set.of(ROSA), Map.of(CORES, -10.0)),
+                deduction(Set.of(OSD), Map.of(CORES, -10.0)),
+                event(Set.of(ROSA), Map.of(CORES, 4.0)),
+                event(Set.of(OSD), Map.of(CORES, 4.0)))),
         Arguments.of(
-            List.of(event(Set.of(TAG1), Map.of(CORES, 6.0))),
-            List.of(event(Set.of(TAG1, TAG2), Map.of(CORES, 6.0))),
-            List.of(event(Set.of(TAG2), Map.of(CORES, 6.0)))),
+            List.of(event(Set.of(ROSA), Map.of(CORES, 6.0))),
+            List.of(event(Set.of(ROSA, OSD), Map.of(CORES, 6.0))),
+            List.of(event(Set.of(OSD), Map.of(CORES, 6.0)))),
         Arguments.of(
-            List.of(event(Set.of(TAG1, TAG2, TAG3), Map.of(CORES, 6.0))),
-            List.of(event(Set.of(TAG1), Map.of(CORES, 16.0))),
+            List.of(event(Set.of(ROSA, OSD, RHODS), Map.of(CORES, 6.0))),
+            List.of(event(Set.of(ROSA), Map.of(CORES, 16.0))),
             List.of(
-                deduction(Set.of(TAG1), Map.of(CORES, -6.0)),
-                event(Set.of(TAG1), Map.of(CORES, 16.0)))),
+                deduction(Set.of(ROSA), Map.of(CORES, -6.0)),
+                event(Set.of(ROSA), Map.of(CORES, 16.0)))),
         Arguments.of(
-            List.of(event(Set.of(TAG1, TAG2, TAG3), Map.of(CORES, 6.0))),
-            List.of(event(Set.of(TAG1, TAG2), Map.of(CORES, 10.0))),
+            List.of(event(Set.of(ROSA, OSD, RHODS), Map.of(CORES, 6.0))),
+            List.of(event(Set.of(ROSA, OSD), Map.of(CORES, 10.0))),
             List.of(
-                deduction(Set.of(TAG1), Map.of(CORES, -6.0)),
-                deduction(Set.of(TAG2), Map.of(CORES, -6.0)),
-                event(Set.of(TAG1), Map.of(CORES, 10.0)),
-                event(Set.of(TAG2), Map.of(CORES, 10.0)))),
+                deduction(Set.of(ROSA), Map.of(CORES, -6.0)),
+                deduction(Set.of(OSD), Map.of(CORES, -6.0)),
+                event(Set.of(ROSA), Map.of(CORES, 10.0)),
+                event(Set.of(OSD), Map.of(CORES, 10.0)))),
         Arguments.of(
-            List.of(event(Set.of(TAG1), Map.of(CORES, 6.0))),
+            List.of(event(Set.of(ROSA), Map.of(CORES, 6.0))),
             List.of(
-                event(Set.of(TAG1, TAG2), Map.of(CORES, 10.0)),
-                event(Set.of(TAG2), Map.of(CORES, 8.0))),
+                event(Set.of(ROSA, OSD), Map.of(CORES, 10.0)),
+                event(Set.of(OSD), Map.of(CORES, 8.0))),
             List.of(
-                deduction(Set.of(TAG1), Map.of(CORES, -6.0)),
-                event(Set.of(TAG1), Map.of(CORES, 10.0)),
-                event(Set.of(TAG2), Map.of(CORES, 10.0)),
-                deduction(Set.of(TAG2), Map.of(CORES, -10.0)),
-                event(Set.of(TAG2), Map.of(CORES, 8.0)))),
+                deduction(Set.of(ROSA), Map.of(CORES, -6.0)),
+                event(Set.of(ROSA), Map.of(CORES, 10.0)),
+                event(Set.of(OSD), Map.of(CORES, 10.0)),
+                deduction(Set.of(OSD), Map.of(CORES, -10.0)),
+                event(Set.of(OSD), Map.of(CORES, 8.0)))),
         Arguments.of(
-            List.of(event(Set.of(TAG1), Map.of(CORES, 6.0))),
+            List.of(event(Set.of(ROSA), Map.of(CORES, 6.0))),
             List.of(
-                event(Set.of(TAG1, TAG2), Map.of(CORES, 10.0)),
-                event(Set.of(TAG3), Map.of(CORES, 8.0))),
+                event(Set.of(ROSA, OSD), Map.of(CORES, 10.0)),
+                event(Set.of(RHODS), Map.of(CORES, 8.0))),
             List.of(
-                deduction(Set.of(TAG1), Map.of(CORES, -6.0)),
-                event(Set.of(TAG1), Map.of(CORES, 10.0)),
-                event(Set.of(TAG2), Map.of(CORES, 10.0)),
-                event(Set.of(TAG3), Map.of(CORES, 8.0)))));
+                deduction(Set.of(ROSA), Map.of(CORES, -6.0)),
+                event(Set.of(ROSA), Map.of(CORES, 10.0)),
+                event(Set.of(OSD), Map.of(CORES, 10.0)),
+                event(Set.of(RHODS), Map.of(CORES, 8.0)))));
   }
 
   @ParameterizedTest
@@ -437,81 +434,80 @@ class EventConflictResolverTest {
         Arguments.of(
             List.of(),
             List.of(
-                event(Set.of(TAG1), Map.of(CORES, 10.0)),
-                event(Set.of(TAG1), Map.of(INSTANCE_HOURS, 20.0))),
+                event(Set.of(ROSA), Map.of(CORES, 10.0)),
+                event(Set.of(ROSA), Map.of(INSTANCE_HOURS, 20.0))),
             List.of(
-                event(Set.of(TAG1), Map.of(CORES, 10.0)),
-                event(Set.of(TAG1), Map.of(INSTANCE_HOURS, 20.0)))),
+                event(Set.of(ROSA), Map.of(CORES, 10.0)),
+                event(Set.of(ROSA), Map.of(INSTANCE_HOURS, 20.0)))),
         Arguments.of(
             List.of(
-                event(Set.of(TAG1), Map.of(CORES, 10.0)),
-                event(Set.of(TAG1), Map.of(INSTANCE_HOURS, 20.0))),
-            List.of(event(Set.of(TAG1, TAG2), Map.of(CORES, 20.0, INSTANCE_HOURS, 40.0))),
+                event(Set.of(ROSA), Map.of(CORES, 10.0)),
+                event(Set.of(ROSA), Map.of(INSTANCE_HOURS, 20.0))),
+            List.of(event(Set.of(ROSA, OSD), Map.of(CORES, 20.0, INSTANCE_HOURS, 40.0))),
             List.of(
-                deduction(Set.of(TAG1), Map.of(CORES, -10.0)),
-                deduction(Set.of(TAG1), Map.of(INSTANCE_HOURS, -20.0)),
-                event(Set.of(TAG1), Map.of(CORES, 20.0)),
-                event(Set.of(TAG2), Map.of(CORES, 20.0)),
-                event(Set.of(TAG1), Map.of(INSTANCE_HOURS, 40.0)),
-                event(Set.of(TAG2), Map.of(INSTANCE_HOURS, 40.0)))),
+                deduction(Set.of(ROSA), Map.of(CORES, -10.0)),
+                deduction(Set.of(ROSA), Map.of(INSTANCE_HOURS, -20.0)),
+                event(Set.of(ROSA), Map.of(CORES, 20.0)),
+                event(Set.of(OSD), Map.of(CORES, 20.0)),
+                event(Set.of(ROSA), Map.of(INSTANCE_HOURS, 40.0)),
+                event(Set.of(OSD), Map.of(INSTANCE_HOURS, 40.0)))),
         Arguments.of(
-            List.of(event(Set.of(TAG1), Map.of(CORES, 10.0, INSTANCE_HOURS, 4.0))),
-            List.of(event(Set.of(TAG1, TAG2), Map.of(CORES, 10.0, INSTANCE_HOURS, 4.0))),
+            List.of(event(Set.of(ROSA), Map.of(CORES, 10.0, INSTANCE_HOURS, 4.0))),
+            List.of(event(Set.of(ROSA, OSD), Map.of(CORES, 10.0, INSTANCE_HOURS, 4.0))),
             List.of(
-                event(Set.of(TAG2), Map.of(CORES, 10.0)),
-                event(Set.of(TAG2), Map.of(INSTANCE_HOURS, 4.0)))),
+                event(Set.of(OSD), Map.of(CORES, 10.0)),
+                event(Set.of(OSD), Map.of(INSTANCE_HOURS, 4.0)))),
         Arguments.of(
-            List.of(event(Set.of(TAG1), Map.of(CORES, 10.0, INSTANCE_HOURS, 20.0))),
-            List.of(event(Set.of(TAG1), Map.of(CORES, 20.0, INSTANCE_HOURS, 40.0))),
+            List.of(event(Set.of(ROSA), Map.of(CORES, 10.0, INSTANCE_HOURS, 20.0))),
+            List.of(event(Set.of(ROSA), Map.of(CORES, 20.0, INSTANCE_HOURS, 40.0))),
             List.of(
-                deduction(Set.of(TAG1), Map.of(CORES, -10.0)),
-                deduction(Set.of(TAG1), Map.of(INSTANCE_HOURS, -20.0)),
-                event(Set.of(TAG1), Map.of(CORES, 20.0)),
-                event(Set.of(TAG1), Map.of(INSTANCE_HOURS, 40.0)))),
+                deduction(Set.of(ROSA), Map.of(CORES, -10.0)),
+                deduction(Set.of(ROSA), Map.of(INSTANCE_HOURS, -20.0)),
+                event(Set.of(ROSA), Map.of(CORES, 20.0)),
+                event(Set.of(ROSA), Map.of(INSTANCE_HOURS, 40.0)))),
         Arguments.of(
-            List.of(event(Set.of(TAG1, TAG2), Map.of(CORES, 10.0, INSTANCE_HOURS, 20.0))),
-            List.of(event(Set.of(TAG1, TAG2), Map.of(CORES, 20.0, INSTANCE_HOURS, 40.0))),
+            List.of(event(Set.of(ROSA, OSD), Map.of(CORES, 10.0, INSTANCE_HOURS, 20.0))),
+            List.of(event(Set.of(ROSA, OSD), Map.of(CORES, 20.0, INSTANCE_HOURS, 40.0))),
             List.of(
-                deduction(Set.of(TAG1), Map.of(CORES, -10.0)),
-                deduction(Set.of(TAG2), Map.of(CORES, -10.0)),
-                deduction(Set.of(TAG1), Map.of(INSTANCE_HOURS, -20.0)),
-                deduction(Set.of(TAG2), Map.of(INSTANCE_HOURS, -20.0)),
-                event(Set.of(TAG1), Map.of(CORES, 20.0)),
-                event(Set.of(TAG2), Map.of(CORES, 20.0)),
-                event(Set.of(TAG1), Map.of(INSTANCE_HOURS, 40.0)),
-                event(Set.of(TAG2), Map.of(INSTANCE_HOURS, 40.0)))),
+                deduction(Set.of(ROSA), Map.of(CORES, -10.0)),
+                deduction(Set.of(OSD), Map.of(CORES, -10.0)),
+                deduction(Set.of(ROSA), Map.of(INSTANCE_HOURS, -20.0)),
+                deduction(Set.of(OSD), Map.of(INSTANCE_HOURS, -20.0)),
+                event(Set.of(ROSA), Map.of(CORES, 20.0)),
+                event(Set.of(OSD), Map.of(CORES, 20.0)),
+                event(Set.of(ROSA), Map.of(INSTANCE_HOURS, 40.0)),
+                event(Set.of(OSD), Map.of(INSTANCE_HOURS, 40.0)))),
         Arguments.of(
-            List.of(event(Set.of(TAG1, TAG2), Map.of(CORES, 10.0, INSTANCE_HOURS, 20.0))),
+            List.of(event(Set.of(ROSA, OSD), Map.of(CORES, 10.0, INSTANCE_HOURS, 20.0))),
             List.of(
-                event(Set.of(TAG1), Map.of(CORES, 20.0, INSTANCE_HOURS, 40.0)),
-                event(Set.of(TAG2), Map.of(CORES, 20.0, INSTANCE_HOURS, 40.0))),
+                event(Set.of(ROSA), Map.of(CORES, 20.0, INSTANCE_HOURS, 40.0)),
+                event(Set.of(OSD), Map.of(CORES, 20.0, INSTANCE_HOURS, 40.0))),
             List.of(
-                deduction(Set.of(TAG1), Map.of(CORES, -10.0)),
-                deduction(Set.of(TAG1), Map.of(INSTANCE_HOURS, -20.0)),
-                deduction(Set.of(TAG2), Map.of(CORES, -10.0)),
-                deduction(Set.of(TAG2), Map.of(INSTANCE_HOURS, -20.0)),
-                event(Set.of(TAG1), Map.of(CORES, 20.0)),
-                event(Set.of(TAG1), Map.of(INSTANCE_HOURS, 40.0)),
-                event(Set.of(TAG2), Map.of(CORES, 20.0)),
-                event(Set.of(TAG2), Map.of(INSTANCE_HOURS, 40.0)))),
+                deduction(Set.of(ROSA), Map.of(CORES, -10.0)),
+                deduction(Set.of(ROSA), Map.of(INSTANCE_HOURS, -20.0)),
+                deduction(Set.of(OSD), Map.of(CORES, -10.0)),
+                deduction(Set.of(OSD), Map.of(INSTANCE_HOURS, -20.0)),
+                event(Set.of(ROSA), Map.of(CORES, 20.0)),
+                event(Set.of(ROSA), Map.of(INSTANCE_HOURS, 40.0)),
+                event(Set.of(OSD), Map.of(CORES, 20.0)),
+                event(Set.of(OSD), Map.of(INSTANCE_HOURS, 40.0)))),
         Arguments.of(
-            List.of(event(Set.of(TAG1, TAG2), Map.of(CORES, 10.0, INSTANCE_HOURS, 20.0))),
-            List.of(event(Set.of(TAG1, TAG2), Map.of(CORES, 10.0, INSTANCE_HOURS, 40.0))),
+            List.of(event(Set.of(ROSA, OSD), Map.of(CORES, 10.0, INSTANCE_HOURS, 20.0))),
+            List.of(event(Set.of(ROSA, OSD), Map.of(CORES, 10.0, INSTANCE_HOURS, 40.0))),
             List.of(
-                deduction(Set.of(TAG1), Map.of(INSTANCE_HOURS, -20.0)),
-                deduction(Set.of(TAG2), Map.of(INSTANCE_HOURS, -20.0)),
-                event(Set.of(TAG1), Map.of(INSTANCE_HOURS, 40.0)),
-                event(Set.of(TAG2), Map.of(INSTANCE_HOURS, 40.0)))),
+                deduction(Set.of(ROSA), Map.of(INSTANCE_HOURS, -20.0)),
+                deduction(Set.of(OSD), Map.of(INSTANCE_HOURS, -20.0)),
+                event(Set.of(ROSA), Map.of(INSTANCE_HOURS, 40.0)),
+                event(Set.of(OSD), Map.of(INSTANCE_HOURS, 40.0)))),
         Arguments.of(
-            List.of(event(Set.of(TAG1, TAG2), Map.of(CORES, 10.0, INSTANCE_HOURS, 20.0))),
-            List.of(event(Set.of(TAG1, TAG2, TAG3), Map.of(CORES, 10.0, INSTANCE_HOURS, 40.0))),
+            List.of(event(Set.of(ROSA, OSD), Map.of(CORES, 10.0, INSTANCE_HOURS, 20.0))),
+            List.of(event(Set.of(ROSA, OSD, RHODS), Map.of(CORES, 10.0, INSTANCE_HOURS, 40.0))),
             List.of(
-                deduction(Set.of(TAG1), Map.of(INSTANCE_HOURS, -20.0)),
-                deduction(Set.of(TAG2), Map.of(INSTANCE_HOURS, -20.0)),
-                event(Set.of(TAG1), Map.of(INSTANCE_HOURS, 40.0)),
-                event(Set.of(TAG2), Map.of(INSTANCE_HOURS, 40.0)),
-                event(Set.of(TAG3), Map.of(CORES, 10.0)),
-                event(Set.of(TAG3), Map.of(INSTANCE_HOURS, 40.0)))));
+                deduction(Set.of(ROSA), Map.of(INSTANCE_HOURS, -20.0)),
+                deduction(Set.of(OSD), Map.of(INSTANCE_HOURS, -20.0)),
+                event(Set.of(ROSA), Map.of(INSTANCE_HOURS, 40.0)),
+                event(Set.of(OSD), Map.of(INSTANCE_HOURS, 40.0)),
+                event(Set.of(RHODS), Map.of(CORES, 10.0)))));
   }
 
   @ParameterizedTest
@@ -706,7 +702,7 @@ class EventConflictResolverTest {
     }
 
     private EventArgument(Map<String, Double> measurements) {
-      this(Set.of(TAG1), measurements);
+      this(Set.of(ROSA), measurements);
     }
 
     Event toEvent() {

@@ -86,7 +86,8 @@ class EventNormalizerTest {
     Event result = normalizer.normalizeEvent(event);
 
     // Then: Product tag is cleared (set to null)
-    assertNull(result.getProductTag(), "Product tag should be null when no PAYG tags remain");
+    assertTrue(
+        result.getProductTag().isEmpty(), "Product tags should be empty when no PAYG tags remain");
   }
 
   @Test
@@ -232,24 +233,251 @@ class EventNormalizerTest {
   }
 
   @Test
-  void flattenEventUsageCreatesCartesianProduct() {
-    // Given: Event with 2 tags and 2 measurements
+  void flattenEventUsageWithSinglePaygoProductAndTwoValidMeasurements() {
+    // Given: Event with single PAYG tag supporting both Cores and Instance-hours
+    // OpenShift-dedicated-metrics supports both metrics
     Event event = createEvent();
-    event.setProductTag(Set.of("tag1", "tag2"));
-    event.setMeasurements(List.of(createMeasurement(VCPUS, 1.0), createMeasurement(SOCKETS, 2.0)));
+    event.setProductTag(Set.of("OpenShift-dedicated-metrics"));
+    event.setMeasurements(
+        List.of(
+            createMeasurement(CORES, 8.0),
+            createMeasurement(MetricIdUtils.getInstanceHours(), 24.0)));
 
     // When: Flattening the event
     List<Event> flattened = normalizer.flattenEventUsage(event);
 
-    // Then: Creates 2x2=4 events (cartesian product)
-    assertEquals(4, flattened.size(), "Should create cartesian product of tags x measurements");
+    // Then: Should create 2 events (one per measurement, both valid for this tag)
+    assertEquals(2, flattened.size());
 
-    // Verify each flattened event has exactly 1 tag and 1 measurement
-    for (Event flattenedEvent : flattened) {
-      assertEquals(1, flattenedEvent.getProductTag().size(), "Each event should have 1 tag");
-      assertEquals(
-          1, flattenedEvent.getMeasurements().size(), "Each event should have 1 measurement");
+    // Find the event for each measurement
+    Event coresEvent =
+        flattened.stream()
+            .filter(
+                e ->
+                    e.getMeasurements()
+                        .getFirst()
+                        .getMetricId()
+                        .equals(CORES.toUpperCaseFormatted()))
+            .findFirst()
+            .orElseThrow();
+    Event instanceHoursEvent =
+        flattened.stream()
+            .filter(
+                e ->
+                    e.getMeasurements()
+                        .getFirst()
+                        .getMetricId()
+                        .equals(MetricIdUtils.getInstanceHours().toUpperCaseFormatted()))
+            .findFirst()
+            .orElseThrow();
+
+    // Verify Cores event
+    assertEquals(1, coresEvent.getProductTag().size());
+    assertTrue(coresEvent.getProductTag().contains("OpenShift-dedicated-metrics"));
+    assertEquals(1, coresEvent.getMeasurements().size());
+    assertEquals(8.0, coresEvent.getMeasurements().getFirst().getValue());
+
+    // Verify Instance-hours event
+    assertEquals(1, instanceHoursEvent.getProductTag().size());
+    assertTrue(instanceHoursEvent.getProductTag().contains("OpenShift-dedicated-metrics"));
+    assertEquals(1, instanceHoursEvent.getMeasurements().size());
+    assertEquals(24.0, instanceHoursEvent.getMeasurements().getFirst().getValue());
+  }
+
+  @Test
+  void flattenEventUsageWithTwoPaygoProductsEachWithOneMeasurement() {
+    // Given: Event with 2 PAYG tags and 2 measurements, but each tag only supports one
+    // OpenShift-metrics supports only Cores (not Instance-hours)
+    // OpenShift-dedicated-metrics supports both Cores and Instance-hours
+    Event event = createEvent();
+    event.setProductTag(Set.of("OpenShift-metrics", "OpenShift-dedicated-metrics"));
+    event.setMeasurements(
+        List.of(
+            createMeasurement(CORES, 8.0),
+            createMeasurement(MetricIdUtils.getInstanceHours(), 24.0)));
+
+    // When: Flattening the event
+    List<Event> flattened = normalizer.flattenEventUsage(event);
+
+    // Then: Should create 3 events total
+    // OpenShift-metrics + Cores (valid)
+    // OpenShift-dedicated-metrics + Cores (valid)
+    // OpenShift-dedicated-metrics + Instance-hours (valid)
+    // OpenShift-metrics + Instance-hours is filtered out (invalid)
+    assertEquals(3, flattened.size());
+
+    // Verify all events have exactly 1 tag and 1 measurement
+    for (Event result : flattened) {
+      assertEquals(1, result.getProductTag().size());
+      assertEquals(1, result.getMeasurements().size());
     }
+
+    // Count events per tag
+    long openshiftMetricsCount =
+        flattened.stream().filter(e -> e.getProductTag().contains("OpenShift-metrics")).count();
+    long openshiftDedicatedCount =
+        flattened.stream()
+            .filter(e -> e.getProductTag().contains("OpenShift-dedicated-metrics"))
+            .count();
+
+    assertEquals(1, openshiftMetricsCount, "OpenShift-metrics should have 1 event (Cores only)");
+    assertEquals(
+        2,
+        openshiftDedicatedCount,
+        "OpenShift-dedicated-metrics should have 2 events (Cores and Instance-hours)");
+
+    // Verify OpenShift-metrics event only has Cores
+    Event openshiftMetricsEvent =
+        flattened.stream()
+            .filter(e -> e.getProductTag().contains("OpenShift-metrics"))
+            .findFirst()
+            .orElseThrow();
+    assertEquals(
+        CORES.toUpperCaseFormatted(),
+        openshiftMetricsEvent.getMeasurements().getFirst().getMetricId());
+  }
+
+  @Test
+  void flattenEventUsageWithSingleTagAndMixedValidInvalidMeasurements() {
+    // Given: Event with PAYG tag supporting only vCPUs, but has Sockets and Cores too
+    Event event = createEvent();
+    event.setProductTag(Set.of("rhel-for-x86-els-payg-addon"));
+    event.setMeasurements(
+        List.of(
+            createMeasurement(VCPUS, 4.0),
+            createMeasurement(SOCKETS, 2.0),
+            createMeasurement(CORES, 8.0)));
+
+    // When: Flattening the event
+    List<Event> flattened = normalizer.flattenEventUsage(event);
+
+    // Then: Should create only 1 event (only vCPUs is valid for this tag)
+    assertEquals(1, flattened.size());
+
+    Event result = flattened.getFirst();
+    assertEquals(1, result.getProductTag().size());
+    assertTrue(result.getProductTag().contains("rhel-for-x86-els-payg-addon"));
+    assertEquals(1, result.getMeasurements().size());
+    assertEquals(VCPUS.toUpperCaseFormatted(), result.getMeasurements().getFirst().getMetricId());
+    assertEquals(4.0, result.getMeasurements().getFirst().getValue());
+  }
+
+  @Test
+  void flattenEventUsageWithMultipleTagsEachSupportingDifferentMeasurements() {
+    // Given: Event with 2 PAYG tags, each supporting a different metric
+    // OpenShift-metrics supports only Cores
+    // rhel-for-x86-els-payg-addon supports only vCPUs
+    Event event = createEvent();
+    event.setProductTag(Set.of("OpenShift-metrics", "rhel-for-x86-els-payg-addon"));
+    event.setMeasurements(List.of(createMeasurement(CORES, 8.0), createMeasurement(VCPUS, 4.0)));
+
+    // When: Flattening the event
+    List<Event> flattened = normalizer.flattenEventUsage(event);
+
+    // Then: Should create 2 events (one per tag with its supported metric)
+    assertEquals(2, flattened.size());
+
+    // Find the event for each tag
+    Event openshiftEvent =
+        flattened.stream()
+            .filter(e -> e.getProductTag().contains("OpenShift-metrics"))
+            .findFirst()
+            .orElseThrow();
+    Event rhelEvent =
+        flattened.stream()
+            .filter(e -> e.getProductTag().contains("rhel-for-x86-els-payg-addon"))
+            .findFirst()
+            .orElseThrow();
+
+    // Verify OpenShift-metrics event has only Cores
+    assertEquals(1, openshiftEvent.getProductTag().size());
+    assertEquals(1, openshiftEvent.getMeasurements().size());
+    assertEquals(
+        CORES.toUpperCaseFormatted(), openshiftEvent.getMeasurements().getFirst().getMetricId());
+    assertEquals(8.0, openshiftEvent.getMeasurements().getFirst().getValue());
+
+    // Verify rhel-for-x86-els-payg-addon event has only vCPUs
+    assertEquals(1, rhelEvent.getProductTag().size());
+    assertEquals(1, rhelEvent.getMeasurements().size());
+    assertEquals(
+        VCPUS.toUpperCaseFormatted(), rhelEvent.getMeasurements().getFirst().getMetricId());
+    assertEquals(4.0, rhelEvent.getMeasurements().getFirst().getValue());
+  }
+
+  @Test
+  void flattenEventUsageWithMultipleTagsWithOverlappingMeasurementSupport() {
+    // Given: Event with 2 PAYG tags that both support Cores, plus an unsupported measurement
+    // OpenShift-metrics supports only Cores
+    // OpenShift-dedicated-metrics supports Cores and Instance-hours
+    Event event = createEvent();
+    event.setProductTag(Set.of("OpenShift-metrics", "OpenShift-dedicated-metrics"));
+    event.setMeasurements(List.of(createMeasurement(CORES, 8.0), createMeasurement(VCPUS, 4.0)));
+
+    // When: Flattening the event
+    List<Event> flattened = normalizer.flattenEventUsage(event);
+
+    // Then: Should create 2 events (both tags with Cores, vCPUs filtered out)
+    assertEquals(2, flattened.size());
+
+    for (Event result : flattened) {
+      assertEquals(1, result.getProductTag().size());
+      assertEquals(1, result.getMeasurements().size());
+      assertEquals(CORES.toUpperCaseFormatted(), result.getMeasurements().getFirst().getMetricId());
+      assertEquals(8.0, result.getMeasurements().getFirst().getValue());
+    }
+
+    // Verify both tags are present
+    long openshiftMetricsCount =
+        flattened.stream().filter(e -> e.getProductTag().contains("OpenShift-metrics")).count();
+    long openshiftDedicatedCount =
+        flattened.stream()
+            .filter(e -> e.getProductTag().contains("OpenShift-dedicated-metrics"))
+            .count();
+
+    assertEquals(1, openshiftMetricsCount);
+    assertEquals(1, openshiftDedicatedCount);
+  }
+
+  @Test
+  void flattenEventUsageWithTagHavingNoValidMeasurements() {
+    // Given: Event with PAYG tag that only supports vCPUs, but only has Sockets and Cores
+    Event event = createEvent();
+    event.setProductTag(Set.of("rhel-for-x86-els-payg-addon"));
+    event.setMeasurements(List.of(createMeasurement(SOCKETS, 2.0), createMeasurement(CORES, 8.0)));
+
+    // When: Flattening the event
+    List<Event> flattened = normalizer.flattenEventUsage(event);
+
+    // Then: Should create 0 events (no valid combinations)
+    assertTrue(flattened.isEmpty());
+  }
+
+  @Test
+  void flattenEventUsageWithEmptyTags() {
+    // Given: Event with empty tag set
+    Event event = createEvent();
+    event.setProductTag(Set.of());
+    event.setMeasurements(List.of(createMeasurement(VCPUS, 4.0)));
+
+    // When: Flattening the event
+    List<Event> flattened = normalizer.flattenEventUsage(event);
+
+    // Then: Should create 0 events
+    assertTrue(flattened.isEmpty());
+  }
+
+  @Test
+  void flattenEventUsageWithEmptyMeasurements() {
+    // Given: Event with empty measurements list
+    Event event = createEvent();
+    event.setProductTag(Set.of("rhel-for-x86-els-payg-addon"));
+    event.setMeasurements(List.of());
+
+    // When: Flattening the event
+    List<Event> flattened = normalizer.flattenEventUsage(event);
+
+    // Then: Should create 0 events
+    assertTrue(flattened.isEmpty());
   }
 
   // Helper methods

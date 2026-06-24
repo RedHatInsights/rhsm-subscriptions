@@ -235,6 +235,31 @@ Test cases should be testable locally and in deployed environments.
     - PAYG data is retained and tallied
     - TRADITIONAL tag remains filtered out, even with incomplete metric payload
 
+**tally-payg-filter-TC007 - Role-based product tag lookup filters non-PAYG metrics**
+
+- **Description**: Verify that when product tag is derived from role (not explicitly provided), only metrics supported by the PAYG product are tallied and unsupported metrics are filtered out during normalization.
+- **Setup**:
+    - Organization is opted in
+    - Event with NO product tag (empty product tag set)
+    - Event with role "moa" which maps to PAYG product "rosa"
+    - Event includes BOTH a PAYG-supported metric (Cores) and a TRADITIONAL metric (Sockets)
+    - Cores metric value: 8.0
+    - Sockets metric value: 2.0
+    - Event has AWS billing provider and account ID
+- **Action**:
+    - Send event with empty product tag, role=moa, and mixed metrics to service instance ingress topic
+    - Perform hourly tally
+- **Verification**:
+    - Product tag "rosa" is derived from role "moa" during event normalization
+    - rosa product has tally sum of 8.0 for Cores metric
+    - rosa instance appears in hourly instances report with Cores=8.0 and Instance-hours=0.0
+    - Sockets metric is filtered out (not supported by rosa)
+    - NO RHEL product instances are created (Sockets metric should not trigger RHEL product creation)
+- **Expected Result**:
+    - Role-based product tag derivation works correctly for PAYG products
+    - Only metrics supported by the derived PAYG product are retained after normalization
+    - Unsupported metrics (like Sockets for rosa) are filtered out and do not cause incorrect product tallies
+
 ## Hypervisor Handling
 
 **tally-hypervisor-TC001 - RHEL hypervisor without guests appears in instances report**

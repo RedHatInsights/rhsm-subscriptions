@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.event;
 
-import com.google.common.collect.Sets;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
@@ -37,19 +36,21 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * Defines the logic for flattening an Event into multiple events based on a (tag,measurement)
- * tuple. This ensures that any event we ingest only contains a single tag and metric, even if the
- * source sends multiple.
+ * Normalizes incoming events by filtering and transforming them based on product configuration.
  *
- * <pre>
- *   Incoming event:
- *      Event(['tag1', 'tag2'], {cores: 2, instance-hours: 4}
- *   Normalized events:
- *      Event(['tag1'], {cores: 2})
- *      Event(['tag1'], {instance-hours: 4})
- *      Event(['tag2'], {cores: 2})
- *      Event(['tag2'], {instance-hours: 4})
- * </pre>
+ * <p>Responsibilities:
+ *
+ * <ul>
+ *   <li>Filters events to only include PAYG-eligible product tags
+ *   <li>Filters measurements to only those supported by the product tags
+ *   <li>Flattens multi-tag, multi-measurement events into individual events with one tag and one
+ *       measurement each
+ *   <li>Ensures only valid tag-measurement combinations (as defined in product configuration) are
+ *       produced
+ * </ul>
+ *
+ * <p>This normalization ensures that downstream processing only handles valid, PAYG-eligible events
+ * with a consistent structure.
  */
 @Component
 public class EventNormalizer {
@@ -63,11 +64,46 @@ public class EventNormalizer {
     this.resolvedEventMapper = resolvedEventMapper;
   }
 
+  /**
+   * Flattens an event into multiple events, each with at most one tag and one measurement. Only
+   * creates events for valid tag-measurement combinations as defined in the product configuration.
+   * Invalid combinations (where the tag does not support the measurement) are filtered out.
+   *
+   * <pre>
+   *   Incoming event:
+   *      Event(['OpenShift-metrics', 'rhel-for-x86-els-payg-addon'], {cores: 2, vCPUs: 4})
+   *   Flattened events (filtered to valid combinations only):
+   *      Event(['OpenShift-metrics'], {cores: 2})       // OpenShift-metrics supports Cores
+   *      Event(['rhel-for-x86-els-payg-addon'], {vCPUs: 4})  // rhel-for-x86-els-payg-addon supports vCPUs
+   *   Invalid combinations filtered out:
+   *      Event(['OpenShift-metrics'], {vCPUs: 4})       // OpenShift-metrics does not support vCPUs
+   *      Event(['rhel-for-x86-els-payg-addon'], {cores: 2})  // rhel-for-x86-els-payg-addon does not support Cores
+   * </pre>
+   *
+   * @param event the event to flatten
+   * @return list of flattened events containing only valid tag-measurement pairs
+   */
   public List<Event> flattenEventUsage(Event event) {
     Set<String> tags = event.getProductTag();
     Set<Measurement> measurements = new HashSet<>(event.getMeasurements());
-    return Sets.cartesianProduct(tags, measurements).stream()
-        .map(tuple -> create(event, (String) tuple.get(0), (Measurement) tuple.get(1)))
+
+    return tags.stream()
+        .flatMap(
+            tag -> {
+              // Get the metrics supported by this tag from the product configuration
+              Set<String> supportedMetrics =
+                  MetricIdUtils.getMetricIdsFromConfigForTag(tag)
+                      .map(MetricId::toUpperCaseFormatted)
+                      .collect(Collectors.toSet());
+
+              // Filter measurements to only those supported by this tag
+              return measurements.stream()
+                  .filter(
+                      m ->
+                          supportedMetrics.contains(
+                              MetricIdUtils.toUpperCaseFormatted(m.getMetricId())))
+                  .map(measurement -> create(event, tag, measurement));
+            })
         .toList();
   }
 
@@ -80,41 +116,43 @@ public class EventNormalizer {
       event.setServiceType("Ansible Managed Node");
     }
 
-    // Filter out non-paygo product tags
-    filterNonPaygoTags(event);
+    // Filter out non-paygo product tags and measurements
+    Set<String> payGoTags = getPayGoTags(event.getProductTag());
+    event.setProductTag(payGoTags);
+    event.setMeasurements(getApplicableMeasurements(event.getMeasurements(), payGoTags));
 
     return event;
   }
 
-  private void filterNonPaygoTags(Event event) {
-    Set<String> productTags = event.getProductTag();
-
+  private Set<String> getPayGoTags(Set<String> productTags) {
     if (productTags == null || productTags.isEmpty()) {
-      return;
+      return productTags;
     }
 
     Set<String> paygoTags =
         productTags.stream().filter(this::isPaygoEligibleTag).collect(Collectors.toSet());
 
     if (paygoTags.isEmpty()) {
-      log.debug("No paygo-eligible tags found in {}. Clearing product_tag.", productTags);
-      event.setProductTag(null);
-    } else {
-      if (paygoTags.size() < productTags.size()) {
-        log.debug("Filtered non-paygo tags from {}. Keeping: {}", productTags, paygoTags);
-        event.setProductTag(paygoTags);
-      }
-      filterUnsupportedMeasurements(event, paygoTags);
+      log.debug("No paygo-eligible tags found in {}.", productTags);
+      return Set.of();
     }
+    return paygoTags;
   }
 
-  private void filterUnsupportedMeasurements(Event event, Set<String> paygoTags) {
-    List<Measurement> measurements = event.getMeasurements();
+  private List<Measurement> getApplicableMeasurements(
+      List<Measurement> measurements, Set<String> paygoTags) {
     if (measurements == null || measurements.isEmpty()) {
-      return;
+      return measurements;
     }
 
-    // Get all supported metrics for the remaining paygo tags
+    // If there are no paygo tags, return all measurements since we can't determine validity
+    // at this point. Event validation will catch this if the event does not provide enough
+    // information to determine the tag.
+    if (paygoTags == null || paygoTags.isEmpty()) {
+      return measurements;
+    }
+
+    // Get all supported metrics for the specified tags
     Set<String> supportedMetrics =
         paygoTags.stream()
             .flatMap(MetricIdUtils::getMetricIdsFromConfigForTag)
@@ -127,7 +165,7 @@ public class EventNormalizer {
                 m -> supportedMetrics.contains(MetricIdUtils.toUpperCaseFormatted(m.getMetricId())))
             .toList();
 
-    if (validMeasurements.size() < measurements.size()) {
+    if (log.isDebugEnabled() && validMeasurements.size() < measurements.size()) {
       List<Measurement> filteredOut =
           measurements.stream().filter(m -> !supportedMetrics.contains(m.getMetricId())).toList();
       log.debug(
@@ -135,8 +173,8 @@ public class EventNormalizer {
           paygoTags,
           filteredOut.stream().map(Measurement::getMetricId).collect(Collectors.toList()),
           validMeasurements.stream().map(Measurement::getMetricId).collect(Collectors.toList()));
-      event.setMeasurements(validMeasurements);
     }
+    return validMeasurements;
   }
 
   private boolean isPaygoEligibleTag(String productTag) {

@@ -21,6 +21,8 @@
 package tests;
 
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import api.TallySwatchService;
 import api.TallyUnleashService;
@@ -42,10 +44,11 @@ import com.redhat.swatch.tally.test.model.TallyReportData;
 import com.redhat.swatch.tally.test.model.TallyReportDataPoint;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import utils.TallyDbHostSeeder;
 import utils.TallyTestHelpers;
@@ -162,10 +165,9 @@ public class BaseTallyComponentTest {
     AwaitilityUtils.untilAsserted(
         () -> {
           service.performHourlyTallyForOrg(orgId);
-          Assertions.assertEquals(
+          assertEquals(
               expected,
               getHourlyTallySum(orgId, productTag, metricId, beginning, ending),
-              0.0001,
               "Hourly tally sum should match expected value");
         },
         settings);
@@ -228,5 +230,77 @@ public class BaseTallyComponentTest {
         .filter(Objects::nonNull)
         .filter(d -> d.contains(displayNameContains))
         .count();
+  }
+
+  /**
+   * Asserts that an instance has the expected measurements for a product.
+   *
+   * <p>This method verifies:
+   *
+   * <ul>
+   *   <li>The instance exists in the response
+   *   <li>The actual measurements match the expected measurements (both metric IDs and values)
+   *   <li>No unexpected measurements are present
+   * </ul>
+   *
+   * @param orgId the organization ID
+   * @param instanceId the instance ID to verify
+   * @param productTag the product tag
+   * @param beginning the start of the time range
+   * @param ending the end of the time range
+   * @param expectedMeasurements map of metric ID to expected value
+   */
+  protected void assertInstanceMeasurements(
+      String orgId,
+      String instanceId,
+      String productTag,
+      OffsetDateTime beginning,
+      OffsetDateTime ending,
+      Map<String, Double> expectedMeasurements) {
+    InstanceResponse response = service.getInstancesByProduct(orgId, productTag, beginning, ending);
+    assertNotNull(response.getData(), "Instance response data should not be null");
+    assertNotNull(
+        response.getMeta(), "Instance response meta should not be null for product " + productTag);
+    assertNotNull(
+        response.getMeta().getMeasurements(),
+        "Instance response meta measurements should not be null for product " + productTag);
+
+    List<InstanceData> instances =
+        response.getData().stream()
+            .filter(nextInstance -> instanceId.equals(nextInstance.getInstanceId()))
+            .toList();
+    assertEquals(
+        1,
+        instances.size(),
+        "Expected only 1 instance matching instanceId="
+            + instanceId
+            + " but found "
+            + instances.size());
+
+    // Build actual measurements map from meta.measurements (metric IDs) and instance.measurements
+    // (values)
+    InstanceData instance = instances.get(0);
+    List<String> metricIds = response.getMeta().getMeasurements();
+    List<Double> values = instance.getMeasurements();
+
+    assertNotNull(values, "Instance measurements should not be null");
+    assertEquals(
+        metricIds.size(),
+        values.size(),
+        String.format(
+            "Number of metric IDs (%d) should match number of values (%d). MetricIds=%s, Values=%s",
+            metricIds.size(), values.size(), metricIds, values));
+
+    Map<String, Double> actualMeasurements = new HashMap<>();
+    for (int i = 0; i < metricIds.size(); i++) {
+      actualMeasurements.put(metricIds.get(i), values.get(i));
+    }
+
+    assertEquals(
+        expectedMeasurements,
+        actualMeasurements,
+        String.format(
+            "Instance measurements should match expected. Expected: %s, Actual: %s",
+            expectedMeasurements, actualMeasurements));
   }
 }
