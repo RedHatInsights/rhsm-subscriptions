@@ -771,8 +771,8 @@ going to `Dashboards -> +Import` from the left nav.
 
 Links to Swagger UI and API specs:
 
-* Customer-facing **v1** API — [console (prod)](https://console.redhat.com/docs/api/rhsm-subscriptions/v1) · [console (stage)](https://console.stage.redhat.com/docs/api/rhsm-subscriptions/v1) · [petstore][customer-v1-api] · [source](api/rhsm-subscriptions-api-v1-spec.yaml)
-* Customer-facing **v2** API — [console (stage)](https://console.stage.redhat.com/docs/api/rhsm-subscriptions/v2) · [console (prod)](https://console.redhat.com/docs/api/rhsm-subscriptions/v2) · [petstore][customer-v2-api] · [source](api/rhsm-subscriptions-api-v2-spec.yaml)
+* Customer-facing **v1** API — [console (prod)](https://console.redhat.com/docs/api/rhsm-subscriptions/v1) · [console (stage)](https://console.stage.redhat.com/docs/api/rhsm-subscriptions/v1) · [source](api/rhsm-subscriptions-api-v1-spec.yaml)
+* Customer-facing **v2** API — [console (prod)](https://console.redhat.com/docs/api/rhsm-subscriptions/v2) · [console (stage)](https://console.stage.redhat.com/docs/api/rhsm-subscriptions/v2) · [source](api/rhsm-subscriptions-api-v2-spec.yaml)
 * [Internal Billing Producer API][billing-api]
   ([source](swatch-billable-usage/src/main/resources/META-INF/openapi.yaml))
 * [Internal Metering API][metering-api]
@@ -788,8 +788,6 @@ Links to Swagger UI and API specs:
 * [Internal System Conduit API][conduit-api]
   ([source](swatch-system-conduit/src/main/spec/internal-organizations-sync-api-spec.yaml))
 
-[customer-v1-api]:    https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/api/rhsm-subscriptions-api-v1-spec.yaml
-[customer-v2-api]:    https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/api/rhsm-subscriptions-api-v2-spec.yaml
 [billing-api]:        https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/swatch-billable-usage/src/main/resources/META-INF/openapi.yaml
 [metering-api]:       https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/swatch-metrics/src/main/resources/META-INF/openapi.yaml
 [tally-api]:          https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/src/main/spec/internal-tally-api-spec.yaml
