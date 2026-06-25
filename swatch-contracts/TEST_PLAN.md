@@ -357,6 +357,7 @@ Component tests for GET `/api/swatch-contracts/internal/subscriptions/awsUsageCo
 - **Expected Result:**  
   - HTTP 200  
   - `productCode`, `customerId`, and `awsSellerAccountId` match the semicolon-delimited `billing_provider_id` from the contract
+  - `customerAwsAccountId` matches the contract `billing_account_id`
 
 **aws-usage-context-TC002** - **AWS usage context returns 404 when no subscription matches**  
 - **Description:** Verify not-found behavior when lookup criteria do not match any AWS subscription.  

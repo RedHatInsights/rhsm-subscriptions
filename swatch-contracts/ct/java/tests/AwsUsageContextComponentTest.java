@@ -61,6 +61,10 @@ public class AwsUsageContextComponentTest extends BaseContractComponentTest {
         contract.getSellerAccountId(),
         usageContext.getAwsSellerAccountId(),
         "awsSellerAccountId should match billing_provider_id");
+    assertEquals(
+        contract.getBillingAccountId(),
+        usageContext.getCustomerAwsAccountId(),
+        "customerAwsAccountId should match billing_account_id");
   }
 
   @TestPlanName("aws-usage-context-TC002")

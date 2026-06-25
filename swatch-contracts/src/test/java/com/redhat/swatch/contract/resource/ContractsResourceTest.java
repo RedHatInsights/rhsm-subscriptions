@@ -339,6 +339,7 @@ class ContractsResourceTest {
   void incrementsAmbiguousCounterWhenOrgIdPresent() {
     SubscriptionEntity sub1 = new SubscriptionEntity();
     sub1.setBillingProviderId("foo1;foo2;foo3");
+    sub1.setBillingAccountId("123");
     sub1.setEndDate(defaultEndDate);
     SubscriptionEntity sub2 = new SubscriptionEntity();
     sub2.setBillingProviderId("bar1;bar2;bar3");
@@ -370,6 +371,7 @@ class ContractsResourceTest {
     assertEquals("foo1", awsUsageContext.getProductCode());
     assertEquals("foo2", awsUsageContext.getCustomerId());
     assertEquals("foo3", awsUsageContext.getAwsSellerAccountId());
+    assertEquals("123", awsUsageContext.getCustomerAwsAccountId());
   }
 
   @Test
@@ -410,6 +412,7 @@ class ContractsResourceTest {
     sub1.setEndDate(endDate);
     SubscriptionEntity sub2 = new SubscriptionEntity();
     sub2.setBillingProviderId("bar1;bar2;bar3");
+    sub2.setBillingAccountId("123");
     sub2.setEndDate(endDate.plusMinutes(45));
     when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(List.of(sub1, sub2));
     var lookupDate = endDate.plusMinutes(30);
@@ -438,6 +441,7 @@ class ContractsResourceTest {
     assertEquals("bar1", awsUsageContext.getProductCode());
     assertEquals("bar2", awsUsageContext.getCustomerId());
     assertEquals("bar3", awsUsageContext.getAwsSellerAccountId());
+    assertEquals("123", awsUsageContext.getCustomerAwsAccountId());
   }
 
   @Test
