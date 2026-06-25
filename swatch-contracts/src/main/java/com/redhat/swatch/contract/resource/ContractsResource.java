@@ -266,7 +266,8 @@ public class ContractsResource implements DefaultApi {
         .subscriptionStartDate(subscription.getStartDate())
         .productCode(productCode)
         .customerId(customerId)
-        .awsSellerAccountId(sellerAccount);
+        .awsSellerAccountId(sellerAccount)
+        .customerAwsAccountId(subscription.getBillingAccountId());
   }
 
   @Override
