@@ -28,6 +28,8 @@ public class ContractsUnleashService extends UnleashService {
 
   public static final String PARTNER_GATEWAY_CONTRACTS =
       "swatch.swatch-contracts.enable-partner-gateway-contracts";
+  public static final String IT_SUBSCRIPTION_SERVICE =
+      "swatch.swatch-contracts.enable-it-subscription-service";
 
   public void enablePartnerGatewayContracts() {
     enableFlag(PARTNER_GATEWAY_CONTRACTS);
@@ -37,6 +39,17 @@ public class ContractsUnleashService extends UnleashService {
         AwaitilitySettings.defaults()
             .timeoutMessage(
                 "Unleash toggle '%s' should be enabled".formatted(PARTNER_GATEWAY_CONTRACTS)));
+    waitForUnleashPropagation();
+  }
+
+  public void enableItSubscriptionService() {
+    enableFlag(IT_SUBSCRIPTION_SERVICE);
+    AwaitilityUtils.until(
+        () -> isFlagEnabled(IT_SUBSCRIPTION_SERVICE),
+        enabled -> enabled,
+        AwaitilitySettings.defaults()
+            .timeoutMessage(
+                "Unleash toggle '%s' should be enabled".formatted(IT_SUBSCRIPTION_SERVICE)));
     waitForUnleashPropagation();
   }
 
@@ -55,5 +68,9 @@ public class ContractsUnleashService extends UnleashService {
 
   public void disablePartnerGatewayContracts() {
     disableFlag(PARTNER_GATEWAY_CONTRACTS);
+  }
+
+  public void disableItSubscriptionService() {
+    disableFlag(IT_SUBSCRIPTION_SERVICE);
   }
 }

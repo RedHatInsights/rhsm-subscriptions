@@ -1536,6 +1536,9 @@ components:
           type: string
         awsSellerAccountId:
           type: string
+        customerAwsAccountId:
+          description: AWS customer account ID
+          type: string
         subscriptionStartDate:
           type: string
           format: date-time

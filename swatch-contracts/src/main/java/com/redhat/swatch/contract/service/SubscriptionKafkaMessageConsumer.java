@@ -23,16 +23,20 @@ package com.redhat.swatch.contract.service;
 import static com.redhat.swatch.contract.config.Channels.IT_SUBSCRIPTION_SYNC;
 
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import com.redhat.swatch.contract.config.FeatureFlags;
 import com.redhat.swatch.contract.product.umb.CanonicalMessage;
 import com.redhat.swatch.contract.product.umb.UmbSubscription;
 import io.smallrye.common.annotation.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 
 @ApplicationScoped
 @Slf4j
 public class SubscriptionKafkaMessageConsumer {
+
+  @Inject FeatureFlags featureFlags;
 
   private final XmlMapper xmlMapper = CanonicalMessage.createMapper();
 
@@ -41,6 +45,10 @@ public class SubscriptionKafkaMessageConsumer {
   public void consumeFromKafka(String subscriptionMessageXml) {
     log.debug("IT Subscription Kafka consumer was called");
     if (subscriptionMessageXml == null) {
+      return;
+    }
+    if (!featureFlags.isItSubscriptionServiceKafkaConsumerEnabled()) {
+      log.debug("IT Subscription Kafka consumer is disabled by feature flag.");
       return;
     }
     consumeSubscription(subscriptionMessageXml);

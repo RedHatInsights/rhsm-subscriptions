@@ -1,0 +1,13 @@
+$schema: http://json-schema.org/draft-07/schema#
+title: ItSubscriptionServiceFeatureFlagVariantPayload
+description: JSON payload for the enable-it-subscription-service feature toggle variant.
+type: object
+properties:
+  kafka_consumer_enabled:
+    description: If the kafka consumer is enabled.
+    type: boolean
+    default: false
+  umb_consumer_enabled:
+    description: If the UMB consumer is enabled.
+    type: boolean
+    default: true

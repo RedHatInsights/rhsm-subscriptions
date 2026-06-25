@@ -22,9 +22,13 @@ package com.redhat.swatch.contract.service;
 
 import static com.redhat.swatch.contract.config.Channels.IT_SUBSCRIPTION_SYNC;
 import static org.awaitility.Awaitility.await;
+import static org.mockito.Mockito.after;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import com.redhat.swatch.contract.config.FeatureFlags;
 import com.redhat.swatch.contract.test.LoggerCaptor;
+import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectSpy;
 import io.smallrye.reactive.messaging.memory.InMemoryConnector;
@@ -67,6 +71,7 @@ class SubscriptionKafkaMessageConsumerTest {
       </CanonicalMessage>
       """;
 
+  @InjectMock FeatureFlags featureFlags;
   @InjectSpy SubscriptionKafkaMessageConsumer consumer;
   @Inject @Any InMemoryConnector connector;
 
@@ -81,6 +86,7 @@ class SubscriptionKafkaMessageConsumerTest {
   void setUp() {
     subscriptionKafkaChannel = connector.source(IT_SUBSCRIPTION_SYNC);
     LoggerCaptor.clearRecords();
+    when(featureFlags.isItSubscriptionServiceKafkaConsumerEnabled()).thenReturn(true);
   }
 
   @Test
@@ -110,8 +116,19 @@ class SubscriptionKafkaMessageConsumerTest {
     LoggerCaptor.thenLogNothing();
   }
 
+  @Test
+  void shouldIgnoreMessagesWhenFeatureFlagIsDisabled() {
+    when(featureFlags.isItSubscriptionServiceKafkaConsumerEnabled()).thenReturn(false);
+    whenSendMessage(SUBSCRIPTION_XML);
+    assertMessageIsNotProcessed();
+  }
+
   private void whenSendMessage(String message) {
     subscriptionKafkaChannel.send(message);
+  }
+
+  private void assertMessageIsNotProcessed() {
+    verify(consumer, after(500).never()).consumeSubscription(SUBSCRIPTION_XML);
   }
 
   private void thenKafkaSubscriptionDeserializedSuccessfully() {
