@@ -869,6 +869,7 @@ This section verifies the automatic contract termination behavior when contracts
 - **Description**: Verify subscription creation via UMB XML message.  
 - **Setup**:  
   - Ensure `UMB_ENABLED=true`
+  - Ensure Unleash toggle `swatch.swatch-contracts.enable-it-subscription-service` is enabled (UMB subscription consumer from IT Subscription Service)
 - **Action**:  
   - Publish message to `VirtualTopic.canonical.subscription` channel
 - **Verification**:  
@@ -884,6 +885,9 @@ This section verifies the automatic contract termination behavior when contracts
 
 **subscriptions-creation-TC002 - Process UMB subscription with AWS external references**  
 - **Description**: Verify AWS marketplace subscription data extraction from UMB.  
+- **Setup**:
+  - Ensure `UMB_ENABLED=true`
+  - Ensure Unleash toggle `swatch.swatch-contracts.enable-it-subscription-service` is enabled (UMB subscription consumer from IT Subscription Service)
 - **Action**:  
   - Publish message to `VirtualTopic.canonical.subscription` channel  
 - **Verification**: Query subscription and check AWS fields  
@@ -895,6 +899,9 @@ This section verifies the automatic contract termination behavior when contracts
 
 **subscriptions-creation-TC003 - Process UMB subscription with Azure external references**  
 - **Description**: Verify Azure marketplace subscription data from UMB.  
+- **Setup**:
+  - Ensure `UMB_ENABLED=true`
+  - Ensure Unleash toggle `swatch.swatch-contracts.enable-it-subscription-service` is enabled (UMB subscription consumer from IT Subscription Service)
 - **Action**:  
   - Publish message to `SUBSCRIPTION_SYNC_TASK_UMB` Kafka topic  
 - **Verification**: Check Azure-specific fields  
@@ -903,6 +910,9 @@ This section verifies the automatic contract termination behavior when contracts
 
 **subscriptions-creation-TC004 - Process malformed UMB XML message**  
 - **Description**: Verify error handling for invalid XML.  
+- **Setup**:
+  - Ensure `UMB_ENABLED=true`
+  - Ensure Unleash toggle `swatch.swatch-contracts.enable-it-subscription-service` is enabled (UMB subscription consumer from IT Subscription Service)
 - **Action**:  
   - Publish malformed UMB XML message to `VirtualTopic.canonical.subscription` channel  
 - **Verification**: Subscription not created  
@@ -913,6 +923,9 @@ This section verifies the automatic contract termination behavior when contracts
 
 **subscriptions-creation-TC005 - Process UMB message with missing required fields**  
 - **Description**: Verify validation for incomplete subscription data.  
+- **Setup**:
+  - Ensure `UMB_ENABLED=true`
+  - Ensure Unleash toggle `swatch.swatch-contracts.enable-it-subscription-service` is enabled (UMB subscription consumer from IT Subscription Service)
 - **Action**:  
   - Publish the UMB message with missing required fields to `VirtualTopic.canonical.subscription` channel  
 - **Verification**: Check for validation errors  
@@ -924,6 +937,8 @@ This section verifies the automatic contract termination behavior when contracts
 **subscriptions-creation-TC006 - Process subscription update via UMB**  
 - **Description**: Verify subscription updates through messaging.  
 - **Setup**:  
+  - Ensure `UMB_ENABLED=true`
+  - Ensure Unleash toggle `swatch.swatch-contracts.enable-it-subscription-service` is enabled (UMB subscription consumer from IT Subscription Service)
   - Send initial subscription message  
   - Send an update with a different quantity or dates  
 - **Action**: Publish initial message, then update the message  
@@ -936,6 +951,9 @@ This section verifies the automatic contract termination behavior when contracts
 
 **subscriptions-creation-TC007 - Process terminated subscription via UMB**  
 - **Description**: Verify subscription termination messages.  
+- **Setup**:
+  - Ensure `UMB_ENABLED=true`
+  - Ensure Unleash toggle `swatch.swatch-contracts.enable-it-subscription-service` is enabled (UMB subscription consumer from IT Subscription Service)
 - **Action**:  
   - Publish message to `VirtualTopic.canonical.subscription` channel  
   - Update the end date to the current timestamp  

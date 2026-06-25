@@ -21,9 +21,12 @@
 package com.redhat.swatch.contract.service;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.redhat.swatch.contract.config.FeatureFlags;
 import com.redhat.swatch.contract.model.EnabledOrgsResponse;
 import com.redhat.swatch.contract.product.umb.UmbSubscription;
 import com.redhat.swatch.contract.test.resources.EnableUmbResource;
@@ -31,6 +34,7 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
@@ -40,7 +44,13 @@ class SubscriptionSyncTaskConsumerTest {
   private static final String ORG_ID = "org123";
 
   @InjectMock SubscriptionSyncService service;
+  @InjectMock FeatureFlags featureFlags;
   @Inject SubscriptionSyncTaskConsumer consumer;
+
+  @BeforeEach
+  void setUp() {
+    when(featureFlags.isItSubscriptionServiceUmbConsumerEnabled()).thenReturn(true);
+  }
 
   @Test
   void testConsumeFromTopic() {
@@ -70,5 +80,28 @@ class SubscriptionSyncTaskConsumerTest {
                 """;
     consumer.consumeFromUmb(productMessageXml);
     verify(service).saveUmbSubscription(any(UmbSubscription.class));
+  }
+
+  @Test
+  void testConsumeFromUmb_whenFeatureFlagIsDisabled() throws JsonProcessingException {
+    when(featureFlags.isItSubscriptionServiceUmbConsumerEnabled()).thenReturn(false);
+    String productMessageXml =
+        """
+               <CanonicalMessage>
+                <Payload>
+                    <Sync>
+                        <Subscription>
+                            <Identifiers>
+                                <Reference system="EBS" entity-name="Account" qualifier="number">account123</Reference>
+                                <Reference system="WEB" entity-name="Customer" qualifier="id">org123_ICUST</Reference>
+                                <Identifier system="SUBSCRIPTION" entity-name="Subscription" qualifier="number">1234</Identifier>
+                            </Identifiers>
+                        </Subscription>
+                    </Sync>
+                </Payload>
+               </CanonicalMessage>
+                """;
+    consumer.consumeFromUmb(productMessageXml);
+    verify(service, never()).saveUmbSubscription(any(UmbSubscription.class));
   }
 }
