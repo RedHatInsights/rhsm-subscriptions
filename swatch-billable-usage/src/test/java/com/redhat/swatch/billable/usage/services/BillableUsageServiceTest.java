@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -221,6 +222,114 @@ class BillableUsageServiceTest {
     thenRemittanceIsUpdated(usage, 28.0);
     thenUsageIsSent(usage, usage.getValue());
     thenBillableMeterMatches(usage, 28.0);
+  }
+
+  /**
+   * Contract removed mid-month: remittance already recorded is preserved; additional usage after
+   * contract restore is adjusted. One metric per {@link #contractAdjustmentForRemoveContract()}
+   * row.
+   */
+  @ParameterizedTest
+  @MethodSource("contractAdjustmentForRemoveContract")
+  void verifyContractAdjustmentForRemoveContract(
+      MetricId metricId, double expectedInitialRemitted, double expectedFinalRemitted)
+      throws ApiException {
+    double applicableMetricUsage = 100.0;
+    double totalBillingUsage = applicableMetricUsage * 2;
+
+    // Phase 1: contract (coverage 6), first usage event (100)
+    BillableUsage firstUsage =
+        givenUsageForRosa(metricId, applicableMetricUsage, applicableMetricUsage);
+    givenExistingContractForUsage(contractWithCoverage(firstUsage, 6), firstUsage);
+
+    service.submitBillableUsage(firstUsage);
+
+    assertEquals(expectedInitialRemitted, getAccountRemitted(firstUsage));
+
+    // Phase 2: no contract, re-process same cumulative usage (increment 0)
+    givenContractApiReturnsNoContracts();
+
+    BillableUsage retally = givenUsageForRosa(metricId, 0.0, applicableMetricUsage);
+    service.submitBillableUsage(retally);
+    assertEquals(expectedInitialRemitted, getAccountRemitted(retally));
+
+    // Phase 3: contract restored, second event (increment 100, total 200)
+    givenExistingContractForUsage(contractWithCoverage(firstUsage, 6), firstUsage);
+    BillableUsage secondUsage =
+        givenUsageForRosa(metricId, applicableMetricUsage, totalBillingUsage);
+    service.submitBillableUsage(secondUsage);
+
+    assertEquals(expectedFinalRemitted, getAccountRemitted(secondUsage));
+  }
+
+  /**
+   * Second contract added mid-month: remittance stays at first-contract value until usage exceeds
+   * combined coverage. Component twin: {@code ContractAdjustmentComponentTest}.
+   */
+  @ParameterizedTest
+  @MethodSource("contractAdjustmentWhenAddMoreContractInMidMonth")
+  void verifyContractAdjustmentWhenAddMoreContractInMidMonth(
+      MetricId metricId, double expectedInitialRemitted, double expectedFinalRemitted)
+      throws ApiException {
+    double applicableMetricUsage = 100.0;
+    double totalAfterSecondEvent = applicableMetricUsage * 2;
+    double totalAfterThirdEvent = totalAfterSecondEvent + 301.0;
+
+    // Phase 1: first contract (coverage 10), usage 100
+    BillableUsage firstUsage =
+        givenUsageForRosa(metricId, applicableMetricUsage, applicableMetricUsage);
+    givenExistingContractForUsage(contractWithCoverage(firstUsage, 10), firstUsage);
+
+    service.submitBillableUsage(firstUsage);
+
+    assertEquals(expectedInitialRemitted, getAccountRemitted(firstUsage));
+
+    // Phase 2: second contract added, re-process without new usage
+    Contract initialContract = contractWithCoverage(firstUsage, 10);
+    Contract addedContract = contractWithCoverage(firstUsage, 100);
+    givenContractApiReturnsContracts(initialContract, addedContract);
+
+    BillableUsage retally = givenUsageForRosa(metricId, 0.0, applicableMetricUsage);
+    service.submitBillableUsage(retally);
+    assertEquals(expectedInitialRemitted, getAccountRemitted(retally));
+
+    // Phase 3: second usage event (cumulative 200) — still first-contract remittance
+    BillableUsage secondUsage =
+        givenUsageForRosa(metricId, applicableMetricUsage, totalAfterSecondEvent);
+    service.submitBillableUsage(secondUsage);
+    assertEquals(expectedInitialRemitted, getAccountRemitted(secondUsage));
+
+    // Phase 4: large third event (cumulative 501) — combined contract coverage
+    BillableUsage thirdUsage = givenUsageForRosa(metricId, 301.0, totalAfterThirdEvent);
+    service.submitBillableUsage(thirdUsage);
+
+    assertEquals(expectedFinalRemitted, getAccountRemitted(thirdUsage));
+  }
+
+  static Stream<Arguments> contractAdjustmentForRemoveContract() {
+    // Remittance = ceil(usage × billingFactor) / billingFactor − contractCoverage / billingFactor
+    // Phase 3 (total usage 200): alreadyRemitted + ceil((200 − alreadyRemitted) × bf) / bf − 6/bf
+    //   Cores (bf=0.25): initial 100 − 24 = 76; final 76 + (124 − 24) = 176
+    //   Instance-hours (bf=1): initial 100 − 6 = 94; final 94 + (106 − 6) = 194
+    return Stream.of(
+        arguments(MetricIdUtils.getCores(), 76.0, 176.0),
+        arguments(MetricIdUtils.getInstanceHours(), 94.0, 194.0));
+  }
+
+  static Stream<Arguments> contractAdjustmentWhenAddMoreContractInMidMonth() {
+    // Phase 1: contract coverage 10 billable units, usage 100
+    // Phase 4: combined contract coverage 110, cumulative usage 501 (100 + 100 + 301)
+    //   Cores (bf=0.25): initial 100 − 40 = 60; final 60 + (444 − 440) = 64
+    //   Instance-hours (bf=1): initial 100 − 10 = 90; final 90 + (411 − 110) = 391
+    return Stream.of(
+        arguments(MetricIdUtils.getCores(), 60.0, 64.0),
+        arguments(MetricIdUtils.getInstanceHours(), 90.0, 391.0));
+  }
+
+  /** BillableUsage snapshotDate is overwritten during processing; reset for remittance lookup. */
+  private double getAccountRemitted(BillableUsage usage) {
+    usage.setSnapshotDate(CLOCK.startOfCurrentMonth());
+    return service.getTotalRemitted(usage);
   }
 
   // Simulates progression through contract billing.
@@ -508,8 +617,11 @@ class BillableUsageServiceTest {
   }
 
   private BillableUsage givenCoresUsageForRosa(Double value, Double currentTotal) {
-    return billable(
-        ROSA, MetricIdUtils.getCores(), CLOCK.startOfCurrentMonth(), value, currentTotal);
+    return givenUsageForRosa(MetricIdUtils.getCores(), value, currentTotal);
+  }
+
+  private BillableUsage givenUsageForRosa(MetricId metricId, Double value, Double currentTotal) {
+    return billable(ROSA, metricId, CLOCK.startOfCurrentMonth(), value, currentTotal);
   }
 
   private BillableUsage billable(
@@ -536,19 +648,41 @@ class BillableUsageServiceTest {
     givenExistingContractForUsage(contract, usage);
   }
 
+  private Contract contractWithCoverage(BillableUsage usage, int billableUnits) {
+    Contract contract = new Contract();
+    contract.setStartDate(usage.getSnapshotDate().minusDays(10));
+    contract.addMetricsItem(
+        new Metric()
+            .metricId(
+                SubscriptionDefinition.getAwsDimension(
+                    usage.getProductId(), MetricId.fromString(usage.getMetricId()).getValue()))
+            .value(billableUnits));
+    return contract;
+  }
+
   private void givenExistingContractForUsage(Contract contract, BillableUsage usage) {
     try {
       when(contractsApi.getContract(
-              usage.getOrgId(),
-              usage.getProductId(),
-              usage.getVendorProductCode(),
-              usage.getBillingProvider().value(),
-              usage.getBillingAccountId(),
-              usage.getSnapshotDate()))
+              eq(usage.getOrgId()),
+              eq(usage.getProductId()),
+              any(),
+              eq(usage.getBillingProvider().value()),
+              eq(usage.getBillingAccountId()),
+              any(OffsetDateTime.class)))
           .thenReturn(List.of(contract));
     } catch (ApiException e) {
       fail(e);
     }
+  }
+
+  private void givenContractApiReturnsContracts(Contract... contracts) throws ApiException {
+    when(contractsApi.getContract(any(), any(), any(), any(), any(), any(OffsetDateTime.class)))
+        .thenReturn(List.of(contracts));
+  }
+
+  private void givenContractApiReturnsNoContracts() throws ApiException {
+    when(contractsApi.getContract(any(), any(), any(), any(), any(), any(OffsetDateTime.class)))
+        .thenReturn(List.of());
   }
 
   private List<Contract> givenExistingContract(
