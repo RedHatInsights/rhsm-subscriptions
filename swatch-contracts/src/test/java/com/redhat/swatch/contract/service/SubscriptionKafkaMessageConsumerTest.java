@@ -22,11 +22,14 @@ package com.redhat.swatch.contract.service;
 
 import static com.redhat.swatch.contract.config.Channels.IT_SUBSCRIPTION_SYNC;
 import static org.awaitility.Awaitility.await;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.after;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.contract.config.FeatureFlags;
+import com.redhat.swatch.contract.product.umb.UmbSubscription;
 import com.redhat.swatch.contract.test.LoggerCaptor;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -72,6 +75,7 @@ class SubscriptionKafkaMessageConsumerTest {
       """;
 
   @InjectMock FeatureFlags featureFlags;
+  @InjectMock SubscriptionSyncService service;
   @InjectSpy SubscriptionKafkaMessageConsumer consumer;
   @Inject @Any InMemoryConnector connector;
 
@@ -97,6 +101,7 @@ class SubscriptionKafkaMessageConsumerTest {
         .atMost(Duration.ofMillis(500))
         .untilAsserted(() -> verify(consumer).consumeSubscription(SUBSCRIPTION_XML));
     thenKafkaSubscriptionDeserializedSuccessfully();
+    verify(service).saveUmbSubscription(any(UmbSubscription.class));
   }
 
   @Test
@@ -107,27 +112,30 @@ class SubscriptionKafkaMessageConsumerTest {
         .atMost(Duration.ofMillis(500))
         .untilAsserted(() -> verify(consumer).consumeSubscription("this is not xml"));
     LoggerCaptor.thenWarnLogWithMessage("Unable to process IT Subscription Kafka message");
+    verify(service, never()).saveUmbSubscription(any(UmbSubscription.class));
   }
 
   @Test
-  void shouldIgnoreNullMessage() {
+  void shouldIgnoreNullMessage() throws Exception {
     consumer.consumeFromKafka(null);
 
     LoggerCaptor.thenLogNothing();
+    verify(service, never()).saveUmbSubscription(any(UmbSubscription.class));
   }
 
   @Test
-  void shouldIgnoreMessagesWhenFeatureFlagIsDisabled() {
+  void shouldIgnoreMessagesWhenFeatureFlagIsDisabled() throws Exception {
     when(featureFlags.isItSubscriptionServiceKafkaConsumerEnabled()).thenReturn(false);
     whenSendMessage(SUBSCRIPTION_XML);
     assertMessageIsNotProcessed();
+    verify(service, after(500).never()).saveUmbSubscription(any(UmbSubscription.class));
   }
 
   private void whenSendMessage(String message) {
     subscriptionKafkaChannel.send(message);
   }
 
-  private void assertMessageIsNotProcessed() {
+  private void assertMessageIsNotProcessed() throws Exception {
     verify(consumer, after(500).never()).consumeSubscription(SUBSCRIPTION_XML);
   }
 
