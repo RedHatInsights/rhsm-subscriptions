@@ -84,8 +84,9 @@ public class EventNormalizer {
    * @return list of flattened events containing only valid tag-measurement pairs
    */
   public List<Event> flattenEventUsage(Event event) {
-    Set<String> tags = event.getProductTag();
-    Set<Measurement> measurements = new HashSet<>(event.getMeasurements());
+    Set<String> tags = Objects.isNull(event.getProductTag()) ? Set.of() : event.getProductTag();
+    Set<Measurement> measurements =
+        Objects.isNull(event.getMeasurements()) ? Set.of() : new HashSet<>(event.getMeasurements());
 
     return tags.stream()
         .flatMap(

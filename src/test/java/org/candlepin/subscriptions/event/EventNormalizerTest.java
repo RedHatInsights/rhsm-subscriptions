@@ -480,6 +480,20 @@ class EventNormalizerTest {
     assertTrue(flattened.isEmpty());
   }
 
+  @Test
+  void flattenEventUsageWithNullMeasurements() {
+    Event event = createEvent();
+    event.setMeasurements(null);
+    assertTrue(normalizer.flattenEventUsage(event).isEmpty());
+  }
+
+  @Test
+  void flattenEventUsageWithNullProductTags() {
+    Event event = createEvent();
+    event.setProductTag(null);
+    assertTrue(normalizer.flattenEventUsage(event).isEmpty());
+  }
+
   // Helper methods
 
   private Event createEvent() {
@@ -487,6 +501,8 @@ class EventNormalizerTest {
     event.setOrgId("test-org");
     event.setInstanceId("test-instance");
     event.setServiceType("RHEL System");
+    event.setMeasurements(List.of());
+    event.setProductTag(Set.of());
     return event;
   }
 
