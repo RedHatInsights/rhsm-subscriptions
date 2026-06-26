@@ -94,6 +94,43 @@ public final class BillableUsageTestHelper {
         orgId, productId, metricId, value, BillingProvider.AWS, RandomUtils.generateRandom());
   }
 
+  /**
+   * Create a tally summary where {@code currentTotal} reflects cumulative usage for the month while
+   * {@code value} is the increment from this snapshot. Use for re-tally and contract-adjustment
+   * scenarios.
+   */
+  public static TallySummary createTallySummaryWithCurrentTotal(
+      String orgId,
+      String productId,
+      String metricId,
+      double value,
+      double currentTotal,
+      BillingProvider billingProvider,
+      String billingAccountId) {
+    var measurement = new TallyMeasurement();
+    measurement.setHardwareMeasurementType("PHYSICAL");
+    measurement.setMetricId(metricId);
+    measurement.setValue(value);
+    measurement.setCurrentTotal(currentTotal);
+
+    var snapshot = new TallySnapshot();
+    snapshot.setId(UUID.randomUUID());
+    snapshot.setProductId(productId);
+    snapshot.setBillingProvider(billingProvider.toTallyApiModel());
+    snapshot.setBillingAccountId(billingAccountId);
+    snapshot.setSnapshotDate(
+        OffsetDateTime.now().minusHours(1).withOffsetSameInstant(ZoneOffset.UTC));
+    snapshot.setSla(TallySnapshot.Sla.PREMIUM);
+    snapshot.setUsage(TallySnapshot.Usage.PRODUCTION);
+    snapshot.setGranularity(TallySnapshot.Granularity.HOURLY);
+    snapshot.setTallyMeasurements(List.of(measurement));
+
+    var tallySummary = new TallySummary();
+    tallySummary.setOrgId(orgId);
+    tallySummary.setTallySnapshots(List.of(snapshot));
+    return tallySummary;
+  }
+
   public static TallySummary createTallySummaryWithGranularity(
       String orgId,
       String productId,
