@@ -181,10 +181,14 @@ class EventConflictResolverTest {
         Arguments.of(
             List.of(event(Set.of(ROSA), Map.of(CORES, 6.0))),
             List.of(
-                event(Set.of(ROSA), Map.of(CORES, 6.0)).withBillingProvider(BillingProvider.GCP)),
+                event(Set.of(ROSA), Map.of(CORES, 6.0))
+                    .withBillingProvider(BillingProvider.GCP)
+                    .withBillingAccountId("test-ba-1")),
             List.of(
                 deduction(Set.of(ROSA), Map.of(CORES, -6.0)),
-                event(Set.of(ROSA), Map.of(CORES, 6.0)).withBillingProvider(BillingProvider.GCP))));
+                event(Set.of(ROSA), Map.of(CORES, 6.0))
+                    .withBillingProvider(BillingProvider.GCP)
+                    .withBillingAccountId("test-ba-1"))));
   }
 
   @ParameterizedTest
