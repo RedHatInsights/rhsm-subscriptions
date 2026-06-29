@@ -38,7 +38,7 @@
     <junit.version>6.1.0</junit.version>
     <mockito.version>5.23.0</mockito.version>
     <awaitility.version>4.3.0</awaitility.version>
-    <hibernate-validator.version>9.1.0.Final</hibernate-validator.version>
+    <hibernate-validator.version>9.1.1.Final</hibernate-validator.version>
     <swagger-parser.version>2.1.45</swagger-parser.version>
     <swagger-ui.version>5.32.6</swagger-ui.version>
     <splunk-otel-javaagent.version>2.28.0</splunk-otel-javaagent.version>
