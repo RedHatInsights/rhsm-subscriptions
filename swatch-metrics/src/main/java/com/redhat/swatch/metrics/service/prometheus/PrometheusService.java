@@ -85,7 +85,17 @@ public class PrometheusService {
       File data =
           queryRangeApi.queryRange(
               query, start.toEpochSecond(), end.toEpochSecond(), Integer.toString(step), timeout);
-      return parseQueryResult(data, resultDataItemConsumer);
+      try {
+        return parseQueryResult(data, resultDataItemConsumer);
+      } finally {
+        // Clean up temporary response file to prevent memory leak
+        if (data != null && data.exists()) {
+          if (!data.delete()) {
+            log.warn(
+                "Failed to delete temporary Prometheus response file: {}", data.getAbsolutePath());
+          }
+        }
+      }
     } catch (ProcessingException | ApiException ex) {
       throw new ExternalServiceException(
           ErrorCode.REQUEST_PROCESSING_ERROR, formatErrorMessage(ex), ex);
@@ -102,7 +112,17 @@ public class PrometheusService {
     try {
       log.debug("Running prometheus query: Time: {}, Query: {}", time.toEpochSecond(), query);
       File data = queryApi.query(query, time, timeout);
-      return parseQueryResult(data, itemConsumer);
+      try {
+        return parseQueryResult(data, itemConsumer);
+      } finally {
+        // Clean up temporary response file to prevent memory leak
+        if (data != null && data.exists()) {
+          if (!data.delete()) {
+            log.warn(
+                "Failed to delete temporary Prometheus response file: {}", data.getAbsolutePath());
+          }
+        }
+      }
     } catch (ProcessingException | ApiException ex) {
       throw new ExternalServiceException(
           ErrorCode.REQUEST_PROCESSING_ERROR, formatErrorMessage(ex), ex);

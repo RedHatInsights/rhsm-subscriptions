@@ -154,9 +154,9 @@ public class PrometheusMeteringController {
       OffsetDateTime start,
       OffsetDateTime end,
       AtomicInteger counter) {
+    Sample sample = Timer.start(registry);
     try {
       log.info("Collecting metrics for orgId={}: {} {}", orgId, tag, metric);
-      Sample sample = Timer.start(registry);
       AtomicInteger eventsSent = new AtomicInteger(0);
       QuerySummaryResult metricData =
           prometheusService.runRangeQuery(
@@ -180,6 +180,8 @@ public class PrometheusMeteringController {
 
       log.info("Sent {} events for {} {} metrics.", eventsSent.get(), tag, metric);
     } catch (Exception e) {
+      // Stop the timer even on failure to prevent Timer.Sample leak
+      sample.stop(registry.timer("metrics.collection.timer", PRODUCT_TAG, tag, "status", "error"));
       log.warn(
           "Exception thrown while updating {} {} {} metrics. [Attempt: {}]: {}",
           tag,
