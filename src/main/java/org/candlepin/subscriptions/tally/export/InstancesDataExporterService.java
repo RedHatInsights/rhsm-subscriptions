@@ -41,11 +41,7 @@ import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.candlepin.subscriptions.configuration.FeatureFlags;
-import org.candlepin.subscriptions.db.TallyInstanceNonPaygPrimaryViewRepository;
-import org.candlepin.subscriptions.db.TallyInstanceNonPaygViewRepository;
-import org.candlepin.subscriptions.db.TallyInstancePaygPrimaryViewRepository;
-import org.candlepin.subscriptions.db.TallyInstancePaygViewRepository;
+import org.candlepin.subscriptions.db.TallyInstanceViewRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
@@ -55,7 +51,6 @@ import org.candlepin.subscriptions.db.model.Usage;
 // NOTE(khowell): this couples our export implementation to the v1 REST API
 import org.candlepin.subscriptions.utilization.api.v1.model.ReportCategory;
 import org.springframework.context.annotation.Profile;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.repository.query.FluentQuery;
 import org.springframework.stereotype.Component;
 
@@ -96,16 +91,9 @@ public class InstancesDataExporterService implements DataExporterService<TallyIn
 
   private static final List<String> MANDATORY_FILTERS = List.of(PRODUCT_ID);
 
-  private final TallyInstancePaygViewRepository paygViewRepository;
-  private final TallyInstanceNonPaygViewRepository nonPaygViewRepository;
-
-  private final TallyInstancePaygPrimaryViewRepository paygPrimaryViewRepository;
-  private final TallyInstanceNonPaygPrimaryViewRepository nonPaygPrimaryViewRepository;
-
+  private final TallyInstanceViewRepository instanceViewRepository;
   private final InstancesJsonDataMapperService jsonDataMapperService;
   private final InstancesCsvDataMapperService csvDataMapperService;
-
-  private final FeatureFlags featureFlags;
 
   @Override
   public boolean handles(ExportServiceRequest request) {
@@ -117,22 +105,11 @@ public class InstancesDataExporterService implements DataExporterService<TallyIn
     log.debug("Fetching data for {}", request.getOrgId());
 
     var reportCriteria = extractExportFilter(request);
-    var repository = selectRepository(reportCriteria.getProductId());
+    var repository = instanceViewRepository.selectRepository(reportCriteria);
 
     return repository
         .findBy(buildSearchSpecification(reportCriteria), FluentQuery.FetchableFluentQuery::stream)
         .map(TallyInstanceView.class::cast);
-  }
-
-  private JpaSpecificationExecutor<? extends TallyInstanceView> selectRepository(
-      ProductId productId) {
-    // TODO Enable with featureFlags.isEnabled(FeatureFlags.ENABLE_HTB_PRIMARY_ROW_SEARCHES, false);
-    //  for SWATCH-4862
-    boolean usePrimary = false;
-    if (productId.isPayg()) {
-      return usePrimary ? paygPrimaryViewRepository : paygViewRepository;
-    }
-    return usePrimary ? nonPaygPrimaryViewRepository : nonPaygViewRepository;
   }
 
   @Override
@@ -182,7 +159,7 @@ public class InstancesDataExporterService implements DataExporterService<TallyIn
     if (!report.build().getProductId().isPayg()) {
       report.month(null);
     }
-
+    report.usePrimary(instanceViewRepository.isPrimaryRowSearchEnabled());
     return report.build();
   }
 
