@@ -863,7 +863,7 @@ This section verifies the automatic contract termination behavior when contracts
   - Contract synced with upstream end_date
   - Subscription retains all contract-provided state
 
-## Subscription Management via UMB
+## Subscription Management via IT Subscription
 
 **subscriptions-creation-TC001 - Process a valid UMB subscription XML message from UMB**  
 - **Description**: Verify subscription creation via UMB XML message.  
@@ -962,6 +962,146 @@ This section verifies the automatic contract termination behavior when contracts
   - Subscription marked as terminated  
   - `end_date` set to termination date  
   - Status reflects termination
+
+**subscriptions-creation-TC008 - Handle null/empty optional fields**
+- **Description**: Verify that a subscription message with null or empty optional fields (e.g., null
+  `billing_account_id`, empty `billing_provider_id`) is processed successfully without errors.
+- **Setup**:
+  - Ensure `UMB_ENABLED=true`
+  - Ensure Unleash toggle `swatch.swatch-contracts.enable-it-subscription-service` is enabled
+- **Action**: Publish a `CanonicalMessage` XML with null/empty optional billing fields to `VirtualTopic.canonical.subscription` channel
+- **Verification**: Poll subscriptions until created; verify subscription fields
+- **Expected Result**:
+  - Subscription created with correct `subscription_number`, `quantity`, and `sku`
+  - Optional fields with null values are stored as null (not rejected)
+  - Consumer processes message without errors or warnings
+  - No `NullPointerException` or validation errors logged
+
+**subscriptions-creation-TC011 - Handle invalid/unknown billing provider value**
+- **Description**: Verify that a subscription message with an invalid or unknown billing provider
+  value (e.g., "GCP", "UNKNOWN") is handled gracefully.
+- **Setup**:
+  - Ensure `UMB_ENABLED=true`
+  - Ensure Unleash toggle `swatch.swatch-contracts.enable-it-subscription-service` is enabled
+- **Action**: Publish a `CanonicalMessage` XML with an invalid billing provider value to `VirtualTopic.canonical.subscription` channel
+- **Verification**: Check service logs and subscription table
+- **Expected Result**:
+  - Subscription is created with core fields (`subscription_number`, `quantity`, `sku`)
+  - Invalid billing provider value is either:
+    - Stored as-is for audit purposes, OR
+    - Filtered/nullified with a warning log
+  - Consumer does not crash or reject the entire message
+  - Warn log indicates invalid billing provider value encountered
+
+**subscriptions-creation-umb-TC008 - Ignore UMB message when IT subscription service flag is disabled**
+- **Description**: Verify that when the Unleash flag
+  `swatch.swatch-contracts.enable-it-subscription-service` is **disabled**, the UMB
+  consumer exits early and no subscription is persisted.
+- **Setup**:
+  - Ensure `UMB_ENABLED=true`
+  - Unleash toggle `swatch.swatch-contracts.enable-it-subscription-service` is disabled
+- **Action**: Publish a valid `CanonicalMessage` XML to `VirtualTopic.canonical.subscription` channel
+- **Verification**: Poll subscriptions after 3 second delay via internal API
+- **Expected Result**: Zero subscriptions created for the test org
+
+**subscriptions-creation-umb-TC009 - Ignore UMB message when UMB consumer disabled via variant**
+- **Description**: Verify that a `config` variant payload of
+  `{"umb_consumer_enabled":false}` blocks the UMB consumer while the flag itself
+  remains enabled.
+- **Setup**:
+  - Ensure `UMB_ENABLED=true`
+  - Unleash flag `swatch.swatch-contracts.enable-it-subscription-service` enabled
+  - `config` variant set with `umb_consumer_enabled=false`
+- **Action**: Publish a valid `CanonicalMessage` XML to `VirtualTopic.canonical.subscription` channel
+- **Verification**: Poll subscriptions after 3 second delay via internal API
+- **Expected Result**: Zero subscriptions created for the test org
+
+**subscriptions-creation-umb-TC010 - Process UMB message when UMB enabled and Kafka disabled via variant**
+- **Description**: Verify that disabling the Kafka consumer via variant
+  (`kafka_consumer_enabled=false`) does not prevent the UMB consumer from working.
+- **Setup**:
+  - Ensure `UMB_ENABLED=true`
+  - Unleash flag `swatch.swatch-contracts.enable-it-subscription-service` enabled
+  - `config` variant set with `{"kafka_consumer_enabled":false,"umb_consumer_enabled":true}`
+- **Action**: Publish a valid `CanonicalMessage` XML to `VirtualTopic.canonical.subscription` channel
+- **Verification**: Poll subscriptions until created
+- **Expected Result**:
+  - Subscription created with correct `quantity` and `sku`
+  - Kafka consumer is independently disabled (not tested in this TC)
+
+**subscriptions-creation-kafka-TC001 - Kafka consumer happy path**
+- **Description**: Verify that a valid `CanonicalMessage` XML delivered via Kafka is
+  deserialized and persisted as a subscription (Kafka consumer smoke test).
+- **Setup**:
+  - Unleash toggle `swatch.swatch-contracts.enable-it-subscription-service` is enabled
+  - WireMock stubs for Search API (`getSubscriptionBySubscriptionNumber`) and Product API
+    (`offeringData`) are in place
+- **Action**: Publish a valid `CanonicalMessage` XML string to the
+  `subscription.subscriptions.private` Kafka topic via Kafka Bridge
+- **Verification**: Query subscriptions via internal API for the test org
+- **Expected Result**:
+  - One subscription created with matching `subscription_number`, `quantity`, `sku`,
+    `start_date`, and `end_date` (dates converted from America/New_York to UTC)
+
+**subscriptions-creation-kafka-TC002 - Reject malformed XML from Kafka**
+- **Description**: Verify that unparseable XML causes a warn log and does not crash the
+  Kafka consumer or leave a partial subscription in the database (Kafka-specific error handling).
+- **Setup**: IT subscription service flag enabled; no WireMock setup needed
+- **Action**: Publish a non-XML string to the `subscription.subscriptions.private` topic
+- **Verification**: Check service logs and subscription table
+- **Expected Result**:
+  - Warn log: `Unable to process IT Subscription Kafka message`
+  - No subscription created for the test org
+  - Consumer continues to accept subsequent messages (`failure-strategy=ignore`)
+
+**subscriptions-creation-kafka-TC003 - Reject Kafka message with missing required fields**
+- **Description**: Verify Kafka consumer validation for incomplete subscription data.
+- **Setup**: IT subscription service flag enabled; WireMock stubs in place
+- **Action**: Publish `CanonicalMessage` with missing required fields (e.g., missing `subscription_number` or `effectiveStartDate`) to the `subscription.subscriptions.private` topic
+- **Verification**: Check service logs and subscription table
+- **Expected Result**:
+  - Warn log or validation error logged
+  - No subscription created with incomplete data
+  - Consumer continues to accept subsequent messages
+
+**subscriptions-creation-kafka-TC004 - Ignore Kafka message when IT subscription service flag is disabled**
+- **Description**: Verify that when the Unleash flag
+  `swatch.swatch-contracts.enable-it-subscription-service` is **disabled**, the Kafka consumer exits early and no subscription is persisted.
+- **Setup**: Unleash toggle disabled; WireMock stubs in place
+- **Action**: Publish a valid `CanonicalMessage` XML to Kafka
+- **Verification**: Poll subscriptions after 3 second delay via internal API
+- **Expected Result**: Zero subscriptions created for the test org
+
+**subscriptions-creation-kafka-TC005 - Ignore Kafka message when Kafka consumer disabled via variant**
+- **Description**: Verify that a `config` variant payload of
+  `{"kafka_consumer_enabled":false}` blocks the Kafka consumer while the flag itself
+  remains enabled.
+- **Setup**: Unleash flag enabled; `config` variant set with `kafka_consumer_enabled=false`
+- **Action**: Publish a valid `CanonicalMessage` XML to Kafka
+- **Verification**: Poll subscriptions after 3 second delay via internal API
+- **Expected Result**: Zero subscriptions created for the test org
+
+**subscriptions-creation-kafka-TC006 - Process Kafka message when Kafka enabled and UMB disabled via variant**
+- **Description**: Verify that disabling the UMB consumer via variant
+  (`umb_consumer_enabled=false`) does not prevent the Kafka consumer from working.
+- **Setup**: Unleash flag enabled; `config` variant set with
+  `{"kafka_consumer_enabled":true,"umb_consumer_enabled":false}`; WireMock stubs in place
+- **Action**: Publish a valid `CanonicalMessage` XML to Kafka
+- **Verification**: Poll subscriptions until created
+- **Expected Result**:
+  - Subscription created with correct `quantity` and `sku`
+  - UMB consumer is independently disabled (not tested in this TC)
+
+**subscriptions-creation-kafka-TC007 - Process Kafka message when both consumers explicitly enabled via variant**
+- **Description**: Verify that explicitly enabling both Kafka and UMB consumers via variant
+  (`{"kafka_consumer_enabled":true,"umb_consumer_enabled":true}`) allows both to function correctly.
+- **Setup**: Unleash flag enabled; `config` variant set with
+  `{"kafka_consumer_enabled":true,"umb_consumer_enabled":true}`; WireMock stubs in place
+- **Action**: Publish a valid `CanonicalMessage` XML to Kafka
+- **Verification**: Poll subscriptions until created
+- **Expected Result**:
+  - Subscription created with correct `quantity` and `sku`
+  - Both Kafka and UMB consumers are enabled and operational
 
 ## Subscription Management via API
 
