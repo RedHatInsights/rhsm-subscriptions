@@ -118,6 +118,148 @@ Test cases should be testable locally and in deployed environments.
     - Service aggregates metrics across multiple hours
     - Instance deduplication works across time ranges
 
+## PAYG Product Tag Filtering
+
+**tally-payg-filter-TC001 - Mixed PAYG and TRADITIONAL tags filtered correctly**
+
+- **Description**: Verify that hourly tally filters out non-PAYG (TRADITIONAL) product tags from events with mixed tags
+- **Setup**:
+    - Organization is opted in
+    - Event with both PAYG tag (rhel-for-x86-els-payg-addon) and TRADITIONAL tag (rhel-for-x86-els-unconverted)
+    - Event has vCPUs metric with value 4.0
+- **Action**:
+    - Send event with mixed product tags to service instance ingress topic
+    - Perform hourly tally
+- **Verification**:
+    - PAYG product (rhel-for-x86-els-payg-addon) has tally sum of 4.0 for vCPUs
+    - TRADITIONAL product (rhel-for-x86-els-unconverted) has NO hourly tally data
+    - PAYG product appears in instances report with 1 instance
+    - TRADITIONAL product has 0 instances in hourly instances report
+- **Expected Result**:
+    - Only PAYG product tags are processed during hourly tally
+    - TRADITIONAL product tags are filtered out and not included in hourly billing
+
+**tally-payg-filter-TC002 - Event with only TRADITIONAL tags not tallied hourly**
+
+- **Description**: Verify that events containing only TRADITIONAL product tags are not processed by hourly tally
+- **Setup**:
+    - Organization is opted in
+    - Event with only TRADITIONAL tag (rhel-for-x86-els-unconverted)
+    - Event has Sockets metric with value 2.0
+- **Action**:
+    - Send event with only TRADITIONAL tag
+    - Perform hourly tally
+- **Verification**:
+    - TRADITIONAL product has NO hourly tally data (product_tag cleared to null)
+    - TRADITIONAL product has 0 instances in hourly instances report
+- **Expected Result**:
+    - Events with only TRADITIONAL tags are excluded from hourly processing
+    - product_tag field is cleared when no PAYG tags remain
+
+**tally-payg-filter-TC003 - Event with only PAYG tags processed normally**
+
+- **Description**: Verify that events containing only PAYG product tags are processed normally without filtering
+- **Setup**:
+    - Organization is opted in
+    - Event with only PAYG tag (rhel-for-x86-els-payg-addon)
+    - Event has vCPUs metric with value 4.0
+- **Action**:
+    - Send event with only PAYG tag
+    - Perform hourly tally
+- **Verification**:
+    - PAYG product has tally sum of 4.0 for vCPUs
+    - PAYG product appears in instances report with 1 instance
+- **Expected Result**:
+    - PAYG-only events are processed normally by hourly tally
+    - No filtering occurs when all tags are PAYG-eligible
+
+**tally-payg-filter-TC004 - Multiple events with mixed tags filtered correctly**
+
+- **Description**: Verify that multiple events with different tag combinations are all filtered correctly
+- **Setup**:
+    - Organization is opted in
+    - Event 1: Mixed tags (PAYG + TRADITIONAL) with vCPUs value 4.0
+    - Event 2: Mixed tags (PAYG + TRADITIONAL) with vCPUs value 2.0, 30 minutes later
+    - Event 3: PAYG only with vCPUs value 6.0, 45 minutes later (all in same hour)
+- **Action**:
+    - Send all three events
+    - Perform hourly tally
+- **Verification**:
+    - PAYG product has tally sum of 6.0 (max value from latest event)
+    - TRADITIONAL product has NO hourly tally data
+- **Expected Result**:
+    - All events have TRADITIONAL tags filtered out
+    - PAYG product correctly aggregates using max value per hour
+    - TRADITIONAL product excluded from all hourly processing
+
+**tally-payg-filter-TC005 - Conflict resolution with mixed PAYG and TRADITIONAL tags**
+
+- **Description**: Verify that conflict resolution correctly handles events with mixed tags, updating PAYG measurements while keeping TRADITIONAL tags filtered out
+- **Setup**:
+    - Organization is opted in
+    - Event 1: Mixed tags (PAYG + TRADITIONAL) with vCPUs value 4.0
+    - Perform hourly tally (creates initial snapshot)
+    - Event 2: Mixed tags (PAYG + TRADITIONAL) with vCPUs value 8.0 for same instance and hour (conflict)
+    - Perform hourly tally again (triggers conflict resolution)
+- **Action**:
+    - Send first event with mixed tags
+    - Perform hourly tally to create initial snapshot
+    - Send second conflicting event with mixed tags and higher value
+    - Perform hourly tally to trigger conflict resolution
+- **Verification**:
+    - After first tally: PAYG product has tally sum of 4.0
+    - After second tally: PAYG product has tally sum of 8.0 (conflict resolved to higher value)
+    - PAYG instance measurements updated to 8.0
+    - TRADITIONAL product has 0 instances in both tally runs
+- **Expected Result**:
+    - Conflict resolution works correctly with filtered PAYG tags
+    - PAYG product measurements are updated to the higher value
+    - TRADITIONAL tags remain filtered out during conflict resolution
+    - Instance data reflects the resolved measurement value
+
+**tally-payg-filter-TC006 - Mixed tags with single-metric edge case**
+
+- **Description**: Verify mixed PAYG/TRADITIONAL tag events still process correctly when only PAYG metric data is present.
+- **Setup**:
+    - Organization is opted in
+    - Event with PAYG + TRADITIONAL tags
+    - Event includes only vCPUs metric value (no TRADITIONAL metric)
+- **Action**:
+    - Send mixed-tag single-metric event
+    - Perform hourly tally
+- **Verification**:
+    - PAYG product has expected vCPUs tally
+    - PAYG instance is present with expected measurement
+    - TRADITIONAL product has 0 instances in hourly instances report
+- **Expected Result**:
+    - PAYG data is retained and tallied
+    - TRADITIONAL tag remains filtered out, even with incomplete metric payload
+
+**tally-payg-filter-TC007 - Role-based product tag lookup filters non-PAYG metrics**
+
+- **Description**: Verify that when product tag is derived from role (not explicitly provided), only metrics supported by the PAYG product are tallied and unsupported metrics are filtered out during normalization.
+- **Setup**:
+    - Organization is opted in
+    - Event with NO product tag (empty product tag set)
+    - Event with role "moa" which maps to PAYG product "rosa"
+    - Event includes BOTH a PAYG-supported metric (Cores) and a TRADITIONAL metric (Sockets)
+    - Cores metric value: 8.0
+    - Sockets metric value: 2.0
+    - Event has AWS billing provider and account ID
+- **Action**:
+    - Send event with empty product tag, role=moa, and mixed metrics to service instance ingress topic
+    - Perform hourly tally
+- **Verification**:
+    - Product tag "rosa" is derived from role "moa" during event normalization
+    - rosa product has tally sum of 8.0 for Cores metric
+    - rosa instance appears in hourly instances report with Cores=8.0 and Instance-hours=0.0
+    - Sockets metric is filtered out (not supported by rosa)
+    - NO RHEL product instances are created (Sockets metric should not trigger RHEL product creation)
+- **Expected Result**:
+    - Role-based product tag derivation works correctly for PAYG products
+    - Only metrics supported by the derived PAYG product are retained after normalization
+    - Unsupported metrics (like Sockets for rosa) are filtered out and do not cause incorrect product tallies
+
 ## Hypervisor Handling
 
 **tally-hypervisor-TC001 - RHEL hypervisor without guests appears in instances report**
