@@ -122,39 +122,56 @@ public class TallyInstanceViewRepository {
       SortDirection dir) {
 
     Objects.requireNonNull(productId, "productId must be provided");
-    var repository = selectRepository(productId);
 
+    TallyInstancesDbReportCriteria searchCriteria =
+        TallyInstancesDbReportCriteria.builder()
+            .orgId(orgId)
+            .productId(productId)
+            .sla(sla)
+            .usage(usage)
+            .displayNameSubstring(displayNameSubstring)
+            .minCores(minCores)
+            .minSockets(minSockets)
+            .month(month)
+            .metricId(referenceMetricId)
+            .billingProvider(billingProvider)
+            .billingAccountId(billingAccountId)
+            .hardwareMeasurementTypes(hardwareMeasurementTypes)
+            .sort(sort)
+            .sortDirection(dir)
+            .usePrimary(isPrimaryRowSearchEnabled())
+            .build();
+    var repository = selectRepository(searchCriteria);
     return (Page<TallyInstanceView>)
         repository.findAll(
-            buildSearchSpecification(
-                TallyInstancesDbReportCriteria.builder()
-                    .orgId(orgId)
-                    .productId(productId)
-                    .sla(sla)
-                    .usage(usage)
-                    .displayNameSubstring(displayNameSubstring)
-                    .minCores(minCores)
-                    .minSockets(minSockets)
-                    .month(month)
-                    .metricId(referenceMetricId)
-                    .billingProvider(billingProvider)
-                    .billingAccountId(billingAccountId)
-                    .hardwareMeasurementTypes(hardwareMeasurementTypes)
-                    .sort(sort)
-                    .sortDirection(dir)
-                    .build()),
-            ResourceUtils.getPageable(offset, limit));
+            buildSearchSpecification(searchCriteria), ResourceUtils.getPageable(offset, limit));
   }
 
-  private JpaSpecificationExecutor<? extends TallyInstanceView> selectRepository(
-      ProductId productId) {
-    // TODO Enable with featureFlags.isEnabled(FeatureFlags.ENABLE_HTB_PRIMARY_ROW_SEARCHES, false);
-    //  for SWATCH-4862
-    boolean usePrimary = false;
-    if (productId.isPayg()) {
-      return usePrimary ? paygPrimaryViewRepository : paygViewRepository;
+  /**
+   * Selects the appropriate repository based on product type and primary row flag.
+   *
+   * @param criteria the search criteria containing productId and usePrimary
+   * @return the JPA repository executor for the appropriate view
+   */
+  public JpaSpecificationExecutor<? extends TallyInstanceView> selectRepository(
+      TallyInstancesDbReportCriteria criteria) {
+    if (Objects.isNull(criteria.getProductId())) {
+      throw new IllegalArgumentException("productId must be specified in search criteria");
     }
-    return usePrimary ? nonPaygPrimaryViewRepository : nonPaygViewRepository;
+
+    if (criteria.getProductId().isPayg()) {
+      return criteria.isUsePrimary() ? paygPrimaryViewRepository : paygViewRepository;
+    }
+    return criteria.isUsePrimary() ? nonPaygPrimaryViewRepository : nonPaygViewRepository;
+  }
+
+  /**
+   * Determines if primary row searches are enabled via feature flag.
+   *
+   * @return true if the ENABLE_HTB_PRIMARY_ROW_SEARCHES feature flag is enabled
+   */
+  public boolean isPrimaryRowSearchEnabled() {
+    return featureFlags.isEnabled(FeatureFlags.ENABLE_HTB_PRIMARY_ROW_SEARCHES, false);
   }
 
   static <T extends TallyInstanceView> Specification<T> socketsAndCoresGreaterThanOrEqualTo(
@@ -305,6 +322,9 @@ public class TallyInstanceViewRepository {
   @SuppressWarnings("java:S107")
   public static <T extends TallyInstanceView> Specification<T> buildSearchSpecification(
       TallyInstancesDbReportCriteria criteria) {
+    if (criteria.isUsePrimary()) {
+      sanitizeCriteriaForPrimaryRows(criteria);
+    }
     var searchCriteria = Specification.<T>unrestricted();
     searchCriteria =
         searchCriteria.and(
@@ -353,6 +373,21 @@ public class TallyInstanceViewRepository {
     }
 
     return searchCriteria;
+  }
+
+  private static void sanitizeCriteriaForPrimaryRows(TallyInstancesDbReportCriteria criteria) {
+    if (ServiceLevel._ANY.equals(criteria.getSla())) {
+      criteria.setSla(null);
+    }
+    if (Usage._ANY.equals(criteria.getUsage())) {
+      criteria.setUsage(null);
+    }
+    if (BillingProvider._ANY.equals(criteria.getBillingProvider())) {
+      criteria.setBillingProvider(null);
+    }
+    if (ResourceUtils.ANY.equals(criteria.getBillingAccountId())) {
+      criteria.setBillingAccountId(null);
+    }
   }
 
   private static Optional<MetricId> getMetricIdToSort(String sort) {

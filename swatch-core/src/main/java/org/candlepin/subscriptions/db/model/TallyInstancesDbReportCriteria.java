@@ -45,4 +45,5 @@ public class TallyInstancesDbReportCriteria {
   private List<HardwareMeasurementType> hardwareMeasurementTypes;
   private String sort;
   private SortDirection sortDirection;
+  private boolean usePrimary;
 }

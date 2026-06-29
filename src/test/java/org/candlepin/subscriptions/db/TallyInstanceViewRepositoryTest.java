@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.db;
 
 import static com.redhat.swatch.configuration.util.MetricIdUtils.getMetricIdsFromConfigForTag;
 import static org.candlepin.subscriptions.db.TallyInstanceViewRepository.FIELD_SORT_PARAM_MAPPING;
+import static org.candlepin.subscriptions.util.TallyHostBucketFactory.createBucketTuples;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -47,13 +48,15 @@ import org.candlepin.subscriptions.db.model.AccountServiceInventoryId;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.Host;
+import org.candlepin.subscriptions.db.model.HostTallyBucket;
+import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyInstanceView;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.test.ExtendWithSwatchDatabase;
+import org.candlepin.subscriptions.util.PrimaryRecordUtils;
 import org.candlepin.subscriptions.utilization.api.v1.model.SortDirection;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -91,27 +94,59 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
   @Transactional
   @BeforeEach
   void setupTestData() {
-    Host host8 = createHost("inventory8");
-    Host host9 = createHost("inventory9");
-    Host host10 = createHost("inventory10");
+    Host host8 = createBaseHost("inventory8", DEFAULT_ORG_ID);
+    host8.setBillingProvider(BillingProvider.RED_HAT);
+    host8.setBillingAccountId("RH-0008");
+    host8.setLastAppliedEventRecordDate("HBI_EVENT", OffsetDateTime.now());
+
+    Host host9 = createBaseHost("inventory9", DEFAULT_ORG_ID);
+    host9.setBillingProvider(BillingProvider.RED_HAT);
+    host9.setBillingAccountId("RH-0009");
+    host9.setLastAppliedEventRecordDate("HBI_EVENT", OffsetDateTime.now().minusDays(1));
+
+    Host host10 = createBaseHost("inventory10", DEFAULT_ORG_ID);
+    host10.setBillingProvider(BillingProvider.RED_HAT);
+    host10.setBillingAccountId("RH-0010");
+    host10.setLastAppliedEventRecordDate("HBI_EVENT", OffsetDateTime.now().minusDays(2));
 
     for (MetricId metricId : MetricId.getAll()) {
-      host8.addToMonthlyTotal(
-          OffsetDateTime.of(LocalDateTime.of(2021, 1, 1, 0, 0, 0), ZoneOffset.UTC),
-          metricId,
-          100.0);
       host8.setMeasurement(metricId.toString(), 100.0);
-      host9.addToMonthlyTotal(
-          OffsetDateTime.of(LocalDateTime.of(2021, 1, 1, 0, 0, 0), ZoneOffset.UTC), metricId, 0.0);
       host9.setMeasurement(metricId.toString(), 0.0);
-      host10.addToMonthlyTotal(
-          OffsetDateTime.of(LocalDateTime.of(2021, 2, 1, 0, 0, 0), ZoneOffset.UTC), metricId, 50.0);
       host10.setMeasurement(metricId.toString(), 50.0);
     }
 
-    addBucketToHost(host8);
-    addBucketToHost(host9);
-    addBucketToHost(host10);
+    addMeasurementsToMonthlyTotals(
+        host8, OffsetDateTime.of(LocalDateTime.of(2021, 1, 1, 0, 0, 0), ZoneOffset.UTC));
+    withPayGoBuckets(
+        host8,
+        HardwareMeasurementType.PHYSICAL,
+        ROSA,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        100,
+        100);
+
+    addMeasurementsToMonthlyTotals(
+        host9, OffsetDateTime.of(LocalDateTime.of(2021, 1, 1, 0, 0, 0), ZoneOffset.UTC));
+    withPayGoBuckets(
+        host9,
+        HardwareMeasurementType.PHYSICAL,
+        ROSA,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        0,
+        0);
+
+    addMeasurementsToMonthlyTotals(
+        host10, OffsetDateTime.of(LocalDateTime.of(2021, 2, 1, 0, 0, 0), ZoneOffset.UTC));
+    withPayGoBuckets(
+        host10,
+        HardwareMeasurementType.PHYSICAL,
+        ROSA,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        50,
+        50);
 
     defaultHosts = persistHosts(host8, host9, host10);
   }
@@ -152,9 +187,29 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
       // previous test.
       MetricId referenceMetricId = MetricIdUtils.getInstanceHours();
 
-      // given two hosts with different values for Instance-Hours
-      var host1 = givenHostWithMetric(OPENSHIFT_CONTAINER_PLATFORM, referenceMetricId, 5.0);
-      var host2 = givenHostWithMetric(OPENSHIFT_CONTAINER_PLATFORM, referenceMetricId, 10.0);
+      var host1 = createBaseHost(UUID.randomUUID().toString(), DEFAULT_ORG_ID);
+      host1.setMeasurement(referenceMetricId.toString(), 5.0);
+      withTraditionalProductBuckets(
+          host1,
+          HardwareMeasurementType.PHYSICAL,
+          OPENSHIFT_CONTAINER_PLATFORM,
+          ServiceLevel.PREMIUM,
+          Usage.PRODUCTION,
+          0,
+          0);
+
+      var host2 = createBaseHost(UUID.randomUUID().toString(), DEFAULT_ORG_ID);
+      host2.setMeasurement(referenceMetricId.toString(), 10.0);
+      withTraditionalProductBuckets(
+          host2,
+          HardwareMeasurementType.PHYSICAL,
+          OPENSHIFT_CONTAINER_PLATFORM,
+          ServiceLevel.PREMIUM,
+          Usage.PRODUCTION,
+          0,
+          0);
+
+      persistHosts(host1, host2);
 
       Page<TallyInstanceView> results =
           repo.findAllBy(
@@ -185,60 +240,49 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
     void testFilterByBillingModel() {
       Host host1 = createHost("i1", "a1");
       host1.setBillingProvider(BillingProvider.RED_HAT);
-      addBucketToHost(
+      host1.setBillingAccountId("RH-0001");
+      addMeasurementsToMonthlyTotals(host1, OffsetDateTime.now());
+      withPayGoBuckets(
           host1,
-          RHEL,
+          HardwareMeasurementType.VIRTUAL,
+          ROSA,
           ServiceLevel.PREMIUM,
           Usage.PRODUCTION,
-          HardwareMeasurementType.PHYSICAL,
-          BillingProvider.RED_HAT);
-      addBucketToHost(
-          host1,
-          RHEL,
-          ServiceLevel.PREMIUM,
-          Usage.PRODUCTION,
-          HardwareMeasurementType.PHYSICAL,
-          BillingProvider._ANY);
+          1,
+          1);
 
       Host host2 = createHost("i2", "a1");
       host2.setBillingProvider(BillingProvider.AWS);
-      addBucketToHost(
+      host2.setBillingAccountId("AWS-0001");
+      addMeasurementsToMonthlyTotals(host2, OffsetDateTime.now());
+      withPayGoBuckets(
           host2,
-          RHEL,
+          HardwareMeasurementType.VIRTUAL,
+          ROSA,
           ServiceLevel.PREMIUM,
           Usage.PRODUCTION,
-          HardwareMeasurementType.PHYSICAL,
-          BillingProvider.AWS);
-      addBucketToHost(
-          host2,
-          RHEL,
-          ServiceLevel.PREMIUM,
-          Usage.PRODUCTION,
-          HardwareMeasurementType.PHYSICAL,
-          BillingProvider._ANY);
+          1,
+          1);
 
       Host host3 = createHost("i3", "a1");
-      addBucketToHost(
+      host3.setBillingProvider(BillingProvider.GCP);
+      host3.setBillingAccountId("GCP-0001");
+      addMeasurementsToMonthlyTotals(host3, OffsetDateTime.now());
+      withPayGoBuckets(
           host3,
-          RHEL,
+          HardwareMeasurementType.VIRTUAL,
+          ROSA,
           ServiceLevel.PREMIUM,
           Usage.PRODUCTION,
-          HardwareMeasurementType.PHYSICAL,
-          BillingProvider.EMPTY);
-      addBucketToHost(
-          host3,
-          RHEL,
-          ServiceLevel.PREMIUM,
-          Usage.PRODUCTION,
-          HardwareMeasurementType.PHYSICAL,
-          BillingProvider._ANY);
+          1,
+          1);
 
       persistHosts(host1, host2, host3);
 
       Page<TallyInstanceView> results =
           repo.findAllBy(
               "a1",
-              RHEL,
+              ROSA,
               ServiceLevel.PREMIUM,
               Usage.PRODUCTION,
               "",
@@ -259,7 +303,7 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
       Page<TallyInstanceView> allResults =
           repo.findAllBy(
               "a1",
-              RHEL,
+              ROSA,
               ServiceLevel.PREMIUM,
               Usage.PRODUCTION,
               "",
@@ -291,7 +335,7 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
       assertEquals(
           BillingProvider.AWS, hostToBill.get(host2.getInstanceId()).getHostBillingProvider());
       assertEquals(
-          BillingProvider._ANY, hostToBill.get(host3.getInstanceId()).getHostBillingProvider());
+          BillingProvider.GCP, hostToBill.get(host3.getInstanceId()).getHostBillingProvider());
     }
 
     @Test
@@ -397,34 +441,34 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
     @Test
     void testFilterByHardwareMeasurementTypes() {
       Host host1 = createHost(UUID.randomUUID().toString(), "a1");
-      host1.setBillingProvider(BillingProvider.RED_HAT);
-      addBucketToHost(
+      withTraditionalProductBuckets(
           host1,
+          HardwareMeasurementType.PHYSICAL,
           RHEL,
           ServiceLevel.PREMIUM,
           Usage.PRODUCTION,
-          HardwareMeasurementType.PHYSICAL,
-          BillingProvider.RED_HAT);
+          1,
+          1);
 
       Host host2 = createHost(UUID.randomUUID().toString(), "a1");
-      host2.setBillingProvider(BillingProvider.RED_HAT);
-      addBucketToHost(
+      withTraditionalProductBuckets(
           host2,
+          HardwareMeasurementType.VIRTUAL,
           RHEL,
           ServiceLevel.PREMIUM,
           Usage.PRODUCTION,
-          HardwareMeasurementType.VIRTUAL,
-          BillingProvider.RED_HAT);
+          1,
+          1);
 
       Host host3 = createHost(UUID.randomUUID().toString(), "a1");
-      addBucketToHost(
+      withTraditionalProductBuckets(
           host3,
+          HardwareMeasurementType.HYPERVISOR,
           RHEL,
           ServiceLevel.PREMIUM,
           Usage.PRODUCTION,
-          HardwareMeasurementType.HYPERVISOR,
-          BillingProvider.RED_HAT);
-
+          1,
+          1);
       persistHosts(host1, host2, host3);
 
       Page<TallyInstanceView> results =
@@ -438,7 +482,7 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
               0,
               null,
               MetricIdUtils.getCores(),
-              BillingProvider.RED_HAT,
+              BillingProvider._ANY,
               BILLING_ACCOUNT_ID_ANY,
               List.of(HardwareMeasurementType.VIRTUAL),
               0,
@@ -461,7 +505,7 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
               0,
               null,
               MetricIdUtils.getCores(),
-              BillingProvider.RED_HAT,
+              BillingProvider._ANY,
               BILLING_ACCOUNT_ID_ANY,
               null,
               0,
@@ -496,9 +540,8 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
     @Test
     void testGetResultWithEmptyMeasurementType() {
       Host host1 = createHost(UUID.randomUUID().toString(), "a1");
-      host1.setBillingProvider(BillingProvider.RED_HAT);
-      addBucketToHost(
-          host1, RHEL, ServiceLevel.PREMIUM, Usage.PRODUCTION, null, BillingProvider.RED_HAT);
+      withTraditionalProductBuckets(
+          host1, null, RHEL, ServiceLevel.PREMIUM, Usage.PRODUCTION, 1, 1);
 
       persistHosts(host1);
 
@@ -513,7 +556,7 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
               0,
               null,
               MetricIdUtils.getCores(),
-              BillingProvider.RED_HAT,
+              BillingProvider._ANY,
               BILLING_ACCOUNT_ID_ANY,
               null,
               0,
@@ -529,42 +572,32 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
     @Test
     void testFilterByCloudHardwareMeasurementTypes() {
       Host host1 = createHost(UUID.randomUUID().toString(), "a1");
-      host1.setBillingProvider(BillingProvider.RED_HAT);
-      addBucketToHost(
-          host1,
-          RHEL,
-          ServiceLevel.PREMIUM,
-          Usage.PRODUCTION,
-          HardwareMeasurementType.AWS,
-          BillingProvider.RED_HAT);
+      withTraditionalProductBuckets(
+          host1, HardwareMeasurementType.AWS, RHEL, ServiceLevel.PREMIUM, Usage.PRODUCTION, 1, 1);
 
       Host host2 = createHost(UUID.randomUUID().toString(), "a1");
-      host2.setBillingProvider(BillingProvider.RED_HAT);
-      addBucketToHost(
-          host2,
-          RHEL,
-          ServiceLevel.PREMIUM,
-          Usage.PRODUCTION,
-          HardwareMeasurementType.AZURE,
-          BillingProvider.RED_HAT);
+      withTraditionalProductBuckets(
+          host2, HardwareMeasurementType.AZURE, RHEL, ServiceLevel.PREMIUM, Usage.PRODUCTION, 1, 1);
 
       Host host3 = createHost(UUID.randomUUID().toString(), "a1");
-      addBucketToHost(
+      withTraditionalProductBuckets(
           host3,
+          HardwareMeasurementType.GOOGLE,
           RHEL,
           ServiceLevel.PREMIUM,
           Usage.PRODUCTION,
-          HardwareMeasurementType.GOOGLE,
-          BillingProvider.RED_HAT);
+          1,
+          1);
 
       Host host5 = createHost(UUID.randomUUID().toString(), "a1");
-      addBucketToHost(
+      withTraditionalProductBuckets(
           host5,
+          HardwareMeasurementType.PHYSICAL,
           RHEL,
           ServiceLevel.PREMIUM,
           Usage.PRODUCTION,
-          HardwareMeasurementType.PHYSICAL,
-          BillingProvider.RED_HAT);
+          1,
+          1);
 
       persistHosts(host1, host2, host3, host5);
 
@@ -579,7 +612,7 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
               0,
               null,
               MetricIdUtils.getCores(),
-              BillingProvider.RED_HAT,
+              BillingProvider._ANY,
               BILLING_ACCOUNT_ID_ANY,
               HardwareMeasurementType.getCloudProviderTypes(),
               0,
@@ -602,45 +635,28 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
     @Transactional
     void testFilterByMinCoresAndSockets() {
       Host host1 = createBaseHost("i1", "a1");
-      host1.setBillingProvider(BillingProvider.RED_HAT);
-      addBucketToHost(
+      host1.setMeasurement(MetricIdUtils.getSockets().toString(), 0.0);
+      host1.setMeasurement(MetricIdUtils.getCores().toString(), 4.0);
+      withTraditionalProductBuckets(
           host1,
+          HardwareMeasurementType.PHYSICAL,
           RHEL,
           ServiceLevel.PREMIUM,
           Usage.PRODUCTION,
-          HardwareMeasurementType.PHYSICAL,
-          BillingProvider.RED_HAT,
           0,
           4);
-      host1.setMeasurement(MetricIdUtils.getCores().toString(), 4.0);
-      host1.setMeasurement(MetricIdUtils.getSockets().toString(), 0.0);
 
       Host host2 = createBaseHost("i2", "a1");
-      host2.setBillingProvider(BillingProvider.AWS);
-      addBucketToHost(
-          host2,
-          RHEL,
-          ServiceLevel.PREMIUM,
-          Usage.PRODUCTION,
-          HardwareMeasurementType.PHYSICAL,
-          BillingProvider.AWS,
-          2,
-          0);
       host2.setMeasurement(MetricIdUtils.getSockets().toString(), 2.0);
       host2.setMeasurement(MetricIdUtils.getCores().toString(), 0.0);
+      withTraditionalProductBuckets(
+          host2, HardwareMeasurementType.AWS, RHEL, ServiceLevel.PREMIUM, Usage.PRODUCTION, 2, 0);
 
       Host host3 = createBaseHost("i3", "a1");
-      addBucketToHost(
-          host3,
-          RHEL,
-          ServiceLevel.PREMIUM,
-          Usage.PRODUCTION,
-          HardwareMeasurementType.PHYSICAL,
-          BillingProvider.EMPTY,
-          2,
-          2);
       host3.setMeasurement(MetricIdUtils.getCores().toString(), 2.0);
       host3.setMeasurement(MetricIdUtils.getSockets().toString(), 2.0);
+      withTraditionalProductBuckets(
+          host3, HardwareMeasurementType.EMPTY, RHEL, ServiceLevel.PREMIUM, Usage.PRODUCTION, 2, 2);
 
       persistHosts(host1, host2, host3);
 
@@ -728,6 +744,17 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
     }
   }
 
+  private void addMeasurementsToMonthlyTotals(Host host, OffsetDateTime month) {
+    host.getMeasurements()
+        .forEach(
+            (metricId, value) -> {
+              host.addToMonthlyTotal(
+                  InstanceMonthlyTotalKey.formatMonthId(month),
+                  MetricId.fromString(metricId),
+                  value);
+            });
+  }
+
   @Nested
   class WithPrimaryRowSearchesEnabled extends FeatureFlagTests {
     @BeforeEach
@@ -737,7 +764,6 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
     }
 
     @Test
-    @Disabled("Enable during SWATCH-4862")
     @Transactional
     void testNonPrimaryBucketIsExcluded() {
       Host primaryHost = createHost("inv-primary", "org-primary");
@@ -749,8 +775,7 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
           HardwareMeasurementType.PHYSICAL,
           BillingProvider._ANY,
           2,
-          4,
-          true);
+          4);
 
       Host nonPrimaryHost = createHost("inv-non-primary", "org-primary");
       addBucketToHost(
@@ -761,8 +786,7 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
           HardwareMeasurementType.PHYSICAL,
           BillingProvider._ANY,
           2,
-          4,
-          false);
+          4);
 
       persistHosts(primaryHost, nonPrimaryHost);
 
@@ -810,8 +834,7 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
           HardwareMeasurementType.PHYSICAL,
           BillingProvider._ANY,
           2,
-          4,
-          true);
+          4);
 
       Host nonPrimaryHost = createHost("inv-non-primary", "org-primary");
       addBucketToHost(
@@ -822,8 +845,7 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
           HardwareMeasurementType.PHYSICAL,
           BillingProvider._ANY,
           2,
-          4,
-          false);
+          4);
 
       persistHosts(primaryHost, nonPrimaryHost);
 
@@ -882,10 +904,6 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
     return host;
   }
 
-  private Host createHost(String inventoryId) {
-    return createHost(inventoryId, DEFAULT_ORG_ID);
-  }
-
   private Host createHost(String inventoryId, String org) {
     Host host = createBaseHost(inventoryId, org);
     host.setMeasurement(MetricIdUtils.getSockets().toString(), 1.0);
@@ -893,34 +911,71 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
     return host;
   }
 
-  private Host givenHostWithMetric(ProductId productId, MetricId metric, Double value) {
-    Host host = createBaseHost(UUID.randomUUID().toString(), DEFAULT_ORG_ID);
-    if (productId.isPayg()) {
-      host.addToMonthlyTotal(
-          OffsetDateTime.of(LocalDateTime.of(2021, 1, 1, 0, 0, 0), ZoneOffset.UTC), metric, value);
-    } else {
-      host.setMeasurement(metric.toString(), value);
-    }
+  private void withTraditionalProductBuckets(
+      Host host,
+      HardwareMeasurementType hmt,
+      ProductId productId,
+      ServiceLevel serviceLevel,
+      Usage usage,
+      double sockets,
+      double cores) {
+    // Traditional products create cartesian product with:
+    // - SLA: {actual, _ANY}
+    // - Usage: {actual, _ANY}
+    // - BillingProvider: {_ANY} (always)
+    // - BillingAccountId: {"_ANY"} (always)
+    // This creates 2 × 2 × 1 × 1 = 4 buckets
 
-    addBucketToHost(
-        host,
-        productId,
-        ServiceLevel._ANY,
-        Usage._ANY,
-        HardwareMeasurementType.PHYSICAL,
-        BillingProvider._ANY);
-    persistHosts(host);
-    return host;
+    List<HostTallyBucket> buckets =
+        createBucketTuples(
+            productId,
+            hmt,
+            serviceLevel,
+            usage,
+            host.getBillingProvider(),
+            host.getBillingAccountId(),
+            sockets,
+            cores);
+
+    buckets.forEach(host::addBucket);
   }
 
-  private void addBucketToHost(Host host) {
-    addBucketToHost(
-        host,
-        ROSA,
-        ServiceLevel._ANY,
-        Usage._ANY,
-        HardwareMeasurementType.PHYSICAL,
-        BillingProvider._ANY);
+  /**
+   * Creates the cartesian product of buckets for the given host and product.
+   *
+   * @param host the host
+   * @param hmt the hardware measurement type
+   * @param productId the product id
+   * @param serviceLevel the service level
+   * @param usage the usage
+   */
+  private void withPayGoBuckets(
+      Host host,
+      HardwareMeasurementType hmt,
+      ProductId productId,
+      ServiceLevel serviceLevel,
+      Usage usage,
+      double sockets,
+      double cores) {
+    // PAYG products create cartesian product with:
+    // - SLA: {actual, _ANY}
+    // - Usage: {actual, _ANY}
+    // - BillingProvider: {actual, _ANY}
+    // - BillingAccountId: {actual, "_ANY"}
+    // This creates 2 × 2 × 2 × 2 = 16 buckets
+
+    List<HostTallyBucket> buckets =
+        createBucketTuples(
+            productId,
+            hmt,
+            serviceLevel,
+            usage,
+            host.getBillingProvider(),
+            host.getBillingAccountId(),
+            sockets,
+            cores);
+
+    buckets.forEach(host::addBucket);
   }
 
   private void addBucketToHost(
@@ -942,20 +997,6 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
       BillingProvider billingProvider,
       int sockets,
       int cores) {
-    addBucketToHost(
-        host, productId, sla, usage, measurementType, billingProvider, sockets, cores, true);
-  }
-
-  private void addBucketToHost(
-      Host host,
-      ProductId productId,
-      ServiceLevel sla,
-      Usage usage,
-      HardwareMeasurementType measurementType,
-      BillingProvider billingProvider,
-      int sockets,
-      int cores,
-      boolean primary) {
     var bucket =
         host.addBucket(
             productId.toString(),
@@ -967,7 +1008,7 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
             sockets,
             cores,
             measurementType);
-    bucket.setPrimary(primary);
+    bucket.setPrimary(PrimaryRecordUtils.isPrimaryRecord(bucket));
   }
 
   static String[] instanceSortParams() {
