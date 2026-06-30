@@ -356,10 +356,33 @@ spec:
             value: "$(params.BONFIRE_REVISION)"
           - name: pathInRepo
             value: tasks/reserve-namespace.yaml
+    - name: update-namespace
+      runAfter:
+        - reserve-namespace
+      when:
+        - input: "$(tasks.check-component-label.results.TESTS_SKIPPED)"
+          operator: in
+          values: ["false"]
+      params:
+        - name: NS
+          value: "$(tasks.reserve-namespace.results.NS)"
+        - name: EPHEMERAL_ENV_PROVIDER_SECRET
+          value: "$(params.EPHEMERAL_ENV_PROVIDER_SECRET)"
+        - name: BONFIRE_IMAGE
+          value: "$(params.BONFIRE_IMAGE)"
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: "https://github.com/$(params.PROJECT_REPO).git"
+          - name: revision
+            value: "$(params.PROJECT_TASKS_REVISION)"
+          - name: pathInRepo
+            value: .tekton/tasks/update-namespace.yaml
     - name: deploy-application
       onError: continue
       runAfter:
-        - reserve-namespace
+        - update-namespace
         - update-extra-deploy-args
       when:
         - input: "$(tasks.check-component-label.results.TESTS_SKIPPED)"
