@@ -36,6 +36,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
+import lombok.Getter;
+import lombok.Setter;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 public final class ComponentTestContext {
@@ -44,25 +46,19 @@ public final class ComponentTestContext {
   private static final int COMPONENT_TEST_ID_MAX_SIZE = 60;
 
   private final ExtensionContext testContext;
-  private final String id;
-  private final ExtensionContext.Namespace testNamespace;
+  @Getter private final String id;
   private final Map<String, Object> customConfigurationByTarget = new HashMap<>();
   private final Map<Class<?>, List<Annotation>> annsForConfiguration = new HashMap<>();
 
-  private ExtensionContext methodTestContext;
+  @Setter private ExtensionContext methodTestContext;
   private boolean failed;
-  private boolean debug;
+  @Setter @Getter private boolean debug;
 
-  protected ComponentTestContext(ExtensionContext testContext) {
+  ComponentTestContext(ExtensionContext testContext) {
     this.testContext = testContext;
     this.id = generateContextId(testContext);
-    this.testNamespace = ExtensionContext.Namespace.create(ComponentTestContext.class);
 
     loadCustomConfiguration(GLOBAL, new ComponentTestConfigurationBuilder());
-  }
-
-  public String getId() {
-    return id;
   }
 
   public boolean isFailed() {
@@ -73,14 +69,6 @@ public final class ComponentTestContext {
     // sometimes the failed flag has not been propagated yet, so we need to check the JUnit test
     // context
     return testContext.getExecutionException().isPresent();
-  }
-
-  public boolean isDebug() {
-    return debug;
-  }
-
-  public void setDebug(boolean debug) {
-    this.debug = debug;
   }
 
   public ComponentTestConfiguration getConfiguration() {
@@ -118,24 +106,12 @@ public final class ComponentTestContext {
     return Optional.of(methodTestContext.getRequiredTestMethod().getName());
   }
 
-  public ExtensionContext.Store getTestStore() {
-    return getTestContext().getStore(this.testNamespace);
-  }
-
   public ExtensionContext getTestContext() {
     return Optional.ofNullable(methodTestContext).orElse(testContext);
   }
 
   public boolean isAnnotationPresent(Class<? extends Annotation> annotationClass) {
     return getTestContext().getRequiredTestClass().isAnnotationPresent(annotationClass);
-  }
-
-  public <T extends Annotation> T getAnnotation(Class<T> annotationClass) {
-    return getTestContext().getRequiredTestClass().getAnnotation(annotationClass);
-  }
-
-  public void setMethodTestContext(ExtensionContext methodTestContext) {
-    this.methodTestContext = methodTestContext;
   }
 
   public Path getLogFolder() {
@@ -161,7 +137,7 @@ public final class ComponentTestContext {
     return configurationsByClass.stream()
         .filter(clazz::isInstance)
         .map(clazz::cast)
-        .filter(apply::test)
+        .filter(apply)
         .findFirst();
   }
 

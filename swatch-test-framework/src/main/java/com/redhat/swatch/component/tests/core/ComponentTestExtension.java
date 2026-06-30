@@ -31,12 +31,10 @@ import com.redhat.swatch.component.tests.utils.ReflectionUtils;
 import com.redhat.swatch.component.tests.utils.ServiceLoaderUtils;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import org.junit.jupiter.api.TestInstance;
+import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
@@ -57,21 +55,31 @@ public class ComponentTestExtension
         LifecycleMethodExecutionExceptionHandler,
         TestWatcher {
 
+  // Store key for suite-level services
+  private static final String SUITE_SERVICES_KEY = "suite-services";
+
   private final List<AnnotationBinding> bindingsRegistry =
       ServiceLoaderUtils.load(AnnotationBinding.class);
   private final List<ExtensionBootstrap> extensionsRegistry =
       ServiceLoaderUtils.load(ExtensionBootstrap.class);
 
-  private List<ServiceContext> services = new ArrayList<>();
+  private ServicesStore services;
   private ComponentTestContext context;
   private List<ExtensionBootstrap> extensions;
 
   @Override
-  public void beforeAll(ExtensionContext testContext) {
+  public void beforeAll(@NonNull ExtensionContext testContext) {
     // Init context
     context = new ComponentTestContext(testContext);
     Log.configure();
     Log.debug("Context ID: '%s'", context.getId());
+
+    // Get suite-level store for services
+    services =
+        testContext
+            .getRoot()
+            .getStore(ExtensionContext.Namespace.GLOBAL)
+            .computeIfAbsent(SUITE_SERVICES_KEY, k -> new ServicesStore(), ServicesStore.class);
 
     // Init extensions
     extensions = initExtensions();
@@ -79,7 +87,7 @@ public class ComponentTestExtension
 
     // Init services from class annotations
     ReflectionUtils.findAllAnnotations(testContext.getRequiredTestClass())
-        .forEach(annotation -> initServiceFromAnnotation(annotation));
+        .forEach(this::initServiceFromAnnotation);
 
     // Init services from static fields
     ReflectionUtils.findAllFields(testContext.getRequiredTestClass()).stream()
@@ -88,16 +96,8 @@ public class ComponentTestExtension
   }
 
   @Override
-  public void afterAll(ExtensionContext testContext) {
-    try {
-      List<ServiceContext> servicesToFinish = new ArrayList<>(services);
-      Collections.reverse(servicesToFinish);
-      servicesToFinish.forEach(s -> s.getOwner().stop());
-      deleteLogIfTestSuitePassed();
-      services.clear();
-    } finally {
-      extensions.forEach(ext -> ext.afterAll(context));
-    }
+  public void afterAll(@NonNull ExtensionContext testContext) {
+    extensions.forEach(ext -> ext.afterAll(context));
   }
 
   @Override
@@ -113,83 +113,70 @@ public class ComponentTestExtension
             + testContext.getDisplayName());
     context.setMethodTestContext(testContext);
     extensions.forEach(ext -> ext.beforeEach(context));
-    services.forEach(
-        service -> {
-          if (!service.getOwner().isRunning()) {
-            service.getOwner().start();
-          }
-
-          service.getOwner().onTestStarted();
-        });
+    services.get().forEach(Service::onTestStarted);
   }
 
   @Override
-  public void afterEach(ExtensionContext testContext) {
-    services.forEach(service -> service.getOwner().onTestStopped());
-
-    if (!isClassLifecycle(testContext)) {
-      // Stop services from instance fields
-      ReflectionUtils.findAllFields(testContext.getRequiredTestClass()).stream()
-          .filter(ReflectionUtils::isInstance)
-          .forEach(field -> stopServiceFromField(testContext, field));
-    }
-
+  public void afterEach(@NonNull ExtensionContext testContext) {
+    // Notify all services and extensions that test stopped
+    services.get().forEach(Service::onTestStopped);
     extensions.forEach(ext -> ext.afterEach(context));
   }
 
   @Override
   public boolean supportsParameter(
-      ParameterContext parameterContext, ExtensionContext extensionContext) {
+      ParameterContext parameterContext, @NonNull ExtensionContext extensionContext) {
     return isParameterSupported(parameterContext.getParameter().getType());
   }
 
   @Override
   public Object resolveParameter(
-      ParameterContext parameterContext, ExtensionContext extensionContext) {
+      @NonNull ParameterContext parameterContext, @NonNull ExtensionContext extensionContext) {
     return getParameter(new DependencyContext(parameterContext));
   }
 
   @Override
   public void handleAfterAllMethodExecutionException(
-      ExtensionContext context, Throwable throwable) {
+      @NonNull ExtensionContext context, @NonNull Throwable throwable) {
     testOnError(throwable);
   }
 
   @Override
   public void handleAfterEachMethodExecutionException(
-      ExtensionContext context, Throwable throwable) {
+      @NonNull ExtensionContext context, @NonNull Throwable throwable) {
     testOnError(throwable);
   }
 
   @Override
   public void handleBeforeAllMethodExecutionException(
-      ExtensionContext context, Throwable throwable) {
+      @NonNull ExtensionContext context, @NonNull Throwable throwable) {
     testOnError(throwable);
   }
 
   @Override
-  public void testSuccessful(ExtensionContext testContext) {
+  public void testSuccessful(@NonNull ExtensionContext testContext) {
     extensions.forEach(ext -> ext.onSuccess(context));
   }
 
   @Override
-  public void testFailed(ExtensionContext context, Throwable cause) {
+  public void testFailed(@NonNull ExtensionContext context, Throwable cause) {
     testOnError(cause);
   }
 
   @Override
-  public void testDisabled(ExtensionContext testContext, Optional<String> reason) {
+  public void testDisabled(
+      @NonNull ExtensionContext testContext, @NonNull Optional<String> reason) {
     extensions.forEach(ext -> ext.onDisabled(context, reason));
   }
 
   @Override
   public void handleBeforeEachMethodExecutionException(
-      ExtensionContext context, Throwable throwable) {
+      @NonNull ExtensionContext context, @NonNull Throwable throwable) {
     testOnError(throwable);
   }
 
   private void launchService(Service service) {
-    Log.info(service, "Starting service (%s) ...", service.getDisplayName());
+    Log.debug(service, "Starting service (%s) ...", service.getDisplayName());
     extensions.forEach(ext -> ext.onServiceLaunch(context, service));
     try {
       service.start();
@@ -209,7 +196,13 @@ public class ComponentTestExtension
   private void initResourceFromField(ExtensionContext context, Field field) {
     if (Service.class.isAssignableFrom(field.getType())) {
       Service service = ReflectionUtils.getFieldValue(findTestInstance(context, field), field);
-      initService(service, field.getName(), field.getAnnotations());
+      Annotation[] annotations = field.getAnnotations();
+      getAnnotationBinding(annotations)
+          .ifPresent(
+              binding -> {
+                Service resolved = initService(service, field.getName(), binding, annotations);
+                ReflectionUtils.setFieldValue(findTestInstance(context, field), field, resolved);
+              });
     } else if (InjectUtils.isAnnotatedWithInject(field)) {
       injectDependency(context, field);
     }
@@ -224,14 +217,6 @@ public class ComponentTestExtension
                     binding.getDefaultName(annotation),
                     binding,
                     annotation));
-  }
-
-  private void stopServiceFromField(ExtensionContext context, Field field) {
-    if (Service.class.isAssignableFrom(field.getType())) {
-      Service service = ReflectionUtils.getFieldValue(findTestInstance(context, field), field);
-      service.stop();
-      services.removeIf(s -> service.getName().equals(s.getName()));
-    }
   }
 
   private void injectDependency(ExtensionContext testContext, Field field) {
@@ -249,32 +234,39 @@ public class ComponentTestExtension
     }
   }
 
-  private void initService(Service service, String name, Annotation... annotations) {
-    AnnotationBinding binding =
-        getAnnotationBinding(annotations)
-            .orElseThrow(() -> new RuntimeException("Unknown annotation for service"));
-    initService(service, name, binding, annotations);
-  }
-
-  private void initService(
+  /**
+   * Initializes a service. If the service already exists in the suite registry, it reuses the
+   * existing instance. Otherwise, creates and starts a new service.
+   *
+   * @return the suite-scoped service owner (newly created or reused)
+   */
+  private Service initService(
       Service service, String name, AnnotationBinding binding, Annotation... annotations) {
-    if (service.isRunning()) {
-      return;
-    }
 
-    // Validate
-    service.validate(binding, annotations);
+    ServiceContext serviceContext =
+        services.getOrCreate(
+            name,
+            () -> {
+              try {
+                if (service.isRunning()) {
+                  throw new IllegalStateException(
+                      "Service '%s' is already running before suite registration".formatted(name));
+                }
 
-    // Resolve managed resource
-    ManagedResource resource = getManagedResource(name, service, binding, annotations);
-
-    // Initialize it
-    ServiceContext serviceContext = service.register(name, context);
-    service.init(resource);
-    services.add(serviceContext);
-
+                service.validate(binding, annotations);
+                ManagedResource resource = getManagedResource(name, service, binding, annotations);
+                ServiceContext newServiceContext = service.register(name, context);
+                service.init(resource);
+                extensions.forEach(ext -> ext.updateServiceContext(newServiceContext));
+                launchService(service);
+                return newServiceContext;
+              } catch (Exception e) {
+                Log.error("Failed to initialize service %s: %s", name, e.getMessage());
+                throw e;
+              }
+            });
     extensions.forEach(ext -> ext.updateServiceContext(serviceContext));
-    launchService(service);
+    return serviceContext.getOwner();
   }
 
   private Optional<AnnotationBinding> getAnnotationBinding(Annotation... annotations) {
@@ -317,36 +309,15 @@ public class ComponentTestExtension
   private List<ExtensionBootstrap> initExtensions() {
     return extensionsRegistry.stream()
         .filter(binding -> binding.appliesFor(context))
-        .map(
-            binding -> {
-              binding.updateContext(context);
-              return binding;
-            })
+        .peek(binding -> binding.updateContext(context))
         .collect(Collectors.toList());
   }
 
-  private void deleteLogIfTestSuitePassed() {
-    if (!context.isFailed()) {
-      context.getLogFile().toFile().delete();
-    }
-  }
-
-  private boolean isClassLifecycle(ExtensionContext context) {
-    if (context.getTestInstanceLifecycle().isPresent()) {
-      return context.getTestInstanceLifecycle().get() == TestInstance.Lifecycle.PER_CLASS;
-    } else if (context.getParent().isPresent()) {
-      return isClassLifecycle(context.getParent().get());
-    }
-
-    return false;
-  }
-
+  @SuppressWarnings("unchecked")
   private Optional<Object> findTestInstance(ExtensionContext context, Field field) {
     Optional<TestInstances> testInstances = context.getTestInstances();
-    if (testInstances.isPresent()) {
-      return testInstances.get().findInstance((Class<Object>) field.getDeclaringClass());
-    }
-
-    return context.getTestInstance();
+    return testInstances
+        .map(instances -> instances.findInstance((Class<Object>) field.getDeclaringClass()))
+        .orElseGet(context::getTestInstance);
   }
 }

@@ -25,6 +25,7 @@ import com.redhat.swatch.component.tests.configuration.BaseConfigurationBuilder;
 import com.redhat.swatch.component.tests.configuration.ServiceConfiguration;
 import com.redhat.swatch.component.tests.configuration.ServiceConfigurationBuilder;
 import com.redhat.swatch.component.tests.configuration.ServiceConfigurationLoader;
+import com.redhat.swatch.component.tests.logging.Log;
 import com.redhat.swatch.component.tests.utils.OutputUtils;
 import java.lang.annotation.Annotation;
 import java.lang.management.ManagementFactory;
@@ -47,13 +48,13 @@ public final class ServiceContext {
   private final ServiceConfiguration configuration;
   private final List<Object> customConfiguration = new ArrayList<>();
 
+  /** Creates a ServiceContext for suite-scoped services. */
   public ServiceContext(Service owner, ComponentTestContext componentTestContext) {
     this.owner = owner;
     this.componentTestContext = componentTestContext;
-    this.serviceFolder =
-        OutputUtils.target()
-            .resolve(componentTestContext.getRunningTestClassName())
-            .resolve(getName());
+
+    // All services use suite-level folder
+    this.serviceFolder = OutputUtils.target().resolve("suite-services").resolve(owner.getName());
     this.configuration =
         ServiceConfigurationLoader.load(
             owner.getName(), componentTestContext, new ServiceConfigurationBuilder());
@@ -117,5 +118,12 @@ public final class ServiceContext {
     }
 
     return false;
+  }
+
+  public void close() {
+    if (owner.isRunning()) {
+      Log.info(owner, "stopping service");
+      owner.close();
+    }
   }
 }

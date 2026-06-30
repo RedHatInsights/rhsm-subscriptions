@@ -37,6 +37,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -138,6 +139,28 @@ public abstract class BaseKubernetesClient<
     return logs;
   }
 
+  /** Get pod logs since a timestamp (same as {@code oc logs --since-time}). */
+  public Map<String, String> logsSince(
+      Map<String, String> podLabels, String containerName, Instant since) {
+    String sinceTime = since.toString();
+    Map<String, String> logs = new HashMap<>();
+    for (Pod pod : podsInService(podLabels)) {
+      if (isPodRunning(pod)) {
+        String podName = pod.getMetadata().getName();
+        logs.put(
+            podName,
+            client
+                .pods()
+                .withName(podName)
+                .inContainer(containerName)
+                .sinceTime(sinceTime)
+                .getLog());
+      }
+    }
+
+    return logs;
+  }
+
   /** Resolve the port by the service. */
   public int port(String serviceName, int port, Service service, Map<String, String> podLabels) {
     String svcPortForwardKey = serviceName + "-" + port;
@@ -160,9 +183,11 @@ public abstract class BaseKubernetesClient<
     return portForwardByService.getValue().localPort;
   }
 
-  /** Delete all the resources within the test. */
-  public void deleteResourcesInComponentTestContext(String contextId) {
-    portForwardsByService.values().forEach(this::closePortForward);
+  /** Close port forwards for a specific service. */
+  public void closePortForwardsForService(String serviceName) {
+    portForwardsByService.values().stream()
+        .filter(entry -> entry.getKey().getName().equals(serviceName))
+        .forEach(this::closePortForward);
   }
 
   public void checkServiceExists(String serviceName) {

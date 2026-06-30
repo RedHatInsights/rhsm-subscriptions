@@ -53,6 +53,10 @@ public interface Service extends AutoCloseable {
 
   <I> I getManagedResource(Class<I> clazz);
 
+  /**
+   * Registers this service with a context at suite level. Services start once before the first test
+   * and stop at JVM shutdown.
+   */
   ServiceContext register(String serviceName, ComponentTestContext context);
 
   void init(ManagedResource resource);
