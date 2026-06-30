@@ -86,6 +86,9 @@ parameters:
     value: '1'
   - name: DB_CHANGELOG_CLEANUP_SQL
     value: 'select 1'
+  - name: DB_CHANGELOG_CLEANUP_DISABLED
+    description: When true, skip db-changelog cleanup jobs
+    value: 'false'
   - name: EGRESS_IMAGE
     value: quay.io/redhat-services-prod/rh-subs-watch-tenant/rhsm-subscriptions-egress
   - name: EGRESS_IMAGE_TAG
@@ -346,6 +349,7 @@ objects:
     deployments: [ ]
     jobs:
     - name: changelog-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
+      disabled: ${{DB_CHANGELOG_CLEANUP_DISABLED}}
       restartPolicy: Never
       podSpec:
         image: ${EGRESS_IMAGE}:${EGRESS_IMAGE_TAG}
@@ -389,6 +393,7 @@ objects:
   metadata:
     name: utilization-db-changelog-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
   spec:
+    disabled: ${{DB_CHANGELOG_CLEANUP_DISABLED}}
     appName: swatch-utilization-db-cleanup
     jobs:
       - changelog-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
