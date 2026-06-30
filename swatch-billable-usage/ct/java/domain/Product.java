@@ -33,7 +33,7 @@ import lombok.Getter;
 
 @Getter
 public enum Product {
-  ROSA("rosa", MetricIdUtils.getCores()),
+  ROSA("rosa", MetricIdUtils.getCores(), MetricIdUtils.getInstanceHours()),
   RHEL_PAYG_ADDON("rhel-for-x86-els-payg-addon", MetricIdUtils.getVCpus());
 
   private final ProductId id;

@@ -22,6 +22,7 @@ package com.redhat.swatch.contract.service;
 
 import static com.redhat.swatch.contract.config.Channels.IT_SUBSCRIPTION_SYNC;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.redhat.swatch.contract.config.FeatureFlags;
 import com.redhat.swatch.contract.product.umb.CanonicalMessage;
@@ -37,12 +38,13 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 public class SubscriptionKafkaMessageConsumer {
 
   @Inject FeatureFlags featureFlags;
+  @Inject SubscriptionSyncService service;
 
   private final XmlMapper xmlMapper = CanonicalMessage.createMapper();
 
   @Blocking
   @Incoming(IT_SUBSCRIPTION_SYNC)
-  public void consumeFromKafka(String subscriptionMessageXml) {
+  public void consumeFromKafka(String subscriptionMessageXml) throws JsonProcessingException {
     log.debug("IT Subscription Kafka consumer was called");
     if (subscriptionMessageXml == null) {
       return;
@@ -54,24 +56,31 @@ public class SubscriptionKafkaMessageConsumer {
     consumeSubscription(subscriptionMessageXml);
   }
 
-  public void consumeSubscription(String subscriptionMessageXml) {
+  public void consumeSubscription(String subscriptionMessageXml) throws JsonProcessingException {
+    CanonicalMessage subscriptionMessage;
     try {
-      CanonicalMessage subscriptionMessage =
-          xmlMapper.readValue(subscriptionMessageXml, CanonicalMessage.class);
-      UmbSubscription subscription = subscriptionMessage.getPayload().getSync().getSubscription();
-      log.info(
-          "IT Subscription message consumed: source=kafka, "
-              + "subscriptionNumber={}, webCustomerId={}, sku={}, quantity={}, "
-              + "effectiveStartDate={}, effectiveEndDate={}, terminated={}",
-          subscription.getSubscriptionNumber(),
-          subscription.getWebCustomerId(),
-          subscription.findSku().orElse(null),
-          subscription.getQuantity(),
-          subscription.getEffectiveStartDate(),
-          subscription.getEffectiveEndDate(),
-          subscription.findTerminatedStatus().isPresent());
-    } catch (Exception e) {
-      log.warn("Unable to process IT Subscription Kafka message.", e);
+      subscriptionMessage = xmlMapper.readValue(subscriptionMessageXml, CanonicalMessage.class);
+    } catch (JsonProcessingException e) {
+      log.warn(
+          "Unable to process IT Subscription Kafka message: messagePreview={}",
+          subscriptionMessageXml != null && subscriptionMessageXml.length() > 100
+              ? subscriptionMessageXml.substring(0, 100) + "..."
+              : subscriptionMessageXml,
+          e);
+      throw e;
     }
+    UmbSubscription subscription = subscriptionMessage.getPayload().getSync().getSubscription();
+    log.info(
+        "IT Subscription message consumed: source=kafka, "
+            + "subscriptionNumber={}, webCustomerId={}, sku={}, quantity={}, "
+            + "effectiveStartDate={}, effectiveEndDate={}, terminated={}",
+        subscription.getSubscriptionNumber(),
+        subscription.getWebCustomerId(),
+        subscription.findSku().orElse(null),
+        subscription.getQuantity(),
+        subscription.getEffectiveStartDate(),
+        subscription.getEffectiveEndDate(),
+        subscription.findTerminatedStatus().isPresent());
+    service.saveUmbSubscription(subscription);
   }
 }

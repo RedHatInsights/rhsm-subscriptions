@@ -100,7 +100,7 @@ spec:
     # Project configuration
     - name: GITHUB_TOKEN_SECRET
       type: string
-      description: Secret name containing the GitHub API token for posting PR comments
+      description: Secret name containing the GitHub API token (bonfire deploy template fetch and PR comments)
       default: "swatch-ci-github-token"
     - name: PROJECT_REPO
       type: string
@@ -397,6 +397,10 @@ spec:
           value: "$(params.DEPLOY_TIMEOUT)"
         - name: OPTIONAL_DEPS_METHOD
           value: "$(params.DEPLOY_OPTIONAL_DEPS_METHOD)"
+        - name: EPHEMERAL_ENV_PROVIDER_SECRET
+          value: "$(params.EPHEMERAL_ENV_PROVIDER_SECRET)"
+        - name: GITHUB_TOKEN_SECRET
+          value: "$(params.GITHUB_TOKEN_SECRET)"
       taskSpec:
         params:
           - name: BONFIRE_IMAGE
@@ -426,6 +430,10 @@ spec:
           - name: DEPLOY_TIMEOUT
             type: string
           - name: OPTIONAL_DEPS_METHOD
+            type: string
+          - name: EPHEMERAL_ENV_PROVIDER_SECRET
+            type: string
+          - name: GITHUB_TOKEN_SECRET
             type: string
         workspaces:
           - name: artifacts
@@ -461,6 +469,11 @@ spec:
                   secretKeyRef:
                     name: $(params.EPHEMERAL_ENV_PROVIDER_SECRET)
                     key: url
+              - name: GITHUB_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: $(params.GITHUB_TOKEN_SECRET)
+                    key: github_token
               - name: APP_NAME
                 value: $(params.APP_NAME)
               - name: BONFIRE_COMPONENT_NAME
@@ -486,6 +499,10 @@ spec:
             script: |
               #!/bin/bash
               set +e
+
+              if [ -n "${GITHUB_TOKEN:-}" ]; then
+                export GITHUB_TOKEN="$(echo -n "$GITHUB_TOKEN" | tr -d '[:space:]')"
+              fi
 
               DEPLOY_LOG="$(workspaces.artifacts.path)/deploy.log"
               EXIT_CODE_FILE="$(workspaces.artifacts.path)/deploy-exit-code"
@@ -580,7 +597,7 @@ spec:
           - name: name
             value: git-clone
           - name: bundle
-            value: quay.io/konflux-ci/tekton-catalog/task-git-clone:0.1@sha256:fedaacbf05ff7b2cdd36bff6cb1f103755cb5dc0b4adc0540136d3606ade18a5
+            value: quay.io/konflux-ci/tekton-catalog/task-git-clone:0.2@sha256:4b5a4e1f2bedd121810c6cec84515251f7d648a67f8847fb4d8288aed4411010
           - name: kind
             value: task
         resolver: bundles

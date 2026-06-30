@@ -24,13 +24,13 @@
     <resteasy.version>7.0.0.Final</resteasy.version>
     <!-- Only use as provided in the common dependencies.
     Spring and Quarkus already provides the compatible Jackson versions -->
-    <jackson.version>2.21.4</jackson.version>
+    <jackson.version>2.22.0</jackson.version>
     <mapstruct.version>1.6.3</mapstruct.version>
     <slf4j.version>2.0.18</slf4j.version>
     <jakarta.ws.rs-api.version>4.0.0</jakarta.ws.rs-api.version>
     <jakarta.persistence-api.version>3.2.0</jakarta.persistence-api.version>
     <opentelemetry-api.version>1.62.0</opentelemetry-api.version>
-    <awssdk-bom.version>2.46.3</awssdk-bom.version>
+    <awssdk-bom.version>2.46.17</awssdk-bom.version>
     <guava.version>33.6.0-jre</guava.version>
     <liquibase.version>5.0.3</liquibase.version>
     <postgresql.version>42.7.11</postgresql.version>
@@ -38,9 +38,9 @@
     <junit.version>6.1.0</junit.version>
     <mockito.version>5.23.0</mockito.version>
     <awaitility.version>4.3.0</awaitility.version>
-    <hibernate-validator.version>9.1.0.Final</hibernate-validator.version>
-    <swagger-parser.version>2.1.43</swagger-parser.version>
-    <swagger-ui.version>5.32.6</swagger-ui.version>
+    <hibernate-validator.version>9.1.1.Final</hibernate-validator.version>
+    <swagger-parser.version>2.1.45</swagger-parser.version>
+    <swagger-ui.version>5.32.8</swagger-ui.version>
     <splunk-otel-javaagent.version>2.28.0</splunk-otel-javaagent.version>
     <insights-notification-schemas-java.version>1.1.0</insights-notification-schemas-java.version>
     <rest-assured.version>6.0.0</rest-assured.version>
@@ -54,7 +54,7 @@
     <openapi-generator.version>7.22.0</openapi-generator.version>
     <spotless.version>3.6.0</spotless.version>
     <checkstyle.version>3.6.0</checkstyle.version>
-    <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
+    <jacoco-maven-plugin.version>0.8.15</jacoco-maven-plugin.version>
     <maven-antrun-plugin.version>3.2.0</maven-antrun-plugin.version>
     <sonar-maven-plugin.version>5.7.0.6970</sonar-maven-plugin.version>
     <swagger-codegen-maven-plugin.version>3.0.81</swagger-codegen-maven-plugin.version>
@@ -550,7 +550,7 @@
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>13.5.0</version>
+            <version>13.6.0</version>
           </dependency>
         </dependencies>
       </plugin>

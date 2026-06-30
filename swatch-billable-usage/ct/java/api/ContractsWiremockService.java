@@ -53,11 +53,54 @@ public class ContractsWiremockService extends WiremockService {
     OffsetDateTime startDate = OffsetDateTime.now().minusMonths(1);
     OffsetDateTime endDate = OffsetDateTime.now().plusYears(1);
     registerContractStub(
-        orgId,
-        productId,
-        startDate,
-        endDate,
-        List.of(Map.of("metric_id", metricId, "value", coverageValue)));
+        orgId, productId, startDate, endDate, List.of(contractMetric(metricId, coverageValue)));
+  }
+
+  /**
+   * Setup one contract with coverage for multiple AWS dimensions (same billable-unit value on every
+   * product metric).
+   *
+   * @param orgId Organization ID
+   * @param productId Product ID
+   * @param awsDimensionToBillableUnits AWS dimension to contract value in billable units
+   */
+  public void setupMultiMetricContractCoverage(
+      String orgId, String productId, Map<String, Double> awsDimensionToBillableUnits) {
+    OffsetDateTime startDate = OffsetDateTime.now().minusMonths(1);
+    OffsetDateTime endDate = OffsetDateTime.now().plusYears(1);
+    List<Map<String, Object>> metrics =
+        awsDimensionToBillableUnits.entrySet().stream()
+            .map(entry -> contractMetric(entry.getKey(), entry.getValue()))
+            .toList();
+    registerContractStub(orgId, productId, startDate, endDate, metrics);
+  }
+
+  /**
+   * Setup multiple contracts, each with the same set of AWS dimension coverages. Use to simulate
+   * adding a contract mid-month (c1 + c2) while keeping c1 active.
+   *
+   * @param orgId Organization ID
+   * @param productId Product ID
+   * @param contractsCoverage Per-contract map of AWS dimension to billable-unit coverage
+   */
+  public void setupMultipleMultiMetricContracts(
+      String orgId, String productId, List<Map<String, Double>> contractsCoverage) {
+    OffsetDateTime startDate = OffsetDateTime.now().minusMonths(1);
+    OffsetDateTime endDate = OffsetDateTime.now().plusYears(1);
+    List<Map<String, Object>> contracts =
+        contractsCoverage.stream()
+            .map(
+                coverage ->
+                    contractPayload(
+                        orgId,
+                        productId,
+                        startDate,
+                        endDate,
+                        coverage.entrySet().stream()
+                            .map(entry -> contractMetric(entry.getKey(), entry.getValue()))
+                            .toList()))
+            .toList();
+    registerContractsStub(orgId, productId, contracts);
   }
 
   /**
@@ -100,25 +143,53 @@ public class ContractsWiremockService extends WiremockService {
     registerContractStub(orgId, productId, startDate, endDate, List.of());
   }
 
+  /**
+   * Setup the contracts API to return no contracts. Simulates contract deletion for
+   * contract-enabled products; billable-usage skips processing and leaves existing remittance
+   * unchanged.
+   *
+   * @param orgId Organization ID
+   * @param productId Product ID
+   */
+  public void setupContractNotFound(String orgId, String productId) {
+    registerContractsStub(orgId, productId, List.of());
+  }
+
   private void registerContractStub(
       String orgId,
       String productId,
       OffsetDateTime startDate,
       OffsetDateTime endDate,
       List<?> metrics) {
-    var contractData =
-        Map.of(
-            "org_id",
-            orgId,
-            "product_id",
-            productId,
-            "start_date",
-            startDate.toString(),
-            "end_date",
-            endDate.toString(),
-            "metrics",
-            metrics);
+    registerContractsStub(
+        orgId, productId, List.of(contractPayload(orgId, productId, startDate, endDate, metrics)));
+  }
 
+  private static Map<String, Object> contractPayload(
+      String orgId,
+      String productId,
+      OffsetDateTime startDate,
+      OffsetDateTime endDate,
+      List<?> metrics) {
+    return Map.of(
+        "org_id",
+        orgId,
+        "product_id",
+        productId,
+        "start_date",
+        startDate.toString(),
+        "end_date",
+        endDate.toString(),
+        "metrics",
+        metrics);
+  }
+
+  private static Map<String, Object> contractMetric(String metricId, double coverageValue) {
+    return Map.of("metric_id", metricId, "value", coverageValue);
+  }
+
+  private void registerContractsStub(
+      String orgId, String productId, List<Map<String, Object>> contracts) {
     given()
         .contentType("application/json")
         .body(
@@ -140,7 +211,7 @@ public class ContractsWiremockService extends WiremockService {
                     "headers",
                     Map.of("Content-Type", "application/json"),
                     "jsonBody",
-                    List.of(contractData)),
+                    contracts),
                 "priority",
                 9,
                 "metadata",
