@@ -22,6 +22,7 @@ package com.redhat.swatch.component.tests.resources.kafka;
 
 import com.redhat.swatch.component.tests.api.KafkaBridge;
 import com.redhat.swatch.component.tests.api.Service;
+import com.redhat.swatch.component.tests.api.ServiceLifecycle;
 import com.redhat.swatch.component.tests.api.extensions.AnnotationBinding;
 import com.redhat.swatch.component.tests.core.ComponentTestContext;
 import com.redhat.swatch.component.tests.core.ManagedResource;
@@ -33,6 +34,11 @@ public class KafkaBridgeAnnotationBinding implements AnnotationBinding {
   @Override
   public boolean isFor(Annotation... annotations) {
     return findAnnotation(annotations, KafkaBridge.class).isPresent();
+  }
+
+  @Override
+  public ServiceLifecycle getLifecycle(Annotation annotation) {
+    return ((KafkaBridge) annotation).lifecycle();
   }
 
   @Override

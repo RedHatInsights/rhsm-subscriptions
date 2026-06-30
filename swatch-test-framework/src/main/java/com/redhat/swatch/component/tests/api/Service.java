@@ -53,7 +53,25 @@ public interface Service extends AutoCloseable {
 
   <I> I getManagedResource(Class<I> clazz);
 
+  /**
+   * Registers this service with a context using TEST_CLASS lifecycle (original behavior). Kept for
+   * backward compatibility.
+   */
   ServiceContext register(String serviceName, ComponentTestContext context);
+
+  /**
+   * Registers this service with a context using the specified lifecycle. This determines when the
+   * service starts and stops during test execution.
+   *
+   * @param serviceName the service name
+   * @param context the component test context
+   * @param lifecycle the lifecycle scope (TEST_SUITE, MODULE, or TEST_CLASS)
+   * @return the service context
+   */
+  default ServiceContext register(
+      String serviceName, ComponentTestContext context, ServiceLifecycle lifecycle) {
+    return new ServiceContext(this, lifecycle, context);
+  }
 
   void init(ManagedResource resource);
 

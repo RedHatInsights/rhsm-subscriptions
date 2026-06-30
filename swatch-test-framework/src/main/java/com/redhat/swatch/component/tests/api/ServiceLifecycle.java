@@ -20,15 +20,28 @@
  */
 package com.redhat.swatch.component.tests.api;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+/** Defines when a service starts and stops during test execution. */
+public enum ServiceLifecycle {
 
-@Target({ElementType.FIELD, ElementType.TYPE})
-@Retention(RetentionPolicy.RUNTIME)
-public @interface KafkaBridge {
+  /**
+   * Service starts before first test class and stops at JVM shutdown. Use for infrastructure
+   * services (database, message broker, mock servers).
+   *
+   * <p>For single module runs (pipeline scenario), this is identical to MODULE scope.
+   */
+  TEST_SUITE,
 
-  /** Lifecycle scope for this service. Default: TEST_SUITE (start once, stop at JVM shutdown) */
-  ServiceLifecycle lifecycle() default ServiceLifecycle.TEST_SUITE;
+  /**
+   * Service starts with first test and stops at JVM shutdown. Use for application services under
+   * test (swatch-tally, swatch-producer-aws, etc.).
+   *
+   * <p>For single module runs (pipeline scenario), this is identical to TEST_SUITE scope.
+   */
+  MODULE,
+
+  /**
+   * Service starts before each test class and stops after it completes (original behavior).
+   * Preserved for backward compatibility or special cases requiring per-class isolation.
+   */
+  TEST_CLASS
 }

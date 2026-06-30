@@ -21,6 +21,7 @@
 package com.redhat.swatch.component.tests.resources.db;
 
 import com.redhat.swatch.component.tests.api.Service;
+import com.redhat.swatch.component.tests.api.ServiceLifecycle;
 import com.redhat.swatch.component.tests.api.SwatchDatabase;
 import com.redhat.swatch.component.tests.api.extensions.AnnotationBinding;
 import com.redhat.swatch.component.tests.core.ComponentTestContext;
@@ -39,6 +40,11 @@ public class SwatchDatabaseAnnotationBinding implements AnnotationBinding {
   @Override
   public boolean isFor(Annotation... annotations) {
     return findAnnotation(annotations, SwatchDatabase.class).isPresent();
+  }
+
+  @Override
+  public ServiceLifecycle getLifecycle(Annotation annotation) {
+    return ((SwatchDatabase) annotation).lifecycle();
   }
 
   @Override

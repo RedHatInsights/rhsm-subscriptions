@@ -21,6 +21,7 @@
 package com.redhat.swatch.component.tests.core;
 
 import com.redhat.swatch.component.tests.api.Service;
+import com.redhat.swatch.component.tests.api.ServiceLifecycle;
 import com.redhat.swatch.component.tests.api.configuration.ServiceListener;
 import com.redhat.swatch.component.tests.configuration.ServiceConfiguration;
 import com.redhat.swatch.component.tests.logging.Log;
@@ -201,6 +202,21 @@ public class BaseService<T extends Service> implements Service {
     this.serviceName = serviceName;
     this.context = new ServiceContext(this, context);
     context.getTestStore().put(serviceName, this);
+    return this.context;
+  }
+
+  @Override
+  public ServiceContext register(
+      String serviceName, ComponentTestContext context, ServiceLifecycle lifecycle) {
+    this.serviceName = serviceName;
+    this.context = new ServiceContext(this, lifecycle, context);
+
+    // Only store TEST_CLASS services in test store (which auto-closes at end of test class)
+    // TEST_SUITE/MODULE services are managed by ExtensionContext.Store at suite level
+    if (lifecycle == ServiceLifecycle.TEST_CLASS) {
+      context.getTestStore().put(serviceName, this);
+    }
+
     return this.context;
   }
 

@@ -21,6 +21,7 @@
 package com.redhat.swatch.component.tests.core;
 
 import com.redhat.swatch.component.tests.api.Service;
+import com.redhat.swatch.component.tests.api.ServiceLifecycle;
 import com.redhat.swatch.component.tests.configuration.BaseConfigurationBuilder;
 import com.redhat.swatch.component.tests.configuration.ServiceConfiguration;
 import com.redhat.swatch.component.tests.configuration.ServiceConfigurationBuilder;
@@ -41,19 +42,36 @@ public final class ServiceContext {
   private static final String JDWP = "jdwp=";
 
   private final Service owner;
+  private final ServiceLifecycle lifecycle;
   private final ComponentTestContext componentTestContext;
   private final Path serviceFolder;
   private final Map<String, Object> store = new HashMap<>();
   private final ServiceConfiguration configuration;
   private final List<Object> customConfiguration = new ArrayList<>();
 
+  /**
+   * Creates a ServiceContext with TEST_CLASS lifecycle (original behavior). Kept for backward
+   * compatibility.
+   */
   public ServiceContext(Service owner, ComponentTestContext componentTestContext) {
+    this(owner, ServiceLifecycle.TEST_CLASS, componentTestContext);
+  }
+
+  /** Creates a ServiceContext with specified lifecycle. */
+  public ServiceContext(
+      Service owner, ServiceLifecycle lifecycle, ComponentTestContext componentTestContext) {
     this.owner = owner;
+    this.lifecycle = lifecycle;
     this.componentTestContext = componentTestContext;
-    this.serviceFolder =
-        OutputUtils.target()
-            .resolve(componentTestContext.getRunningTestClassName())
-            .resolve(getName());
+
+    // For TEST_SUITE/MODULE scoped services, use a shared folder instead of per-test-class
+    String testClassName = componentTestContext.getRunningTestClassName();
+    String folderName =
+        (lifecycle == ServiceLifecycle.TEST_CLASS && testClassName != null)
+            ? testClassName
+            : "suite-services";
+
+    this.serviceFolder = OutputUtils.target().resolve(folderName).resolve(owner.getName());
     this.configuration =
         ServiceConfigurationLoader.load(
             owner.getName(), componentTestContext, new ServiceConfigurationBuilder());

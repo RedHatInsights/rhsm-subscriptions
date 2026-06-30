@@ -27,4 +27,8 @@ import java.lang.annotation.Target;
 
 @Target({ElementType.FIELD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface SwatchDatabase {}
+public @interface SwatchDatabase {
+
+  /** Lifecycle scope for this service. Default: TEST_SUITE (start once, stop at JVM shutdown) */
+  ServiceLifecycle lifecycle() default ServiceLifecycle.TEST_SUITE;
+}

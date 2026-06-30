@@ -22,6 +22,7 @@ package com.redhat.swatch.component.tests.api.extensions;
 
 import com.redhat.swatch.component.tests.api.RestService;
 import com.redhat.swatch.component.tests.api.Service;
+import com.redhat.swatch.component.tests.api.ServiceLifecycle;
 import com.redhat.swatch.component.tests.core.ComponentTestContext;
 import com.redhat.swatch.component.tests.core.ManagedResource;
 import java.lang.annotation.Annotation;
@@ -30,6 +31,15 @@ import java.util.stream.Stream;
 
 public interface AnnotationBinding {
   boolean isFor(Annotation... annotations);
+
+  /**
+   * Get the lifecycle scope for this service annotation. Implementations should extract the
+   * lifecycle() attribute from the annotation.
+   *
+   * @param annotation the service annotation
+   * @return the lifecycle scope
+   */
+  ServiceLifecycle getLifecycle(Annotation annotation);
 
   ManagedResource getManagedResource(
       ComponentTestContext context, Service service, Annotation... annotations) throws Exception;

@@ -22,6 +22,7 @@ package com.redhat.swatch.component.tests.resources.artemis;
 
 import com.redhat.swatch.component.tests.api.Artemis;
 import com.redhat.swatch.component.tests.api.Service;
+import com.redhat.swatch.component.tests.api.ServiceLifecycle;
 import com.redhat.swatch.component.tests.api.extensions.AnnotationBinding;
 import com.redhat.swatch.component.tests.core.ComponentTestContext;
 import com.redhat.swatch.component.tests.core.ManagedResource;
@@ -33,6 +34,13 @@ public class ArtemisAnnotationBinding implements AnnotationBinding {
   @Override
   public boolean isFor(Annotation... annotations) {
     return findAnnotation(annotations, Artemis.class).isPresent();
+  }
+
+  @Override
+  public ServiceLifecycle getLifecycle(Annotation annotation) {
+    // TODO: Add lifecycle attribute to @Artemis annotation (see SWATCH-5123)
+    // For now, use TEST_SUITE as default (infrastructure service)
+    return ServiceLifecycle.TEST_SUITE;
   }
 
   @Override
