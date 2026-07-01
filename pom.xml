@@ -41,7 +41,7 @@
     <hibernate-validator.version>9.1.1.Final</hibernate-validator.version>
     <swagger-parser.version>2.1.45</swagger-parser.version>
     <swagger-ui.version>5.32.8</swagger-ui.version>
-    <splunk-otel-javaagent.version>2.28.0</splunk-otel-javaagent.version>
+    <splunk-otel-javaagent.version>2.29.0</splunk-otel-javaagent.version>
     <insights-notification-schemas-java.version>1.1.0</insights-notification-schemas-java.version>
     <rest-assured.version>6.0.0</rest-assured.version>
 
@@ -51,7 +51,7 @@
     <maven-jar-plugin.version>3.5.0</maven-jar-plugin.version>
     <maven-assembly-plugin.version>3.8.0</maven-assembly-plugin.version>
     <exec-maven-plugin.version>3.6.3</exec-maven-plugin.version>
-    <openapi-generator.version>7.22.0</openapi-generator.version>
+    <openapi-generator.version>7.23.0</openapi-generator.version>
     <spotless.version>3.6.0</spotless.version>
     <checkstyle.version>3.6.0</checkstyle.version>
     <jacoco-maven-plugin.version>0.8.15</jacoco-maven-plugin.version>
@@ -450,7 +450,7 @@
         <plugin>
           <groupId>io.smallrye</groupId>
           <artifactId>jandex-maven-plugin</artifactId>
-          <version>3.5.3</version>
+          <version>3.6.0</version>
         </plugin>
 
         <plugin>
