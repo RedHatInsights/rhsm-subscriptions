@@ -20,11 +20,9 @@
  */
 package com.redhat.swatch.component.tests.utils;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 public final class JsonUtils {
   private static final ObjectMapper objectMapper = init();
@@ -44,12 +42,8 @@ public final class JsonUtils {
   }
 
   private static ObjectMapper init() {
-    ObjectMapper mapper = new ObjectMapper();
-    mapper.registerModule(new Jdk8Module());
-    mapper.registerModule(new JavaTimeModule());
-    mapper.registerModule(new Jdk8Module());
-    mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-    mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-    return mapper;
+    // Jackson 3: Use builder pattern for immutable, thread-safe ObjectMapper
+    // Note: Jdk8Module and JavaTimeModule are built-in to Jackson 3 databind
+    return JsonMapper.builder().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES).build();
   }
 }

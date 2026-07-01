@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.security;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.kessel.KesselAuthorizationClient;
 import io.getunleash.Unleash;
 import jakarta.servlet.http.HttpServletRequest;
@@ -109,11 +108,16 @@ public class ApiSecurityConfiguration {
 
   // NOTE: intentionally not annotated w/ @Bean; @Bean causes an extra use as an application filter
   public IdentityHeaderAuthenticationFilter identityHeaderAuthenticationFilter(
-      AuthenticationManager authenticationManager, ObjectMapper mapper) {
-    IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter(mapper);
+      AuthenticationManager authenticationManager, tools.jackson.databind.ObjectMapper ignored) {
+    // Security filters need Jackson 2 for x-rh-identity header parsing
+    com.fasterxml.jackson.databind.ObjectMapper jackson2Mapper =
+        new com.fasterxml.jackson.databind.ObjectMapper();
+    IdentityHeaderAuthenticationFilter filter =
+        new IdentityHeaderAuthenticationFilter(jackson2Mapper);
     filter.setCheckForPrincipalChanges(true);
     filter.setAuthenticationManager(authenticationManager);
-    filter.setAuthenticationFailureHandler(new IdentityHeaderAuthenticationFailureHandler(mapper));
+    filter.setAuthenticationFailureHandler(
+        new IdentityHeaderAuthenticationFailureHandler(jackson2Mapper));
     filter.setContinueFilterChainOnUnsuccessfulAuthentication(false);
     return filter;
   }
@@ -134,14 +138,17 @@ public class ApiSecurityConfiguration {
   }
 
   @Bean
-  public IdentityHeaderAuthenticationFailureHandler identityHeaderAuthenticationFailureHandler(
-      ObjectMapper mapper) {
-    return new IdentityHeaderAuthenticationFailureHandler(mapper);
+  public IdentityHeaderAuthenticationFailureHandler identityHeaderAuthenticationFailureHandler() {
+    com.fasterxml.jackson.databind.ObjectMapper jackson2Mapper =
+        new com.fasterxml.jackson.databind.ObjectMapper();
+    return new IdentityHeaderAuthenticationFailureHandler(jackson2Mapper);
   }
 
   @Bean
-  public AccessDeniedHandler restAccessDeniedHandler(ObjectMapper mapper) {
-    return new RestAccessDeniedHandler(mapper);
+  public AccessDeniedHandler restAccessDeniedHandler() {
+    com.fasterxml.jackson.databind.ObjectMapper jackson2Mapper =
+        new com.fasterxml.jackson.databind.ObjectMapper();
+    return new RestAccessDeniedHandler(jackson2Mapper);
   }
 
   @Bean
@@ -227,10 +234,9 @@ public class ApiSecurityConfiguration {
       ConfigurableEnvironment env,
       AccessDeniedHandler restAccessDeniedHandler,
       AuthenticationEntryPoint restAuthenticationEntryPoint,
-      ObjectMapper mapper,
       OptInChecker optInChecker)
       throws Exception {
-    http.addFilter(identityHeaderAuthenticationFilter(authenticationManager, mapper))
+    http.addFilter(identityHeaderAuthenticationFilter(authenticationManager, null))
         .addFilterAfter(mdcFilter(), IdentityHeaderAuthenticationFilter.class)
         .addFilterAfter(logPrincipalFilter(), MdcFilter.class)
         .addFilterAt(antiCsrfFilter(secProps), CsrfFilter.class)

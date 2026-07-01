@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.tally;
 
 import static org.candlepin.subscriptions.task.queue.kafka.KafkaTaskProducerConfiguration.getProducerProperties;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.concurrent.Executor;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.TopicPartition;
@@ -70,8 +69,8 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
-import org.springframework.kafka.support.serializer.JsonDeserializer;
-import org.springframework.kafka.support.serializer.JsonSerializer;
+import org.springframework.kafka.support.serializer.JacksonJsonDeserializer;
+import org.springframework.kafka.support.serializer.JacksonJsonSerializer;
 import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.retry.backoff.FixedBackOffPolicy;
 import org.springframework.retry.policy.SimpleRetryPolicy;
@@ -197,14 +196,15 @@ public class TallyWorkerConfiguration {
 
   @Bean
   public ProducerFactory<String, TallySummary> tallySummaryProducerFactory(
-      KafkaProperties kafkaProperties, ObjectMapper objectMapper) {
+      KafkaProperties kafkaProperties, tools.jackson.databind.json.JsonMapper jsonMapper) {
     DefaultKafkaProducerFactory<String, TallySummary> factory =
         new DefaultKafkaProducerFactory<>(getProducerProperties(kafkaProperties));
     /*
-    Use our customized ObjectMapper. Notably, the spring-kafka default ObjectMapper writes dates as
+    Use our customized JsonMapper. Notably, the spring-kafka default ObjectMapper writes dates as
     timestamps, which produces messages not compatible with JSON-B deserialization.
+    Using JacksonJsonSerializer for Jackson 3 compatibility.
      */
-    factory.setValueSerializer(new JsonSerializer<>(objectMapper));
+    factory.setValueSerializer(new JacksonJsonSerializer<TallySummary>(jsonMapper));
     return factory;
   }
 
@@ -220,14 +220,15 @@ public class TallyWorkerConfiguration {
 
   @Bean
   public ProducerFactory<String, Event> eventProducerFactory(
-      KafkaProperties kafkaProperties, ObjectMapper objectMapper) {
+      KafkaProperties kafkaProperties, tools.jackson.databind.json.JsonMapper jsonMapper) {
     DefaultKafkaProducerFactory<String, Event> factory =
         new DefaultKafkaProducerFactory<>(getProducerProperties(kafkaProperties));
     /*
-    Use our customized ObjectMapper. Notably, the spring-kafka default ObjectMapper writes dates as
+    Use our customized JsonMapper. Notably, the spring-kafka default ObjectMapper writes dates as
     timestamps, which produces messages not compatible with JSON-B deserialization.
+    Using JacksonJsonSerializer for Jackson 3 compatibility.
      */
-    factory.setValueSerializer(new JsonSerializer<>(objectMapper));
+    factory.setValueSerializer(new JacksonJsonSerializer<Event>(jsonMapper));
     return factory;
   }
 
@@ -266,14 +267,15 @@ public class TallyWorkerConfiguration {
 
   @Bean
   public ProducerFactory<String, String> eventDeadLetterProducerFactory(
-      KafkaProperties kafkaProperties, ObjectMapper objectMapper) {
+      KafkaProperties kafkaProperties, tools.jackson.databind.json.JsonMapper jsonMapper) {
     DefaultKafkaProducerFactory<String, String> factory =
         new DefaultKafkaProducerFactory<>(getProducerProperties(kafkaProperties));
     /*
-    Use our customized ObjectMapper. Notably, the spring-kafka default ObjectMapper writes dates as
+    Use our customized JsonMapper. Notably, the spring-kafka default ObjectMapper writes dates as
     timestamps, which produces messages not compatible with JSON-B deserialization.
+    Using JacksonJsonSerializer for Jackson 3 compatibility.
      */
-    factory.setValueSerializer(new JsonSerializer<>(objectMapper));
+    factory.setValueSerializer(new JacksonJsonSerializer<String>(jsonMapper));
     return factory;
   }
 
@@ -368,14 +370,17 @@ public class TallyWorkerConfiguration {
   @Bean
   @Qualifier(ENABLED_ORGS_CONSUMER_FACTORY_BEAN)
   ConsumerFactory<String, EnabledOrgsRequest> enabledOrgsConsumerFactory(
-      ObjectMapper objectMapper,
+      tools.jackson.databind.json.JsonMapper jsonMapper,
       KafkaProperties kafkaProperties,
       @Qualifier(ENABLED_ORGS_TOPIC_PROPERTIES_BEAN)
           TaskQueueProperties enabledOrgsTopicProperties) {
     var props = kafkaProperties.buildConsumerProperties();
     props.put(
         ConsumerConfig.MAX_POLL_RECORDS_CONFIG, enabledOrgsTopicProperties.getMaxPollRecords());
-    var jsonDeserializer = new JsonDeserializer<>(EnabledOrgsRequest.class, objectMapper, false);
+    // Using JacksonJsonDeserializer for Jackson 3 compatibility
+    var jsonDeserializer =
+        new JacksonJsonDeserializer<EnabledOrgsRequest>(
+            EnabledOrgsRequest.class, jsonMapper, false);
     var factory =
         new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), jsonDeserializer);
     factory.setValueDeserializer(jsonDeserializer);

@@ -24,7 +24,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Calendar;
 import java.util.TimeZone;
 import org.candlepin.subscriptions.jackson.TestPojo;
@@ -36,6 +35,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import tools.jackson.databind.ObjectMapper;
 
 @SpringBootTest
 @TestInstance(Lifecycle.PER_CLASS)
@@ -61,7 +61,8 @@ class HbiObjectMapperTest {
 
     String formatted = mapper.writeValueAsString(cal.getTime());
     // NOTE: The mapper will wrap the string in quotes.
-    assertEquals("\"2019-01-12T08:30:15.222+00:00\"", formatted);
+    // Jackson 3 uses "Z" for UTC timezone (both "+00:00" and "Z" are valid ISO8601)
+    assertEquals("\"2019-01-12T08:30:15.222Z\"", formatted);
   }
 
   @Test
