@@ -123,7 +123,7 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
     service.createOptInConfig(orgId);
 
     // And: RHEL host inserted into HBI database with known capacity
-    SeededHost host = hbiSeeder.insertRhelHost(orgId, 8, 2); // 8 cores, 2 sockets
+    SeededHost host = hbiSeeder.rhelHost(orgId).cores(8).sockets(2).insert();
     assertNotNull(host.hostId(), "Host should be created");
 
     // When: Nightly tally runs (syncs HBI → Swatch → creates snapshots)
