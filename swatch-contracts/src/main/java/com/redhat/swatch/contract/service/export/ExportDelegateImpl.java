@@ -20,14 +20,12 @@
  */
 package com.redhat.swatch.contract.service.export;
 
-import static com.redhat.swatch.export.ExportRequestHandler.INTERNAL_ERROR;
+import static com.redhat.swatch.contract.service.export.ExportRequestHandler.INTERNAL_ERROR;
 
 import com.redhat.swatch.clients.export.api.model.DownloadExportErrorRequest;
 import com.redhat.swatch.clients.export.api.resources.ApiException;
 import com.redhat.swatch.clients.export.api.resources.ExportApi;
-import com.redhat.swatch.export.ExportServiceException;
-import com.redhat.swatch.export.ExportServiceRequest;
-import com.redhat.swatch.export.api.ExportDelegate;
+import com.redhat.swatch.contract.service.export.api.ExportDelegate;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.io.File;
 import lombok.extern.slf4j.Slf4j;

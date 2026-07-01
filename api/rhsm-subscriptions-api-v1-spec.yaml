@@ -909,6 +909,7 @@ components:
               type: boolean
             account:
               type: object
+              nullable: true
               required:
                 - opt_in_type
                 - created
@@ -924,6 +925,7 @@ components:
                   format: date-time
             org:
               type: object
+              nullable: true
               required:
                 - org_id
                 - opt_in_type

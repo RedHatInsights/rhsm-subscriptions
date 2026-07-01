@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.event;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
@@ -54,6 +53,7 @@ import org.springframework.kafka.listener.BatchListenerFailedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import tools.jackson.databind.ObjectMapper;
 
 /** Encapsulates interaction with event store. */
 @Service

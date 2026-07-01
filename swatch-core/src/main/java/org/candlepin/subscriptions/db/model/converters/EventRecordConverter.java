@@ -20,25 +20,27 @@
  */
 package org.candlepin.subscriptions.db.model.converters;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.AttributeConverter;
-import lombok.AllArgsConstructor;
+import jakarta.persistence.Converter;
 import org.candlepin.subscriptions.json.Event;
-import org.springframework.stereotype.Component;
+import tools.jackson.core.JacksonException;
 
-/** JPA AttributeConverter which uses Jackson to map to/from Event JSON. */
-@Component
-@AllArgsConstructor
+/**
+ * JPA AttributeConverter which uses Jackson to map to/from Event JSON. Note: This is NOT a
+ * Spring @Component - Hibernate instantiates it directly. Uses Jackson3ObjectMapperHolder to access
+ * the Jackson 3 ObjectMapper.
+ */
+@Converter(autoApply = false)
 public class EventRecordConverter implements AttributeConverter<Event, String> {
 
-  private final ObjectMapper objectMapper;
+  // No-arg constructor required for Hibernate instantiation
+  public EventRecordConverter() {}
 
   @Override
   public String convertToDatabaseColumn(Event attribute) {
     try {
-      return objectMapper.writeValueAsString(attribute);
-    } catch (JsonProcessingException e) {
+      return Jackson3ObjectMapperHolder.getInstance().writeValueAsString(attribute);
+    } catch (JacksonException e) {
       throw new IllegalArgumentException("Error serializing event", e);
     }
   }
@@ -46,8 +48,8 @@ public class EventRecordConverter implements AttributeConverter<Event, String> {
   @Override
   public Event convertToEntityAttribute(String dbData) {
     try {
-      return objectMapper.readValue(dbData, Event.class);
-    } catch (JsonProcessingException e) {
+      return Jackson3ObjectMapperHolder.getInstance().readValue(dbData, Event.class);
+    } catch (JacksonException e) {
       throw new IllegalArgumentException("Error parsing event", e);
     }
   }

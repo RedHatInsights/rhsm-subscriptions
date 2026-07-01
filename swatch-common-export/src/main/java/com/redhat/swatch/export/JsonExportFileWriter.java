@@ -22,15 +22,15 @@ package com.redhat.swatch.export;
 
 import static com.redhat.swatch.export.ExportRequestHandler.INTERNAL_ERROR;
 
-import com.fasterxml.jackson.core.JsonEncoding;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import tools.jackson.core.JsonEncoding;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.databind.ObjectMapper;
 
 @Slf4j
 @AllArgsConstructor
@@ -47,19 +47,10 @@ public class JsonExportFileWriter implements ExportFileWriter {
         FileOutputStream stream = new FileOutputStream(output);
         JsonGenerator jGenerator = objectMapper.createGenerator(stream, JsonEncoding.UTF8)) {
       jGenerator.writeStartObject();
-      jGenerator.writeArrayFieldStart("data");
-      var serializerProvider = objectMapper.getSerializerProviderInstance();
-      var serializer =
-          serializerProvider.findTypedValueSerializer(dataMapper.getExportItemClass(), false, null);
+      jGenerator.writeName("data");
+      jGenerator.writeStartArray();
       data.flatMap(i -> dataMapper.mapDataItem(i, request).stream())
-          .forEach(
-              item -> {
-                try {
-                  serializer.serialize(item, jGenerator, serializerProvider);
-                } catch (IOException e) {
-                  handleIOException(item, request, e);
-                }
-              });
+          .forEach(item -> objectMapper.writeValue(jGenerator, item));
       jGenerator.writeEndArray();
       jGenerator.writeEndObject();
     } catch (IOException e) {
