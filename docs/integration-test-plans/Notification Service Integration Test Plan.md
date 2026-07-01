@@ -101,3 +101,15 @@ Limitation:
 4. **Expected Result:**
    - No notification is emitted when the PAYG usage type does not match the offering.
    - A notification is emitted when the PAYG usage type matches the offering and usage exceeds the threshold.
+
+## stage-custom-threshold-notification-receipt-TC001
+
+1. **Description:** An opted-in organization with a custom threshold configured receives a proactive notification when utilization crosses that threshold. For this calendar month, no prior custom-threshold notification for the same product-metric has been sent.
+2. **Setup:**
+   - The organization is opted-in for notifications.
+   - The organization has a custom threshold configured.
+   - The organization has a contract for a product.
+   - Usage is added for that product, crossing the custom threshold but not the over-usage threshold.
+3. **Action:** Trigger the hourly tally sync job.
+4. **Verification:** Check the organization's email inbox for the expected organization ID, product, metric, and exact usage percentage.
+5. **Expected Result:** A custom-threshold notification with the correct data is received.
