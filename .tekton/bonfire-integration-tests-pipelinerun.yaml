@@ -40,10 +40,11 @@ spec:
     # Deployment configuration
     ## Workaround to reduce the footprint of the ephemeral environment for rbac. To be fixed in SWATCH-4504.
     ## Workaround to reduce the footprint of the ephemeral environment for host-inventory. To be fixed in SWATCH-5159.
+    ## Workaround to not deploy swatch-tally-ct-hbi in an ephemeral environment. To be fixed in SWATCH-5160.
     - name: EXTRA_DEPLOY_ARGS
       value: >-
         --timeout 1800
-        --exclude-components puptoo,ingress,storage-broker
+        --exclude-components puptoo,ingress,storage-broker,swatch-tally-ct-hbi
         --remove-dependencies host-inventory/ingress
         -p rbac/CELERY_INITIAL_DELAY_SEC=10
         -p rbac/MAX_SEED_THREADS=8
