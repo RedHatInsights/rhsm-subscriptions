@@ -84,7 +84,7 @@ public class ComponentTestExtension
     Log.configure();
     Log.debug("Context ID: '%s'", context.getId());
 
-    // Get suite-level store for TEST_SUITE and MODULE scoped services
+    // Get suite-level store for TEST_SUITE scoped services
     ExtensionContext.Store suiteStore = testContext.getRoot().getStore(SUITE_NAMESPACE);
 
     // Init extensions
@@ -105,7 +105,7 @@ public class ComponentTestExtension
   public void afterAll(ExtensionContext testContext) {
     try {
       // Only stop TEST_CLASS scoped services
-      // TEST_SUITE and MODULE services remain running until JVM shutdown
+      // TEST_SUITE services remain running until JVM shutdown
       List<ServiceContext> servicesToStop =
           services.stream()
               .filter(s -> s.getLifecycle() == ServiceLifecycle.TEST_CLASS)
@@ -310,7 +310,6 @@ public class ComponentTestExtension
 
     switch (lifecycle) {
       case TEST_SUITE:
-      case MODULE:
         // Suite-scoped services: check if already started
         if (suiteStore != null) {
           @SuppressWarnings("unchecked")

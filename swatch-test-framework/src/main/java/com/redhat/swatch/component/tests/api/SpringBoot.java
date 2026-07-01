@@ -32,6 +32,6 @@ public @interface SpringBoot {
   /** Specify the SWATCH spring boot service to load. */
   String service();
 
-  /** Lifecycle scope for this service. Default: MODULE (start once, stop at JVM shutdown) */
-  ServiceLifecycle lifecycle() default ServiceLifecycle.MODULE;
+  /** Lifecycle scope for this service. Default: TEST_SUITE (start once, stop at JVM shutdown) */
+  ServiceLifecycle lifecycle() default ServiceLifecycle.TEST_SUITE;
 }

@@ -212,7 +212,7 @@ public class BaseService<T extends Service> implements Service {
     this.context = new ServiceContext(this, lifecycle, context);
 
     // Only store TEST_CLASS services in test store (which auto-closes at end of test class)
-    // TEST_SUITE/MODULE services are managed by ExtensionContext.Store at suite level
+    // TEST_SUITE services are managed by ExtensionContext.Store at suite level
     if (lifecycle == ServiceLifecycle.TEST_CLASS) {
       context.getTestStore().put(serviceName, this);
     }

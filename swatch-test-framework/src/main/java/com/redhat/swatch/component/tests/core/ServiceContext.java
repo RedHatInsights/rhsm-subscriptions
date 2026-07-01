@@ -64,7 +64,7 @@ public final class ServiceContext {
     this.lifecycle = lifecycle;
     this.componentTestContext = componentTestContext;
 
-    // For TEST_SUITE/MODULE scoped services, use a shared folder instead of per-test-class
+    // For TEST_SUITE scoped services, use a shared folder instead of per-test-class
     String testClassName = componentTestContext.getRunningTestClassName();
     String folderName =
         (lifecycle == ServiceLifecycle.TEST_CLASS && testClassName != null)

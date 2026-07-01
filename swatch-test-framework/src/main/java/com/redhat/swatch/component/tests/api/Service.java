@@ -65,7 +65,7 @@ public interface Service extends AutoCloseable {
    *
    * @param serviceName the service name
    * @param context the component test context
-   * @param lifecycle the lifecycle scope (TEST_SUITE, MODULE, or TEST_CLASS)
+   * @param lifecycle the lifecycle scope (TEST_SUITE or TEST_CLASS)
    * @return the service context
    */
   default ServiceContext register(

@@ -28,9 +28,9 @@ import org.junit.jupiter.api.extension.ExtensionContext;
  * Cleanup callback that stops a service when ExtensionContext.Store closes. Implements JUnit 5's
  * CloseableResource for automatic cleanup.
  *
- * <p>This is registered with ExtensionContext.Store for TEST_SUITE and MODULE scoped services. When
- * the store closes (at JVM shutdown for ROOT context), JUnit automatically calls close(), which
- * stops the service.
+ * <p>This is registered with ExtensionContext.Store for TEST_SUITE scoped services. When the store
+ * closes (at JVM shutdown for ROOT context), JUnit automatically calls close(), which stops the
+ * service.
  */
 class ServiceCleanupCallback implements ExtensionContext.Store.CloseableResource {
 

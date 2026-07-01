@@ -24,20 +24,10 @@ package com.redhat.swatch.component.tests.api;
 public enum ServiceLifecycle {
 
   /**
-   * Service starts before first test class and stops at JVM shutdown. Use for infrastructure
-   * services (database, message broker, mock servers).
-   *
-   * <p>For single module runs (pipeline scenario), this is identical to MODULE scope.
+   * Service starts before first test class and stops at JVM shutdown. Use for all services
+   * (infrastructure and application) in single-module test runs (the standard pipeline scenario).
    */
   TEST_SUITE,
-
-  /**
-   * Service starts with first test and stops at JVM shutdown. Use for application services under
-   * test (swatch-tally, swatch-producer-aws, etc.).
-   *
-   * <p>For single module runs (pipeline scenario), this is identical to TEST_SUITE scope.
-   */
-  MODULE,
 
   /**
    * Service starts before each test class and stops after it completes (original behavior).
