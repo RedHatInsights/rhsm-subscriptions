@@ -20,8 +20,6 @@
  */
 package com.redhat.swatch.component.tests.core;
 
-import static org.junit.jupiter.api.Assertions.fail;
-
 import com.redhat.swatch.component.tests.api.Service;
 import com.redhat.swatch.component.tests.api.ServiceLifecycle;
 import com.redhat.swatch.component.tests.api.extensions.AnnotationBinding;
@@ -30,16 +28,6 @@ import com.redhat.swatch.component.tests.logging.Log;
 import com.redhat.swatch.component.tests.utils.InjectUtils;
 import com.redhat.swatch.component.tests.utils.ReflectionUtils;
 import com.redhat.swatch.component.tests.utils.ServiceLoaderUtils;
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
@@ -51,6 +39,19 @@ import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.jupiter.api.extension.ParameterResolver;
 import org.junit.jupiter.api.extension.TestInstances;
 import org.junit.jupiter.api.extension.TestWatcher;
+
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class ComponentTestExtension
     implements BeforeAllCallback,
@@ -324,7 +325,7 @@ public class ComponentTestExtension
             // Reuse existing service - add to reusedServices list (not services list)
             ServiceContext existingContext = suiteServices.get(name);
             reusedServices.add(existingContext);
-            Log.info("♻️ Reusing %s scoped service: %s", lifecycle, name);
+            Log.info("Reusing %s scoped service: %s", lifecycle, name);
             return;
           }
 
@@ -356,8 +357,7 @@ public class ComponentTestExtension
           // Register cleanup callback for automatic shutdown
           suiteStore.put(name + "-cleanup", new ServiceCleanupCallback(service, name));
 
-          Log.info(
-              "🚀 Starting %s scoped service: %s (will run until JVM shutdown)", lifecycle, name);
+          Log.info("Starting %s scoped service: %s (will run until JVM shutdown)", lifecycle, name);
           extensions.forEach(ext -> ext.updateServiceContext(serviceContext));
           launchService(service);
         } else {
