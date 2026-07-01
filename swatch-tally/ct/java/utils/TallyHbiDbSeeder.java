@@ -202,38 +202,32 @@ public final class TallyHbiDbSeeder {
     OffsetDateTime staleTimestamp = now.plusDays(7); // Default: 7 days from now
 
     try (Connection conn = getInsightsConnection()) {
-      // Production HBI schema: canonical_facts stores insights_id and subscription_manager_id
-      String canonicalFacts =
-          String.format(
-              """
-              {
-                "insights_id": "%s",
-                "subscription_manager_id": "%s"
-              }
-              """,
-              insightsId, actualSubManId);
-
+      // Production HBI schema has BOTH direct columns AND canonical_facts for backward
+      // compatibility
       String hostSql =
           """
           INSERT INTO hbi.hosts
-            (id, org_id, display_name, canonical_facts, created_on, modified_on,
-             stale_timestamp, facts, groups, reporter)
+            (id, org_id, display_name, insights_id, subscription_manager_id,
+             created_on, modified_on, last_check_in,
+             facts, groups, reporter)
           VALUES
-            (?, ?, ?, ?::jsonb, ?, ?,
-             ?, ?::jsonb, ?::jsonb, ?)
+            (?, ?, ?, ?, ?,
+             ?, ?, ?,
+             ?::jsonb, ?::jsonb, ?)
           """;
 
       try (PreparedStatement ps = conn.prepareStatement(hostSql)) {
         ps.setObject(1, hostId);
         ps.setString(2, orgId);
         ps.setString(3, actualDisplayName);
-        ps.setString(4, canonicalFacts); // canonical_facts as JSONB
-        ps.setObject(5, now); // created_on
-        ps.setObject(6, now); // modified_on
-        ps.setObject(7, staleTimestamp); // stale_timestamp
-        ps.setString(8, buildRhelFacts(cores, sockets)); // facts
-        ps.setString(9, "[]"); // groups - empty array (required NOT NULL)
-        ps.setString(10, "component-test"); // reporter
+        ps.setObject(4, insightsId); // insights_id - direct column (NOT NULL in prod)
+        ps.setString(5, actualSubManId); // subscription_manager_id - direct column
+        ps.setObject(6, now); // created_on
+        ps.setObject(7, now); // modified_on
+        ps.setObject(8, now); // last_check_in - required for swatch-tally query filter
+        ps.setString(9, buildRhelFacts(cores, sockets)); // facts
+        ps.setString(10, "[]"); // groups - empty array (required NOT NULL)
+        ps.setString(11, "component-test"); // reporter
         ps.executeUpdate();
       }
 
@@ -303,39 +297,33 @@ public final class TallyHbiDbSeeder {
     OffsetDateTime staleTimestamp = now.plusDays(7); // Default: 7 days from now
 
     try (Connection conn = getInsightsConnection()) {
-      // Production HBI schema: canonical_facts stores provider_id, insights_id, subscription_manager_id
-      String canonicalFacts =
-          String.format(
-              """
-              {
-                "insights_id": "%s",
-                "subscription_manager_id": "%s",
-                "provider_id": "%s"
-              }
-              """,
-              insightsId, actualSubManId, actualProviderId);
-
+      // Production HBI schema has BOTH direct columns AND canonical_facts for backward
+      // compatibility
       String hostSql =
           """
           INSERT INTO hbi.hosts
-            (id, org_id, display_name, canonical_facts, created_on, modified_on,
-             stale_timestamp, facts, groups, reporter)
+            (id, org_id, display_name, insights_id, subscription_manager_id, provider_id,
+             created_on, modified_on, last_check_in,
+             facts, groups, reporter)
           VALUES
-            (?, ?, ?, ?::jsonb, ?, ?,
-             ?, ?::jsonb, ?::jsonb, ?)
+            (?, ?, ?, ?, ?, ?,
+             ?, ?, ?,
+             ?::jsonb, ?::jsonb, ?)
           """;
 
       try (PreparedStatement ps = conn.prepareStatement(hostSql)) {
         ps.setObject(1, hostId);
         ps.setString(2, orgId);
         ps.setString(3, actualDisplayName);
-        ps.setString(4, canonicalFacts); // canonical_facts as JSONB
-        ps.setObject(5, now); // created_on
-        ps.setObject(6, now); // modified_on
-        ps.setObject(7, staleTimestamp); // stale_timestamp
-        ps.setString(8, "{}"); // facts (empty for cloud hosts)
-        ps.setString(9, "[]"); // groups - empty array (required NOT NULL)
-        ps.setString(10, "component-test"); // reporter
+        ps.setObject(4, insightsId); // insights_id - direct column (NOT NULL in prod)
+        ps.setString(5, actualSubManId); // subscription_manager_id - direct column
+        ps.setString(6, actualProviderId); // provider_id - direct column
+        ps.setObject(7, now); // created_on
+        ps.setObject(8, now); // modified_on
+        ps.setObject(9, now); // last_check_in - required for swatch-tally query filter
+        ps.setString(10, "{}"); // facts (empty for cloud hosts)
+        ps.setString(11, "[]"); // groups - empty array (required NOT NULL)
+        ps.setString(12, "component-test"); // reporter
         ps.executeUpdate();
       }
 

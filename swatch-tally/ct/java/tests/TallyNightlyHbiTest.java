@@ -152,8 +152,7 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
     var dataPoints = reportData.getData();
 
     // Debug: Log actual socket values
-    com.redhat.swatch.component.tests.logging.Log.info(
-        "Tally report data points: %s", dataPoints);
+    com.redhat.swatch.component.tests.logging.Log.info("Tally report data points: %s", dataPoints);
     dataPoints.forEach(
         point ->
             com.redhat.swatch.component.tests.logging.Log.info(
