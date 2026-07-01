@@ -20,25 +20,30 @@
  */
 package com.redhat.swatch.component.tests.resources.db;
 
+import com.redhat.swatch.component.tests.api.HbiDatabase;
 import com.redhat.swatch.component.tests.api.Service;
-import com.redhat.swatch.component.tests.api.SwatchDatabase;
 import com.redhat.swatch.component.tests.api.extensions.AnnotationBinding;
 import com.redhat.swatch.component.tests.core.ComponentTestContext;
 import com.redhat.swatch.component.tests.core.ManagedResource;
 import com.redhat.swatch.component.tests.core.extensions.OpenShiftExtensionBootstrap;
 import java.lang.annotation.Annotation;
 
-public class SwatchDatabaseAnnotationBinding implements AnnotationBinding {
+/**
+ * Annotation binding for {@link HbiDatabase}.
+ *
+ * <p>Configures HBI database connection for local (docker-compose) or OpenShift environments.
+ */
+public class HbiDatabaseAnnotationBinding implements AnnotationBinding {
 
   private static final String DEFAULT_DB_HOST = "localhost";
   private static final String DEFAULT_DB_PORT = "5432";
-  private static final String DEFAULT_DB_DATABASE = "rhsm-subscriptions";
-  private static final String DEFAULT_DB_USERNAME = "rhsm-subscriptions";
-  private static final String DEFAULT_DB_PASSWORD = "rhsm-subscriptions";
+  private static final String DEFAULT_DB_DATABASE = "insights";
+  private static final String DEFAULT_DB_USERNAME = "insights";
+  private static final String DEFAULT_DB_PASSWORD = "insights";
 
   @Override
   public boolean isFor(Annotation... annotations) {
-    return findAnnotation(annotations, SwatchDatabase.class).isPresent();
+    return findAnnotation(annotations, HbiDatabase.class).isPresent();
   }
 
   @Override
@@ -56,8 +61,8 @@ public class SwatchDatabaseAnnotationBinding implements AnnotationBinding {
         LocalDatabaseResourceConfig.builder()
             // Match container with underscore or dash, with optional suffix (e.g., -1)
             // Matches: rhsm-subscriptions_db, rhsm-subscriptions-db, rhsm-subscriptions-db-1, etc.
-            .containerNameRegex("rhsm-subscriptions[_-]db")
-            .envVarPrefix("SWATCH_DB")
+            .containerNameRegex("rhsm-subscriptions[_-]db") // Same container as Swatch DB locally
+            .envVarPrefix("INVENTORY_DB") // Environment variable prefix for HBI database
             .defaultHost(DEFAULT_DB_HOST)
             .defaultPort(DEFAULT_DB_PORT)
             .defaultDatabaseName(DEFAULT_DB_DATABASE)
@@ -71,9 +76,9 @@ public class SwatchDatabaseAnnotationBinding implements AnnotationBinding {
   private OpenShiftDatabaseManagedResource createOpenShiftResource() {
     var osConfig =
         OpenShiftDatabaseResourceConfig.builder()
-            .secretName("swatch-database-db")
-            .serviceName("swatch-database-db")
-            .podLabel("swatch-database")
+            .secretName("swatch-tally-ct-hbi-db") // Secret created by ClowdApp
+            .serviceName("swatch-tally-ct-hbi-db") // Service name in OpenShift
+            .podLabel("swatch-tally-ct-hbi") // Pod selector label
             .portSecretKey("db.port")
             .databaseSecretKey("db.name")
             .usernameSecretKey("db.user")
