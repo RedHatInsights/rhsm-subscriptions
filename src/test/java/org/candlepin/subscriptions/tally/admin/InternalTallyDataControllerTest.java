@@ -24,8 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.EventRecordRepository;
@@ -43,6 +41,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 @SpringBootTest
 @ActiveProfiles({"worker", "test"})
@@ -78,7 +78,7 @@ class InternalTallyDataControllerTest {
 
   @Test
   @SuppressWarnings("unchecked")
-  void testEventWithNullInstanceIdIsSkipped() throws JsonProcessingException {
+  void testEventWithNullInstanceIdIsSkipped() throws JacksonException {
     Event event =
         new Event()
             .withEventType("test-event")
@@ -98,7 +98,7 @@ class InternalTallyDataControllerTest {
 
   @Test
   @SuppressWarnings("unchecked")
-  void testEventsWithNegativeMeasurementSkipped() throws JsonProcessingException {
+  void testEventsWithNegativeMeasurementSkipped() throws JacksonException {
     Event event =
         new Event()
             .withEventType("test-event")
@@ -119,7 +119,7 @@ class InternalTallyDataControllerTest {
 
   @Test
   @SuppressWarnings("unchecked")
-  void testOnlyValidEventIsPersisted() throws JsonProcessingException {
+  void testOnlyValidEventIsPersisted() throws JacksonException {
     Event event =
         new Event()
             .withConversion(true)

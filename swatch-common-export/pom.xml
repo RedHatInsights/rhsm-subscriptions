@@ -35,9 +35,8 @@
       <artifactId>event-schemas</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <groupId>tools.jackson.dataformat</groupId>
       <artifactId>jackson-dataformat-csv</artifactId>
-      <version>${jackson.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>

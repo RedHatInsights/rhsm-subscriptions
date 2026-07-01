@@ -30,7 +30,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.configuration.registry.MetricId;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -63,6 +62,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.kafka.listener.BatchListenerFailedException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import tools.jackson.databind.ObjectMapper;
 
 @SpringBootTest
 @ExtendWith(MockitoExtension.class)

@@ -22,8 +22,7 @@ package com.redhat.swatch.contract.service.export;
 
 import com.redhat.swatch.clients.rbac.RbacApiException;
 import com.redhat.swatch.clients.rbac.RbacService;
-import com.redhat.swatch.export.ExportServiceException;
-import com.redhat.swatch.export.api.RbacDelegate;
+import com.redhat.swatch.contract.service.export.api.RbacDelegate;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.core.Response;
 import java.util.List;

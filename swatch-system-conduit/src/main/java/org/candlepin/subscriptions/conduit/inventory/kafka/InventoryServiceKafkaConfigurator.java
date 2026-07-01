@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.conduit.inventory.kafka;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -28,8 +27,9 @@ import org.springframework.boot.kafka.autoconfigure.KafkaProperties;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
-import org.springframework.kafka.support.serializer.JsonSerializer;
+import org.springframework.kafka.support.serializer.JacksonJsonSerializer;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Encapsulates the creation of all components required for producing Kafka messages for the
@@ -39,17 +39,18 @@ import org.springframework.stereotype.Component;
 public class InventoryServiceKafkaConfigurator {
 
   public DefaultKafkaProducerFactory<String, CreateUpdateHostMessage> defaultProducerFactory(
-      KafkaProperties kafkaProperties, ObjectMapper mapper) {
+      KafkaProperties kafkaProperties, JsonMapper jsonMapper) {
     Map<String, Object> producerConfig = kafkaProperties.buildProducerProperties();
     producerConfig.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
 
     DefaultKafkaProducerFactory<String, CreateUpdateHostMessage> factory =
         new DefaultKafkaProducerFactory<>(producerConfig);
-    // Because inventory requires us to not sent JSON fields that have null values,
-    // we need to customize the ObjectMapper used by spring-kafka. There is no way to customize
+    // Because inventory requires us to not send JSON fields that have null values,
+    // we need to customize the JsonMapper used by spring-kafka. There is no way to customize
     // it via configuration properties, so we use the custom one that is configured for the
     // application that is created via the ApplicationConfiguration.
-    factory.setValueSerializer(new JsonSerializer<>(mapper));
+    // Using JacksonJsonSerializer for Jackson 3 compatibility.
+    factory.setValueSerializer(new JacksonJsonSerializer<CreateUpdateHostMessage>(jsonMapper));
     return factory;
   }
 
