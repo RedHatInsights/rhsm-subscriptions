@@ -39,6 +39,7 @@ spec:
     
     # Deployment configuration
     ## Workaround to reduce the footprint of the ephemeral environment for rbac. To be fixed in SWATCH-4504.
+    ## Workaround to reduce the footprint of the ephemeral environment for host-inventory. To be fixed in SWATCH-5159.
     - name: EXTRA_DEPLOY_ARGS
       value: >-
         --timeout 1800
@@ -51,6 +52,12 @@ spec:
         -p rbac/NOTIFICATIONS_RH_ENABLED=False
         -p rbac/KAFKA_ENABLED=False
         -p rbac/RBAC_KAFKA_CONSUMER_REPLICAS=0
+        -p host-inventory/GUNICORN_WORKERS=1
+        -p host-inventory/GUNICORN_THREADS=1
+        -p host-inventory/REPLICAS_EXPORT_SVC=0
+        -p host-inventory/REPLICAS_WORKSPACES=0
+        -p host-inventory/REPLICAS_WORKSPACES_BULK=0
+        -p host-inventory/REPLICAS_HOST_APP_DATA=0
     - name: DEPLOY_OPTIONAL_DEPS_METHOD
       value: "none"
     - name: DEPLOY_FRONTENDS
