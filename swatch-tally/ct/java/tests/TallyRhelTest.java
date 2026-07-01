@@ -21,10 +21,13 @@
 package tests;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static utils.TallyTestHelpers.getSocketCount;
 import static utils.TallyTestProducts.RHEL_FOR_X86;
 
 import com.redhat.swatch.component.tests.logging.Log;
+import com.redhat.swatch.tally.test.model.InstanceData;
 import java.time.OffsetDateTime;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
@@ -34,6 +37,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import utils.TallyHbiDbSeeder;
 import utils.TallyHbiDbSeeder.SeededHost;
+import utils.TallyTestHelpers;
 
 /**
  * Component tests for RHEL physical host tally with socket increase mapping.
@@ -127,24 +131,22 @@ public class TallyRhelTest extends BaseTallyComponentTest {
         String.format("Sockets should increase by %d", expectedReportedSockets));
 
     // And: Get instance from system table
-    // TODO: Fix compilation error - temporarily commented
-    // InstanceData instance =
-    //     getInstanceByDisplayName(service, orgId, displayName, beginning, ending);
+    // Try calling without static import to diagnose compilation issue
+    InstanceData instance =
+        TallyTestHelpers.getInstanceByDisplayName(service, orgId, displayName, beginning, ending);
 
     // Verify instance details
-    // TODO: Fix compilation error - temporarily commented
-    // assertNotNull(instance, "Host should appear in instances API");
-    // assertEquals(displayName, instance.getDisplayName(), "Display name should match");
-    // assertEquals(
-    //     "physical", instance.getCategory().toString().toLowerCase(), "Category should be
-    // physical");
-    // assertNotNull(instance.getMeasurements(), "Instance should have measurements");
-    // assertFalse(instance.getMeasurements().isEmpty(), "Measurements should not be empty");
-    // assertEquals(
-    //     (double) expectedReportedSockets,
-    //     instance.getMeasurements().get(0),
-    //     String.format(
-    //         "Labeled measurement should show %d sockets (increased from %d)",
-    //         expectedReportedSockets, actualSockets));
+    assertNotNull(instance, "Host should appear in instances API");
+    assertEquals(displayName, instance.getDisplayName(), "Display name should match");
+    assertEquals(
+        "physical", instance.getCategory().toString().toLowerCase(), "Category should be physical");
+    assertNotNull(instance.getMeasurements(), "Instance should have measurements");
+    assertFalse(instance.getMeasurements().isEmpty(), "Measurements should not be empty");
+    assertEquals(
+        (double) expectedReportedSockets,
+        instance.getMeasurements().get(0),
+        String.format(
+            "Labeled measurement should show %d sockets (increased from %d)",
+            expectedReportedSockets, actualSockets));
   }
 }
