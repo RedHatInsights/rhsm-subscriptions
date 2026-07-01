@@ -20,15 +20,20 @@
  */
 package org.candlepin.subscriptions.conduit.resteasy;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.util.StdDateFormat;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.ws.rs.ext.ContextResolver;
 import jakarta.ws.rs.ext.Provider;
 import org.springframework.stereotype.Component;
 
 /**
  * A ContextResolver responsible for customizing the configuration of Jackson's ObjectMapper
- * instance. This is marked as a Provider so that RestEasy will use the configured ObjectMapper
- * provided by this instance.
+ * instance. RESTEasy's jackson2-provider requires a Jackson 2 ObjectMapper, so this provides one
+ * with settings that mirror the Jackson 3 JsonMapper from ApplicationConfiguration.
  */
 @Provider
 @Component
@@ -36,8 +41,13 @@ public class ObjectMapperContextResolver implements ContextResolver<ObjectMapper
 
   private final ObjectMapper objectMapper;
 
-  public ObjectMapperContextResolver(ObjectMapper mapper) {
-    this.objectMapper = mapper;
+  public ObjectMapperContextResolver() {
+    this.objectMapper = new ObjectMapper();
+    objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    objectMapper.setDateFormat(new StdDateFormat().withColonInTimeZone(true));
+    objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+    objectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+    objectMapper.registerModule(new JavaTimeModule());
   }
 
   @Override

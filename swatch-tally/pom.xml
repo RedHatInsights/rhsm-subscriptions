@@ -135,12 +135,6 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-jpa</artifactId>
     </dependency>
-    <!-- TODO This module is deprecated by design.  Move to Jackson 3 ASAP -->
-    <!-- See https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide#jackson-2-compatibility -->
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-jackson2</artifactId>
-    </dependency>
     <!-- TODO This module is deprecated by design.  Move to functionality in core Spring ASAP -->
     <dependency>
       <groupId>org.springframework.retry</groupId>
@@ -181,7 +175,7 @@
       <artifactId>commons-collections4</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <groupId>tools.jackson.dataformat</groupId>
       <artifactId>jackson-dataformat-csv</artifactId>
     </dependency>
     <dependency>

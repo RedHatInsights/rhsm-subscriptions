@@ -32,8 +32,9 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.Network;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.shaded.com.fasterxml.jackson.core.JsonProcessingException;
-import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 @Testcontainers
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
@@ -73,7 +74,7 @@ public interface ExtendWithInventoryService {
       OffsetDateTime lastCheckIn,
       OffsetDateTime createdOn,
       OffsetDateTime modifiedOn) {
-    ObjectMapper objectMapper = new ObjectMapper();
+    ObjectMapper objectMapper = JsonMapper.builder().build();
 
     try {
       insightsDatabase.insertRow(
@@ -106,7 +107,7 @@ public interface ExtendWithInventoryService {
             createdOn.toString(),
             modifiedOn.toString()
           });
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       throw new RuntimeException("Failed to create `rhsm` json", e);
     }
   }

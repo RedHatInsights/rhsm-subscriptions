@@ -26,8 +26,6 @@ import com.redhat.swatch.contract.model.SubscriptionsExportCsvItem;
 import com.redhat.swatch.contract.repository.SubscriptionCapacityView;
 import com.redhat.swatch.contract.repository.SubscriptionCapacityViewRepository;
 import com.redhat.swatch.contract.resource.api.v1.ApiModelMapperV1;
-import com.redhat.swatch.export.DataMapperService;
-import com.redhat.swatch.export.ExportServiceRequest;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.util.List;
 import java.util.Optional;

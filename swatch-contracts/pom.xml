@@ -98,11 +98,16 @@
     </dependency>
     <dependency>
       <groupId>com.redhat.swatch</groupId>
-      <artifactId>swatch-common-export</artifactId>
+      <artifactId>swatch-common-models</artifactId>
+    </dependency>
+    <!-- Export functionality is now local to swatch-contracts -->
+    <dependency>
+      <groupId>com.redhat.cloud.event</groupId>
+      <artifactId>event-schemas</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.redhat.swatch</groupId>
-      <artifactId>swatch-common-models</artifactId>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-csv</artifactId>
     </dependency>
     <dependency>
       <groupId>com.redhat.swatch.clients.quarkus</groupId>
@@ -163,10 +168,6 @@
     <dependency>
       <groupId>com.fasterxml.jackson.module</groupId>
       <artifactId>jackson-module-jakarta-xmlbind-annotations</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.dataformat</groupId>
-      <artifactId>jackson-dataformat-csv</artifactId>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.datatype</groupId>

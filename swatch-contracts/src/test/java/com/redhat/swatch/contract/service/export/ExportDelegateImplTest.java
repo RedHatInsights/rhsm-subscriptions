@@ -27,7 +27,6 @@ import static org.mockito.Mockito.when;
 import com.redhat.cloud.event.apps.exportservice.v1.ResourceRequestClass;
 import com.redhat.swatch.contract.test.resources.ExportServiceWireMockResource;
 import com.redhat.swatch.contract.test.resources.InjectWireMock;
-import com.redhat.swatch.export.ExportServiceRequest;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;

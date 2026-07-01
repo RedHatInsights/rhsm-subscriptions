@@ -20,6 +20,15 @@
 
   <dependencies>
     <dependency>
+      <groupId>tools.jackson.core</groupId>
+      <artifactId>jackson-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>tools.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+    <!-- Jackson 3 annotations provided by Spring Boot -->
+    <dependency>
       <groupId>com.redhat.swatch</groupId>
       <artifactId>clients-core</artifactId>
     </dependency>

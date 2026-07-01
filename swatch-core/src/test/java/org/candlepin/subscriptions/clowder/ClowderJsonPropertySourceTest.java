@@ -25,7 +25,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.function.Supplier;
@@ -42,6 +41,7 @@ import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.web.context.support.StandardServletEnvironment;
+import tools.jackson.databind.json.JsonMapper;
 
 @ContextConfiguration
 class ClowderJsonPropertySourceTest {
@@ -52,7 +52,7 @@ class ClowderJsonPropertySourceTest {
 
   private ClowderJson jsonFromResource(String location) throws IOException {
     var s = new DefaultResourceLoader().getResource(location).getInputStream();
-    return new ClowderJson(s, new ObjectMapper());
+    return new ClowderJson(s, JsonMapper.builder().build());
   }
 
   @Test

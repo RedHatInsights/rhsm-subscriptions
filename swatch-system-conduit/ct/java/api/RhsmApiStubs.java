@@ -20,13 +20,14 @@
  */
 package api;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 /** Facade for stubbing RHSM API (consumers/feeds) endpoints. */
 public class RhsmApiStubs {
@@ -46,7 +47,7 @@ public class RhsmApiStubs {
    *     name, lastCheckin, installedProducts, sysPurposeRole, sysPurposeUsage, sysPurposeAddons,
    *     facts, etc.)
    */
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private static final ObjectMapper OBJECT_MAPPER = JsonMapper.builder().build();
 
   public void stubConsumersForOrg(String orgId, List<Map<String, Object>> consumers) {
     Map<String, Object> pagination =
@@ -59,7 +60,7 @@ public class RhsmApiStubs {
     String responseBodyJson;
     try {
       responseBodyJson = OBJECT_MAPPER.writeValueAsString(responseBody);
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       throw new RuntimeException("Failed to serialize stub response", e);
     }
 
