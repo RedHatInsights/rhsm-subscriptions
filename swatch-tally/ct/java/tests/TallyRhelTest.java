@@ -105,13 +105,14 @@ public class TallyRhelTest extends BaseTallyComponentTest {
     int cores = actualSockets; // 1 core per socket (matches IQE)
 
     SeededHost host =
-        hbiSeeder.insertRhelHost(
-            orgId,
-            "inventory-" + actualSockets,
-            "subman-" + actualSockets,
-            displayName,
-            cores,
-            actualSockets);
+        hbiSeeder
+            .rhelHost(orgId)
+            .inventoryId("inventory-" + actualSockets)
+            .subscriptionManagerId("subman-" + actualSockets)
+            .displayName(displayName)
+            .cores(cores)
+            .sockets(actualSockets)
+            .insert();
 
     Log.info("Inserted host %s: %d cores, %d sockets", host.hostId(), cores, actualSockets);
 

@@ -128,6 +128,93 @@ public final class TallyHbiDbSeeder {
   public record SeededHost(
       UUID hostId, String inventoryId, String subscriptionManagerId, String orgId) {}
 
+  public RhelHostBuilder rhelHost(String orgId) {
+    return new RhelHostBuilder(orgId);
+  }
+
+  public CloudHostBuilder cloudHost(String orgId) {
+    return new CloudHostBuilder(orgId);
+  }
+
+  public class RhelHostBuilder {
+    private final String orgId;
+    private String inventoryId;
+    private String subscriptionManagerId;
+    private String displayName;
+    private int cores = DEFAULT_CORES;
+    private int sockets = DEFAULT_SOCKETS;
+
+    private RhelHostBuilder(String orgId) {
+      this.orgId = Objects.requireNonNull(orgId, "orgId is required");
+    }
+
+    public RhelHostBuilder inventoryId(String inventoryId) {
+      this.inventoryId = inventoryId;
+      return this;
+    }
+
+    public RhelHostBuilder subscriptionManagerId(String subscriptionManagerId) {
+      this.subscriptionManagerId = subscriptionManagerId;
+      return this;
+    }
+
+    public RhelHostBuilder displayName(String displayName) {
+      this.displayName = displayName;
+      return this;
+    }
+
+    public RhelHostBuilder cores(int cores) {
+      this.cores = cores;
+      return this;
+    }
+
+    public RhelHostBuilder sockets(int sockets) {
+      this.sockets = sockets;
+      return this;
+    }
+
+    public SeededHost insert() {
+      return insertRhelHost(orgId, inventoryId, subscriptionManagerId, displayName, cores, sockets);
+    }
+  }
+
+  /** Builder for cloud/non-RHEL hosts with fluent API. */
+  public class CloudHostBuilder {
+    private final String orgId;
+    private String inventoryId;
+    private String subscriptionManagerId;
+    private String displayName;
+    private String providerId;
+
+    private CloudHostBuilder(String orgId) {
+      this.orgId = Objects.requireNonNull(orgId, "orgId is required");
+    }
+
+    public CloudHostBuilder inventoryId(String inventoryId) {
+      this.inventoryId = inventoryId;
+      return this;
+    }
+
+    public CloudHostBuilder subscriptionManagerId(String subscriptionManagerId) {
+      this.subscriptionManagerId = subscriptionManagerId;
+      return this;
+    }
+
+    public CloudHostBuilder displayName(String displayName) {
+      this.displayName = displayName;
+      return this;
+    }
+
+    public CloudHostBuilder providerId(String providerId) {
+      this.providerId = providerId;
+      return this;
+    }
+
+    public SeededHost insert() {
+      return insertNonRhelHost(orgId, inventoryId, subscriptionManagerId, displayName, providerId);
+    }
+  }
+
   // --- Convenience methods for easy test data creation ---
 
   /**
