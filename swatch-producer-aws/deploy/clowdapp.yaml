@@ -95,6 +95,8 @@ objects:
       - swatch-contracts
       - swatch-billable-usage
 
+    featureFlags: true
+
     kafkaTopics:
       - replicas: ${{KAFKA_BILLABLE_USAGE_REPLICAS}}
         partitions: ${{KAFKA_BILLABLE_USAGE_PARTITIONS}}
