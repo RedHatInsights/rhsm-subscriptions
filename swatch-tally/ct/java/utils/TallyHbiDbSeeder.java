@@ -143,6 +143,8 @@ public final class TallyHbiDbSeeder {
     private String displayName;
     private int cores = DEFAULT_CORES;
     private int sockets = DEFAULT_SOCKETS;
+    private String reporter = "component-test";
+    private String[] reporters = new String[] {"component-test"};
 
     private RhelHostBuilder(String orgId) {
       this.orgId = Objects.requireNonNull(orgId, "orgId is required");
@@ -173,8 +175,26 @@ public final class TallyHbiDbSeeder {
       return this;
     }
 
+    public RhelHostBuilder reporter(String reporter) {
+      this.reporter = reporter;
+      return this;
+    }
+
+    public RhelHostBuilder reporters(String... reporters) {
+      this.reporters = reporters;
+      return this;
+    }
+
     public SeededHost insert() {
-      return insertRhelHost(orgId, inventoryId, subscriptionManagerId, displayName, cores, sockets);
+      return insertRhelHost(
+          orgId,
+          inventoryId,
+          subscriptionManagerId,
+          displayName,
+          cores,
+          sockets,
+          reporter,
+          reporters);
     }
   }
 
@@ -185,6 +205,8 @@ public final class TallyHbiDbSeeder {
     private String subscriptionManagerId;
     private String displayName;
     private String providerId;
+    private String reporter = "component-test";
+    private String[] reporters = new String[] {"component-test"};
 
     private CloudHostBuilder(String orgId) {
       this.orgId = Objects.requireNonNull(orgId, "orgId is required");
@@ -210,8 +232,19 @@ public final class TallyHbiDbSeeder {
       return this;
     }
 
+    public CloudHostBuilder reporter(String reporter) {
+      this.reporter = reporter;
+      return this;
+    }
+
+    public CloudHostBuilder reporters(String... reporters) {
+      this.reporters = reporters;
+      return this;
+    }
+
     public SeededHost insert() {
-      return insertNonRhelHost(orgId, inventoryId, subscriptionManagerId, displayName, providerId);
+      return insertNonRhelHost(
+          orgId, inventoryId, subscriptionManagerId, displayName, providerId, reporter, reporters);
     }
   }
 
@@ -226,7 +259,15 @@ public final class TallyHbiDbSeeder {
    * @return seeded host record
    */
   public SeededHost insertRhelHost(String orgId) {
-    return insertRhelHost(orgId, null, null, null, DEFAULT_CORES, DEFAULT_SOCKETS);
+    return insertRhelHost(
+        orgId,
+        null,
+        null,
+        null,
+        DEFAULT_CORES,
+        DEFAULT_SOCKETS,
+        "component-test",
+        new String[] {"component-test"});
   }
 
   /**
@@ -238,7 +279,8 @@ public final class TallyHbiDbSeeder {
    * @return seeded host record
    */
   public SeededHost insertRhelHost(String orgId, int cores, int sockets) {
-    return insertRhelHost(orgId, null, null, null, cores, sockets);
+    return insertRhelHost(
+        orgId, null, null, null, cores, sockets, "component-test", new String[] {"component-test"});
   }
 
   /**
@@ -250,7 +292,8 @@ public final class TallyHbiDbSeeder {
    * @return seeded host record
    */
   public SeededHost insertCloudHost(String orgId) {
-    return insertNonRhelHost(orgId, null, null, null, null);
+    return insertNonRhelHost(
+        orgId, null, null, null, null, "component-test", new String[] {"component-test"});
   }
 
   /**
@@ -274,7 +317,9 @@ public final class TallyHbiDbSeeder {
       String subscriptionManagerId,
       String displayName,
       int cores,
-      int sockets) {
+      int sockets,
+      String reporter,
+      String[] reporters) {
     Objects.requireNonNull(orgId, "orgId is required");
 
     // Use defaults if null values passed
@@ -282,6 +327,8 @@ public final class TallyHbiDbSeeder {
     String actualSubManId =
         (subscriptionManagerId != null) ? subscriptionManagerId : DEFAULT_SUBMAN_ID;
     String actualDisplayName = (displayName != null) ? displayName : DEFAULT_DISPLAY_NAME;
+    String actualReporter = (reporter != null) ? reporter : "component-test";
+    String[] actualReporters = (reporters != null) ? reporters : new String[] {"component-test"};
 
     UUID hostId = UUID.randomUUID();
     UUID insightsId = UUID.randomUUID();
@@ -296,11 +343,11 @@ public final class TallyHbiDbSeeder {
           INSERT INTO hbi.hosts
             (id, org_id, display_name, insights_id, subscription_manager_id,
              created_on, modified_on, last_check_in,
-             facts, groups, reporter)
+             facts, groups, reporter, reporters)
           VALUES
             (?, ?, ?, ?, ?,
              ?, ?, ?,
-             ?::jsonb, ?::jsonb, ?)
+             ?::jsonb, ?::jsonb, ?, ?)
           """;
 
       try (PreparedStatement ps = conn.prepareStatement(hostSql)) {
@@ -314,7 +361,8 @@ public final class TallyHbiDbSeeder {
         ps.setObject(8, now); // last_check_in - required for swatch-tally query filter
         ps.setString(9, buildRhelFacts(cores, sockets)); // facts
         ps.setString(10, "[]"); // groups - empty array (required NOT NULL)
-        ps.setString(11, "component-test"); // reporter
+        ps.setString(11, actualReporter); // reporter
+        ps.setArray(12, conn.createArrayOf("varchar", actualReporters)); // reporters array
         ps.executeUpdate();
       }
 
@@ -353,7 +401,8 @@ public final class TallyHbiDbSeeder {
                 + "\n  3. Wrong database selected (verify you're connecting to 'insights' database)"
                 + "\n\nOriginal error: "
                 + e.getMessage();
-      } else if (e.getMessage().contains("is of type") && e.getMessage().contains("but expression is of type")) {
+      } else if (e.getMessage().contains("is of type")
+          && e.getMessage().contains("but expression is of type")) {
         errorMessage +=
             "\n\nSCHEMA ERROR: Column exists but has wrong data type."
                 + "\nThis usually means the HBI schema is outdated or incompatible."
@@ -385,7 +434,9 @@ public final class TallyHbiDbSeeder {
       String inventoryId,
       String subscriptionManagerId,
       String displayName,
-      String providerId) {
+      String providerId,
+      String reporter,
+      String[] reporters) {
     Objects.requireNonNull(orgId, "orgId is required");
 
     // Use defaults if null values passed
@@ -394,6 +445,8 @@ public final class TallyHbiDbSeeder {
         (subscriptionManagerId != null) ? subscriptionManagerId : DEFAULT_SUBMAN_ID;
     String actualDisplayName = (displayName != null) ? displayName : DEFAULT_CLOUD_DISPLAY_NAME;
     String actualProviderId = (providerId != null) ? providerId : DEFAULT_PROVIDER_ID;
+    String actualReporter = (reporter != null) ? reporter : "component-test";
+    String[] actualReporters = (reporters != null) ? reporters : new String[] {"component-test"};
 
     UUID hostId = UUID.randomUUID();
     UUID insightsId = UUID.randomUUID();
@@ -408,11 +461,11 @@ public final class TallyHbiDbSeeder {
           INSERT INTO hbi.hosts
             (id, org_id, display_name, insights_id, subscription_manager_id, provider_id,
              created_on, modified_on, last_check_in,
-             facts, groups, reporter)
+             facts, groups, reporter, reporters)
           VALUES
             (?, ?, ?, ?, ?, ?,
              ?, ?, ?,
-             ?::jsonb, ?::jsonb, ?)
+             ?::jsonb, ?::jsonb, ?, ?)
           """;
 
       try (PreparedStatement ps = conn.prepareStatement(hostSql)) {
@@ -427,7 +480,8 @@ public final class TallyHbiDbSeeder {
         ps.setObject(9, now); // last_check_in - required for swatch-tally query filter
         ps.setString(10, "{}"); // facts (empty for cloud hosts)
         ps.setString(11, "[]"); // groups - empty array (required NOT NULL)
-        ps.setString(12, "component-test"); // reporter
+        ps.setString(12, actualReporter); // reporter
+        ps.setArray(13, conn.createArrayOf("varchar", actualReporters)); // reporters array
         ps.executeUpdate();
       }
 
@@ -460,7 +514,8 @@ public final class TallyHbiDbSeeder {
                 + "\n  3. Wrong database selected (verify you're connecting to 'insights' database)"
                 + "\n\nOriginal error: "
                 + e.getMessage();
-      } else if (e.getMessage().contains("is of type") && e.getMessage().contains("but expression is of type")) {
+      } else if (e.getMessage().contains("is of type")
+          && e.getMessage().contains("but expression is of type")) {
         errorMessage +=
             "\n\nSCHEMA ERROR: Column exists but has wrong data type."
                 + "\nThis usually means the HBI schema is outdated or incompatible."
