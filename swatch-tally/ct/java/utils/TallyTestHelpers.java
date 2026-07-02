@@ -482,7 +482,8 @@ public class TallyTestHelpers {
       OffsetDateTime beginning,
       OffsetDateTime ending) {
     var response =
-        service.getInstancesByProduct(orgId, TallyTestProducts.RHEL_FOR_X86.productTag(), beginning, ending);
+        service.getInstancesByProduct(
+            orgId, TallyTestProducts.RHEL_FOR_X86.productTag(), beginning, ending);
     if (response.getData() == null || response.getData().isEmpty()) {
       throw new RuntimeException("Instances API should have data but is empty");
     }
@@ -491,9 +492,7 @@ public class TallyTestHelpers {
         .filter(instance -> displayName.equals(instance.getDisplayName()))
         .findFirst()
         .orElseThrow(
-            () ->
-                new RuntimeException(
-                    "No instance found with displayName=" + displayName));
+            () -> new RuntimeException("No instance found with displayName=" + displayName));
   }
 
   /** Extracts and sums tally measurement values by SLA value only. */
