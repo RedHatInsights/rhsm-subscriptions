@@ -135,12 +135,6 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-jpa</artifactId>
     </dependency>
-    <!-- TODO This module is deprecated by design.  Move to Jackson 3 ASAP -->
-    <!-- See https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide#jackson-2-compatibility -->
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-jackson2</artifactId>
-    </dependency>
     <!-- TODO This module is deprecated by design.  Move to functionality in core Spring ASAP -->
     <dependency>
       <groupId>org.springframework.retry</groupId>
@@ -159,6 +153,11 @@
     <dependency>
       <groupId>com.fasterxml.jackson.module</groupId>
       <artifactId>jackson-module-jakarta-xmlbind-annotations</artifactId>
+    </dependency>
+    <!-- required for Jackson 3 to handle Optional types in generated Event models -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jdk8</artifactId>
     </dependency>
     <dependency>
       <groupId>org.postgresql</groupId>
