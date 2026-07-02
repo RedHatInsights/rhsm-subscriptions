@@ -31,4 +31,7 @@ public @interface Quarkus {
 
   /** Specify the SWATCH quarkus service to load. */
   String service();
+
+  /** Lifecycle scope for this service. Default: TEST_SUITE (start once, stop at JVM shutdown) */
+  ServiceLifecycle lifecycle() default ServiceLifecycle.TEST_SUITE;
 }

@@ -38,8 +38,9 @@ public class QuarkusAnnotationBinding implements AnnotationBinding {
 
   @Override
   public ServiceLifecycle getLifecycle(Annotation annotation) {
-    // TODO: Add lifecycle attribute to @Quarkus annotation (see SWATCH-5123)
-    // For now, use TEST_SUITE as default
+    if (annotation instanceof Quarkus quarkus) {
+      return quarkus.lifecycle();
+    }
     return ServiceLifecycle.TEST_SUITE;
   }
 
