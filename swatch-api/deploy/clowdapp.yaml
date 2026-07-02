@@ -245,7 +245,7 @@ objects:
                 path: /health/liveness
                 port: 9000
                 scheme: HTTP
-              initialDelaySeconds: 160
+              initialDelaySeconds: 60
               periodSeconds: 20
               successThreshold: 1
               timeoutSeconds: 5
@@ -255,7 +255,7 @@ objects:
                 path: /health
                 port: 9000
                 scheme: HTTP
-              initialDelaySeconds: 160
+              initialDelaySeconds: 60
               periodSeconds: 20
               successThreshold: 1
               timeoutSeconds: 5

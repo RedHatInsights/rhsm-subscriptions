@@ -73,10 +73,11 @@ spec:
     - name: EXTRA_DEPLOY_ARGS
       type: string
       description: Extra arguments for the deployment
-      # Skip not required components:
-      # - puptoo: insights-puptoo is the service that processes Ingress flow uploads
-      default: >-
-        --timeout 1800 --remove-dependencies ingress/puptoo
+      default: ""
+    - name: DEPLOY_OPTIONAL_DEPS_METHOD
+      type: string
+      description: Method to deploy optional dependencies - see bonfire docs https://github.com/redhatinsights/bonfire?tab=readme-ov-file#dependency-processing
+      default: ""
     - name: DEPLOY_FRONTENDS
       type: string
       description: Deploy frontend in the env or not
@@ -375,10 +376,34 @@ spec:
           - name: pathInRepo
             value: tasks/reserve-namespace.yaml
 
+    - name: update-namespace
+      runAfter:
+        - reserve-namespace
+      when:
+        - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
+          operator: in
+          values: ["false"]
+      params:
+        - name: NS
+          value: "$(tasks.reserve-namespace.results.NS)"
+        - name: EPHEMERAL_ENV_PROVIDER_SECRET
+          value: "$(params.EPHEMERAL_ENV_PROVIDER_SECRET)"
+        - name: BONFIRE_IMAGE
+          value: "$(params.BONFIRE_IMAGE)"
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: "https://github.com/$(params.PROJECT_REPO).git"
+          - name: revision
+            value: "$(params.PROJECT_TASKS_REVISION)"
+          - name: pathInRepo
+            value: .tekton/tasks/update-namespace.yaml
+
     - name: deploy-application
       onError: continue
       runAfter:
-        - reserve-namespace
+        - update-namespace
         - build-extra-deploy-args
       when:
         - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
@@ -414,6 +439,8 @@ spec:
           value: "$(params.EPHEMERAL_ENV_PROVIDER_SECRET)"
         - name: GITHUB_TOKEN_SECRET
           value: "$(params.GITHUB_TOKEN_SECRET)"
+        - name: OPTIONAL_DEPS_METHOD
+          value: "$(params.DEPLOY_OPTIONAL_DEPS_METHOD)"
       taskSpec:
         params:
           - name: BONFIRE_IMAGE
@@ -441,6 +468,7 @@ spec:
           - name: EPHEMERAL_ENV_PROVIDER_SECRET
             type: string
           - name: GITHUB_TOKEN_SECRET
+          - name: OPTIONAL_DEPS_METHOD
             type: string
         workspaces:
           - name: artifacts
@@ -497,6 +525,8 @@ spec:
                 value: "$(params.DEPLOY_FRONTENDS)"
               - name: DEPLOY_TIMEOUT
                 value: "$(params.DEPLOY_TIMEOUT)"
+              - name: OPTIONAL_DEPS_METHOD
+                value: "$(params.OPTIONAL_DEPS_METHOD)"
             script: |
               #!/bin/bash
               set +e

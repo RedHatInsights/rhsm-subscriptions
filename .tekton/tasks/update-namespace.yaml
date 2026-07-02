@@ -1,0 +1,66 @@
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: update-namespace
+spec:
+  description: Applies ephemeral namespace adjustments after reserve-namespace and before deploy.
+  params:
+    - name: NS
+      type: string
+      description: Reserved ephemeral namespace name
+    - name: EPHEMERAL_ENV_PROVIDER_SECRET
+      type: string
+      description: Secret for connecting to the ephemeral env provider cluster
+    - name: BONFIRE_IMAGE
+      type: string
+      description: Bonfire container image (provides oc and login.sh)
+  steps:
+    - name: update-namespace
+      image: "$(params.BONFIRE_IMAGE)"
+      env:
+        - name: OC_LOGIN_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: $(params.EPHEMERAL_ENV_PROVIDER_SECRET)
+              key: token
+        - name: OC_LOGIN_SERVER
+          valueFrom:
+            secretKeyRef:
+              name: $(params.EPHEMERAL_ENV_PROVIDER_SECRET)
+              key: url
+        - name: BONFIRE_BOT
+          value: "true"
+      script: |
+        #!/bin/bash
+        set -euo pipefail
+
+        CLOWD_ENV="env-$(params.NS)"
+
+        echo "Connecting to the ephemeral namespace cluster"
+        login.sh
+
+        wait_for_clowd_environment() {
+          local name=$1
+          for _ in $(seq 1 60); do
+            if oc get clowdenvironment "${name}" &>/dev/null; then
+              return 0
+            fi
+            echo "Waiting for ClowdEnvironment ${name}..."
+            sleep 5
+          done
+          echo "ERROR: ClowdEnvironment ${name} not found after 5 minutes"
+          return 1
+        }
+
+        disable_otel_collector() {
+          echo "Disabling otelCollector sidecar on ${CLOWD_ENV}"
+          oc patch clowdenvironment "${CLOWD_ENV}" \
+            -p '{"spec":{"providers":{"sidecars":{"otelCollector":{"enabled":false}}}}}' \
+            --type=merge
+        }
+
+        wait_for_clowd_environment "${CLOWD_ENV}"
+        oc get clowdenvironment "${CLOWD_ENV}"
+
+        disable_otel_collector
