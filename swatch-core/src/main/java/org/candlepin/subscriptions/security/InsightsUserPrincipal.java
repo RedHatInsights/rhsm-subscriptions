@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.security;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Objects;
+import java.util.Optional;
 
 /** Represents a normal cloud.redhat.com user authenticated via the x-rh-identity header. */
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -56,7 +57,58 @@ public class InsightsUserPrincipal implements RhIdentity.Identity {
   @JsonProperty("account_number")
   private String accountNumber;
 
+  @JsonProperty("user_id")
+  private String userId;
+
   private Internal internal = new Internal();
+
+  private User user = new User();
+
+  /** POJO representation of "user" object inside the x-rh-identity object JSON. */
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  public static class User {
+    @JsonProperty("user_id")
+    private String userId;
+
+    public String getUserId() {
+      return userId;
+    }
+
+    public void setUserId(String userId) {
+      this.userId = userId;
+    }
+  }
+
+  /**
+   * Returns the principal identifier used for Kessel authorization checks ({@code redhat/{id}}).
+   *
+   * <p>Matches insights-rbac, which checks permissions for user principals, not org IDs.
+   */
+  public Optional<String> getKesselPrincipalId() {
+    if (userId != null && !userId.isBlank()) {
+      return Optional.of(userId);
+    }
+    if (user != null && user.getUserId() != null && !user.getUserId().isBlank()) {
+      return Optional.of(user.getUserId());
+    }
+    return Optional.empty();
+  }
+
+  public String getUserId() {
+    return userId;
+  }
+
+  public void setUserId(String userId) {
+    this.userId = userId;
+  }
+
+  public User getUser() {
+    return user;
+  }
+
+  public void setUser(User user) {
+    this.user = user;
+  }
 
   public String getOrgId() {
     return internal.getOrgId();

@@ -90,6 +90,16 @@ parameters:
     value: token
   - name: DB_POD
     value: swatch-database
+  - name: KESSEL_INSECURE
+    value: 'true'
+  - name: KESSEL_AUTH_ENABLED
+    value: 'false'
+  - name: KESSEL_AUTH_CLIENT_ID
+    value: ''
+  - name: KESSEL_AUTH_CLIENT_SECRET
+    value: ''
+  - name: KESSEL_AUTH_OIDC_ISSUER
+    value: ''
 
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
@@ -109,6 +119,7 @@ objects:
         - rbac
         - swatch-contracts
         - swatch-utilization
+        - kessel-inventory
 
       database:
         sharedDbAppName: ${DB_POD}
@@ -144,6 +155,16 @@ objects:
                 value: ${USER_OPTS_APPEND}
               - name: DEV_MODE
                 value: ${DEV_MODE}
+              - name: KESSEL_INSECURE
+                value: ${KESSEL_INSECURE}
+              - name: KESSEL_AUTH_ENABLED
+                value: ${KESSEL_AUTH_ENABLED}
+              - name: KESSEL_AUTH_CLIENT_ID
+                value: ${KESSEL_AUTH_CLIENT_ID}
+              - name: KESSEL_AUTH_CLIENT_SECRET
+                value: ${KESSEL_AUTH_CLIENT_SECRET}
+              - name: KESSEL_AUTH_OIDC_ISSUER
+                value: ${KESSEL_AUTH_OIDC_ISSUER}
               - name: LOG_FILE
                 value: /logs/server.log
               - name: SPRING_PROFILES_ACTIVE

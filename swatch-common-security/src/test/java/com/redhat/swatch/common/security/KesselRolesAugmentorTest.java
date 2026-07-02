@@ -21,14 +21,11 @@
 package com.redhat.swatch.common.security;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.redhat.swatch.clients.rbac.api.model.Access;
-import com.redhat.swatch.clients.rbac.api.model.AccessPagination;
-import com.redhat.swatch.clients.rbac.api.resources.AccessApi;
-import com.redhat.swatch.clients.rbac.api.resources.ApiException;
 import io.getunleash.Unleash;
 import io.quarkus.security.AuthenticationFailedException;
 import io.quarkus.security.identity.AuthenticationRequestContext;
@@ -46,21 +43,21 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class RbacRolesAugmentorTest {
-  RbacRolesAugmentor augmentor;
+class KesselRolesAugmentorTest {
+
+  KesselRolesAugmentor augmentor;
   RhIdentityPrincipalFactory identityFactory;
 
-  @Mock AccessApi rbacApi;
   @Mock Unleash unleash;
+  @Mock KesselAuthorizationService kesselService;
 
   AuthenticationRequestContext context = Uni.createFrom()::item;
 
   @BeforeEach
   void setup() {
-    augmentor = new RbacRolesAugmentor();
-    augmentor.rbacEnabled = true;
+    augmentor = new KesselRolesAugmentor();
     augmentor.unleash = unleash;
-    augmentor.accessApi = rbacApi;
+    augmentor.kesselService = kesselService;
 
     identityFactory = new RhIdentityPrincipalFactory();
     identityFactory.mapper = new ObjectMapper();
@@ -75,10 +72,22 @@ class RbacRolesAugmentorTest {
   }
 
   @Test
-  void customerRoleGrantedToCustomerHavingAdminRbacRole() throws ApiException {
-    when(rbacApi.getPrincipalAccess(any(), any(), any(), any(), any()))
-        .thenReturn(
-            new AccessPagination().data(List.of(new Access().permission("subscriptions:*:*"))));
+  void skipsWhenFlagDisabled() {
+    when(unleash.isEnabled(KesselRolesAugmentor.KESSEL_FLAG)).thenReturn(false);
+    var subscriber =
+        augmentor
+            .augment(
+                securityIdentityForRhIdentityJson(RhIdentityUtils.CUSTOMER_IDENTITY_JSON), context)
+            .subscribe()
+            .withSubscriber(UniAssertSubscriber.create());
+    subscriber.assertCompleted();
+    verifyNoInteractions(kesselService);
+  }
+
+  @Test
+  void customerRoleGrantedWhenKesselAllowsAdmin() {
+    when(unleash.isEnabled(KesselRolesAugmentor.KESSEL_FLAG)).thenReturn(true);
+    when(kesselService.getPermissions(any())).thenReturn(List.of("subscriptions:*:*"));
     var subscriber =
         augmentor
             .augment(
@@ -90,11 +99,9 @@ class RbacRolesAugmentorTest {
   }
 
   @Test
-  void customerRoleGrantedToCustomerHavingReaderRbacRole() throws ApiException {
-    when(rbacApi.getPrincipalAccess(any(), any(), any(), any(), any()))
-        .thenReturn(
-            new AccessPagination()
-                .data(List.of(new Access().permission("subscriptions:reports:read"))));
+  void customerRoleGrantedWhenKesselAllowsReader() {
+    when(unleash.isEnabled(KesselRolesAugmentor.KESSEL_FLAG)).thenReturn(true);
+    when(kesselService.getPermissions(any())).thenReturn(List.of("subscriptions:reports:read"));
     var subscriber =
         augmentor
             .augment(
@@ -106,9 +113,9 @@ class RbacRolesAugmentorTest {
   }
 
   @Test
-  void customerRoleNotGrantedToCustomerNoRbacRole() throws ApiException {
-    when(rbacApi.getPrincipalAccess(any(), any(), any(), any(), any()))
-        .thenReturn(new AccessPagination().data(List.of()));
+  void noRoleWhenKesselDenies() {
+    when(unleash.isEnabled(KesselRolesAugmentor.KESSEL_FLAG)).thenReturn(true);
+    when(kesselService.getPermissions(any())).thenReturn(List.of());
     var subscriber =
         augmentor
             .augment(
@@ -120,9 +127,9 @@ class RbacRolesAugmentorTest {
   }
 
   @Test
-  void customerRoleNotGrantedWhenRbacCallFails() throws ApiException {
-    when(rbacApi.getPrincipalAccess(any(), any(), any(), any(), any()))
-        .thenThrow(new ApiException());
+  void noRoleWhenKesselCallFails() {
+    when(unleash.isEnabled(KesselRolesAugmentor.KESSEL_FLAG)).thenReturn(true);
+    when(kesselService.getPermissions(any())).thenThrow(new RuntimeException("gRPC error"));
     var subscriber =
         augmentor
             .augment(
@@ -134,16 +141,27 @@ class RbacRolesAugmentorTest {
   }
 
   @Test
-  void noRbacInteractionWhenRbacNotEnabled() {
-    augmentor.rbacEnabled = false;
+  void skipsForAssociatePrincipal() {
+    when(unleash.isEnabled(KesselRolesAugmentor.KESSEL_FLAG)).thenReturn(true);
     var subscriber =
         augmentor
             .augment(
-                securityIdentityForRhIdentityJson(RhIdentityUtils.CUSTOMER_IDENTITY_JSON), null)
-            .map(SecurityIdentity::getRoles)
+                securityIdentityForRhIdentityJson(RhIdentityUtils.ASSOCIATE_IDENTITY_JSON), context)
             .subscribe()
             .withSubscriber(UniAssertSubscriber.create());
-    verifyNoInteractions(rbacApi);
-    subscriber.assertCompleted().assertItem(Set.of("test", "service", "support", "customer"));
+    subscriber.assertCompleted();
+    verifyNoInteractions(kesselService);
+  }
+
+  @Test
+  void callsKesselServiceForCustomerPrincipal() {
+    when(unleash.isEnabled(KesselRolesAugmentor.KESSEL_FLAG)).thenReturn(true);
+    when(kesselService.getPermissions(any())).thenReturn(List.of("subscriptions:*:*"));
+    augmentor
+        .augment(securityIdentityForRhIdentityJson(RhIdentityUtils.CUSTOMER_IDENTITY_JSON), context)
+        .subscribe()
+        .withSubscriber(UniAssertSubscriber.create())
+        .assertCompleted();
+    verify(kesselService).getPermissions(any());
   }
 }

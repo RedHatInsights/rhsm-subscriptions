@@ -38,3 +38,10 @@ rhsm-conduit:
     kafka-group-id: ${CONDUIT_KAFKA_GROUP_ID:rhsm-conduit-task-processor}
     seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
     seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
+io:
+  getunleash:
+    app-name: ${UNLEASH_APP_NAME:swatch-system-conduit}
+    instance-id: ${UNLEASH_INSTANCE_ID:swatch-system-conduit}
+    environment: ${UNLEASH_ENVIRONMENT:production}
+    api-url: ${UNLEASH_URL:http://localhost:4242/api}
+    api-token: ${UNLEASH_API_TOKEN:default:development.unleash-insecure-api-token}

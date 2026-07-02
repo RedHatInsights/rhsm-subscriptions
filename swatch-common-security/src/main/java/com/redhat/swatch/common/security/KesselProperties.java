@@ -20,37 +20,25 @@
  */
 package com.redhat.swatch.common.security;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import io.smallrye.config.ConfigMapping;
+import io.smallrye.config.WithDefault;
+import java.util.Optional;
 
-/** DTO for the identity field of an x-rh-identity JSON document. */
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class Identity {
-  private String type;
+@ConfigMapping(prefix = "swatch.kessel")
+public interface KesselProperties {
 
-  public String getType() {
-    return type != null ? type : "User";
-  }
+  @WithDefault("localhost:9000")
+  String endpoint();
 
-  @JsonProperty("org_id")
-  private String orgId;
+  @WithDefault("true")
+  boolean insecure();
 
-  @JsonProperty("user_id")
-  private String userId;
+  @WithDefault("false")
+  boolean authEnabled();
 
-  @JsonProperty("associate")
-  private SamlAssertions samlAssertions;
+  Optional<String> clientId();
 
-  private X509Properties x509;
+  Optional<String> clientSecret();
 
-  @JsonProperty("service_account")
-  private ServiceAccount serviceAccount;
-
-  private User user;
+  Optional<String> oidcIssuer();
 }
