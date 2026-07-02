@@ -38,7 +38,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import java.util.Map;
 import java.util.UUID;
-import org.testcontainers.shaded.org.awaitility.Awaitility;
+import org.awaitility.Awaitility;
 
 public class ExportServiceWireMockResource implements QuarkusTestResourceLifecycleManager {
 

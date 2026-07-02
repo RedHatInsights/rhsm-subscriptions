@@ -12,6 +12,7 @@ SWATCH_LIGHTNING_SERVICES=("swatch-billable-usage" "swatch-contracts" "swatch-pr
 # All services (combination of both teams)
 ALL_SERVICES=("${SWATCH_THUNDER_SERVICES[@]}" "${SWATCH_LIGHTNING_SERVICES[@]}")
 SWATCH_ALL_LABEL="swatch-all"
+SKIP_INTEGRATION_TESTS_LABEL="skip-integration-tests"
 
 # Get current PR labels
 get_current_labels() {
@@ -186,6 +187,96 @@ manage_team_labels() {
     fi
     
     echo "Team label management completed"
+}
+
+# --- skip-integration-tests label rules ---
+# Rules use the CHANGED_FILES array (set by manage_skip_integration_test_label).
+# Each entry in SKIP_INTEGRATION_TEST_SCOPES is a predicate for an allowed change scope.
+# The label is added when every changed file matches at least one scope (scopes may combine).
+
+get_pr_changed_files() {
+    local base_branch="$1"
+    git diff --name-only "origin/$base_branch...HEAD"
+}
+
+is_markdown_file() {
+    [[ "$1" == *.md ]]
+}
+
+is_under_docs() {
+    [[ "$1" == docs/* ]]
+}
+
+is_under_github() {
+    [[ "$1" == .github/* ]]
+}
+
+is_under_grafana() {
+    [[ "$1" == .rhcicd/grafana/* ]]
+}
+
+is_under_bin() {
+    [[ "$1" == bin/* ]]
+}
+
+file_matches_any_skip_scope() {
+    local file="$1"
+    local scope
+
+    for scope in "${SKIP_INTEGRATION_TEST_SCOPES[@]}"; do
+        if "$scope" "$file"; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+should_skip_integration_tests() {
+    if [ ${#CHANGED_FILES[@]} -eq 0 ]; then
+        echo "skip-integration-tests: no changed files"
+        return 1
+    fi
+
+    local file
+    for file in "${CHANGED_FILES[@]}"; do
+        if ! file_matches_any_skip_scope "$file"; then
+            echo "skip-integration-tests: file outside allowed scopes: $file"
+            return 1
+        fi
+    done
+
+    echo "skip-integration-tests: all changed files are within allowed scopes"
+    return 0
+}
+
+manage_skip_integration_test_label() {
+    local pr_number=$1
+    local current_labels=$2
+    local base_branch="$3"
+
+    SKIP_INTEGRATION_TEST_SCOPES=(
+        is_markdown_file
+        is_under_docs
+        is_under_github
+        is_under_grafana
+        is_under_bin
+    )
+
+    CHANGED_FILES=()
+    while IFS= read -r file; do
+        [ -n "$file" ] && CHANGED_FILES+=("$file")
+    done < <(get_pr_changed_files "$base_branch")
+
+    echo "Managing skip-integration-tests label..."
+    echo "Changed files (${#CHANGED_FILES[@]}): ${CHANGED_FILES[*]}"
+
+    if should_skip_integration_tests; then
+        add_label_if_needed "$pr_number" "$SKIP_INTEGRATION_TESTS_LABEL" "$current_labels"
+        return 0
+    fi
+
+    remove_label_if_needed "$pr_number" "$SKIP_INTEGRATION_TESTS_LABEL" "$current_labels"
+    return 1
 }
 
 # Remove all service and team labels
