@@ -28,6 +28,7 @@ import api.TallySwatchService;
 import api.TallyUnleashService;
 import api.TallyWiremockService;
 import com.redhat.swatch.component.tests.api.ComponentTest;
+import com.redhat.swatch.component.tests.api.HbiDatabase;
 import com.redhat.swatch.component.tests.api.KafkaBridge;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.api.SpringBoot;
@@ -86,6 +87,8 @@ public class BaseTallyComponentTest {
   @Unleash static TallyUnleashService unleash = new TallyUnleashService();
 
   @SwatchDatabase static DatabaseService swatchDatabase = new DatabaseService();
+
+  @HbiDatabase static DatabaseService hbiDatabase = new DatabaseService();
 
   // --- Instance fields ---
 
