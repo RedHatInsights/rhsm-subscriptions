@@ -22,9 +22,10 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     outputs:
-      modified-services: ${{ steps.add-labels.outputs.modified-services }}
+      modified-services: ${{ steps.add-service-labels.outputs.modified-services }}
+      skip-integration-tests: ${{ steps.add-skip-integration-tests-label.outputs.skip-integration-tests }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0  # Need to do git diff against the base branch
       - name: Set up JDK
@@ -37,7 +38,7 @@ jobs:
         run: |
           sudo apt update && sudo apt install -y gh
       - name: Detect and label modified services
-        id: add-labels
+        id: add-service-labels
         continue-on-error: true
         run: |
           # Source utilities
@@ -79,6 +80,25 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Manage skip-integration-tests label
+        id: add-skip-integration-tests-label
+        continue-on-error: true
+        run: |
+          source bin/pr_label_utils.sh
+
+          CURRENT_LABELS=$(get_current_labels "$PR_NUMBER")
+
+          git fetch origin "$BASE_BRANCH"
+          if manage_skip_integration_test_label "$PR_NUMBER" "$CURRENT_LABELS" "$BASE_BRANCH"; then
+            echo "skip-integration-tests=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip-integration-tests=false" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
+
   validate-format:
     name: Validate Format
     runs-on: ubuntu-latest
@@ -86,7 +106,7 @@ jobs:
       checkstyle-report-url: ${{ steps.checkstyle-report-upload.outputs.artifact-url }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up JDK
         uses: actions/setup-java@v5
@@ -113,7 +133,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up Git config
         run: |
@@ -170,7 +190,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up JDK
         uses: actions/setup-java@v5
@@ -202,7 +222,7 @@ jobs:
       coverage-report-uploaded: ${{ steps.coverage-report-upload.outcome }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up JDK
         uses: actions/setup-java@v5
@@ -244,9 +264,9 @@ jobs:
     name: Verify SWATCH services for local testing
     runs-on: ubuntu-latest
     needs: [test, labeler]
-    if: always() && (needs.test.result == 'success') && (needs.labeler.result == 'success' || needs.labeler.result == 'skipped')
+    if: always() && (needs.test.result == 'success') && (needs.labeler.result == 'success' || needs.labeler.result == 'skipped') && needs.labeler.outputs.skip-integration-tests != 'true'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up JDK
         uses: actions/setup-java@v5
@@ -350,7 +370,7 @@ jobs:
         # is applied.
         # See https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#steps-context
         if: ${{ github.event_name == 'pull_request' }}
-        uses: marocchino/sticky-pull-request-comment@v2
+        uses: marocchino/sticky-pull-request-comment@v3.0.4
         with:
           message: |
             ⛏️ **[Workflow Run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}?pr=${{ github.event.pull_request.number }})**
@@ -379,7 +399,7 @@ jobs:
         # is applied.
         # See https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs#steps-context
         if: ${{ github.event_name == 'pull_request' && steps.download-coverage.outcome == 'success' }}
-        uses: marocchino/sticky-pull-request-comment@v2
+        uses: marocchino/sticky-pull-request-comment@v3.0.4
         with:
           append: true
           message: |
