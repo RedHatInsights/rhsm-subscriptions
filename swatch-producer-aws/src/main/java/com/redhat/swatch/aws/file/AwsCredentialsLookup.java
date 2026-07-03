@@ -55,6 +55,9 @@ public class AwsCredentialsLookup {
     if (profileFile.profile(awsSellerAccount).isEmpty()) {
       throw new AwsMissingCredentialsException(awsSellerAccount);
     }
-    return ProfileCredentialsProvider.create(awsSellerAccount);
+    return ProfileCredentialsProvider.builder()
+        .profileFile(profileFile)
+        .profileName(awsSellerAccount)
+        .build();
   }
 }

@@ -37,7 +37,11 @@ import org.junit.jupiter.api.BeforeEach;
 @ComponentTest(name = "swatch-producer-aws")
 public class BaseAwsComponentTest {
 
-  /** Matches {@code aws-marketplace-credentials} profile in deploy/clowdapp.yaml. */
+  /**
+   * Must match {@code aws.marketplace.test-credentials.seller-profile} in {@code
+   * application.properties}. AwsCredentialsLookup resolves credentials by seller account id from
+   * the usage context.
+   */
   protected static final String AWS_SELLER_ACCOUNT_ID = "1234567";
 
   @KafkaBridge
