@@ -140,6 +140,9 @@ parameters:
     value: '1'
   - name: DB_CHANGELOG_CLEANUP_SQL
     value: 'select 1'
+  - name: DB_CHANGELOG_CLEANUP_DISABLED
+    description: When true, skip db-changelog cleanup jobs
+    value: 'false'
 # Increment in AppInterface before each migration
   - name: DB_MIGRATION_RUN_NUMBER
     value: '1'
@@ -898,6 +901,7 @@ objects:
     deployments: []
     jobs:
       - name: db-changelog-cleanup-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
+        disabled: ${{DB_CHANGELOG_CLEANUP_DISABLED}}
         restartPolicy: Never
         podSpec:
           image: ${EGRESS_IMAGE}:${EGRESS_IMAGE_TAG}
@@ -937,6 +941,7 @@ objects:
             value: ${DB_CHANGELOG_CLEANUP_SQL}
 
       - name: tally-manual-migration-${DB_MIGRATION_RUN_NUMBER}
+        disabled: ${{DB_CHANGELOG_CLEANUP_DISABLED}}
         restartPolicy: Never
         podSpec:
           image: ${EGRESS_IMAGE}:${EGRESS_IMAGE_TAG}
@@ -985,6 +990,7 @@ objects:
   metadata:
     name: db-changelog-cleanup-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
   spec:
+    disabled: ${{DB_CHANGELOG_CLEANUP_DISABLED}}
     appName: swatch-db-changelog-cleanup
     jobs:
       - db-changelog-cleanup-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
@@ -994,6 +1000,7 @@ objects:
   metadata:
     name: tally-manual-migration-${DB_MIGRATION_RUN_NUMBER}
   spec:
+    disabled: ${{DB_CHANGELOG_CLEANUP_DISABLED}}
     appName: swatch-db-changelog-cleanup
     jobs:
     - tally-manual-migration-${DB_MIGRATION_RUN_NUMBER}
