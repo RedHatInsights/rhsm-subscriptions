@@ -20,13 +20,22 @@
  */
 package api;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.component.tests.api.WiremockService;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import software.amazon.awssdk.services.marketplacemetering.model.BatchMeterUsageRequest;
+import software.amazon.awssdk.services.marketplacemetering.model.UsageRecord;
 
 public class AwsWiremockService extends WiremockService {
 
   private static final String AWS_USAGE_EVENT_PATH = "/mock/aws";
+  private static final String BATCH_METER_USAGE_TARGET = "AWSMPMeteringService.BatchMeterUsage";
 
   /**
    * Sets up the AWS usage context endpoint (contracts API) and a wiremock stub for the AWS
@@ -38,13 +47,26 @@ public class AwsWiremockService extends WiremockService {
       String rhSubscriptionId,
       String customerId,
       String productCode) {
-    var contextData =
-        Map.of(
-            "rhSubscriptionId", rhSubscriptionId,
-            "customerId", customerId,
-            "productCode", productCode,
-            "awsSellerAccountId", awsSellerAccountId,
-            "subscriptionStartDate", "2020-01-01T00:00:00Z");
+    setupAwsUsageContext(
+        awsAccountId, awsSellerAccountId, rhSubscriptionId, customerId, productCode, null);
+  }
+
+  public void setupAwsUsageContext(
+      String awsAccountId,
+      String awsSellerAccountId,
+      String rhSubscriptionId,
+      String customerId,
+      String productCode,
+      String customerAwsAccountId) {
+    var contextData = new HashMap<String, Object>();
+    contextData.put("rhSubscriptionId", rhSubscriptionId);
+    contextData.put("customerId", customerId);
+    contextData.put("productCode", productCode);
+    contextData.put("awsSellerAccountId", awsSellerAccountId);
+    contextData.put("subscriptionStartDate", "2020-01-01T00:00:00Z");
+    if (customerAwsAccountId != null) {
+      contextData.put("customerAwsAccountId", customerAwsAccountId);
+    }
 
     given()
         .contentType("application/json")
@@ -107,6 +129,91 @@ public class AwsWiremockService extends WiremockService {
         .statusCode(201);
   }
 
+  public void verifyBatchMeterUsageCustomerIdentifier(String expectedCustomerIdentifier) {
+    UsageRecord usageRecord = findLatestBatchMeterUsageUsageRecord();
+    assertEquals(
+        expectedCustomerIdentifier,
+        usageRecord.customerIdentifier(),
+        "customerIdentifier mismatch");
+    assertFieldAbsent("customerAWSAccountId", usageRecord.customerAWSAccountId());
+  }
+
+  public void verifyBatchMeterUsageCustomerAwsAccountId(String expectedCustomerAwsAccountId) {
+    UsageRecord usageRecord = findLatestBatchMeterUsageUsageRecord();
+    assertEquals(
+        expectedCustomerAwsAccountId,
+        usageRecord.customerAWSAccountId(),
+        "customerAWSAccountId mismatch");
+    assertFieldAbsent("customerIdentifier", usageRecord.customerIdentifier());
+  }
+
+  private static void assertFieldAbsent(String fieldName, String value) {
+    assertTrue(
+        value == null || value.isBlank(),
+        "Unexpected %s in BatchMeterUsage UsageRecord: %s".formatted(fieldName, value));
+  }
+
+  private UsageRecord findLatestBatchMeterUsageUsageRecord() {
+    BatchMeterUsageRequest batchRequest = findLatestBatchMeterUsageRequest();
+    if (batchRequest.usageRecords() == null || batchRequest.usageRecords().isEmpty()) {
+      throw new AssertionError("BatchMeterUsage request missing UsageRecords: " + batchRequest);
+    }
+    return batchRequest.usageRecords().get(0);
+  }
+
+  private BatchMeterUsageRequest findLatestBatchMeterUsageRequest() {
+    var response =
+        given().when().get("/__admin/requests").then().statusCode(200).extract().response();
+
+    try {
+      ObjectMapper objectMapper = new ObjectMapper();
+      JsonNode responseJson = objectMapper.readTree(response.getBody().asString());
+      JsonNode requests = responseJson.get("requests");
+
+      if (requests == null || requests.isEmpty()) {
+        throw new AssertionError("No requests found in Wiremock");
+      }
+
+      BatchMeterUsageRequest matchingRequest = null;
+      for (JsonNode requestNode : requests) {
+        JsonNode request = requestNode.get("request");
+        if (request == null) {
+          continue;
+        }
+
+        JsonNode urlNode = request.get("url");
+        JsonNode methodNode = request.get("method");
+        JsonNode bodyNode = request.get("body");
+        if (urlNode == null || methodNode == null || bodyNode == null) {
+          continue;
+        }
+
+        String url = urlNode.asText();
+        String method = methodNode.asText();
+        if (!url.contains(AWS_USAGE_EVENT_PATH) || !"POST".equals(method)) {
+          continue;
+        }
+
+        String requestBody = bodyNode.asText();
+        if (requestBody == null || requestBody.isBlank()) {
+          continue;
+        }
+
+        matchingRequest = BatchMeterUsageRequestParser.parse(requestBody);
+      }
+
+      if (matchingRequest == null) {
+        throw new AssertionError("No BatchMeterUsage requests found at " + AWS_USAGE_EVENT_PATH);
+      }
+
+      return matchingRequest;
+    } catch (AssertionError e) {
+      throw e;
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to verify BatchMeterUsage request: " + e.getMessage(), e);
+    }
+  }
+
   private void setupAwsBatchMeterUsage() {
     // The AWS SDK v2 sends JSON (application/x-amz-json-1.1) with the X-Amz-Target header
     // to identify the operation. We return a minimal valid BatchMeterUsage JSON response.
@@ -121,9 +228,7 @@ public class AwsWiremockService extends WiremockService {
                     "urlPathPattern",
                     AWS_USAGE_EVENT_PATH + ".*",
                     "headers",
-                    Map.of(
-                        "X-Amz-Target",
-                        Map.of("equalTo", "AWSMarketplaceMetering.BatchMeterUsage"))),
+                    Map.of("X-Amz-Target", Map.of("equalTo", BATCH_METER_USAGE_TARGET))),
                 "response",
                 Map.of(
                     "status",

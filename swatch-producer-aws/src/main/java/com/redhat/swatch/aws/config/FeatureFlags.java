@@ -18,18 +18,23 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.aws.configuration;
+package com.redhat.swatch.aws.config;
 
+import io.getunleash.Unleash;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.context.Dependent;
-import jakarta.enterprise.inject.Produces;
-import software.amazon.awssdk.profiles.ProfileFile;
 
-@Dependent
-public class ProfileFileConfiguration {
-  @ApplicationScoped
-  @Produces
-  public ProfileFile defaultProfileFile() {
-    return ProfileFile.defaultProfileFile();
+@ApplicationScoped
+public class FeatureFlags {
+  public static final String USE_CUSTOMER_AWS_ACCOUNT_ID =
+      "swatch.swatch-producer-aws.use-customer-aws-account-id";
+
+  private final Unleash unleash;
+
+  public FeatureFlags(Unleash unleash) {
+    this.unleash = unleash;
+  }
+
+  public boolean useCustomerAwsAccountId() {
+    return unleash.isEnabled(USE_CUSTOMER_AWS_ACCOUNT_ID);
   }
 }
