@@ -7,8 +7,10 @@
 Start the required local services using Docker Compose:
 
 ```bash
-podman compose up -d kafka kafka-bridge kafka-setup wiremock
+podman compose up -d kafka kafka-bridge kafka-setup wiremock unleash
 ```
+
+`unleash` is required for feature-flag component tests (e.g. `CustomerAwsAccountIdComponentTest`).
 
 ### 2. Run Component Tests
 
