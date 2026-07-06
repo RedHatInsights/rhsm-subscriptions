@@ -181,9 +181,42 @@ class BillableUsageStatusConsumerTest {
     Awaitility.await().untilAsserted(() -> verifyRemittanceHasUpdatedAtHigherThan(createdAt));
   }
 
+  @Test
+  void testWhenStatusIsNullThenRemittanceIsNotUpdated() {
+    var existingRemittance = givenExistingPendingRemittance();
+    var nullStatusMessage = createBillableUsageAggregate(null, null, BILLED_ON, existingRemittance);
+
+    whenSendResponse(nullStatusMessage);
+    Awaitility.await().untilAsserted(this::verifyRemittanceStillPending);
+  }
+
+  @Test
+  void testWhenStatusUpdateReferencesMultipleRemittancesThenAllAreUpdated() {
+    var remittance1 = givenExistingRemittance();
+    var remittance2 = givenExistingRemittance();
+    var remittance3 = givenExistingRemittance();
+
+    var successMessage =
+        createBillableUsageAggregate(
+            Status.SUCCEEDED, null, BILLED_ON, remittance1, remittance2, remittance3);
+
+    whenSendResponse(successMessage);
+    Awaitility.await().untilAsserted(this::verifyUpdateForSuccess);
+  }
+
   @Transactional
   BillableUsageRemittanceEntity givenExistingRemittance() {
     var remittance = buildBillableUsageRemittanceEntity();
+    remittanceRepository.persist(remittance);
+    return remittance;
+  }
+
+  @Transactional
+  BillableUsageRemittanceEntity givenExistingPendingRemittance() {
+    var remittance = buildBillableUsageRemittanceEntity();
+    // Status must be explicitly PENDING so verifyRemittanceStillPending can assert it was not
+    // changed.
+    remittance.setStatus(RemittanceStatus.PENDING);
     remittanceRepository.persist(remittance);
     return remittance;
   }
@@ -240,6 +273,17 @@ class BillableUsageStatusConsumerTest {
             result -> {
               assertEquals(RemittanceStatus.FAILED, result.getStatus());
               assertEquals(expected, result.getErrorCode());
+              assertNull(result.getBilledOn());
+            });
+  }
+
+  @Transactional
+  void verifyRemittanceStillPending() {
+    remittanceRepository.findAll().stream()
+        .forEach(
+            result -> {
+              assertEquals(RemittanceStatus.PENDING, result.getStatus());
+              assertNull(result.getErrorCode());
               assertNull(result.getBilledOn());
             });
   }
