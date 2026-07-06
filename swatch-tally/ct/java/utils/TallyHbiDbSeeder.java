@@ -55,6 +55,7 @@ public final class TallyHbiDbSeeder {
   private final DatabaseService hbiDatabase;
 
   // Default values for test hosts
+  // TODO:: ADD RANDOM UUID
   private static final String DEFAULT_INVENTORY_ID = "test-inventory-id";
   private static final String DEFAULT_SUBMAN_ID = "test-subman-id";
   private static final String DEFAULT_DISPLAY_NAME = "Test RHEL Host";
@@ -262,7 +263,7 @@ public final class TallyHbiDbSeeder {
     return insertRhelHost(
         orgId,
         null,
-        null,
+        DEFAULT_SUBMAN_ID,
         null,
         DEFAULT_CORES,
         DEFAULT_SOCKETS,
@@ -280,7 +281,36 @@ public final class TallyHbiDbSeeder {
    */
   public SeededHost insertRhelHost(String orgId, int cores, int sockets) {
     return insertRhelHost(
-        orgId, null, null, null, cores, sockets, "component-test", new String[] {"component-test"});
+        orgId,
+        null,
+        DEFAULT_SUBMAN_ID,
+        null,
+        cores,
+        sockets,
+        "component-test",
+        new String[] {"component-test"});
+  }
+
+  /**
+   * Insert a RHEL host with custom cores/sockets, other values use defaults.
+   *
+   * @param orgId the organization ID
+   * @param subscriptionManagerId the subscription manager ID
+   * @param cores number of CPU cores
+   * @param sockets number of CPU sockets
+   * @return seeded host record
+   */
+  public SeededHost insertRhelHost(
+      String orgId, String subscriptionManagerId, int cores, int sockets) {
+    return insertRhelHost(
+        orgId,
+        null,
+        subscriptionManagerId,
+        null,
+        cores,
+        sockets,
+        "component-test",
+        new String[] {"component-test"});
   }
 
   /**
@@ -293,7 +323,13 @@ public final class TallyHbiDbSeeder {
    */
   public SeededHost insertCloudHost(String orgId) {
     return insertNonRhelHost(
-        orgId, null, null, null, null, "component-test", new String[] {"component-test"});
+        orgId,
+        null,
+        DEFAULT_SUBMAN_ID,
+        null,
+        null,
+        "component-test",
+        new String[] {"component-test"});
   }
 
   /**
@@ -324,8 +360,7 @@ public final class TallyHbiDbSeeder {
 
     // Use defaults if null values passed
     String actualInventoryId = (inventoryId != null) ? inventoryId : DEFAULT_INVENTORY_ID;
-    String actualSubManId =
-        (subscriptionManagerId != null) ? subscriptionManagerId : DEFAULT_SUBMAN_ID;
+    String actualSubManId = subscriptionManagerId; // TO ALLOW NULL SUB MAN ID
     String actualDisplayName = (displayName != null) ? displayName : DEFAULT_DISPLAY_NAME;
     String actualReporter = (reporter != null) ? reporter : "component-test";
     String[] actualReporters = (reporters != null) ? reporters : new String[] {"component-test"};
@@ -441,8 +476,7 @@ public final class TallyHbiDbSeeder {
 
     // Use defaults if null values passed
     String actualInventoryId = (inventoryId != null) ? inventoryId : DEFAULT_INVENTORY_ID;
-    String actualSubManId =
-        (subscriptionManagerId != null) ? subscriptionManagerId : DEFAULT_SUBMAN_ID;
+    String actualSubManId = subscriptionManagerId; // TO ALLOW NULL SUB MAN ID
     String actualDisplayName = (displayName != null) ? displayName : DEFAULT_CLOUD_DISPLAY_NAME;
     String actualProviderId = (providerId != null) ? providerId : DEFAULT_PROVIDER_ID;
     String actualReporter = (reporter != null) ? reporter : "component-test";

@@ -2150,3 +2150,21 @@ Shared **non-PAYG physical RHEL fixture** (TC001–TC006): product RHEL for x86,
     - `build.version` is the git commit SHA (7–40 hex chars)
     - `build.artifact` is `swatch-tally`
 - **Expected Result**: Version endpoint is available and exposes build info suitable for test-run traceability
+
+## Seeding the HBI database for Swatch Tally
+
+**hbi-data-seeder-TC001 - Insert a host in the HBI database **
+
+- **Description**: Verify that we can insert a host in the HBI database
+- **Setup**: Component test environment with swatch-tally is running and an instances of insights db is up 
+- **Action**: Insert a host into the HBI database 
+- **Verification**:
+  - a host was returned form the insert
+  - the host returned has a inventory id 
+  - the host returned has a subscription manager id 
+  - the host returned has the expected orgId
+  - Response includes non-empty `build.version`, `build.artifact`, `build.name`, and
+    `build.group`
+  - `build.version` is the git commit SHA (7–40 hex chars)
+  - `build.artifact` is `swatch-tally`
+- **Expected Result**: Version endpoint is available and exposes build info suitable for test-run traceability

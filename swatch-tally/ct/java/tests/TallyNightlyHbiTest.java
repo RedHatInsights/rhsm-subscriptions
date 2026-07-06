@@ -68,7 +68,7 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
 
   @TestPlanName("hbi-data-seeder-TC001")
   @Test
-  void testHbiSeederCanInsertAndDelete() {
+  void testHbiSeederCanInsert() {
     // Given: Insert host with defaults - SUPER EASY! Just pass orgId 😊
     SeededHost host = hbiSeeder.insertRhelHost(orgId);
 
@@ -81,6 +81,16 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
 
     // And: verify host actually exists in database
     assertTrue(hbiSeeder.hostExists(host.hostId()), "Host should exist in HBI database");
+  }
+
+  @TestPlanName("hbi-data-seeder-TC001")
+  @Test
+  void testHbiSeederCanDelete() {
+    // Given: Insert host with defaults - SUPER EASY! Just pass orgId 😊
+    SeededHost host = hbiSeeder.insertRhelHost(orgId);
+
+    // Then: verify host was tracked with predictable default values
+    assertNotNull(host.hostId());
 
     // When: delete the host
     hbiSeeder.deleteHost(host.hostId());
