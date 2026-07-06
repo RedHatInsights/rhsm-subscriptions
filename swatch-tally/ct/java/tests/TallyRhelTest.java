@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static utils.TallyTestHelpers.getSocketCount;
 import static utils.TallyTestProducts.RHEL_FOR_X86;
 
+import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.logging.Log;
 import com.redhat.swatch.tally.test.model.InstanceData;
 import java.time.OffsetDateTime;
@@ -84,6 +85,7 @@ public class TallyRhelTest extends BaseTallyComponentTest {
    * Verify tally data shows increased count for physical RHEL 6. Verify system table entry has
    * correct display_name, category, and labeled_measurements
    */
+  @TestPlanName("nightly-tally-TC001")
   @ParameterizedTest(name = "Physical RHEL: {0} actual sockets -> {1} reported sockets")
   @MethodSource("socketMappingProvider")
   void test_validate_tally_on_physical_rhel_sockets(

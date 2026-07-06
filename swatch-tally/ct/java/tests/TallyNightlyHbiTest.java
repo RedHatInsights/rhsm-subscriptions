@@ -74,8 +74,8 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
 
     // Then: verify host was tracked with predictable default values
     assertNotNull(host.hostId());
-    assertEquals("test-inventory-id", host.inventoryId());
-    assertEquals("test-subman-id", host.subscriptionManagerId());
+    assertTrue(host.inventoryId().startsWith("test-inventory-id"));
+    assertTrue(host.subscriptionManagerId().startsWith("test-subman-id"));
     assertEquals(orgId, host.orgId());
     assertEquals(1, hbiSeeder.getInsertedHostCount());
 
@@ -83,7 +83,7 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
     assertTrue(hbiSeeder.hostExists(host.hostId()), "Host should exist in HBI database");
   }
 
-  @TestPlanName("hbi-data-seeder-TC001")
+  @TestPlanName("hbi-data-seeder-TC002")
   @Test
   void testHbiSeederCanDelete() {
     // Given: Insert host with defaults - SUPER EASY! Just pass orgId 😊
@@ -102,7 +102,7 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
     assertFalse(hbiSeeder.hostExists(host.hostId()), "Host should not exist in HBI database");
   }
 
-  @TestPlanName("hbi-data-seeder-TC002")
+  @TestPlanName("hbi-data-seeder-TC003")
   @Test
   void testHbiSeederRollbackDeletesAllHosts() {
     // Given: multiple hosts inserted - mix of RHEL and cloud
@@ -127,6 +127,7 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
     assertFalse(hbiSeeder.hostExists(host2.hostId()), "Host 2 should not exist in HBI database");
   }
 
+  @TestPlanName("hbi-data-seeder-TC004")
   @Test
   void testNightlyTallyRhelProduct() {
     // Given: Org is opted in (required for tally reports)

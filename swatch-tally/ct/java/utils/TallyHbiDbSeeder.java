@@ -55,12 +55,11 @@ public final class TallyHbiDbSeeder {
   private final DatabaseService hbiDatabase;
 
   // Default values for test hosts
-  // TODO:: ADD RANDOM UUID
   private static final String DEFAULT_INVENTORY_ID = "test-inventory-id";
   private static final String DEFAULT_SUBMAN_ID = "test-subman-id";
   private static final String DEFAULT_DISPLAY_NAME = "Test RHEL Host";
   private static final String DEFAULT_CLOUD_DISPLAY_NAME = "Test Cloud Host";
-  private static final String DEFAULT_PROVIDER_ID = "i-test-instance-123";
+  private static final String DEFAULT_PROVIDER_ID = "i-test-instance-";
   private static final int DEFAULT_CORES = 4;
   private static final int DEFAULT_SOCKETS = 2;
   private static final String RHEL_PRODUCT_ID = "69"; // RHEL product ID
@@ -263,7 +262,7 @@ public final class TallyHbiDbSeeder {
     return insertRhelHost(
         orgId,
         null,
-        DEFAULT_SUBMAN_ID,
+        DEFAULT_SUBMAN_ID + "-" + (UUID.randomUUID()).toString().substring(0, 5),
         null,
         DEFAULT_CORES,
         DEFAULT_SOCKETS,
@@ -283,7 +282,7 @@ public final class TallyHbiDbSeeder {
     return insertRhelHost(
         orgId,
         null,
-        DEFAULT_SUBMAN_ID,
+        DEFAULT_SUBMAN_ID + "-" + (UUID.randomUUID()).toString().substring(0, 5),
         null,
         cores,
         sockets,
@@ -325,7 +324,7 @@ public final class TallyHbiDbSeeder {
     return insertNonRhelHost(
         orgId,
         null,
-        DEFAULT_SUBMAN_ID,
+        DEFAULT_SUBMAN_ID + "-" + (UUID.randomUUID()).toString().substring(0, 5),
         null,
         null,
         "component-test",
@@ -359,9 +358,15 @@ public final class TallyHbiDbSeeder {
     Objects.requireNonNull(orgId, "orgId is required");
 
     // Use defaults if null values passed
-    String actualInventoryId = (inventoryId != null) ? inventoryId : DEFAULT_INVENTORY_ID;
+    String actualInventoryId =
+        (inventoryId != null)
+            ? inventoryId
+            : DEFAULT_INVENTORY_ID + "-" + (UUID.randomUUID()).toString().substring(0, 8);
     String actualSubManId = subscriptionManagerId; // TO ALLOW NULL SUB MAN ID
-    String actualDisplayName = (displayName != null) ? displayName : DEFAULT_DISPLAY_NAME;
+    String actualDisplayName =
+        (displayName != null)
+            ? displayName
+            : DEFAULT_DISPLAY_NAME + "-" + (UUID.randomUUID()).toString().substring(0, 8);
     String actualReporter = (reporter != null) ? reporter : "component-test";
     String[] actualReporters = (reporters != null) ? reporters : new String[] {"component-test"};
 
@@ -475,10 +480,19 @@ public final class TallyHbiDbSeeder {
     Objects.requireNonNull(orgId, "orgId is required");
 
     // Use defaults if null values passed
-    String actualInventoryId = (inventoryId != null) ? inventoryId : DEFAULT_INVENTORY_ID;
+    String actualInventoryId =
+        (inventoryId != null)
+            ? inventoryId
+            : DEFAULT_INVENTORY_ID + "-" + UUID.randomUUID().toString().substring(0, 8);
     String actualSubManId = subscriptionManagerId; // TO ALLOW NULL SUB MAN ID
-    String actualDisplayName = (displayName != null) ? displayName : DEFAULT_CLOUD_DISPLAY_NAME;
-    String actualProviderId = (providerId != null) ? providerId : DEFAULT_PROVIDER_ID;
+    String actualDisplayName =
+        (displayName != null)
+            ? displayName
+            : DEFAULT_CLOUD_DISPLAY_NAME + "-" + UUID.randomUUID().toString().substring(0, 8);
+    String actualProviderId =
+        (providerId != null)
+            ? providerId
+            : DEFAULT_PROVIDER_ID + UUID.randomUUID().toString().substring(0, 8);
     String actualReporter = (reporter != null) ? reporter : "component-test";
     String[] actualReporters = (reporters != null) ? reporters : new String[] {"component-test"};
 
