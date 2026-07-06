@@ -7,7 +7,7 @@
 Start the required local services using Docker Compose:
 
 ```bash
-podman compose up -d kafka kafka-bridge kafka-setup wiremock
+podman compose up -d kafka kafka-bridge kafka-setup wiremock unleash
 ```
 
 ### 2. Run Component Tests

@@ -22,12 +22,14 @@ package tests;
 
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE_STATUS;
 
+import api.AwsUnleashService;
 import api.AwsWiremockService;
 import com.redhat.swatch.component.tests.api.ComponentTest;
 import com.redhat.swatch.component.tests.api.KafkaBridge;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.api.Quarkus;
 import com.redhat.swatch.component.tests.api.SwatchService;
+import com.redhat.swatch.component.tests.api.Unleash;
 import com.redhat.swatch.component.tests.api.Wiremock;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,11 +37,20 @@ import org.junit.jupiter.api.BeforeEach;
 @ComponentTest(name = "swatch-producer-aws")
 public class BaseAwsComponentTest {
 
+  /**
+   * Must match {@code aws.marketplace.test-credentials.seller-profile} in {@code
+   * application.properties}. AwsCredentialsLookup resolves credentials by seller account id from
+   * the usage context.
+   */
+  protected static final String AWS_SELLER_ACCOUNT_ID = "1234567";
+
   @KafkaBridge
   static KafkaBridgeService kafkaBridge =
       new KafkaBridgeService().subscribeToTopic(BILLABLE_USAGE_STATUS);
 
   @Wiremock static AwsWiremockService wiremock = new AwsWiremockService();
+
+  @Unleash static AwsUnleashService unleash = new AwsUnleashService();
 
   @Quarkus(service = "swatch-producer-aws")
   static SwatchService service = new SwatchService();
@@ -55,7 +66,7 @@ public class BaseAwsComponentTest {
   void setUp() {
     orgId = RandomUtils.generateRandom();
     awsAccountId = RandomUtils.generateRandom();
-    awsSellerAccountId = RandomUtils.generateRandom();
+    awsSellerAccountId = AWS_SELLER_ACCOUNT_ID;
     rhSubscriptionId = RandomUtils.generateRandom();
     customerId = RandomUtils.generateRandom();
     productCode = RandomUtils.generateRandom();

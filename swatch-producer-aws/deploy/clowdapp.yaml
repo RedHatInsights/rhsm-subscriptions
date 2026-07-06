@@ -95,6 +95,8 @@ objects:
       - swatch-contracts
       - swatch-billable-usage
 
+    featureFlags: true
+
     kafkaTopics:
       - replicas: ${{KAFKA_BILLABLE_USAGE_REPLICAS}}
         partitions: ${{KAFKA_BILLABLE_USAGE_PARTITIONS}}
@@ -261,6 +263,7 @@ objects:
             - name: aws-marketplace-credentials
               secret:
                 secretName: aws-marketplace-credentials
+                optional: true
 
 - apiVersion: apps/v1
   kind: Deployment
@@ -309,11 +312,3 @@ objects:
     name: swatch-psks
   data:
     self: cGxhY2Vob2xkZXI=
-
-- apiVersion: v1
-  kind: Secret
-  metadata:
-    name: aws-marketplace-credentials
-  data:
-    # Base64 encoded
-    config.ini: W3Byb2ZpbGUgMTIzNDU2N10KYXdzX2FjY2Vzc19rZXlfaWQgPSByYW5kb21zdHVmZgphd3Nfc2VjcmV0X2FjY2Vzc19rZXkgPSByYW5kb21zdHVmZgo=

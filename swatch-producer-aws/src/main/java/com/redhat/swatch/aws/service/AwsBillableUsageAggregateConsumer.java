@@ -23,6 +23,7 @@ package com.redhat.swatch.aws.service;
 import static com.redhat.swatch.configuration.registry.SubscriptionDefinition.getBillingFactor;
 import static java.util.Optional.ofNullable;
 
+import com.redhat.swatch.aws.config.FeatureFlags;
 import com.redhat.swatch.aws.exception.AwsMissingCredentialsException;
 import com.redhat.swatch.aws.exception.AwsThrottlingException;
 import com.redhat.swatch.aws.exception.AwsUnprocessedRecordsException;
@@ -81,6 +82,7 @@ public class AwsBillableUsageAggregateConsumer {
   private final Duration awsUsageWindow;
   private final BillableUsageStatusProducer billableUsageStatusProducer;
   private final MeterProvider<Counter> meteredTotalCounter;
+  private final FeatureFlags featureFlags;
 
   public AwsBillableUsageAggregateConsumer(
       MeterRegistry meterRegistry,
@@ -88,7 +90,8 @@ public class AwsBillableUsageAggregateConsumer {
       AwsMarketplaceMeteringClientFactory awsMarketplaceMeteringClientFactory,
       @ConfigProperty(name = "ENABLE_AWS_DRY_RUN") Optional<Boolean> isDryRun,
       @ConfigProperty(name = "AWS_MARKETPLACE_USAGE_WINDOW") Duration awsUsageWindow,
-      BillableUsageStatusProducer billableUsageStatusProducer) {
+      BillableUsageStatusProducer billableUsageStatusProducer,
+      FeatureFlags featureFlags) {
     acceptedCounter = meterRegistry.counter("swatch_aws_marketplace_batch_accepted_total");
     rejectedCounter = meterRegistry.counter("swatch_aws_marketplace_batch_rejected_total");
     ignoreCounter = meterRegistry.counter("swatch_aws_marketplace_batch_ignored_total");
@@ -98,6 +101,7 @@ public class AwsBillableUsageAggregateConsumer {
     this.isDryRun = isDryRun;
     this.awsUsageWindow = awsUsageWindow;
     this.billableUsageStatusProducer = billableUsageStatusProducer;
+    this.featureFlags = featureFlags;
   }
 
   @Incoming("billable-usage-hourly-aggregate-in")
@@ -308,12 +312,35 @@ public class AwsBillableUsageAggregateConsumer {
           "Unable to send usage since it is outside of the AWS processing window");
     }
 
-    return UsageRecord.builder()
-        .customerIdentifier(context.getCustomerId())
-        .dimension(metric.getAwsDimension())
-        .quantity(billableUsageAggregate.getTotalValue().intValueExact())
-        .timestamp(effectiveTimestamp.toInstant())
-        .build();
+    UsageRecord.Builder recordBuilder =
+        UsageRecord.builder()
+            .dimension(metric.getAwsDimension())
+            .quantity(billableUsageAggregate.getTotalValue().intValueExact())
+            .timestamp(effectiveTimestamp.toInstant());
+
+    applyCustomerIdentification(recordBuilder, context);
+
+    return recordBuilder.build();
+  }
+
+  private void applyCustomerIdentification(
+      UsageRecord.Builder recordBuilder, AwsUsageContext context) {
+    if (!featureFlags.useCustomerAwsAccountId()) {
+      recordBuilder.customerIdentifier(context.getCustomerId());
+      return;
+    }
+
+    String customerAwsAccountId = context.getCustomerAwsAccountId();
+    if (customerAwsAccountId != null) {
+      recordBuilder.customerAWSAccountId(customerAwsAccountId);
+      return;
+    }
+
+    log.warn(
+        "customerAwsAccountId missing; falling back to customerIdentifier rhSubscriptionId={} awsCustomerId={}",
+        context.getRhSubscriptionId(),
+        context.getCustomerId());
+    recordBuilder.customerIdentifier(context.getCustomerId());
   }
 
   private boolean isForAws(BillableUsageAggregateKey aggregationKey) {
