@@ -69,7 +69,7 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
   @TestPlanName("hbi-data-seeder-TC001")
   @Test
   void testHbiSeederCanInsert() {
-    // Given: Insert host with defaults - SUPER EASY! Just pass orgId 😊
+    // Given: Insert host with defaults
     SeededHost host = hbiSeeder.insertRhelHost(orgId);
 
     // Then: verify host was tracked with predictable default values
