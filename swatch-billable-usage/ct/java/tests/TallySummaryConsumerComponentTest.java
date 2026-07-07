@@ -50,7 +50,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import org.awaitility.Awaitility;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
@@ -69,7 +68,6 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
 
   @BeforeAll
   static void subscribeToBillableUsageTopics() {
-    kafkaBridge.subscribeToTopic(BILLABLE_USAGE);
     kafkaBridge.subscribeToTopic(BILLABLE_USAGE_HOURLY_AGGREGATE);
   }
 
@@ -790,26 +788,6 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
             billingAccountId);
     kafkaBridge.produceKafkaMessage(TALLY, tallySummaryRosa);
     kafkaBridge.produceKafkaMessage(TALLY, tallySummaryRhelAddon);
-  }
-
-  /** Wait for remittance to reach expected status using API polling */
-  private void waitForRemittanceStatus(String tallyId, RemittanceStatus expectedStatus) {
-    Awaitility.await()
-        .atMost(Duration.ofSeconds(30))
-        .pollInterval(Duration.ofSeconds(2))
-        .untilAsserted(
-            () -> {
-              List<TallyRemittance> remittances = service.getRemittancesByTallyId(tallyId);
-              assertNotNull(remittances, "Remittances should exist for tallyId: " + tallyId);
-              assertFalse(remittances.isEmpty(), "Should have at least one remittance");
-
-              String actualStatusString = remittances.get(0).getStatus();
-              RemittanceStatus actualStatus = RemittanceStatus.valueOf(actualStatusString);
-              assertEquals(
-                  expectedStatus,
-                  actualStatus,
-                  "Expected status " + expectedStatus + " but got " + actualStatus);
-            });
   }
 
   /** Verify that billed_on timestamp is populated and within expected range */

@@ -20,8 +20,14 @@
  */
 package tests;
 
+import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 import api.BillableUsageSwatchService;
 import api.ContractsWiremockService;
+import com.redhat.swatch.billable.usage.openapi.model.TallyRemittance;
 import com.redhat.swatch.component.tests.api.ComponentTest;
 import com.redhat.swatch.component.tests.api.KafkaBridge;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
@@ -31,6 +37,10 @@ import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import domain.Product;
+import domain.RemittanceStatus;
+import java.time.Duration;
+import java.util.List;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeEach;
 
 @ComponentTest(name = "swatch-billable-usage")
@@ -40,7 +50,8 @@ public class BaseBillableUsageComponentTest {
   static final Product ROSA = Product.ROSA;
   static final Product RHEL_PAYG_ADDON = Product.RHEL_PAYG_ADDON;
 
-  @KafkaBridge static KafkaBridgeService kafkaBridge = new KafkaBridgeService();
+  @KafkaBridge
+  static KafkaBridgeService kafkaBridge = new KafkaBridgeService().subscribeToTopic(BILLABLE_USAGE);
 
   @Wiremock static ContractsWiremockService contractsWiremock = new ContractsWiremockService();
 
@@ -52,5 +63,25 @@ public class BaseBillableUsageComponentTest {
   @BeforeEach
   void setUp() {
     orgId = RandomUtils.generateRandom();
+  }
+
+  /** Wait for remittance to reach expected status using API polling */
+  protected void waitForRemittanceStatus(String tallyId, RemittanceStatus expectedStatus) {
+    Awaitility.await()
+        .atMost(Duration.ofSeconds(30))
+        .pollInterval(Duration.ofSeconds(2))
+        .untilAsserted(
+            () -> {
+              List<TallyRemittance> remittances = service.getRemittancesByTallyId(tallyId);
+              assertNotNull(remittances, "Remittances should exist for tallyId: " + tallyId);
+              assertFalse(remittances.isEmpty(), "Should have at least one remittance");
+              assertEquals(
+                  expectedStatus,
+                  RemittanceStatus.valueOf(remittances.get(0).getStatus()),
+                  "Expected status "
+                      + expectedStatus
+                      + " but got "
+                      + remittances.get(0).getStatus());
+            });
   }
 }
