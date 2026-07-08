@@ -23,11 +23,13 @@ package domain;
 import org.candlepin.subscriptions.billable.usage.TallySnapshot;
 
 public enum BillingProvider {
-  AWS;
+  AWS,
+  AZURE;
 
   public TallySnapshot.BillingProvider toTallyApiModel() {
     return switch (this) {
       case AWS -> TallySnapshot.BillingProvider.AWS;
+      case AZURE -> TallySnapshot.BillingProvider.AZURE;
     };
   }
 }
