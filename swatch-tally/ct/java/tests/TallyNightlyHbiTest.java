@@ -26,7 +26,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static utils.TallyTestProducts.RHEL_FOR_X86;
 
-import com.redhat.swatch.component.tests.api.TestPlanName;
 import java.time.OffsetDateTime;
 import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
@@ -66,19 +65,16 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
     }
   }
 
+  /**
+   * - **Description**: Verify that we can insert a host in the HBI database - **Setup**: Component
+   * test environment with swatch-tally is running and an instance of insights db is up -
+   * **Action**: Insert a host into the HBI database - **Verification**: - a host was returned from
+   * the insert - the host returned has a inventory id - the host returned has a subscription
+   * manager id - the host returned has the expected orgId - **Expected Result**: The host was
+   * inserted into the HBI database
+   */
   @Test
   void testHbiSeederCanInsert() {
-    /**
-     - **Description**: Verify that we can insert a host in the HBI database
-     - **Setup**: Component test environment with swatch-tally is running and an instance of insights db is up
-     - **Action**: Insert a host into the HBI database
-     - **Verification**:
-        - a host was returned from the insert
-        - the host returned has a inventory id
-        - the host returned has a subscription manager id
-        - the host returned has the expected orgId
-     - **Expected Result**: The host was inserted into the HBI database
-    **/
     // Given: Insert host with defaults
     SeededHost host = hbiSeeder.insertRhelHost(orgId);
 
@@ -93,17 +89,15 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
     assertTrue(hbiSeeder.hostExists(host.hostId()), "Host should exist in HBI database");
   }
 
+  /**
+   * - **Description**: Verify that we can delete an inserted host in the HBI database - **Setup**:
+   * Component test environment with swatch-tally is running, an instance of insights db is up and
+   * have a host in the HBI database - **Action**: delete the host previously inserted in the HBI
+   * database - **Verification**: - the host was deleted from the database - **Expected Result**:
+   * The host was deleted from the database
+   */
   @Test
   void testHbiSeederCanDelete() {
-    /**
-      - **Description**: Verify that we can delete an inserted host in the HBI database
-      - **Setup**: Component test environment with swatch-tally is running, an instance of insights db is up and have a host
-        in the HBI database
-      - **Action**: delete the host previously inserted in the HBI database
-      - **Verification**:
-          - the host was deleted from the database
-      - **Expected Result**: The host was deleted from the database
-     **/
     // Given: Insert host with defaults - SUPER EASY! Just pass orgId 😊
     SeededHost host = hbiSeeder.insertRhelHost(orgId);
 
@@ -120,17 +114,15 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
     assertFalse(hbiSeeder.hostExists(host.hostId()), "Host should not exist in HBI database");
   }
 
+  /**
+   * - **Description**: Verify that we can delete all inserted hosts in the HBI database -
+   * **Setup**: Component test environment with swatch-tally is running, an instance of insights db
+   * is up and have more than one host in the HBI database - **Action**: run the rollback -
+   * **Verification**: - ensure that all the inserted hosts that were inserted are deleted from the
+   * database - **Expected Result**: The host was deleted from the database
+   */
   @Test
   void testHbiSeederRollbackDeletesAllHosts() {
-    /**
-     - **Description**: Verify that we can delete all inserted hosts in the HBI database
-     - **Setup**: Component test environment with swatch-tally is running, an instance of insights db is up and have more
-        than one host in the HBI database
-     - **Action**: run the rollback
-     - **Verification**:
-        - ensure that all the inserted hosts that were inserted are deleted from the database
-     - **Expected Result**: The host was deleted from the database
-     */
     // Given: multiple hosts inserted - mix of RHEL and cloud
     SeededHost host1 = hbiSeeder.insertRhelHost(orgId);
     SeededHost host2 = hbiSeeder.insertCloudHost(orgId);
@@ -153,17 +145,16 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
     assertFalse(hbiSeeder.hostExists(host2.hostId()), "Host 2 should not exist in HBI database");
   }
 
+  /**
+   * - **Description**: Verify that we can insert a RHEL product into the the HBI database -
+   * **Setup**: Component test environment with swatch-tally is running, an instance of insights db
+   * - **Action**: Create a host with a product that is a RHEL product - **Verification**: - verify
+   * that a tally Report for the RHEL product is not null - verify that the total sockets value in
+   * the tally Report is greather that or equal to the 2 sockets - **Expected Result**: All the host
+   * inserted into the db have been deleted from the database
+   */
   @Test
   void testNightlyTallyRhelProduct() {
-    /**
-     - **Description**: Verify that we can insert a RHEL product into the the HBI database
-     - **Setup**: Component test environment with swatch-tally is running, an instance of insights db
-     - **Action**: Create a host with a product that is a RHEL product
-     - **Verification**:
-         - verify that a tally Report for the RHEL product is not null
-         - verify that the total sockets value in the tally Report is greather that or equal to the 2 sockets
-     - **Expected Result**: All the host inserted into the db have been deleted from the database
-     * */
     // Given: Org is opted in (required for tally reports)
     service.createOptInConfig(orgId);
 
@@ -215,18 +206,16 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
                 .toList()));
   }
 
+  /**
+   * - **Description**: Verify that we can insert a RHEL product into the the HBI database -
+   * **Setup**: Component test environment with swatch-tally is running, an instance of insights db
+   * - **Action**: Create a host with a product that is a NON RHEL product - **Verification**: -
+   * verify that the host is non-null - verify that the host is exist in the HBI database - verify
+   * that you can sync tally without any errors - **Expected Result**: All the host inserted into
+   * the db have been deleted from the database
+   */
   @Test
   void testNightlyTallyCloudProduct() {
-    /**
-     - **Description**: Verify that we can insert a RHEL product into the the HBI database
-     - **Setup**: Component test environment with swatch-tally is running, an instance of insights db
-     - **Action**: Create a host with a product that is a NON RHEL product
-     - **Verification**:
-         - verify that the host is non-null
-         - verify that the host is exist in the HBI database
-         - verify that you can sync tally without any errors
-     - **Expected Result**: All the host inserted into the db have been deleted from the database
-     */
     // Given: Org is opted in (required for tally reports)
     service.createOptInConfig(orgId);
 
