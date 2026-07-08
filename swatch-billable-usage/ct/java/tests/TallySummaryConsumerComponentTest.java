@@ -261,7 +261,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     waitForRemittanceStatus(tallyId, RemittanceStatus.SUCCEEDED);
 
     // Verify billed_on field was populated with proper timestamp
-    List<TallyRemittance> remittances = service.getRemittancesByTallyId(tallyId);
+    List<TallyRemittance> remittances = service.getRemittancesByTally(tallyId);
     assertNotNull(remittances, "Remittances should exist");
     assertFalse(remittances.isEmpty(), "Should have at least one remittance");
     verifyBilledOnTimestamp(remittances.get(0), expectedBilledOnTime);
@@ -294,7 +294,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     waitForRemittanceStatus(tallyId, RemittanceStatus.FAILED);
 
     // Verify error code was populated properly
-    List<TallyRemittance> remittances = service.getRemittancesByTallyId(tallyId);
+    List<TallyRemittance> remittances = service.getRemittancesByTally(tallyId);
     assertNotNull(remittances, "Remittances should exist");
     assertFalse(remittances.isEmpty(), "Should have at least one remittance");
     verifyErrorCode(remittances.get(0), RemittanceErrorCode.SUBSCRIPTION_NOT_FOUND.name());
@@ -524,10 +524,6 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     contractsWiremock.setupNoContractCoverage(orgId, ROSA.getName());
   }
 
-  private void givenNoContractCoverageForRhelAddon() {
-    contractsWiremock.setupNoContractCoverage(orgId, RHEL_PAYG_ADDON.getName());
-  }
-
   /**
    * Sets up test preconditions: creates tally summary, waits for billable usage with pending
    * remittance
@@ -551,50 +547,6 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
 
     assertEquals(1, billableUsages.size(), "Expected exactly 1 billable usage message");
     return billableUsages.get(0);
-  }
-
-  /**
-   * Sets up first remittance (RHEL addon, billing factor 1.0): sends tally, waits for billable
-   * usage, sends SUCCEEDED status update.
-   */
-  private BillableUsage givenFirstRemittanceSucceeded(double value, String billingAccountId) {
-    givenNoContractCoverageForRhelAddon();
-
-    TallySummary firstTallySummary =
-        createTallySummary(
-            orgId,
-            RHEL_PAYG_ADDON.getName(),
-            VCPUS.toString(),
-            value,
-            BillingProvider.AWS,
-            billingAccountId);
-    kafkaBridge.produceKafkaMessage(TALLY, firstTallySummary);
-
-    List<BillableUsage> firstBillableUsages =
-        kafkaBridge.waitForKafkaMessage(
-            BILLABLE_USAGE,
-            MessageValidators.billableUsageMatchesWithValue(
-                orgId, RHEL_PAYG_ADDON.getName(), value),
-            1);
-    assertEquals(
-        1, firstBillableUsages.size(), "Expected exactly 1 billable usage for first tally");
-    BillableUsage firstBillableUsage = firstBillableUsages.get(0);
-    waitForRemittanceStatus(firstBillableUsage.getTallyId().toString(), RemittanceStatus.PENDING);
-
-    BillableUsageAggregate statusUpdate =
-        givenBillableUsageAggregate(
-            orgId,
-            RHEL_PAYG_ADDON.getName(),
-            VCPUS.toString(),
-            billingAccountId,
-            BillableUsage.Status.SUCCEEDED,
-            null,
-            OffsetDateTime.now(ZoneOffset.UTC),
-            List.of(firstBillableUsage.getUuid().toString()));
-    kafkaBridge.produceKafkaMessage(BILLABLE_USAGE_STATUS, statusUpdate);
-    waitForRemittanceStatus(firstBillableUsage.getTallyId().toString(), RemittanceStatus.SUCCEEDED);
-
-    return firstBillableUsage;
   }
 
   /** Builds a billable usage aggregate (status update) for use in status consumer tests. */
@@ -860,22 +812,11 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     for (BillableUsage usage : billableUsages) {
       String tallyId = usage.getTallyId().toString();
       waitForRemittanceStatus(tallyId, RemittanceStatus.PENDING);
-      List<TallyRemittance> remittances = service.getRemittancesByTallyId(tallyId);
+      List<TallyRemittance> remittances = service.getRemittancesByTally(tallyId);
       assertNotNull(remittances, "Remittances should exist for tallyId: " + tallyId);
       assertFalse(
           remittances.isEmpty(), "Should have at least one remittance for org " + usage.getOrgId());
     }
-  }
-
-  private void thenRemittanceHasValue(String tallyId, double expectedValue) {
-    List<TallyRemittance> remittances = service.getRemittancesByTallyId(tallyId);
-    assertNotNull(remittances, "Remittances should exist for tallyId: " + tallyId);
-    assertEquals(1, remittances.size(), "Exactly one remittance per tally");
-    assertEquals(
-        expectedValue,
-        remittances.get(0).getRemittedPendingValue(),
-        0.001,
-        "Remittance should have value " + expectedValue);
   }
 
   private BillableUsageAggregate thenBillableUsageAggregateIsFoundForMetric(
@@ -970,7 +911,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     for (BillableUsage usage : billableUsages) {
       waitForRemittanceStatus(usage.getTallyId().toString(), RemittanceStatus.PENDING);
       List<TallyRemittance> remittances =
-          service.getRemittancesByTallyId(usage.getTallyId().toString());
+          service.getRemittancesByTally(usage.getTallyId().toString());
       assertNotNull(remittances, "Remittances should exist for tallyId: " + usage.getTallyId());
       assertEquals(1, remittances.size(), "Exactly one remittance per tally");
       TallyRemittance remittance = remittances.get(0);
@@ -994,7 +935,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
             .map(
                 u ->
                     service
-                        .getRemittancesByTallyId(u.getTallyId().toString())
+                        .getRemittancesByTally(u.getTallyId().toString())
                         .get(0)
                         .getAccumulationPeriod())
             .sorted()
