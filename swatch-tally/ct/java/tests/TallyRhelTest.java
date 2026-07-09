@@ -40,7 +40,6 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import utils.TallyHbiDbSeeder;
 import utils.TallyHbiDbSeeder.SeededHost;
-import utils.TallyTestHelpers;
 
 /**
  * Component tests for RHEL physical host tally with socket increase mapping.
@@ -137,15 +136,15 @@ public class TallyRhelTest extends BaseTallyComponentTest {
 
     // And: Get instance from system table
     var instanceResponse =
-        service.getInstancesByProduct(
-            orgId, RHEL_FOR_X86.productTag(), beginning, ending);
+        service.getInstancesByProduct(orgId, RHEL_FOR_X86.productTag(), beginning, ending);
     assertNotNull(instanceResponse.getData(), "Instance response data should not be null");
 
     InstanceData instance =
         instanceResponse.getData().stream()
             .filter(i -> displayName.equals(i.getDisplayName()))
             .findFirst()
-            .orElseThrow(() -> new RuntimeException("No instance found with displayName=" + displayName));
+            .orElseThrow(
+                () -> new RuntimeException("No instance found with displayName=" + displayName));
 
     // Verify instance details
     assertNotNull(instance, "Host should appear in instances API");
