@@ -413,7 +413,7 @@ public class TallyResource implements TallyApi {
     Set<HardwareMeasurementType> measurementTypes = determineMeasurementTypes(category);
 
     Page<TallyMeasurementAggregate> summedPage =
-        repository.findSummedMeasurements(
+        repository.findSummedOrMaxMeasurements(
             true, // isPrimary
             reportCriteria.getOrgId(),
             reportCriteria.getProductId(),

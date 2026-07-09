@@ -363,7 +363,7 @@ public interface TallySnapshotRepository
    * @return Page of summed measurements
    */
   @SuppressWarnings("java:S107")
-  default Page<TallyMeasurementAggregate> findSummedMeasurements(
+  default Page<TallyMeasurementAggregate> findSummedOrMaxMeasurements(
       Boolean isPrimary,
       String orgId,
       String productId,
@@ -414,13 +414,25 @@ public interface TallySnapshotRepository
       query.where(predicate);
     }
 
-    // SELECT with aggregation - NO measurementType, sum across all types
-    query
-        .multiselect(
-            root.get("snapshotDate"),
-            measurementJoin.key().get("metricId"),
-            cb.sum(measurementJoin.value()))
-        .distinct(true);
+    if (measurementTypes.size() == 1
+        && measurementTypes.contains(HardwareMeasurementType.HYPERVISOR)) {
+      // Take the max value when the hypervisor type is present.
+      // There is only one HardwareMeasurementType for ReportCategory.HYPERVISOR.
+      query
+          .multiselect(
+              root.get("snapshotDate"),
+              measurementJoin.key().get("metricId"),
+              cb.max(measurementJoin.value()))
+          .distinct(true);
+    } else {
+      // SELECT with aggregation - NO measurementType, sum across all types
+      query
+          .multiselect(
+              root.get("snapshotDate"),
+              measurementJoin.key().get("metricId"),
+              cb.sum(measurementJoin.value()))
+          .distinct(true);
+    }
 
     // GROUP BY - NO measurementType, only date and metric
     query.groupBy(root.get("snapshotDate"), measurementJoin.key().get("metricId"));

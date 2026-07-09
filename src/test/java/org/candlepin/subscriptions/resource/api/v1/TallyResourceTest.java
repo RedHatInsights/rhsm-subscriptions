@@ -157,7 +157,7 @@ class TallyResourceTest {
               .collect(Collectors.toList());
 
       Mockito.when(
-              repository.findSummedMeasurements(
+              repository.findSummedOrMaxMeasurements(
                   true,
                   "owner123456",
                   RHEL_FOR_X86.toString(),
@@ -253,7 +253,7 @@ class TallyResourceTest {
 
       // Neither snapshot nor measurement are present for day 4
 
-      when(repository.findSummedMeasurements(
+      when(repository.findSummedOrMaxMeasurements(
               any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
               any()))
           .thenReturn(new PageImpl<>(List.of(agg, agg2)));
@@ -292,7 +292,7 @@ class TallyResourceTest {
       aggregate.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
       aggregate.setMetricId(MetricIdUtils.getCores().toString());
       aggregate.setValue(4.0);
-      when(repository.findSummedMeasurements(
+      when(repository.findSummedOrMaxMeasurements(
               any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
               any()))
           .thenReturn(new PageImpl<>(List.of(aggregate)));
@@ -323,7 +323,7 @@ class TallyResourceTest {
       aggregate.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
       aggregate.setMetricId(MetricIdUtils.getCores().toString());
       aggregate.setValue(4.0);
-      when(repository.findSummedMeasurements(
+      when(repository.findSummedOrMaxMeasurements(
               any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
               any()))
           .thenReturn(new PageImpl<>(List.of(aggregate)));
@@ -374,7 +374,7 @@ class TallyResourceTest {
       day2Aggregate.setMetricId(MetricIdUtils.getSockets().toString());
       day2Aggregate.setValue(7.0);
 
-      when(repository.findSummedMeasurements(
+      when(repository.findSummedOrMaxMeasurements(
               any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
               any()))
           .thenReturn(new PageImpl<>(List.of(day1Aggregate, day2Aggregate)));
@@ -433,7 +433,7 @@ class TallyResourceTest {
       day2Aggregate.setMetricId(MetricIdUtils.getCores().toString());
       day2Aggregate.setValue(24.0);
 
-      when(repository.findSummedMeasurements(
+      when(repository.findSummedOrMaxMeasurements(
               any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
               any()))
           .thenReturn(new PageImpl<>(List.of(day1Aggregate, day2Aggregate)));
@@ -472,7 +472,7 @@ class TallyResourceTest {
         aggregate.setValue(4.0);
         aggregates.add(aggregate);
       }
-      when(repository.findSummedMeasurements(
+      when(repository.findSummedOrMaxMeasurements(
               any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
               any()))
           .thenReturn(new PageImpl<>(aggregates));
@@ -499,7 +499,7 @@ class TallyResourceTest {
 
     @Test
     void testTallyReportDataReportFiller() {
-      when(repository.findSummedMeasurements(
+      when(repository.findSummedOrMaxMeasurements(
               any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
               any()))
           .thenReturn(new PageImpl<>(List.of()));
@@ -525,7 +525,7 @@ class TallyResourceTest {
 
     @Test
     void testTallyReportTotalMonthlyNotPopulatedWhenQueryIsNotBeginningOfMonth() {
-      when(repository.findSummedMeasurements(
+      when(repository.findSummedOrMaxMeasurements(
               any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
               any()))
           .thenReturn(new PageImpl<>(List.of()));
@@ -550,7 +550,7 @@ class TallyResourceTest {
 
     @Test
     void testTallyReportTotalMonthlyNotPopulatedWhenQueryIsNotEndOfMonth() {
-      when(repository.findSummedMeasurements(
+      when(repository.findSummedOrMaxMeasurements(
               any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
               any()))
           .thenReturn(new PageImpl<>(List.of()));
@@ -575,7 +575,7 @@ class TallyResourceTest {
 
     @Test
     void testTallyReportTotalMonthlyNotPopulatedWhenQueryIsPaged() {
-      when(repository.findSummedMeasurements(
+      when(repository.findSummedOrMaxMeasurements(
               any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
               any()))
           .thenReturn(new PageImpl<>(List.of()));
@@ -600,7 +600,7 @@ class TallyResourceTest {
 
     @Test
     void testTallyReportTotalMonthlyPopulatedWithNoUnderlyingData() {
-      when(repository.findSummedMeasurements(
+      when(repository.findSummedOrMaxMeasurements(
               any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
               any()))
           .thenReturn(new PageImpl<>(List.of()));
@@ -635,7 +635,7 @@ class TallyResourceTest {
       aggregate2.setSnapshotDate(OffsetDateTime.parse("2021-11-03T00:00Z"));
       aggregate2.setMetricId(MetricIdUtils.getCores().toString());
       aggregate2.setValue(3.0);
-      when(repository.findSummedMeasurements(
+      when(repository.findSummedOrMaxMeasurements(
               any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
               any()))
           .thenReturn(new PageImpl<>(List.of(aggregate1, aggregate2)));
@@ -674,7 +674,7 @@ class TallyResourceTest {
       aggregate2.setMetricId(MetricIdUtils.getCores().toString());
       aggregate2.setValue(3.0);
 
-      when(repository.findSummedMeasurements(
+      when(repository.findSummedOrMaxMeasurements(
               any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
               any()))
           .thenReturn(new PageImpl<>(List.of(aggregate1, aggregate2)));
@@ -724,7 +724,7 @@ class TallyResourceTest {
               .value(22)
               .hasData(true);
 
-      when(repository.findSummedMeasurements(
+      when(repository.findSummedOrMaxMeasurements(
               any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
               any()))
           .thenReturn(new PageImpl<>(aggregates));
@@ -784,7 +784,7 @@ class TallyResourceTest {
               .value(3)
               .hasData(true);
 
-      when(repository.findSummedMeasurements(
+      when(repository.findSummedOrMaxMeasurements(
               any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
               any()))
           .thenReturn(new PageImpl<>(aggregates));
@@ -887,7 +887,7 @@ class TallyResourceTest {
         aggregates.add(aggregate);
       }
 
-      when(repository.findSummedMeasurements(
+      when(repository.findSummedOrMaxMeasurements(
               any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
               any()))
           .thenReturn(new PageImpl<>(aggregates));
@@ -969,7 +969,7 @@ class TallyResourceTest {
         aggregates.add(aggregate);
       }
 
-      when(repository.findSummedMeasurements(
+      when(repository.findSummedOrMaxMeasurements(
               any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
               any()))
           .thenReturn(new PageImpl<>(aggregates));
