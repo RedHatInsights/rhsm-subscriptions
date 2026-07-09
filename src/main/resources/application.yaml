@@ -33,6 +33,7 @@ io:
     environment: ${UNLEASH_ENVIRONMENT:production}
     api-url: ${UNLEASH_URL}
     api-token: ${UNLEASH_API_TOKEN}
+    fetch-toggles-interval: ${UNLEASH_FETCH_TOGGLES_INTERVAL:15S}
 management:
   health:
     jms:

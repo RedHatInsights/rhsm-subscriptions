@@ -83,7 +83,7 @@ public class BaseTallyComponentTest {
   @SpringBoot(service = "swatch-tally")
   static TallySwatchService service = new TallySwatchService();
 
-  @Unleash static TallyUnleashService unleash = new TallyUnleashService();
+  @Unleash static TallyUnleashService unleash = new TallyUnleashService(service);
 
   @SwatchDatabase static DatabaseService swatchDatabase = new DatabaseService();
 
@@ -105,12 +105,6 @@ public class BaseTallyComponentTest {
     } else {
       unleash.disablePrimaryRowSearches();
     }
-
-    long startTime = System.currentTimeMillis();
-    AwaitilityUtils.until(
-        () -> System.currentTimeMillis() - startTime,
-        elapsed -> elapsed >= 5000,
-        AwaitilitySettings.usingTimeout(Duration.ofSeconds(10)));
   }
 
   // --- Shared tally report query helpers ---

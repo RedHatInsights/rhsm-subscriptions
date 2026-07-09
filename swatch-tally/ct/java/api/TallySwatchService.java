@@ -77,6 +77,28 @@ public class TallySwatchService extends SwatchService {
     return response.as(VersionInfo.class);
   }
 
+  /**
+   * Retrieves application info including feature flags from the management endpoint.
+   *
+   * @return the info response as a Map
+   */
+  @SuppressWarnings("unchecked")
+  public Map<String, Object> getInfo() {
+    Response response = managementServer().get("/info").then().extract().response();
+
+    assertEquals(
+        HttpStatus.SC_OK,
+        response.getStatusCode(),
+        "Get info failed with status code: "
+            + response.getStatusCode()
+            + ", response body: "
+            + response.getBody().asString());
+
+    Log.trace(this, "Info endpoint response: %s", response.getBody().asString());
+
+    return response.as(Map.class);
+  }
+
   // --- Configuration methods ---
 
   /**
