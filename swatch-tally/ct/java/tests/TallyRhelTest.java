@@ -23,6 +23,7 @@ package tests;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static utils.TallyTestHelpers.getSocketCount;
 import static utils.TallyTestProducts.RHEL_FOR_X86;
 
@@ -30,6 +31,7 @@ import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.logging.Log;
 import com.redhat.swatch.tally.test.model.InstanceData;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -134,9 +136,16 @@ public class TallyRhelTest extends BaseTallyComponentTest {
         String.format("Sockets should increase by %d", expectedReportedSockets));
 
     // And: Get instance from system table
-    // Try calling without static import to diagnose compilation issue
+    var instanceResponse =
+        service.getInstancesByProduct(
+            orgId, RHEL_FOR_X86.productTag(), beginning, ending);
+    assertNotNull(instanceResponse.getData(), "Instance response data should not be null");
+
     InstanceData instance =
-        TallyTestHelpers.getInstanceByDisplayName(service, orgId, displayName, beginning, ending);
+        instanceResponse.getData().stream()
+            .filter(i -> displayName.equals(i.getDisplayName()))
+            .findFirst()
+            .orElseThrow(() -> new RuntimeException("No instance found with displayName=" + displayName));
 
     // Verify instance details
     assertNotNull(instance, "Host should appear in instances API");
@@ -145,9 +154,15 @@ public class TallyRhelTest extends BaseTallyComponentTest {
         "physical", instance.getCategory().toString().toLowerCase(), "Category should be physical");
     assertNotNull(instance.getMeasurements(), "Instance should have measurements");
     assertFalse(instance.getMeasurements().isEmpty(), "Measurements should not be empty");
+
+    // Find the Sockets metric index from response metadata
+    List<String> metricIds = instanceResponse.getMeta().getMeasurements();
+    int socketsIndex = metricIds.indexOf("Sockets");
+    assertTrue(socketsIndex >= 0, "Sockets metric should be present in metadata");
+
     assertEquals(
         (double) expectedReportedSockets,
-        instance.getMeasurements().get(0),
+        instance.getMeasurements().get(socketsIndex),
         String.format(
             "Labeled measurement should show %d sockets (increased from %d)",
             expectedReportedSockets, actualSockets));

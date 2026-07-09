@@ -375,6 +375,15 @@ public final class TallyHbiDbSeeder {
     OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
     OffsetDateTime staleTimestamp = now.plusDays(7); // Default: 7 days from now
 
+    // Validate sockets before INSERT to prevent orphaned records
+    if (sockets == 0) {
+      throw new IllegalArgumentException(
+          "Sockets cannot be 0 (would cause division by zero when calculating cores_per_socket)");
+    }
+
+    // Track host after validation but before INSERT, so cleanup works even if INSERT fails
+    insertedHostIds.add(hostId);
+
     try (Connection conn = getInsightsConnection()) {
       // Production HBI schema has BOTH direct columns AND canonical_facts for backward
       // compatibility
@@ -417,10 +426,6 @@ public final class TallyHbiDbSeeder {
              ?, ?)
           """;
 
-      if (sockets == 0) {
-        throw new RuntimeException("Sockets are 0!");
-      }
-
       try (PreparedStatement ps = conn.prepareStatement(profileSql)) {
         ps.setString(1, orgId);
         ps.setObject(2, hostId);
@@ -432,7 +437,8 @@ public final class TallyHbiDbSeeder {
       }
     } catch (SQLException e) {
       String errorMessage = "Failed to insert RHEL host into HBI database";
-      if (e.getMessage().contains("does not exist")) {
+      String message = e.getMessage();
+      if (message != null && message.contains("does not exist")) {
         errorMessage +=
             "\n\nSCHEMA ERROR: Required HBI table or column is missing."
                 + "\nThis usually means:"
@@ -440,19 +446,19 @@ public final class TallyHbiDbSeeder {
                 + "\n  2. Schema is outdated (EE: check if host-inventory-run-db-migrations job completed)"
                 + "\n  3. Wrong database selected (verify you're connecting to 'insights' database)"
                 + "\n\nOriginal error: "
-                + e.getMessage();
-      } else if (e.getMessage().contains("is of type")
-          && e.getMessage().contains("but expression is of type")) {
+                + message;
+      } else if (message != null
+          && message.contains("is of type")
+          && message.contains("but expression is of type")) {
         errorMessage +=
             "\n\nSCHEMA ERROR: Column exists but has wrong data type."
                 + "\nThis usually means the HBI schema is outdated or incompatible."
                 + "\nOriginal error: "
-                + e.getMessage();
+                + message;
       }
       throw new RuntimeException(errorMessage, e);
     }
 
-    insertedHostIds.add(hostId);
     return new SeededHost(hostId, actualInventoryId, actualSubManId, orgId);
   }
 
@@ -500,6 +506,9 @@ public final class TallyHbiDbSeeder {
     UUID insightsId = UUID.randomUUID();
     OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
     OffsetDateTime staleTimestamp = now.plusDays(7); // Default: 7 days from now
+
+    // Track host before INSERT, so cleanup works even if INSERT fails
+    insertedHostIds.add(hostId);
 
     try (Connection conn = getInsightsConnection()) {
       // Production HBI schema has BOTH direct columns AND canonical_facts for backward
@@ -553,7 +562,8 @@ public final class TallyHbiDbSeeder {
       }
     } catch (SQLException e) {
       String errorMessage = "Failed to insert cloud/non-RHEL host into HBI database";
-      if (e.getMessage().contains("does not exist")) {
+      String message = e.getMessage();
+      if (message != null && message.contains("does not exist")) {
         errorMessage +=
             "\n\nSCHEMA ERROR: Required HBI table or column is missing."
                 + "\nThis usually means:"
@@ -561,19 +571,19 @@ public final class TallyHbiDbSeeder {
                 + "\n  2. Schema is outdated (EE: check if host-inventory-run-db-migrations job completed)"
                 + "\n  3. Wrong database selected (verify you're connecting to 'insights' database)"
                 + "\n\nOriginal error: "
-                + e.getMessage();
-      } else if (e.getMessage().contains("is of type")
-          && e.getMessage().contains("but expression is of type")) {
+                + message;
+      } else if (message != null
+          && message.contains("is of type")
+          && message.contains("but expression is of type")) {
         errorMessage +=
             "\n\nSCHEMA ERROR: Column exists but has wrong data type."
                 + "\nThis usually means the HBI schema is outdated or incompatible."
                 + "\nOriginal error: "
-                + e.getMessage();
+                + message;
       }
       throw new RuntimeException(errorMessage, e);
     }
 
-    insertedHostIds.add(hostId);
     return new SeededHost(hostId, actualInventoryId, actualSubManId, orgId);
   }
 
