@@ -184,12 +184,12 @@ public class KafkaBridgeService extends RestService {
             // Get cached messages for this topic
             CopyOnWriteArrayList<Object> cachedMessages = messageCache.get(topic);
             if (cachedMessages == null || cachedMessages.isEmpty()) {
-              Log.debug(this, "No cached messages found for topic %s", topic);
+              Log.trace(this, "No cached messages found for topic %s", topic);
               // If expecting 0 messages and cache is empty, that's success
               return expectedCount == 0;
             }
 
-            Log.debug(this, "Found %d cached messages in topic %s", cachedMessages.size(), topic);
+            Log.trace(this, "Found %d cached messages in topic %s", cachedMessages.size(), topic);
 
             // Convert cached messages to typed messages and validate
             for (Object rawMessage : cachedMessages) {
