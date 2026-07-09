@@ -119,43 +119,25 @@ public class BaseBillableUsageComponentTest {
   }
 
   protected BillableUsage givenFirstRemittanceSucceeded(double value, String billingAccountId) {
-    givenNoContractCoverageForRhelAddon();
-    var tallySummary =
-        createTallySummary(
-            orgId,
-            RHEL_PAYG_ADDON.getName(),
-            VCPUS.toString(),
-            value,
-            BillingProvider.AWS,
-            billingAccountId);
-    kafkaBridge.produceKafkaMessage(TALLY, tallySummary);
-
-    List<BillableUsage> billableUsages =
-        kafkaBridge.waitForKafkaMessage(
-            BILLABLE_USAGE,
-            MessageValidators.billableUsageMatchesWithValue(
-                orgId, RHEL_PAYG_ADDON.getName(), value),
-            1);
-    assertEquals(1, billableUsages.size(), "Expected exactly 1 billable usage for first tally");
-    BillableUsage billableUsage = billableUsages.get(0);
-    waitForRemittanceStatus(billableUsage.getTallyId().toString(), RemittanceStatus.PENDING);
-
-    kafkaBridge.produceKafkaMessage(
-        BILLABLE_USAGE_STATUS,
-        buildBillableUsageAggregate(
-            orgId,
-            RHEL_PAYG_ADDON.getName(),
-            VCPUS.toString(),
-            billingAccountId,
-            BillableUsage.Status.SUCCEEDED,
-            null,
-            OffsetDateTime.now(ZoneOffset.UTC),
-            List.of(billableUsage.getUuid().toString())));
-    waitForRemittanceStatus(billableUsage.getTallyId().toString(), RemittanceStatus.SUCCEEDED);
-    return billableUsage;
+    return givenFirstRemittanceWithStatus(
+        value, billingAccountId, BillableUsage.Status.SUCCEEDED, null, RemittanceStatus.SUCCEEDED);
   }
 
   protected BillableUsage givenFirstRemittanceFailed(double value, String billingAccountId) {
+    return givenFirstRemittanceWithStatus(
+        value,
+        billingAccountId,
+        BillableUsage.Status.FAILED,
+        BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND,
+        RemittanceStatus.FAILED);
+  }
+
+  private BillableUsage givenFirstRemittanceWithStatus(
+      double value,
+      String billingAccountId,
+      BillableUsage.Status status,
+      BillableUsage.ErrorCode errorCode,
+      RemittanceStatus expectedRemittanceStatus) {
     givenNoContractCoverageForRhelAddon();
     var tallySummary =
         createTallySummary(
@@ -177,6 +159,8 @@ public class BaseBillableUsageComponentTest {
     BillableUsage billableUsage = billableUsages.get(0);
     waitForRemittanceStatus(billableUsage.getTallyId().toString(), RemittanceStatus.PENDING);
 
+    OffsetDateTime billedOn =
+        status == BillableUsage.Status.SUCCEEDED ? OffsetDateTime.now(ZoneOffset.UTC) : null;
     kafkaBridge.produceKafkaMessage(
         BILLABLE_USAGE_STATUS,
         buildBillableUsageAggregate(
@@ -184,11 +168,11 @@ public class BaseBillableUsageComponentTest {
             RHEL_PAYG_ADDON.getName(),
             VCPUS.toString(),
             billingAccountId,
-            BillableUsage.Status.FAILED,
-            BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND,
-            null,
+            status,
+            errorCode,
+            billedOn,
             List.of(billableUsage.getUuid().toString())));
-    waitForRemittanceStatus(billableUsage.getTallyId().toString(), RemittanceStatus.FAILED);
+    waitForRemittanceStatus(billableUsage.getTallyId().toString(), expectedRemittanceStatus);
     return billableUsage;
   }
 
