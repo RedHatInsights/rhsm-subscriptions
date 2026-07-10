@@ -80,12 +80,7 @@ public class BaseBillableUsageComponentTest {
     orgId = RandomUtils.generateRandom();
   }
 
-  /**
-   * Asserts that exactly 1 billable usage message matching {@code expectedOrgId} arrived and the
-   * service health is intact. Call immediately after publishing an invalid payload followed by a
-   * single valid probe to the tally topic. The count of 1 proves the invalid payload produced no
-   * matching output — null values carry no orgId and malformed payloads fail deserialization.
-   */
+  /** Asserts only the valid probe produced billable usage and service remains healthy. */
   protected void assertInvalidTallyIsDropped(String expectedOrgId) {
     var matched =
         kafkaBridge.waitForKafkaMessage(
