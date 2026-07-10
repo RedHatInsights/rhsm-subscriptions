@@ -22,6 +22,7 @@ package tests;
 
 import static api.BillableUsageTestHelper.createTallySummary;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE;
+import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE_HOURLY_AGGREGATE;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE_STATUS;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -66,7 +67,10 @@ public class BaseBillableUsageComponentTest {
   static final Product RHEL_PAYG_ADDON = Product.RHEL_PAYG_ADDON;
 
   @KafkaBridge
-  static KafkaBridgeService kafkaBridge = new KafkaBridgeService().subscribeToTopic(BILLABLE_USAGE);
+  static KafkaBridgeService kafkaBridge =
+      new KafkaBridgeService()
+          .subscribeToTopic(BILLABLE_USAGE)
+          .subscribeToTopic(BILLABLE_USAGE_HOURLY_AGGREGATE);
 
   @Wiremock static ContractsWiremockService contractsWiremock = new ContractsWiremockService();
 

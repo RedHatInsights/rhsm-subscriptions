@@ -55,7 +55,6 @@ import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 import org.candlepin.subscriptions.billable.usage.TallySnapshot;
 import org.candlepin.subscriptions.billable.usage.TallySummary;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponentTest {
@@ -65,11 +64,6 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
   private static final String AWS_DIMENSION = ROSA.getMetric(CORES).getAwsDimension();
   private static final double CONTRACT_COVERAGE = 1.0;
   private static final MetricId INSTANCE_HOURS = MetricIdUtils.getInstanceHours();
-
-  @BeforeAll
-  static void subscribeToBillableUsageTopics() {
-    kafkaBridge.subscribeToTopic(BILLABLE_USAGE_HOURLY_AGGREGATE);
-  }
 
   /** Verify tally summary is processed and billable usage is produced with no contract coverage. */
   @Test
