@@ -27,6 +27,7 @@ import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import api.BillableUsageSwatchService;
 import api.ContractsWiremockService;
@@ -77,6 +78,17 @@ public class BaseBillableUsageComponentTest {
   @BeforeEach
   void setUp() {
     orgId = RandomUtils.generateRandom();
+  }
+
+  /** Asserts only the valid probe produced billable usage and service remains healthy. */
+  protected void assertInvalidTallyIsDropped(String expectedOrgId) {
+    var matched =
+        kafkaBridge.waitForKafkaMessage(
+            BILLABLE_USAGE,
+            MessageValidators.billableUsageMatches(expectedOrgId, ROSA.getName()),
+            1);
+    assertEquals(1, matched.size(), "Only probe tally should produce billable usage");
+    assertTrue(service.isRunning(), "Service should remain healthy after invalid tally message");
   }
 
   /** Wait for remittance to reach expected status using API polling */
