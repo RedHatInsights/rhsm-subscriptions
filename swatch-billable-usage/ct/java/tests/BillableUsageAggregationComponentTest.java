@@ -48,44 +48,26 @@ public class BillableUsageAggregationComponentTest extends BaseBillableUsageComp
     contractsWiremock.setupNoContractCoverage(orgId, ROSA.getName());
     String billingAccountId = RandomUtils.generateRandom();
 
-    double currentTotal1 = 10.0;
-    double currentTotal2 = 16.0;
-    double currentTotal3 = 23.0;
+    double[] currentTotals = {10.0, 16.0, 23.0};
+    TallySummary[] tallies = new TallySummary[currentTotals.length];
 
-    TallySummary tally1 =
-        createTallySummaryWithCurrentTotal(
-            orgId,
-            ROSA.getName(),
-            CORES.toString(),
-            currentTotal1,
-            currentTotal1,
-            BillingProvider.AWS,
-            billingAccountId);
-
-    TallySummary tally2 =
-        createTallySummaryWithCurrentTotal(
-            orgId,
-            ROSA.getName(),
-            CORES.toString(),
-            currentTotal2 - currentTotal1,
-            currentTotal2,
-            BillingProvider.AWS,
-            billingAccountId);
-
-    TallySummary tally3 =
-        createTallySummaryWithCurrentTotal(
-            orgId,
-            ROSA.getName(),
-            CORES.toString(),
-            currentTotal3 - currentTotal2,
-            currentTotal3,
-            BillingProvider.AWS,
-            billingAccountId);
+    for (int i = 0; i < currentTotals.length; i++) {
+      double previousTotal = i > 0 ? currentTotals[i - 1] : 0.0;
+      tallies[i] =
+          createTallySummaryWithCurrentTotal(
+              orgId,
+              ROSA.getName(),
+              CORES.toString(),
+              currentTotals[i] - previousTotal,
+              currentTotals[i],
+              BillingProvider.AWS,
+              billingAccountId);
+    }
 
     // When: All three tallies are published to the TALLY topic
-    kafkaBridge.produceKafkaMessage(TALLY, tally1);
-    kafkaBridge.produceKafkaMessage(TALLY, tally2);
-    kafkaBridge.produceKafkaMessage(TALLY, tally3);
+    for (TallySummary tally : tallies) {
+      kafkaBridge.produceKafkaMessage(TALLY, tally);
+    }
 
     // And: Wait for all three billable-usage messages to be produced (ensures they're in the
     // stream)
@@ -96,7 +78,7 @@ public class BillableUsageAggregationComponentTest extends BaseBillableUsageComp
     // values. The service stores remittedValue = billableValue / billingFactor to prevent
     // double-ceiling, so the aggregate equals ceil(finalCurrentTotal × factor) = ceil(23 × 0.25) =
     // 6
-    double expectedTotalValue = Math.ceil(currentTotal3 * BILLING_FACTOR);
+    double expectedTotalValue = Math.ceil(currentTotals[currentTotals.length - 1] * BILLING_FACTOR);
 
     BillableUsageAggregate aggregate =
         kafkaBridge
