@@ -257,7 +257,7 @@ public class TallyIngestionComponentTest extends BaseBillableUsageComponentTest 
 
     // Collect remittances by metric ID — toMap enforces uniqueness (one per metric)
     Map<String, Double> remittedValueByMetric =
-        service.getRemittancesByTallyId(tallyId).stream()
+        service.getRemittancesByTally(tallyId).stream()
             .collect(
                 Collectors.toMap(
                     TallyRemittance::getMetricId, TallyRemittance::getRemittedPendingValue));

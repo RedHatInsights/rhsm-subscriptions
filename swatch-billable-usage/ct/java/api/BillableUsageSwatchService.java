@@ -43,7 +43,7 @@ public class BillableUsageSwatchService extends SwatchService {
    * @param tallyId the tally ID to look up
    * @return list of remittances for the given tally ID
    */
-  public List<TallyRemittance> getRemittancesByTallyId(String tallyId) {
+  public List<TallyRemittance> getRemittancesByTally(String tallyId) {
     return given()
         .get(REMITTANCE_ENDPOINT_BY_TALLY_ID, tallyId)
         .then()
