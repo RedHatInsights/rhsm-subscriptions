@@ -177,8 +177,8 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
 
     boolean hasExpectedSockets =
         reportData.getData().stream()
-            .anyMatch(point -> point.getValue() != null && point.getValue() >= 2.0);
-    assertTrue(hasExpectedSockets, "Report should contain at least 2 sockets");
+            .anyMatch(point -> point.getValue() != null && point.getValue() == 2.0);
+    assertTrue(hasExpectedSockets, "Report should contain a data point with exactly 2 sockets");
   }
 
   /**

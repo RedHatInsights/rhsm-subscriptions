@@ -28,6 +28,7 @@ import api.TallySwatchService;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
+import com.redhat.swatch.tally.test.model.InstanceData;
 import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
 import com.redhat.swatch.tally.test.model.TallySummary;
 import java.time.Duration;
@@ -475,7 +476,7 @@ public class TallyTestHelpers {
    * @param ending the end of the time range
    * @return the matching instance data
    */
-  public static com.redhat.swatch.tally.test.model.InstanceData getInstanceByDisplayName(
+  public static InstanceData getInstanceByDisplayName(
       TallySwatchService service,
       String orgId,
       String displayName,

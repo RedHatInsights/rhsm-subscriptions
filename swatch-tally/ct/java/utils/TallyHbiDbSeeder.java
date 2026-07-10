@@ -20,6 +20,9 @@
  */
 package utils;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.component.tests.api.db.DatabaseService;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -28,6 +31,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -67,8 +71,8 @@ public final class TallyHbiDbSeeder {
   private final List<UUID> insertedHostIds = new ArrayList<>();
   // Socket increase mapping for RHEL physical hosts
   // Maps actual socket count -> reported socket count for tally
-  private static final java.util.Map<Integer, Integer> RHEL_PER_SOCKET_INCREASE =
-      java.util.Map.of(1, 2, 2, 2, 4, 4, 7, 8);
+  private static final Map<Integer, Integer> RHEL_PER_SOCKET_INCREASE =
+      Map.of(1, 2, 2, 2, 4, 4, 7, 8);
 
   /**
    * Create HBI database seeder.
@@ -103,25 +107,37 @@ public final class TallyHbiDbSeeder {
    *
    * @return immutable map of socket count -> increased socket count
    */
-  public static java.util.Map<Integer, Integer> getRhelPerSocketIncreaseMap() {
+  public static Map<Integer, Integer> getRhelPerSocketIncreaseMap() {
     return RHEL_PER_SOCKET_INCREASE;
   }
 
+  /** Record of RHEL facts. */
+  private record RhsmFacts(
+      @JsonProperty("RH_PROD") List<String> rhProd,
+      @JsonProperty("IS_VIRTUAL") String isVirtual,
+      @JsonProperty("ARCHITECTURE") String architecture,
+      @JsonProperty("CORES") String cores,
+      @JsonProperty("SOCKETS") String sockets) {}
+
+  /** Record of the top level facts */
+  private record Facts(RhsmFacts rhsm) {}
+
   /** Build facts JSON for RHEL host with product and capacity information. */
   private String buildRhelFacts(int cores, int sockets) {
-    return String.format(
-        """
-        {
-          "rhsm": {
-            "RH_PROD": ["%s"],
-            "IS_VIRTUAL": "false",
-            "ARCHITECTURE": "x86_64",
-            "CORES": "%d",
-            "SOCKETS": "%d"
-          }
-        }
-        """,
-        RHEL_PRODUCT_ID, cores, sockets);
+    RhsmFacts rhsm =
+        new RhsmFacts(
+            List.of(RHEL_PRODUCT_ID),
+            "false",
+            "x86_64",
+            String.valueOf(cores),
+            String.valueOf(sockets));
+
+    Facts facts = new Facts(rhsm);
+    try {
+      return new ObjectMapper().writeValueAsString(facts);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Failed to serialize RHEL facts", e);
+    }
   }
 
   /** Record of a seeded host for test assertions. */
