@@ -286,23 +286,23 @@ This document defines the **component-level test plan** for `swatch-billable-usa
 
 **billable-usage-negative-TC001 - Service survives null tally message**
 
-- **Description:** Verify null payload to tally topic is rejected without crashing the service.  
+- **Description:** Verify null payload to tally topic is silently dropped without crashing the service.  
 - **Action:**  
   - Attempt to produce null to tally topic
 - **Verification:**  
-  - Null message rejected with client error  
+  - Null message silently dropped by consumer (no billable usage produced)
   - Service healthy after subsequent valid messages
 - **Expected Result:**  
   - Invalid tally message does not crash the service
 
 **billable-usage-negative-TC002 - Service survives malformed tally deserialization**
 
-- **Description:** Verify invalid JSON on tally topic does not crash consumer.  
+- **Description:** Verify a message that cannot be deserialized as TallySummary does not crash the consumer.  
 - **Action:**  
-  - Publish malformed message
+  - Publish malformed message (wrong JSON type)
 - **Verification:**  
   - Service remains ready  
-  - No remittance created
+  - No billable usage produced for the malformed message (subsequent valid tally processed normally)
 - **Expected Result:**  
   - Malformed tally message does not crash the service
 
