@@ -28,7 +28,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.redhat.swatch.billable.usage.openapi.model.MonthlyRemittance;
 import com.redhat.swatch.component.tests.api.TestPlanName;
-import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import domain.BillingProvider;
@@ -41,6 +40,8 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Component tests for ROSA contract-adjustment remittance (SWATCH-4615).
+ *
+ * <p>See {@code swatch-billable-usage/TEST_PLAN.md} — Contract Adjustment Remittance (TC001–TC002).
  *
  * <p>Contract coverage is stubbed via {@link api.ContractsWiremockService}; usage arrives on Kafka
  * {@code TALLY}; assertions use {@link api.BillableUsageSwatchService#getRemittances}. Expected
@@ -63,7 +64,6 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
   @Test
   @TestPlanName("billable-usage-contract-adjustment-TC001")
   public void testVerifyContractAdjustmentForRemoveContract() {
-    String billingAccountId = RandomUtils.generateRandom();
     double contractMetricValue = 6.0;
     double applicableMetricUsage = 100.0;
     double totalBillingUsage = applicableMetricUsage * 2;
@@ -71,28 +71,26 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
 
     // Phase 1: contract (coverage 6), first tally increment 100 → initial remittance per metric
     givenRosaContractWithEqualMetricCoverage(contractMetricValue);
-    whenUsageIsTallied(billingAccountId, applicableMetricUsage, applicableMetricUsage);
+    whenUsageIsTallied(applicableMetricUsage, applicableMetricUsage);
 
     for (RosaMetricScenario metric : rosaMetricScenarios()) {
       double expected =
           expectedInitialRemittance(
               applicableMetricUsage, metric.billingFactor(), contractMetricValue);
-      remittedByMetric.put(
-          metric.metricId(), thenAccountRemittanceEquals(metric, billingAccountId, expected));
+      remittedByMetric.put(metric.metricId(), thenAccountRemittanceEquals(metric, expected));
     }
 
     // Phase 2: contract removed, re-tally with zero increment → remittance unchanged
     givenContractIsRemoved();
-    whenUsageIsTallied(billingAccountId, 0.0, applicableMetricUsage);
+    whenUsageIsTallied(0.0, applicableMetricUsage);
 
     for (RosaMetricScenario metric : rosaMetricScenarios()) {
-      thenAccountRemittanceEquals(
-          metric, billingAccountId, remittedByMetric.get(metric.metricId()));
+      thenAccountRemittanceEquals(metric, remittedByMetric.get(metric.metricId()));
     }
 
     // Phase 3: contract restored, second increment 100 (month total 200) → adjusted remittance
     givenRosaContractWithEqualMetricCoverage(contractMetricValue);
-    whenUsageIsTallied(billingAccountId, applicableMetricUsage, totalBillingUsage);
+    whenUsageIsTallied(applicableMetricUsage, totalBillingUsage);
 
     for (RosaMetricScenario metric : rosaMetricScenarios()) {
       double expected =
@@ -101,7 +99,7 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
               remittedByMetric.get(metric.metricId()),
               metric.billingFactor(),
               contractMetricValue);
-      thenAccountRemittanceEquals(metric, billingAccountId, expected);
+      thenAccountRemittanceEquals(metric, expected);
     }
   }
 
@@ -112,7 +110,6 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
   @Test
   @TestPlanName("billable-usage-contract-adjustment-TC002")
   public void testVerifyContractAdjustmentWhenAddMoreContractInMidMonth() {
-    String billingAccountId = RandomUtils.generateRandom();
     double initialContractMetricValue = 10.0;
     double addedContractMetricValue = 100.0;
     double totalContractMetricValue = initialContractMetricValue + addedContractMetricValue;
@@ -121,38 +118,35 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
 
     // Phase 1: first contract (coverage 10), tally increment 100
     givenRosaContractWithEqualMetricCoverage(initialContractMetricValue);
-    whenUsageIsTallied(billingAccountId, applicableMetricUsage, applicableMetricUsage);
+    whenUsageIsTallied(applicableMetricUsage, applicableMetricUsage);
 
     for (RosaMetricScenario metric : rosaMetricScenarios()) {
       double expected =
           expectedInitialRemittance(
               applicableMetricUsage, metric.billingFactor(), initialContractMetricValue);
-      remittedByMetric.put(
-          metric.metricId(), thenAccountRemittanceEquals(metric, billingAccountId, expected));
+      remittedByMetric.put(metric.metricId(), thenAccountRemittanceEquals(metric, expected));
     }
 
     // Phase 2: second contract added, re-tally only — remittance still reflects first contract
     givenMultipleRosaContractsWithEqualMetricCoverage(
         initialContractMetricValue, addedContractMetricValue);
-    whenUsageIsTallied(billingAccountId, 0.0, applicableMetricUsage);
+    whenUsageIsTallied(0.0, applicableMetricUsage);
 
     for (RosaMetricScenario metric : rosaMetricScenarios()) {
-      thenAccountRemittanceEquals(
-          metric, billingAccountId, remittedByMetric.get(metric.metricId()));
+      thenAccountRemittanceEquals(metric, remittedByMetric.get(metric.metricId()));
     }
 
     // Phase 3: second usage increment (month total 200) — still first-contract remittance
     double totalAfterSecondEvent = applicableMetricUsage * 2;
-    whenUsageIsTallied(billingAccountId, applicableMetricUsage, totalAfterSecondEvent);
+    whenUsageIsTallied(applicableMetricUsage, totalAfterSecondEvent);
 
     for (RosaMetricScenario metric : rosaMetricScenarios()) {
-      thenAccountRemittanceEquals(
-          metric, billingAccountId, remittedByMetric.get(metric.metricId()));
+      thenAccountRemittanceEquals(metric, remittedByMetric.get(metric.metricId()));
     }
 
     // Phase 4: large third increment (month total 501) — remittance uses combined coverage
     double totalAfterThirdEvent = totalAfterSecondEvent + 301.0;
-    whenUsageIsTallied(billingAccountId, 301.0, totalAfterThirdEvent);
+    whenUsageIsTallied(301.0, totalAfterThirdEvent);
 
     for (RosaMetricScenario metric : rosaMetricScenarios()) {
       double expected =
@@ -161,7 +155,7 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
               remittedByMetric.get(metric.metricId()),
               metric.billingFactor(),
               totalContractMetricValue);
-      thenAccountRemittanceEquals(metric, billingAccountId, expected);
+      thenAccountRemittanceEquals(metric, expected);
     }
   }
 
@@ -207,7 +201,7 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
    * Publish a TALLY summary per ROSA metric. {@code value} is the increment; {@code currentTotal}
    * is the month-to-date cumulative usage.
    */
-  private void whenUsageIsTallied(String billingAccountId, double value, double currentTotal) {
+  private void whenUsageIsTallied(double value, double currentTotal) {
     for (RosaMetricScenario metric : rosaMetricScenarios()) {
       var tallySummary =
           createTallySummaryWithCurrentTotal(
@@ -224,7 +218,7 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
 
   /** Assert monthly remittance via API; billing provider must be {@code aws} (tally API value). */
   private double thenAccountRemittanceEquals(
-      RosaMetricScenario metric, String billingAccountId, double expectedRemittedValue) {
+      RosaMetricScenario metric, double expectedRemittedValue) {
     Awaitility.await()
         .atMost(Duration.ofSeconds(30))
         .pollInterval(Duration.ofSeconds(2))

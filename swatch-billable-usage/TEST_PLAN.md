@@ -156,6 +156,8 @@ This document defines the **component-level test plan** for `swatch-billable-usa
 
 ## Contract Coverage
 
+Java component tests in `ContractCoverageComponentTest` (`swatch-billable-usage/ct`); each test uses `@TestPlanName("billable-usage-contract-coverage-TC00N")`. Contract API responses are stubbed via Wiremock (`ContractsWiremockService`).
+
 **billable-usage-contract-coverage-TC001 - Skip processing when contract-enabled product has no contract**
 
 - **Description:** Verify contract-enabled products without a contract record are not billed.  
@@ -165,10 +167,11 @@ This document defines the **component-level test plan** for `swatch-billable-usa
 - **Action:**  
   - Publish tally summary
 - **Verification:**  
-  - No remittance created  
+  - Account remittance API returns `remittedValue = 0`  
+  - No tally remittance row created  
   - No Kafka message emitted
 - **Expected Result:**  
-  - Processing skipped when contract is missing
+  - Processing skipped when contract is missing; no billable usage produced
 
 **billable-usage-contract-coverage-TC002 - Contract fully covers usage (zero remittance)**
 
@@ -251,17 +254,58 @@ This document defines the **component-level test plan** for `swatch-billable-usa
 
 **billable-usage-contract-coverage-TC008 - Handle contracts API unavailable**
 
-- **Description:** Verify transient contracts API failure does not create remittance or emit usage.  
+- **Description:** Verify transient contracts API failure does not create billable remittance or emit usage.  
 - **Setup:**  
   - Mock contracts API returns HTTP 500 for contract endpoint  
   - Contract-enabled product
 - **Action:**  
   - Publish tally summary
 - **Verification:**  
-  - No remittance created  
+  - Account remittance API returns `remittedValue = 0`  
+  - No tally remittance row created  
+  - No Kafka message emitted  
   - Contract service error logged
 - **Expected Result:**  
-  - Contract lookup failure prevents remittance and billing
+  - Contract lookup failure prevents billable remittance and billing
+
+---
+
+## Contract Adjustment Remittance
+
+Java component tests in `ContractAdjustmentComponentTest` (`swatch-billable-usage/ct`); each test uses `@TestPlanName("billable-usage-contract-adjustment-TC00N")`. Mid-month contract changes are stubbed via Wiremock; expected remittance values use `BillableUsageRemittanceExpectations`.
+
+**billable-usage-contract-adjustment-TC001 - Remove contract mid-month**
+
+- **Description:** Verify removing a contract mid-month does not change remittance already recorded; additional usage after contract restore applies the adjustment formula.
+- **Setup:**
+  - Wiremock returns ROSA contract with equal Cores and Instance-hours coverage (6 billable units per metric)
+  - Billing account ID generated for the test
+- **Action:**
+  - Phase 1: Publish tally increment 100 → verify initial remittance per metric
+  - Phase 2: Stub no contract; re-tally with zero increment
+  - Phase 3: Restore contract; publish second increment (month total 200)
+- **Verification:**
+  - Phase 2 remittance unchanged from phase 1
+  - Phase 3 remittance matches `BillableUsageRemittanceExpectations.expectedRemittanceAfterUsageIncrease`
+- **Expected Result:**
+  - Cores: initial 76, final 176; Instance-hours: initial 94, final 194
+
+**billable-usage-contract-adjustment-TC002 - Add contract mid-month**
+
+- **Description:** Verify adding a second contract mid-month keeps remittance at the first contract value until usage exceeds combined coverage.
+- **Setup:**
+  - Wiremock returns ROSA contract with coverage 10 billable units per metric
+  - Billing account ID generated for the test
+- **Action:**
+  - Phase 1: Publish tally increment 100 → verify initial remittance
+  - Phase 2: Stub two contracts (10 + 100 coverage); re-tally with zero increment
+  - Phase 3: Publish second increment (month total 200)
+  - Phase 4: Publish large third increment (month total 501)
+- **Verification:**
+  - Phases 2 and 3 remittance unchanged from phase 1
+  - Phase 4 remittance matches combined-contract adjustment formula
+- **Expected Result:**
+  - Cores: initial 60, final 64; Instance-hours: initial 90, final 391
 
 ---
 

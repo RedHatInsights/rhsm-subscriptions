@@ -39,3 +39,7 @@ Execute tests for a specific service against the OpenShift environment. For exam
 ```
 
 The key difference is the addition of the `-Dswatch.component-tests.global.target=openshift` parameter, which tells the test framework to target the OpenShift deployment instead of local containers.
+
+## Test plan
+
+Component test cases (TC IDs, setup, and expected results) are documented in [`../TEST_PLAN.md`](../TEST_PLAN.md).
