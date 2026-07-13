@@ -22,6 +22,7 @@ package domain;
 
 public enum RemittanceStatus {
   PENDING,
+  GRATIS,
   SUCCEEDED,
   FAILED;
 }

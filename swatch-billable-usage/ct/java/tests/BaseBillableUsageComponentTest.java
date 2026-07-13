@@ -65,6 +65,7 @@ public class BaseBillableUsageComponentTest {
   static final MetricId VCPUS = MetricIdUtils.getVCpus();
   static final Product ROSA = Product.ROSA;
   static final Product RHEL_PAYG_ADDON = Product.RHEL_PAYG_ADDON;
+  static final Product ANSIBLE_AAP_MANAGED = Product.ANSIBLE_AAP_MANAGED;
 
   @KafkaBridge
   static KafkaBridgeService kafkaBridge =
@@ -78,10 +79,12 @@ public class BaseBillableUsageComponentTest {
   static BillableUsageSwatchService service = new BillableUsageSwatchService();
 
   protected String orgId;
+  protected String billingAccountId;
 
   @BeforeEach
   void setUp() {
     orgId = RandomUtils.generateRandom();
+    billingAccountId = RandomUtils.generateRandom();
   }
 
   /** Asserts only the valid probe produced billable usage and service remains healthy. */
