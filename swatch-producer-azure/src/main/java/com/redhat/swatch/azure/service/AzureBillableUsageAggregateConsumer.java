@@ -199,7 +199,10 @@ public class AzureBillableUsageAggregateConsumer {
       if (response.getStatus() != UsageEventStatusEnum.ACCEPTED) {
         log.warn("{}, aggregate={}", response, billableUsageAggregate);
       } else {
-        log.info("{}, aggregate={}", response, billableUsageAggregate);
+        log.info(
+            "Sent usage request to Azure: result={}, aggregate={}",
+            response,
+            billableUsageAggregate);
         acceptedCounter.increment();
       }
     } catch (AzureMarketplaceRequestFailedException e) {
@@ -234,14 +237,10 @@ public class AzureBillableUsageAggregateConsumer {
           billableUsageAggregate.getAggregateKey().getUsage(),
           billableUsageAggregate.getAggregateKey().getBillingAccountId());
     } catch (DefaultApiException e) {
-      var optionalErrors = ofNullable(e.getErrors());
-      if (optionalErrors.isPresent()) {
-        var isRecentlyTerminatedError =
-            optionalErrors.get().getErrors().stream()
-                .anyMatch(error -> ("SUBSCRIPTIONS1005").equals(error.getCode()));
-        if (isRecentlyTerminatedError) {
-          throw new SubscriptionRecentlyTerminatedException(e);
-        }
+      if (ofNullable(e.getError())
+          .map(error -> "CONTRACTS1005".equals(error.getCode()))
+          .orElse(false)) {
+        throw new SubscriptionRecentlyTerminatedException(e);
       }
       if (Status.NOT_FOUND.getStatusCode() == e.getResponse().getStatus()) {
         throw new SubscriptionCanNotBeDeterminedException(e);

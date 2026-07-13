@@ -95,3 +95,22 @@ When the feature flag is enabled, usage records may use `CustomerAWSAccountId` f
   - Remittance status is `SUCCEEDED`
   - `UsageRecords[0].CustomerIdentifier` equals `customerId`
   - Warning logged about missing `customerAwsAccountId`
+
+## AWS usage context error handling
+
+Contracts `awsUsageContext` lookup failures and remittance error classification. Covered by component tests in `AwsUsageContextComponentTest`.
+
+**producer-aws-usage-context-TC001 - Classify recently terminated subscription**
+
+- **Description**: Verify that when swatch-contracts returns 404 with `CONTRACTS1005`, remittance status is `SUBSCRIPTION_TERMINATED` (not `SUBSCRIPTION_NOT_FOUND`).
+- **Setup**:
+  - Wiremock returns `awsUsageContext` 404 with an `Error` body containing `CONTRACTS1005`
+  - Kafka topics for billable-usage hourly aggregate and status are available
+- **Action**:
+  - Produce a valid AWS billable-usage aggregate to Kafka
+- **Verification**:
+  - Wait for `FAILED` on `billable-usage.status` with error code `SUBSCRIPTION_TERMINATED`
+  - No `BatchMeterUsage` call is sent to AWS
+- **Expected Result**:
+  - Remittance status is `FAILED` with `SUBSCRIPTION_TERMINATED`
+  - AWS Marketplace is not called

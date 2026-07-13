@@ -35,7 +35,11 @@ import software.amazon.awssdk.services.marketplacemetering.model.UsageRecord;
 public class AwsWiremockService extends WiremockService {
 
   private static final String AWS_USAGE_EVENT_PATH = "/mock/aws";
+  private static final String AWS_USAGE_CONTEXT_PATH =
+      "/mock/contractApi/api/swatch-contracts/internal/subscriptions/awsUsageContext.*";
   private static final String BATCH_METER_USAGE_TARGET = "AWSMPMeteringService.BatchMeterUsage";
+  private static final int CONTRACT_API_STUB_PRIORITY = 9;
+  private static final String SUBSCRIPTION_RECENTLY_TERMINATED_CODE = "CONTRACTS1005";
 
   /**
    * Sets up the AWS usage context endpoint (contracts API) and a wiremock stub for the AWS
@@ -68,65 +72,74 @@ public class AwsWiremockService extends WiremockService {
       contextData.put("customerAwsAccountId", customerAwsAccountId);
     }
 
-    given()
-        .contentType("application/json")
-        .body(
-            Map.of(
-                "request",
-                Map.of(
-                    "method",
-                    "GET",
-                    "urlPathPattern",
-                    "/mock/contractApi/api/swatch-contracts/internal/subscriptions/awsUsageContext.*",
-                    "queryParameters",
-                    Map.of("awsAccountId", Map.of("equalTo", awsAccountId))),
-                "response",
-                Map.of(
-                    "status",
-                    200,
-                    "headers",
-                    Map.of("Content-Type", "application/json"),
-                    "jsonBody",
-                    contextData),
-                // the default mapping defined in config/wiremock uses priority 10,
-                // so we need a higher priority here.
-                "priority",
-                9,
-                "metadata",
-                getMetadataTags()))
-        .when()
-        .post("/__admin/mappings")
-        .then()
-        .statusCode(201);
-
+    registerAwsUsageContextStub(awsAccountId, jsonResponse(200, contextData));
     setupAwsBatchMeterUsage();
   }
 
+  public void setupAwsUsageContextToReturnSubscriptionRecentlyTerminated(String awsAccountId) {
+    registerAwsUsageContextStub(
+        awsAccountId, jsonResponse(404, subscriptionRecentlyTerminatedErrorBody()));
+  }
+
   public void setupAwsUsageContextToReturnSubscriptionNotFound(String awsAccountId) {
+    registerAwsUsageContextStub(awsAccountId, statusOnlyResponse(404));
+  }
+
+  private void registerAwsUsageContextStub(String awsAccountId, Map<String, Object> response) {
     given()
         .contentType("application/json")
         .body(
             Map.of(
                 "request",
-                Map.of(
-                    "method",
-                    "GET",
-                    "urlPathPattern",
-                    "/mock/contractApi/api/swatch-contracts/internal/subscriptions/awsUsageContext.*",
-                    "queryParameters",
-                    Map.of("awsAccountId", Map.of("equalTo", awsAccountId))),
+                awsUsageContextRequest(awsAccountId),
                 "response",
-                Map.of("status", 404),
+                response,
                 // the default mapping defined in config/wiremock uses priority 10,
                 // so we need a higher priority here.
                 "priority",
-                9,
+                CONTRACT_API_STUB_PRIORITY,
                 "metadata",
                 getMetadataTags()))
         .when()
         .post("/__admin/mappings")
         .then()
         .statusCode(201);
+  }
+
+  private static Map<String, Object> awsUsageContextRequest(String awsAccountId) {
+    return Map.of(
+        "method",
+        "GET",
+        "urlPathPattern",
+        AWS_USAGE_CONTEXT_PATH,
+        "queryParameters",
+        Map.of("awsAccountId", Map.of("equalTo", awsAccountId)));
+  }
+
+  private static Map<String, Object> jsonResponse(int status, Object jsonBody) {
+    return Map.of(
+        "status",
+        status,
+        "headers",
+        Map.of("Content-Type", "application/json"),
+        "jsonBody",
+        jsonBody);
+  }
+
+  private static Map<String, Object> statusOnlyResponse(int status) {
+    return Map.of("status", status);
+  }
+
+  private static Map<String, Object> subscriptionRecentlyTerminatedErrorBody() {
+    return Map.of(
+        "code",
+        SUBSCRIPTION_RECENTLY_TERMINATED_CODE,
+        "status",
+        "404",
+        "title",
+        "Subscription recently terminated",
+        "detail",
+        "");
   }
 
   public void verifyBatchMeterUsageCustomerIdentifier(String expectedCustomerIdentifier) {

@@ -212,14 +212,10 @@ public class AwsBillableUsageAggregateConsumer {
           billableUsageAggregate.getAggregateKey().getUsage(),
           billableUsageAggregate.getAggregateKey().getBillingAccountId());
     } catch (DefaultApiException e) {
-      var optionalErrors = ofNullable(e.getErrors());
-      if (optionalErrors.isPresent()) {
-        var isRecentlyTerminatedError =
-            optionalErrors.get().getErrors().stream()
-                .anyMatch(error -> ("SUBSCRIPTIONS1005").equals(error.getCode()));
-        if (isRecentlyTerminatedError) {
-          throw new SubscriptionRecentlyTerminatedException(e);
-        }
+      if (ofNullable(e.getError())
+          .map(error -> "CONTRACTS1005".equals(error.getCode()))
+          .orElse(false)) {
+        throw new SubscriptionRecentlyTerminatedException(e);
       }
       if (Response.Status.NOT_FOUND.getStatusCode() == e.getResponse().getStatus()) {
         throw new SubscriptionCanNotBeDeterminedException(e);
@@ -266,7 +262,10 @@ public class AwsBillableUsageAggregateConsumer {
                 } else if (result.status() != UsageRecordResultStatus.SUCCESS) {
                   log.warn("{}, aggregate={}", result, billableUsageAggregate);
                 } else {
-                  log.info("{}, aggregate={}", result, billableUsageAggregate);
+                  log.info(
+                      "Sent usage request to AWS: result={}, aggregate={}",
+                      result,
+                      billableUsageAggregate);
                   acceptedCounter.increment(response.results().size());
                 }
               });
