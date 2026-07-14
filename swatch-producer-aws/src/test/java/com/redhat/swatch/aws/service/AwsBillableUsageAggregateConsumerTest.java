@@ -36,9 +36,8 @@ import com.redhat.swatch.aws.exception.AwsUsageContextLookupException;
 import com.redhat.swatch.aws.exception.DefaultApiException;
 import com.redhat.swatch.aws.exception.SubscriptionCanNotBeDeterminedException;
 import com.redhat.swatch.aws.exception.SubscriptionRecentlyTerminatedException;
-import com.redhat.swatch.aws.openapi.model.Error;
-import com.redhat.swatch.aws.openapi.model.Errors;
 import com.redhat.swatch.clients.contracts.api.model.AwsUsageContext;
+import com.redhat.swatch.clients.contracts.api.model.Error;
 import com.redhat.swatch.clients.contracts.api.resources.ApiException;
 import com.redhat.swatch.clients.contracts.api.resources.DefaultApi;
 import com.redhat.swatch.configuration.registry.MetricId;
@@ -58,8 +57,6 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -389,12 +386,10 @@ class AwsBillableUsageAggregateConsumerTest {
 
   @Test
   void shouldThrowSubscriptionTerminatedException() throws ApiException {
-    Errors errors = new Errors();
     Error error = new Error();
-    error.setCode("SUBSCRIPTIONS1005");
-    errors.setErrors(Arrays.asList(error));
-    var response = Response.serverError().entity(errors).build();
-    var exception = new DefaultApiException(response, errors);
+    error.setCode("CONTRACTS1005");
+    var response = Response.serverError().entity(error).build();
+    var exception = new DefaultApiException(response, error);
     when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
         .thenThrow(exception);
 
@@ -407,12 +402,10 @@ class AwsBillableUsageAggregateConsumerTest {
 
   @Test
   void shouldSkipMessageIfSubscriptionRecentlyTerminated() throws ApiException {
-    Errors errors = new Errors();
     Error error = new Error();
-    error.setCode("SUBSCRIPTIONS1005");
-    errors.setErrors(List.of(error));
-    var response = Response.serverError().entity(errors).build();
-    var exception = new DefaultApiException(response, errors);
+    error.setCode("CONTRACTS1005");
+    var response = Response.serverError().entity(error).build();
+    var exception = new DefaultApiException(response, error);
     when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
         .thenThrow(exception);
 

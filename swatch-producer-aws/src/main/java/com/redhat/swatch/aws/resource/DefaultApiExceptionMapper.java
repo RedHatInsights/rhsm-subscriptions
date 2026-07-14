@@ -21,7 +21,7 @@
 package com.redhat.swatch.aws.resource;
 
 import com.redhat.swatch.aws.exception.DefaultApiException;
-import com.redhat.swatch.aws.openapi.model.Errors;
+import com.redhat.swatch.clients.contracts.api.model.Error;
 import jakarta.annotation.Priority;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
@@ -41,14 +41,14 @@ public class DefaultApiExceptionMapper implements ResponseExceptionMapper<Defaul
 
   @Override
   public DefaultApiException toThrowable(Response response) {
-    return new DefaultApiException(response, parseErrors(response));
+    return new DefaultApiException(response, parseError(response));
   }
 
-  private Errors parseErrors(Response response) {
+  private Error parseError(Response response) {
     try {
-      return response.readEntity(Errors.class);
+      return response.readEntity(Error.class);
     } catch (Exception e) {
-      log.debug("Failed to create Errors from response.", e);
+      log.debug("Failed to create Error from response.", e);
       return null;
     }
   }

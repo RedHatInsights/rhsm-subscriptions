@@ -39,7 +39,6 @@ import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEventOkRespons
 import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEventStatusEnum;
 import com.redhat.swatch.clients.contracts.api.model.AzureUsageContext;
 import com.redhat.swatch.clients.contracts.api.model.Error;
-import com.redhat.swatch.clients.contracts.api.model.Errors;
 import com.redhat.swatch.clients.contracts.api.resources.ApiException;
 import com.redhat.swatch.clients.contracts.api.resources.DefaultApi;
 import com.redhat.swatch.configuration.registry.Usage;
@@ -284,12 +283,10 @@ class BillableUsageConsumerTest {
 
   @Test
   void shouldThrowSubscriptionTerminatedException() throws ApiException {
-    Errors errors = new Errors();
     Error error = new Error();
-    error.setCode("SUBSCRIPTIONS1005");
-    errors.setErrors(List.of(error));
-    var response = Response.serverError().entity(errors).build();
-    var exception = new DefaultApiException(response, errors);
+    error.setCode("CONTRACTS1005");
+    var response = Response.serverError().entity(error).build();
+    var exception = new DefaultApiException(response, error);
     when(contractsApi.getAzureMarketplaceContext(any(), any(), any(), any(), any(), any()))
         .thenThrow(exception);
 
@@ -302,12 +299,10 @@ class BillableUsageConsumerTest {
 
   @Test
   void shouldSkipMessageIfSubscriptionRecentlyTerminated() throws ApiException {
-    Errors errors = new Errors();
     Error error = new Error();
-    error.setCode("SUBSCRIPTIONS1005");
-    errors.setErrors(List.of(error));
-    var response = Response.serverError().entity(errors).build();
-    var exception = new DefaultApiException(response, errors);
+    error.setCode("CONTRACTS1005");
+    var response = Response.serverError().entity(error).build();
+    var exception = new DefaultApiException(response, error);
     when(contractsApi.getAzureMarketplaceContext(any(), any(), any(), any(), any(), any()))
         .thenThrow(exception);
 

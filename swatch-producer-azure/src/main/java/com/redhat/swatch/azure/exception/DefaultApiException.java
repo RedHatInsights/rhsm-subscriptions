@@ -20,7 +20,7 @@
  */
 package com.redhat.swatch.azure.exception;
 
-import com.redhat.swatch.clients.contracts.api.model.Errors;
+import com.redhat.swatch.clients.contracts.api.model.Error;
 import com.redhat.swatch.clients.contracts.api.resources.ApiException;
 import jakarta.ws.rs.core.Response;
 import lombok.Getter;
@@ -28,10 +28,10 @@ import lombok.Getter;
 @Getter
 public class DefaultApiException extends ApiException {
 
-  private final transient Errors errors;
+  private final transient Error error;
 
-  public DefaultApiException(Response response, Errors errors) {
+  public DefaultApiException(Response response, Error error) {
     super(response);
-    this.errors = errors;
+    this.error = error;
   }
 }
