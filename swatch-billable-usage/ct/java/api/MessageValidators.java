@@ -54,6 +54,20 @@ public class MessageValidators {
         BillableUsageAggregate.class);
   }
 
+  public static MessageValidator<BillableUsageAggregateKey, BillableUsageAggregate>
+      billableUsageAggregateMatchesComplete(
+          String orgId, double expectedTotalValue, int expectedRemittanceCount) {
+    return new MessageValidator<>(
+        (key, value) ->
+            orgId.equals(key.getOrgId())
+                && value.getTotalValue() != null
+                && Math.abs(value.getTotalValue().doubleValue() - expectedTotalValue) < 0.001
+                && value.getRemittanceUuids() != null
+                && value.getRemittanceUuids().size() == expectedRemittanceCount,
+        BillableUsageAggregateKey.class,
+        BillableUsageAggregate.class);
+  }
+
   public static DefaultMessageValidator<BillableUsage> billableUsageMatchesAnyOrg(
       Set<String> orgIds, String productId) {
     return new DefaultMessageValidator<>(

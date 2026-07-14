@@ -30,16 +30,31 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import api.MessageValidators;
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
+import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import domain.BillingProvider;
+import domain.RemittanceStatus;
+import java.time.Duration;
+import java.util.List;
+import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 import org.candlepin.subscriptions.billable.usage.TallySummary;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class BillableUsageAggregationComponentTest extends BaseBillableUsageComponentTest {
 
   private static final double BILLING_FACTOR = ROSA.getBillingFactor(CORES);
+
+  /**
+   * Drain hourly windows left by prior CT runs on shared compose Kafka. An early flush while only
+   * some billable usages are in the window permanently splits the hourly rollup.
+   */
+  @BeforeEach
+  void drainStaleAggregationWindows() {
+    service.flushBillableUsageAggregationTopic();
+  }
 
   @Test
   @TestPlanName("billable-usage-aggregation-TC001")
@@ -64,50 +79,57 @@ public class BillableUsageAggregationComponentTest extends BaseBillableUsageComp
               billingAccountId);
     }
 
-    // When: All three tallies are published to the TALLY topic
+    // When: Publish all tallies quickly so Kafka Streams sees every billable usage in the same
+    // hourly window before any flush can close it (sequential publish widens that race).
     for (TallySummary tally : tallies) {
       kafkaBridge.produceKafkaMessage(TALLY, tally);
     }
 
-    // And: Wait for all three billable-usage messages to be produced (ensures they're in the
-    // stream)
-    kafkaBridge.waitForKafkaMessage(
-        BILLABLE_USAGE, MessageValidators.billableUsageMatches(orgId, ROSA.getName()), 3);
+    List<BillableUsage> billableUsages =
+        kafkaBridge.waitForKafkaMessage(
+            BILLABLE_USAGE, MessageValidators.billableUsageMatches(orgId, ROSA.getName()), 3);
+    for (BillableUsage billableUsage : billableUsages) {
+      waitForRemittanceStatus(billableUsage.getTallyId().toString(), RemittanceStatus.PENDING);
+    }
 
-    // Then: One hourly aggregate message is emitted with totalValue = sum of individual billable
-    // values. The service stores remittedValue = billableValue / billingFactor to prevent
-    // double-ceiling, so the aggregate equals ceil(finalCurrentTotal × factor) = ceil(23 × 0.25) =
-    // 6
-    double expectedTotalValue = Math.ceil(currentTotals[currentTotals.length - 1] * BILLING_FACTOR);
+    // Then: Flush once per retry and require a complete hourly aggregate. Never attach flush to
+    // waitForKafkaMessage polls — that fires every second and can close the window early.
+    double expectedTotalValue =
+        Math.ceil(currentTotals[currentTotals.length - 1] * BILLING_FACTOR);
 
-    BillableUsageAggregate aggregate =
-        kafkaBridge
-            .waitForKafkaMessage(
-                BILLABLE_USAGE_HOURLY_AGGREGATE,
-                MessageValidators.billableUsageAggregateMatchesOrg(orgId),
-                1,
-                AwaitilitySettings.defaults()
-                    .onConditionNotMet(service::flushBillableUsageAggregationTopic))
-            .get(0);
+    AwaitilityUtils.untilAsserted(
+        () -> {
+          service.flushBillableUsageAggregationTopic();
+          BillableUsageAggregate aggregate =
+              kafkaBridge
+                  .waitForKafkaMessage(
+                      BILLABLE_USAGE_HOURLY_AGGREGATE,
+                      MessageValidators.billableUsageAggregateMatchesComplete(
+                          orgId, expectedTotalValue, currentTotals.length),
+                      1,
+                      AwaitilitySettings.using(Duration.ofMillis(500), Duration.ofSeconds(15)))
+                  .getLast();
 
-    // Verify the aggregate exists and has the expected key dimensions
-    assertNotNull(aggregate, "Aggregate should not be null");
-    BillableUsageAggregateKey key = aggregate.getAggregateKey();
-    assertNotNull(key, "Aggregate key should not be null");
-    assertEquals(orgId, key.getOrgId(), "Aggregate org ID should match");
-    assertEquals(ROSA.getName(), key.getProductId(), "Aggregate product ID should match");
-    assertEquals(CORES.toString(), key.getMetricId(), "Aggregate metric ID should match");
-    assertEquals(
-        billingAccountId, key.getBillingAccountId(), "Aggregate billing account ID should match");
-    assertEquals("aws", key.getBillingProvider(), "Aggregate billing provider should match");
-
-    // Verify the aggregate value is the sum of individual billable values
-    assertEquals(
-        expectedTotalValue,
-        aggregate.getTotalValue().doubleValue(),
-        0.001,
-        "Total value should be ceil(finalCurrentTotal × factor) = ceil(23 × 0.25) = 6");
-    assertEquals(
-        3, aggregate.getRemittanceUuids().size(), "Should have 3 remittance UUIDs (one per tally)");
+          BillableUsageAggregateKey key = aggregate.getAggregateKey();
+          assertNotNull(key, "Aggregate key should not be null");
+          assertEquals(orgId, key.getOrgId(), "Aggregate org ID should match");
+          assertEquals(ROSA.getName(), key.getProductId(), "Aggregate product ID should match");
+          assertEquals(CORES.toString(), key.getMetricId(), "Aggregate metric ID should match");
+          assertEquals(
+              billingAccountId,
+              key.getBillingAccountId(),
+              "Aggregate billing account ID should match");
+          assertEquals("aws", key.getBillingProvider(), "Aggregate billing provider should match");
+          assertEquals(
+              expectedTotalValue,
+              aggregate.getTotalValue().doubleValue(),
+              0.001,
+              "Total value should be ceil(finalCurrentTotal × factor) = ceil(23 × 0.25) = 6");
+          assertEquals(
+              currentTotals.length,
+              aggregate.getRemittanceUuids().size(),
+              "Should have 3 remittance UUIDs (one per tally)");
+        },
+        AwaitilitySettings.using(Duration.ofSeconds(2), Duration.ofSeconds(60)));
   }
 }
