@@ -31,6 +31,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class User {
+  @JsonProperty("user_id")
+  private String userId;
+
   @JsonProperty("is_org_admin")
   private Boolean orgAdmin;
 }

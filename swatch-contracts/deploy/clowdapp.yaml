@@ -178,6 +178,16 @@ parameters:
   - name: FLOORIST_S3_SNOWPIPE_PATH
     description: Path for dataproduct in snowpipe s3 bucket
     value: 'swatch'
+  - name: KESSEL_ENABLED
+    value: 'false'
+  - name: KESSEL_URL
+    value: ''
+  - name: KESSEL_INSECURE
+    value: 'true'
+  - name: KESSEL_AUTH_ENABLED
+    value: 'false'
+  - name: KESSEL_AUTH_OIDC_ISSUER
+    value: ''
 
 # Shared FloorPlan specification for all environments (sandbox, dev, preprod, prod)
 # Only objectStore differs per environment
@@ -246,6 +256,7 @@ objects:
         - ${DB_POD}
         - rbac
         - export-service
+        - kessel-inventory
 
       featureFlags: true
 
@@ -323,6 +334,26 @@ objects:
                 value: ${USER_OPTS_APPEND}
               - name: QUARKUS_LAUNCH_DEVMODE
                 value: ${QUARKUS_LAUNCH_DEVMODE}
+              - name: KESSEL_ENABLED
+                value: ${KESSEL_ENABLED}
+              - name: KESSEL_URL
+                value: ${KESSEL_URL}
+              - name: KESSEL_INSECURE
+                value: ${KESSEL_INSECURE}
+              - name: KESSEL_AUTH_ENABLED
+                value: ${KESSEL_AUTH_ENABLED}
+              - name: KESSEL_AUTH_OIDC_ISSUER
+                value: ${KESSEL_AUTH_OIDC_ISSUER}
+              - name: KESSEL_AUTH_CLIENT_ID
+                valueFrom:
+                  secretKeyRef:
+                    key: client_id
+                    name: swatch-kessel-sa
+              - name: KESSEL_AUTH_CLIENT_SECRET
+                valueFrom:
+                  secretKeyRef:
+                    key: client_secret
+                    name: swatch-kessel-sa
               - name: LOGGING_LEVEL_ROOT
                 value: ${LOGGING_LEVEL_ROOT}
               - name: LOGGING_LEVEL_COM_REDHAT_SWATCH

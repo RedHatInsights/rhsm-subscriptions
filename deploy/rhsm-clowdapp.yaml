@@ -102,6 +102,17 @@ objects:
   - apiVersion: v1
     kind: Secret
     metadata:
+      name: swatch-kessel-sa
+    type: Opaque
+    data:
+      ## placeholder credentials for testing purposes only
+      # placeholder
+      client_id: cGxhY2Vob2xkZXI=
+      # placeholder
+      client_secret: cGxhY2Vob2xkZXI=
+  - apiVersion: v1
+    kind: Secret
+    metadata:
       name: swatch-managed-kafka
     type: Opaque
     data:

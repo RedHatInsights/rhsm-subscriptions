@@ -18,39 +18,22 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.common.security;
+package com.redhat.swatch.contract.test.resources;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import io.quarkus.test.junit.QuarkusTestProfile;
+import java.util.Map;
 
-/** DTO for the identity field of an x-rh-identity JSON document. */
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class Identity {
-  private String type;
+/**
+ * Test profile that disables both RBAC v1 and Kessel authorization. All roles are granted to all
+ * principals — use for tests that don't need to verify authorization behavior.
+ *
+ * <p>Note: Kessel is already disabled in the test profile by default since Unleash is inactive
+ * (%test.quarkus.unleash.active=false). This profile explicitly disables RBAC v1 as well.
+ */
+public class DisableKesselResource implements QuarkusTestProfile {
 
-  public String getType() {
-    return type != null ? type : "User";
+  @Override
+  public Map<String, String> getConfigOverrides() {
+    return Map.of("RBAC_ENABLED", "false");
   }
-
-  @JsonProperty("org_id")
-  private String orgId;
-
-  @JsonProperty("user_id")
-  private String userId;
-
-  @JsonProperty("associate")
-  private SamlAssertions samlAssertions;
-
-  private X509Properties x509;
-
-  @JsonProperty("service_account")
-  private ServiceAccount serviceAccount;
-
-  private User user;
 }
