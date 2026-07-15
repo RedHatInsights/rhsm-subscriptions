@@ -233,11 +233,13 @@ objects:
                 secretKeyRef:
                   key: client_id
                   name: swatch-kessel-sa
+                  optional: true
             - name: KESSEL_AUTH_CLIENT_SECRET
               valueFrom:
                 secretKeyRef:
                   key: client_secret
                   name: swatch-kessel-sa
+                  optional: true
             - name: LOGGING_LEVEL_ROOT
               value: ${LOGGING_LEVEL_ROOT}
             - name: LOGGING_LEVEL_COM_REDHAT_SWATCH

@@ -170,11 +170,13 @@ objects:
                   secretKeyRef:
                     key: client_id
                     name: swatch-kessel-sa
+                    optional: true
               - name: KESSEL_AUTH_CLIENT_SECRET
                 valueFrom:
                   secretKeyRef:
                     key: client_secret
                     name: swatch-kessel-sa
+                    optional: true
               - name: LOG_FILE
                 value: /logs/server.log
               - name: SPRING_PROFILES_ACTIVE

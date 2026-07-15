@@ -99,7 +99,7 @@ public class KesselAuthorizationService {
     }
   }
 
-  private void initializeChannel(String reason) {
+  private synchronized void initializeChannel(String reason) {
     ManagedChannel oldChannel = channel;
 
     /*
