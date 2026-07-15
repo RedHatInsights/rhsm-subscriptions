@@ -114,7 +114,7 @@ public class InsightsUserPrincipal implements RhIdentity.Identity {
   }
 
   public String getOrgId() {
-    String internalOrgId = internal.getOrgId();
+    String internalOrgId = internal == null ? null : internal.getOrgId();
     if (internalOrgId != null && !internalOrgId.isBlank()) {
       return internalOrgId;
     }
