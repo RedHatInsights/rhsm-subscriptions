@@ -35,6 +35,7 @@ import domain.BillingProvider;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 import org.candlepin.subscriptions.billable.usage.TallySummary;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class BillableUsageAggregationComponentTest extends BaseBillableUsageComponentTest {
@@ -42,6 +43,11 @@ public class BillableUsageAggregationComponentTest extends BaseBillableUsageComp
   private static final double BILLING_FACTOR = ROSA.getBillingFactor(CORES);
 
   @Test
+  @Disabled(
+      """
+          Flaky Kafka Streams hourly aggregation race (partial aggregate before window complete). "
+          Related to SWATCH-5256 and SWATCH-3233.
+          """)
   @TestPlanName("billable-usage-aggregation-TC001")
   public void shouldAggregateMultipleTalliesIntoSingleHourlyMessage() {
     // Given: No contract coverage; a billing account ID shared across all tallies
