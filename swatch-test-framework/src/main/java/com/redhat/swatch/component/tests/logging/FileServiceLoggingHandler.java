@@ -57,4 +57,11 @@ public class FileServiceLoggingHandler extends ServiceLoggingHandler {
       return super.logs();
     }
   }
+
+  @Override
+  public void onTestStopped() {
+    super.onTestStopped();
+    // Snapshot current file state so the next diff starts from now, avoiding a full replay
+    printedContent = file.exists() ? FileUtils.loadFile(file) : null;
+  }
 }

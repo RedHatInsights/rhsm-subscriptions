@@ -73,7 +73,6 @@ public class OpenShiftExtensionBootstrap implements ExtensionBootstrap {
   @Override
   public void afterAll(ComponentTestContext context) {
     OpenShiftConfiguration configuration = context.getConfigurationAs(OpenShiftConfiguration.class);
-    client.deleteResourcesInComponentTestContext(context.getId());
     if (configuration.getAdditionalResources() != null) {
       for (String additionalResource : configuration.getAdditionalResources()) {
         client.delete(Path.of(additionalResource));

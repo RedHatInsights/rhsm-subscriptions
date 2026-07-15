@@ -23,16 +23,20 @@ package com.redhat.swatch.component.tests.logging;
 import com.redhat.swatch.component.tests.api.clients.OpenshiftClient;
 import com.redhat.swatch.component.tests.core.ServiceContext;
 import com.redhat.swatch.component.tests.core.extensions.OpenShiftExtensionBootstrap;
+import java.time.Instant;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import org.apache.commons.lang3.StringUtils;
 
 public class OpenShiftLoggingHandler extends ServiceLoggingHandler {
 
   private final OpenshiftClient client;
   private final Map<String, String> podLabels;
   private final String containerName;
-
-  private Map<String, String> oldLogs;
+  private Instant logsSince;
+  private final Set<String> seenLines = new HashSet<>();
 
   public OpenShiftLoggingHandler(
       Map<String, String> podLabels, String containerName, ServiceContext context) {
@@ -44,24 +48,30 @@ public class OpenShiftLoggingHandler extends ServiceLoggingHandler {
   }
 
   @Override
-  protected synchronized void handle() {
-    Map<String, String> newLogs = client.logs(podLabels, containerName);
-    for (Entry<String, String> entry : newLogs.entrySet()) {
-      onMapDifference(entry);
-    }
+  public void onTestStarted() {
+    super.onTestStarted();
 
-    oldLogs = newLogs;
+    this.logsSince = Instant.now();
+    this.seenLines.clear();
   }
 
-  private void onMapDifference(Entry<String, String> entry) {
-    String newPodLogs = formatPodLogs(entry.getKey(), entry.getValue());
+  @Override
+  protected synchronized void handle() {
+    if (!isTestActive() || logsSince == null) {
+      return;
+    }
 
-    if (oldLogs != null && oldLogs.containsKey(entry.getKey())) {
-      String oldPodLogs = formatPodLogs(entry.getKey(), oldLogs.get(entry.getKey()));
+    Instant fetchTime = Instant.now();
+    Map<String, String> newLogs = client.logsSince(podLabels, containerName, logsSince);
+    this.logsSince = fetchTime;
 
-      onStringDifference(newPodLogs, oldPodLogs);
-    } else {
-      onLines(newPodLogs);
+    for (Entry<String, String> entry : newLogs.entrySet()) {
+      if (StringUtils.isNotEmpty(entry.getValue())) {
+        String formatted = formatPodLogs(entry.getKey(), entry.getValue());
+        if (seenLines.add(formatted)) {
+          onLines(formatted);
+        }
+      }
     }
   }
 

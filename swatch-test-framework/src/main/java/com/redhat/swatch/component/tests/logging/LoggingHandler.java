@@ -83,9 +83,17 @@ public abstract class LoggingHandler implements Closeable {
     }
   }
 
-  public void onTestStarted() {}
+  public void onTestStarted() {
+    logs.clear();
+  }
 
-  public void onTestStopped() {}
+  /**
+   * Called after each test method to clear accumulated logs and reset state. Prevents memory
+   * buildup across tests when services run at suite level.
+   */
+  public void onTestStopped() {
+    logs.clear();
+  }
 
   protected void run() {
     while (running) {

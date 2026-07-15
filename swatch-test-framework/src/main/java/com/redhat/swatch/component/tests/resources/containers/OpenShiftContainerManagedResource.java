@@ -20,8 +20,6 @@
  */
 package com.redhat.swatch.component.tests.resources.containers;
 
-import static com.redhat.swatch.component.tests.utils.StringUtils.EMPTY;
-
 import com.redhat.swatch.component.tests.api.clients.OpenshiftClient;
 import com.redhat.swatch.component.tests.core.ManagedResource;
 import com.redhat.swatch.component.tests.core.extensions.OpenShiftExtensionBootstrap;
@@ -58,8 +56,12 @@ public abstract class OpenShiftContainerManagedResource extends ManagedResource 
 
     client = context.get(OpenShiftExtensionBootstrap.CLIENT);
     validateService();
-    loggingHandler = new OpenShiftLoggingHandler(podLabels(), containerName(), context);
-    loggingHandler.startWatching();
+
+    if (loggingHandler == null) {
+      loggingHandler = new OpenShiftLoggingHandler(podLabels(), containerName(), context);
+      loggingHandler.startWatching();
+    }
+
     running = true;
   }
 
@@ -67,6 +69,11 @@ public abstract class OpenShiftContainerManagedResource extends ManagedResource 
   public void stop() {
     if (loggingHandler != null) {
       loggingHandler.stopWatching();
+    }
+
+    // Close port forwards for this service
+    if (client != null) {
+      client.closePortForwardsForService(serviceName());
     }
 
     running = false;
@@ -85,7 +92,16 @@ public abstract class OpenShiftContainerManagedResource extends ManagedResource 
 
   @Override
   public boolean isRunning() {
-    return loggingHandler != null && loggingHandler.logsContains(getExpectedLog());
+    return running;
+  }
+
+  @Override
+  protected void waitUntilResourceIsStarted() {
+    // OpenShift pods are validated in start() via validateService()
+    // Skip the log-based startup wait to avoid issues after onTestStopped() clears logs
+    if (loggingHandler != null) {
+      loggingHandler.flush();
+    }
   }
 
   @Override
@@ -116,10 +132,6 @@ public abstract class OpenShiftContainerManagedResource extends ManagedResource 
 
   protected String containerName() {
     return serviceName();
-  }
-
-  protected String getExpectedLog() {
-    return EMPTY;
   }
 
   private void validateService() {

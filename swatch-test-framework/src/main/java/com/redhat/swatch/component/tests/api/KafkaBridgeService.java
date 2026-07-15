@@ -410,4 +410,11 @@ public class KafkaBridgeService extends RestService {
 
     return message;
   }
+
+  @Override
+  public void onTestStopped() {
+    super.onTestStopped();
+    // Clear message cache to prevent memory buildup across test classes
+    messageCache.values().forEach(CopyOnWriteArrayList::clear);
+  }
 }

@@ -200,7 +200,6 @@ public class BaseService<T extends Service> implements Service {
   public ServiceContext register(String serviceName, ComponentTestContext context) {
     this.serviceName = serviceName;
     this.context = new ServiceContext(this, context);
-    context.getTestStore().put(serviceName, this);
     return this.context;
   }
 
@@ -219,6 +218,11 @@ public class BaseService<T extends Service> implements Service {
   @Override
   public void onTestStarted() {
     this.managedResource.getLoggingHandler().onTestStarted();
+  }
+
+  @Override
+  public void onTestStopped() {
+    this.managedResource.getLoggingHandler().onTestStopped();
   }
 
   private void doStart() {
