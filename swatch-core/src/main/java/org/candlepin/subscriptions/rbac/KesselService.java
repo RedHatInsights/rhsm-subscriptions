@@ -62,8 +62,6 @@ public class KesselService {
   private static final String RBAC_APP_NAME = "subscriptions";
   private static final String RBAC_ADMIN_PERMISSION = RBAC_APP_NAME + ":*:*";
   private static final String RBAC_READER_PERMISSION = RBAC_APP_NAME + ":reports:read";
-  private static final String KESSEL_DOMAIN = "redhat";
-
   private static final Map<String, String> PERMISSION_TO_RELATION =
       Map.of(
           RBAC_ADMIN_PERMISSION, "subscriptions_report_view",
@@ -101,7 +99,7 @@ public class KesselService {
     }
   }
 
-  private void initializeChannel(String reason) {
+  private synchronized void initializeChannel(String reason) {
     ManagedChannel oldChannel = channel;
 
     /*
