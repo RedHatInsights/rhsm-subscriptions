@@ -119,6 +119,10 @@ public class IdentityHeaderAuthenticationProvider implements AuthenticationProvi
 
     // load roles from the header and/or RBAC
     UserDetails userDetails = userDetailsService.loadUserDetails(authentication);
+    log.debug(
+        "Authentication granted for principal type={} with authorities={}",
+        principal.getClass().getSimpleName(),
+        userDetails.getAuthorities());
 
     PreAuthenticatedAuthenticationToken result =
         new PreAuthenticatedAuthenticationToken(
