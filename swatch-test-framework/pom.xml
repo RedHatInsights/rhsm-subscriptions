@@ -18,7 +18,7 @@
     <commons-io.version>2.22.0</commons-io.version>
     <commons-logging.version>1.4.0</commons-logging.version>
     <fabric8.version>7.8.0</fabric8.version>
-    <junit.platform.version>6.1.1</junit.platform.version>
+    <junit.platform.version>6.1.2</junit.platform.version>
     <qpid-jms-client.version>2.10.0</qpid-jms-client.version>
   </properties>
 
