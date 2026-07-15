@@ -22,6 +22,8 @@ package org.candlepin.subscriptions.security;
 
 import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.exception.OptInRequiredException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
@@ -38,6 +40,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class OptInChecker {
 
+  private static final Logger log = LoggerFactory.getLogger(OptInChecker.class);
+
   private final OrgConfigRepository orgConfigRepository;
 
   public OptInChecker(OrgConfigRepository orgConfigRepository) {
@@ -47,15 +51,22 @@ public class OptInChecker {
   public boolean checkAccess(Authentication authentication) {
     Object principal = authentication.getPrincipal();
     if (RhAssociatePrincipal.class.isAssignableFrom(principal.getClass())) {
+      log.debug("Opt-in check bypassed for RhAssociate principal");
       return true;
     }
     if (!InsightsUserPrincipal.class.isAssignableFrom(principal.getClass())) {
       // Unrecognized principal.  Allow Spring Security to return Access Denied.
+      log.debug(
+          "Opt-in check denied for unrecognized principal type={}",
+          principal.getClass().getSimpleName());
       return false;
     }
 
     InsightsUserPrincipal insightsUserPrincipal =
         (InsightsUserPrincipal) authentication.getPrincipal();
+    String orgId = insightsUserPrincipal.getOrgId();
+    boolean optedIn = orgConfigRepository.existsByOrgId(orgId);
+    log.debug("Opt-in check for orgId={}: optedIn={}", orgId, optedIn);
 
     /* If not opted-in, throw an exception.  Ideally we would just return true/false, but if we return
      * false the user just gets a generic "Access Denied" message.  By throwing the exception here, we
@@ -64,7 +75,7 @@ public class OptInChecker {
      * the OptInRequiredException in the AccessDecisionVoter.vote method and then our own
      * AbstractAccessDecisionManager capable of catching that exception and rethrowing it after all
      * the other voters had been consulted. */
-    if (!orgConfigRepository.existsByOrgId(insightsUserPrincipal.getOrgId())) {
+    if (!optedIn) {
       throw new OptInRequiredException();
     }
     return true;

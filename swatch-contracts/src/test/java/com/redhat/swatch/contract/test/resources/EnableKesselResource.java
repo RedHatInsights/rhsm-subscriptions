@@ -18,39 +18,19 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.common.security;
+package com.redhat.swatch.contract.test.resources;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import io.quarkus.test.junit.QuarkusTestProfile;
+import java.util.Map;
 
-/** DTO for the identity field of an x-rh-identity JSON document. */
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class Identity {
-  private String type;
+/**
+ * Test profile that keeps RBAC enabled so that the SecurityIdentityAugmentor chain runs. Used with
+ * mocked Unleash + KesselAuthorizationService to test the Kessel auth path end-to-end.
+ */
+public class EnableKesselResource implements QuarkusTestProfile {
 
-  public String getType() {
-    return type != null ? type : "User";
+  @Override
+  public Map<String, String> getConfigOverrides() {
+    return Map.of("RBAC_ENABLED", "true");
   }
-
-  @JsonProperty("org_id")
-  private String orgId;
-
-  @JsonProperty("user_id")
-  private String userId;
-
-  @JsonProperty("associate")
-  private SamlAssertions samlAssertions;
-
-  private X509Properties x509;
-
-  @JsonProperty("service_account")
-  private ServiceAccount serviceAccount;
-
-  private User user;
 }
