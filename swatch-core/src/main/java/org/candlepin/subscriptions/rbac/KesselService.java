@@ -206,12 +206,19 @@ public class KesselService {
 
         if (code == Status.Code.UNAUTHENTICATED) {
           log.warn(
-              "Transient gRPC error from Kessel (may retry): {} - {}. Recreating channel.",
+              "Transient gRPC error from Kessel (attempt {}/{}): {} - {}. Recreating channel.",
+              attempt + 1,
+              MAX_RETRIES + 1,
               code,
               e.getMessage());
           initializeChannel("unauthenticated");
         } else if (TRANSIENT_FAILURE_CODES.contains(code) && attempt < MAX_RETRIES) {
-          log.warn("Transient gRPC error from Kessel (may retry): {} - {}", code, e.getMessage());
+          log.warn(
+              "Transient gRPC error from Kessel (attempt {}/{}): {} - {}",
+              attempt + 1,
+              MAX_RETRIES + 1,
+              code,
+              e.getMessage());
           try {
             Thread.sleep(RETRY_DELAY_MS);
           } catch (InterruptedException ie) {
@@ -248,6 +255,7 @@ public class KesselService {
         granted.add(permission);
       }
     }
+    log.debug("Kessel permissions for subject={}: granted={}", subjectId, granted);
     return granted;
   }
 
