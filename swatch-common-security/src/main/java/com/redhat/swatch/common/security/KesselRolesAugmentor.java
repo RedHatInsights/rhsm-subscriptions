@@ -52,6 +52,7 @@ public class KesselRolesAugmentor implements SecurityIdentityAugmentor {
   public Uni<SecurityIdentity> augment(
       SecurityIdentity identity, AuthenticationRequestContext context) {
     if (!unleash.isEnabled(KESSEL_FLAG)) {
+      log.debug("Kessel feature flag is disabled, skipping Kessel role augmentation");
       return Uni.createFrom().item(identity);
     }
 
@@ -60,6 +61,7 @@ public class KesselRolesAugmentor implements SecurityIdentityAugmentor {
         && shouldCheck(rhIdentityPrincipal)) {
       return context.runBlocking(() -> lookupKesselRoles(identity));
     }
+    log.debug("Skipping Kessel check for principal type={}", principal.getClass().getSimpleName());
     return Uni.createFrom().item(identity);
   }
 
