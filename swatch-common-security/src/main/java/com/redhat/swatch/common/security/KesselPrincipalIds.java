@@ -21,6 +21,7 @@
 package com.redhat.swatch.common.security;
 
 import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Resolves Kessel principal resource IDs from x-rh-identity payloads.
@@ -28,6 +29,7 @@ import java.util.Optional;
  * <p>Matches insights-rbac, which checks permissions for {@code redhat/{user_id}} principals (see
  * {@code Principal.user_id_to_principal_resource_id}), not org IDs.
  */
+@Slf4j
 public final class KesselPrincipalIds {
 
   private KesselPrincipalIds() {}
@@ -40,11 +42,30 @@ public final class KesselPrincipalIds {
     if (identity == null) {
       return Optional.empty();
     }
-    return switch (identity.getType()) {
-      case "User" -> userPrincipalId(identity);
-      case "ServiceAccount" -> serviceAccountPrincipalId(identity);
-      default -> Optional.empty();
-    };
+    var result =
+        switch (identity.getType()) {
+          case "User" -> userPrincipalId(identity);
+          case "ServiceAccount" -> serviceAccountPrincipalId(identity);
+          default -> {
+            log.debug(
+                "Unsupported identity type for Kessel principal resolution: type={}",
+                identity.getType());
+            yield Optional.<String>empty();
+          }
+        };
+    if (result.isEmpty()) {
+      log.debug(
+          "Could not resolve Kessel principal ID: type={} orgId={}",
+          identity.getType(),
+          identity.getOrgId());
+    } else {
+      log.debug(
+          "Resolved Kessel principal ID: type={} orgId={} principalId={}",
+          identity.getType(),
+          identity.getOrgId(),
+          result.get());
+    }
+    return result;
   }
 
   public static Optional<String> fromRhIdentityPrincipal(RhIdentityPrincipal principal) {

@@ -203,19 +203,34 @@ public class KesselAuthorizationService {
             getClient()
                 .withDeadlineAfter(properties.timeoutMs(), TimeUnit.MILLISECONDS)
                 .check(request);
-        return response.getAllowed() == Allowed.ALLOWED_TRUE;
+        boolean allowed = response.getAllowed() == Allowed.ALLOWED_TRUE;
+        log.debug(
+            "Kessel {} subject={}/{} relation={} on workspace=default (permission={})",
+            allowed ? "allowed" : "denied",
+            KESSEL_DOMAIN,
+            subjectId.get(),
+            relation,
+            permission);
+        return allowed;
       } catch (StatusRuntimeException e) {
         lastException = e;
         Status.Code code = e.getStatus().getCode();
 
         if (code == Status.Code.UNAUTHENTICATED) {
           log.warn(
-              "Transient gRPC error from Kessel (may retry): {} - {}. Recreating channel.",
+              "Transient gRPC error from Kessel (attempt {}/{}): {} - {}. Recreating channel.",
+              attempt + 1,
+              MAX_RETRIES + 1,
               code,
               e.getMessage());
           initializeChannel("unauthenticated");
         } else if (TRANSIENT_FAILURE_CODES.contains(code) && attempt < MAX_RETRIES) {
-          log.warn("Transient gRPC error from Kessel (may retry): {} - {}", code, e.getMessage());
+          log.warn(
+              "Transient gRPC error from Kessel (attempt {}/{}): {} - {}",
+              attempt + 1,
+              MAX_RETRIES + 1,
+              code,
+              e.getMessage());
           try {
             Thread.sleep(RETRY_DELAY_MS);
           } catch (InterruptedException ie) {
@@ -255,6 +270,8 @@ public class KesselAuthorizationService {
         granted.add(permission);
       }
     }
+    log.debug(
+        "Kessel permissions for orgId={}: granted={}", principal.getIdentity().getOrgId(), granted);
     return granted;
   }
 
