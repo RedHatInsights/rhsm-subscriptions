@@ -20,37 +20,7 @@
  */
 package api;
 
-import com.redhat.swatch.component.tests.api.WiremockService;
-
-public class ContractsWiremockService extends WiremockService {
-  /**
-   * Get facade for stubbing Partner Gateway API endpoints.
-   *
-   * @return PartnerGatewayStubs facade
-   */
-  public PartnerApiStubs forPartnerAPI() {
-    return new PartnerApiStubs(this);
-  }
-
-  /**
-   * Get facade for stubbing Product API endpoints.
-   *
-   * @return ProductApiStubs facade
-   */
-  public ProductApiStubs forProductAPI() {
-    return new ProductApiStubs(this);
-  }
-
-  /**
-   * Get facade for stubbing Search API endpoints.
-   *
-   * @return SearchApiStubs facade
-   */
-  public SearchApiStubs forSearchApi() {
-    return new SearchApiStubs(this);
-  }
-
-  public RbacAccessControlStubs forRbacAccessControl() {
-    return new RbacAccessControlStubs(this);
-  }
+/** Authorization model exercised by parameterized access-control component tests. */
+public enum AuthorizationModel {
+  RBAC
 }
