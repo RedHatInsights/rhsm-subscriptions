@@ -78,6 +78,14 @@ parameters:
     value: 1s
   - name: USER_BACK_OFF_MULTIPLIER
     value: '2'
+  - name: SPRING_PROFILES_ACTIVE_INIT_CONTAINER
+    value: liquibase-only
+  - name: SPRING_PROFILES_ACTIVE_SERVICE
+    value: worker,api,kafka-queue
+  - name: SPRING_PROFILES_ACTIVE_CAPTURE_SNAPSHOTS
+    value: capture-snapshots
+  - name: SPRING_PROFILES_ACTIVE_CAPTURE_HOURLY_SNAPSHOTS
+    value: capture-hourly-snapshots
   - name: TALLY_SUMMARY_PRODUCER_MAX_ATTEMPTS
     value: '5'
   - name: TALLY_SUMMARY_PRODUCER_BACK_OFF_MAX_INTERVAL
@@ -451,7 +459,7 @@ objects:
                 - name: JAVA_DEBUG
                   value: ${JAVA_DEBUG}
                 - name: SPRING_PROFILES_ACTIVE
-                  value: liquibase-only
+                  value: ${SPRING_PROFILES_ACTIVE_INIT_CONTAINER}
                 - name: JAVA_TOOL_OPTIONS
                   value: ''
               inheritEnv: true
@@ -511,7 +519,7 @@ objects:
             - name: LOGGING_HEC_TERMINATION_TIMEOUT
               value: ${LOGGING_HEC_TERMINATION_TIMEOUT}
             - name: SPRING_PROFILES_ACTIVE
-              value: worker,api,kafka-queue
+              value: ${SPRING_PROFILES_ACTIVE_SERVICE}
             - name: LOG_FILE
               value: /logs/server.log
             - name: JAVA_MAX_MEM_RATIO
@@ -763,7 +771,7 @@ objects:
                   key: self
             # This env property is necessary to pass the test check.
             - name: SPRING_PROFILES_ACTIVE
-              value: capture-snapshots
+              value: ${SPRING_PROFILES_ACTIVE_CAPTURE_SNAPSHOTS}
           resources:
             requests:
               cpu: ${CURL_CRON_CPU_REQUEST}
@@ -791,7 +799,7 @@ objects:
                   key: self
             # This env property is necessary to pass the test check.
             - name: SPRING_PROFILES_ACTIVE
-              value: capture-hourly-snapshots
+              value: ${SPRING_PROFILES_ACTIVE_CAPTURE_HOURLY_SNAPSHOTS}
           resources:
             requests:
               cpu: ${CURL_CRON_CPU_REQUEST}
