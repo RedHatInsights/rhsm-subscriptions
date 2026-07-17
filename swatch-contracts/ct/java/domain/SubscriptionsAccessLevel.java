@@ -18,39 +18,24 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package api;
+package domain;
 
-import com.redhat.swatch.component.tests.api.WiremockService;
+/** Permission outcome stubbed for the subscriptions application. */
+public enum SubscriptionsAccessLevel {
+  GRANTED_ADMIN("subscriptions:*:*"),
+  DENIED;
 
-public class ContractsWiremockService extends WiremockService {
-  /**
-   * Get facade for stubbing Partner Gateway API endpoints.
-   *
-   * @return PartnerGatewayStubs facade
-   */
-  public PartnerApiStubs forPartnerAPI() {
-    return new PartnerApiStubs(this);
+  private final String permission;
+
+  SubscriptionsAccessLevel() {
+    this.permission = null;
   }
 
-  /**
-   * Get facade for stubbing Product API endpoints.
-   *
-   * @return ProductApiStubs facade
-   */
-  public ProductApiStubs forProductAPI() {
-    return new ProductApiStubs(this);
+  SubscriptionsAccessLevel(String permission) {
+    this.permission = permission;
   }
 
-  /**
-   * Get facade for stubbing Search API endpoints.
-   *
-   * @return SearchApiStubs facade
-   */
-  public SearchApiStubs forSearchApi() {
-    return new SearchApiStubs(this);
-  }
-
-  public RbacAccessControlStubs forRbacAccessControl() {
-    return new RbacAccessControlStubs(this);
+  public String permission() {
+    return permission;
   }
 }
