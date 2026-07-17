@@ -63,6 +63,7 @@ class KesselAuthorizationServiceTest {
     service = new KesselAuthorizationService();
     service.setStub(stub);
     service.properties = kesselProperties;
+    service.setWorkspaceId("org123", "test-workspace-id");
 
     identityFactory = new RhIdentityPrincipalFactory();
     identityFactory.mapper = new ObjectMapper();

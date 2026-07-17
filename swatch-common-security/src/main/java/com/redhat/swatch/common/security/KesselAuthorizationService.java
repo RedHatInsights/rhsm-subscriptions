@@ -32,8 +32,13 @@ import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
+import org.project_kessel.api.auth.ClientConfigAuth;
+import org.project_kessel.api.auth.OAuth2AuthRequest;
+import org.project_kessel.api.auth.OAuth2ClientCredentials;
+import org.project_kessel.api.auth.OIDCDiscovery;
 import org.project_kessel.api.inventory.v1beta2.Allowed;
 import org.project_kessel.api.inventory.v1beta2.CheckRequest;
 import org.project_kessel.api.inventory.v1beta2.CheckResponse;
@@ -42,6 +47,7 @@ import org.project_kessel.api.inventory.v1beta2.KesselInventoryServiceGrpc.Kesse
 import org.project_kessel.api.inventory.v1beta2.ReporterReference;
 import org.project_kessel.api.inventory.v1beta2.ResourceReference;
 import org.project_kessel.api.inventory.v1beta2.SubjectReference;
+import org.project_kessel.api.rbac.v2.FetchWorkspace;
 import org.project_kessel.api.rbac.v2.Utils;
 
 /**
@@ -88,6 +94,8 @@ public class KesselAuthorizationService {
 
   private volatile KesselInventoryServiceBlockingStub stub;
   private volatile ManagedChannel channel;
+  private volatile OAuth2AuthRequest rbacAuth;
+  private final ConcurrentHashMap<String, String> workspaceCache = new ConcurrentHashMap<>();
 
   @PostConstruct
   void init() {
@@ -97,6 +105,28 @@ public class KesselAuthorizationService {
       log.warn(
           "Failed to initialize Kessel authorization client; auth checks will deny by default", e);
     }
+    try {
+      initializeRbacAuth();
+    } catch (Exception e) {
+      log.warn(
+          "Failed to initialize RBAC OAuth2 client; workspace lookups will be unauthenticated", e);
+    }
+  }
+
+  private void initializeRbacAuth() throws Exception {
+    var issuerUrl = properties.authDiscoveryIssuerUrl().filter(s -> !s.isBlank());
+    var clientId = properties.authClientId().filter(s -> !s.isBlank());
+    var clientSecret = properties.authClientSecret().filter(s -> !s.isBlank());
+    if (issuerUrl.isEmpty() || clientId.isEmpty() || clientSecret.isEmpty()) {
+      log.info("RBAC OAuth2 credentials not configured; workspace fetches will be unauthenticated");
+      return;
+    }
+    var discovery = OIDCDiscovery.fetchOIDCDiscovery(issuerUrl.get());
+    var credentials =
+        new OAuth2ClientCredentials(
+            new ClientConfigAuth(clientId.get(), clientSecret.get(), discovery.tokenEndpoint()));
+    this.rbacAuth = new OAuth2AuthRequest(credentials);
+    log.info("RBAC OAuth2 client initialized for workspace lookups");
   }
 
   private synchronized void initializeChannel(String reason) {
@@ -180,6 +210,8 @@ public class KesselAuthorizationService {
       return false;
     }
     var relation = mapPermissionToRelation(permission);
+    var orgId = principal.getIdentity().getOrgId();
+    var workspaceId = getDefaultWorkspaceId(orgId);
 
     var request =
         CheckRequest.newBuilder()
@@ -193,7 +225,7 @@ public class KesselAuthorizationService {
                             .build())
                     .build())
             .setRelation(relation)
-            .setObject(Utils.workspaceResource("default"))
+            .setObject(Utils.workspaceResource(workspaceId))
             .build();
 
     StatusRuntimeException lastException = null;
@@ -205,11 +237,12 @@ public class KesselAuthorizationService {
                 .check(request);
         boolean allowed = response.getAllowed() == Allowed.ALLOWED_TRUE;
         log.debug(
-            "Kessel {} subject={}/{} relation={} on workspace=default (permission={})",
+            "Kessel {} subject={}/{} relation={} on workspace={} (permission={})",
             allowed ? "allowed" : "denied",
             KESSEL_DOMAIN,
             subjectId.get(),
             relation,
+            workspaceId,
             permission);
         return allowed;
       } catch (StatusRuntimeException e) {
@@ -275,6 +308,21 @@ public class KesselAuthorizationService {
     return granted;
   }
 
+  private String getDefaultWorkspaceId(String orgId) {
+    return workspaceCache.computeIfAbsent(orgId, this::fetchDefaultWorkspaceId);
+  }
+
+  private String fetchDefaultWorkspaceId(String orgId) {
+    try {
+      var workspace =
+          FetchWorkspace.fetchDefaultWorkspace(properties.rbacBaseEndpoint(), orgId, rbacAuth);
+      log.info("Fetched default workspace for orgId={}: id={}", orgId, workspace.getId());
+      return workspace.getId();
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to fetch default workspace for orgId=" + orgId, e);
+    }
+  }
+
   /**
    * Convert an RBACv1 permission string to a Kessel v2 relation name. The mapping follows the
    * rbac-config schema where v1 permissions map to v2 relations with singular resource names and
@@ -291,5 +339,10 @@ public class KesselAuthorizationService {
   // Visible for testing
   void setStub(KesselInventoryServiceBlockingStub stub) {
     this.stub = stub;
+  }
+
+  // Visible for testing
+  void setWorkspaceId(String orgId, String workspaceId) {
+    workspaceCache.put(orgId, workspaceId);
   }
 }
