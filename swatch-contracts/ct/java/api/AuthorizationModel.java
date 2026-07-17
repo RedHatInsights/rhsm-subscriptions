@@ -22,5 +22,6 @@ package api;
 
 /** Authorization model exercised by parameterized access-control component tests. */
 public enum AuthorizationModel {
-  RBAC
+  RBAC,
+  KESSEL
 }
