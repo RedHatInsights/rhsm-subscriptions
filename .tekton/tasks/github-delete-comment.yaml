@@ -42,6 +42,13 @@ spec:
         echo "MARKER: ${MARKER}"
         echo "Token length: ${#GITHUB_TOKEN}"
         echo ""
+        
+        #Skip this task if there is no PR specified
+        if [[ "$PR" == "" || "$PR" == "none" ]]; then
+          echo "PR is empty, skipping comment."
+          exit 0
+        fi
+
 
         page=1
         while true; do
