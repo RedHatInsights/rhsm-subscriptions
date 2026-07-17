@@ -90,16 +90,15 @@ parameters:
     value: token
   - name: DB_POD
     value: swatch-database
-  - name: KESSEL_ENABLED
-    value: 'false'
   - name: KESSEL_URL
-    value: ''
   - name: KESSEL_INSECURE
     value: 'true'
   - name: KESSEL_AUTH_ENABLED
     value: 'false'
+#    Environment provides this
   - name: KESSEL_AUTH_OIDC_ISSUER
-    value: ''
+  - name: AUTH_DISCOVERY_ISSUER_URL
+  - name: RBAC_BASE_ENDPOINT
 
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
@@ -155,8 +154,6 @@ objects:
                 value: ${USER_OPTS_APPEND}
               - name: DEV_MODE
                 value: ${DEV_MODE}
-              - name: KESSEL_ENABLED
-                value: ${KESSEL_ENABLED}
               - name: KESSEL_URL
                 value: ${KESSEL_URL}
               - name: KESSEL_INSECURE
