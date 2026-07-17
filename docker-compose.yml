@@ -18,7 +18,7 @@ services:
       - ./config/wiremock/__files:/home/wiremock/__files:z
       - ./config/wiremock/mappings:/home/wiremock/mappings:z
     ports:
-      - "127.0.0.1:8006:8080"
+      - "127.0.0.1:8006:8000"
     networks:
       swatch-network:
         aliases:

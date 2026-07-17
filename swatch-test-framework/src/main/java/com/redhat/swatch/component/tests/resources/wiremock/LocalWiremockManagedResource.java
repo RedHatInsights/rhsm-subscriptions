@@ -20,11 +20,23 @@
  */
 package com.redhat.swatch.component.tests.resources.wiremock;
 
+import static com.redhat.swatch.component.tests.utils.Ports.WIREMOCK_PORT;
+
 import com.redhat.swatch.component.tests.resources.containers.LocalContainerManagedResource;
+import com.redhat.swatch.component.tests.utils.Ports;
 
 public class LocalWiremockManagedResource extends LocalContainerManagedResource {
 
   public LocalWiremockManagedResource() {
     super(".*wiremock.*");
+  }
+
+  @Override
+  public int getMappedPort(int port) {
+    // Map default port to WireMock default port
+    if (port == Ports.DEFAULT_HTTP_PORT) {
+      return super.getMappedPort(WIREMOCK_PORT);
+    }
+    return super.getMappedPort(port);
   }
 }
