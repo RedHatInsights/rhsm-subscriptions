@@ -22,9 +22,8 @@ package com.redhat.swatch.component.tests.logging;
 
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import java.io.Closeable;
-import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 
@@ -33,8 +32,11 @@ public abstract class LoggingHandler implements Closeable {
   private static final long TIMEOUT_IN_MILLIS = 4000;
   private static final String ANY = ".*";
 
+  /** Cap retained lines so chatty OpenShift pods cannot OOM the CT runner. */
+  private static final int MAX_LOG_LINES = 1_000;
+
   private Thread innerThread;
-  private List<String> logs = new CopyOnWriteArrayList<>();
+  private final LinkedBlockingDeque<String> logs = new LinkedBlockingDeque<>(MAX_LOG_LINES);
   private boolean running = false;
 
   protected abstract void handle();
@@ -61,7 +63,7 @@ public abstract class LoggingHandler implements Closeable {
   }
 
   public List<String> logs() {
-    return Collections.unmodifiableList(logs);
+    return List.copyOf(logs);
   }
 
   public boolean logsContains(String expected) {
@@ -109,7 +111,10 @@ public abstract class LoggingHandler implements Closeable {
   }
 
   protected void onLine(String line) {
-    logs.add(line);
+    if (!logs.offerLast(line)) {
+      logs.pollFirst();
+      logs.offerLast(line);
+    }
     if (isLogEnabled()) {
       logInfo(line);
     }
