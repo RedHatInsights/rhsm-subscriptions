@@ -178,16 +178,15 @@ parameters:
   - name: FLOORIST_S3_SNOWPIPE_PATH
     description: Path for dataproduct in snowpipe s3 bucket
     value: 'swatch'
-  - name: KESSEL_ENABLED
-    value: 'false'
   - name: KESSEL_URL
-    value: ''
   - name: KESSEL_INSECURE
     value: 'true'
   - name: KESSEL_AUTH_ENABLED
     value: 'false'
+#    Environment provides this
   - name: KESSEL_AUTH_OIDC_ISSUER
-    value: ''
+  - name: AUTH_DISCOVERY_ISSUER_URL
+  - name: RBAC_BASE_ENDPOINT
 
 # Shared FloorPlan specification for all environments (sandbox, dev, preprod, prod)
 # Only objectStore differs per environment
@@ -334,8 +333,6 @@ objects:
                 value: ${USER_OPTS_APPEND}
               - name: QUARKUS_LAUNCH_DEVMODE
                 value: ${QUARKUS_LAUNCH_DEVMODE}
-              - name: KESSEL_ENABLED
-                value: ${KESSEL_ENABLED}
               - name: KESSEL_URL
                 value: ${KESSEL_URL}
               - name: KESSEL_INSECURE
