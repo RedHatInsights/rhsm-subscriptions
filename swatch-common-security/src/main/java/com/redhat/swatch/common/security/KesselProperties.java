@@ -22,6 +22,7 @@ package com.redhat.swatch.common.security;
 
 import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
+import java.util.Optional;
 
 @ConfigMapping(prefix = "swatch.kessel")
 public interface KesselProperties {
@@ -34,4 +35,13 @@ public interface KesselProperties {
 
   @WithDefault("5000")
   long timeoutMs();
+
+  @WithDefault("http://localhost:8080")
+  String rbacBaseEndpoint();
+
+  Optional<String> authDiscoveryIssuerUrl();
+
+  Optional<String> authClientId();
+
+  Optional<String> authClientSecret();
 }

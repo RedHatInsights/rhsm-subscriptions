@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -61,7 +62,28 @@ class MockKesselServerTest {
           public long timeoutMs() {
             return 5000L;
           }
+
+          @Override
+          public String rbacBaseEndpoint() {
+            return "http://localhost:8080";
+          }
+
+          @Override
+          public Optional<String> authDiscoveryIssuerUrl() {
+            return Optional.empty();
+          }
+
+          @Override
+          public Optional<String> authClientId() {
+            return Optional.empty();
+          }
+
+          @Override
+          public Optional<String> authClientSecret() {
+            return Optional.empty();
+          }
         };
+    service.setWorkspaceId("org123", "test-workspace-id");
 
     identityFactory = new RhIdentityPrincipalFactory();
     identityFactory.mapper = new ObjectMapper();
