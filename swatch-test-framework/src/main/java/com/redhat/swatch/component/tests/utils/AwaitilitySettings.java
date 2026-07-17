@@ -25,10 +25,10 @@ import java.time.Duration;
 
 public final class AwaitilitySettings {
 
-  private static final int POLL_MILLISECONDS = 200;
+  private static final int POLL_SECONDS = 1;
   private static final int TIMEOUT_SECONDS = 30;
 
-  Duration interval = Duration.ofMillis(POLL_MILLISECONDS);
+  Duration interval = Duration.ofSeconds(POLL_SECONDS);
   Duration timeout = Duration.ofSeconds(TIMEOUT_SECONDS);
   Service service;
   String timeoutMessage = StringUtils.EMPTY;
