@@ -21,9 +21,7 @@
 package org.candlepin.subscriptions.conduit.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.getunleash.Unleash;
 import jakarta.servlet.http.HttpServletRequest;
-import org.candlepin.subscriptions.rbac.KesselService;
 import org.candlepin.subscriptions.rbac.RbacProperties;
 import org.candlepin.subscriptions.rbac.RbacService;
 import org.candlepin.subscriptions.security.AntiCsrfFilter;
@@ -86,7 +84,7 @@ import org.springframework.security.web.servlet.util.matcher.PathPatternRequestM
  * </ol>
  */
 @Configuration
-@Import({RbacConfiguration.class, KesselConfiguration.class})
+@Import(RbacConfiguration.class)
 public class ApiSecurityConfiguration {
 
   @Autowired protected ManagementServerProperties actuatorProps;
@@ -166,16 +164,9 @@ public class ApiSecurityConfiguration {
       SecurityProperties secProps,
       RbacProperties rbacProperties,
       RbacService rbacService,
-      IdentityHeaderAuthoritiesMapper identityHeaderAuthoritiesMapper,
-      @Autowired(required = false) KesselService kesselService,
-      @Autowired(required = false) Unleash unleash) {
+      IdentityHeaderAuthoritiesMapper identityHeaderAuthoritiesMapper) {
     return new IdentityHeaderAuthenticationDetailsService(
-        secProps,
-        rbacProperties,
-        identityHeaderAuthoritiesMapper,
-        rbacService,
-        kesselService,
-        unleash);
+        secProps, rbacProperties, identityHeaderAuthoritiesMapper, rbacService);
   }
 
   @Bean
