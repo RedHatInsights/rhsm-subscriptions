@@ -52,7 +52,7 @@ public class TallyUnleashService extends UnleashService {
   private void waitForFlagToBe(String flag, boolean expectedState) {
     // Wait for the feature flag to be reflected in the /info endpoint
     AwaitilitySettings settings =
-        AwaitilitySettings.using(Duration.ofMillis(100), Duration.ofSeconds(20))
+        AwaitilitySettings.using(Duration.ofMillis(250), Duration.ofSeconds(20))
             .withService(tallyService)
             .timeoutMessage(
                 "Feature flag '%s' did not reach expected state: %s", flag, expectedState);
