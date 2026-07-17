@@ -281,16 +281,15 @@ parameters:
     value: signalfx
   - name: OTEL_TRACES_TOKEN_SECRET_KEY
     value: token
-  - name: KESSEL_ENABLED
-    value: 'false'
   - name: KESSEL_URL
-    value: ''
   - name: KESSEL_INSECURE
     value: 'true'
   - name: KESSEL_AUTH_ENABLED
     value: 'false'
+#    Environment provides this
   - name: KESSEL_AUTH_OIDC_ISSUER
-    value: ''
+  - name: AUTH_DISCOVERY_ISSUER_URL
+  - name: RBAC_BASE_ENDPOINT
 
 # Shared FloorPlan specification for all environments (sandbox, dev, preprod, prod)
 # Only objectStore differs per environment
@@ -486,8 +485,6 @@ objects:
               value: ${JAVA_DEBUG}
             - name: USER_OPTS_APPEND
               value: ${USER_OPTS_APPEND}
-            - name: KESSEL_ENABLED
-              value: ${KESSEL_ENABLED}
             - name: KESSEL_URL
               value: ${KESSEL_URL}
             - name: KESSEL_INSECURE
