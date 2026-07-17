@@ -37,7 +37,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 
 public class SubscriptionReportAccessComponentTest extends BaseContractComponentTest {
 
-  @ParameterizedTest
+  @ParameterizedTest(name = "authorizationModel={0}")
   @EnumSource(AuthorizationModel.class)
   @TestPlanName("auth-access-TC001")
   void shouldAllowV2ReportWhenAccessGranted(AuthorizationModel authorizationModel) {
@@ -45,8 +45,8 @@ public class SubscriptionReportAccessComponentTest extends BaseContractComponent
     String userId = RandomUtils.generateRandom();
     var requestHeaders = SwatchUtils.securityHeadersWithUserRole(orgId, userId);
     String identityHeader = requestHeaders.get(X_RH_IDENTITY_HEADER);
-    givenRbacSubscriptionsAccessStub(
-        authorizationModel, identityHeader, SubscriptionsAccessLevel.GRANTED_ADMIN);
+    givenSubscriptionsAccess(
+        authorizationModel, userId, identityHeader, SubscriptionsAccessLevel.GRANTED_ADMIN);
 
     // When
     Response response = whenGetV2SkuCapacityReport(requestHeaders);
@@ -63,8 +63,8 @@ public class SubscriptionReportAccessComponentTest extends BaseContractComponent
     String userId = RandomUtils.generateRandom();
     var requestHeaders = SwatchUtils.securityHeadersWithUserRole(orgId, userId);
     String identityHeader = requestHeaders.get(X_RH_IDENTITY_HEADER);
-    givenRbacSubscriptionsAccessStub(
-        authorizationModel, identityHeader, SubscriptionsAccessLevel.DENIED);
+    givenSubscriptionsAccess(
+        authorizationModel, userId, identityHeader, SubscriptionsAccessLevel.DENIED);
 
     // When
     Response response = whenGetV2SkuCapacityReport(requestHeaders);
@@ -73,11 +73,16 @@ public class SubscriptionReportAccessComponentTest extends BaseContractComponent
     thenResponseStatusIs(response, HttpStatus.SC_FORBIDDEN);
   }
 
-  private void givenRbacSubscriptionsAccessStub(
+  private void givenSubscriptionsAccess(
       AuthorizationModel authorizationModel,
+      String userId,
       String identityHeader,
       SubscriptionsAccessLevel accessLevel) {
-    if (authorizationModel == AuthorizationModel.RBAC) {
+    if (authorizationModel == AuthorizationModel.KESSEL) {
+      unleash.enableKesselRbac();
+      wiremock.forKesselAccessControl().stubSubscriptionsAccess(userId, accessLevel);
+    } else {
+      unleash.disableKesselRbac();
       wiremock.forRbacAccessControl().stubSubscriptionsAccess(identityHeader, accessLevel);
     }
   }

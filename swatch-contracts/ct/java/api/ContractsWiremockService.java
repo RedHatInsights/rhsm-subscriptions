@@ -53,4 +53,8 @@ public class ContractsWiremockService extends WiremockService {
   public RbacAccessControlStubs forRbacAccessControl() {
     return new RbacAccessControlStubs(this);
   }
+
+  public KesselAccessControlStubs forKesselAccessControl() {
+    return new KesselAccessControlStubs(this);
+  }
 }
