@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -139,6 +140,7 @@ class KesselAuthorizationServiceTest {
     assertEquals("principal", request.getSubject().getResource().getResourceType());
     assertEquals("user123", request.getSubject().getResource().getResourceId());
     assertEquals("workspace", request.getObject().getResourceType());
+    assertEquals("test-workspace-id", request.getObject().getResourceId());
   }
 
   @Test
@@ -177,6 +179,55 @@ class KesselAuthorizationServiceTest {
             }
             """);
     assertFalse(service.checkAccess(principal, "subscriptions:*:*"));
+  }
+
+  @Test
+  void checkAccessUsesCachedWorkspaceIdAcrossMultipleCalls() {
+    when(stub.check(any(CheckRequest.class)))
+        .thenReturn(CheckResponse.newBuilder().setAllowed(Allowed.ALLOWED_TRUE).build());
+
+    var principal = principalFromJson(RhIdentityUtils.CUSTOMER_IDENTITY_JSON);
+    service.checkAccess(principal, "subscriptions:*:*");
+    service.checkAccess(principal, "subscriptions:reports:read");
+
+    var captor = ArgumentCaptor.forClass(CheckRequest.class);
+    verify(stub, times(2)).check(captor.capture());
+
+    for (var request : captor.getAllValues()) {
+      assertEquals("test-workspace-id", request.getObject().getResourceId());
+    }
+  }
+
+  @Test
+  void checkAccessUsesDifferentWorkspacePerOrg() {
+    service.setWorkspaceId("org456", "other-workspace-id");
+
+    when(stub.check(any(CheckRequest.class)))
+        .thenReturn(CheckResponse.newBuilder().setAllowed(Allowed.ALLOWED_TRUE).build());
+
+    var principal1 = principalFromJson(RhIdentityUtils.CUSTOMER_IDENTITY_JSON);
+    service.checkAccess(principal1, "subscriptions:*:*");
+
+    var principal2 =
+        principalFromJson(
+            """
+            {
+              "identity": {
+                "type": "User",
+                "org_id": "org456",
+                "user": {
+                  "user_id": "user456"
+                }
+              }
+            }
+            """);
+    service.checkAccess(principal2, "subscriptions:*:*");
+
+    var captor = ArgumentCaptor.forClass(CheckRequest.class);
+    verify(stub, times(2)).check(captor.capture());
+
+    assertEquals("test-workspace-id", captor.getAllValues().get(0).getObject().getResourceId());
+    assertEquals("other-workspace-id", captor.getAllValues().get(1).getObject().getResourceId());
   }
 
   @Test
