@@ -26,6 +26,7 @@ import jakarta.enterprise.inject.Produces;
 import jakarta.enterprise.inject.spi.DeploymentException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -47,7 +48,7 @@ public class AwsProfileFileConfiguration {
       @ConfigProperty(name = "aws.marketplace.test-credentials.secret-access-key")
           String secretAccessKey) {
 
-    if (TEST_CREDENTIAL_PROFILES.contains(profile)) {
+    if (usesTestCredentials(profile)) {
       log.debug(
           "Using test AWS marketplace credentials profile '{}' for quarkus profile '{}'",
           sellerProfile,
@@ -65,6 +66,17 @@ public class AwsProfileFileConfiguration {
     }
 
     return ProfileFile.defaultProfileFile();
+  }
+
+  /**
+   * {@code quarkus.profile} may be a comma-separated list (e.g. {@code ephemeral,component-tests}).
+   * Use synthetic creds when any active profile is a test profile.
+   */
+  static boolean usesTestCredentials(String profile) {
+    return Arrays.stream(profile.split(","))
+        .map(String::trim)
+        .filter(name -> !name.isEmpty())
+        .anyMatch(TEST_CREDENTIAL_PROFILES::contains);
   }
 
   private static ProfileFile syntheticProfileFile(
