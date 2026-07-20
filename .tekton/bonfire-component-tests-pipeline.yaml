@@ -294,6 +294,8 @@ spec:
           value: "$(params.EXTRA_DEPLOY_ARGS)"
         - name: COMPONENTS
           value: "$(params.COMPONENTS)"
+        - name: COMPONENT_NAME
+          value: "$(params.COMPONENT_NAME)"
         - name: GIT_REVISION
           value: "$(tasks.extract-metadata.results.GIT_REVISION)"
       taskSpec:
@@ -301,6 +303,8 @@ spec:
           - name: EXTRA_DEPLOY_ARGS
             type: string
           - name: COMPONENTS
+            type: string
+          - name: COMPONENT_NAME
             type: string
           - name: GIT_REVISION
             type: string
@@ -314,10 +318,12 @@ spec:
               #!/usr/bin/env bash
               set -euo pipefail
               COMPONENTS="$(params.COMPONENTS)"
+              COMPONENT_NAME="$(params.COMPONENT_NAME)"
               EXTRA_DEPLOY_ARGS="$(params.EXTRA_DEPLOY_ARGS)"
               GIT_REVISION="$(params.GIT_REVISION)"
 
               echo "update-extra-deploy-args: COMPONENTS='$COMPONENTS'"
+              echo "update-extra-deploy-args: COMPONENT_NAME='$COMPONENT_NAME'"
               echo "update-extra-deploy-args: EXTRA_DEPLOY_ARGS='$EXTRA_DEPLOY_ARGS'"
               echo "update-extra-deploy-args: GIT_REVISION='$GIT_REVISION'"
 
@@ -330,6 +336,14 @@ spec:
                   break
                 fi
               done
+
+              # Add component-tests profile (only for Quarkus services for now)
+              if [ -n "$COMPONENT_NAME" ]; then
+                SPRING_BOOT_CT_COMPONENTS="swatch-api swatch-tally swatch-system-conduit"
+                if [[ " ${SPRING_BOOT_CT_COMPONENTS} " != *" ${COMPONENT_NAME} "* ]]; then
+                  UPDATED_ARGS="$UPDATED_ARGS --set-parameter ${COMPONENT_NAME}/QUARKUS_PROFILE=ephemeral,component-tests"
+                fi
+              fi
 
               echo "update-extra-deploy-args: final args='$UPDATED_ARGS'"
               printf "%s" "$UPDATED_ARGS" > $(results.UPDATED_EXTRA_DEPLOY_ARGS.path)

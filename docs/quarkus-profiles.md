@@ -74,6 +74,30 @@ Quarkus profiles allow different configurations to be applied based on the runti
 
 **Usage**: Set via deployment configurations in CI/CD pipelines
 
+### `component-tests` - Component Tests Profile
+
+**Purpose**: Extra Quarkus config for OpenShift **component-test** deploys. Compose it with
+`ephemeral` so CT keeps ephemeral defaults while applying CT-only overrides
+(`%component-tests.*`).
+
+**Why a separate profile**: `ephemeral` is also used for IQE / manual ephemeral work and should
+stay aligned with that environment. Component tests often need different wiring (mocks,
+removed dependencies, tighter timeouts, etc.) without changing plain ephemeral behavior.
+
+**Usage** (Bonfire / OpenShift CT) — **scope to the service under test**:
+```bash
+# component/PARAM — do not set QUARKUS_PROFILE for the whole deploy
+--set-parameter swatch-contracts/QUARKUS_PROFILE=ephemeral,component-tests
+```
+
+List `component-tests` last so it wins on overlapping keys. 
+
+**Local CT**: keep using `dev` (`quarkus:dev`); do not activate `component-tests` locally
+unless you intentionally override OpenShift-oriented `%component-tests.*` values.
+
+Services can define any `%component-tests.*` keys they need under their own
+`application.properties` (or shared modules).
+
 ### `stage` - Staging Environment Profile
 
 **Purpose**: Pre-production staging environment
@@ -150,7 +174,11 @@ export QUARKUS_PROFILE=dev,ephemeral
 Profiles can be combined using comma separation:
 ```bash
 QUARKUS_PROFILE=dev,kafka-queue
+QUARKUS_PROFILE=ephemeral,component-tests
 ```
+
+When multiple profiles are active, **the last profile has priority** for overlapping
+keys (Quarkus checks profiles from last to first).
 
 ## Common Configuration Patterns
 
