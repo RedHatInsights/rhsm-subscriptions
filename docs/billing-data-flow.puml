@@ -1,0 +1,380 @@
+@startuml
+' Billing pipeline data flow — origins & meaning
+' Related: SWATCH-5050 (CustomerAWSAccountId), SWATCH-3651 (Concurrent Agreements)
+
+skinparam backgroundColor #FEFEFE
+skinparam defaultFontSize 11
+skinparam shadowing false
+
+skinparam class {
+  BorderColor #555555
+  BackgroundColor #F8F8F8
+  HeaderBackgroundColor #E0E0E0
+  AttributeFontSize 10
+}
+
+skinparam package {
+  BorderColor #AAAAAA
+  BackgroundColor #FFFFFF
+  FontSize 12
+}
+
+skinparam note {
+  BackgroundColor #FFFDE7
+  BorderColor #F9A825
+  FontSize 10
+}
+
+skinparam rectangle {
+  RoundCorner 10
+}
+
+title SWATCH Billing Pipeline — Data Origins & Flow
+
+' ============================================================
+' EXTERNAL DATA SOURCES
+' ============================================================
+
+package "External Data Sources" as pkg_ext #F3E5F5 {
+
+  class "Prometheus Metric Labels\n(OpenShift / cloud metering)" as PromLabels {
+    billing_marketplace_account
+    .. = AWS account ID (123456789012) ..
+    azure_subscription_id
+    .. = Azure subscription ID ..
+    billing_marketplace
+    .. = aws | azure | ... ..
+  }
+
+  class "IT Subscription Search API\n(ExternalReference)" as ExtRef {
+    awsMarketplace.customerAccountID
+    .. = AWS account ID (123456789012) ..
+    awsMarketplace.customerID
+    .. = marketplace token (CustomerIdentifier) ..
+    awsMarketplace.productCode
+    .. = AWS Marketplace product code ..
+    awsMarketplace.sellerAccount
+    .. = Red Hat's AWS seller account ..
+  }
+
+  class "Partner Gateway API\n(PartnerEntitlementV1)" as PartnerEnt {
+    partnerIdentities.customerAwsAccountId
+    .. = AWS account ID ..
+    partnerIdentities.awsCustomerId
+    .. = marketplace token ..
+    partnerIdentities.sellerAccountId
+    .. = Red Hat's AWS seller account ..
+    purchase.vendorProductCode
+    .. = AWS product code ..
+  }
+}
+
+' ============================================================
+' SWATCH-METRICS (reads Prometheus, produces Events)
+' ============================================================
+
+package "swatch-metrics — Prometheus Collection" as pkg_metrics #E8F5E9 {
+
+  class "Event\n(Kafka: service-instance-ingress)" as MetricsEvent {
+    orgId
+    billingProvider — from label billing_marketplace
+    <color:#1565C0>billingAccountId</color>
+    .. = azure_subscription_id (Azure, takes priority) ..
+    .. = billing_marketplace_account (AWS / others) ..
+    metricId, value
+    timestamp
+    instanceId — cluster/instance identifier
+  }
+}
+
+' ============================================================
+' CONTRACTS DATA (swatch-contracts)
+' ============================================================
+
+package "swatch-contracts — Subscription & Contract Storage" as pkg_contracts #F3E5F5 {
+
+  class "SubscriptionEntity\n(PostgreSQL)" as SubEntity {
+    subscriptionId
+    orgId
+    <color:#1565C0>billingAccountId</color>
+    .. = AWS account ID (from externalRef.customerAccountID) ..
+    <color:#C62828>billingProviderId</color>
+    .. = composite: "productCode;customerID;sellerAccount" ..
+    billingProvider
+    .. = AWS | AZURE | RED_HAT ..
+    startDate / endDate
+    offering → OfferingEntity (SKU)
+  }
+
+  class "ContractEntity\n(PostgreSQL)" as ContractEntity {
+    orgId
+    <color:#1565C0>billingAccountId</color>
+    <color:#C62828>billingProviderId</color>
+    billingProvider
+    startDate / endDate
+    metrics[] → ContractMetricEntity
+    .. { metricId, value = contracted quantity } ..
+  }
+
+  note bottom of SubEntity
+    <color:#C62828>**billingProviderId**</color> is built from 3 values:
+    ""productCode;customerID;sellerAccount""
+
+    **From IT Subscription API:**
+    SubscriptionDtoUtil.extractBillingProviderId()
+
+    **From Partner Gateway API:**
+    ContractEntityMapper.extractBillingProviderId()
+
+    Both produce the same format.
+  end note
+}
+
+' ============================================================
+' TALLY (origin of usage data)
+' ============================================================
+
+package "swatch-tally — Usage Aggregation" as pkg_tally #E8F5E9 {
+
+  class "TallySnapshot\n(in TallySummary, Kafka: tally-summary)" as TallySnap {
+    orgId — customer organisation
+    snapshotDate — measurement timestamp
+    productId — e.g. rosa, rhel-for-x86-els-payg
+    sla — Premium | Standard | Self-Support
+    usage — Production | Development/Test
+    billingProvider — aws | azure | ...
+    <color:#1565C0>billingAccountId</color>
+    .. = from Event (originally a Prometheus label) ..
+    .. = the AWS account ID (123456789012) ..
+    granularity — Hourly (only Hourly is billable)
+    ──
+    tallyMeasurements[]:
+      metricId — vCPUs | Cores | Instance-hours | ...
+      value — measurement for this snapshot
+      currentTotal — running month total
+  }
+
+  note bottom of TallySnap
+    swatch-tally does **not** read Prometheus directly.
+    It consumes Events from Kafka (produced by swatch-metrics).
+
+    Event.billingAccountId → UsageCalculation.Key
+    → TallySnapshot.billingAccountId
+
+    The nightly/HBI path always sets
+    billingAccountId = ""_ANY"" (not billable).
+  end note
+}
+
+' ============================================================
+' BILLABLE USAGE (delta calculation)
+' ============================================================
+
+package "swatch-billable-usage — Delta Calc & Remittance" as pkg_billable #E3F2FD {
+
+  class "BillableUsage\n(Kafka: billable-usage-out)" as BillableUsage {
+    uuid — remittance record ID (set after DB persist)
+    **orgId** <<agg-key>>
+    **productId** <<agg-key>>
+    **metricId** <<agg-key>>
+    **sla** <<agg-key>>
+    **usage** <<agg-key>>
+    **billingProvider** <<agg-key>>
+    <color:#1565C0>**billingAccountId** <<agg-key>></color>
+    .. = copied from TallySnapshot ..
+    value — billable delta (ceil-rounded integer)
+    currentTotal — running month total
+    billingFactor — metric → billing unit conversion
+    vendorProductCode
+    ──
+    status:
+    .. PENDING — awaiting submission to cloud provider ..
+    .. GRATIS — first month of contract, metric has ..
+    ..   enableGratisUsage=true; NOT sent to provider ..
+    .. SUCCEEDED — cloud provider accepted ..
+    .. FAILED — cloud provider rejected (permanent) ..
+    .. RETRYABLE — transient error, will retry ..
+  }
+
+  class "billable_usage_remittance\n(PostgreSQL)" as Remittance {
+    uuid <<PK>>
+    org_id, product_id, metric_id
+    billing_provider
+    <color:#1565C0>billing_account_id</color>
+    accumulation_period — YYYY-MM
+    sla, usage
+    remittance_pending_date
+    remitted_pending_value — billable delta
+    tally_id — source snapshot
+    status — mirrors BillableUsage status
+    error_code — on failure
+    billed_on — timestamp of successful billing
+  }
+
+  note bottom of BillableUsage
+    **Delta calculation:**
+    contractedCoverage = sum of contract metric values
+    applicableUsage = max(0, currentTotal − contractedCoverage)
+    alreadyRemitted = sum of prior remittances this month
+    **value = ceil(max(0, applicableUsage − alreadyRemitted))**
+  end note
+
+  BillableUsage -down-> Remittance : persist\n(status=PENDING or GRATIS)
+}
+
+' ============================================================
+' KAFKA STREAMS AGGREGATION
+' ============================================================
+
+package "Kafka Streams — Hourly Aggregation\n(inside swatch-billable-usage)" as pkg_streams #E3F2FD {
+
+  class "BillableUsageAggregateKey\n(7-field grouping key)" as AggKey {
+    orgId
+    productId
+    metricId
+    sla
+    usage
+    billingProvider
+    <color:#1565C0>billingAccountId</color>
+    .. Different accounts are NEVER combined ..
+  }
+
+  class "BillableUsageAggregate\n(Kafka: billable-usage-hourly-aggregate)" as Agg {
+    aggregateId — per-window UUID
+    aggregateKey — the 7-field key
+    totalValue — sum of all values in window
+    windowTimestamp — hour-truncated
+    remittanceUuids[] — for status update
+  }
+
+  Agg *-- AggKey
+}
+
+' ============================================================
+' AWS CONTEXT LOOKUP & SUBMISSION
+' ============================================================
+
+package "swatch-producer-aws — AWS Submission" as pkg_producer #FFF3E0 {
+
+  class "AwsUsageContext\n(from GET /internal/awsUsageContext)" as AwsCtx {
+    rhSubscriptionId
+    .. = subscription.subscriptionId ..
+    productCode
+    .. = <color:#C62828>billingProviderId</color>.split("";"")[0] ..
+    customerId (legacy CustomerIdentifier)
+    .. = <color:#C62828>billingProviderId</color>.split("";"")[1] ..
+    .. = the marketplace token ..
+    awsSellerAccountId
+    .. = <color:#C62828>billingProviderId</color>.split("";"")[2] ..
+    .. = Red Hat's seller account ..
+    <color:#1565C0>customerAwsAccountId</color>
+    .. = subscription.<color:#1565C0>billingAccountId</color> ..
+    .. = the AWS account number ..
+    subscriptionStartDate
+  }
+
+  class "BatchMeterUsageRequest\n(AWS Marketplace SDK)" as AwsReq {
+    productCode
+    .. = AwsUsageContext.productCode ..
+  }
+
+  class "UsageRecord\n(AWS Marketplace SDK)" as UsageRec {
+    dimension — metric mapping
+    quantity — totalValue from aggregate
+    timestamp — windowTimestamp from aggregate
+    ──
+    <color:#1565C0>customerAWSAccountId</color> (flag ON)
+    .. = AwsUsageContext.customerAwsAccountId ..
+    .. = the AWS account number ..
+    ──
+    customerIdentifier (flag OFF, legacy)
+    .. = AwsUsageContext.customerId ..
+    .. = the marketplace token ..
+  }
+
+  AwsReq *-- UsageRec
+
+  note bottom of AwsCtx
+    **buildAwsUsageContext() splits the composite:**
+    parts = subscription.billingProviderId.split(";")
+    productCode    = parts[0]
+    customerId     = parts[1]  (marketplace token)
+    sellerAccount  = parts[2]
+
+    **billingAccountId is separate:**
+    customerAwsAccountId = subscription.billingAccountId
+    (the AWS account number)
+
+    **These are two different values:**
+    | Field | Origin | Value |
+    | <color:#1565C0>billingAccountId</color> | externalRef.customerAccountID | AWS acct 123456789012 |
+    | <color:#C62828>billingProviderId[1]</color> | externalRef.customerID | Marketplace token |
+  end note
+}
+
+' ============================================================
+' CONTRACT COVERAGE LOOKUP
+' ============================================================
+
+package "Contract Coverage Lookup\n(from swatch-billable-usage → swatch-contracts)" as pkg_coverage #F3E5F5 {
+
+  class "GET /internal/contracts" as ContractLookup {
+    **Request:**
+    orgId, productId, vendorProductCode
+    billingProvider, billingAccountId, date
+    ──
+    **Response: Contract[]**
+    metrics[].metricId — contracted metric
+    metrics[].value — contracted quantity (coverage cap)
+    startDate / endDate
+    ──
+    Contracts starting this month with
+    enableGratisUsage=true → GRATIS
+  }
+}
+
+' ============================================================
+' FLOW ARROWS
+' ============================================================
+
+PromLabels -down-> MetricsEvent : "PrometheusMeteringController\nreads labels, creates Event"
+
+MetricsEvent -down-> TallySnap : "Kafka: service-instance-ingress\n→ swatch-tally consumes Events\n→ UsageCalculation → TallySnapshot"
+
+ExtRef -down-> SubEntity : "sync via\nSubscriptionDtoUtil"
+PartnerEnt -down-> ContractEntity : "sync via\nContractEntityMapper"
+ContractEntity -right-> SubEntity : "creates\nsubscription"
+
+TallySnap -right-> BillableUsage : "**Stage 1:** BillableUsageMapper\n(per snapshot metric,\nPAYG + Hourly only)"
+
+ContractLookup -up-> BillableUsage : "coverage caps\n→ delta calculation\n→ GRATIS check"
+
+BillableUsage -right-> AggKey : "**Stage 3:**\nKafka Streams\ngroupBy + window"
+
+Agg -right-> AwsCtx : "**Stage 4:** lookup\nGET /internal/awsUsageContext\n(billingAccountId = awsAccountId)"
+
+SubEntity -right-> AwsCtx : "**splits billingProviderId**\nand reads billingAccountId"
+
+AwsCtx -right-> AwsReq : "**Stage 5:**\nbuild request"
+
+' Status feedback
+note right of Remittance
+  **Stage 6: Status feedback**
+  producer-aws → Kafka: billable-usage-status
+  billable-usage updates remittance
+  records by remittanceUuids
+  (SUCCEEDED | FAILED + errorCode)
+end note
+
+' ============================================================
+' LEGEND
+' ============================================================
+
+legend bottom left
+  | Color | Meaning |
+  | <color:#1565C0>**blue**</color> | billingAccountId lineage (AWS account number) |
+  | <color:#C62828>**red**</color> | billingProviderId lineage (composite: productCode;customerID;seller) |
+  | **bold** <<agg-key>> | Part of Kafka Streams 7-field aggregation key |
+end legend
+
+@enduml
