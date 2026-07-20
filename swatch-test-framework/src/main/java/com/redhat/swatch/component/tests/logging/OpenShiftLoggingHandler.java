@@ -24,19 +24,40 @@ import com.redhat.swatch.component.tests.api.clients.OpenshiftClient;
 import com.redhat.swatch.component.tests.core.ServiceContext;
 import com.redhat.swatch.component.tests.core.extensions.OpenShiftExtensionBootstrap;
 import java.time.Instant;
-import java.util.HashSet;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 
 public class OpenShiftLoggingHandler extends ServiceLoggingHandler {
 
+  /**
+   * Bound for per-line dedupe during a single test. Evicts eldest entries so chatty services cannot
+   * grow the dedupe set without limit.
+   */
+  private static final int MAX_SEEN_LINES = 1_000;
+
+  /** Keep only the newest lines from a large log fetch. */
+  private static final int MAX_LINES_PER_FETCH = 1_000;
+
+  /** Truncate retained lines; assertContains messages are short. */
+  private static final int MAX_LINE_LENGTH = 2_048;
+
   private final OpenshiftClient client;
   private final Map<String, String> podLabels;
   private final String containerName;
   private Instant logsSince;
-  private final Set<String> seenLines = new HashSet<>();
+
+  /** Bounded dedupe of formatted log lines for a single test. */
+  private final Set<String> seenLines =
+      Collections.newSetFromMap(
+          new LinkedHashMap<>() {
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<String, Boolean> eldest) {
+              return size() > MAX_SEEN_LINES;
+            }
+          });
 
   public OpenShiftLoggingHandler(
       Map<String, String> podLabels, String containerName, ServiceContext context) {
@@ -48,7 +69,7 @@ public class OpenShiftLoggingHandler extends ServiceLoggingHandler {
   }
 
   @Override
-  public void onTestStarted() {
+  public synchronized void onTestStarted() {
     super.onTestStarted();
 
     this.logsSince = Instant.now();
@@ -56,8 +77,15 @@ public class OpenShiftLoggingHandler extends ServiceLoggingHandler {
   }
 
   @Override
+  public synchronized void onTestStopped() {
+    super.onTestStopped();
+    this.seenLines.clear();
+    this.logsSince = null;
+  }
+
+  @Override
   protected synchronized void handle() {
-    if (!isTestActive() || logsSince == null) {
+    if (!isTestActive() || logsSince == null || !isLogEnabled()) {
       return;
     }
 
@@ -65,14 +93,46 @@ public class OpenShiftLoggingHandler extends ServiceLoggingHandler {
     Map<String, String> newLogs = client.logsSince(podLabels, containerName, logsSince);
     this.logsSince = fetchTime;
 
-    for (Entry<String, String> entry : newLogs.entrySet()) {
-      if (StringUtils.isNotEmpty(entry.getValue())) {
-        String formatted = formatPodLogs(entry.getKey(), entry.getValue());
-        if (seenLines.add(formatted)) {
-          onLines(formatted);
-        }
-      }
+    newLogs.forEach(this::appendNewPodLogLines);
+  }
+
+  /**
+   * Lines stay in the bounded {@code logs} buffer for {@code assertContains}; mirroring every line
+   * to INFO floods the CT runner under {@code -Dlog.level=FINE}.
+   */
+  @Override
+  protected void logInfo(String line) {
+    // intentionally empty
+  }
+
+  private void appendNewPodLogLines(String podName, String podLogs) {
+    if (StringUtils.isEmpty(podLogs)) {
+      return;
     }
+
+    String[] lines = podLogs.split("\\r?\\n");
+    int start = Math.max(0, lines.length - MAX_LINES_PER_FETCH);
+    for (int i = start; i < lines.length; i++) {
+      appendNewLine(podName, lines[i]);
+    }
+  }
+
+  private void appendNewLine(String podName, String line) {
+    if (StringUtils.isEmpty(line)) {
+      return;
+    }
+
+    String formatted = truncate(formatPodLogs(podName, truncate(line)));
+    if (seenLines.add(formatted)) {
+      onLine(formatted);
+    }
+  }
+
+  private static String truncate(String line) {
+    if (line.length() <= MAX_LINE_LENGTH) {
+      return line;
+    }
+    return line.substring(0, MAX_LINE_LENGTH);
   }
 
   private String formatPodLogs(String podName, String log) {
