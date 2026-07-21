@@ -57,6 +57,24 @@ public class SubscriptionReportAccessComponentTest extends BaseContractComponent
 
   @ParameterizedTest(name = "authorizationModel={0}")
   @EnumSource(AuthorizationModel.class)
+  @TestPlanName("auth-access-TC003")
+  void shouldAllowV2ReportWhenReaderAccessGranted(AuthorizationModel authorizationModel) {
+    // Given
+    String userId = RandomUtils.generateRandom();
+    var requestHeaders = SwatchUtils.securityHeadersWithUserRole(orgId, userId);
+    String identityHeader = requestHeaders.get(X_RH_IDENTITY_HEADER);
+    givenSubscriptionsAccess(
+        authorizationModel, userId, identityHeader, SubscriptionsAccessLevel.GRANTED_READER);
+
+    // When
+    Response response = whenGetV2SkuCapacityReport(requestHeaders);
+
+    // Then
+    thenResponseStatusIs(response, HttpStatus.SC_OK);
+  }
+
+  @ParameterizedTest(name = "authorizationModel={0}")
+  @EnumSource(AuthorizationModel.class)
   @TestPlanName("auth-access-TC002")
   void shouldDenyV2ReportWhenAccessMissing(AuthorizationModel authorizationModel) {
     // Given

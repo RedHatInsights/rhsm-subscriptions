@@ -2264,6 +2264,20 @@ role must not be accepted so `SWATCH_TEST_APIS_ENABLED` cannot bypass RBAC on th
 - **Expected Result**:
   - Request is authorized and the API responds successfully
 
+**auth-access-TC003 - Customer with reader-level subscriptions access can read V2 subscription report**
+- **Description**: Verify that a User identity granted only `subscriptions:reports:read` (reader)
+  access receives HTTP 200 from the V2 subscription capacity report API (RBAC and Kessel).
+- **Setup**:
+  - **RBAC**: stub RBAC to grant `subscriptions:reports:read` for the test identity
+  - **KESSEL**: stub Kessel Check to return `ALLOWED_TRUE` for the test principal / relation
+  - Prepare a User `x-rh-identity` header for the test org (with resolvable `user_id`)
+- **Action**:
+  - GET `/api/rhsm-subscriptions/v2/subscriptions/products/{product_id}` with the identity header
+- **Verification**:
+  - HTTP 200
+- **Expected Result**:
+  - Request is authorized and the API responds successfully (reader permission is sufficient)
+
 **auth-access-TC002 - Customer without subscriptions access is denied V2 subscription report**
 - **Description**: Verify that a User identity with no subscriptions permissions receives HTTP 403
   from the V2 subscription capacity report API (RBAC and Kessel).

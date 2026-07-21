@@ -23,6 +23,7 @@ package domain;
 /** Permission outcome stubbed for the subscriptions application. */
 public enum SubscriptionsAccessLevel {
   GRANTED_ADMIN("subscriptions:*:*"),
+  GRANTED_READER("subscriptions:reports:read"),
   DENIED;
 
   private final String permission;
