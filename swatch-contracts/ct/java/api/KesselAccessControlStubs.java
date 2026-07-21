@@ -29,12 +29,56 @@ import org.apache.http.HttpStatus;
 public class KesselAccessControlStubs {
 
   private static final String CHECK_PATH = "/kessel.inventory.v1beta2.KesselInventoryService/Check";
+  private static final String WORKSPACE_PATH = "/api/rbac/v2/workspaces/";
   private static final String SUBSCRIPTIONS_REPORT_VIEW = "subscriptions_report_view";
 
   private final ContractsWiremockService wiremockService;
 
   KesselAccessControlStubs(ContractsWiremockService wiremockService) {
     this.wiremockService = wiremockService;
+  }
+
+  public void stubDefaultWorkspace(String orgId) {
+    wiremockService
+        .given()
+        .contentType("application/json")
+        .body(
+            Map.of(
+                "request",
+                Map.of(
+                    "method",
+                    "GET",
+                    "urlPath",
+                    WORKSPACE_PATH,
+                    "queryParameters",
+                    Map.of("type", Map.of("equalTo", "default")),
+                    "headers",
+                    Map.of("x-rh-rbac-org-id", Map.of("equalTo", orgId))),
+                "response",
+                Map.of(
+                    "status",
+                    HttpStatus.SC_OK,
+                    "headers",
+                    Map.of("Content-Type", "application/json"),
+                    "jsonBody",
+                    Map.of(
+                        "data",
+                        List.of(
+                            Map.of(
+                                "id",
+                                orgId + "-default-workspace",
+                                "name",
+                                "Default",
+                                "type",
+                                "default")))),
+                "priority",
+                1,
+                "metadata",
+                wiremockService.getMetadataTags()))
+        .when()
+        .post("/__admin/mappings")
+        .then()
+        .statusCode(201);
   }
 
   public void stubSubscriptionsAccess(String userId, SubscriptionsAccessLevel accessLevel) {

@@ -80,6 +80,7 @@ public class SubscriptionReportAccessComponentTest extends BaseContractComponent
       SubscriptionsAccessLevel accessLevel) {
     if (authorizationModel == AuthorizationModel.KESSEL) {
       unleash.enableKesselRbac();
+      wiremock.forKesselAccessControl().stubDefaultWorkspace(orgId);
       wiremock.forKesselAccessControl().stubSubscriptionsAccess(userId, accessLevel);
     } else {
       unleash.disableKesselRbac();
