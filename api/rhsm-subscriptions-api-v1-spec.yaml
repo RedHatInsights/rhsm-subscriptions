@@ -431,6 +431,365 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/InstanceResponse'
+  /v1/capacity/products/{product_id}/{metric_id}:
+    description: 'Operations for capacity report for a given account and product'
+    parameters:
+      - name: product_id
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/ProductId"
+        description: "The ID for the product we wish to query"
+      - name: metric_id
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/MetricId"
+        description: "The metric ID for the product we wish to query"
+      - name: offset
+        in: query
+        schema:
+          type: integer
+        description: "The number of items to skip before starting to collect the result set"
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+        description: "The numbers of items to return"
+    get:
+      summary: "Fetch a capacity report for an account and product."
+      operationId: getCapacityReportByMetricId
+      parameters:
+        - name: billing_account_id
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/BillingAccountId"
+          description: "The billing account ID for the product we wish to query"
+        - name: granularity
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/GranularityType'
+          description: "The level of granularity to return."
+        - name: category
+          in: query
+          schema:
+            $ref: '#/components/schemas/ReportCategory'
+          description: 'The category to fetch data for'
+        - name: sla
+          in: query
+          schema:
+            $ref: '#/components/schemas/ServiceLevelType'
+          description: "Include only capacity for the specified service level."
+        - name: usage
+          in: query
+          schema:
+            $ref: '#/components/schemas/UsageType'
+          description: "Include only capacity for the specified usage level."
+        - name: beginning
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+          description: "Defines the start of the report period. Dates should be provided in ISO 8601
+            format but the only accepted offset is UTC. E.g. 2017-07-21T17:32:28Z"
+        - name: ending
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+          description: "Defines the end of the report period.  Defaults to the current time. Dates should
+            be provided in UTC."
+      responses:
+        '200':
+          description: 'The request for a capacity report was successful.'
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/CapacityReportByMetricId"
+              example:
+                data:
+                  - date: '2017-08-01T17:32:05Z'
+                    has_data: true
+                    value: 100.0
+                  - date: '2017-08-02T17:31:04Z'
+                    has_data: false
+                    value: 0.0
+                  - date: '2017-08-03T17:31:04Z'
+                    has_data: false
+                    value: 0.0
+                  - date: '2017-08-04T17:31:04Z'
+                    has_data: false
+                    value: 0.0
+                  - date: '2017-08-05T17:31:04Z'
+                    has_data: false
+                    value: 0.0
+                links:
+                  first: '/api/rhsm-subscriptions/v1/capacity/RHEL%20for%20x86/Sockets?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=0&limit=5'
+                  last: '/api/rhsm-subscriptions/v1/capacity/RHEL%20for%20x86/Sockets?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=5&limit=5'
+                  previous: null
+                  next: '/api/rhsm-subscriptions/v1/capacity/RHEL%20for%20x86/Sockets?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=5&limit=5'
+                meta:
+                  count: 10
+                  product: RHEL Server
+                  granularity: Daily
+                  service_level: Premium
+        '400':
+          $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags:
+        - capacity
+  /v1/subscriptions/billing_account_ids:
+    description: Fetch billing account IDs by Org
+    get:
+      operationId: fetchSubscriptionBillingAccountIdsForOrg
+      parameters:
+        - name: org_id
+          in: query
+          schema:
+            type: string
+          required: true
+        - name: product_tag
+          in: query
+          schema:
+            type: string
+          required: false
+      responses:
+        '200':
+          description: List of billing account ids by org
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BillingAccountIdResponse"
+              example:
+                ids:
+                  - billing_account_id: "151968c3-cf37-47f4-bd76-affbdfb91245"
+                    billing_provider: "aws"
+                    org_id: "123"
+                    product_tag: "rosa"
+                  - billing_account_id: "2cfa4d67-58c9-48c1-9673-bc539b4ea51a"
+                    billing_provider: "azure"
+                    org_id: "124"
+                    product_tag: "rhods"
+        '400':
+          $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags:
+        - contracts
+  /v1/subscriptions/products/{product_id}:
+    description: "Operations for total capacity by SKU for all of the org's active subscriptions for given Swatch product ID."
+    parameters:
+      - name: product_id
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/ProductId"
+        description: "The ID for the product we wish to query"
+      - name: offset
+        in: query
+        schema:
+          type: integer
+          minimum: 0
+        description: "The number of items to skip before starting to collect the result set"
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+        description: "The numbers of items to return"
+    get:
+      summary: "Returns the total capacity by SKU for all of the org's active subscriptions for given Swatch product ID."
+      operationId: getSkuCapacityReport
+      deprecated: true
+      parameters:
+        - name: category
+          in: query
+          schema:
+            $ref: '#/components/schemas/ReportCategory'
+          description: 'The category to fetch data for'
+        - name: sla
+          in: query
+          schema:
+            $ref: '#/components/schemas/ServiceLevelType'
+          description: "Include only capacity for the specified service level."
+        - name: usage
+          in: query
+          schema:
+            $ref: '#/components/schemas/UsageType'
+          description: "Include only capacity for the specified usage level."
+        - name: billing_provider
+          in: query
+          schema:
+            $ref: '#/components/schemas/BillingProviderType'
+          description: "Include only report data matching the specified billing provider"
+        - name: billing_account_id
+          in: query
+          schema:
+            $ref: '#/components/schemas/BillingAccountId'
+          description: "Include only report data matching the specified billing account"
+        - name: beginning
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: "Defines the start of the report period. Dates should be provided in ISO 8601
+             format but the only accepted offset is UTC. E.g. 2017-07-21T17:32:28Z"
+        - name: ending
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: "Defines the end of the report period.  Defaults to the current time. Dates should
+             be provided in UTC."
+        - name: metric_id
+          in: query
+          schema:
+            type: string
+          description: "Filter subscriptions to those that contribute to a specific unit of measure"
+        - name: sort
+          in: query
+          schema:
+            $ref: "#/components/schemas/SkuCapacityReportSort"
+          description: "What property to sort by (optional)"
+        - name: dir
+          in: query
+          schema:
+            $ref: "#/components/schemas/SortDirection"
+          description: "Which direction to sort by (default: asc)"
+      responses:
+        '200':
+          description: "The request for the account's subscription capacities was successful."
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/SkuCapacityReport"
+              example:
+                data:
+                  - sku: RH00011
+                    product_name: "Red Hat Enterprise Linux Server, Premium (Physical and 4 Virtual Nodes)(L3 Only)"
+                    service_level: Premium
+                    usage: Production
+                    subscriptions:
+                      - id: "1234567890"
+                        number: "1234567891"
+                      - id: "1234567892"
+                        number: "1234567893"
+                      - id: "1234567894"
+                        number: "1234567895"
+                    next_event_date: "2020-04-01T00:00:00Z"
+                    next_event_type: Subscription Start
+                    quantity: 3
+                    capacity: 3
+                    hypervisor_capacity: 3
+                    total_capacity: 6
+                    metric_id: Sockets
+                  - sku: RH00010
+                    product_name: "Red Hat Enterprise Linux Server"
+                    service_level: Self-Support
+                    usage: Production
+                    subscriptions:
+                      - id: "1234567896"
+                        number: "1234567897"
+                      - id: "1234567898"
+                        number: "1234567899"
+                      - id: "1234567900"
+                        number: "1234567901"
+                    next_event_date: "2020-04-02T00:00:00Z"
+                    next_event_type: Subscription Start
+                    quantity: 3
+                    capacity: 3
+                    hypervisor_capacity: 3
+                    total_capacity: 6
+                    metric_id: Sockets
+                  - sku: RH00009
+                    product_name: "Red Hat Enterprise Linux Server, Premium"
+                    service_level: Premium
+                    usage: Production
+                    subscriptions:
+                      - id: "1234567902"
+                        number: "1234567903"
+                      - id: "1234567904"
+                        number: "1234567905"
+                      - id: "1234567906"
+                        number: "1234567907"
+                    next_event_date: "2020-04-01T00:00:00Z"
+                    next_event_type: Subscription End
+                    quantity: 3
+                    capacity: 6
+                    hypervisor_capacity: 6
+                    total_capacity: 12
+                    metric_id: Cores
+                meta:
+                  count: 3
+        '400':
+          $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags:
+        - subscriptions
+  /v1/utilization/org-preferences:
+    get:
+      tags:
+        - OrgPreferences
+      operationId: getOrgPreferences
+      summary: Get organization utilization preferences
+      description: >-
+        Retrieves the organization utilization preferences for the organization resolved
+        from the authenticated x-rh-identity header.
+      responses:
+        '200':
+          description: Preferences retrieved successfully. Returns system default threshold if not configured.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrgPreferencesResponse"
+        '403':
+          $ref: "../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
+    post:
+      tags:
+        - OrgPreferences
+      operationId: updateOrgPreferences
+      summary: Update organization utilization preferences
+      description: >-
+        Accepts organization utilization preferences (for example custom over-usage threshold)
+        and persists them for the organization resolved from the authenticated x-rh-identity header.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrgPreferencesRequest"
+      responses:
+        '200':
+          description: Preferences were applied successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrgPreferencesResponse"
+        '400':
+          $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
   /v1/openapi.json:
     $ref: "../spec/openapi-paths.yaml#/openapi-json"
   /v1/openapi.yaml:
@@ -938,6 +1297,60 @@ components:
         - Subscription Start
         - Subscription End
 
+    CapacityReportByMetricId:
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/CapacitySnapshotByMetricId"
+        links:
+          $ref: "#/components/schemas/PageLinks"
+        meta:
+          type: object
+          properties:
+            count:
+              type: integer
+            product:
+              type: string
+            metric_id:
+              type: string
+            billing_account_id:
+              type: string
+            granularity:
+              $ref: '#/components/schemas/GranularityType'
+            service_level:
+              $ref: '#/components/schemas/ServiceLevelType'
+            usage:
+              $ref: '#/components/schemas/UsageType'
+            category:
+              $ref: '#/components/schemas/ReportCategory'
+          required:
+            - count
+            - product
+            - metric_id
+            - granularity
+    CapacitySnapshotByMetricId:
+      required:
+        - date
+        - has_data
+        - value
+      properties:
+        date:
+          type: string
+          format: date-time
+          description: "The start date for this snapshot entry. Dates are returned in UTC. Clients must
+            consult the 'granularity' field in the CapacityReport to determine the length of time each
+            CapacitySnapshot covers."
+        has_data:
+          type: boolean
+        value:
+          description: "Capacity value"
+          type: integer
+          format: int32
+          minimum: 0
+        has_infinite_quantity:
+          type: boolean
+
     SkuCapacitySubscription:
       properties:
         id:
@@ -1030,6 +1443,34 @@ components:
             - count
             - product
             - subscription_type
+    OrgPreferencesRequest:
+      type: object
+      required:
+        - custom_threshold
+      properties:
+        custom_threshold:
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 100
+          description: Over-usage threshold margin as a whole-number percentage (e.g. 5 means 5%).
+    OrgPreferencesResponse:
+      type: object
+      required:
+        - custom_threshold
+      properties:
+        custom_threshold:
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 100
+          description: Persisted over-usage threshold margin as a whole-number percentage.
+        last_modified:
+          type: string
+          format: date-time
+          description: >-
+            UTC timestamp when preferences were last persisted. Omitted when the organization
+            has not configured custom preferences and the system default threshold is returned.
     ProductId:
       type: string
       format: ProductId
