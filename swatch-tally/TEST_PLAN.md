@@ -2153,7 +2153,7 @@ Shared **non-PAYG physical RHEL fixture** (TC001–TC006): product RHEL for x86,
 
 ## Nightly Tally with the HBI database
 
-**nightly-tally-TC001 - Validate tally on physical RHEL sockets with socket increase mapping **
+**nightly-tally-TC001 - Validate tally on physical RHEL sockets with socket increase mapping**
 
 - **Description**: Verify that the tally data shows increase count and system table show the correct data
 - **Setup**: Component test environment with swatch-tally is running and an instance of insights db is up, your org is 

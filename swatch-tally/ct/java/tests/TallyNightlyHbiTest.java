@@ -20,12 +20,15 @@
  */
 package tests;
 
+import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static utils.TallyTestProducts.RHEL_FOR_X86;
 
+import api.MessageValidators;
+import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
 import java.time.OffsetDateTime;
 import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
@@ -182,27 +185,29 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
   }
 
   /**
-   * - **Description**: Verify that we can insert a RHEL product into the the HBI database -
-   * **Setup**: Component test environment with swatch-tally is running, an instance of insights db
-   * - **Action**: Create a host with a product that is a NON RHEL product - **Verification**: -
-   * verify that the host is non-null - verify that the host is exist in the HBI database - verify
-   * that you can sync tally without any errors - **Expected Result**: All the host inserted into
-   * the db have been deleted from the database
+   * - **Description**: Verify that a cloud host with RHEL product produces a TallySummary Kafka
+   * message - **Setup**: Component test environment with swatch-tally is running, an instance of
+   * insights db - **Action**: Create a cloud host with RHEL product facts and run nightly tally -
+   * **Verification**: - verify that the host exists in HBI - verify that a TallySummary message
+   * appears on the tally Kafka topic with the expected product and metric - **Expected Result**: A
+   * TallySummary message is produced, proving the host was accepted by the tally process
    */
   @Test
   void testNightlyTallyCloudProduct() {
-    // Given: Org is opted in and cloud host exists in HBI database
+    // Given: Org is opted in and cloud host with RHEL product exists in HBI database
     service.createOptInConfig(orgId);
-    SeededHost host = hbiSeeder.insertCloudHost(orgId);
+    SeededHost host = hbiSeeder.rhelHost(orgId).cores(8).sockets(2).cloudProvider("aws").insert();
     assertNotNull(host.hostId(), "Cloud host should be created");
     assertTrue(hbiSeeder.hostExists(host.hostId()), "Cloud host should exist in HBI database");
 
     // When: Nightly tally runs
     service.tallyOrg(orgId);
 
-    // Then: Tally processes the cloud host successfully without errors
-    // Note: Cloud products (ROSA, OpenShift) don't require cores/sockets and have
-    // different metric configurations than RHEL. The validation is that the host
-    // syncs from HBI to Swatch and tally processes it without throwing exceptions.
+    // Then: A TallySummary message is produced on the tally Kafka topic
+    kafkaBridge.waitForKafkaMessage(
+        TALLY,
+        MessageValidators.tallySummaryMatches(
+            orgId, RHEL_FOR_X86.productTag(), "Sockets", Granularity.DAILY),
+        1);
   }
 }

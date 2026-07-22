@@ -152,6 +152,10 @@ public final class TallyHbiDbSeeder {
     return new CloudHostBuilder(orgId);
   }
 
+  /**
+   * Builder for RHEL hosts. Defaults to physical infrastructure; call {@link #cloudProvider} to
+   * create a "RHEL on cloud" host (virtual infrastructure with cloud provider metadata).
+   */
   public class RhelHostBuilder {
     private final String orgId;
     private String inventoryId;
@@ -161,6 +165,8 @@ public final class TallyHbiDbSeeder {
     private int sockets = DEFAULT_SOCKETS;
     private String reporter = "component-test";
     private String[] reporters = new String[] {"component-test"};
+    private String cloudProvider;
+    private String providerId;
 
     private RhelHostBuilder(String orgId) {
       this.orgId = Objects.requireNonNull(orgId, "orgId is required");
@@ -201,6 +207,20 @@ public final class TallyHbiDbSeeder {
       return this;
     }
 
+    /**
+     * Set the cloud provider (e.g. "aws") to create a RHEL-on-cloud host. When set, the host uses
+     * virtual infrastructure and includes cloud provider metadata instead of physical.
+     */
+    public RhelHostBuilder cloudProvider(String cloudProvider) {
+      this.cloudProvider = cloudProvider;
+      return this;
+    }
+
+    public RhelHostBuilder providerId(String providerId) {
+      this.providerId = providerId;
+      return this;
+    }
+
     public SeededHost insert() {
       return insertRhelHost(
           orgId,
@@ -210,11 +230,16 @@ public final class TallyHbiDbSeeder {
           cores,
           sockets,
           reporter,
-          reporters);
+          reporters,
+          cloudProvider,
+          providerId);
     }
   }
 
-  /** Builder for cloud/non-RHEL hosts with fluent API. */
+  /**
+   * Builder for non-RHEL cloud hosts. For RHEL hosts on cloud infrastructure, use {@link
+   * #rhelHost(String)} with {@link RhelHostBuilder#cloudProvider(String)} instead.
+   */
   public class CloudHostBuilder {
     private final String orgId;
     private String inventoryId;
@@ -348,7 +373,7 @@ public final class TallyHbiDbSeeder {
   }
 
   /**
-   * Insert a RHEL host into the HBI database (insights schema).
+   * Insert a physical RHEL host (no cloud provider). Delegates to the full method.
    *
    * <p><b>IMPORTANT:</b> This method requires the production HBI database schema. Ensure all HBI
    * database migrations have been run before executing tests. The production schema uses
@@ -371,7 +396,49 @@ public final class TallyHbiDbSeeder {
       int sockets,
       String reporter,
       String[] reporters) {
+    return insertRhelHost(
+        orgId,
+        inventoryId,
+        subscriptionManagerId,
+        displayName,
+        cores,
+        sockets,
+        reporter,
+        reporters,
+        null,
+        null);
+  }
+
+  /**
+   * Insert a RHEL host into the HBI database. When cloudProvider is null, creates a physical host.
+   * When cloudProvider is set (e.g. "aws"), creates a virtual cloud host with RHEL product facts.
+   *
+   * @param orgId the organization ID
+   * @param inventoryId the inventory ID (must be unique)
+   * @param subscriptionManagerId the subscription manager ID
+   * @param displayName the display name for the host
+   * @param cores number of CPU cores (for system_profile)
+   * @param sockets number of CPU sockets (for system_profile)
+   * @param reporter the reporter string
+   * @param reporters the reporters array
+   * @param cloudProvider cloud provider name (null for physical, e.g. "aws" for cloud)
+   * @param providerId cloud provider instance ID (null for physical)
+   * @return seeded host record
+   */
+  public SeededHost insertRhelHost(
+      String orgId,
+      String inventoryId,
+      String subscriptionManagerId,
+      String displayName,
+      int cores,
+      int sockets,
+      String reporter,
+      String[] reporters,
+      String cloudProvider,
+      String providerId) {
     Objects.requireNonNull(orgId, "orgId is required");
+
+    boolean isCloud = cloudProvider != null;
 
     // Use defaults if null values passed
     String actualInventoryId =
@@ -385,11 +452,16 @@ public final class TallyHbiDbSeeder {
             : DEFAULT_DISPLAY_NAME + "-" + (UUID.randomUUID()).toString().substring(0, 8);
     String actualReporter = (reporter != null) ? reporter : "component-test";
     String[] actualReporters = (reporters != null) ? reporters : new String[] {"component-test"};
+    String actualProviderId =
+        isCloud
+            ? (providerId != null
+                ? providerId
+                : DEFAULT_PROVIDER_ID + UUID.randomUUID().toString().substring(0, 8))
+            : null;
 
     UUID hostId = UUID.randomUUID();
     UUID insightsId = UUID.randomUUID();
     OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
-    OffsetDateTime staleTimestamp = now.plusDays(7); // Default: 7 days from now
 
     // Validate sockets before INSERT to prevent orphaned records
     if (sockets == 0) {
@@ -401,16 +473,14 @@ public final class TallyHbiDbSeeder {
     insertedHostIds.add(hostId);
 
     try (Connection conn = getInsightsConnection()) {
-      // Production HBI schema has BOTH direct columns AND canonical_facts for backward
-      // compatibility
       String hostSql =
           """
           INSERT INTO hbi.hosts
-            (id, org_id, display_name, insights_id, subscription_manager_id,
+            (id, org_id, display_name, insights_id, subscription_manager_id, provider_id,
              created_on, modified_on, last_check_in,
              facts, groups, reporter, reporters)
           VALUES
-            (?, ?, ?, ?, ?,
+            (?, ?, ?, ?, ?, ?,
              ?, ?, ?,
              ?::jsonb, ?::jsonb, ?, ?)
           """;
@@ -419,36 +489,37 @@ public final class TallyHbiDbSeeder {
         ps.setObject(1, hostId);
         ps.setString(2, orgId);
         ps.setString(3, actualDisplayName);
-        ps.setObject(4, insightsId); // insights_id - direct column (NOT NULL in prod)
-        ps.setString(5, actualSubManId); // subscription_manager_id - direct column
-        ps.setObject(6, now); // created_on
-        ps.setObject(7, now); // modified_on
-        ps.setObject(8, now); // last_check_in - required for swatch-tally query filter
-        ps.setString(9, buildRhelFacts(cores, sockets)); // facts
-        ps.setString(10, "[]"); // groups - empty array (required NOT NULL)
-        ps.setString(11, actualReporter); // reporter
-        ps.setArray(12, conn.createArrayOf("varchar", actualReporters)); // reporters array
+        ps.setObject(4, insightsId);
+        ps.setString(5, actualSubManId);
+        ps.setString(6, actualProviderId); // null for physical hosts
+        ps.setObject(7, now);
+        ps.setObject(8, now);
+        ps.setObject(9, now);
+        ps.setString(10, buildRhelFacts(cores, sockets));
+        ps.setString(11, "[]");
+        ps.setString(12, actualReporter);
+        ps.setArray(13, conn.createArrayOf("varchar", actualReporters));
         ps.executeUpdate();
       }
 
-      // Insert into system_profiles_static table with capacity data
       String profileSql =
           """
           INSERT INTO hbi.system_profiles_static
             (org_id, host_id, cores_per_socket, number_of_sockets,
-             infrastructure_type, arch)
+             infrastructure_type, cloud_provider, arch)
           VALUES
             (?, ?, ?, ?,
-             ?, ?)
+             ?, ?, ?)
           """;
 
       try (PreparedStatement ps = conn.prepareStatement(profileSql)) {
         ps.setString(1, orgId);
         ps.setObject(2, hostId);
-        ps.setInt(3, cores / sockets); // cores per socket
+        ps.setInt(3, cores / sockets);
         ps.setInt(4, sockets);
-        ps.setString(5, "physical");
-        ps.setString(6, "x86_64");
+        ps.setString(5, isCloud ? "virtual" : "physical");
+        ps.setString(6, cloudProvider); // null for physical hosts
+        ps.setString(7, "x86_64");
         ps.executeUpdate();
       }
     } catch (SQLException e) {
@@ -479,16 +550,15 @@ public final class TallyHbiDbSeeder {
   }
 
   /**
-   * Insert a non-RHEL host into the HBI database.
-   *
-   * <p><b>IMPORTANT:</b> This method requires the production HBI database schema. Ensure all HBI
-   * database migrations have been run before executing tests.
+   * Insert a non-RHEL cloud host into the HBI database with empty facts and no capacity data.
    *
    * @param orgId the organization ID
    * @param inventoryId the inventory ID
    * @param subscriptionManagerId the subscription manager ID
    * @param displayName the display name
-   * @param providerId the cloud provider ID (for cloud hosts, e.g., AWS instance ID)
+   * @param providerId the cloud provider instance ID (e.g., AWS instance ID)
+   * @param reporter the reporter string
+   * @param reporters the reporters array
    * @return seeded host record
    */
   public SeededHost insertNonRhelHost(
@@ -521,14 +591,11 @@ public final class TallyHbiDbSeeder {
     UUID hostId = UUID.randomUUID();
     UUID insightsId = UUID.randomUUID();
     OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
-    OffsetDateTime staleTimestamp = now.plusDays(7); // Default: 7 days from now
 
     // Track host before INSERT, so cleanup works even if INSERT fails
     insertedHostIds.add(hostId);
 
     try (Connection conn = getInsightsConnection()) {
-      // Production HBI schema has BOTH direct columns AND canonical_facts for backward
-      // compatibility
       String hostSql =
           """
           INSERT INTO hbi.hosts
@@ -545,21 +612,20 @@ public final class TallyHbiDbSeeder {
         ps.setObject(1, hostId);
         ps.setString(2, orgId);
         ps.setString(3, actualDisplayName);
-        ps.setObject(4, insightsId); // insights_id - direct column (NOT NULL in prod)
-        ps.setString(5, actualSubManId); // subscription_manager_id - direct column
-        ps.setString(6, actualProviderId); // provider_id - direct column
-        ps.setObject(7, now); // created_on
-        ps.setObject(8, now); // modified_on
-        ps.setObject(9, now); // last_check_in - required for swatch-tally query filter
-        ps.setString(10, "{}"); // facts (empty for cloud hosts)
-        ps.setString(11, "[]"); // groups - empty array (required NOT NULL)
-        ps.setString(12, actualReporter); // reporter
-        ps.setArray(13, conn.createArrayOf("varchar", actualReporters)); // reporters array
+        ps.setObject(4, insightsId);
+        ps.setString(5, actualSubManId);
+        ps.setString(6, actualProviderId);
+        ps.setObject(7, now);
+        ps.setObject(8, now);
+        ps.setObject(9, now);
+        ps.setString(10, "{}");
+        ps.setString(11, "[]");
+        ps.setString(12, actualReporter);
+        ps.setArray(13, conn.createArrayOf("varchar", actualReporters));
         ps.executeUpdate();
       }
 
-      // Insert into system_profiles_static table for cloud host
-      // Cloud hosts may not have cores/sockets, but the record must exist for INNER JOIN
+      // Record must exist for INNER JOIN in tally sync query
       String profileSql =
           """
           INSERT INTO hbi.system_profiles_static
@@ -571,8 +637,8 @@ public final class TallyHbiDbSeeder {
       try (PreparedStatement ps = conn.prepareStatement(profileSql)) {
         ps.setString(1, orgId);
         ps.setObject(2, hostId);
-        ps.setString(3, "virtual"); // Cloud hosts are virtual
-        ps.setString(4, "aws"); // Default to AWS for cloud hosts
+        ps.setString(3, "virtual");
+        ps.setString(4, "aws");
         ps.setString(5, "x86_64");
         ps.executeUpdate();
       }

@@ -91,12 +91,16 @@ public class TallyRhelTest extends BaseTallyComponentTest {
   @MethodSource("socketMappingProvider")
   void test_validate_tally_on_physical_rhel_sockets(
       int actualSockets, int expectedReportedSockets) {
+    String inventoryId = helpers.generateUUIDOfSize(false, 5) + "-" + actualSockets;
+    String subscriptionManagerId = helpers.generateUUIDOfSize(false, 5) + "-" + actualSockets;
+    String displayName =
+        "RHEL Host " + helpers.generateUUIDOfSize(false, 5) + actualSockets + " sockets";
     // Given: Org is opted in
     service.createOptInConfig(orgId);
 
     // And: Define time range
     OffsetDateTime beginning = OffsetDateTime.now().minusDays(1);
-    OffsetDateTime ending = OffsetDateTime.now().plusDays(1);
+    OffsetDateTime ending = OffsetDateTime.now();
 
     // When: Capture initial state
     double initialSockets =
@@ -104,7 +108,6 @@ public class TallyRhelTest extends BaseTallyComponentTest {
     Log.info("Initial sockets: %.0f", initialSockets);
 
     // And: Create RHEL host
-    String displayName = "RHEL Host " + actualSockets + " sockets";
     int cores = actualSockets; // 1 core per socket (matches IQE)
 
     SeededHost host =

@@ -168,7 +168,7 @@ reporter = "component-test"
 **Why these matter:**
 
 Nightly tally calculates capacity:
-```
+```java
 total_cores = cores_per_socket × number_of_sockets
 ```
 
@@ -251,6 +251,7 @@ service.tallyOrg(orgId);  // Triggers nightly tally sync
 ```java
 @Test
 void testNightlyTally() {
+    // pseudocode
     // 1. Insert host into HBI
     hbiSeeder.insertRhelHost(orgId);
     
@@ -473,7 +474,7 @@ public class MyHbiTest extends BaseTallyComponentTest {
 ### Schema Errors
 
 **Symptom:** 
-```
+```text
 RuntimeException: Failed to insert RHEL host into HBI database
 
 SCHEMA ERROR: Required HBI table or column is missing.

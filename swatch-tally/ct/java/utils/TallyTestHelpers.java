@@ -635,4 +635,17 @@ public class TallyTestHelpers {
         .mapToDouble(m -> m.getValue() == null ? 0.0 : m.getValue())
         .sum();
   }
+
+  /**
+   * Generate a truncated UUID string of the given size.
+   *
+   * @param withoutHyphens if true, hyphens are stripped before truncating
+   * @param size number of characters to return
+   * @return truncated UUID string
+   */
+  public static String generateUUIDOfSize(boolean withoutHyphens, int size) {
+    String uuid = UUID.randomUUID().toString().substring(0, size);
+
+    return withoutHyphens ? uuid.replaceAll("-", "") : uuid;
+  }
 }
