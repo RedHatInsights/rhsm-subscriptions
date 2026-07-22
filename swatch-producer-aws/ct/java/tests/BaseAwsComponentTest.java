@@ -50,10 +50,10 @@ public class BaseAwsComponentTest {
 
   @Wiremock static AwsWiremockService wiremock = new AwsWiremockService();
 
-  @Unleash static AwsUnleashService unleash = new AwsUnleashService();
-
   @Quarkus(service = "swatch-producer-aws")
   static SwatchService service = new SwatchService();
+
+  @Unleash static AwsUnleashService unleash = new AwsUnleashService().withSwatchService(service);
 
   protected String orgId;
   protected String awsAccountId;

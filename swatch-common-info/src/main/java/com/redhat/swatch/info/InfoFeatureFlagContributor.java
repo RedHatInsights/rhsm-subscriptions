@@ -18,32 +18,34 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.hbi.events.services;
+package com.redhat.swatch.info;
 
-import com.redhat.swatch.info.InfoFeatureFlagContributor;
-import com.redhat.swatch.info.UnleashInfoFeatureFlags;
 import com.redhat.swatch.info.model.InfoFeatureFlags;
-import io.getunleash.Unleash;
-import jakarta.enterprise.context.ApplicationScoped;
-import lombok.extern.slf4j.Slf4j;
+import java.util.List;
 
-@Slf4j
-@ApplicationScoped
-public class FeatureFlags implements InfoFeatureFlagContributor {
-  public static final String EMIT_EVENTS = "swatch.swatch-metrics-hbi.emit-events";
+/**
+ * Contributes the {@code feature-flags} section of the management {@code /info} endpoint as a list
+ * of flags with enabled state and active Unleash variant.
+ */
+public interface InfoFeatureFlagContributor extends InfoContributor {
 
-  private final Unleash unleash;
+  String FEATURE_FLAGS_SECTION = "feature-flags";
 
-  public FeatureFlags(Unleash unleash) {
-    this.unleash = unleash;
-  }
+  InfoFeatureFlags getFeatureFlags();
 
-  public boolean emitEvents() {
-    return unleash.isEnabled(FeatureFlags.EMIT_EVENTS);
+  @Override
+  default String name() {
+    return FEATURE_FLAGS_SECTION;
   }
 
   @Override
-  public InfoFeatureFlags getFeatureFlags() {
-    return UnleashInfoFeatureFlags.snapshot(unleash, EMIT_EVENTS);
+  default Object data() {
+    InfoFeatureFlags featureFlags = getFeatureFlags();
+    if (featureFlags == null
+        || featureFlags.getFlags() == null
+        || featureFlags.getFlags().isEmpty()) {
+      return List.of();
+    }
+    return featureFlags.getFlags();
   }
 }

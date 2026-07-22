@@ -27,9 +27,11 @@ import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.LinkedHashSet;
-import java.util.Map;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.candlepin.subscriptions.configuration.FeatureFlags;
+import org.candlepin.subscriptions.json.InfoFeatureFlag;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -59,17 +61,12 @@ class FeatureFlagsInfoContributorTest {
       when(featureFlags.isEnabled(flag)).thenReturn(true);
     }
 
-    Builder builder = new Builder();
-    contributor.contribute(builder);
-    Info info = builder.build();
+    List<InfoFeatureFlag> flagStatus = contributeFlags();
 
-    @SuppressWarnings("unchecked")
-    Map<String, Boolean> flagStatus = (Map<String, Boolean>) info.getDetails().get("feature-flags");
-
-    assertNotNull(flagStatus);
     assertEquals(UNIQUE_FLAGS.size(), flagStatus.size());
-    for (String flag : UNIQUE_FLAGS) {
-      assertEquals(Boolean.TRUE, flagStatus.get(flag));
+    for (InfoFeatureFlag flag : flagStatus) {
+      assertTrue(UNIQUE_FLAGS.contains(flag.getName()));
+      assertEquals(Boolean.TRUE, flag.getEnabled());
     }
   }
 
@@ -79,17 +76,11 @@ class FeatureFlagsInfoContributorTest {
       when(featureFlags.isEnabled(flag)).thenReturn(false);
     }
 
-    Builder builder = new Builder();
-    contributor.contribute(builder);
-    Info info = builder.build();
+    List<InfoFeatureFlag> flagStatus = contributeFlags();
 
-    @SuppressWarnings("unchecked")
-    Map<String, Boolean> flagStatus = (Map<String, Boolean>) info.getDetails().get("feature-flags");
-
-    assertNotNull(flagStatus);
     assertEquals(UNIQUE_FLAGS.size(), flagStatus.size());
-    for (String flag : UNIQUE_FLAGS) {
-      assertEquals(Boolean.FALSE, flagStatus.get(flag));
+    for (InfoFeatureFlag flag : flagStatus) {
+      assertEquals(Boolean.FALSE, flag.getEnabled());
     }
   }
 
@@ -99,15 +90,13 @@ class FeatureFlagsInfoContributorTest {
       when(featureFlags.isEnabled(flag)).thenReturn(false);
     }
 
-    Builder builder = new Builder();
-    contributor.contribute(builder);
-    Info info = builder.build();
+    List<InfoFeatureFlag> flagStatus = contributeFlags();
 
-    @SuppressWarnings("unchecked")
-    Map<String, Boolean> flagStatus = (Map<String, Boolean>) info.getDetails().get("feature-flags");
-
-    assertNotNull(flagStatus);
-    assertEquals(UNIQUE_FLAGS, flagStatus.keySet());
+    assertEquals(
+        UNIQUE_FLAGS,
+        flagStatus.stream()
+            .map(InfoFeatureFlag::getName)
+            .collect(Collectors.toCollection(LinkedHashSet::new)));
   }
 
   @Test
@@ -117,17 +106,11 @@ class FeatureFlagsInfoContributorTest {
       when(featureFlags.isEnabled(flag)).thenReturn(flag.equals(enabledFlag));
     }
 
-    Builder builder = new Builder();
-    contributor.contribute(builder);
-    Info info = builder.build();
+    List<InfoFeatureFlag> flagStatus = contributeFlags();
 
-    @SuppressWarnings("unchecked")
-    Map<String, Boolean> flagStatus = (Map<String, Boolean>) info.getDetails().get("feature-flags");
-
-    assertNotNull(flagStatus);
     assertEquals(UNIQUE_FLAGS.size(), flagStatus.size());
-    for (String flag : UNIQUE_FLAGS) {
-      assertEquals(flag.equals(enabledFlag), flagStatus.get(flag));
+    for (InfoFeatureFlag flag : flagStatus) {
+      assertEquals(flag.getName().equals(enabledFlag), flag.getEnabled());
     }
   }
 
@@ -135,14 +118,20 @@ class FeatureFlagsInfoContributorTest {
   void testNullFeatureFlags() {
     contributor = new FeatureFlagsInfoContributor(null);
 
-    Builder builder = new Builder();
-    contributor.contribute(builder);
-    Info info = builder.build();
-
-    @SuppressWarnings("unchecked")
-    Map<String, Boolean> flagStatus = (Map<String, Boolean>) info.getDetails().get("feature-flags");
+    List<InfoFeatureFlag> flagStatus = contributeFlags();
 
     assertNotNull(flagStatus);
     assertTrue(flagStatus.isEmpty());
+  }
+
+  @SuppressWarnings("unchecked")
+  private List<InfoFeatureFlag> contributeFlags() {
+    Builder builder = new Builder();
+    contributor.contribute(builder);
+    Info info = builder.build();
+    List<InfoFeatureFlag> flagStatus =
+        (List<InfoFeatureFlag>) info.getDetails().get("feature-flags");
+    assertNotNull(flagStatus);
+    return flagStatus;
   }
 }

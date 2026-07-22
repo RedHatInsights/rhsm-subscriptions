@@ -21,9 +21,10 @@
 package org.candlepin.subscriptions.actuator;
 
 import jakarta.annotation.Nullable;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 import org.candlepin.subscriptions.configuration.FeatureFlags;
+import org.candlepin.subscriptions.json.InfoFeatureFlag;
 import org.springframework.boot.actuate.info.Info.Builder;
 import org.springframework.boot.actuate.info.InfoContributor;
 
@@ -39,15 +40,14 @@ public class FeatureFlagsInfoContributor implements InfoContributor {
   @Override
   public void contribute(Builder builder) {
     if (featureFlags == null) {
-      builder.withDetail("feature-flags", Map.of());
+      builder.withDetail("feature-flags", List.of());
       return;
     }
 
-    Map<String, Boolean> flagStatus = new LinkedHashMap<>();
+    List<InfoFeatureFlag> flags = new ArrayList<>();
     for (String flag : FeatureFlags.FLAG_LIST) {
-      flagStatus.put(flag, featureFlags.isEnabled(flag));
+      flags.add(new InfoFeatureFlag().withName(flag).withEnabled(featureFlags.isEnabled(flag)));
     }
-
-    builder.withDetail("feature-flags", flagStatus);
+    builder.withDetail("feature-flags", flags);
   }
 }

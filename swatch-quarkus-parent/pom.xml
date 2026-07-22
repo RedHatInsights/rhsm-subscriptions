@@ -105,6 +105,11 @@
         <version>${project.version}</version>
       </dependency>
       <dependency>
+        <groupId>com.redhat.swatch</groupId>
+        <artifactId>swatch-common-info</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
         <groupId>jakarta.persistence</groupId>
         <artifactId>jakarta.persistence-api</artifactId>
         <version>${jakarta.persistence-api.version}</version>

@@ -20,11 +20,14 @@
  */
 package com.redhat.swatch.aws.config;
 
+import com.redhat.swatch.info.InfoFeatureFlagContributor;
+import com.redhat.swatch.info.UnleashInfoFeatureFlags;
+import com.redhat.swatch.info.model.InfoFeatureFlags;
 import io.getunleash.Unleash;
 import jakarta.enterprise.context.ApplicationScoped;
 
 @ApplicationScoped
-public class FeatureFlags {
+public class FeatureFlags implements InfoFeatureFlagContributor {
   public static final String USE_CUSTOMER_AWS_ACCOUNT_ID =
       "swatch.swatch-producer-aws.use-customer-aws-account-id";
 
@@ -36,5 +39,10 @@ public class FeatureFlags {
 
   public boolean useCustomerAwsAccountId() {
     return unleash.isEnabled(USE_CUSTOMER_AWS_ACCOUNT_ID);
+  }
+
+  @Override
+  public InfoFeatureFlags getFeatureFlags() {
+    return UnleashInfoFeatureFlags.snapshot(unleash, USE_CUSTOMER_AWS_ACCOUNT_ID);
   }
 }

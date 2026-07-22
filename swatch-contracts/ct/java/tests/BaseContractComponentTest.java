@@ -74,7 +74,8 @@ public class BaseContractComponentTest {
   @Quarkus(service = "swatch-contracts")
   static ContractsSwatchService service = new ContractsSwatchService();
 
-  @Unleash static ContractsUnleashService unleash = new ContractsUnleashService();
+  @Unleash
+  static ContractsUnleashService unleash = new ContractsUnleashService().withSwatchService(service);
 
   protected static final ApplicationClock clock = new ApplicationClock();
 

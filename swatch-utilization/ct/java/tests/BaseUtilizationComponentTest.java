@@ -62,10 +62,12 @@ public class BaseUtilizationComponentTest {
   @KafkaBridge
   static KafkaBridgeService kafkaBridge = new KafkaBridgeService().subscribeToTopic(NOTIFICATIONS);
 
-  @Unleash static UtilizationUnleashService unleash = new UtilizationUnleashService();
-
   @Quarkus(service = "swatch-utilization")
   static UtilizationSwatchService service = new UtilizationSwatchService();
+
+  @Unleash
+  static UtilizationUnleashService unleash =
+      new UtilizationUnleashService().withSwatchService(service);
 
   protected String orgId;
 
