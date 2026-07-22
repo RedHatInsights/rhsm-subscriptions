@@ -190,7 +190,7 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
 
   @ParameterizedTest(name = "with primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-TC001")
+  @TestPlanName("tally-report-filters-payg-TC001")
   void shouldReturnDailyReportWithAllFilters(boolean enablePrimaryRowSearches) {
     // Given: Feature flag is configured and events with various attributes exist
     givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
@@ -231,7 +231,7 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
 
   @ParameterizedTest(name = "with primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-TC002")
+  @TestPlanName("tally-report-filters-payg-TC002")
   void shouldFilterHourlyReportBySla(boolean enablePrimaryRowSearches) {
     // Given: Feature flag is configured and events with different SLA values exist
     givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
@@ -264,7 +264,7 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
 
   @ParameterizedTest(name = "with primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-TC003")
+  @TestPlanName("tally-report-filters-payg-TC003")
   void shouldFilterHourlyReportByUsage(boolean enablePrimaryRowSearches) {
     // Given: Feature flag is configured and events with different usage types exist
     givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
@@ -297,7 +297,7 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
 
   @ParameterizedTest(name = "with primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-TC004")
+  @TestPlanName("tally-report-filters-payg-TC004")
   void shouldFilterHourlyReportByBillingProvider(boolean enablePrimaryRowSearches) {
     // Given: Feature flag is configured and events with billing provider exist
     givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
@@ -319,7 +319,7 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
 
   @ParameterizedTest(name = "with primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-TC005")
+  @TestPlanName("tally-report-filters-payg-TC005")
   void shouldFilterHourlyReportByBillingAccountId(boolean enablePrimaryRowSearches) {
     // Given: Feature flag is configured and events with different billing accounts exist
     givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
@@ -352,7 +352,7 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
 
   @ParameterizedTest(name = "with primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-TC006")
+  @TestPlanName("tally-report-filters-payg-TC006")
   void shouldReturnDailyReportWithPartialFilters(boolean enablePrimaryRowSearches) {
     // Given: Feature flag is configured and events with various attributes exist
     givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
@@ -378,7 +378,7 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
 
   @ParameterizedTest(name = "with primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-TC007")
+  @TestPlanName("tally-report-filters-payg-TC007")
   void shouldReturnHourlyReportWithAllFilters(boolean enablePrimaryRowSearches) {
     // Given: Feature flag is configured and events with various attributes exist
     givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
@@ -407,7 +407,7 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
 
   @ParameterizedTest(name = "with primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-TC008")
+  @TestPlanName("tally-report-filters-payg-TC008")
   void shouldReturnBadRequestWithoutGranularity(boolean enablePrimaryRowSearches) {
     // Given: Feature flag is configured
     givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
@@ -432,7 +432,7 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
 
   @ParameterizedTest(name = "with primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-TC011")
+  @TestPlanName("tally-report-filters-payg-TC011")
   void shouldReturnBadRequestWithoutBeginning(boolean enablePrimaryRowSearches) {
     // Given: Feature flag is configured
     givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
@@ -453,7 +453,7 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
 
   @ParameterizedTest(name = "with primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-TC012")
+  @TestPlanName("tally-report-filters-payg-TC012")
   void shouldReturnBadRequestWithoutEnding(boolean enablePrimaryRowSearches) {
     // Given: Feature flag is configured
     givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
@@ -474,7 +474,7 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
 
   @ParameterizedTest(name = "with primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-TC013")
+  @TestPlanName("tally-report-filters-payg-TC013")
   void shouldReturnNullMetadataWhenFiltersOmitted(boolean enablePrimaryRowSearches) {
     // Given: Feature flag is configured
     givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
@@ -500,7 +500,7 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
 
   @ParameterizedTest(name = "with primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-TC014")
+  @TestPlanName("tally-report-filters-payg-TC014")
   void shouldReflectEmptyFilterInMetadata(boolean enablePrimaryRowSearches) {
     // Given: Feature flag is configured
     givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
@@ -524,7 +524,7 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
 
   @ParameterizedTest(name = "with primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-TC016")
+  @TestPlanName("tally-report-filters-payg-TC015")
   void shouldReturnAllDataWhenNoOptionalFiltersApplied(boolean enablePrimaryRowSearches) {
     // Given: Feature flag is configured and multiple events exist
     givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
@@ -546,7 +546,7 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
 
   @ParameterizedTest(name = "with primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-TC017")
+  @TestPlanName("tally-report-filters-payg-TC016")
   void shouldFilterDailyReportBySlaAfterNightlyTally(boolean enablePrimaryRowSearches) {
     // Given: Feature flag is configured and nightly tally has run
     givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
@@ -579,7 +579,7 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
 
   @ParameterizedTest(name = "with primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-TC018")
+  @TestPlanName("tally-report-filters-payg-TC017")
   void shouldFilterDailyReportByUsageAfterNightlyTally(boolean enablePrimaryRowSearches) {
     // Given: Feature flag is configured and nightly tally has run
     givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
@@ -612,7 +612,7 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
 
   @ParameterizedTest(name = "with primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-TC019")
+  @TestPlanName("tally-report-filters-payg-TC018")
   void shouldFilterDailyByBillingProviderAfterNightly(boolean enablePrimaryRowSearches) {
     // Given: Feature flag is configured and nightly tally has run
     givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
@@ -634,7 +634,7 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
 
   @ParameterizedTest(name = "with primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-TC020")
+  @TestPlanName("tally-report-filters-payg-TC019")
   void shouldFilterDailyByBillingAccountAfterNightly(boolean enablePrimaryRowSearches) {
     // Given: Feature flag is configured and nightly tally has run
     givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
@@ -668,7 +668,7 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
 
   @ParameterizedTest(name = "with primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-TC021")
+  @TestPlanName("tally-report-filters-payg-TC020")
   void shouldReturnMonthlyReportWithAllFilters(boolean enablePrimaryRowSearches) {
     // Given: Feature flag is configured
     givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
@@ -691,7 +691,7 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
 
   @ParameterizedTest(name = "with primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-TC022")
+  @TestPlanName("tally-report-filters-payg-TC021")
   void shouldReturnQuarterlyReportWithAllFilters(boolean enablePrimaryRowSearches) {
     // Given: Feature flag is configured
     givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
@@ -718,7 +718,7 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
 
   @ParameterizedTest(name = "with primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-TC023")
+  @TestPlanName("tally-report-filters-payg-TC022")
   void shouldReturnYearlyReportWithAllFilters(boolean enablePrimaryRowSearches) {
     // Given: Feature flag is configured
     givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
@@ -743,7 +743,7 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
     assertEquals(GranularityType.YEARLY, meta.getGranularity(), "Granularity should be YEARLY");
   }
 
-  @TestPlanName("tally-report-filters-TC025")
+  @TestPlanName("tally-report-filters-payg-TC024")
   @Test
   void shouldReturnBadRequestForInvalidGranularity() {
     // When: Querying report with an invalid granularity enum value

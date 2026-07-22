@@ -30,6 +30,7 @@ import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import io.restassured.response.Response;
 import java.time.OffsetDateTime;
+import java.time.YearMonth;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
@@ -230,7 +231,12 @@ class TallyInstancesBillingAccountIdsTest extends BaseTallyComponentTest {
     final String isolatedOrg = RandomUtils.generateRandom();
     final String testInventoryId = UUID.randomUUID().toString();
     final String billingAccountId = UUID.randomUUID().toString();
-    final OffsetDateTime lastMonthDate = OffsetDateTime.now(ZoneOffset.UTC).minusDays(35);
+    final OffsetDateTime lastMonthDate =
+        YearMonth.now(ZoneOffset.UTC)
+            .minusMonths(1)
+            .atDay(1)
+            .atStartOfDay()
+            .atOffset(ZoneOffset.UTC);
 
     service.createOptInConfig(isolatedOrg);
 
@@ -314,6 +320,14 @@ class TallyInstancesBillingAccountIdsTest extends BaseTallyComponentTest {
         1,
         rowsForShared,
         "Same billing account from two instances should dedupe to one billing_account_ids row");
+    Map<String, String> sharedRow =
+        ids.stream()
+            .filter(m -> shared.id().equals(m.get("billing_account_id")))
+            .findFirst()
+            .orElseThrow();
+    assertEquals(testOrgId, sharedRow.get("org_id"));
+    assertEquals(RHEL_FOR_X86_ELS_PAYG.productTag(), sharedRow.get("product_tag"));
+    assertEquals("aws", sharedRow.get("billing_provider"));
   }
 
   @Test

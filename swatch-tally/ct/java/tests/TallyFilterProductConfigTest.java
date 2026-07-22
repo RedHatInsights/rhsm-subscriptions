@@ -42,15 +42,7 @@ import org.candlepin.subscriptions.json.Measurement;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-/**
- * Component tests verifying that hourly tally correctly filters out non-PAYG product tags from
- * events.
- *
- * <p>These tests ensure that when events contain mixed PAYG and TRADITIONAL product tags, only the
- * PAYG tags are processed during hourly tally operations. This prevents TRADITIONAL products from
- * being incorrectly included in marketplace billing.
- */
-public class TallyFilterNonPaygoProductsTest extends BaseTallyComponentTest {
+public class TallyFilterProductConfigTest extends BaseTallyComponentTest {
   private TestSetup setup;
 
   @BeforeEach
@@ -60,7 +52,7 @@ public class TallyFilterNonPaygoProductsTest extends BaseTallyComponentTest {
   }
 
   @Test
-  @TestPlanName("tally-payg-filter-TC001")
+  @TestPlanName("tally-product-filter-TC001")
   public void testHourlyTallyFiltersNonPaygoProductTags() {
     // Given: An event with mixed PAYG and TRADITIONAL product tags with realistic metrics
     // rhel-for-x86-els-payg-addon is PAYG (supports vCPUs metric)
@@ -109,7 +101,7 @@ public class TallyFilterNonPaygoProductsTest extends BaseTallyComponentTest {
   }
 
   @Test
-  @TestPlanName("tally-payg-filter-TC002")
+  @TestPlanName("tally-product-filter-TC002")
   public void testEventWithOnlyTraditionalTagsNotTalliedHourly() {
     // Given: An event with ONLY TRADITIONAL product tag (no PAYG tags)
     // For TRADITIONAL products, we don't set billing provider/account
@@ -157,7 +149,7 @@ public class TallyFilterNonPaygoProductsTest extends BaseTallyComponentTest {
   }
 
   @Test
-  @TestPlanName("tally-payg-filter-TC003")
+  @TestPlanName("tally-product-filter-TC003")
   public void testEventWithOnlyPaygoTagsProcessedNormally() {
     // Given: An event with ONLY PAYG product tags (no TRADITIONAL tags)
     String paygoProductTag = RHEL_FOR_X86_ELS_PAYG_ADDON.productTag();
@@ -189,7 +181,7 @@ public class TallyFilterNonPaygoProductsTest extends BaseTallyComponentTest {
   }
 
   @Test
-  @TestPlanName("tally-payg-filter-TC004")
+  @TestPlanName("tally-product-filter-TC004")
   public void testMultipleEventsWithMixedTagsFilteredCorrectly() {
     // Given: Multiple events with different tag combinations at the same hour-truncated timestamp
     // (matching real-world behavior where events are sent with timestamps truncated to the hour)
@@ -242,7 +234,7 @@ public class TallyFilterNonPaygoProductsTest extends BaseTallyComponentTest {
   }
 
   @Test
-  @TestPlanName("tally-payg-filter-TC005")
+  @TestPlanName("tally-product-filter-TC005")
   public void testConflictResolutionWithMixedTags() {
     // Given: First event with mixed PAYG and TRADITIONAL tags with realistic metrics
     String paygoProductTag = RHEL_FOR_X86_ELS_PAYG_ADDON.productTag();
@@ -316,7 +308,7 @@ public class TallyFilterNonPaygoProductsTest extends BaseTallyComponentTest {
   }
 
   @Test
-  @TestPlanName("tally-payg-filter-TC006")
+  @TestPlanName("tally-product-filter-TC006")
   public void testMixedTagsWithSingleMetricEdgeCase() {
     // Given: An unrealistic edge-case event with mixed PAYG and TRADITIONAL tags
     // but only includes one product's metric (vCPUs for PAYG, not Sockets for TRADITIONAL)
@@ -359,7 +351,7 @@ public class TallyFilterNonPaygoProductsTest extends BaseTallyComponentTest {
   }
 
   @Test
-  @TestPlanName("tally-payg-filter-TC007")
+  @TestPlanName("tally-product-filter-TC007")
   public void testRoleBasedProductTagLookupFiltersNonPaygoMetrics() {
     // Given: An event with NO product tag but WITH a role and mixed metrics
     // - Role "moa" maps to PAYG product "rosa" (supports Cores, Instance-hours)

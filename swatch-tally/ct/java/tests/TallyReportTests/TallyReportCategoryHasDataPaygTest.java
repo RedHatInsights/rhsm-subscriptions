@@ -114,7 +114,7 @@ public class TallyReportCategoryHasDataPaygTest extends BaseTallyComponentTest {
 
   @ParameterizedTest(name = "primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-has-data-TC001")
+  @TestPlanName("tally-report-has-data-payg-TC001")
   void shouldIndicateHasDataMatchesCategoryContribution(boolean primaryRowSearches) {
     // Given: Positive cloud PAYG is tallied and the primary-row flag is configured
     givenFeatureFlagIsConfigured(primaryRowSearches);
@@ -150,7 +150,7 @@ public class TallyReportCategoryHasDataPaygTest extends BaseTallyComponentTest {
 
   @ParameterizedTest(name = "primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-has-data-TC002")
+  @TestPlanName("tally-report-has-data-payg-TC002")
   void shouldIndicateExistingZeroValueMeasurementsStillReportHasData(boolean primaryRowSearches) {
     // Given: Zero cloud PAYG is published and tallied
     givenFeatureFlagIsConfigured(primaryRowSearches);
@@ -177,7 +177,7 @@ public class TallyReportCategoryHasDataPaygTest extends BaseTallyComponentTest {
 
   @ParameterizedTest(name = "primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-has-data-TC003")
+  @TestPlanName("tally-report-has-data-payg-TC003")
   void shouldIndicateDataGapsWithHasDataField(boolean primaryRowSearches) {
     // Given: Events at hours 0 and 2 are tallied; hours 1 and 3 are gaps
     givenFeatureFlagIsConfigured(primaryRowSearches);
