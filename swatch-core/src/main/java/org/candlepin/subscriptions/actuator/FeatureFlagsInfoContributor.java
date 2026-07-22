@@ -20,29 +20,19 @@
  */
 package org.candlepin.subscriptions.actuator;
 
+import jakarta.annotation.Nullable;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.candlepin.subscriptions.configuration.FeatureFlags;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.actuate.autoconfigure.info.ConditionalOnEnabledInfoContributor;
-import org.springframework.boot.actuate.autoconfigure.info.InfoContributorFallback;
 import org.springframework.boot.actuate.info.Info.Builder;
 import org.springframework.boot.actuate.info.InfoContributor;
-import org.springframework.stereotype.Component;
 
 /** InfoContributor to report the status of Unleash feature flags. */
-@Component
-@ConditionalOnEnabledInfoContributor(
-    value = "feature-flags",
-    fallback = InfoContributorFallback.DISABLE)
 public class FeatureFlagsInfoContributor implements InfoContributor {
 
-  @Autowired(required = false)
-  private FeatureFlags featureFlags;
+  private final FeatureFlags featureFlags;
 
-  public FeatureFlagsInfoContributor() {}
-
-  public FeatureFlagsInfoContributor(FeatureFlags featureFlags) {
+  public FeatureFlagsInfoContributor(@Nullable FeatureFlags featureFlags) {
     this.featureFlags = featureFlags;
   }
 
