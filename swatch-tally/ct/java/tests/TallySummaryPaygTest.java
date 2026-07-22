@@ -35,10 +35,10 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 @Slf4j
-class TallySummaryComponentTest extends BaseTallyComponentTest {
+class TallySummaryPaygTest extends BaseTallyComponentTest {
 
   @Test
-  @TestPlanName("tally-summary-TC003")
+  @TestPlanName("tally-summary-payg-TC001")
   void testTallyHourlySummaryEmitsNoGranularityDaily() {
     // Given: Events within the last day for hourly tally
     final String testInstanceId = UUID.randomUUID().toString();
@@ -75,7 +75,7 @@ class TallySummaryComponentTest extends BaseTallyComponentTest {
   }
 
   @Test
-  @TestPlanName("tally-summary-TC004")
+  @TestPlanName("tally-summary-payg-TC002")
   void testTallyHourlySummaryEmitsGranularityHourly() {
     // Given: Events within the last day for hourly tally
     final String testInstanceId = UUID.randomUUID().toString();

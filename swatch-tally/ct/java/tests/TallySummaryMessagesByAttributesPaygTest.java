@@ -37,7 +37,7 @@ import org.candlepin.subscriptions.json.Event.Usage;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-public class TallySummaryMessagesByAttributesTest extends BaseTallyComponentTest {
+public class TallySummaryMessagesByAttributesPaygTest extends BaseTallyComponentTest {
 
   private static final String TEST_PRODUCT_TAG = RHEL_FOR_X86_ELS_PAYG_ADDON.productTag();
   private static final String TEST_METRIC_ID = RHEL_FOR_X86_ELS_PAYG_ADDON.metricIds().get(1);
@@ -53,7 +53,7 @@ public class TallySummaryMessagesByAttributesTest extends BaseTallyComponentTest
   // ---- SLA tests ----
 
   @Test
-  @TestPlanName("tally-summary-by-attributes-TC001")
+  @TestPlanName("tally-summary-by-attributes-payg-TC001")
   public void testTallySummarySeparatesMeasurementsBySla() {
     // Given: Events for each SLA type and one event with no SLA
     OffsetDateTime now = OffsetDateTime.now();
@@ -91,7 +91,7 @@ public class TallySummaryMessagesByAttributesTest extends BaseTallyComponentTest
   // ---- Usage tests ----
 
   @Test
-  @TestPlanName("tally-summary-by-attributes-TC002")
+  @TestPlanName("tally-summary-by-attributes-payg-TC002")
   public void testTallySummarySeparatesMeasurementsByUsage() {
     // Given: Events for each Usage type and one event with no Usage
     OffsetDateTime now = OffsetDateTime.now();
@@ -129,7 +129,7 @@ public class TallySummaryMessagesByAttributesTest extends BaseTallyComponentTest
   // ---- Billing account ID tests ----
 
   @Test
-  @TestPlanName("tally-summary-by-attributes-TC003")
+  @TestPlanName("tally-summary-by-attributes-payg-TC003")
   public void testTallySummarySeparatesMeasurementsByBillingAccountId() {
     // Given: Events for two different billing account IDs
     OffsetDateTime now = OffsetDateTime.now();
@@ -162,7 +162,7 @@ public class TallySummaryMessagesByAttributesTest extends BaseTallyComponentTest
   }
 
   @Test
-  @TestPlanName("tally-summary-by-attributes-TC004")
+  @TestPlanName("tally-summary-by-attributes-payg-TC004")
   public void testTallySummaryMeasurementsWhenSingleHostChangesBillingAccountId() {
     // Given: Same instance sends events under two different billing account IDs
     OffsetDateTime now = OffsetDateTime.now();
@@ -206,7 +206,7 @@ public class TallySummaryMessagesByAttributesTest extends BaseTallyComponentTest
   // ---- Billing provider tests ----
 
   @Test
-  @TestPlanName("tally-summary-by-attributes-TC005")
+  @TestPlanName("tally-summary-by-attributes-payg-TC005")
   public void testTallySummarySeparatesMeasurementsByBillingProvider() {
     // Given: Events for two different billing providers
     OffsetDateTime now = OffsetDateTime.now();

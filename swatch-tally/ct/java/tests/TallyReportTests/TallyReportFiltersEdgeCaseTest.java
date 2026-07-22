@@ -43,7 +43,7 @@ import org.junit.jupiter.params.provider.ValueSource;
  * Edge case tests requiring special event patterns.
  *
  * <p>Tests: - TC009: Multiple events aggregation (same filter attributes) - TC010: Three distinct
- * SLA values - TC024: Billing account change for same instance
+ * SLA values - TC023: Billing account change for same instance
  */
 public class TallyReportFiltersEdgeCaseTest extends BaseTallyComponentTest {
   private static String testOrgId;
@@ -119,7 +119,7 @@ public class TallyReportFiltersEdgeCaseTest extends BaseTallyComponentTest {
     givenPaygEventPublished(
         threeSlaTest.timestamp(), threeSlaTest.selfSupportValue(), Event.Sla.SELF_SUPPORT);
 
-    // TC024: Billing account change for same instance
+    // TC023: Billing account change for same instance
     OffsetDateTime changeTime = OffsetDateTime.now(ZoneOffset.UTC).minusHours(3);
     billingChangeTest =
         new BillingAccountChangeScenario(
@@ -152,7 +152,7 @@ public class TallyReportFiltersEdgeCaseTest extends BaseTallyComponentTest {
 
   @ParameterizedTest(name = "with primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-TC009")
+  @TestPlanName("tally-report-filters-payg-TC009")
   void shouldAggregateMultipleEventsWithSameFilters(boolean enablePrimaryRowSearches) {
     // Given: Three PREMIUM events at the same hour are tallied
     givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
@@ -179,7 +179,7 @@ public class TallyReportFiltersEdgeCaseTest extends BaseTallyComponentTest {
 
   @ParameterizedTest(name = "with primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-TC010")
+  @TestPlanName("tally-report-filters-payg-TC010")
   void shouldFilterWithThreeDistinctSlaValues(boolean enablePrimaryRowSearches) {
     // Given: Three SLA events at the same hour are tallied
     givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
@@ -206,7 +206,7 @@ public class TallyReportFiltersEdgeCaseTest extends BaseTallyComponentTest {
 
   @ParameterizedTest(name = "with primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-TC024")
+  @TestPlanName("tally-report-filters-payg-TC023")
   void shouldTrackBillingAccountChangeForSameInstance(boolean enablePrimaryRowSearches) {
     // Given: Same instance reported usage under two billing accounts
     givenFeatureFlagIsConfigured(enablePrimaryRowSearches);

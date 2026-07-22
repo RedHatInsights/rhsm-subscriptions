@@ -40,6 +40,8 @@ import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.test.ExtendWithSwatchDatabase;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -75,6 +77,30 @@ class EventRecordRepositoryTest implements ExtendWithSwatchDatabase {
     assertNotNull(found.getEvent().getDisplayName());
     assertFalse(found.getEvent().getDisplayName().isPresent());
     assertEquals(record, found);
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "b682126b-88d8-40b7-ada6-212f0e65e30a/extra-segment",
+        "aaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbb/cccccccccccccccccc"
+      })
+  void testSaveEventWithSlashSeparatedLongInstanceId(String instanceId) {
+    Event event = new Event();
+    event.setOrgId("org123");
+    event.setTimestamp(OffsetDateTime.now(CLOCK));
+    event.setInstanceId(instanceId);
+    event.setServiceType("RHEL System");
+    event.setEventId(UUID.randomUUID());
+    event.setEventSource("eventSource");
+    event.setDisplayName(Optional.empty());
+    event.setEventType("Prometheus");
+
+    EventRecord record = new EventRecord(event);
+    repository.saveAndFlush(record);
+
+    EventRecord found = repository.getReferenceById(record.getEventId());
+    assertEquals(instanceId, found.getInstanceId());
   }
 
   @Test
