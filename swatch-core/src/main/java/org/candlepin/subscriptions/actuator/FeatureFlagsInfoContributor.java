@@ -44,12 +44,9 @@ public class FeatureFlagsInfoContributor implements InfoContributor {
     }
 
     Map<String, Boolean> flagStatus = new LinkedHashMap<>();
-    flagStatus.put(
-        FeatureFlags.ENABLE_PRIMARY_ROW_SEARCHES,
-        featureFlags.isEnabled(FeatureFlags.ENABLE_PRIMARY_ROW_SEARCHES));
-    flagStatus.put(
-        FeatureFlags.ENABLE_HTB_PRIMARY_ROW_SEARCHES,
-        featureFlags.isEnabled(FeatureFlags.ENABLE_HTB_PRIMARY_ROW_SEARCHES));
+    for (String flag : FeatureFlags.FLAG_LIST) {
+      flagStatus.put(flag, featureFlags.isEnabled(flag));
+    }
 
     builder.withDetail("feature-flags", flagStatus);
   }
