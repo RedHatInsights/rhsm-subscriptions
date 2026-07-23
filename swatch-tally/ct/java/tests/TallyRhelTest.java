@@ -31,6 +31,7 @@ import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.logging.Log;
 import com.redhat.swatch.tally.test.model.InstanceData;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
@@ -98,8 +99,8 @@ public class TallyRhelTest extends BaseTallyComponentTest {
     // Given: Org is opted in
     service.createOptInConfig(orgId);
 
-    // And: Define time range
-    OffsetDateTime beginning = OffsetDateTime.now().minusDays(1);
+    // And: Define time range (today only)
+    OffsetDateTime beginning = OffsetDateTime.now().toLocalDate().atStartOfDay().atOffset(ZoneOffset.UTC);
     OffsetDateTime ending = OffsetDateTime.now();
 
     // When: Capture initial state

@@ -29,6 +29,7 @@ import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.tally.test.model.InstanceData;
+import com.redhat.swatch.tally.test.model.TallyReportDataPoint;
 import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
 import com.redhat.swatch.tally.test.model.TallySummary;
 import java.time.Duration;
@@ -429,7 +430,7 @@ public class TallyTestHelpers {
   // --- Then helper methods: Retrieve and verify test results ---
 
   /**
-   * Gets socket count from tally report data.
+   * Gets summed socket count from tally report data.
    *
    * @param service the tally service
    * @param orgId the organization ID
@@ -461,7 +462,9 @@ public class TallyTestHelpers {
           "Tally report should have data but is empty: " + reportData.toString());
     }
 
-    return reportData.getData().get(0).getValue();
+    return reportData.getData().stream()
+        .mapToDouble(TallyReportDataPoint::getValue)
+        .sum();
   }
 
   /**
