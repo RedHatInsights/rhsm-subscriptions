@@ -31,7 +31,7 @@ make build component-test swatch-producer-aws
 Deploy only the necessary dependencies for `swatch-producer-aws`:
 
 ```bash
-bonfire deploy rhsm --source=appsre --ref-env insights-stage --component rhsm --component swatch-kafka-bridge --component wiremock --component swatch-producer-aws --no-remove-resources app:rhsm --remove-dependencies swatch-producer-aws
+bonfire deploy rhsm --source=appsre --ref-env insights-stage --component rhsm --component swatch-kafka-bridge --component wiremock --component swatch-producer-aws --no-remove-resources app:rhsm --remove-dependencies swatch-producer-aws --set-parameter swatch-producer-aws/QUARKUS_PROFILE=ephemeral,component-tests
 ```
 
 ### 2. Run Component Tests Against OpenShift
