@@ -102,6 +102,42 @@
           <failIfNoSpecifiedTests>false</failIfNoSpecifiedTests>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>org.jsonschema2pojo</groupId>
+        <artifactId>jsonschema2pojo-maven-plugin</artifactId>
+        <configuration>
+          <targetPackage>com.redhat.swatch.component.tests.model</targetPackage>
+          <includeAdditionalProperties>false</includeAdditionalProperties>
+          <includeJsr303Annotations>false</includeJsr303Annotations>
+          <initializeCollections>false</initializeCollections>
+          <dateTimeType>java.time.OffsetDateTime</dateTimeType>
+          <sourceType>yamlschema</sourceType>
+          <generateBuilders>true</generateBuilders>
+          <includeGetters>true</includeGetters>
+          <includeSetters>true</includeSetters>
+          <useJakartaValidation>false</useJakartaValidation>
+        </configuration>
+        <executions>
+          <!-- Disable inherited default execution (expects module-local schemas/) -->
+          <execution>
+            <id>default</id>
+            <phase>none</phase>
+          </execution>
+          <execution>
+            <id>info-feature-flags</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <phase>generate-sources</phase>
+            <configuration>
+              <sourceDirectory>${maven.multiModuleProjectDirectory}/swatch-core/schemas</sourceDirectory>
+              <includes>
+                <include>info_feature_flags.yaml</include>
+              </includes>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
 </project>

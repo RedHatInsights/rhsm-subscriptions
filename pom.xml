@@ -594,6 +594,7 @@
         <module>swatch-common-trace-response</module>
         <module>swatch-common-security</module>
         <module>swatch-common-health</module>
+        <module>swatch-common-info</module>
         <module>swatch-common-models</module>
         <module>swatch-common-testcontainers</module>
         <module>swatch-model-events</module>

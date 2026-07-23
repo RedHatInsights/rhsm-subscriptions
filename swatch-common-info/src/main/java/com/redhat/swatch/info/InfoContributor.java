@@ -18,32 +18,22 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.hbi.events.services;
+package com.redhat.swatch.info;
 
-import com.redhat.swatch.info.InfoFeatureFlagContributor;
-import com.redhat.swatch.info.UnleashInfoFeatureFlags;
-import com.redhat.swatch.info.model.InfoFeatureFlags;
-import io.getunleash.Unleash;
-import jakarta.enterprise.context.ApplicationScoped;
-import lombok.extern.slf4j.Slf4j;
+/**
+ * Contributes a named section to the management {@code /info} endpoint.
+ *
+ * <p>Unlike Quarkus {@code quarkus-info} contributors (evaluated at startup), {@link #data()} is
+ * invoked on every request so services can wire runtime state (for example feature flags).
+ */
+public interface InfoContributor {
 
-@Slf4j
-@ApplicationScoped
-public class FeatureFlags implements InfoFeatureFlagContributor {
-  public static final String EMIT_EVENTS = "swatch.swatch-metrics-hbi.emit-events";
+  /** Top-level JSON key for this contribution (for example {@code feature-flags}). */
+  String name();
 
-  private final Unleash unleash;
-
-  public FeatureFlags(Unleash unleash) {
-    this.unleash = unleash;
-  }
-
-  public boolean emitEvents() {
-    return unleash.isEnabled(FeatureFlags.EMIT_EVENTS);
-  }
-
-  @Override
-  public InfoFeatureFlags getFeatureFlags() {
-    return UnleashInfoFeatureFlags.snapshot(unleash, EMIT_EVENTS);
-  }
+  /**
+   * Section payload evaluated at request time. {@code null} or empty maps/collections are omitted
+   * from the response.
+   */
+  Object data();
 }

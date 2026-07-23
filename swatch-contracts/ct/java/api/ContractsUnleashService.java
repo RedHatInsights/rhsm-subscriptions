@@ -21,8 +21,6 @@
 package api;
 
 import com.redhat.swatch.component.tests.api.UnleashService;
-import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
-import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 
 public class ContractsUnleashService extends UnleashService {
 
@@ -33,37 +31,10 @@ public class ContractsUnleashService extends UnleashService {
 
   public void enablePartnerGatewayContracts() {
     enableFlag(PARTNER_GATEWAY_CONTRACTS);
-    AwaitilityUtils.until(
-        () -> isFlagEnabled(PARTNER_GATEWAY_CONTRACTS),
-        enabled -> enabled,
-        AwaitilitySettings.defaults()
-            .timeoutMessage(
-                "Unleash toggle '%s' should be enabled".formatted(PARTNER_GATEWAY_CONTRACTS)));
-    waitForUnleashPropagation();
   }
 
   public void enableItSubscriptionService() {
     enableFlag(IT_SUBSCRIPTION_SERVICE);
-    AwaitilityUtils.until(
-        () -> isFlagEnabled(IT_SUBSCRIPTION_SERVICE),
-        enabled -> enabled,
-        AwaitilitySettings.defaults()
-            .timeoutMessage(
-                "Unleash toggle '%s' should be enabled".formatted(IT_SUBSCRIPTION_SERVICE)));
-    waitForUnleashPropagation();
-  }
-
-  /**
-   * Wait for swatch-contracts to pick up the toggle. The harness only checks Unleash admin; the
-   * service polls on {@code quarkus.unleash.fetch-toggles-interval} (1s in dev/ephemeral).
-   */
-  private void waitForUnleashPropagation() {
-    try {
-      Thread.sleep(2000);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new IllegalStateException("Interrupted while waiting for Unleash propagation", e);
-    }
   }
 
   public void disablePartnerGatewayContracts() {

@@ -34,59 +34,37 @@ public class UtilizationUnleashService extends UnleashService {
 
   public void enableSendNotificationsFlag() {
     enableFlag(SEND_NOTIFICATIONS);
-    waitForUnleashPropagation();
   }
 
   public void enableSendNotificationsFlagForOrgs(String... orgs) {
     enableFlag(SEND_NOTIFICATIONS_ORGS_ALLOWLIST);
     setVariant(SEND_NOTIFICATIONS_ORGS_ALLOWLIST, ORGS_VARIANT, String.join(",", orgs));
-    waitForUnleashPropagation();
   }
 
   public void disableSendNotificationsFlag() {
     disableFlag(SEND_NOTIFICATIONS);
-    waitForUnleashPropagation();
   }
 
   public void disableSendNotificationsFlagForOrgs() {
     clearVariants(SEND_NOTIFICATIONS_ORGS_ALLOWLIST);
     disableFlag(SEND_NOTIFICATIONS_ORGS_ALLOWLIST);
-    waitForUnleashPropagation();
   }
 
   public void enableSendNotificationsWithEventTypesDenylist(String... eventTypes) {
     enableFlag(SEND_NOTIFICATIONS);
-    String json = buildEventTypesDenylistJson(eventTypes);
     setVariant(
         SEND_NOTIFICATIONS,
         SEND_NOTIFICATIONS_CONFIG_VARIANT,
-        escapeForUnleashVariantStringValue(json));
-    waitForUnleashPropagation();
+        buildEventTypesDenylistJson(eventTypes));
   }
 
   public void clearSendNotificationsVariants() {
     clearVariants(SEND_NOTIFICATIONS);
-    waitForUnleashPropagation();
   }
 
   private static String buildEventTypesDenylistJson(String... eventTypes) {
     var payload = new SendNotificationVariantPayload();
     payload.setEventTypesDenylist(List.of(eventTypes));
     return JsonUtils.toJson(payload);
-  }
-
-  private static String escapeForUnleashVariantStringValue(String value) {
-    return value.replace("\\", "\\\\").replace("\"", "\\\"");
-  }
-
-  private void waitForUnleashPropagation() {
-    // wait more than 1 sec, so the change is propagated to the app
-    // the duration is configured using the property `quarkus.unleash.fetch-toggles-interval`
-    // which uses 1 second
-    try {
-      Thread.sleep(2000);
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
-    }
   }
 }

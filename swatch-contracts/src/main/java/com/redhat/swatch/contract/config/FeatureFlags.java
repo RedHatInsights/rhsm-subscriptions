@@ -24,6 +24,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.contract.model.ItSubscriptionServiceFeatureFlagVariantPayload;
 import com.redhat.swatch.contract.model.PartnerGatewayContractsFeatureFlagVariantPayload;
+import com.redhat.swatch.info.InfoFeatureFlagContributor;
+import com.redhat.swatch.info.UnleashInfoFeatureFlags;
+import com.redhat.swatch.info.model.InfoFeatureFlags;
 import io.getunleash.Unleash;
 import io.getunleash.variant.Variant;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -35,7 +38,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @ApplicationScoped
 @AllArgsConstructor
-public class FeatureFlags {
+public class FeatureFlags implements InfoFeatureFlagContributor {
   public static final String PARTNER_GATEWAY_CONTRACTS =
       "swatch.swatch-contracts.enable-partner-gateway-contracts";
   public static final String IT_SUBSCRIPTION_SERVICE =
@@ -145,5 +148,11 @@ public class FeatureFlags {
           e);
       return Optional.empty();
     }
+  }
+
+  @Override
+  public InfoFeatureFlags getFeatureFlags() {
+    return UnleashInfoFeatureFlags.snapshot(
+        unleash, DEFAULT_IS_ENABLED, PARTNER_GATEWAY_CONTRACTS, IT_SUBSCRIPTION_SERVICE);
   }
 }

@@ -21,11 +21,19 @@
 package com.redhat.swatch.component.tests.api;
 
 import static com.redhat.swatch.component.tests.utils.SwatchUtils.MANAGEMENT_PORT;
+import static org.apache.http.HttpStatus.SC_OK;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.redhat.swatch.component.tests.logging.Log;
+import com.redhat.swatch.component.tests.model.InfoFeatureFlag;
+import com.redhat.swatch.component.tests.model.InfoFeatureFlags;
+import com.redhat.swatch.component.tests.utils.JsonUtils;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -33,6 +41,7 @@ import java.util.stream.Stream;
 public class SwatchService extends RestService {
 
   protected static final String SWATCH_PSK = "placeholder";
+  private static final String FEATURE_FLAGS_SECTION = "feature-flags";
 
   public RequestSpecification managementServer() {
     return RestAssured.given()
@@ -71,6 +80,38 @@ public class SwatchService extends RestService {
    */
   private Response getMetrics() {
     return managementServer().get("/metrics").then().extract().response();
+  }
+
+  /**
+   * Retrieves the {@code feature-flags} list from the management {@code /info} endpoint when
+   * available.
+   *
+   * @return feature flags when {@code /info} exposes them; empty when the endpoint or section is
+   *     missing
+   */
+  @SuppressWarnings("unchecked")
+  public Optional<InfoFeatureFlags> getFeatureFlags() {
+    Response response = managementServer().get("/info").then().extract().response();
+    if (response.getStatusCode() != SC_OK) {
+      Log.debug(this, "Management /info not available (status %s)", response.getStatusCode());
+      return Optional.empty();
+    }
+
+    Log.trace(this, "Info endpoint response: %s", response.getBody().asString());
+
+    Map<String, Object> info = response.as(Map.class);
+    if (!info.containsKey(FEATURE_FLAGS_SECTION)) {
+      Log.debug(this, "Management /info has no feature-flags section");
+      return Optional.empty();
+    }
+
+    return Optional.ofNullable(info.get(FEATURE_FLAGS_SECTION))
+        .map(
+            f ->
+                new InfoFeatureFlags()
+                    .withFlags(
+                        JsonUtils.getObjectMapper()
+                            .convertValue(f, new TypeReference<List<InfoFeatureFlag>>() {})));
   }
 
   /**

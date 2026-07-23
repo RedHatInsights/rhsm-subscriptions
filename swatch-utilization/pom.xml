@@ -25,6 +25,10 @@
       <artifactId>swatch-common-health</artifactId>
     </dependency>
     <dependency>
+      <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-common-info</artifactId>
+    </dependency>
+    <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-security</artifactId>
     </dependency>

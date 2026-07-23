@@ -39,10 +39,10 @@ public class BaseSMHBIComponentTest {
   static KafkaBridgeService kafkaBridge =
       new KafkaBridgeService().subscribeToTopic(Topics.SWATCH_SERVICE_INSTANCE_INGRESS);
 
-  @Unleash static UnleashService unleash = new UnleashService();
-
   @Quarkus(service = "swatch-metrics-hbi")
   static SwatchMetricsHbiRestService service = new SwatchMetricsHbiRestService();
+
+  @Unleash static UnleashService unleash = new UnleashService().withSwatchService(service);
 
   protected static final String EMIT_EVENTS = "swatch.swatch-metrics-hbi.emit-events";
 

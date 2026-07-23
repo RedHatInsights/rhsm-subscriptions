@@ -83,7 +83,8 @@ public class BaseTallyComponentTest {
   @SpringBoot(service = "swatch-tally")
   static TallySwatchService service = new TallySwatchService();
 
-  @Unleash static TallyUnleashService unleash = new TallyUnleashService(service);
+  @Unleash
+  static TallyUnleashService unleash = new TallyUnleashService().withSwatchService(service);
 
   @SwatchDatabase static DatabaseService swatchDatabase = new DatabaseService();
 

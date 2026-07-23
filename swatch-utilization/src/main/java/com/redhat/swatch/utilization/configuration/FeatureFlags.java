@@ -22,6 +22,9 @@ package com.redhat.swatch.utilization.configuration;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.redhat.swatch.info.InfoFeatureFlagContributor;
+import com.redhat.swatch.info.UnleashInfoFeatureFlags;
+import com.redhat.swatch.info.model.InfoFeatureFlags;
 import com.redhat.swatch.utilization.model.SendNotificationVariantPayload;
 import io.getunleash.Unleash;
 import io.getunleash.variant.Variant;
@@ -35,7 +38,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @ApplicationScoped
 @AllArgsConstructor
-public class FeatureFlags {
+public class FeatureFlags implements InfoFeatureFlagContributor {
+
   public static final String SEND_NOTIFICATIONS = "swatch.swatch-notifications.send-notifications";
   public static final String SEND_NOTIFICATIONS_CONFIG_VARIANT = "send-notifications-config";
   public static final String SEND_NOTIFICATIONS_ORGS_ALLOWLIST =
@@ -104,6 +108,12 @@ public class FeatureFlags {
         value);
 
     return Arrays.stream(value.split(",")).map(String::trim).anyMatch(orgId::equals);
+  }
+
+  @Override
+  public InfoFeatureFlags getFeatureFlags() {
+    return UnleashInfoFeatureFlags.snapshot(
+        unleash, SEND_NOTIFICATIONS, SEND_NOTIFICATIONS_ORGS_ALLOWLIST);
   }
 
   private Optional<SendNotificationVariantPayload> mapToSendNotificationPayload(Variant variant) {

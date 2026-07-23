@@ -21,14 +21,19 @@
 package com.redhat.swatch.utilization.configuration;
 
 import static com.redhat.swatch.utilization.configuration.FeatureFlags.SEND_NOTIFICATIONS_CONFIG_VARIANT;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.redhat.swatch.info.InfoFeatureFlagContributor;
+import com.redhat.swatch.info.model.InfoFeatureFlag;
+import com.redhat.swatch.info.model.InfoFeatureFlags;
 import io.getunleash.Unleash;
 import io.getunleash.variant.Payload;
 import io.getunleash.variant.Variant;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -47,6 +52,44 @@ class FeatureFlagsTest {
   @BeforeEach
   void setUp() {
     featureFlags = new FeatureFlags(unleash, OBJECT_MAPPER);
+  }
+
+  @Test
+  void infoContributorShouldUseFeatureFlagsSectionName() {
+    assertEquals(InfoFeatureFlagContributor.FEATURE_FLAGS_SECTION, featureFlags.name());
+  }
+
+  @Test
+  void infoContributorDataShouldExposeEnabledAndVariant() {
+    Payload payload = new Payload("json", "{\"event_types_denylist\":[]}");
+    Variant sendNotificationsVariant =
+        new Variant(SEND_NOTIFICATIONS_CONFIG_VARIANT, payload, true, "any", true);
+    Variant allowlistVariant = Variant.DISABLED_VARIANT;
+
+    when(unleash.isEnabled(FeatureFlags.SEND_NOTIFICATIONS)).thenReturn(true);
+    when(unleash.getVariant(FeatureFlags.SEND_NOTIFICATIONS)).thenReturn(sendNotificationsVariant);
+    when(unleash.isEnabled(FeatureFlags.SEND_NOTIFICATIONS_ORGS_ALLOWLIST)).thenReturn(false);
+    when(unleash.getVariant(FeatureFlags.SEND_NOTIFICATIONS_ORGS_ALLOWLIST))
+        .thenReturn(allowlistVariant);
+
+    InfoFeatureFlags info = featureFlags.getFeatureFlags();
+    assertEquals(2, info.getFlags().size());
+
+    InfoFeatureFlag sendNotifications = findFlag(info, FeatureFlags.SEND_NOTIFICATIONS);
+    assertTrue(sendNotifications.getEnabled());
+    assertEquals(SEND_NOTIFICATIONS_CONFIG_VARIANT, sendNotifications.getVariant().getName());
+    assertTrue(sendNotifications.getVariant().getEnabled());
+    assertEquals("json", sendNotifications.getVariant().getPayload().getType());
+    assertEquals(
+        "{\"event_types_denylist\":[]}", sendNotifications.getVariant().getPayload().getValue());
+
+    InfoFeatureFlag allowlist = findFlag(info, FeatureFlags.SEND_NOTIFICATIONS_ORGS_ALLOWLIST);
+    assertFalse(allowlist.getEnabled());
+    assertEquals("disabled", allowlist.getVariant().getName());
+
+    @SuppressWarnings("unchecked")
+    List<InfoFeatureFlag> data = (List<InfoFeatureFlag>) featureFlags.data();
+    assertEquals(2, data.size());
   }
 
   @Test
@@ -126,6 +169,13 @@ class FeatureFlagsTest {
     givenAllowlistFlagEnabledForOrgs("org1");
 
     assertTrue(featureFlags.isOrgAllowlistedForNotifications("org1"));
+  }
+
+  private static InfoFeatureFlag findFlag(InfoFeatureFlags info, String name) {
+    return info.getFlags().stream()
+        .filter(flag -> name.equals(flag.getName()))
+        .findFirst()
+        .orElseThrow();
   }
 
   private void givenSendNotificationsEnabledWithByEventTypesPayload(String json) {

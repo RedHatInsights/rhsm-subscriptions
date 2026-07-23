@@ -1,0 +1,46 @@
+$schema: http://json-schema.org/draft-07/schema#
+title: InfoFeatureFlags
+description: >
+  Feature flags exposed under the management /info "feature-flags" section.
+  Each entry reports the toggle enabled state and the active Unleash variant.
+type: object
+properties:
+  flags:
+    type: array
+    items:
+      $ref: '#/definitions/InfoFeatureFlag'
+definitions:
+  InfoFeatureFlag:
+    type: object
+    required:
+      - name
+      - enabled
+    properties:
+      name:
+        description: Unleash toggle name
+        type: string
+      enabled:
+        description: Whether the toggle is enabled
+        type: boolean
+      variant:
+        $ref: '#/definitions/InfoFeatureFlagVariant'
+  InfoFeatureFlagVariant:
+    type: object
+    properties:
+      name:
+        description: Unleash variant name
+        type: string
+      enabled:
+        description: Whether the variant is enabled
+        type: boolean
+      payload:
+        $ref: '#/definitions/InfoFeatureFlagVariantPayload'
+  InfoFeatureFlagVariantPayload:
+    type: object
+    properties:
+      type:
+        description: Unleash variant payload type (for example string or json)
+        type: string
+      value:
+        description: Unleash variant payload value
+        type: string
