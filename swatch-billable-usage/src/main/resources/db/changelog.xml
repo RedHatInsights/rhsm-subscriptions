@@ -8,5 +8,6 @@
 
   <include file="/db/202510051200-create-billable-usage-remittance-table.xml"/>
   <include file="/db/202604021015-add-primary-key-to-changelog-table.xml"/>
+  <include file="/db/202607231000-add-license-id-to-billable-usage-remittance.xml"/>
 
 </databaseChangeLog>
