@@ -24,9 +24,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.component.tests.api.db.DatabaseService;
+import com.redhat.swatch.component.tests.logging.Log;
+import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
+import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -69,6 +73,7 @@ public final class TallyHbiDbSeeder {
   private static final String RHEL_PRODUCT_ID = "69"; // RHEL product ID
 
   private final List<UUID> insertedHostIds = new ArrayList<>();
+  private boolean schemaVerified = false;
   // Socket increase mapping for RHEL physical hosts
   // Maps actual socket count -> reported socket count for tally
   private static final Map<Integer, Integer> RHEL_PER_SOCKET_INCREASE =
@@ -138,6 +143,30 @@ public final class TallyHbiDbSeeder {
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Failed to serialize RHEL facts", e);
     }
+  }
+
+  private void waitForSchemaReady() {
+    if (schemaVerified) {
+      return;
+    }
+    Log.info("Waiting for HBI schema to be ready...");
+    AwaitilityUtils.untilIsTrue(
+        () -> {
+          try (Connection conn = getInsightsConnection();
+              PreparedStatement ps =
+                  conn.prepareStatement(
+                      "SELECT COUNT(*) FROM information_schema.tables"
+                          + " WHERE table_schema = 'hbi'"
+                          + " AND table_name IN ('hosts', 'system_profiles_static')")) {
+            var rs = ps.executeQuery();
+            return rs.next() && rs.getInt(1) == 2;
+          }
+        },
+        AwaitilitySettings.using(Duration.ofSeconds(2), Duration.ofSeconds(120))
+            .timeoutMessage(
+                "HBI schema not ready after 120s - migration job may not have completed"));
+    schemaVerified = true;
+    Log.info("HBI schema is ready.");
   }
 
   /** Record of a seeded host for test assertions. */
@@ -436,6 +465,7 @@ public final class TallyHbiDbSeeder {
       String[] reporters,
       String cloudProvider,
       String providerId) {
+    waitForSchemaReady();
     Objects.requireNonNull(orgId, "orgId is required");
 
     boolean isCloud = cloudProvider != null;
@@ -569,6 +599,7 @@ public final class TallyHbiDbSeeder {
       String providerId,
       String reporter,
       String[] reporters) {
+    waitForSchemaReady();
     Objects.requireNonNull(orgId, "orgId is required");
 
     // Use defaults if null values passed
