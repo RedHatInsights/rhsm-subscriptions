@@ -20,26 +20,29 @@
  */
 package org.candlepin.subscriptions.db.model.converters;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.configuration.registry.MetricId;
 import jakarta.persistence.AttributeConverter;
+import jakarta.persistence.Converter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import lombok.AllArgsConstructor;
-import org.springframework.stereotype.Component;
+import tools.jackson.core.JacksonException;
 
-@Component
-@AllArgsConstructor
+/**
+ * JPA AttributeConverter for TallyInstanceView metrics. Note: This is NOT a Spring @Component -
+ * Hibernate instantiates it directly. Uses Jackson3ObjectMapperHolder to access the Jackson 3
+ * ObjectMapper.
+ */
+@Converter(autoApply = false)
 public class TallyInstanceViewMetricsConverter
     implements AttributeConverter<Map<MetricId, Double>, String> {
 
   private static final String METRIC_ID = "metric_id";
   private static final String VALUE = "value";
 
-  private final ObjectMapper objectMapper;
+  // No-arg constructor required for Hibernate instantiation
+  public TallyInstanceViewMetricsConverter() {}
 
   @Override
   public String convertToDatabaseColumn(Map<MetricId, Double> map) {
@@ -56,7 +59,7 @@ public class TallyInstanceViewMetricsConverter
 
     try {
       Map<MetricId, Double> metrics = new HashMap<>();
-      objectMapper
+      Jackson3ObjectMapperHolder.getInstance()
           .readValue(s, List.class)
           .forEach(
               e -> {
@@ -68,7 +71,7 @@ public class TallyInstanceViewMetricsConverter
                 }
               });
       return metrics;
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       throw new IllegalArgumentException("Error parsing metrics", e);
     }
   }

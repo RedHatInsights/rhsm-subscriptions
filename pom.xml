@@ -25,6 +25,7 @@
     <!-- Only use as provided in the common dependencies.
     Spring and Quarkus already provides the compatible Jackson versions -->
     <jackson.version>2.22.1</jackson.version>
+    <jackson3.version>3.2.0</jackson3.version>
     <mapstruct.version>1.6.3</mapstruct.version>
     <slf4j.version>2.0.18</slf4j.version>
     <jakarta.ws.rs-api.version>4.0.0</jakarta.ws.rs-api.version>
@@ -212,6 +213,46 @@
         <groupId>org.openapitools</groupId>
         <artifactId>jackson-databind-nullable</artifactId>
         <version>0.2.10</version>
+      </dependency>
+      <dependency>
+        <groupId>tools.jackson.core</groupId>
+        <artifactId>jackson-core</artifactId>
+        <version>${jackson3.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>tools.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+        <version>${jackson3.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-annotations</artifactId>
+        <version>2.22</version>
+      </dependency>
+      <dependency>
+        <groupId>tools.jackson.dataformat</groupId>
+        <artifactId>jackson-dataformat-csv</artifactId>
+        <version>${jackson3.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>tools.jackson.dataformat</groupId>
+        <artifactId>jackson-dataformat-xml</artifactId>
+        <version>${jackson3.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>tools.jackson.dataformat</groupId>
+        <artifactId>jackson-dataformat-yaml</artifactId>
+        <version>${jackson3.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>tools.jackson.module</groupId>
+        <artifactId>jackson-module-jakarta-xmlbind-annotations</artifactId>
+        <version>${jackson3.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>tools.jackson.module</groupId>
+        <artifactId>jackson-module-kotlin</artifactId>
+        <version>${jackson3.version}</version>
       </dependency>
       <dependency>
         <groupId>jakarta.ws.rs</groupId>
@@ -431,6 +472,7 @@
             <includeGetters>true</includeGetters>
             <includeSetters>true</includeSetters>
             <useJakartaValidation>true</useJakartaValidation>
+            <annotationStyle>jackson3</annotationStyle>
           </configuration>
           <executions>
             <execution>
@@ -464,6 +506,7 @@
           <artifactId>swagger-codegen-maven-plugin</artifactId>
           <version>${swagger-codegen-maven-plugin.version}</version>
         </plugin>
+
       </plugins>
     </pluginManagement>
 

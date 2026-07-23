@@ -25,13 +25,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -40,7 +40,7 @@ class EventRecordTest {
   @Autowired ObjectMapper objectMapper;
 
   @Test
-  void testJsonOptionalVsNull() throws JsonProcessingException {
+  void testJsonOptionalVsNull() throws JacksonException {
     String testData =
         """
         {

@@ -22,13 +22,12 @@ package com.redhat.swatch.export;
 
 import static com.redhat.swatch.export.ExportRequestHandler.INTERNAL_ERROR;
 
-import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import tools.jackson.dataformat.csv.CsvMapper;
 
 @Slf4j
 @AllArgsConstructor
@@ -39,32 +38,25 @@ public class CsvExportFileWriter implements ExportFileWriter {
   public void write(
       File output, DataMapperService<?> dataMapper, Stream<?> data, ExportServiceRequest request) {
     log.debug("Writing CSV for request {}", request.getExportRequestUUID());
-    try (data;
-        FileOutputStream stream = new FileOutputStream(output)) {
-      var csvSchema = csvMapper.schemaFor(dataMapper.getExportItemClass()).withUseHeader(true);
-      var writer = csvMapper.writer(csvSchema).writeValues(stream);
-      data.flatMap(i -> dataMapper.mapDataItem(i, request).stream())
-          .forEach(
-              item -> {
-                try {
+    try {
+      try (data;
+          FileOutputStream stream = new FileOutputStream(output);
+          var writer =
+              csvMapper
+                  .writer(csvMapper.schemaFor(dataMapper.getExportItemClass()).withUseHeader(true))
+                  .writeValues(stream)) {
+        data.flatMap(i -> dataMapper.mapDataItem(i, request).stream())
+            .forEach(
+                item -> {
                   writer.write(item);
-                } catch (IOException e) {
-                  handleIOException(item, request, e);
-                }
-              });
-      writer.close();
-    } catch (IOException e) {
+                });
+      }
+    } catch (Exception e) {
+      if (e instanceof ExportServiceException ese) {
+        throw ese;
+      }
       log.error("Error writing the CSV payload for request {}", request.getExportRequestUUID(), e);
       throw new ExportServiceException(INTERNAL_ERROR, "Error writing the CSV payload");
     }
-  }
-
-  private void handleIOException(Object item, ExportServiceRequest request, IOException e) {
-    log.error(
-        "Error serializing the data item {} for request {}",
-        item,
-        request.getExportRequestUUID(),
-        e);
-    throw new ExportServiceException(INTERNAL_ERROR, "Error writing the payload");
   }
 }

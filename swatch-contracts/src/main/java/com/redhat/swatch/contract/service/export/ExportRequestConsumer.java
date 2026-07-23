@@ -22,8 +22,6 @@ package com.redhat.swatch.contract.service.export;
 
 import static com.redhat.swatch.contract.config.Channels.EXPORT_REQUESTS_TOPIC;
 
-import com.redhat.swatch.export.ExportRequestHandler;
-import com.redhat.swatch.export.ExportServiceException;
 import io.micrometer.core.annotation.Timed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;

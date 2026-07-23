@@ -33,10 +33,6 @@ import com.redhat.swatch.contract.repository.SubscriptionCapacityViewRepository;
 import com.redhat.swatch.contract.resource.ResourceUtils;
 // NOTE(khowell): this couples our export implementation to the v1 REST API
 import com.redhat.swatch.contract.resource.api.v1.ApiModelMapperV1;
-import com.redhat.swatch.export.DataExporterService;
-import com.redhat.swatch.export.DataMapperService;
-import com.redhat.swatch.export.ExportServiceException;
-import com.redhat.swatch.export.ExportServiceRequest;
 import com.redhat.swatch.panache.Specification;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.core.Response;

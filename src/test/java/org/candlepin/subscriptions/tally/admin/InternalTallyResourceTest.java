@@ -30,15 +30,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
-import com.fasterxml.jackson.databind.util.StdDateFormat;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationModule;
 import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
@@ -59,6 +50,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.core.KafkaTemplate;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.cfg.JsonNodeFeature;
+import tools.jackson.databind.introspect.JacksonAnnotationIntrospector;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.util.StdDateFormat;
 
 @ExtendWith(MockitoExtension.class)
 class InternalTallyResourceTest {
@@ -458,22 +456,14 @@ class InternalTallyResourceTest {
   }
 
   ObjectMapper objectMapper(ApplicationProperties applicationProperties) {
-    ObjectMapper objectMapper = new ObjectMapper();
-    objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-    objectMapper.setDateFormat(new StdDateFormat().withColonInTimeZone(true));
-    objectMapper.configure(
-        SerializationFeature.INDENT_OUTPUT, applicationProperties.isPrettyPrintJson());
-    objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-    objectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-    objectMapper.setAnnotationIntrospector(new JacksonAnnotationIntrospector());
-
-    // Explicitly load the modules we need rather than use ObjectMapper.findAndRegisterModules in
-    // order to avoid com.fasterxml.jackson.module.scala.DefaultScalaModule, which was causing
-    // deserialization to ignore @JsonProperty on OpenApi classes.
-    objectMapper.registerModule(new JakartaXmlBindAnnotationModule());
-    objectMapper.registerModule(new JavaTimeModule());
-    objectMapper.registerModule(new Jdk8Module());
-
-    return objectMapper;
+    // Jackson 3: Use builder pattern for immutable, thread-safe ObjectMapper
+    // Note: Jackson 3 includes JavaTime and JDK8 modules by default, no need to register them
+    return JsonMapper.builder()
+        .defaultDateFormat(new StdDateFormat().withColonInTimeZone(true))
+        .configure(SerializationFeature.INDENT_OUTPUT, applicationProperties.isPrettyPrintJson())
+        .configure(JsonNodeFeature.WRITE_NULL_PROPERTIES, false)
+        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+        .annotationIntrospector(new JacksonAnnotationIntrospector())
+        .build();
   }
 }

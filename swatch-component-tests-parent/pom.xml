@@ -16,15 +16,10 @@
 
   <modules>
     <module>../swatch-test-framework</module>
+    <module>../swatch-test-framework-quarkus</module>
   </modules>
 
-  <dependencies>
-    <dependency>
-      <groupId>com.redhat.swatch</groupId>
-      <artifactId>swatch-test-framework</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-  </dependencies>
+  <!-- No default dependency - component tests must explicitly choose which framework -->
 
   <profiles>
     <profile>

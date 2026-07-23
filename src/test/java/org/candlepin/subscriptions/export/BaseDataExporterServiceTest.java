@@ -25,9 +25,6 @@ import static com.redhat.swatch.export.ExportRequestHandler.SWATCH_APP;
 import static org.candlepin.subscriptions.export.ExportConfiguration.SUBSCRIPTION_EXPORT_QUALIFIER;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.redhat.cloud.event.apps.exportservice.v1.Format;
 import com.redhat.cloud.event.apps.exportservice.v1.ResourceRequest;
 import com.redhat.cloud.event.apps.exportservice.v1.ResourceRequestClass;
@@ -61,6 +58,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import tools.jackson.core.exc.StreamWriteException;
+import tools.jackson.databind.DatabindException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.dataformat.csv.CsvMapper;
 
 @SpringBootTest
 public abstract class BaseDataExporterServiceTest
@@ -74,7 +75,10 @@ public abstract class BaseDataExporterServiceTest
   TaskQueueProperties taskQueueProperties;
 
   @Autowired ObjectMapper objectMapper;
-  @Autowired CsvMapper csvMapper;
+
+  // CsvMapper for export testing - Jackson 3
+  private final CsvMapper csvMapper = CsvMapper.builder().build();
+
   @Autowired KafkaProperties kafkaProperties;
   @Autowired AccountServiceInventoryRepository accountServiceInventoryRepository;
   @MockitoBean RbacService rbacService;
@@ -87,7 +91,13 @@ public abstract class BaseDataExporterServiceTest
   @Transactional
   @BeforeEach
   public void setup() {
-    parser = new ConsoleCloudEventParser(objectMapper);
+    // ConsoleCloudEventParser requires Jackson 2 (event-schemas library)
+    com.fasterxml.jackson.databind.ObjectMapper jackson2Mapper =
+        new com.fasterxml.jackson.databind.ObjectMapper();
+    jackson2Mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+    jackson2Mapper.disable(
+        com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    parser = new ConsoleCloudEventParser(jackson2Mapper);
 
     Map<String, Object> properties = kafkaProperties.buildProducerProperties();
     properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
@@ -181,7 +191,7 @@ public abstract class BaseDataExporterServiceTest
   protected String toJson(Object data) {
     try {
       return objectMapper.writeValueAsString(data);
-    } catch (JsonProcessingException e) {
+    } catch (StreamWriteException | DatabindException e) {
       Assertions.fail("Failed to serialize the export data", e);
       return null;
     }
@@ -192,7 +202,7 @@ public abstract class BaseDataExporterServiceTest
       var csvSchema = csvMapper.schemaFor(dataItemClass).withUseHeader(true);
       var writer = csvMapper.writer(csvSchema);
       return writer.writeValueAsString(data);
-    } catch (JsonProcessingException e) {
+    } catch (StreamWriteException | DatabindException e) {
       Assertions.fail("Failed to serialize the export data", e);
       return null;
     }

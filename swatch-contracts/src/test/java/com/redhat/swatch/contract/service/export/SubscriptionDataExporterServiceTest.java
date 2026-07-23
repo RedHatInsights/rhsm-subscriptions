@@ -20,11 +20,11 @@
  */
 package com.redhat.swatch.contract.service.export;
 
+import static com.redhat.swatch.contract.service.export.ExportRequestHandler.ADMIN_ROLE;
+import static com.redhat.swatch.contract.service.export.ExportRequestHandler.MISSING_PERMISSIONS;
+import static com.redhat.swatch.contract.service.export.ExportRequestHandler.SWATCH_APP;
 import static com.redhat.swatch.contract.service.export.SubscriptionDataExporterService.PRODUCT_ID;
 import static com.redhat.swatch.contract.test.LoggerCaptor.thenErrorLogWithMessage;
-import static com.redhat.swatch.export.ExportRequestHandler.ADMIN_ROLE;
-import static com.redhat.swatch.export.ExportRequestHandler.MISSING_PERMISSIONS;
-import static com.redhat.swatch.export.ExportRequestHandler.SWATCH_APP;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
