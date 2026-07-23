@@ -100,7 +100,8 @@ public class TallyRhelTest extends BaseTallyComponentTest {
     service.createOptInConfig(orgId);
 
     // And: Define time range (today only)
-    OffsetDateTime beginning = OffsetDateTime.now().toLocalDate().atStartOfDay().atOffset(ZoneOffset.UTC);
+    OffsetDateTime beginning =
+        OffsetDateTime.now().toLocalDate().atStartOfDay().atOffset(ZoneOffset.UTC);
     OffsetDateTime ending = OffsetDateTime.now();
 
     // When: Capture initial state

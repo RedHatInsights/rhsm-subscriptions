@@ -462,9 +462,7 @@ public class TallyTestHelpers {
           "Tally report should have data but is empty: " + reportData.toString());
     }
 
-    return reportData.getData().stream()
-        .mapToDouble(TallyReportDataPoint::getValue)
-        .sum();
+    return reportData.getData().stream().mapToDouble(TallyReportDataPoint::getValue).sum();
   }
 
   /**
