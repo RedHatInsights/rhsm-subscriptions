@@ -18,19 +18,25 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.configuration;
+package domain;
 
-public interface FeatureFlags {
+/** Permission outcome stubbed for the subscriptions application. */
+public enum SubscriptionsAccessLevel {
+  GRANTED_ADMIN("subscriptions:*:*"),
+  GRANTED_READER("subscriptions:reports:read"),
+  DENIED;
 
-  String ENABLE_PRIMARY_ROW_SEARCHES = "swatch.swatch-tally.enable-primary-row-searches";
-  String ENABLE_HTB_PRIMARY_ROW_SEARCHES =
-      "swatch.swatch-tally.enable-host-tally-bucket-primary-row-searches";
-  String USE_KESSEL_RBAC = "swatch.common-security.use-kessel-rbac";
-  String[] FLAG_LIST = {
-    ENABLE_PRIMARY_ROW_SEARCHES, ENABLE_HTB_PRIMARY_ROW_SEARCHES, USE_KESSEL_RBAC
-  };
+  private final String permission;
 
-  boolean isEnabled(String featureName);
+  SubscriptionsAccessLevel() {
+    this.permission = null;
+  }
 
-  boolean isEnabled(String featureName, boolean defaultWhenUnavailable);
+  SubscriptionsAccessLevel(String permission) {
+    this.permission = permission;
+  }
+
+  public String permission() {
+    return permission;
+  }
 }

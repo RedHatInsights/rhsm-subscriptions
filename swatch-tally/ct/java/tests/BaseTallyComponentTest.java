@@ -39,10 +39,12 @@ import com.redhat.swatch.component.tests.api.db.DatabaseService;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
+import com.redhat.swatch.component.tests.utils.SwatchUtils;
 import com.redhat.swatch.tally.test.model.InstanceData;
 import com.redhat.swatch.tally.test.model.InstanceResponse;
 import com.redhat.swatch.tally.test.model.TallyReportData;
 import com.redhat.swatch.tally.test.model.TallyReportDataPoint;
+import domain.SubscriptionsAccessLevel;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
@@ -99,6 +101,10 @@ public class BaseTallyComponentTest {
   @BeforeEach
   void setUp() {
     orgId = RandomUtils.generateRandom();
+    String identityHeader = SwatchUtils.createUserIdentityHeader(orgId);
+    wiremock
+        .forRbacAccessControl()
+        .stubSubscriptionsAccess(identityHeader, SubscriptionsAccessLevel.GRANTED_ADMIN);
   }
 
   // --- Protected helper methods ---
