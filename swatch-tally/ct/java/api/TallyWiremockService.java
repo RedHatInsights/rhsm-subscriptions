@@ -38,4 +38,22 @@ public class TallyWiremockService extends WiremockService {
   public CapacityApiStubs forCapacityAPI() {
     return new CapacityApiStubs(this);
   }
+
+  /**
+   * Get facade for stubbing RBAC v1 access control endpoints.
+   *
+   * @return RbacAccessControlStubs facade
+   */
+  public RbacAccessControlStubs forRbacAccessControl() {
+    return new RbacAccessControlStubs(this);
+  }
+
+  /**
+   * Get facade for stubbing Kessel (RBACv2) gRPC Check and workspace endpoints.
+   *
+   * @return KesselAccessControlStubs facade
+   */
+  public KesselAccessControlStubs forKesselAccessControl() {
+    return new KesselAccessControlStubs(this);
+  }
 }
