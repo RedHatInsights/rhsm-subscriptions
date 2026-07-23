@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions.security;
 
+import com.redhat.swatch.kessel.KesselAuthorizationClient;
+import io.getunleash.Unleash;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -28,6 +30,7 @@ import org.candlepin.subscriptions.rbac.RbacProperties;
 import org.candlepin.subscriptions.rbac.RbacService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.mapping.Attributes2GrantedAuthoritiesMapper;
@@ -51,16 +54,37 @@ public class IdentityHeaderAuthenticationDetailsService
   private RbacProperties rbacProps;
   private RoleProvider roleProvider;
   private RbacService rbacController;
+  private KesselAuthorizationClient kesselService;
+  private Unleash unleash;
+
+  static final String KESSEL_FLAG = "swatch.common-security.use-kessel-rbac";
 
   public IdentityHeaderAuthenticationDetailsService(
       SecurityProperties props,
       RbacProperties rbacProps,
       Attributes2GrantedAuthoritiesMapper authMapper,
       RbacService rbacController) {
+    this(props, rbacProps, authMapper, rbacController, null, null);
+  }
+
+  public IdentityHeaderAuthenticationDetailsService(
+      SecurityProperties props,
+      RbacProperties rbacProps,
+      Attributes2GrantedAuthoritiesMapper authMapper,
+      RbacService rbacController,
+      KesselAuthorizationClient kesselService,
+      Unleash unleash) {
     this.rbacProps = rbacProps;
     this.authMapper = authMapper;
     this.props = props;
     this.rbacController = rbacController;
+    this.kesselService = kesselService;
+    this.unleash = unleash;
+
+    log.debug(
+        "Auth permission source: kesselService={}, unleash={}",
+        kesselService != null ? "present" : "absent",
+        unleash != null ? "present" : "absent");
 
     if (props.isDevMode()) {
       log.info("Running in DEV mode. Security will be disabled.");
@@ -69,7 +93,13 @@ public class IdentityHeaderAuthenticationDetailsService
   }
 
   protected Collection<String> getUserRoles() {
-    return roleProvider.getRoles(props.isDevMode() ? Collections.emptyList() : getPermissions());
+    return roleProvider.getRoles(
+        props.isDevMode() ? Collections.emptyList() : getPermissions(null));
+  }
+
+  private Collection<String> getUserRoles(InsightsUserPrincipal user) {
+    return roleProvider.getRoles(
+        props.isDevMode() ? Collections.emptyList() : getPermissions(user));
   }
 
   @Override
@@ -77,19 +107,33 @@ public class IdentityHeaderAuthenticationDetailsService
     Object principal = authentication.getPrincipal();
 
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-    if (auth != null) {
-      // We've already populated the roles if the auth has been set in the context.
-      return (UserDetails) auth.getDetails();
+    if (auth != null
+        && auth.isAuthenticated()
+        && !(auth instanceof AnonymousAuthenticationToken)
+        && auth.getDetails() instanceof UserDetails userDetails) {
+      log.debug(
+          "Reusing roles from existing SecurityContext authentication (type={})",
+          auth.getClass().getSimpleName());
+      return userDetails;
     }
+
+    log.debug(
+        "Loading user roles for principal type={}, devMode={}",
+        principal.getClass().getSimpleName(),
+        props.isDevMode());
+
     Collection<String> userRoles;
-    if (principal instanceof InsightsUserPrincipal) {
-      userRoles = getUserRoles();
+    if (principal instanceof InsightsUserPrincipal insightsUserPrincipal) {
+      userRoles = getUserRoles(insightsUserPrincipal);
+      log.debug("Resolved roles for orgId={}: {}", insightsUserPrincipal.getOrgId(), userRoles);
     } else {
       userRoles = Collections.singleton("INTERNAL");
+      log.debug(
+          "Assigned INTERNAL role for principal type={}", principal.getClass().getSimpleName());
     }
     Collection<? extends GrantedAuthority> userGAs = authMapper.getGrantedAuthorities(userRoles);
 
-    log.debug("Roles {} mapped to Granted Authorities: {}", userRoles, userGAs);
+    log.debug("Mapped roles {} to granted authorities: {}", userRoles, userGAs);
 
     return new User("N/A", "N/A", userGAs);
   }
@@ -99,11 +143,59 @@ public class IdentityHeaderAuthenticationDetailsService
     this.authMapper = authMapper;
   }
 
-  private List<String> getPermissions() {
+  private List<String> getPermissions(InsightsUserPrincipal user) {
+    if (isKesselEnabled()) {
+      if (user == null) {
+        log.warn("Kessel enabled but no InsightsUserPrincipal available; denying access");
+        return Collections.emptyList();
+      }
+      List<String> permissions = getKesselPermissions(user);
+      log.debug("Permissions from Kessel: {}", permissions);
+      return permissions;
+    }
+    log.debug("Fetching permissions from RBAC application={}", rbacProps.getApplicationName());
     try {
-      return rbacController.getPermissions(rbacProps.getApplicationName());
+      List<String> permissions = rbacController.getPermissions(rbacProps.getApplicationName());
+      log.debug("Permissions from RBAC: {}", permissions);
+      return permissions;
     } catch (RbacApiException e) {
       log.warn("Unable to determine roles from RBAC service.", e);
+      return Collections.emptyList();
+    }
+  }
+
+  private boolean isKesselEnabled() {
+    boolean flagEnabled = unleash != null && unleash.isEnabled(KESSEL_FLAG);
+    boolean enabled = kesselService != null && flagEnabled;
+    log.debug(
+        "Kessel RBAC enabled: {} (kesselServicePresent={}, unleashPresent={}, flag={})",
+        enabled,
+        kesselService != null,
+        unleash != null,
+        flagEnabled);
+    return enabled;
+  }
+
+  private List<String> getKesselPermissions(InsightsUserPrincipal user) {
+    try {
+      return user.getKesselPrincipalId()
+          .map(
+              principalId -> {
+                log.debug(
+                    "Fetching Kessel permissions for orgId={}, principalId={}",
+                    user.getOrgId(),
+                    principalId);
+                return kesselService.getPermissions(principalId, user.getOrgId());
+              })
+          .orElseGet(
+              () -> {
+                log.warn(
+                    "Cannot determine Kessel principal id for orgId={}; denying access",
+                    user.getOrgId());
+                return Collections.emptyList();
+              });
+    } catch (Exception e) {
+      log.warn("Unable to determine roles from Kessel service.", e);
       return Collections.emptyList();
     }
   }
