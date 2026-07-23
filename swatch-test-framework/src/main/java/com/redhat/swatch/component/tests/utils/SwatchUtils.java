@@ -64,6 +64,22 @@ public final class SwatchUtils {
     return Map.of(ORIGIN_HEADER, ORIGIN_HEADER_VALUE, X_RH_IDENTITY_HEADER, rhId);
   }
 
+  /** Returns headers for a User identity with org and user identifiers (RBAC component tests). */
+  public static Map<String, String> securityHeadersWithUserRole(String orgId, String userId) {
+    String json =
+        "{\"identity\":{\"type\":\"User\",\"org_id\":\""
+            + orgId
+            + "\",\"internal\":{\"org_id\":\""
+            + orgId
+            + "\"},\"user\":{\"username\":\""
+            + userId
+            + "\",\"user_id\":\""
+            + userId
+            + "\"}}}";
+    String rhId = Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
+    return Map.of(ORIGIN_HEADER, ORIGIN_HEADER_VALUE, X_RH_IDENTITY_HEADER, rhId);
+  }
+
   /**
    * This is used to create a User type identity header that includes org_id for Springboot services
    * in DEV_MODE
