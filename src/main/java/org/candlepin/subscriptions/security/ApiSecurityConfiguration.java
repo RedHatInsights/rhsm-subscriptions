@@ -21,9 +21,9 @@
 package org.candlepin.subscriptions.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.redhat.swatch.kessel.KesselAuthorizationClient;
 import io.getunleash.Unleash;
 import jakarta.servlet.http.HttpServletRequest;
-import org.candlepin.subscriptions.rbac.KesselService;
 import org.candlepin.subscriptions.rbac.RbacProperties;
 import org.candlepin.subscriptions.rbac.RbacService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -171,7 +171,7 @@ public class ApiSecurityConfiguration {
       RbacProperties rbacProperties,
       RbacService rbacService,
       IdentityHeaderAuthoritiesMapper identityHeaderAuthoritiesMapper,
-      @Autowired(required = false) KesselService kesselService,
+      @Autowired(required = false) KesselAuthorizationClient kesselService,
       @Autowired(required = false) Unleash unleash) {
     return new IdentityHeaderAuthenticationDetailsService(
         secProps,

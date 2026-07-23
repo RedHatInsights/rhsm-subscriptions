@@ -31,6 +31,11 @@
     </dependency>
 
     <dependency>
+      <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-common-kessel</artifactId>
+    </dependency>
+
+    <dependency>
       <groupId>org.project-kessel</groupId>
       <artifactId>kessel-sdk</artifactId>
       <version>1.7.1</version>

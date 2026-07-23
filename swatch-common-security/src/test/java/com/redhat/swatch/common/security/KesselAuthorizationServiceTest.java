@@ -31,6 +31,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.redhat.swatch.kessel.KesselAuthorizationClient;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import java.io.IOException;
@@ -82,10 +83,10 @@ class KesselAuthorizationServiceTest {
   void permissionMappingUsesKesselV2RelationNames() {
     assertEquals(
         "subscriptions_report_view",
-        KesselAuthorizationService.mapPermissionToRelation("subscriptions:*:*"));
+        KesselAuthorizationClient.mapPermissionToRelation("subscriptions:*:*"));
     assertEquals(
         "subscriptions_report_view",
-        KesselAuthorizationService.mapPermissionToRelation("subscriptions:reports:read"));
+        KesselAuthorizationClient.mapPermissionToRelation("subscriptions:reports:read"));
   }
 
   @Test
@@ -144,15 +145,15 @@ class KesselAuthorizationServiceTest {
   }
 
   @Test
-  void getPermissionsReturnsGrantedPermissions() {
+  void getPermissionsReturnsSingleReaderPermissionWhenAllowed() {
     when(stub.check(any(CheckRequest.class)))
-        .thenReturn(CheckResponse.newBuilder().setAllowed(Allowed.ALLOWED_TRUE).build())
-        .thenReturn(CheckResponse.newBuilder().setAllowed(Allowed.ALLOWED_FALSE).build());
+        .thenReturn(CheckResponse.newBuilder().setAllowed(Allowed.ALLOWED_TRUE).build());
 
     var principal = principalFromJson(RhIdentityUtils.CUSTOMER_IDENTITY_JSON);
     List<String> permissions = service.getPermissions(principal);
 
-    assertEquals(List.of("subscriptions:*:*"), permissions);
+    assertEquals(List.of("subscriptions:reports:read"), permissions);
+    verify(stub, times(1)).check(any(CheckRequest.class));
   }
 
   @Test
@@ -231,13 +232,14 @@ class KesselAuthorizationServiceTest {
   }
 
   @Test
-  void getPermissionsReturnsBothWhenBothGranted() {
+  void getPermissionsMakesSingleCheckCallDueToDedup() {
     when(stub.check(any(CheckRequest.class)))
         .thenReturn(CheckResponse.newBuilder().setAllowed(Allowed.ALLOWED_TRUE).build());
 
     var principal = principalFromJson(RhIdentityUtils.CUSTOMER_IDENTITY_JSON);
     List<String> permissions = service.getPermissions(principal);
 
-    assertEquals(List.of("subscriptions:*:*", "subscriptions:reports:read"), permissions);
+    assertEquals(List.of("subscriptions:reports:read"), permissions);
+    verify(stub, times(1)).check(any(CheckRequest.class));
   }
 }

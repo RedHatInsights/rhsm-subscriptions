@@ -20,11 +20,11 @@
  */
 package org.candlepin.subscriptions.security;
 
+import com.redhat.swatch.kessel.KesselAuthorizationClient;
 import io.getunleash.Unleash;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import org.candlepin.subscriptions.rbac.KesselService;
 import org.candlepin.subscriptions.rbac.RbacApiException;
 import org.candlepin.subscriptions.rbac.RbacProperties;
 import org.candlepin.subscriptions.rbac.RbacService;
@@ -54,7 +54,7 @@ public class IdentityHeaderAuthenticationDetailsService
   private RbacProperties rbacProps;
   private RoleProvider roleProvider;
   private RbacService rbacController;
-  private KesselService kesselService;
+  private KesselAuthorizationClient kesselService;
   private Unleash unleash;
 
   static final String KESSEL_FLAG = "swatch.common-security.use-kessel-rbac";
@@ -72,7 +72,7 @@ public class IdentityHeaderAuthenticationDetailsService
       RbacProperties rbacProps,
       Attributes2GrantedAuthoritiesMapper authMapper,
       RbacService rbacController,
-      KesselService kesselService,
+      KesselAuthorizationClient kesselService,
       Unleash unleash) {
     this.rbacProps = rbacProps;
     this.authMapper = authMapper;
@@ -185,7 +185,7 @@ public class IdentityHeaderAuthenticationDetailsService
                     "Fetching Kessel permissions for orgId={}, principalId={}",
                     user.getOrgId(),
                     principalId);
-                return kesselService.getPermissions(principalId);
+                return kesselService.getPermissions(principalId, user.getOrgId());
               })
           .orElseGet(
               () -> {

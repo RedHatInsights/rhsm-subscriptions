@@ -103,10 +103,10 @@ class MockKesselServerTest {
   }
 
   @Test
-  void allowAllGrantsBothPermissions() {
+  void allowAllGrantsReaderPermission() {
     kesselServer.allowAll();
     List<String> permissions = service.getPermissions(principal());
-    assertEquals(List.of("subscriptions:*:*", "subscriptions:reports:read"), permissions);
+    assertEquals(List.of("subscriptions:reports:read"), permissions);
   }
 
   @Test
@@ -124,7 +124,7 @@ class MockKesselServerTest {
     assertTrue(service.checkAccess(principal(), "subscriptions:*:*"));
 
     List<String> permissions = service.getPermissions(principal());
-    assertEquals(List.of("subscriptions:*:*", "subscriptions:reports:read"), permissions);
+    assertEquals(List.of("subscriptions:reports:read"), permissions);
   }
 
   @Test

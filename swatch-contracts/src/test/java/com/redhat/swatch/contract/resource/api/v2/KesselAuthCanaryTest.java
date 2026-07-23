@@ -65,7 +65,7 @@ class KesselAuthCanaryTest {
   @Test
   void kesselGrantsAccess_requestPassesAuth() {
     when(kesselService.getPermissions(any(RhIdentityPrincipal.class)))
-        .thenReturn(List.of("subscriptions:*:*"));
+        .thenReturn(List.of("subscriptions:reports:read"));
 
     given()
         .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)

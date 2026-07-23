@@ -23,14 +23,15 @@ package org.candlepin.subscriptions.security;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.redhat.swatch.kessel.KesselAuthorizationClient;
 import io.getunleash.Unleash;
 import java.util.List;
-import org.candlepin.subscriptions.rbac.KesselService;
 import org.candlepin.subscriptions.rbac.RbacApiException;
 import org.candlepin.subscriptions.rbac.RbacProperties;
 import org.candlepin.subscriptions.rbac.RbacService;
@@ -47,7 +48,7 @@ import org.springframework.security.web.authentication.preauth.PreAuthenticatedA
 class IdentityHeaderAuthenticationDetailsServiceTest {
 
   @Mock RbacService rbacService;
-  @Mock KesselService kesselService;
+  @Mock KesselAuthorizationClient kesselService;
   @Mock Unleash unleash;
 
   SecurityProperties securityProperties;
@@ -66,7 +67,7 @@ class IdentityHeaderAuthenticationDetailsServiceTest {
   }
 
   private IdentityHeaderAuthenticationDetailsService createService(
-      KesselService kessel, Unleash unleash) {
+      KesselAuthorizationClient kessel, Unleash unleash) {
     return new IdentityHeaderAuthenticationDetailsService(
         securityProperties, rbacProperties, authMapper, rbacService, kessel, unleash);
   }
@@ -118,15 +119,15 @@ class IdentityHeaderAuthenticationDetailsServiceTest {
   void kesselEnabledCallsKesselNotRbac() throws RbacApiException {
     when(unleash.isEnabled(IdentityHeaderAuthenticationDetailsService.KESSEL_FLAG))
         .thenReturn(true);
-    when(kesselService.getPermissions("user123"))
-        .thenReturn(List.of("subscriptions:*:*", "subscriptions:reports:read"));
+    when(kesselService.getPermissions("user123", "org123"))
+        .thenReturn(List.of("subscriptions:reports:read"));
 
     var service = createService(kesselService, unleash);
     var result = service.loadUserDetails(authWithPrincipal(userPrincipal()));
 
-    verify(kesselService).getPermissions("user123");
+    verify(kesselService).getPermissions("user123", "org123");
     verify(rbacService, never()).getPermissions(any());
-    assertTrue(hasAuthority(result, "ROLE_SUBSCRIPTION_WATCH_ADMIN"));
+    assertTrue(hasAuthority(result, "ROLE_SUBSCRIPTION_WATCH_REPORT_READER"));
   }
 
   @Test
@@ -140,7 +141,7 @@ class IdentityHeaderAuthenticationDetailsServiceTest {
     var result = service.loadUserDetails(authWithPrincipal(userPrincipal()));
 
     verify(rbacService).getPermissions("subscriptions");
-    verify(kesselService, never()).getPermissions(any());
+    verify(kesselService, never()).getPermissions(anyString(), anyString());
     assertTrue(hasAuthority(result, "ROLE_SUBSCRIPTION_WATCH_REPORT_READER"));
   }
 
@@ -166,7 +167,7 @@ class IdentityHeaderAuthenticationDetailsServiceTest {
     var result = service.loadUserDetails(authWithPrincipal(userPrincipal()));
 
     verify(rbacService).getPermissions("subscriptions");
-    verify(kesselService, never()).getPermissions(any());
+    verify(kesselService, never()).getPermissions(anyString(), anyString());
     assertTrue(hasAuthority(result, "ROLE_SUBSCRIPTION_WATCH_REPORT_READER"));
   }
 
@@ -174,7 +175,8 @@ class IdentityHeaderAuthenticationDetailsServiceTest {
   void kesselExceptionReturnsNoRoles() {
     when(unleash.isEnabled(IdentityHeaderAuthenticationDetailsService.KESSEL_FLAG))
         .thenReturn(true);
-    when(kesselService.getPermissions("user123")).thenThrow(new RuntimeException("gRPC failure"));
+    when(kesselService.getPermissions("user123", "org123"))
+        .thenThrow(new RuntimeException("gRPC failure"));
 
     var service = createService(kesselService, unleash);
     var result = service.loadUserDetails(authWithPrincipal(userPrincipal()));
@@ -205,7 +207,7 @@ class IdentityHeaderAuthenticationDetailsServiceTest {
     var service = createService(kesselService, unleash);
     var result = service.loadUserDetails(authWithPrincipal(userPrincipalWithoutUserId()));
 
-    verify(kesselService, never()).getPermissions(any());
+    verify(kesselService, never()).getPermissions(anyString(), anyString());
     assertFalse(hasAuthority(result, "ROLE_SUBSCRIPTION_WATCH_ADMIN"));
   }
 
@@ -216,7 +218,7 @@ class IdentityHeaderAuthenticationDetailsServiceTest {
     var service = createService(kesselService, unleash);
     var result = service.loadUserDetails(authWithPrincipal(userPrincipal()));
 
-    verify(kesselService, never()).getPermissions(any());
+    verify(kesselService, never()).getPermissions(anyString(), anyString());
     verify(rbacService, never()).getPermissions(any());
     assertTrue(hasAuthority(result, "ROLE_SUBSCRIPTION_WATCH_ADMIN"));
   }

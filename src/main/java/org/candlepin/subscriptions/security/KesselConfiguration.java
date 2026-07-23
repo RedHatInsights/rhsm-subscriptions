@@ -20,8 +20,8 @@
  */
 package org.candlepin.subscriptions.security;
 
+import com.redhat.swatch.kessel.KesselAuthorizationClient;
 import org.candlepin.subscriptions.rbac.KesselProperties;
-import org.candlepin.subscriptions.rbac.KesselService;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -35,8 +35,8 @@ public class KesselConfiguration {
     return new KesselProperties();
   }
 
-  @Bean
-  public KesselService kesselService(KesselProperties props) {
-    return new KesselService(props);
+  @Bean(initMethod = "init", destroyMethod = "shutdown")
+  public KesselAuthorizationClient kesselAuthorizationClient(KesselProperties props) {
+    return new KesselAuthorizationClient(props, orgId -> "default");
   }
 }

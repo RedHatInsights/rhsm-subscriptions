@@ -18,29 +18,12 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.rbac;
+package com.redhat.swatch.kessel;
 
-import com.redhat.swatch.kessel.KesselConfig;
-import lombok.Data;
+public interface KesselConfig {
+  String endpoint();
 
-@Data
-public class KesselProperties implements KesselConfig {
-  private String endpoint = "localhost:9000";
-  private boolean insecure = true;
-  private long timeoutMs = 5000;
+  boolean insecure();
 
-  @Override
-  public String endpoint() {
-    return endpoint;
-  }
-
-  @Override
-  public boolean insecure() {
-    return insecure;
-  }
-
-  @Override
-  public long timeoutMs() {
-    return timeoutMs;
-  }
+  long timeoutMs();
 }
