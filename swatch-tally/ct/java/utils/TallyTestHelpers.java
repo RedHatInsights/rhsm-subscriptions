@@ -34,6 +34,7 @@ import com.redhat.swatch.tally.test.model.TallySummary;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -450,7 +451,7 @@ public class TallyTestHelpers {
             orgId,
             productTag,
             "Sockets",
-            java.util.Map.of(
+            Map.of(
                 "granularity", granularity,
                 "beginning", beginning.toString(),
                 "ending", ending.toString()));
