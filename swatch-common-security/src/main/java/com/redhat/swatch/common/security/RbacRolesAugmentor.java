@@ -23,6 +23,7 @@ package com.redhat.swatch.common.security;
 import com.redhat.swatch.clients.rbac.api.model.Access;
 import com.redhat.swatch.clients.rbac.api.resources.AccessApi;
 import com.redhat.swatch.clients.rbac.api.resources.ApiException;
+import io.getunleash.Unleash;
 import io.quarkus.arc.properties.IfBuildProperty;
 import io.quarkus.security.identity.AuthenticationRequestContext;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -54,6 +55,7 @@ public class RbacRolesAugmentor implements SecurityIdentityAugmentor {
   @ConfigProperty(name = "RBAC_ENABLED", defaultValue = "true")
   boolean rbacEnabled;
 
+  @Inject Unleash unleash;
   @Inject @RestClient AccessApi accessApi;
 
   @Override
@@ -61,6 +63,10 @@ public class RbacRolesAugmentor implements SecurityIdentityAugmentor {
       SecurityIdentity identity, AuthenticationRequestContext context) {
     if (!rbacEnabled) {
       return Uni.createFrom().item(buildWithAllRoles(identity));
+    }
+
+    if (unleash.isEnabled(KesselRolesAugmentor.KESSEL_FLAG)) {
+      return Uni.createFrom().item(identity);
     }
 
     Principal principal = identity.getPrincipal();
@@ -82,15 +88,32 @@ public class RbacRolesAugmentor implements SecurityIdentityAugmentor {
   }
 
   private SecurityIdentity lookupRbacRoles(SecurityIdentity identity) {
+    var principal = (RhIdentityPrincipal) identity.getPrincipal();
     List<String> rbacServiceRoles;
     try {
-      rbacServiceRoles = getPermissions((RhIdentityPrincipal) identity.getPrincipal());
+      rbacServiceRoles = getPermissions(principal);
     } catch (Exception e) {
-      log.warn("Error adding roles via RBAC service integration: {}", e.getMessage());
+      log.warn(
+          "Error adding roles via RBAC service integration: Api response has status code {}",
+          e.getMessage());
       return identity;
     }
 
     Set<String> effectiveRoles = determineEffectiveRoles(rbacServiceRoles);
+    if (effectiveRoles.isEmpty()) {
+      log.warn(
+          "RBAC returned no matching permissions for user={} orgId={} (permissions={}); "
+              + "request will likely be denied",
+          principal.getName(),
+          principal.getIdentity().getOrgId(),
+          rbacServiceRoles);
+    } else {
+      log.debug(
+          "RBAC granted roles {} for user={} orgId={}",
+          effectiveRoles,
+          principal.getName(),
+          principal.getIdentity().getOrgId());
+    }
     return QuarkusSecurityIdentity.builder(identity).addRoles(effectiveRoles).build();
   }
 
