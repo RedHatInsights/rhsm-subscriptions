@@ -22,9 +22,12 @@ package com.redhat.swatch.contract.resource;
 
 import static com.redhat.swatch.contract.config.Channels.CONTRACTS_FROM_GATEWAY;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.contract.config.FeatureFlags;
+import com.redhat.swatch.contract.model.PartnerEntitlementsRequest;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
+import com.redhat.swatch.contract.service.ContractService;
 import io.smallrye.common.annotation.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -37,52 +40,54 @@ public class ContractsPartnerEntitlementMessageConsumer {
 
   @Inject FeatureFlags featureFlags;
   @Inject ObjectMapper mapper;
+  @Inject ContractService service;
 
   @Blocking
   @Incoming(CONTRACTS_FROM_GATEWAY)
-  public void consumeMessage(String dtoContract) {
-    if (!featureFlags.isPartnerGatewayContractsKafkaConsumerEnabled()) {
-      log.debug("IT Partner Kafka consumer for contracts is disabled by feature flag.");
-      return;
-    }
-
+  public void consumeMessage(String dtoContract) throws JsonProcessingException {
     log.debug("IT Partner Kafka consumer was called");
     if (dtoContract == null) {
       return;
     }
-
+    if (!featureFlags.isPartnerGatewayContractsKafkaConsumerEnabled()) {
+      log.debug("IT Partner Kafka consumer for contracts is disabled by feature flag.");
+      return;
+    }
     consumeContract(dtoContract);
   }
 
-  public void consumeContract(String dtoContract) {
+  public void consumeContract(String dtoContract) throws JsonProcessingException {
     log.info(dtoContract);
 
+    PartnerEntitlementContract contract;
     try {
-      PartnerEntitlementContract contract =
-          mapper.readValue(dtoContract, PartnerEntitlementContract.class);
-
-      String awsCustomerAccountId = null;
-      String productCode = null;
-      String azureResourceId = null;
-
-      if (contract.getCloudIdentifiers() != null) {
-        awsCustomerAccountId = contract.getCloudIdentifiers().getAwsCustomerAccountId();
-        productCode = contract.getCloudIdentifiers().getProductCode();
-        azureResourceId = contract.getCloudIdentifiers().getAzureResourceId();
-      }
-
-      log.info(
-          "IT Partner message consumed: source=kafka, action={}, "
-              + "awsCustomerAccountId={}, productCode={}, azureResourceId={}, "
-              + "redHatSubscriptionNumber={}",
-          contract.getAction(),
-          awsCustomerAccountId,
-          productCode,
-          azureResourceId,
-          contract.getRedHatSubscriptionNumber());
-
-    } catch (Exception e) {
+      contract = mapper.readValue(dtoContract, PartnerEntitlementContract.class);
+    } catch (JsonProcessingException e) {
       log.warn("Unable to read IT Partner Kafka message from JSON.", e);
+      throw e;
     }
+
+    String awsCustomerAccountId = null;
+    String productCode = null;
+    String azureResourceId = null;
+
+    if (contract.getCloudIdentifiers() != null) {
+      awsCustomerAccountId = contract.getCloudIdentifiers().getAwsCustomerAccountId();
+      productCode = contract.getCloudIdentifiers().getProductCode();
+      azureResourceId = contract.getCloudIdentifiers().getAzureResourceId();
+    }
+
+    log.info(
+        "IT Partner message consumed: source=kafka, action={}, "
+            + "awsCustomerAccountId={}, productCode={}, azureResourceId={}, "
+            + "redHatSubscriptionNumber={}",
+        contract.getAction(),
+        awsCustomerAccountId,
+        productCode,
+        azureResourceId,
+        contract.getRedHatSubscriptionNumber());
+
+    var response = service.createPartnerContract(PartnerEntitlementsRequest.from(contract));
+    log.debug("kafka response: {}", response);
   }
 }

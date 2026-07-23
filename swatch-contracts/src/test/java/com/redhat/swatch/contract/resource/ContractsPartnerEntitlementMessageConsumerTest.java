@@ -22,12 +22,16 @@ package com.redhat.swatch.contract.resource;
 
 import static com.redhat.swatch.contract.config.Channels.CONTRACTS_FROM_GATEWAY;
 import static org.awaitility.Awaitility.await;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.contract.config.FeatureFlags;
+import com.redhat.swatch.contract.model.PartnerEntitlementsRequest;
+import com.redhat.swatch.contract.openapi.model.StatusResponse;
+import com.redhat.swatch.contract.service.ContractService;
 import com.redhat.swatch.contract.test.LoggerCaptor;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -40,6 +44,7 @@ import java.time.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 @QuarkusTest
 class ContractsPartnerEntitlementMessageConsumerTest {
@@ -85,6 +90,7 @@ class ContractsPartnerEntitlementMessageConsumerTest {
   @Inject @Any InMemoryConnector connector;
 
   @InjectMock FeatureFlags featureFlags;
+  @InjectMock ContractService contractService;
   @InjectSpy ContractsPartnerEntitlementMessageConsumer consumer;
 
   private InMemorySource<Object> contractsKafkaChannel;
@@ -98,13 +104,24 @@ class ContractsPartnerEntitlementMessageConsumerTest {
   void setUp() {
     contractsKafkaChannel = connector.source(CONTRACTS_FROM_GATEWAY);
     LoggerCaptor.clearRecords();
+    Mockito.reset(contractService, featureFlags);
     when(featureFlags.isPartnerGatewayContractsKafkaConsumerEnabled()).thenReturn(true);
+    StatusResponse mockResponse = new StatusResponse();
+    mockResponse.setMessage("Contract created");
+    when(contractService.createPartnerContract(any(PartnerEntitlementsRequest.class)))
+        .thenReturn(mockResponse);
   }
 
   @Test
   void shouldProcessStringMessage() {
     whenSendMessage(VALID_JSON_MESSAGE);
-    assertMessageIsProcessed();
+    await()
+        .atMost(Duration.ofMillis(500))
+        .untilAsserted(
+            () -> {
+              verify(consumer).consumeContract(VALID_JSON_MESSAGE);
+              verify(contractService).createPartnerContract(any(PartnerEntitlementsRequest.class));
+            });
   }
 
   @Test
@@ -116,6 +133,7 @@ class ContractsPartnerEntitlementMessageConsumerTest {
             () -> {
               verify(consumer).consumeContract(JSON_WITH_EXTRA_LICENSE_ARN_FIELD);
               thenKafkaContractDeserializedSuccessfully();
+              verify(contractService).createPartnerContract(any(PartnerEntitlementsRequest.class));
             });
   }
 
@@ -123,23 +141,40 @@ class ContractsPartnerEntitlementMessageConsumerTest {
   void shouldIgnoreMessagesWhenFeatureFlagIsDisabled() {
     when(featureFlags.isPartnerGatewayContractsKafkaConsumerEnabled()).thenReturn(false);
     whenSendMessage(VALID_JSON_MESSAGE);
-    assertMessageIsNotProcessed();
+    await()
+        .atMost(Duration.ofMillis(500))
+        .untilAsserted(
+            () -> {
+              verify(consumer, never()).consumeContract(anyString());
+              verify(contractService, never())
+                  .createPartnerContract(any(PartnerEntitlementsRequest.class));
+            });
+  }
+
+  @Test
+  void shouldNotLogSuccessWhenMessageIsInvalidJson() {
+    whenSendMessage("not-valid-json");
+    await()
+        .atMost(Duration.ofMillis(500))
+        .untilAsserted(
+            () -> {
+              verify(consumer).consumeContract("not-valid-json");
+              LoggerCaptor.thenWarnLogWithMessage("Unable to read IT Partner Kafka message");
+              verify(contractService, never())
+                  .createPartnerContract(any(PartnerEntitlementsRequest.class));
+            });
+  }
+
+  @Test
+  void shouldIgnoreNullMessage() throws Exception {
+    consumer.consumeMessage(null);
+
+    LoggerCaptor.thenLogNothing();
+    verify(contractService, never()).createPartnerContract(any(PartnerEntitlementsRequest.class));
   }
 
   private void whenSendMessage(String message) {
     contractsKafkaChannel.send(message);
-  }
-
-  private void assertMessageIsProcessed() {
-    await()
-        .atMost(Duration.ofMillis(500))
-        .untilAsserted(() -> verify(consumer).consumeContract(anyString()));
-  }
-
-  private void assertMessageIsNotProcessed() {
-    await()
-        .atMost(Duration.ofMillis(500))
-        .untilAsserted(() -> verify(consumer, never()).consumeContract(anyString()));
   }
 
   private static void thenKafkaContractDeserializedSuccessfully() {
