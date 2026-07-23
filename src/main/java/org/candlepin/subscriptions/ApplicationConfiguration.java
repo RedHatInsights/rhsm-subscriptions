@@ -32,9 +32,12 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationModule;
 import io.micrometer.core.aop.TimedAspect;
 import io.micrometer.core.instrument.MeterRegistry;
+import jakarta.annotation.Nullable;
 import org.candlepin.subscriptions.actuator.CertInfoContributor;
+import org.candlepin.subscriptions.actuator.FeatureFlagsInfoContributor;
 import org.candlepin.subscriptions.clowder.KafkaSslBeanPostProcessor;
 import org.candlepin.subscriptions.clowder.RdsSslBeanPostProcessor;
+import org.candlepin.subscriptions.configuration.FeatureFlags;
 import org.candlepin.subscriptions.configuration.UnleashConfiguration;
 import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
 import org.candlepin.subscriptions.resource.ApiConfiguration;
@@ -157,5 +160,14 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
   @ConditionalOnEnabledInfoContributor(value = "certs", fallback = InfoContributorFallback.DISABLE)
   public CertInfoContributor certInfoContributor(ApplicationContext context) {
     return new CertInfoContributor(context);
+  }
+
+  @Bean
+  @ConditionalOnEnabledInfoContributor(
+      value = "feature-flags",
+      fallback = InfoContributorFallback.DISABLE)
+  public FeatureFlagsInfoContributor featureFlagsInfoContributor(
+      @Nullable FeatureFlags featureFlags) {
+    return new FeatureFlagsInfoContributor(featureFlags);
   }
 }

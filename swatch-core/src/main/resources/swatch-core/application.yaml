@@ -86,6 +86,8 @@ management:
   info:
     certs:
       enabled: true
+    feature-flags:
+      enabled: true
 
 spring:
   # general hibernate configurations

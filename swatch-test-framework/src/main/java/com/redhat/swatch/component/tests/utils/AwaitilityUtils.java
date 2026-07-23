@@ -175,7 +175,7 @@ public final class AwaitilityUtils {
   private static ConditionFactory awaits(AwaitilitySettings settings) {
     ConditionFactory factory =
         Awaitility.await()
-            .pollInterval(settings.interval.toSeconds(), TimeUnit.SECONDS)
+            .pollInterval(settings.interval.toMillis(), TimeUnit.MILLISECONDS)
             .atMost(timeoutInSeconds(settings), TimeUnit.SECONDS)
             .conditionEvaluationListener(new CustomConditionEvaluationListener(settings));
 
