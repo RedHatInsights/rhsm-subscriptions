@@ -125,6 +125,11 @@
       </dependency>
       <dependency>
         <groupId>com.redhat.swatch</groupId>
+        <artifactId>swatch-common-kessel</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.redhat.swatch</groupId>
         <artifactId>swatch-common-models</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -583,6 +588,7 @@
         <module>swatch-core-test</module>
         <module>swatch-common-clock</module>
         <module>swatch-common-export</module>
+        <module>swatch-common-kessel</module>
         <module>swatch-common-config-workaround</module>
         <module>swatch-common-resteasy</module>
         <module>swatch-common-resteasy-client</module>

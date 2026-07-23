@@ -29,6 +29,7 @@ import com.redhat.swatch.clients.rbac.api.model.Access;
 import com.redhat.swatch.clients.rbac.api.model.AccessPagination;
 import com.redhat.swatch.clients.rbac.api.resources.AccessApi;
 import com.redhat.swatch.clients.rbac.api.resources.ApiException;
+import io.getunleash.Unleash;
 import io.quarkus.security.AuthenticationFailedException;
 import io.quarkus.security.identity.AuthenticationRequestContext;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -50,6 +51,7 @@ class RbacRolesAugmentorTest {
   RhIdentityPrincipalFactory identityFactory;
 
   @Mock AccessApi rbacApi;
+  @Mock Unleash unleash;
 
   AuthenticationRequestContext context = Uni.createFrom()::item;
 
@@ -57,6 +59,7 @@ class RbacRolesAugmentorTest {
   void setup() {
     augmentor = new RbacRolesAugmentor();
     augmentor.rbacEnabled = true;
+    augmentor.unleash = unleash;
     augmentor.accessApi = rbacApi;
 
     identityFactory = new RhIdentityPrincipalFactory();
