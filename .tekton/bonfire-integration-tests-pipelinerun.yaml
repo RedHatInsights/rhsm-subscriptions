@@ -46,6 +46,7 @@ spec:
         --timeout 1800
         --exclude-components puptoo,ingress,storage-broker,swatch-tally-ct-hbi
         --remove-dependencies host-inventory/ingress
+        --remove-dependencies host-inventory/puptoo
         -p rbac/CELERY_INITIAL_DELAY_SEC=10
         -p rbac/MAX_SEED_THREADS=8
         -p rbac/MIN_POSTGRES_EXPORTER_REPLICAS=0
