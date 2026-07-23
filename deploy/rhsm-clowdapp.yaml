@@ -47,7 +47,7 @@ objects:
               listen_address: '0.0.0.0:54526'
           filelog:
             include:
-              - /logs/server.log
+              - /logs/server.log*
             start_at: end
             operators:
               - type: json_parser
@@ -67,6 +67,11 @@ objects:
               statements:
               - set(body, attributes) where IsMap(attributes)
               - keep_keys(body, ["message", "severity", "properties"])
+          resource/add_log_origin:
+            attributes:
+            - action: upsert
+              key: log_origin
+              value: otel-collector
         exporters:
           debug:
             verbosity: detailed
@@ -84,7 +89,7 @@ objects:
               exporters: [debug]
             logs/file:
               receivers: [filelog]
-              processors: [batch, transform/file_logs]
+              processors: [batch, resource/add_log_origin, transform/file_logs]
               exporters: [debug]
           telemetry:
             logs:

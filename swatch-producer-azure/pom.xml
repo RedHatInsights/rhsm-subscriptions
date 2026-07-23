@@ -105,6 +105,10 @@
       <artifactId>swatch-common-splunk</artifactId>
     </dependency>
     <dependency>
+      <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-common-logging</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.mapstruct</groupId>
       <artifactId>mapstruct</artifactId>
     </dependency>

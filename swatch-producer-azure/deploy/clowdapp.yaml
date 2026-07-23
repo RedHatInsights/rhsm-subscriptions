@@ -45,6 +45,10 @@ parameters:
     value: '3'
   - name: LOGGING_HEC_INCLUDE_EX
     value: 'true'
+  - name: LOGGING_FILE_LOG_ENABLED
+    value: 'true'
+  - name: LOGGING_FILE_MAX_SIZE
+    value: '10M'
   - name: LOGGING_LEVEL_ROOT
     value: 'INFO'
   - name: LOGGING_LEVEL_COM_REDHAT_SWATCH
@@ -110,6 +114,8 @@ objects:
             enabled: true
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
+          # Extra grace time so the otel sidecar can finish reading /logs/server.log and export to HEC before the shared volume is torn down.
+          terminationGracePeriodSeconds: 90
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -179,6 +185,10 @@ objects:
               value: ${LOGGING_HEC_RETRY_COUNT}
             - name: LOGGING_HEC_INCLUDE_EX
               value: ${LOGGING_HEC_INCLUDE_EX}
+            - name: LOGGING_FILE_LOG_ENABLED
+              value: ${LOGGING_FILE_LOG_ENABLED}
+            - name: LOGGING_FILE_MAX_SIZE
+              value: ${LOGGING_FILE_MAX_SIZE}
             - name: SWATCH_SELF_PSK
               valueFrom:
                 secretKeyRef:
@@ -204,12 +214,15 @@ objects:
               mountPath: /logs
           volumes:
             - name: logs
-              emptyDir:
+              emptyDir: {}
           sidecars:
           - name: otel-collector
             enabled: true
             configMap: ${OTEL_SIDECAR_CONFIG_MAP}
             image: ${OTEL_SIDECAR_IMAGE}
+            volumeMounts:
+              - name: logs
+                mountPath: /logs
             envVars:
               - name: ENV_NAME
                 value: ${OTEL_ENV_NAME}

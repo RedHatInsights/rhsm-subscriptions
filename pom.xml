@@ -590,6 +590,7 @@
         <module>swatch-common-kafka</module>
         <module>swatch-common-smallrye-fault-tolerance</module>
         <module>swatch-common-splunk</module>
+        <module>swatch-common-logging</module>
         <module>swatch-common-trace-response</module>
         <module>swatch-common-security</module>
         <module>swatch-common-health</module>
