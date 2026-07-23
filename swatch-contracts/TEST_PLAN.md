@@ -2237,3 +2237,58 @@ This section validates the tally-to-utilization pipeline, where `swatch-contract
 - **Expected Result**:  
   - Utilization summary is produced but with `capacity=null` for the Sockets measurement (no subscription matches that SLA/Usage combination)  
   - This snapshot should not be eligible to trigger an over-usage notification
+
+## Customer API access control
+
+**Endpoint:** `GET /api/rhsm-subscriptions/v2/subscriptions/products/{product_id}`  
+**Required role:** `customer` or `service` only (the `test`
+role must not be accepted so `SWATCH_TEST_APIS_ENABLED` cannot bypass RBAC on this path)
+
+**Authorization models (parameterized):** each case below runs for `RBAC` and `KESSEL`.
+- **RBAC**: Unleash `swatch.common-security.use-kessel-rbac` off; stub `GET /api/rbac/v1/access/`
+- **KESSEL**: Unleash flag on; stub gRPC
+  `POST /kessel.inventory.v1beta2.KesselInventoryService/Check` for relation
+  `subscriptions_report_view` (Wiremock gRPC + Kessel descriptor)
+
+**auth-access-TC001 - Customer with subscriptions access can read V2 subscription report**
+- **Description**: Verify that a User identity granted subscriptions access receives HTTP 200 from
+  the V2 subscription capacity report API (RBAC and Kessel).
+- **Setup**:
+  - **RBAC**: stub RBAC to grant `subscriptions:*:*` for the test identity
+  - **KESSEL**: stub Kessel Check to return `ALLOWED_TRUE` for the test principal / relation
+  - Prepare a User `x-rh-identity` header for the test org (with resolvable `user_id`)
+- **Action**:
+  - GET `/api/rhsm-subscriptions/v2/subscriptions/products/{product_id}` with the identity header
+- **Verification**:
+  - HTTP 200
+- **Expected Result**:
+  - Request is authorized and the API responds successfully
+
+**auth-access-TC003 - Customer with reader-level subscriptions access can read V2 subscription report**
+- **Description**: Verify that a User identity granted only `subscriptions:reports:read` (reader)
+  access receives HTTP 200 from the V2 subscription capacity report API (RBAC and Kessel).
+- **Setup**:
+  - **RBAC**: stub RBAC to grant `subscriptions:reports:read` for the test identity
+  - **KESSEL**: stub Kessel Check to return `ALLOWED_TRUE` for the test principal / relation
+  - Prepare a User `x-rh-identity` header for the test org (with resolvable `user_id`)
+- **Action**:
+  - GET `/api/rhsm-subscriptions/v2/subscriptions/products/{product_id}` with the identity header
+- **Verification**:
+  - HTTP 200
+- **Expected Result**:
+  - Request is authorized and the API responds successfully (reader permission is sufficient)
+
+**auth-access-TC002 - Customer without subscriptions access is denied V2 subscription report**
+- **Description**: Verify that a User identity with no subscriptions permissions receives HTTP 403
+  from the V2 subscription capacity report API (RBAC and Kessel).
+- **Setup**:
+  - **RBAC**: stub RBAC to return no subscriptions permissions for the test identity
+  - **KESSEL**: stub Kessel Check to return `ALLOWED_FALSE` for the test principal / relation
+  - Prepare a User `x-rh-identity` header for the test org (with resolvable `user_id`)
+- **Action**:
+  - GET `/api/rhsm-subscriptions/v2/subscriptions/products/{product_id}` with the identity header
+- **Verification**:
+  - HTTP 403
+- **Expected Result**:
+  - Request is denied (Quarkus returns 403 with an empty body on `@RolesAllowed` failure; IQE
+    against Spring rhsm may include `Access Denied` in the JSON error title)
