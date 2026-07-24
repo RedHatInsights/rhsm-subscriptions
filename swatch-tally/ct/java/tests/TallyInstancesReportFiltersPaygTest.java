@@ -42,14 +42,23 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.apache.http.HttpStatus;
 import org.candlepin.subscriptions.json.Event;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.params.Parameter;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.ValueSource;
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest {
 
   private record PriorMonthInstance(String instanceId, String billingAccountId, String eventId) {}
@@ -110,28 +119,28 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
       String previousMonthBilling,
       String currentMonthBilling) {}
 
-  private static String testOrgId;
-  private static OffsetDateTime start;
-  private static OffsetDateTime firstOfCurrentMonth;
-  private static OffsetDateTime firstOfPreviousMonth;
-  private static OffsetDateTime eventHour;
-  private static String metricId;
+  private String testOrgId;
+  private OffsetDateTime start;
+  private OffsetDateTime firstOfCurrentMonth;
+  private OffsetDateTime firstOfPreviousMonth;
+  private OffsetDateTime eventHour;
+  private String metricId;
 
-  private static PriorMonthInstance priorMonth;
-  private static SlaFilterRows sla;
-  private static UsageFilterRows usage;
-  private static CloudProviderPair cloudProviders;
-  private static BillingExclusion billingExclusion;
-  private static AllOptionalFilters allOptional;
-  private static PartialSlaUsagePair partialSlaUsage;
-  private static NarrowedBillingPair narrowedBilling;
-  private static UnfilteredRowTriple unfilteredTriple;
-  private static CrossMonthPair crossMonth;
+  private PriorMonthInstance priorMonth;
+  private SlaFilterRows sla;
+  private UsageFilterRows usage;
+  private CloudProviderPair cloudProviders;
+  private BillingExclusion billingExclusion;
+  private AllOptionalFilters allOptional;
+  private PartialSlaUsagePair partialSlaUsage;
+  private NarrowedBillingPair narrowedBilling;
+  private UnfilteredRowTriple unfilteredTriple;
+  private CrossMonthPair crossMonth;
 
   private static final int EXPECTED_CURRENT_MONTH_INSTANCE_ROWS = 16;
 
   @BeforeAll
-  static void setupSharedFixture() {
+  void setupSharedFixture() {
     testOrgId = RandomUtils.generateRandom();
     start = OffsetDateTime.now(ZoneOffset.UTC);
     firstOfCurrentMonth =
@@ -498,328 +507,371 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
         events.toArray(Event[]::new));
   }
 
-  @Test
-  @TestPlanName("tally-instances-payg-TC001")
-  public void shouldReportPaygInstancesOnlyInEventCalendarMonth() {
-    Map<String, Object> queryParams = Map.of("billing_account_id", priorMonth.billingAccountId());
-    InstanceResponse currentMonthResponse =
-        service.getInstancesByProduct(
-            testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfCurrentMonth, start, queryParams);
+  // Use a nested test class to isolate the filter setup phase to toggling the primary
+  // bucket search flag, while keeping the test data setup in the main class' beforeAll.
+  @Nested
+  @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+  @ParameterizedClass(name = "Using primary bucket searches: {0}")
+  @ValueSource(booleans = {true, false})
+  class FilterTests {
 
-    assertEquals(
-        0.0,
-        sumMeteredValues(currentMonthResponse),
-        0.001,
-        "Current month should have no metered value for event from previous month");
+    @Parameter boolean usePrimaryBucketSearches;
+    Boolean lastSearchConfig;
 
-    InstanceResponse previousMonthResponse =
-        service.getInstancesByProduct(
-            testOrgId,
-            RHEL_FOR_X86_ELS_PAYG.productTag(),
-            firstOfPreviousMonth,
-            firstOfPreviousMonth.plusDays(1),
-            queryParams);
-
-    double meteredValueLastMonth = sumMeteredValues(previousMonthResponse);
-    assertTrue(
-        meteredValueLastMonth > 0.0,
-        "Previous month should have metered value greater than 0. Got: " + meteredValueLastMonth);
-  }
-
-  @Test
-  @TestPlanName("tally-instances-payg-TC002")
-  public void shouldFilterInstancesReportBySla() {
-    Map<String, Object> standardParams = new HashMap<>();
-    standardParams.put("sla", ServiceLevelType.STANDARD);
-    standardParams.put("billing_account_id", sla.billingAccountId());
-    InstanceResponse standardOnly =
-        service.getInstancesByProduct(
-            testOrgId,
-            RHEL_FOR_X86_ELS_PAYG.productTag(),
-            firstOfCurrentMonth,
-            start,
-            standardParams);
-    assertNotNull(standardOnly.getData());
-    assertEquals(1, standardOnly.getData().size(), "STANDARD SLA filter should return one row");
-    assertEquals(
-        sla.standardInstanceId(),
-        standardOnly.getData().get(0).getInstanceId(),
-        "Row should be the STANDARD instance");
-    assertEquals(1.0, sumMeteredValues(standardOnly), 0.001);
-    assertNotNull(standardOnly.getMeta());
-    assertEquals(ServiceLevelType.STANDARD, standardOnly.getMeta().getServiceLevel());
-
-    Map<String, Object> premiumParams = new HashMap<>();
-    premiumParams.put("sla", ServiceLevelType.PREMIUM);
-    premiumParams.put("billing_account_id", sla.billingAccountId());
-    InstanceResponse premiumOnly =
-        service.getInstancesByProduct(
-            testOrgId,
-            RHEL_FOR_X86_ELS_PAYG.productTag(),
-            firstOfCurrentMonth,
-            start,
-            premiumParams);
-    assertNotNull(premiumOnly.getData());
-    assertEquals(1, premiumOnly.getData().size());
-    assertEquals(sla.premiumInstanceId(), premiumOnly.getData().get(0).getInstanceId());
-    assertEquals(ServiceLevelType.PREMIUM, premiumOnly.getMeta().getServiceLevel());
-  }
-
-  @Test
-  @TestPlanName("tally-instances-payg-TC003")
-  public void shouldFilterInstancesReportByUsage() {
-    Map<String, Object> productionParams = new HashMap<>();
-    productionParams.put("usage", UsageType.PRODUCTION);
-    productionParams.put("billing_account_id", usage.billingAccountId());
-    InstanceResponse productionOnly =
-        service.getInstancesByProduct(
-            testOrgId,
-            RHEL_FOR_X86_ELS_PAYG.productTag(),
-            firstOfCurrentMonth,
-            start,
-            productionParams);
-    assertNotNull(productionOnly.getData());
-    assertEquals(1, productionOnly.getData().size());
-    assertEquals(usage.productionInstanceId(), productionOnly.getData().get(0).getInstanceId());
-    assertEquals(UsageType.PRODUCTION, productionOnly.getMeta().getUsage());
-
-    Map<String, Object> developmentParams = new HashMap<>();
-    developmentParams.put("usage", UsageType.DEVELOPMENT_TEST);
-    developmentParams.put("billing_account_id", usage.billingAccountId());
-    InstanceResponse developmentOnly =
-        service.getInstancesByProduct(
-            testOrgId,
-            RHEL_FOR_X86_ELS_PAYG.productTag(),
-            firstOfCurrentMonth,
-            start,
-            developmentParams);
-    assertNotNull(developmentOnly.getData());
-    assertEquals(1, developmentOnly.getData().size());
-    assertEquals(usage.developmentInstanceId(), developmentOnly.getData().get(0).getInstanceId());
-    assertEquals(UsageType.DEVELOPMENT_TEST, developmentOnly.getMeta().getUsage());
-  }
-
-  @Test
-  @TestPlanName("tally-instances-payg-TC004")
-  public void shouldFilterInstancesReportByBillingProvider() {
-    Map<String, Object> azureParams = new HashMap<>();
-    azureParams.put("billing_provider", BillingProviderType.AZURE);
-    azureParams.put("billing_account_id", cloudProviders.azureBillingAccountId());
-    InstanceResponse azureOnly =
-        service.getInstancesByProduct(
-            testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfCurrentMonth, start, azureParams);
-    assertNotNull(azureOnly.getData());
-    assertEquals(1, azureOnly.getData().size());
-    assertEquals(cloudProviders.azureInstanceId(), azureOnly.getData().get(0).getInstanceId());
-    assertEquals(BillingProviderType.AZURE, azureOnly.getMeta().getBillingProvider());
-
-    Map<String, Object> awsParams = new HashMap<>();
-    awsParams.put("billing_provider", BillingProviderType.AWS);
-    awsParams.put("billing_account_id", cloudProviders.awsBillingAccountId());
-    InstanceResponse awsOnly =
-        service.getInstancesByProduct(
-            testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfCurrentMonth, start, awsParams);
-    assertNotNull(awsOnly.getData());
-    assertEquals(1, awsOnly.getData().size());
-    assertEquals(cloudProviders.awsInstanceId(), awsOnly.getData().get(0).getInstanceId());
-    assertEquals(BillingProviderType.AWS, awsOnly.getMeta().getBillingProvider());
-  }
-
-  @Test
-  @TestPlanName("tally-instances-payg-TC005")
-  public void shouldExcludeInstancesWithNonMatchingBillingAccountId() {
-    Map<String, Object> wrongAccount =
-        Map.of("billing_account_id", billingExclusion.decoyBillingAccountId());
-    InstanceResponse noMatch =
-        service.getInstancesByProduct(
-            testOrgId,
-            RHEL_FOR_X86_ELS_PAYG.productTag(),
-            firstOfCurrentMonth,
-            start,
-            wrongAccount);
-    assertEquals(
-        0.0,
-        sumMeteredValues(noMatch),
-        0.001,
-        "Non-matching billing_account_id should yield no metered value");
-
-    Map<String, Object> correctAccount =
-        Map.of("billing_account_id", billingExclusion.matchingBillingAccountId());
-    InstanceResponse match =
-        service.getInstancesByProduct(
-            testOrgId,
-            RHEL_FOR_X86_ELS_PAYG.productTag(),
-            firstOfCurrentMonth,
-            start,
-            correctAccount);
-    assertTrue(
-        sumMeteredValues(match) > 0.0, "Matching billing_account_id should return metered data");
-  }
-
-  @Test
-  @TestPlanName("tally-instances-payg-TC006")
-  public void shouldReturnInstancesReportWithAllOptionalFilters() {
-    Map<String, Object> allFilters = new HashMap<>();
-    allFilters.put("sla", ServiceLevelType.PREMIUM);
-    allFilters.put("usage", UsageType.PRODUCTION);
-    allFilters.put("billing_provider", BillingProviderType.AWS);
-    allFilters.put("billing_account_id", allOptional.billingAccountId());
-
-    InstanceResponse response =
-        service.getInstancesByProduct(
-            testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfCurrentMonth, start, allFilters);
-    assertNotNull(response.getData());
-    assertEquals(1, response.getData().size());
-    InstanceData row = response.getData().get(0);
-    assertEquals(allOptional.instanceId(), row.getInstanceId());
-    assertTrue(sumMeteredValues(response) > 0.0);
-
-    assertNotNull(response.getMeta());
-    assertEquals(ServiceLevelType.PREMIUM, response.getMeta().getServiceLevel());
-    assertEquals(UsageType.PRODUCTION, response.getMeta().getUsage());
-    assertEquals(BillingProviderType.AWS, response.getMeta().getBillingProvider());
-    assertEquals(allOptional.billingAccountId(), response.getMeta().getBillingAccountId());
-  }
-
-  @Test
-  @TestPlanName("tally-instances-payg-TC007")
-  public void shouldReturnInstancesReportWithPartialFiltersAndDifferentBillingAccountIds() {
-    Map<String, Object> partial =
-        Map.of("sla", ServiceLevelType.PREMIUM, "usage", UsageType.PRODUCTION);
-
-    InstanceResponse response =
-        service.getInstancesByProduct(
-            testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfCurrentMonth, start, partial);
-    assertNotNull(response.getData());
-    Set<String> ids =
-        response.getData() == null
-            ? Set.of()
-            : response.getData().stream()
-                .map(InstanceData::getInstanceId)
-                .collect(Collectors.toSet());
-    assertTrue(
-        ids.contains(partialSlaUsage.firstInstanceId())
-            && ids.contains(partialSlaUsage.secondInstanceId()),
-        "sla+usage filter should include both fixture instances with different billing accounts");
-    long fixtureRows =
-        response.getData().stream()
-            .filter(
-                d ->
-                    partialSlaUsage.firstInstanceId().equals(d.getInstanceId())
-                        || partialSlaUsage.secondInstanceId().equals(d.getInstanceId()))
-            .count();
-    assertEquals(2, fixtureRows, "Each fixture instance should appear once under partial filters");
-  }
-
-  @Test
-  @TestPlanName("tally-instances-payg-TC008")
-  public void shouldReturnInstancesReportWithPartialFiltersAndSameBillingAccountId() {
-    Map<String, Object> narrowed = new HashMap<>();
-    narrowed.put("sla", ServiceLevelType.PREMIUM);
-    narrowed.put("usage", UsageType.PRODUCTION);
-    narrowed.put("billing_account_id", narrowedBilling.matchBillingAccountId());
-
-    InstanceResponse response =
-        service.getInstancesByProduct(
-            testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfCurrentMonth, start, narrowed);
-    assertNotNull(response.getData());
-    assertEquals(1, response.getData().size());
-    assertEquals(narrowedBilling.matchInstanceId(), response.getData().get(0).getInstanceId());
-  }
-
-  @Test
-  @TestPlanName("tally-instances-payg-TC009")
-  public void shouldReturnInstancesReportWithNoOptionalFilters() {
-    InstanceResponse response =
-        service.getInstancesByProduct(
-            testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfCurrentMonth, start, null);
-    assertNotNull(response.getData());
-    Set<String> returned =
-        response.getData() == null
-            ? Set.of()
-            : response.getData().stream()
-                .map(InstanceData::getInstanceId)
-                .collect(Collectors.toSet());
-    for (String id :
-        List.of(
-            unfilteredTriple.firstInstanceId(),
-            unfilteredTriple.secondInstanceId(),
-            unfilteredTriple.thirdInstanceId())) {
-      assertTrue(returned.contains(id), "Expected instance id " + id);
+    // Ensure we disable primary bucket search after all tests are run
+    // to get it back in the default state.
+    @AfterAll
+    void teardown() {
+      // Disable primary bucket search
+      givenPrimaryBucketSearchesEnabled(false);
     }
-    assertTrue(
-        response.getData().size() >= 3,
-        "Unfiltered report should include at least the three instances used in the unfiltered-triple "
-            + "fixture");
-    assertNotNull(response.getMeta());
-    assertNotNull(response.getMeta().getCount());
-    assertEquals(
-        response.getData().size(),
-        response.getMeta().getCount().intValue(),
-        "Meta count should match row count for the unfiltered query");
-  }
 
-  @Test
-  @TestPlanName("tally-instances-payg-TC010")
-  public void shouldReturnInstancesReportWithTwoEventsInDifferentMonths() {
-    InstanceResponse response =
-        service.getInstancesByProduct(
-            testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfCurrentMonth, start, null);
-    Set<String> ids =
-        response.getData() == null
-            ? Set.of()
-            : response.getData().stream()
-                .map(InstanceData::getInstanceId)
-                .collect(Collectors.toSet());
-    assertTrue(
-        ids.contains(crossMonth.currentMonthInstanceId()),
-        "Current-month instance should appear for current-month window");
-    assertFalse(
-        ids.contains(crossMonth.previousMonthInstanceId()),
-        "Previous-month-only instance should not appear in current-month window");
-  }
+    @BeforeEach
+    void setup() {
+      // Check if the parameter value has changed and only toggle the flag if it has. This avoids
+      // needing to make a request to unleash before each test.
+      if (Objects.isNull(lastSearchConfig) || !lastSearchConfig.equals(usePrimaryBucketSearches)) {
+        givenPrimaryBucketSearchesEnabled(usePrimaryBucketSearches);
+      }
+      lastSearchConfig = usePrimaryBucketSearches;
+    }
 
-  @Test
-  @TestPlanName("tally-instances-payg-TC011")
-  public void shouldRejectCrossMonthInstancesQuery() {
-    OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
-    OffsetDateTime beginning = now.withDayOfMonth(10).truncatedTo(ChronoUnit.DAYS).withHour(12);
-    OffsetDateTime ending = beginning.plusMonths(1).withDayOfMonth(10).withHour(12);
+    @Test
+    @TestPlanName("tally-instances-payg-TC001")
+    public void shouldReportPaygInstancesOnlyInEventCalendarMonth() {
+      Map<String, Object> queryParams = Map.of("billing_account_id", priorMonth.billingAccountId());
+      InstanceResponse currentMonthResponse =
+          service.getInstancesByProduct(
+              testOrgId,
+              RHEL_FOR_X86_ELS_PAYG.productTag(),
+              firstOfCurrentMonth,
+              start,
+              queryParams);
 
-    Response response =
-        service.getInstancesByProductRaw(
-            testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), beginning, ending, null);
+      assertEquals(
+          0.0,
+          sumMeteredValues(currentMonthResponse),
+          0.001,
+          "Current month should have no metered value for event from previous month");
 
-    assertEquals(
-        HttpStatus.SC_BAD_REQUEST,
-        response.getStatusCode(),
-        "PAYG instances must reject beginning/ending in different calendar months: "
-            + response.getBody().asString());
-    assertTrue(
-        response.getBody().asString().toLowerCase().contains("month"),
-        "Error body should mention month restriction: " + response.getBody().asString());
-  }
+      InstanceResponse previousMonthResponse =
+          service.getInstancesByProduct(
+              testOrgId,
+              RHEL_FOR_X86_ELS_PAYG.productTag(),
+              firstOfPreviousMonth,
+              firstOfPreviousMonth.plusDays(1),
+              queryParams);
 
-  @Test
-  @TestPlanName("tally-instances-payg-TC012")
-  public void shouldReturnMeteredInstancesForFullCalendarMonthWindow() {
-    ZoneOffset utc = ZoneOffset.UTC;
-    OffsetDateTime monthStart =
-        start.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
-    OffsetDateTime monthEnd =
-        YearMonth.from(start).atEndOfMonth().atTime(23, 59, 59, 999_000_000).atOffset(utc);
+      double meteredValueLastMonth = sumMeteredValues(previousMonthResponse);
+      assertTrue(
+          meteredValueLastMonth > 0.0,
+          "Previous month should have metered value greater than 0. Got: " + meteredValueLastMonth);
+    }
 
-    Map<String, Object> filters = Map.of("billing_account_id", sla.billingAccountId());
+    @Test
+    @TestPlanName("tally-instances-payg-TC002")
+    public void shouldFilterInstancesReportBySla() {
+      Map<String, Object> standardParams = new HashMap<>();
+      standardParams.put("sla", ServiceLevelType.STANDARD);
+      standardParams.put("billing_account_id", sla.billingAccountId());
+      InstanceResponse standardOnly =
+          service.getInstancesByProduct(
+              testOrgId,
+              RHEL_FOR_X86_ELS_PAYG.productTag(),
+              firstOfCurrentMonth,
+              start,
+              standardParams);
+      assertNotNull(standardOnly.getData());
+      assertEquals(1, standardOnly.getData().size(), "STANDARD SLA filter should return one row");
+      assertEquals(
+          sla.standardInstanceId(),
+          standardOnly.getData().get(0).getInstanceId(),
+          "Row should be the STANDARD instance");
+      assertEquals(1.0, sumMeteredValues(standardOnly), 0.001);
+      assertNotNull(standardOnly.getMeta());
+      assertEquals(ServiceLevelType.STANDARD, standardOnly.getMeta().getServiceLevel());
 
-    InstanceResponse response =
-        service.getInstancesByProduct(
-            testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), monthStart, monthEnd, filters);
+      Map<String, Object> premiumParams = new HashMap<>();
+      premiumParams.put("sla", ServiceLevelType.PREMIUM);
+      premiumParams.put("billing_account_id", sla.billingAccountId());
+      InstanceResponse premiumOnly =
+          service.getInstancesByProduct(
+              testOrgId,
+              RHEL_FOR_X86_ELS_PAYG.productTag(),
+              firstOfCurrentMonth,
+              start,
+              premiumParams);
+      assertNotNull(premiumOnly.getData());
+      assertEquals(1, premiumOnly.getData().size());
+      assertEquals(sla.premiumInstanceId(), premiumOnly.getData().get(0).getInstanceId());
+      assertEquals(ServiceLevelType.PREMIUM, premiumOnly.getMeta().getServiceLevel());
+    }
 
-    assertNotNull(response.getData());
-    assertFalse(response.getData().isEmpty(), "Full-month window should return instance rows");
-    assertTrue(
-        sumMeteredValues(response) > 0.0,
-        "Metered total should be positive for the SLA filter fixture rows in the current month");
+    @Test
+    @TestPlanName("tally-instances-payg-TC003")
+    public void shouldFilterInstancesReportByUsage() {
+      Map<String, Object> productionParams = new HashMap<>();
+      productionParams.put("usage", UsageType.PRODUCTION);
+      productionParams.put("billing_account_id", usage.billingAccountId());
+      InstanceResponse productionOnly =
+          service.getInstancesByProduct(
+              testOrgId,
+              RHEL_FOR_X86_ELS_PAYG.productTag(),
+              firstOfCurrentMonth,
+              start,
+              productionParams);
+      assertNotNull(productionOnly.getData());
+      assertEquals(1, productionOnly.getData().size());
+      assertEquals(usage.productionInstanceId(), productionOnly.getData().get(0).getInstanceId());
+      assertEquals(UsageType.PRODUCTION, productionOnly.getMeta().getUsage());
+
+      Map<String, Object> developmentParams = new HashMap<>();
+      developmentParams.put("usage", UsageType.DEVELOPMENT_TEST);
+      developmentParams.put("billing_account_id", usage.billingAccountId());
+      InstanceResponse developmentOnly =
+          service.getInstancesByProduct(
+              testOrgId,
+              RHEL_FOR_X86_ELS_PAYG.productTag(),
+              firstOfCurrentMonth,
+              start,
+              developmentParams);
+      assertNotNull(developmentOnly.getData());
+      assertEquals(1, developmentOnly.getData().size());
+      assertEquals(usage.developmentInstanceId(), developmentOnly.getData().get(0).getInstanceId());
+      assertEquals(UsageType.DEVELOPMENT_TEST, developmentOnly.getMeta().getUsage());
+    }
+
+    @Test
+    @TestPlanName("tally-instances-payg-TC004")
+    public void shouldFilterInstancesReportByBillingProvider() {
+      Map<String, Object> azureParams = new HashMap<>();
+      azureParams.put("billing_provider", BillingProviderType.AZURE);
+      azureParams.put("billing_account_id", cloudProviders.azureBillingAccountId());
+      InstanceResponse azureOnly =
+          service.getInstancesByProduct(
+              testOrgId,
+              RHEL_FOR_X86_ELS_PAYG.productTag(),
+              firstOfCurrentMonth,
+              start,
+              azureParams);
+      assertNotNull(azureOnly.getData());
+      assertEquals(1, azureOnly.getData().size());
+      assertEquals(cloudProviders.azureInstanceId(), azureOnly.getData().get(0).getInstanceId());
+      assertEquals(BillingProviderType.AZURE, azureOnly.getMeta().getBillingProvider());
+
+      Map<String, Object> awsParams = new HashMap<>();
+      awsParams.put("billing_provider", BillingProviderType.AWS);
+      awsParams.put("billing_account_id", cloudProviders.awsBillingAccountId());
+      InstanceResponse awsOnly =
+          service.getInstancesByProduct(
+              testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfCurrentMonth, start, awsParams);
+      assertNotNull(awsOnly.getData());
+      assertEquals(1, awsOnly.getData().size());
+      assertEquals(cloudProviders.awsInstanceId(), awsOnly.getData().get(0).getInstanceId());
+      assertEquals(BillingProviderType.AWS, awsOnly.getMeta().getBillingProvider());
+    }
+
+    @Test
+    @TestPlanName("tally-instances-payg-TC005")
+    public void shouldExcludeInstancesWithNonMatchingBillingAccountId() {
+      Map<String, Object> wrongAccount =
+          Map.of("billing_account_id", billingExclusion.decoyBillingAccountId());
+      InstanceResponse noMatch =
+          service.getInstancesByProduct(
+              testOrgId,
+              RHEL_FOR_X86_ELS_PAYG.productTag(),
+              firstOfCurrentMonth,
+              start,
+              wrongAccount);
+      assertEquals(
+          0.0,
+          sumMeteredValues(noMatch),
+          0.001,
+          "Non-matching billing_account_id should yield no metered value");
+
+      Map<String, Object> correctAccount =
+          Map.of("billing_account_id", billingExclusion.matchingBillingAccountId());
+      InstanceResponse match =
+          service.getInstancesByProduct(
+              testOrgId,
+              RHEL_FOR_X86_ELS_PAYG.productTag(),
+              firstOfCurrentMonth,
+              start,
+              correctAccount);
+      assertTrue(
+          sumMeteredValues(match) > 0.0, "Matching billing_account_id should return metered data");
+    }
+
+    @Test
+    @TestPlanName("tally-instances-payg-TC006")
+    public void shouldReturnInstancesReportWithAllOptionalFilters() {
+      Map<String, Object> allFilters = new HashMap<>();
+      allFilters.put("sla", ServiceLevelType.PREMIUM);
+      allFilters.put("usage", UsageType.PRODUCTION);
+      allFilters.put("billing_provider", BillingProviderType.AWS);
+      allFilters.put("billing_account_id", allOptional.billingAccountId());
+
+      InstanceResponse response =
+          service.getInstancesByProduct(
+              testOrgId,
+              RHEL_FOR_X86_ELS_PAYG.productTag(),
+              firstOfCurrentMonth,
+              start,
+              allFilters);
+      assertNotNull(response.getData());
+      assertEquals(1, response.getData().size());
+      InstanceData row = response.getData().get(0);
+      assertEquals(allOptional.instanceId(), row.getInstanceId());
+      assertTrue(sumMeteredValues(response) > 0.0);
+
+      assertNotNull(response.getMeta());
+      assertEquals(ServiceLevelType.PREMIUM, response.getMeta().getServiceLevel());
+      assertEquals(UsageType.PRODUCTION, response.getMeta().getUsage());
+      assertEquals(BillingProviderType.AWS, response.getMeta().getBillingProvider());
+      assertEquals(allOptional.billingAccountId(), response.getMeta().getBillingAccountId());
+    }
+
+    @Test
+    @TestPlanName("tally-instances-payg-TC007")
+    public void shouldReturnInstancesReportWithPartialFiltersAndDifferentBillingAccountIds() {
+      Map<String, Object> partial =
+          Map.of("sla", ServiceLevelType.PREMIUM, "usage", UsageType.PRODUCTION);
+
+      InstanceResponse response =
+          service.getInstancesByProduct(
+              testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfCurrentMonth, start, partial);
+      assertNotNull(response.getData());
+      Set<String> ids =
+          response.getData() == null
+              ? Set.of()
+              : response.getData().stream()
+                  .map(InstanceData::getInstanceId)
+                  .collect(Collectors.toSet());
+      assertTrue(
+          ids.contains(partialSlaUsage.firstInstanceId())
+              && ids.contains(partialSlaUsage.secondInstanceId()),
+          "sla+usage filter should include both fixture instances with different billing accounts");
+      long fixtureRows =
+          response.getData().stream()
+              .filter(
+                  d ->
+                      partialSlaUsage.firstInstanceId().equals(d.getInstanceId())
+                          || partialSlaUsage.secondInstanceId().equals(d.getInstanceId()))
+              .count();
+      assertEquals(
+          2, fixtureRows, "Each fixture instance should appear once under partial filters");
+    }
+
+    @Test
+    @TestPlanName("tally-instances-payg-TC008")
+    public void shouldReturnInstancesReportWithPartialFiltersAndSameBillingAccountId() {
+      Map<String, Object> narrowed = new HashMap<>();
+      narrowed.put("sla", ServiceLevelType.PREMIUM);
+      narrowed.put("usage", UsageType.PRODUCTION);
+      narrowed.put("billing_account_id", narrowedBilling.matchBillingAccountId());
+
+      InstanceResponse response =
+          service.getInstancesByProduct(
+              testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfCurrentMonth, start, narrowed);
+      assertNotNull(response.getData());
+      assertEquals(1, response.getData().size());
+      assertEquals(narrowedBilling.matchInstanceId(), response.getData().get(0).getInstanceId());
+    }
+
+    @Test
+    @TestPlanName("tally-instances-payg-TC009")
+    public void shouldReturnInstancesReportWithNoOptionalFilters() {
+      InstanceResponse response =
+          service.getInstancesByProduct(
+              testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfCurrentMonth, start, null);
+      assertNotNull(response.getData());
+      Set<String> returned =
+          response.getData() == null
+              ? Set.of()
+              : response.getData().stream()
+                  .map(InstanceData::getInstanceId)
+                  .collect(Collectors.toSet());
+      for (String id :
+          List.of(
+              unfilteredTriple.firstInstanceId(),
+              unfilteredTriple.secondInstanceId(),
+              unfilteredTriple.thirdInstanceId())) {
+        assertTrue(returned.contains(id), "Expected instance id " + id);
+      }
+      assertTrue(
+          response.getData().size() >= 3,
+          "Unfiltered report should include at least the three instances used in the unfiltered-triple "
+              + "fixture");
+      assertNotNull(response.getMeta());
+      assertNotNull(response.getMeta().getCount());
+      assertEquals(
+          response.getData().size(),
+          response.getMeta().getCount().intValue(),
+          "Meta count should match row count for the unfiltered query");
+    }
+
+    @Test
+    @TestPlanName("tally-instances-payg-TC010")
+    public void shouldReturnInstancesReportWithTwoEventsInDifferentMonths() {
+      InstanceResponse response =
+          service.getInstancesByProduct(
+              testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfCurrentMonth, start, null);
+      Set<String> ids =
+          response.getData() == null
+              ? Set.of()
+              : response.getData().stream()
+                  .map(InstanceData::getInstanceId)
+                  .collect(Collectors.toSet());
+      assertTrue(
+          ids.contains(crossMonth.currentMonthInstanceId()),
+          "Current-month instance should appear for current-month window");
+      assertFalse(
+          ids.contains(crossMonth.previousMonthInstanceId()),
+          "Previous-month-only instance should not appear in current-month window");
+    }
+
+    @Test
+    @TestPlanName("tally-instances-payg-TC011")
+    public void shouldRejectCrossMonthInstancesQuery() {
+      OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+      OffsetDateTime beginning = now.withDayOfMonth(10).truncatedTo(ChronoUnit.DAYS).withHour(12);
+      OffsetDateTime ending = beginning.plusMonths(1).withDayOfMonth(10).withHour(12);
+
+      Response response =
+          service.getInstancesByProductRaw(
+              testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), beginning, ending, null);
+
+      assertEquals(
+          HttpStatus.SC_BAD_REQUEST,
+          response.getStatusCode(),
+          "PAYG instances must reject beginning/ending in different calendar months: "
+              + response.getBody().asString());
+      assertTrue(
+          response.getBody().asString().toLowerCase().contains("month"),
+          "Error body should mention month restriction: " + response.getBody().asString());
+    }
+
+    @Test
+    @TestPlanName("tally-instances-payg-TC012")
+    public void shouldReturnMeteredInstancesForFullCalendarMonthWindow() {
+      ZoneOffset utc = ZoneOffset.UTC;
+      OffsetDateTime monthStart =
+          start.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+      OffsetDateTime monthEnd =
+          YearMonth.from(start).atEndOfMonth().atTime(23, 59, 59, 999_000_000).atOffset(utc);
+
+      Map<String, Object> filters = Map.of("billing_account_id", sla.billingAccountId());
+
+      InstanceResponse response =
+          service.getInstancesByProduct(
+              testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), monthStart, monthEnd, filters);
+
+      assertNotNull(response.getData());
+      assertFalse(response.getData().isEmpty(), "Full-month window should return instance rows");
+      assertTrue(
+          sumMeteredValues(response) > 0.0,
+          "Metered total should be positive for the SLA filter fixture rows in the current month");
+    }
   }
 
   private double sumMeteredValues(InstanceResponse response) {

@@ -21,14 +21,15 @@
 package org.candlepin.subscriptions.tally.export;
 
 import static org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey.formatMonthId;
-import static org.candlepin.subscriptions.resource.ResourceUtils.ANY;
 import static org.candlepin.subscriptions.resource.api.v1.InstancesResource.getCloudProviderByMeasurementType;
 import static org.candlepin.subscriptions.tally.export.InstancesCsvDataMapperService.METRIC_MAPPER;
 import static org.candlepin.subscriptions.tally.export.InstancesDataExporterService.BEGINNING;
 import static org.candlepin.subscriptions.tally.export.InstancesDataExporterService.PRODUCT_ID;
+import static org.mockito.Mockito.when;
 
 import com.redhat.cloud.event.apps.exportservice.v1.Format;
 import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import java.time.OffsetDateTime;
@@ -38,13 +39,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.configuration.FeatureFlags;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.Host;
-import org.candlepin.subscriptions.db.model.HostBucketKey;
 import org.candlepin.subscriptions.db.model.HostHardwareType;
-import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.export.BaseDataExporterServiceTest;
@@ -53,14 +53,19 @@ import org.candlepin.subscriptions.json.InstancesExportJson;
 import org.candlepin.subscriptions.json.InstancesExportJsonGuest;
 import org.candlepin.subscriptions.json.InstancesExportJsonItem;
 import org.candlepin.subscriptions.json.InstancesExportJsonMetric;
+import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.util.ApiModelMapperV1;
+import org.candlepin.subscriptions.util.TallyHostBucketFactory;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @Slf4j
 @ActiveProfiles({"worker", "kafka-queue", "test-inventory"})
@@ -77,6 +82,8 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
 
   @Autowired ApiModelMapperV1 mapper;
 
+  @MockitoBean FeatureFlags featureFlags;
+
   @AfterEach
   public void tearDown() {
     repository.deleteAll();
@@ -87,135 +94,137 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
     return "instances";
   }
 
-  @Test
-  void testRequestWithoutPermissions() {
-    givenExportRequestWithoutPermissions();
-    whenReceiveExportRequest();
-    verifyRequestWasSentToExportServiceWithError(request);
-  }
-
-  @Test
-  void testRequestShouldFailIfItDoesNotFilterByProductId() {
-    givenInstanceWithMetrics(RHEL_FOR_X86);
-    givenExportRequestWithPermissions(Format.JSON);
-    whenReceiveExportRequest();
-    verifyRequestWasSentToExportServiceWithError(request);
-  }
-
-  @Test
-  void testRequestShouldBeUploadedWithInstancesAsJsonFilteringByProductId() {
-    givenInstanceWithMetrics(RHEL_FOR_X86);
-    givenExportRequestWithPermissions(Format.JSON);
-    givenFilterInExportRequest(PRODUCT_ID, RHEL_FOR_X86);
-    whenReceiveExportRequest();
-    verifyRequestWasSentToExportService();
-  }
-
-  @Test
-  void testRequestShouldBeUploadedWithInstancesAsJsonFilteringByProductIdAndMonth() {
-    givenInstanceWithMetrics(ROSA);
-    givenExportRequestWithPermissions(Format.JSON);
-    givenFilterInExportRequest(PRODUCT_ID, ROSA);
-    givenFilterInExportRequest(BEGINNING, APRIL);
-    whenReceiveExportRequest();
-    verifyRequestWasSentToExportService();
-  }
-
-  @Test
-  void testRequestShouldBeUploadedWithInstancesAsJsonFilteringByWrongProductId() {
-    givenInstanceWithMetrics(RHEL_FOR_X86);
-    givenExportRequestWithPermissions(Format.JSON);
-    givenFilterInExportRequest(PRODUCT_ID, "wrong!");
-    whenReceiveExportRequest();
-    verifyNoRequestsWereSentToExportServiceWithUploadData();
-    verifyRequestWasSentToExportServiceWithError(request);
-  }
-
-  @Test
-  void testRequestShouldBeUploadedWithInstancesAsJsonFilteringByProductIdAndReturnsNoData() {
-    givenInstanceWithMetrics(RHEL_FOR_X86);
-    givenExportRequestWithPermissions(Format.JSON);
-    givenFilterInExportRequest(PRODUCT_ID, ROSA);
-    whenReceiveExportRequest();
-    verifyRequestWasSentToExportServiceWithNoDataFound();
-    verifyNoRequestsWereSentToExportServiceWithError();
-  }
-
-  @ParameterizedTest
-  @ValueSource(strings = {RHEL_FOR_X86, ANSIBLE})
-  void testRequestShouldBeUploadedWithInstancesAsCsv(String productId) {
-    givenInstanceWithMetrics(productId);
-    givenExportRequestWithPermissions(Format.CSV);
-    givenFilterInExportRequest(PRODUCT_ID, productId);
-    if (SubscriptionDefinition.isContractEnabled(productId)) {
-      givenFilterInExportRequest(BEGINNING, APRIL);
+  abstract class ExportTestSuite {
+    @Test
+    void testRequestWithoutPermissions() {
+      givenExportRequestWithoutPermissions();
+      whenReceiveExportRequest();
+      verifyRequestWasSentToExportServiceWithError(request);
     }
-    whenReceiveExportRequest();
-    verifyRequestWasSentToExportService();
-  }
 
-  @ParameterizedTest
-  @CsvSource(
-      value = {
-        "usage,_ANY",
-        "category,hypervisor",
-        "sla,_ANY",
-        "metric_id,Sockets",
-        "billing_provider,_ANY",
-        "billing_account_id,_ANY",
-        "display_name_contains,ho"
-      })
-  void testFiltersFoundData(String filterName, String exists) {
-    givenInstanceWithMetrics(RHEL_FOR_X86);
-    givenExportRequestWithPermissions(Format.JSON);
-    givenFilterInExportRequest(PRODUCT_ID, RHEL_FOR_X86);
-    givenFilterInExportRequest(filterName, exists);
-    whenReceiveExportRequest();
-    verifyRequestWasSentToExportService();
-    verifyNoRequestsWereSentToExportServiceWithError();
-  }
+    @Test
+    void testRequestShouldFailIfItDoesNotFilterByProductId() {
+      givenInstanceWithMetrics(RHEL_FOR_X86);
+      givenExportRequestWithPermissions(Format.JSON);
+      whenReceiveExportRequest();
+      verifyRequestWasSentToExportServiceWithError(request);
+    }
 
-  @ParameterizedTest
-  @CsvSource(
-      value = {
-        "usage,disaster recovery",
-        "category,virtual",
-        "sla,standard",
-        "metric_id,Instance-hours",
-        "billing_provider,azure",
-        "billing_account_id,345",
-        "display_name_contains,another host"
-      })
-  void testFiltersDoesNotFoundDataAndReportIsEmpty(String filterName, String doesNotExist) {
-    givenInstanceWithMetrics(RHEL_FOR_X86);
-    givenExportRequestWithPermissions(Format.JSON);
-    givenFilterInExportRequest(PRODUCT_ID, RHEL_FOR_X86);
-    givenFilterInExportRequest(filterName, doesNotExist);
-    whenReceiveExportRequest();
-    verifyRequestWasSentToExportServiceWithNoDataFound();
-    verifyNoRequestsWereSentToExportServiceWithError();
-  }
+    @Test
+    void testRequestShouldBeUploadedWithInstancesAsJsonFilteringByProductId() {
+      givenInstanceWithMetrics(RHEL_FOR_X86);
+      givenExportRequestWithPermissions(Format.JSON);
+      givenFilterInExportRequest(PRODUCT_ID, RHEL_FOR_X86);
+      whenReceiveExportRequest();
+      verifyRequestWasSentToExportService();
+    }
 
-  @ParameterizedTest
-  @ValueSource(strings = {"usage", "category", "sla", "metric_id", "billing_provider", BEGINNING})
-  void testFiltersAreInvalid(String filterName) {
-    givenInstanceWithMetrics(RHEL_FOR_X86);
-    givenExportRequestWithPermissions(Format.JSON);
-    givenFilterInExportRequest(PRODUCT_ID, RHEL_FOR_X86);
-    givenFilterInExportRequest(filterName, "wrong!");
-    whenReceiveExportRequest();
-    verifyNoRequestsWereSentToExportServiceWithUploadData();
-    verifyRequestWasSentToExportServiceWithError(request);
-  }
+    @Test
+    void testRequestShouldBeUploadedWithInstancesAsJsonFilteringByProductIdAndMonth() {
+      givenInstanceWithMetrics(ROSA);
+      givenExportRequestWithPermissions(Format.JSON);
+      givenFilterInExportRequest(PRODUCT_ID, ROSA);
+      givenFilterInExportRequest(BEGINNING, APRIL);
+      whenReceiveExportRequest();
+      verifyRequestWasSentToExportService();
+    }
 
-  @Test
-  void testRequestShouldFilterByOrgId() {
-    givenInstanceWithMetricsForAnotherOrgId(RHEL_FOR_X86);
-    givenInstanceWithMetrics(RHEL_FOR_X86);
-    givenExportRequestWithPermissions(Format.JSON);
-    givenFilterInExportRequest(PRODUCT_ID, RHEL_FOR_X86);
-    whenReceiveExportRequest();
-    verifyRequestWasSentToExportService();
+    @Test
+    void testRequestShouldBeUploadedWithInstancesAsJsonFilteringByWrongProductId() {
+      givenInstanceWithMetrics(RHEL_FOR_X86);
+      givenExportRequestWithPermissions(Format.JSON);
+      givenFilterInExportRequest(PRODUCT_ID, "wrong!");
+      whenReceiveExportRequest();
+      verifyNoRequestsWereSentToExportServiceWithUploadData();
+      verifyRequestWasSentToExportServiceWithError(request);
+    }
+
+    @Test
+    void testRequestShouldBeUploadedWithInstancesAsJsonFilteringByProductIdAndReturnsNoData() {
+      givenInstanceWithMetrics(RHEL_FOR_X86);
+      givenExportRequestWithPermissions(Format.JSON);
+      givenFilterInExportRequest(PRODUCT_ID, ROSA);
+      whenReceiveExportRequest();
+      verifyRequestWasSentToExportServiceWithNoDataFound();
+      verifyNoRequestsWereSentToExportServiceWithError();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {RHEL_FOR_X86, ANSIBLE})
+    void testRequestShouldBeUploadedWithInstancesAsCsv(String productId) {
+      givenInstanceWithMetrics(productId);
+      givenExportRequestWithPermissions(Format.CSV);
+      givenFilterInExportRequest(PRODUCT_ID, productId);
+      if (SubscriptionDefinition.isContractEnabled(productId)) {
+        givenFilterInExportRequest(BEGINNING, APRIL);
+      }
+      whenReceiveExportRequest();
+      verifyRequestWasSentToExportService();
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+        value = {
+          "usage,_ANY",
+          "category,hypervisor",
+          "sla,_ANY",
+          "metric_id,Sockets",
+          "billing_provider,_ANY",
+          "billing_account_id,_ANY",
+          "display_name_contains,ho"
+        })
+    void testFiltersFoundData(String filterName, String exists) {
+      givenInstanceWithMetrics(RHEL_FOR_X86);
+      givenExportRequestWithPermissions(Format.JSON);
+      givenFilterInExportRequest(PRODUCT_ID, RHEL_FOR_X86);
+      givenFilterInExportRequest(filterName, exists);
+      whenReceiveExportRequest();
+      verifyRequestWasSentToExportService();
+      verifyNoRequestsWereSentToExportServiceWithError();
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+        value = {
+          "usage,disaster recovery",
+          "category,virtual",
+          "sla,standard",
+          "metric_id,Instance-hours",
+          "billing_provider,azure",
+          "billing_account_id,345",
+          "display_name_contains,another host"
+        })
+    void testFiltersDoesNotFoundDataAndReportIsEmpty(String filterName, String doesNotExist) {
+      givenInstanceWithMetrics(RHEL_FOR_X86);
+      givenExportRequestWithPermissions(Format.JSON);
+      givenFilterInExportRequest(PRODUCT_ID, RHEL_FOR_X86);
+      givenFilterInExportRequest(filterName, doesNotExist);
+      whenReceiveExportRequest();
+      verifyRequestWasSentToExportServiceWithNoDataFound();
+      verifyNoRequestsWereSentToExportServiceWithError();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"usage", "category", "sla", "metric_id", "billing_provider", BEGINNING})
+    void testFiltersAreInvalid(String filterName) {
+      givenInstanceWithMetrics(RHEL_FOR_X86);
+      givenExportRequestWithPermissions(Format.JSON);
+      givenFilterInExportRequest(PRODUCT_ID, RHEL_FOR_X86);
+      givenFilterInExportRequest(filterName, "wrong!");
+      whenReceiveExportRequest();
+      verifyNoRequestsWereSentToExportServiceWithUploadData();
+      verifyRequestWasSentToExportServiceWithError(request);
+    }
+
+    @Test
+    void testRequestShouldFilterByOrgId() {
+      givenInstanceWithMetricsForAnotherOrgId(RHEL_FOR_X86);
+      givenInstanceWithMetrics(RHEL_FOR_X86);
+      givenExportRequestWithPermissions(Format.JSON);
+      givenFilterInExportRequest(PRODUCT_ID, RHEL_FOR_X86);
+      whenReceiveExportRequest();
+      verifyRequestWasSentToExportService();
+    }
   }
 
   @Override
@@ -223,6 +232,24 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
     boolean isCsvFormat = request.getData().getResourceRequest().getFormat() == Format.CSV;
     String expected = isCsvFormat ? parseExpectedAsCsv() : parseExpectedAsJson();
     verifyRequestWasSentToExportServiceWithUploadData(request, expected);
+  }
+
+  @Nested
+  class WithPrimarySearchesDisabled extends ExportTestSuite {
+    @BeforeEach
+    void setup() {
+      when(featureFlags.isEnabled(FeatureFlags.ENABLE_HTB_PRIMARY_ROW_SEARCHES, false))
+          .thenReturn(false);
+    }
+  }
+
+  @Nested
+  class WithPrimarySearchesEnabled extends ExportTestSuite {
+    @BeforeEach
+    void setup() {
+      when(featureFlags.isEnabled(FeatureFlags.ENABLE_HTB_PRIMARY_ROW_SEARCHES, false))
+          .thenReturn(true);
+    }
   }
 
   private String parseExpectedAsCsv() {
@@ -359,7 +386,60 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
     givenInstanceWithMetrics(ORG_ID, productId);
   }
 
-  private HostWithGuests givenInstanceWithMetrics(String orgId, String productId) {
+  private HostWithGuests givenInstanceWithPayGoProduct(String orgId, String productId) {
+    Host instance = new Host();
+    instance.setOrgId(orgId);
+    instance.setNumOfGuests(1);
+    instance.setInstanceId("456");
+    instance.setDisplayName("my host");
+    instance.setBillingProvider(BillingProvider.AWS);
+    instance.setBillingAccountId("123");
+    instance.setInstanceType(INSTANCE_TYPE);
+
+    boolean isAnsible = productId.equals(ANSIBLE);
+    double cores = isAnsible ? 0.0 : 8.0;
+    double sockets = isAnsible ? 0.0 : 7.0;
+
+    var buckets =
+        TallyHostBucketFactory.createBucketTuples(
+            ProductId.fromString(productId),
+            HardwareMeasurementType.AWS,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            instance.getBillingProvider(),
+            instance.getBillingAccountId(),
+            cores,
+            sockets);
+    buckets.forEach(instance::addBucket);
+
+    // metrics for contract enabled products
+    if (isAnsible) {
+      instance.addToMonthlyTotal(OffsetDateTime.parse(APRIL), MetricIdUtils.getManagedNodes(), 1.0);
+      instance.setMeasurement(MetricIdUtils.getManagedNodes().toUpperCaseFormatted(), 1.0);
+
+      instance.addToMonthlyTotal(
+          OffsetDateTime.parse(APRIL), MetricIdUtils.getInstanceHours(), 2.0);
+      instance.setMeasurement(MetricIdUtils.getInstanceHours().toUpperCaseFormatted(), 2.0);
+    } else {
+      instance.addToMonthlyTotal(OffsetDateTime.parse(APRIL), MetricIdUtils.getSockets(), sockets);
+      instance.setMeasurement(MetricIdUtils.getSockets().toUpperCaseFormatted(), sockets);
+
+      instance.addToMonthlyTotal(OffsetDateTime.parse(APRIL), MetricIdUtils.getCores(), cores);
+      instance.setMeasurement(MetricIdUtils.getCores().toUpperCaseFormatted(), cores);
+    }
+
+    repository.save(instance);
+
+    HostWithGuests ret = new HostWithGuests();
+    ret.host = instance;
+    ret.guests = List.of();
+    ret.usePaygProduct = true;
+    return ret;
+  }
+
+  private HostWithGuests givenInstanceWithTraditionalProduct(String orgId, String productId) {
+    // NOTE: A mapped RHEL guest does not have buckets assigned to it as it
+    // contributes to its hypervisor's counts.
     Host guest = new Host();
     guest.setOrgId(orgId);
     guest.setDisplayName("this is the guest");
@@ -368,7 +448,14 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
     guest.setInstanceType(INSTANCE_TYPE);
     guest.setInstanceId(UUID.randomUUID().toString());
     guest.setHypervisorUuid(UUID.randomUUID().toString());
+    guest.setMeasurements(
+        Map.of(
+            MetricIdUtils.getSockets().toUpperCaseFormatted(), 1.0,
+            MetricIdUtils.getCores().toUpperCaseFormatted(), 2.0));
     repository.save(guest);
+
+    Double instanceCores = 4.0;
+    Double instanceSockets = 2.0;
 
     Host instance = new Host();
     instance.setOrgId(orgId);
@@ -379,53 +466,43 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
     instance.setBillingAccountId("123");
     instance.setInstanceType(INSTANCE_TYPE);
     instance.setSubscriptionManagerId(guest.getHypervisorUuid());
+    instance.setMeasurements(
+        Map.of(
+            MetricIdUtils.getSockets().toUpperCaseFormatted(), instanceSockets,
+            MetricIdUtils.getCores().toUpperCaseFormatted(), instanceCores));
 
-    // buckets
-    HostTallyBucket bucket = new HostTallyBucket();
-    bucket.setKey(new HostBucketKey());
-    bucket.getKey().setProductId(productId);
-    bucket.getKey().setUsage(Usage._ANY);
-    bucket.getKey().setSla(ServiceLevel._ANY);
-    bucket.getKey().setAsHypervisor(true);
-    bucket.getKey().setBillingProvider(BillingProvider._ANY);
-    bucket.getKey().setBillingAccountId(ANY);
-    bucket.setMeasurementType(HardwareMeasurementType.HYPERVISOR);
-    // in non-payg products, buckets metrics should be used over the instance measurements
-    bucket.setCores(5);
-    bucket.setSockets(6);
-    bucket.setHost(instance);
-    instance.addBucket(bucket);
-    boolean isContractEnabled = SubscriptionDefinition.isContractEnabled(productId);
-
-    if (isContractEnabled) {
-      // metrics for contract enabled products
-      if (productId.equals(ANSIBLE)) {
-        instance.addToMonthlyTotal(
-            OffsetDateTime.parse(APRIL), MetricIdUtils.getManagedNodes(), 1.0);
-        instance.addToMonthlyTotal(
-            OffsetDateTime.parse(APRIL), MetricIdUtils.getInstanceHours(), 2.0);
-      } else {
-        instance.addToMonthlyTotal(OffsetDateTime.parse(APRIL), MetricIdUtils.getSockets(), 7.0);
-        instance.addToMonthlyTotal(OffsetDateTime.parse(APRIL), MetricIdUtils.getCores(), 8.0);
-      }
-    } else {
-      // metrics for non-contract enabled products
-      instance.setMeasurements(
-          Map.of(
-              MetricIdUtils.getSockets().toUpperCaseFormatted(),
-              9.0,
-              MetricIdUtils.getCores().toUpperCaseFormatted(),
-              10.0));
-    }
+    var buckets =
+        TallyHostBucketFactory.createBucketTuples(
+            ProductId.fromString(productId),
+            HardwareMeasurementType.HYPERVISOR,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            ResourceUtils.ANY,
+            instanceSockets.intValue(),
+            instanceCores.intValue());
+    buckets.forEach(
+        bucket -> {
+          bucket.getKey().setAsHypervisor(true);
+          instance.addBucket(bucket);
+        });
 
     // save
     repository.save(instance);
     HostWithGuests item = new HostWithGuests();
     item.host = instance;
     item.guests = List.of(guest);
-    item.usePaygProduct = isContractEnabled;
-    itemsToBeExported.add(item);
+    item.usePaygProduct = false;
     return item;
+  }
+
+  private HostWithGuests givenInstanceWithMetrics(String orgId, String productId) {
+    var instance =
+        ProductId.fromString(productId).isPayg()
+            ? givenInstanceWithPayGoProduct(orgId, productId)
+            : givenInstanceWithTraditionalProduct(orgId, productId);
+    itemsToBeExported.add(instance);
+    return instance;
   }
 
   private static double resolveMetricValue(HostWithGuests item, MetricId metricId) {
