@@ -20,6 +20,7 @@
  */
 package utils;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,6 +32,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.Duration;
+import java.sql.Types;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -117,25 +119,31 @@ public final class TallyHbiDbSeeder {
   }
 
   /** Record of RHEL facts. */
+  @JsonInclude(JsonInclude.Include.NON_NULL)
   private record RhsmFacts(
       @JsonProperty("RH_PROD") List<String> rhProd,
       @JsonProperty("IS_VIRTUAL") String isVirtual,
       @JsonProperty("ARCHITECTURE") String architecture,
       @JsonProperty("CORES") String cores,
-      @JsonProperty("SOCKETS") String sockets) {}
+      @JsonProperty("SOCKETS") String sockets,
+      @JsonProperty("SYSPURPOSE_SLA") String syspurposeSla,
+      @JsonProperty("SYSPURPOSE_USAGE") String syspurposeUsage) {}
 
   /** Record of the top level facts */
   private record Facts(RhsmFacts rhsm) {}
 
   /** Build facts JSON for RHEL host with product and capacity information. */
-  private String buildRhelFacts(int cores, int sockets) {
+  private String buildRhelFacts(
+      int cores, int sockets, boolean isVirtual, String sla, String usage) {
     RhsmFacts rhsm =
         new RhsmFacts(
             List.of(RHEL_PRODUCT_ID),
-            "false",
+            isVirtual ? "true" : "false",
             "x86_64",
             String.valueOf(cores),
-            String.valueOf(sockets));
+            String.valueOf(sockets),
+            sla,
+            usage);
 
     Facts facts = new Facts(rhsm);
     try {
@@ -196,6 +204,9 @@ public final class TallyHbiDbSeeder {
     private String[] reporters = new String[] {"component-test"};
     private String cloudProvider;
     private String providerId;
+    private String virtualHostUuid;
+    private String sla;
+    private String usage;
 
     private RhelHostBuilder(String orgId) {
       this.orgId = Objects.requireNonNull(orgId, "orgId is required");
@@ -250,6 +261,26 @@ public final class TallyHbiDbSeeder {
       return this;
     }
 
+    /**
+     * Set the virtual host UUID to create a guest VM linked to a hypervisor. The value should match
+     * the hypervisor host's subscriptionManagerId. When set, the host is treated as virtual
+     * (IS_VIRTUAL=true, infrastructure_type=virtual).
+     */
+    public RhelHostBuilder virtualHostUuid(String virtualHostUuid) {
+      this.virtualHostUuid = virtualHostUuid;
+      return this;
+    }
+
+    public RhelHostBuilder sla(String sla) {
+      this.sla = sla;
+      return this;
+    }
+
+    public RhelHostBuilder usage(String usage) {
+      this.usage = usage;
+      return this;
+    }
+
     public SeededHost insert() {
       return insertRhelHost(
           orgId,
@@ -261,7 +292,10 @@ public final class TallyHbiDbSeeder {
           reporter,
           reporters,
           cloudProvider,
-          providerId);
+          providerId,
+          virtualHostUuid,
+          sla,
+          usage);
     }
   }
 
@@ -435,6 +469,9 @@ public final class TallyHbiDbSeeder {
         reporter,
         reporters,
         null,
+        null,
+        null,
+        null,
         null);
   }
 
@@ -452,6 +489,8 @@ public final class TallyHbiDbSeeder {
    * @param reporters the reporters array
    * @param cloudProvider cloud provider name (null for physical, e.g. "aws" for cloud)
    * @param providerId cloud provider instance ID (null for physical)
+   * @param virtualHostUuid hypervisor's subscriptionManagerId for guest VMs (null for
+   *     physical/cloud)
    * @return seeded host record
    */
   public SeededHost insertRhelHost(
@@ -464,11 +503,16 @@ public final class TallyHbiDbSeeder {
       String reporter,
       String[] reporters,
       String cloudProvider,
-      String providerId) {
+      String providerId,
+      String virtualHostUuid,
+      String sla,
+      String usage) {
+
     waitForSchemaReady();
     Objects.requireNonNull(orgId, "orgId is required");
 
     boolean isCloud = cloudProvider != null;
+    boolean isGuest = virtualHostUuid != null;
 
     // Use defaults if null values passed
     String actualInventoryId =
@@ -525,7 +569,7 @@ public final class TallyHbiDbSeeder {
         ps.setObject(7, now);
         ps.setObject(8, now);
         ps.setObject(9, now);
-        ps.setString(10, buildRhelFacts(cores, sockets));
+        ps.setString(10, buildRhelFacts(cores, sockets, isGuest, sla, usage));
         ps.setString(11, "[]");
         ps.setString(12, actualReporter);
         ps.setArray(13, conn.createArrayOf("varchar", actualReporters));
@@ -536,10 +580,10 @@ public final class TallyHbiDbSeeder {
           """
           INSERT INTO hbi.system_profiles_static
             (org_id, host_id, cores_per_socket, number_of_sockets,
-             infrastructure_type, cloud_provider, arch)
+             infrastructure_type, cloud_provider, arch, virtual_host_uuid)
           VALUES
             (?, ?, ?, ?,
-             ?, ?, ?)
+             ?, ?, ?, ?)
           """;
 
       try (PreparedStatement ps = conn.prepareStatement(profileSql)) {
@@ -547,9 +591,14 @@ public final class TallyHbiDbSeeder {
         ps.setObject(2, hostId);
         ps.setInt(3, cores / sockets);
         ps.setInt(4, sockets);
-        ps.setString(5, isCloud ? "virtual" : "physical");
+        ps.setString(5, (isCloud || isGuest) ? "virtual" : "physical");
         ps.setString(6, cloudProvider); // null for physical hosts
         ps.setString(7, "x86_64");
+        if (virtualHostUuid != null) {
+          ps.setObject(8, UUID.fromString(virtualHostUuid));
+        } else {
+          ps.setNull(8, Types.OTHER);
+        }
         ps.executeUpdate();
       }
     } catch (SQLException e) {
