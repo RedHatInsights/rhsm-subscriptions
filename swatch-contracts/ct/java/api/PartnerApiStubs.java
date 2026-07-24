@@ -235,6 +235,9 @@ public class PartnerApiStubs {
     body.put("rhAccountId", contract.getOrgId());
     body.put("sourcePartner", "aws_marketplace");
     body.put("entitlementDates", buildEntitlementDates(contract));
+    if (contract.getLicenseId() != null) {
+      body.put("licenseArn", contract.getLicenseId());
+    }
     body.put(
         "partnerIdentities",
         Map.of(

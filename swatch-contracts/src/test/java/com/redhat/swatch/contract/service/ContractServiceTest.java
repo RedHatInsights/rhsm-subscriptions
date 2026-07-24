@@ -105,6 +105,10 @@ class ContractServiceTest extends BaseUnitTest {
   private static final String PRODUCT_TAG = "rosa";
   private static final String SUBSCRIPTION_NUMBER = "13294886";
   private static final String SUBSCRIPTION_ID = "123456";
+
+  /** Matches WireMockResource AWS partnerSubscriptions stub used by createPartnerContract. */
+  private static final String PARTNER_API_AWS_SUBSCRIPTION_NUMBER = "123456";
+
   private static final OffsetDateTime DEFAULT_START_DATE =
       OffsetDateTime.parse("2023-06-09T13:59:43.035365Z");
   private static final OffsetDateTime DEFAULT_END_DATE =
@@ -408,6 +412,152 @@ class ContractServiceTest extends BaseUnitTest {
     assertTrue(
         newContract.getEndDate() == null || newContract.getEndDate().isAfter(OffsetDateTime.now()),
         "New contract from upstream should be active");
+
+    wireMockServer.removeStub(stub);
+  }
+
+  @Test
+  @Transactional
+  void syncContractByOrgTerminatesMissingSiblingAwsContractSharingBillingProviderId()
+      throws Exception {
+    var startDateA = OffsetDateTime.now(ZoneOffset.UTC).minusDays(2).truncatedTo(ChronoUnit.MICROS);
+    var endDate = OffsetDateTime.now(ZoneOffset.UTC).plusYears(1).truncatedTo(ChronoUnit.MICROS);
+
+    var contractA = givenExistingContract();
+    contractA.setStartDate(startDateA);
+    contractA.setEndDate(endDate);
+    contractRepository.persist(contractA);
+    var contractB =
+        ContractEntity.builder()
+            .uuid(UUID.randomUUID())
+            .subscriptionNumber("sibling-sub-b")
+            .startDate(startDateA.plusDays(1))
+            .endDate(endDate)
+            .orgId(contractA.getOrgId())
+            .offering(contractA.getOffering())
+            .billingProvider(contractA.getBillingProvider())
+            .billingProviderId(contractA.getBillingProviderId())
+            .billingAccountId(contractA.getBillingAccountId())
+            .vendorProductCode(contractA.getVendorProductCode())
+            .lastUpdated(OffsetDateTime.now(ZoneOffset.UTC))
+            .build();
+    contractRepository.persist(contractB);
+    reset(contractRepository);
+
+    var entitlementForA =
+        givenAwsEntitlement(SUBSCRIPTION_NUMBER, startDateA)
+            .partnerIdentities(
+                new PartnerIdentityV1()
+                    .awsCustomerId("HSwCpt6sqkC")
+                    .customerAwsAccountId("billAcct123")
+                    .sellerAccountId("568056954830"));
+    entitlementForA.getPurchase().setVendorProductCode(contractA.getVendorProductCode());
+    entitlementForA.getEntitlementDates().setEndDate(endDate);
+    entitlementForA.getPurchase().getContracts().get(0).setEndDate(endDate);
+
+    var stub = mockPartnerApi(new PartnerEntitlements().content(List.of(entitlementForA)));
+
+    StatusResponse statusResponse = contractService.syncContractsByOrgId(ORG_ID);
+
+    assertEquals("Contracts Synced for " + ORG_ID, statusResponse.getMessage());
+    var contracts = contractRepository.getContractsByOrgId(ORG_ID);
+    var syncedA =
+        contracts.stream()
+            .filter(c -> contractA.getUuid().equals(c.getUuid()))
+            .findFirst()
+            .orElseThrow();
+    var syncedB =
+        contracts.stream()
+            .filter(c -> contractB.getUuid().equals(c.getUuid()))
+            .findFirst()
+            .orElseThrow();
+    assertTrue(
+        syncedA.getEndDate() == null || syncedA.getEndDate().isAfter(OffsetDateTime.now()),
+        "Contract A must remain active when still present upstream");
+    assertNotNull(syncedB.getEndDate(), "Contract B missing from upstream must be terminated");
+    assertTrue(
+        syncedB.getEndDate().isAfter(OffsetDateTime.now().minusSeconds(5))
+            && syncedB.getEndDate().isBefore(OffsetDateTime.now().plusSeconds(5)),
+        "Contract B termination endDate should be approximately now");
+
+    wireMockServer.removeStub(stub);
+  }
+
+  @Test
+  @Transactional
+  void syncContractByOrgPreservesBothAwsContractsSharingBillingProviderIdWhenBothPresentUpstream()
+      throws Exception {
+    var startDateA = OffsetDateTime.now(ZoneOffset.UTC).minusDays(2).truncatedTo(ChronoUnit.MICROS);
+    var startDateB = startDateA.plusDays(1);
+    var endDate = OffsetDateTime.now(ZoneOffset.UTC).plusYears(1).truncatedTo(ChronoUnit.MICROS);
+
+    var contractA = givenExistingContract();
+    contractA.setStartDate(startDateA);
+    contractA.setEndDate(endDate);
+    contractRepository.persist(contractA);
+    var contractB =
+        ContractEntity.builder()
+            .uuid(UUID.randomUUID())
+            .subscriptionNumber("sibling-sub-b")
+            .startDate(startDateB)
+            .endDate(endDate)
+            .orgId(contractA.getOrgId())
+            .offering(contractA.getOffering())
+            .billingProvider(contractA.getBillingProvider())
+            .billingProviderId(contractA.getBillingProviderId())
+            .billingAccountId(contractA.getBillingAccountId())
+            .vendorProductCode(contractA.getVendorProductCode())
+            .lastUpdated(OffsetDateTime.now(ZoneOffset.UTC))
+            .build();
+    contractRepository.persist(contractB);
+    reset(contractRepository);
+
+    var partnerIdentities =
+        new PartnerIdentityV1()
+            .awsCustomerId("HSwCpt6sqkC")
+            .customerAwsAccountId("billAcct123")
+            .sellerAccountId("568056954830");
+    var entitlementForA =
+        givenAwsEntitlement(SUBSCRIPTION_NUMBER, startDateA).partnerIdentities(partnerIdentities);
+    entitlementForA.getPurchase().setVendorProductCode(contractA.getVendorProductCode());
+    entitlementForA.getEntitlementDates().setEndDate(endDate);
+    entitlementForA.getPurchase().getContracts().get(0).setEndDate(endDate);
+
+    var entitlementForB =
+        givenAwsEntitlement("sibling-sub-b", startDateB).partnerIdentities(partnerIdentities);
+    entitlementForB.getPurchase().setVendorProductCode(contractA.getVendorProductCode());
+    entitlementForB.getEntitlementDates().setEndDate(endDate);
+    entitlementForB.getPurchase().getContracts().get(0).setEndDate(endDate);
+
+    var stub =
+        mockPartnerApi(
+            new PartnerEntitlements().content(List.of(entitlementForA, entitlementForB)));
+
+    StatusResponse statusResponse = contractService.syncContractsByOrgId(ORG_ID);
+
+    assertEquals("Contracts Synced for " + ORG_ID, statusResponse.getMessage());
+    var contracts = contractRepository.getContractsByOrgId(ORG_ID);
+    assertEquals(
+        2,
+        contracts.size(),
+        "Both contracts with the same billingProviderId and different subscriptionNumbers"
+            + " must remain after sync");
+    var syncedA =
+        contracts.stream()
+            .filter(c -> contractA.getUuid().equals(c.getUuid()))
+            .findFirst()
+            .orElseThrow();
+    var syncedB =
+        contracts.stream()
+            .filter(c -> contractB.getUuid().equals(c.getUuid()))
+            .findFirst()
+            .orElseThrow();
+    assertTrue(
+        syncedA.getEndDate() == null || syncedA.getEndDate().isAfter(OffsetDateTime.now()),
+        "Contract A must remain active when still present upstream");
+    assertTrue(
+        syncedB.getEndDate() == null || syncedB.getEndDate().isAfter(OffsetDateTime.now()),
+        "Contract B must remain active when still present upstream");
 
     wireMockServer.removeStub(stub);
   }
@@ -735,7 +885,9 @@ class ContractServiceTest extends BaseUnitTest {
   private ContractEntity givenExistingContractWithSameStartDateThanInPartnerGateway() {
     return givenExistingContract(
         givenContractRequestWithDates(
-            WireMockResource.DEFAULT_START_DATE, WireMockResource.DEFAULT_END_DATE));
+            WireMockResource.DEFAULT_START_DATE,
+            WireMockResource.DEFAULT_END_DATE,
+            PARTNER_API_AWS_SUBSCRIPTION_NUMBER));
   }
 
   private ContractEntity givenExistingContract() {
@@ -743,7 +895,7 @@ class ContractServiceTest extends BaseUnitTest {
   }
 
   private ContractEntity givenExistingContractWithExistingMetrics() {
-    var request = givenContractRequest();
+    var request = givenContractRequest(PARTNER_API_AWS_SUBSCRIPTION_NUMBER);
     var contract = request.getPartnerEntitlement().getPurchase().getContracts().get(0);
 
     // existing metrics are coming from WireMockResource.stubForRhPartnerApi() method
@@ -790,10 +942,20 @@ class ContractServiceTest extends BaseUnitTest {
   }
 
   private ContractRequest givenContractRequest() {
-    return givenContractRequestWithDates("2023-03-17T12:29:48.569Z", "2024-03-17T12:29:48.569Z");
+    return givenContractRequest(SUBSCRIPTION_NUMBER);
+  }
+
+  private ContractRequest givenContractRequest(String subscriptionNumber) {
+    return givenContractRequestWithDates(
+        "2023-03-17T12:29:48.569Z", "2024-03-17T12:29:48.569Z", subscriptionNumber);
   }
 
   private ContractRequest givenContractRequestWithDates(String startDate, String endDate) {
+    return givenContractRequestWithDates(startDate, endDate, SUBSCRIPTION_NUMBER);
+  }
+
+  private ContractRequest givenContractRequestWithDates(
+      String startDate, String endDate, String subscriptionNumber) {
     var contract = new PartnerEntitlementContract();
     var entitlement = new PartnerEntitlementV1();
     var cloudIdentifiers = new PartnerEntitlementContractCloudIdentifiers();
@@ -812,8 +974,8 @@ class ContractServiceTest extends BaseUnitTest {
     purchase.setVendorProductCode("1234567890abcdefghijklmno");
     cloudIdentifiers.setProductCode("1234567890abcdefghijklmno");
     entitlement.setRhAccountId(ORG_ID);
-    rhEntitlement.setSubscriptionNumber(SUBSCRIPTION_NUMBER);
-    contract.setRedHatSubscriptionNumber(SUBSCRIPTION_NUMBER);
+    rhEntitlement.setSubscriptionNumber(subscriptionNumber);
+    contract.setRedHatSubscriptionNumber(subscriptionNumber);
 
     var saasContract = new SaasContractV1();
     purchase.setContracts(List.of(saasContract));

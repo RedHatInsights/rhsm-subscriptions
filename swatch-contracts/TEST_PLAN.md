@@ -863,6 +863,43 @@ This section verifies the automatic contract termination behavior when contracts
   - Contract synced with upstream end_date
   - Subscription retains all contract-provided state
 
+**contracts-sync-TC019 - Two AWS contracts with same billingProviderId both persist**
+- **Description**: Two AWS contracts for the same org/product/AWS account (same `billingProviderId`) but different `subscriptionNumber` and `licenseArn` must both survive sync. Syncing must not delete one when processing the other.
+- **Setup**:
+  - Stub Partner Gateway with two AWS ROSA entitlements sharing product code, aws customer id, and seller account id
+  - Different `subscriptionNumber` and `licenseArn` on each
+  - Stub Search API for both subscription numbers
+  - Sync offering for the shared SKU
+- **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/{org_id}`
+- **Verification**:
+  - Two contracts for the org
+  - Each `subscriptionNumber` present
+  - Re-sync with the same upstream stubs leaves both contracts (stable UUIDs)
+- **Expected Result**: HTTP 200. Both contracts persisted. Second sync is idempotent
+
+**contracts-sync-TC020 - Re-sync updates only one of two AWS contracts sharing billingProviderId**
+- **Description**: After two AWS contracts with the same `billingProviderId` exist, changing capacity/`endDate` for contract A only must update A and leave B unchanged.
+- **Setup**:
+  - Stub Partner Gateway with two AWS ROSA entitlements that share product code, aws customer id, and seller account id (same `billingProviderId`)
+  - Different `subscriptionNumber` and `licenseArn` on each entitlement
+  - Stub Search API for both subscription numbers and sync the shared SKU offering
+  - Sync contracts once so both contracts exist
+  - Re-stub Partner Gateway with A’s metrics/`endDate` changed and B unchanged
+- **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/{org_id}`
+- **Verification**:
+  - Contract for A’s `subscriptionNumber` reflects the new end date / capacity
+  - Contract for B’s `subscriptionNumber` keeps prior UUID and end date
+- **Expected Result**: HTTP 200. Only contract A updated
+
+**contracts-sync-TC021 - Entitlement without Partner Gateway licenseArn syncs with null licenseId**
+- **Description**: Legacy entitlements with no `licenseArn` still sync successfully; contract is created with `licenseId` null (no failure when the field is absent).
+- **Setup**:
+  - Stub one AWS ROSA entitlement **without** `licenseArn`
+  - Stub Search API and sync offering
+- **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/{org_id}`
+- **Verification**: One contract for the org; sync status SUCCESS
+- **Expected Result**: HTTP 200; sync succeeds with no failure when `licenseArn` is absent
+
 ## Subscription Management via IT Subscription
 
 **subscriptions-creation-TC001 - Process a valid UMB subscription XML message from UMB**  

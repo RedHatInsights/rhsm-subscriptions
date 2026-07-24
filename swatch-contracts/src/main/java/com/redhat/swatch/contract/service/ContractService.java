@@ -460,18 +460,18 @@ public class ContractService {
     StatusResponse statusResponse = new StatusResponse();
 
     try {
-      Set<String> upstreamBillingProviderIds = new HashSet<>();
+      Set<ContractEntity.AgreementIdentity> upstreamAgreements = new HashSet<>();
       int totalPages = 1;
       for (int pageNumber = 0; pageNumber < totalPages; pageNumber++) {
-        var result = syncContractsByOrgId(contractOrgSync, pageNumber, upstreamBillingProviderIds);
+        var result = syncContractsByOrgId(contractOrgSync, pageNumber, upstreamAgreements);
         if (result.getPage() != null && result.getPage().getTotalPages() != null) {
           totalPages = result.getPage().getTotalPages();
         }
       }
 
-      terminateContractsOrphanedByBillingProviders(contractOrgSync, upstreamBillingProviderIds);
+      terminateContractsOrphanedByBillingProviders(contractOrgSync, upstreamAgreements);
 
-      if (!upstreamBillingProviderIds.isEmpty()) {
+      if (!upstreamAgreements.isEmpty()) {
         statusResponse.setMessage("Contracts Synced for " + contractOrgSync);
         statusResponse.setStatus(SUCCESS_MESSAGE);
       } else {
@@ -493,14 +493,13 @@ public class ContractService {
   }
 
   private void terminateContractsOrphanedByBillingProviders(
-      String orgId, Set<String> upstreamBillingProviderIds) {
+      String orgId, Set<ContractEntity.AgreementIdentity> upstreamAgreements) {
     var now = OffsetDateTime.now();
 
     Specification<ContractEntity> spec =
         ContractEntity.orgIdEquals(orgId)
             .and(ContractEntity.activeOn(now))
-            .and(ContractEntity.billingProviderIdNullOrNotIn(upstreamBillingProviderIds));
-
+            .and(ContractEntity.orphanedByUpstreamAgreements(upstreamAgreements));
     var orphanedContracts = contractRepository.findContracts(spec).toList();
 
     if (!orphanedContracts.isEmpty()) {
@@ -509,7 +508,6 @@ public class ContractService {
           orphanedContracts.size(),
           orgId);
       orphanedContracts.forEach(contract -> terminateContract(contract, now));
-
       orphanedContracts.forEach(contract -> terminateActiveSubscriptionsForContract(contract, now));
     }
   }
@@ -565,7 +563,8 @@ public class ContractService {
   }
 
   private PartnerEntitlements syncContractsByOrgId(
-      String orgId, int pageNumber, Set<String> upstreamBillingProviderIds) throws ApiException {
+      String orgId, int pageNumber, Set<ContractEntity.AgreementIdentity> upstreamAgreements)
+      throws ApiException {
     PageRequest page = new PageRequest();
     page.setSize(PAGE_SIZE);
     page.setNumber(pageNumber);
@@ -579,7 +578,8 @@ public class ContractService {
             && ContractSourcePartnerEnum.isSupported(entitlement.getSourcePartner())) {
           String bpId = contractEntityMapper.extractBillingProviderId(entitlement);
           if (bpId != null) {
-            upstreamBillingProviderIds.add(bpId);
+            upstreamAgreements.add(
+                new ContractEntity.AgreementIdentity(bpId, findSubscriptionNumber(entitlement)));
             tryUpsertPartnerContract(entitlement);
           } else {
             log.warn(
@@ -680,6 +680,14 @@ public class ContractService {
     Specification<ContractEntity> specification;
     if (contract.getBillingProvider().startsWith("aws")) {
       specification = ContractEntity.billingProviderIdEquals(contract.getBillingProviderId());
+      // AWS contracts can share billingProviderId with different subscriptionNumbers. Scope by
+      // subscription number when present so syncing one does not delete the other. Null
+      // subscription number keeps legacy billingProviderId-only lookup.
+      if (contract.getSubscriptionNumber() != null) {
+        specification =
+            specification.and(
+                ContractEntity.subscriptionNumberEquals(contract.getSubscriptionNumber()));
+      }
     } else if (contract.getBillingProvider().startsWith("azure")) {
       specification = ContractEntity.azureResourceIdEquals(contract.getAzureResourceId());
     } else {
