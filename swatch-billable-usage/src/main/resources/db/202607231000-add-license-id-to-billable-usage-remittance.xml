@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+  <changeSet id="202607231000-001" author="gmantzou">
+    <!-- Idempotent: skip if column already exists (e.g. manually applied or partial rollout). -->
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <columnExists tableName="billable_usage_remittance" columnName="license_id"/>
+      </not>
+    </preConditions>
+    <comment>Add nullable license_id column to billable_usage_remittance for AWS concurrent agreement troubleshooting</comment>
+    <addColumn tableName="billable_usage_remittance">
+      <column name="license_id" type="VARCHAR(255)">
+        <constraints nullable="true"/>
+      </column>
+    </addColumn>
+
+    <rollback>
+      <dropColumn tableName="billable_usage_remittance" columnName="license_id"/>
+    </rollback>
+  </changeSet>
+
+</databaseChangeLog>

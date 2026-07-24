@@ -97,6 +97,9 @@ public class BillableUsageRemittanceEntity implements Serializable {
   @Column(name = "updated_at")
   private OffsetDateTime updatedAt;
 
+  @Column(name = "license_id")
+  private String licenseId;
+
   @PreUpdate
   @PrePersist
   public void onCreateOrUpdate() {
