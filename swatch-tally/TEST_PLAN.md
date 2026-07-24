@@ -2150,3 +2150,21 @@ Shared **non-PAYG physical RHEL fixture** (TC001–TC006): product RHEL for x86,
     - `build.version` is the git commit SHA (7–40 hex chars)
     - `build.artifact` is `swatch-tally`
 - **Expected Result**: Version endpoint is available and exposes build info suitable for test-run traceability
+
+## Nightly Tally with the HBI database
+
+**nightly-tally-TC001 - Validate tally on physical RHEL sockets with socket increase mapping**
+
+- **Description**: Verify that the tally data shows increase count and system table show the correct data
+- **Setup**: Component test environment with swatch-tally is running and an instance of insights db is up, your org is 
+     opted in and you have the current sockets count
+- **Action**: Insert a rhel host into the HBI database and run the tally 
+- **Verification**:
+  - verify that initial sockets count plus the expected reported sockets equals the current sockets count 
+  - verify that the instance report, instance's 'measurements' is not null
+  - verify that the following are as expected: 
+    - Display name 
+    - category
+    - expected reported sockets count 
+- **Expected Result**: The tally data shows increase count and system table show the correct data
+

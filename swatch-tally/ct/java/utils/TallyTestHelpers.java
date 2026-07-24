@@ -28,11 +28,14 @@ import api.TallySwatchService;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
+import com.redhat.swatch.tally.test.model.InstanceData;
+import com.redhat.swatch.tally.test.model.TallyReportDataPoint;
 import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
 import com.redhat.swatch.tally.test.model.TallySummary;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -425,6 +428,76 @@ public class TallyTestHelpers {
   }
 
   // --- Then helper methods: Retrieve and verify test results ---
+
+  /**
+   * Gets summed socket count from tally report data.
+   *
+   * @param service the tally service
+   * @param orgId the organization ID
+   * @param productTag the product tag
+   * @param granularity the granularity
+   * @param beginning the start of the time range
+   * @param ending the end of the time range
+   * @return the socket count from the first data point
+   */
+  public static double getSocketCount(
+      TallySwatchService service,
+      String orgId,
+      String productTag,
+      String granularity,
+      OffsetDateTime beginning,
+      OffsetDateTime ending) {
+    var reportData =
+        service.getTallyReportData(
+            orgId,
+            productTag,
+            "Sockets",
+            Map.of(
+                "granularity", granularity,
+                "beginning", beginning.toString(),
+                "ending", ending.toString()));
+
+    if (reportData.getData() == null || reportData.getData().isEmpty()) {
+      throw new RuntimeException(
+          "Tally report should have data but is empty: " + reportData.toString());
+    }
+
+    return reportData.getData().stream().mapToDouble(TallyReportDataPoint::getValue).sum();
+  }
+
+  /**
+   * Get instance from system table by display name.
+   *
+   * <p>Validates basic IQE requirements: - Host appears in instances API (not null/empty) - Display
+   * name matches expected value - Category is "physical" - Measurements exist (not empty)
+   *
+   * @param service the tally service
+   * @param orgId the organization ID
+   * @param displayName the display name to match
+   * @param beginning the start of the time range
+   * @param ending the end of the time range
+   * @return the matching instance data
+   */
+  public static InstanceData getInstanceByDisplayName(
+      TallySwatchService service,
+      String orgId,
+      String displayName,
+      OffsetDateTime beginning,
+      OffsetDateTime ending) {
+    var response =
+        service.getInstancesByProduct(
+            orgId, TallyTestProducts.RHEL_FOR_X86.productTag(), beginning, ending);
+    if (response.getData() == null || response.getData().isEmpty()) {
+      throw new RuntimeException("Instances API should have data but is empty");
+    }
+
+    return response.getData().stream()
+        .filter(instance -> displayName.equals(instance.getDisplayName()))
+        .findFirst()
+        .orElseThrow(
+            () -> new RuntimeException("No instance found with displayName=" + displayName));
+  }
+
   /** Extracts and sums tally measurement values by SLA value only. */
   public double getTallySummaryValueWithSla(
       List<TallySummary> tallySummaries,
@@ -563,5 +636,18 @@ public class TallyTestHelpers {
         .filter(m -> metricId.equalsIgnoreCase(m.getMetricId()))
         .mapToDouble(m -> m.getValue() == null ? 0.0 : m.getValue())
         .sum();
+  }
+
+  /**
+   * Generate a truncated UUID string of the given size.
+   *
+   * @param withoutHyphens if true, hyphens are stripped before truncating
+   * @param size number of characters to return
+   * @return truncated UUID string
+   */
+  public static String generateUUIDOfSize(boolean withoutHyphens, int size) {
+    String uuid = UUID.randomUUID().toString().substring(0, size);
+
+    return withoutHyphens ? uuid.replaceAll("-", "") : uuid;
   }
 }

@@ -5,3 +5,4 @@ com.redhat.swatch.component.tests.resources.springboot.SpringBootAnnotationBindi
 com.redhat.swatch.component.tests.resources.unleash.UnleashAnnotationBinding
 com.redhat.swatch.component.tests.resources.artemis.ArtemisAnnotationBinding
 com.redhat.swatch.component.tests.resources.db.SwatchDatabaseAnnotationBinding
+com.redhat.swatch.component.tests.resources.db.HbiDatabaseAnnotationBinding
