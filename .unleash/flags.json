@@ -157,6 +157,22 @@
             ],
             "variants": [],
             "createdAt": "2026-06-08T015:01:49.265Z"
+        },
+        {
+            "name": "swatch.common-security.use-kessel-rbac",
+            "description": "When enabled, SWATCH uses Kessel (RBACv2) for authorization instead of legacy RBACv1. Part of SWATCH-4368 migration.",
+            "type": "operational",
+            "project": "default",
+            "enabled": false,
+            "stale": false,
+            "strategies": [
+                {
+                    "name": "default",
+                    "parameters": {}
+                }
+            ],
+            "variants": [],
+            "createdAt": "2026-06-02T20:00:00.000Z"
         }
     ],
     "strategies": [

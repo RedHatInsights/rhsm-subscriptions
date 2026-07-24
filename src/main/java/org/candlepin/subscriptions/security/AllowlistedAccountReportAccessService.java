@@ -22,6 +22,8 @@ package org.candlepin.subscriptions.security;
 
 import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
@@ -35,6 +37,9 @@ import org.springframework.stereotype.Service;
 @Service("reportAccessService")
 public class AllowlistedAccountReportAccessService {
 
+  private static final Logger log =
+      LoggerFactory.getLogger(AllowlistedAccountReportAccessService.class);
+
   private final OrgConfigRepository orgConfigRepository;
 
   public AllowlistedAccountReportAccessService(OrgConfigRepository orgConfigRepository) {
@@ -43,6 +48,9 @@ public class AllowlistedAccountReportAccessService {
 
   public boolean providesAccessTo(Authentication auth) {
     InsightsUserPrincipal principal = (InsightsUserPrincipal) auth.getPrincipal();
-    return orgConfigRepository.existsByOrgId(principal.getOrgId());
+    boolean allowed = orgConfigRepository.existsByOrgId(principal.getOrgId());
+    log.debug(
+        "Report access allowlist check for orgId={}: allowed={}", principal.getOrgId(), allowed);
+    return allowed;
   }
 }

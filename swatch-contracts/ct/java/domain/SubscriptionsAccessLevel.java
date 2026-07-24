@@ -18,39 +18,25 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.common.security;
+package domain;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+/** Permission outcome stubbed for the subscriptions application. */
+public enum SubscriptionsAccessLevel {
+  GRANTED_ADMIN("subscriptions:*:*"),
+  GRANTED_READER("subscriptions:reports:read"),
+  DENIED;
 
-/** DTO for the identity field of an x-rh-identity JSON document. */
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class Identity {
-  private String type;
+  private final String permission;
 
-  public String getType() {
-    return type != null ? type : "User";
+  SubscriptionsAccessLevel() {
+    this.permission = null;
   }
 
-  @JsonProperty("org_id")
-  private String orgId;
+  SubscriptionsAccessLevel(String permission) {
+    this.permission = permission;
+  }
 
-  @JsonProperty("user_id")
-  private String userId;
-
-  @JsonProperty("associate")
-  private SamlAssertions samlAssertions;
-
-  private X509Properties x509;
-
-  @JsonProperty("service_account")
-  private ServiceAccount serviceAccount;
-
-  private User user;
+  public String permission() {
+    return permission;
+  }
 }

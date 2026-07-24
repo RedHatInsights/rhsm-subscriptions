@@ -29,6 +29,9 @@ public class ContractsUnleashService extends UnleashService {
   public static final String IT_SUBSCRIPTION_SERVICE =
       "swatch.swatch-contracts.enable-it-subscription-service";
 
+  /** Matches {@code KesselRolesAugmentor.KESSEL_FLAG} in swatch-common-security. */
+  public static final String USE_KESSEL_RBAC = "swatch.common-security.use-kessel-rbac";
+
   public void enablePartnerGatewayContracts() {
     enableFlag(PARTNER_GATEWAY_CONTRACTS);
   }
@@ -43,5 +46,15 @@ public class ContractsUnleashService extends UnleashService {
 
   public void disableItSubscriptionService() {
     disableFlag(IT_SUBSCRIPTION_SERVICE);
+  }
+
+  public void enableKesselRbac() {
+    enableFlag(USE_KESSEL_RBAC);
+    waitForUnleashPropagation();
+  }
+
+  public void disableKesselRbac() {
+    disableFlag(USE_KESSEL_RBAC);
+    waitForUnleashPropagation();
   }
 }

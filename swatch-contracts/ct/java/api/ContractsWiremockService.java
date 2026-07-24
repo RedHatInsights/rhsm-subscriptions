@@ -49,4 +49,12 @@ public class ContractsWiremockService extends WiremockService {
   public SearchApiStubs forSearchApi() {
     return new SearchApiStubs(this);
   }
+
+  public RbacAccessControlStubs forRbacAccessControl() {
+    return new RbacAccessControlStubs(this);
+  }
+
+  public KesselAccessControlStubs forKesselAccessControl() {
+    return new KesselAccessControlStubs(this);
+  }
 }
