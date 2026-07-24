@@ -202,7 +202,7 @@ class TallySnapshotRepositoryTest {
 
     List<TallyMeasurementAggregate> found =
         repository
-            .findSummedMeasurements(
+            .findSummedOrMaxMeasurements(
                 true,
                 "orgBugs",
                 "Bunny",
@@ -249,7 +249,7 @@ class TallySnapshotRepositoryTest {
 
     List<TallyMeasurementAggregate> found =
         repository
-            .findSummedMeasurements(
+            .findSummedOrMaxMeasurements(
                 true,
                 "orgA1",
                 "P1",
@@ -295,7 +295,7 @@ class TallySnapshotRepositoryTest {
 
     List<TallyMeasurementAggregate> found =
         repository
-            .findSummedMeasurements(
+            .findSummedOrMaxMeasurements(
                 true,
                 "orgA1",
                 "P1",
@@ -371,7 +371,7 @@ class TallySnapshotRepositoryTest {
 
     List<TallyMeasurementAggregate> found =
         repository
-            .findSummedMeasurements(
+            .findSummedOrMaxMeasurements(
                 true,
                 "orgBugs",
                 "Bunny",
@@ -447,7 +447,7 @@ class TallySnapshotRepositoryTest {
 
     List<TallyMeasurementAggregate> found =
         repository
-            .findSummedMeasurements(
+            .findSummedOrMaxMeasurements(
                 true,
                 "orgBugs",
                 "Bunny",
@@ -803,7 +803,7 @@ class TallySnapshotRepositoryTest {
             HardwareMeasurementType.ALIBABA);
 
     Page<TallyMeasurementAggregate> results =
-        repository.findSummedMeasurements(
+        repository.findSummedOrMaxMeasurements(
             true,
             orgId,
             productId,
@@ -878,7 +878,7 @@ class TallySnapshotRepositoryTest {
             HardwareMeasurementType.ALIBABA);
 
     Page<TallyMeasurementAggregate> results =
-        repository.findSummedMeasurements(
+        repository.findSummedOrMaxMeasurements(
             true,
             orgId,
             productId,
@@ -968,7 +968,7 @@ class TallySnapshotRepositoryTest {
             HardwareMeasurementType.ALIBABA);
 
     Page<TallyMeasurementAggregate> results =
-        repository.findSummedMeasurements(
+        repository.findSummedOrMaxMeasurements(
             true,
             orgId,
             productId,
@@ -1093,5 +1093,443 @@ class TallySnapshotRepositoryTest {
             NOWISH,
             new TallyMeasurementKey(
                 HardwareMeasurementType.PHYSICAL, MetricIdUtils.getCores().getValue())));
+  }
+
+  @Test
+  void testFindSummedMeasurementsWithHypervisorUsesMax() {
+    String orgId = "test-org";
+    String productId = "RHEL";
+    Granularity granularity = Granularity.DAILY;
+    ServiceLevel serviceLevel = ServiceLevel.PREMIUM;
+    Usage usage = Usage.PRODUCTION;
+    BillingProvider billingProvider = BillingProvider._ANY;
+    String billingAccountId = "_ANY";
+    OffsetDateTime snapshotDate = NOWISH;
+
+    TallySnapshot snapshot1 =
+        createUnpersisted(orgId, productId, granularity, 0, 0, 0, snapshotDate);
+    snapshot1.setPrimary(true);
+    snapshot1.setServiceLevel(serviceLevel);
+    snapshot1.setUsage(usage);
+    snapshot1.setBillingProvider(billingProvider);
+    snapshot1.setBillingAccountId(billingAccountId);
+    snapshot1.setMeasurement(HardwareMeasurementType.HYPERVISOR, MetricIdUtils.getCores(), 10.0);
+
+    TallySnapshot snapshot2 =
+        createUnpersisted(orgId, productId, granularity, 0, 0, 0, snapshotDate);
+    snapshot2.setPrimary(true);
+    snapshot2.setServiceLevel(serviceLevel);
+    snapshot2.setUsage(usage);
+    snapshot2.setBillingProvider(billingProvider);
+    snapshot2.setBillingAccountId(billingAccountId);
+    snapshot2.setMeasurement(HardwareMeasurementType.HYPERVISOR, MetricIdUtils.getCores(), 25.0);
+
+    TallySnapshot snapshot3 =
+        createUnpersisted(orgId, productId, granularity, 0, 0, 0, snapshotDate);
+    snapshot3.setPrimary(true);
+    snapshot3.setServiceLevel(serviceLevel);
+    snapshot3.setUsage(usage);
+    snapshot3.setBillingProvider(billingProvider);
+    snapshot3.setBillingAccountId(billingAccountId);
+    snapshot3.setMeasurement(HardwareMeasurementType.HYPERVISOR, MetricIdUtils.getCores(), 15.0);
+
+    repository.saveAll(List.of(snapshot1, snapshot2, snapshot3));
+    repository.flush();
+
+    Page<TallyMeasurementAggregate> results =
+        repository.findSummedOrMaxMeasurements(
+            true,
+            orgId,
+            productId,
+            MetricIdUtils.getCores(),
+            granularity,
+            serviceLevel,
+            usage,
+            billingProvider,
+            billingAccountId,
+            Set.of(HardwareMeasurementType.HYPERVISOR),
+            snapshotDate,
+            snapshotDate,
+            null);
+
+    assertEquals(1, results.getContent().size());
+    TallyMeasurementAggregate aggregate = results.getContent().get(0);
+    assertEquals(snapshotDate, aggregate.getSnapshotDate());
+    assertEquals(MetricIdUtils.getCores().getValue().toUpperCase(), aggregate.getMetricId());
+    assertEquals(25.0, aggregate.getValue());
+  }
+
+  @Test
+  void testFindSummedMeasurementsWithoutHypervisorUsesSum() {
+    String orgId = "test-org";
+    String productId = "RHEL";
+    Granularity granularity = Granularity.DAILY;
+    ServiceLevel serviceLevel = ServiceLevel.PREMIUM;
+    Usage usage = Usage.PRODUCTION;
+    BillingProvider billingProvider = BillingProvider._ANY;
+    String billingAccountId = "_ANY";
+    OffsetDateTime snapshotDate = NOWISH;
+
+    TallySnapshot snapshot1 =
+        createUnpersisted(orgId, productId, granularity, 0, 0, 0, snapshotDate);
+    snapshot1.setPrimary(true);
+    snapshot1.setServiceLevel(serviceLevel);
+    snapshot1.setUsage(usage);
+    snapshot1.setBillingProvider(billingProvider);
+    snapshot1.setBillingAccountId(billingAccountId);
+    snapshot1.setMeasurement(HardwareMeasurementType.PHYSICAL, MetricIdUtils.getCores(), 10.0);
+
+    TallySnapshot snapshot2 =
+        createUnpersisted(orgId, productId, granularity, 0, 0, 0, snapshotDate);
+    snapshot2.setPrimary(true);
+    snapshot2.setServiceLevel(serviceLevel);
+    snapshot2.setUsage(usage);
+    snapshot2.setBillingProvider(billingProvider);
+    snapshot2.setBillingAccountId(billingAccountId);
+    snapshot2.setMeasurement(HardwareMeasurementType.PHYSICAL, MetricIdUtils.getCores(), 25.0);
+
+    TallySnapshot snapshot3 =
+        createUnpersisted(orgId, productId, granularity, 0, 0, 0, snapshotDate);
+    snapshot3.setPrimary(true);
+    snapshot3.setServiceLevel(serviceLevel);
+    snapshot3.setUsage(usage);
+    snapshot3.setBillingProvider(billingProvider);
+    snapshot3.setBillingAccountId(billingAccountId);
+    snapshot3.setMeasurement(HardwareMeasurementType.PHYSICAL, MetricIdUtils.getCores(), 15.0);
+
+    repository.saveAll(List.of(snapshot1, snapshot2, snapshot3));
+    repository.flush();
+
+    Page<TallyMeasurementAggregate> results =
+        repository.findSummedOrMaxMeasurements(
+            true,
+            orgId,
+            productId,
+            MetricIdUtils.getCores(),
+            granularity,
+            serviceLevel,
+            usage,
+            billingProvider,
+            billingAccountId,
+            Set.of(HardwareMeasurementType.PHYSICAL),
+            snapshotDate,
+            snapshotDate,
+            null);
+
+    assertEquals(1, results.getContent().size());
+    TallyMeasurementAggregate aggregate = results.getContent().get(0);
+    assertEquals(snapshotDate, aggregate.getSnapshotDate());
+    assertEquals(MetricIdUtils.getCores().getValue().toUpperCase(), aggregate.getMetricId());
+    assertEquals(50.0, aggregate.getValue());
+  }
+
+  @Test
+  void testFindSummedMeasurementsWithHypervisorAcrossMultipleDates() {
+    String orgId = "test-org";
+    String productId = "RHEL";
+    Granularity granularity = Granularity.DAILY;
+    ServiceLevel serviceLevel = ServiceLevel.PREMIUM;
+    Usage usage = Usage.PRODUCTION;
+    BillingProvider billingProvider = BillingProvider._ANY;
+    String billingAccountId = "_ANY";
+
+    OffsetDateTime day1 = NOWISH;
+    OffsetDateTime day2 = NOWISH.plusDays(1);
+
+    TallySnapshot snapshot1 = createUnpersisted(orgId, productId, granularity, 0, 0, 0, day1);
+    snapshot1.setPrimary(true);
+    snapshot1.setServiceLevel(serviceLevel);
+    snapshot1.setUsage(usage);
+    snapshot1.setBillingProvider(billingProvider);
+    snapshot1.setBillingAccountId(billingAccountId);
+    snapshot1.setMeasurement(HardwareMeasurementType.HYPERVISOR, MetricIdUtils.getSockets(), 5.0);
+
+    TallySnapshot snapshot2 = createUnpersisted(orgId, productId, granularity, 0, 0, 0, day1);
+    snapshot2.setPrimary(true);
+    snapshot2.setServiceLevel(serviceLevel);
+    snapshot2.setUsage(usage);
+    snapshot2.setBillingProvider(billingProvider);
+    snapshot2.setBillingAccountId(billingAccountId);
+    snapshot2.setMeasurement(HardwareMeasurementType.HYPERVISOR, MetricIdUtils.getSockets(), 12.0);
+
+    TallySnapshot snapshot3 = createUnpersisted(orgId, productId, granularity, 0, 0, 0, day2);
+    snapshot3.setPrimary(true);
+    snapshot3.setServiceLevel(serviceLevel);
+    snapshot3.setUsage(usage);
+    snapshot3.setBillingProvider(billingProvider);
+    snapshot3.setBillingAccountId(billingAccountId);
+    snapshot3.setMeasurement(HardwareMeasurementType.HYPERVISOR, MetricIdUtils.getSockets(), 8.0);
+
+    TallySnapshot snapshot4 = createUnpersisted(orgId, productId, granularity, 0, 0, 0, day2);
+    snapshot4.setPrimary(true);
+    snapshot4.setServiceLevel(serviceLevel);
+    snapshot4.setUsage(usage);
+    snapshot4.setBillingProvider(billingProvider);
+    snapshot4.setBillingAccountId(billingAccountId);
+    snapshot4.setMeasurement(HardwareMeasurementType.HYPERVISOR, MetricIdUtils.getSockets(), 20.0);
+
+    repository.saveAll(List.of(snapshot1, snapshot2, snapshot3, snapshot4));
+    repository.flush();
+
+    Page<TallyMeasurementAggregate> results =
+        repository.findSummedOrMaxMeasurements(
+            true,
+            orgId,
+            productId,
+            MetricIdUtils.getSockets(),
+            granularity,
+            serviceLevel,
+            usage,
+            billingProvider,
+            billingAccountId,
+            Set.of(HardwareMeasurementType.HYPERVISOR),
+            day1,
+            day2,
+            null);
+
+    assertEquals(2, results.getContent().size());
+
+    TallyMeasurementAggregate day1Aggregate =
+        results.getContent().stream()
+            .filter(a -> a.getSnapshotDate().equals(day1))
+            .findFirst()
+            .orElseThrow();
+    assertEquals(12.0, day1Aggregate.getValue());
+
+    TallyMeasurementAggregate day2Aggregate =
+        results.getContent().stream()
+            .filter(a -> a.getSnapshotDate().equals(day2))
+            .findFirst()
+            .orElseThrow();
+    assertEquals(20.0, day2Aggregate.getValue());
+  }
+
+  @Test
+  void testFindSummedMeasurementsWithHypervisorUsesMaxWithSlaFilter() {
+    String orgId = "test-org";
+    String productId = "RHEL";
+    Granularity granularity = Granularity.DAILY;
+    BillingProvider billingProvider = BillingProvider._ANY;
+    String billingAccountId = "_ANY";
+    OffsetDateTime snapshotDate = NOWISH;
+
+    // Create snapshots with HYPERVISOR measurements and different SLA values
+    // Premium snapshots: 10.0, 8.0 (max should be 10.0)
+    TallySnapshot premiumSnapshot1 =
+        createUnpersisted(orgId, productId, granularity, 0, 0, 0, snapshotDate);
+    premiumSnapshot1.setPrimary(true);
+    premiumSnapshot1.setServiceLevel(ServiceLevel.PREMIUM);
+    premiumSnapshot1.setUsage(Usage.PRODUCTION);
+    premiumSnapshot1.setBillingProvider(billingProvider);
+    premiumSnapshot1.setBillingAccountId(billingAccountId);
+    premiumSnapshot1.setMeasurement(
+        HardwareMeasurementType.HYPERVISOR, MetricIdUtils.getCores(), 10.0);
+
+    TallySnapshot premiumSnapshot2 =
+        createUnpersisted(orgId, productId, granularity, 0, 0, 0, snapshotDate);
+    premiumSnapshot2.setPrimary(true);
+    premiumSnapshot2.setServiceLevel(ServiceLevel.PREMIUM);
+    premiumSnapshot2.setUsage(Usage.PRODUCTION);
+    premiumSnapshot2.setBillingProvider(billingProvider);
+    premiumSnapshot2.setBillingAccountId(billingAccountId);
+    premiumSnapshot2.setMeasurement(
+        HardwareMeasurementType.HYPERVISOR, MetricIdUtils.getCores(), 8.0);
+
+    // Standard snapshots: 25.0, 15.0 (max should be 25.0)
+    TallySnapshot standardSnapshot1 =
+        createUnpersisted(orgId, productId, granularity, 0, 0, 0, snapshotDate);
+    standardSnapshot1.setPrimary(true);
+    standardSnapshot1.setServiceLevel(ServiceLevel.STANDARD);
+    standardSnapshot1.setUsage(Usage.PRODUCTION);
+    standardSnapshot1.setBillingProvider(billingProvider);
+    standardSnapshot1.setBillingAccountId(billingAccountId);
+    standardSnapshot1.setMeasurement(
+        HardwareMeasurementType.HYPERVISOR, MetricIdUtils.getCores(), 25.0);
+
+    TallySnapshot standardSnapshot2 =
+        createUnpersisted(orgId, productId, granularity, 0, 0, 0, snapshotDate);
+    standardSnapshot2.setPrimary(true);
+    standardSnapshot2.setServiceLevel(ServiceLevel.STANDARD);
+    standardSnapshot2.setUsage(Usage.PRODUCTION);
+    standardSnapshot2.setBillingProvider(billingProvider);
+    standardSnapshot2.setBillingAccountId(billingAccountId);
+    standardSnapshot2.setMeasurement(
+        HardwareMeasurementType.HYPERVISOR, MetricIdUtils.getCores(), 15.0);
+
+    repository.saveAll(
+        List.of(premiumSnapshot1, premiumSnapshot2, standardSnapshot1, standardSnapshot2));
+    repository.flush();
+
+    // Query with SLA filter for PREMIUM - should get MAX of premium snapshots only
+    Page<TallyMeasurementAggregate> premiumResults =
+        repository.findSummedOrMaxMeasurements(
+            true,
+            orgId,
+            productId,
+            MetricIdUtils.getCores(),
+            granularity,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            billingProvider,
+            billingAccountId,
+            Set.of(HardwareMeasurementType.HYPERVISOR),
+            snapshotDate,
+            snapshotDate,
+            null);
+
+    assertEquals(1, premiumResults.getContent().size());
+    TallyMeasurementAggregate premiumAggregate = premiumResults.getContent().get(0);
+    assertEquals(snapshotDate, premiumAggregate.getSnapshotDate());
+    assertEquals(MetricIdUtils.getCores().getValue().toUpperCase(), premiumAggregate.getMetricId());
+    // Should be max of premium snapshots (10.0, 8.0) = 10.0, NOT sum (18.0)
+    assertEquals(10.0, premiumAggregate.getValue());
+
+    // Query with SLA filter for STANDARD - should get MAX of standard snapshots only
+    Page<TallyMeasurementAggregate> standardResults =
+        repository.findSummedOrMaxMeasurements(
+            true,
+            orgId,
+            productId,
+            MetricIdUtils.getCores(),
+            granularity,
+            ServiceLevel.STANDARD,
+            Usage.PRODUCTION,
+            billingProvider,
+            billingAccountId,
+            Set.of(HardwareMeasurementType.HYPERVISOR),
+            snapshotDate,
+            snapshotDate,
+            null);
+
+    assertEquals(1, standardResults.getContent().size());
+    TallyMeasurementAggregate standardAggregate = standardResults.getContent().get(0);
+    assertEquals(snapshotDate, standardAggregate.getSnapshotDate());
+    assertEquals(
+        MetricIdUtils.getCores().getValue().toUpperCase(), standardAggregate.getMetricId());
+    // Should be max of standard snapshots (25.0, 15.0) = 25.0, NOT sum (40.0)
+    assertEquals(25.0, standardAggregate.getValue());
+  }
+
+  @Test
+  void testFindSummedMeasurementsWithHypervisorUsesMaxWithUsageFilter() {
+    String orgId = "test-org";
+    String productId = "RHEL";
+    Granularity granularity = Granularity.DAILY;
+    ServiceLevel serviceLevel = ServiceLevel.PREMIUM;
+    BillingProvider billingProvider = BillingProvider._ANY;
+    String billingAccountId = "_ANY";
+    OffsetDateTime snapshotDate = NOWISH;
+
+    // Create snapshots with HYPERVISOR measurements and different usage values
+    // Production snapshots: 10.0, 25.0, 15.0 (max should be 25.0)
+    TallySnapshot productionSnapshot1 =
+        createUnpersisted(orgId, productId, granularity, 0, 0, 0, snapshotDate);
+    productionSnapshot1.setPrimary(true);
+    productionSnapshot1.setServiceLevel(serviceLevel);
+    productionSnapshot1.setUsage(Usage.PRODUCTION);
+    productionSnapshot1.setBillingProvider(billingProvider);
+    productionSnapshot1.setBillingAccountId(billingAccountId);
+    productionSnapshot1.setMeasurement(
+        HardwareMeasurementType.HYPERVISOR, MetricIdUtils.getCores(), 10.0);
+
+    TallySnapshot productionSnapshot2 =
+        createUnpersisted(orgId, productId, granularity, 0, 0, 0, snapshotDate);
+    productionSnapshot2.setPrimary(true);
+    productionSnapshot2.setServiceLevel(serviceLevel);
+    productionSnapshot2.setUsage(Usage.PRODUCTION);
+    productionSnapshot2.setBillingProvider(billingProvider);
+    productionSnapshot2.setBillingAccountId(billingAccountId);
+    productionSnapshot2.setMeasurement(
+        HardwareMeasurementType.HYPERVISOR, MetricIdUtils.getCores(), 25.0);
+
+    TallySnapshot productionSnapshot3 =
+        createUnpersisted(orgId, productId, granularity, 0, 0, 0, snapshotDate);
+    productionSnapshot3.setPrimary(true);
+    productionSnapshot3.setServiceLevel(serviceLevel);
+    productionSnapshot3.setUsage(Usage.PRODUCTION);
+    productionSnapshot3.setBillingProvider(billingProvider);
+    productionSnapshot3.setBillingAccountId(billingAccountId);
+    productionSnapshot3.setMeasurement(
+        HardwareMeasurementType.HYPERVISOR, MetricIdUtils.getCores(), 15.0);
+
+    // Development snapshots: 8.0, 12.0 (max should be 12.0)
+    TallySnapshot developmentSnapshot1 =
+        createUnpersisted(orgId, productId, granularity, 0, 0, 0, snapshotDate);
+    developmentSnapshot1.setPrimary(true);
+    developmentSnapshot1.setServiceLevel(serviceLevel);
+    developmentSnapshot1.setUsage(Usage.DEVELOPMENT_TEST);
+    developmentSnapshot1.setBillingProvider(billingProvider);
+    developmentSnapshot1.setBillingAccountId(billingAccountId);
+    developmentSnapshot1.setMeasurement(
+        HardwareMeasurementType.HYPERVISOR, MetricIdUtils.getCores(), 8.0);
+
+    TallySnapshot developmentSnapshot2 =
+        createUnpersisted(orgId, productId, granularity, 0, 0, 0, snapshotDate);
+    developmentSnapshot2.setPrimary(true);
+    developmentSnapshot2.setServiceLevel(serviceLevel);
+    developmentSnapshot2.setUsage(Usage.DEVELOPMENT_TEST);
+    developmentSnapshot2.setBillingProvider(billingProvider);
+    developmentSnapshot2.setBillingAccountId(billingAccountId);
+    developmentSnapshot2.setMeasurement(
+        HardwareMeasurementType.HYPERVISOR, MetricIdUtils.getCores(), 12.0);
+
+    repository.saveAll(
+        List.of(
+            productionSnapshot1,
+            productionSnapshot2,
+            productionSnapshot3,
+            developmentSnapshot1,
+            developmentSnapshot2));
+    repository.flush();
+
+    // Query with Usage filter for PRODUCTION - should get MAX of production snapshots only
+    Page<TallyMeasurementAggregate> productionResults =
+        repository.findSummedOrMaxMeasurements(
+            true,
+            orgId,
+            productId,
+            MetricIdUtils.getCores(),
+            granularity,
+            serviceLevel,
+            Usage.PRODUCTION,
+            billingProvider,
+            billingAccountId,
+            Set.of(HardwareMeasurementType.HYPERVISOR),
+            snapshotDate,
+            snapshotDate,
+            null);
+
+    assertEquals(1, productionResults.getContent().size());
+    TallyMeasurementAggregate productionAggregate = productionResults.getContent().get(0);
+    assertEquals(snapshotDate, productionAggregate.getSnapshotDate());
+    assertEquals(
+        MetricIdUtils.getCores().getValue().toUpperCase(), productionAggregate.getMetricId());
+    // Should be max of production snapshots (10.0, 25.0, 15.0) = 25.0, NOT sum (50.0)
+    assertEquals(25.0, productionAggregate.getValue());
+
+    // Query with Usage filter for DEVELOPMENT_TEST - should get MAX of development snapshots only
+    Page<TallyMeasurementAggregate> developmentResults =
+        repository.findSummedOrMaxMeasurements(
+            true,
+            orgId,
+            productId,
+            MetricIdUtils.getCores(),
+            granularity,
+            serviceLevel,
+            Usage.DEVELOPMENT_TEST,
+            billingProvider,
+            billingAccountId,
+            Set.of(HardwareMeasurementType.HYPERVISOR),
+            snapshotDate,
+            snapshotDate,
+            null);
+
+    assertEquals(1, developmentResults.getContent().size());
+    TallyMeasurementAggregate developmentAggregate = developmentResults.getContent().get(0);
+    assertEquals(snapshotDate, developmentAggregate.getSnapshotDate());
+    assertEquals(
+        MetricIdUtils.getCores().getValue().toUpperCase(), developmentAggregate.getMetricId());
+    // Should be max of development snapshots (8.0, 12.0) = 12.0, NOT sum (20.0)
+    assertEquals(12.0, developmentAggregate.getValue());
   }
 }
