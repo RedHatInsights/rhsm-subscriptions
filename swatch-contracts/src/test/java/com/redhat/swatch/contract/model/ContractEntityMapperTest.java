@@ -167,6 +167,29 @@ class ContractEntityMapperTest {
         result.contains(";;"), "planId should default to empty string when contracts list is null");
   }
 
+  @Test
+  void testMapEntitlementToContractEntitySetsLicenseIdFromLicenseArn() {
+    givenAwsEntitlement();
+    entitlement.setLicenseArn(
+        "arn:aws:license-manager:us-east-1:000000000000:license:swatch-test-license");
+    givenContract(10.0);
+
+    var entity = whenMapEntitlementToContractEntity();
+
+    assertEquals(entitlement.getLicenseArn(), entity.getLicenseId());
+  }
+
+  @Test
+  void testMapEntitlementToContractEntityLeavesLicenseIdNullWhenLicenseArnAbsent() {
+    givenAwsEntitlement();
+    entitlement.setLicenseArn(null);
+    givenContract(10.0);
+
+    var entity = whenMapEntitlementToContractEntity();
+
+    assertNull(entity.getLicenseId());
+  }
+
   private void givenContractWithPlanId(String planId) {
     var contract = givenContract(0, null, null);
     contract.setPlanId(planId);
@@ -195,6 +218,18 @@ class ContractEntityMapperTest {
     saasContract.endDate(OffsetDateTime.parse("2021-05-01T00:00Z"));
     entitlement.getPurchase().addContractsItem(saasContract);
     return saasContract;
+  }
+
+  private void givenAwsEntitlement() {
+    entitlement = new PartnerEntitlementV1();
+    entitlement.setPurchase(new PurchaseV1());
+    entitlement.getPurchase().setContracts(new ArrayList<>());
+    entitlement.getPurchase().setVendorProductCode("aws_vendor_code");
+    entitlement.setPartnerIdentities(new PartnerIdentityV1());
+    entitlement.getPartnerIdentities().awsCustomerId("aws_customer");
+    entitlement.getPartnerIdentities().customerAwsAccountId("aws_account");
+    entitlement.getPartnerIdentities().sellerAccountId("aws_seller");
+    entitlement.sourcePartner(ContractSourcePartnerEnum.AWS.getCode());
   }
 
   private void givenAzureEntitlement(

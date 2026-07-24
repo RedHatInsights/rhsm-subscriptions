@@ -46,6 +46,9 @@ public class Contract extends Subscription {
   /** Product Code */
   private final String productCode;
 
+  /** Marketplace license id (Partner Gateway licenseArn for AWS). */
+  private final String licenseId;
+
   /** Plan ID (only relevant for Azure contracts) */
   private final String planId;
 

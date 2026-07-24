@@ -37,9 +37,12 @@ import api.PartnerApiStubs;
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
+import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.contract.test.model.SkuCapacitySubscription;
 import domain.BillingProvider;
 import domain.Contract;
+import domain.Offering;
+import domain.Product;
 import io.restassured.response.Response;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -801,6 +804,116 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
         "Subscription measurements should be preserved after legitimate termination");
   }
 
+  @TestPlanName("contracts-sync-TC019")
+  @Test
+  void shouldPersistBothAwsContractsSharingBillingProviderId() {
+    // Given: two AWS contracts, same billingProviderId, different subscriptionNumbers
+    String billingProviderId = RandomUtils.generateRandom();
+    Contract contractA = givenContractWithLicenseFor(orgId, billingProviderId);
+    Contract contractB =
+        givenContractWithLicenseFor(orgId, billingProviderId).toBuilder()
+            .subscriptionMeasurements(Map.of(CORES, 20.0))
+            .build();
+    stubAwsContractsForOrgSync(contractA, contractB);
+
+    // When / Then: both persist, and re-sync keeps stable UUIDs
+    assertThat(
+        "Sync should succeed",
+        service.syncContractsByOrg(orgId).statusCode(),
+        is(HttpStatus.SC_OK));
+    thenAssertContractsPresentBySubscriptionNumber(contractA, contractB);
+    String uuidA = getContractUuidBySubscriptionNumber(contractA);
+    String uuidB = getContractUuidBySubscriptionNumber(contractB);
+
+    assertThat(
+        "Second sync should succeed",
+        service.syncContractsByOrg(orgId).statusCode(),
+        is(HttpStatus.SC_OK));
+    thenAssertContractsPresentBySubscriptionNumber(contractA, contractB);
+    assertEquals(
+        uuidA,
+        getContractUuidBySubscriptionNumber(contractA),
+        "Contract A UUID must be stable across sync");
+    assertEquals(
+        uuidB,
+        getContractUuidBySubscriptionNumber(contractB),
+        "Contract B UUID must be stable across sync");
+  }
+
+  @TestPlanName("contracts-sync-TC020")
+  @Test
+  void shouldUpdateOnlyOneAwsContractSharingBillingProviderIdOnResync() {
+    // Given: two AWS contracts sharing billingProviderId, both synced
+    String billingProviderId = RandomUtils.generateRandom();
+    Contract contractA = givenContractWithLicenseFor(orgId, billingProviderId);
+    Contract contractB =
+        givenContractWithLicenseFor(orgId, billingProviderId).toBuilder()
+            .subscriptionMeasurements(Map.of(CORES, 20.0))
+            .build();
+    stubAwsContractsForOrgSync(contractA, contractB);
+    assertThat(
+        "Initial sync should succeed",
+        service.syncContractsByOrg(orgId).statusCode(),
+        is(HttpStatus.SC_OK));
+    thenAssertContractsPresentBySubscriptionNumber(contractA, contractB);
+
+    String uuidB = getContractUuidBySubscriptionNumber(contractB);
+    var beforeB = getPersistedContract(contractB);
+    Contract updatedA =
+        contractA.toBuilder()
+            .endDate(contractA.getEndDate().plusDays(7))
+            .subscriptionMeasurements(
+                Map.of(CORES, contractA.getSubscriptionMeasurements().get(CORES) + 10.0))
+            .build();
+    stubPartnerAndSearch(updatedA, contractB);
+
+    // When: re-sync with only contract A changed
+    assertThat(
+        "Sync should succeed",
+        service.syncContractsByOrg(orgId).statusCode(),
+        is(HttpStatus.SC_OK));
+
+    // Then: A updated; B unchanged
+    var afterA = getPersistedContract(contractA);
+    var afterB = getPersistedContract(contractB);
+    assertDatesAreEqual(updatedA.getEndDate(), afterA.getEndDate());
+    assertEquals(
+        updatedA.getContractMetrics().get(awsDimensionFor(CORES)),
+        getAwsMetricValue(afterA, CORES),
+        "Contract A CORES metric must be updated");
+    assertDatesAreEqual(beforeB.getEndDate(), afterB.getEndDate());
+    assertEquals(
+        getAwsMetricValue(beforeB, CORES),
+        getAwsMetricValue(afterB, CORES),
+        "Contract B CORES metric must be unchanged");
+    assertEquals(uuidB, afterB.getUuid(), "Contract B UUID must not change");
+  }
+
+  @TestPlanName("contracts-sync-TC021")
+  @Test
+  void shouldSyncAwsEntitlementWhenLicenseArnIsAbsent() {
+    // Given: AWS entitlement without licenseArn
+    String sku = RandomUtils.generateRandom();
+    Contract contract =
+        Contract.buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, 10.0), sku);
+    assertNull(contract.getLicenseId(), "Fixture must omit licenseArn for legacy path");
+    wiremock.forProductAPI().stubOfferingData(contract.getOffering());
+    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContractsInOrgId(orgId, contract));
+    wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(contract);
+    assertThat(
+        "Sync offering should succeed",
+        service.syncOffering(sku).statusCode(),
+        is(HttpStatus.SC_OK));
+
+    // When
+    Response syncResponse = service.syncContractsByOrg(orgId);
+
+    // Then
+    assertThat("Sync should succeed", syncResponse.statusCode(), is(HttpStatus.SC_OK));
+    syncResponse.then().body("status", equalTo(STATUS_SUCCESS));
+    thenContractsSizeAre(1);
+  }
+
   protected String getContractUuidByProvider(String orgId, BillingProvider provider) {
     var contracts =
         service.getContractsByOrgId(orgId).stream()
@@ -999,5 +1112,93 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
         .stubGetSubscriptionBySubscriptionNumber(contracts.toArray(new Contract[0]));
     Response sync = service.syncOffering(sku);
     assertEquals(HttpStatus.SC_OK, sync.statusCode(), "Sync offering should succeed");
+  }
+
+  /**
+   * AWS ROSA contract with a Partner Gateway {@code licenseArn}. Passing the same {@code
+   * billingProviderId} seed yields the same product code / AWS customer / seller account (and thus
+   * the same persisted billingProviderId) while each call gets its own subscriptionNumber and
+   * licenseId.
+   */
+  private Contract givenContractWithLicenseFor(String orgId, String billingProviderId) {
+    String subscriptionNumber = RandomUtils.generateRandom();
+    return Contract.builder()
+        .orgId(orgId)
+        .billingProvider(BillingProvider.AWS)
+        .product(Product.ROSA)
+        .productCode("product" + billingProviderId)
+        .customerId("customer" + billingProviderId)
+        .sellerAccountId("seller" + billingProviderId)
+        .billingAccountId("billing" + billingProviderId)
+        .offering(Offering.buildRosaOffering(billingProviderId))
+        .subscriptionId(subscriptionNumber)
+        .subscriptionNumber(subscriptionNumber)
+        .subscriptionMeasurements(Map.of(CORES, 10.0))
+        .licenseId("arn:aws:license-manager:us-east-1:000000000000:license:" + subscriptionNumber)
+        .startDate(OffsetDateTime.now().minusDays(1))
+        .endDate(OffsetDateTime.now().plusDays(1))
+        .build();
+  }
+
+  private void stubAwsContractsForOrgSync(Contract contractA, Contract contractB) {
+    wiremock.forProductAPI().stubOfferingData(contractA.getOffering());
+    stubPartnerAndSearch(contractA, contractB);
+    assertEquals(
+        HttpStatus.SC_OK,
+        service.syncOffering(contractA.getOffering().getSku()).statusCode(),
+        "Sync offering should succeed");
+  }
+
+  private void stubPartnerAndSearch(Contract... contracts) {
+    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContractsInOrgId(orgId, contracts));
+    wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(contracts);
+  }
+
+  private void thenAssertContractsPresentBySubscriptionNumber(Contract... expected) {
+    thenAssertContractsForOrg(
+        contracts -> {
+          assertEquals(
+              expected.length, contracts.size(), "Expected all stubbed contracts to be present");
+          for (Contract expectedContract : expected) {
+            assertTrue(
+                contracts.stream()
+                    .anyMatch(
+                        c ->
+                            expectedContract
+                                .getSubscriptionNumber()
+                                .equals(c.getSubscriptionNumber())),
+                "subscriptionNumber "
+                    + expectedContract.getSubscriptionNumber()
+                    + " must be present");
+          }
+        });
+  }
+
+  private com.redhat.swatch.contract.test.model.Contract getPersistedContract(Contract expected) {
+    return service.getContractsByOrgId(orgId).stream()
+        .filter(c -> expected.getSubscriptionNumber().equals(c.getSubscriptionNumber()))
+        .findFirst()
+        .orElseThrow(
+            () ->
+                new AssertionError(
+                    "No contract for subscriptionNumber=" + expected.getSubscriptionNumber()));
+  }
+
+  private String getContractUuidBySubscriptionNumber(Contract expected) {
+    return getPersistedContract(expected).getUuid();
+  }
+
+  private static String awsDimensionFor(MetricId metricId) {
+    return Product.ROSA.getMetric(metricId).getAwsDimension();
+  }
+
+  private static double getAwsMetricValue(
+      com.redhat.swatch.contract.test.model.Contract contract, MetricId metricId) {
+    String dimension = awsDimensionFor(metricId);
+    return contract.getMetrics().stream()
+        .filter(m -> dimension.equals(m.getMetricId()))
+        .findFirst()
+        .orElseThrow(() -> new AssertionError("Missing metric " + dimension))
+        .getValue();
   }
 }

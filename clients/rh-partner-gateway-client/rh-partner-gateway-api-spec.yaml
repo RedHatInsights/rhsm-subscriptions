@@ -102,6 +102,10 @@ components:
           $ref: '#/components/schemas/PurchaseV1'
         status:
           type: string
+        licenseArn:
+          description: AWS License Manager ARN for the entitlement.
+          type: string
+          nullable: true
         entitlementDates:
           type: object
           properties:

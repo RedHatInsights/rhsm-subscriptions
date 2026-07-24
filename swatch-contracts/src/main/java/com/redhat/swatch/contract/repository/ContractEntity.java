@@ -32,8 +32,10 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.criteria.Predicate;
 import jakarta.validation.constraints.NotNull;
 import java.time.OffsetDateTime;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -103,6 +105,10 @@ public class ContractEntity extends ModificationTrackedEntity {
   @Column(name = "vendor_product_code", nullable = false)
   private String vendorProductCode;
 
+  @Basic
+  @Column(name = "license_id")
+  private String licenseId;
+
   @NotNull
   @Builder.Default
   @OneToMany(
@@ -152,7 +158,8 @@ public class ContractEntity extends ModificationTrackedEntity {
         && Objects.equals(metrics, that.metrics)
         && Objects.equals(startDate, that.startDate)
         && Objects.equals(endDate, that.endDate)
-        && Objects.equals(vendorProductCode, that.vendorProductCode);
+        && Objects.equals(vendorProductCode, that.vendorProductCode)
+        && Objects.equals(licenseId, that.licenseId);
   }
 
   @Override
@@ -164,7 +171,8 @@ public class ContractEntity extends ModificationTrackedEntity {
         billingProvider,
         billingAccountId,
         metrics,
-        vendorProductCode);
+        vendorProductCode,
+        licenseId);
   }
 
   public String getAzureResourceId() {
@@ -244,15 +252,46 @@ public class ContractEntity extends ModificationTrackedEntity {
         builder.equal(root.get(ContractEntity_.billingProviderId), billingProviderId);
   }
 
-  public static Specification<ContractEntity> billingProviderIdNullOrNotIn(
-      Set<String> billingProviderIds) {
+  /**
+   * Candidates to terminate after Partner Gateway sync: not an exact match for any {@code
+   * upstreamAgreements} row ({@code billingProviderId} + {@code subscriptionNumber}, null-safe).
+   * Empty collection matches all contracts.
+   */
+  public static Specification<ContractEntity> orphanedByUpstreamAgreements(
+      Collection<AgreementIdentity> upstreamAgreements) {
     return (root, query, builder) -> {
-      if (billingProviderIds == null || billingProviderIds.isEmpty()) {
+      if (upstreamAgreements == null || upstreamAgreements.isEmpty()) {
         return builder.conjunction();
       }
-      return builder.or(
-          builder.isNull(root.get(ContractEntity_.billingProviderId)),
-          builder.not(root.get(ContractEntity_.billingProviderId).in(billingProviderIds)));
+
+      var billingProviderId = root.get(ContractEntity_.billingProviderId);
+      var subscriptionNumber = root.get(ContractEntity_.subscriptionNumber);
+
+      Predicate[] present =
+          upstreamAgreements.stream()
+              .filter(identity -> identity.billingProviderId() != null)
+              .map(
+                  identity -> {
+                    Predicate billingProviderIdMatch =
+                        builder.equal(billingProviderId, identity.billingProviderId());
+                    Predicate subscriptionNumberMatch =
+                        identity.subscriptionNumber() == null
+                            ? builder.isNull(subscriptionNumber)
+                            : builder.equal(subscriptionNumber, identity.subscriptionNumber());
+                    return builder.and(billingProviderIdMatch, subscriptionNumberMatch);
+                  })
+              .toArray(Predicate[]::new);
+
+      if (present.length == 0) {
+        return builder.conjunction();
+      }
+      return builder.not(builder.or(present));
     };
   }
+
+  /**
+   * Upstream contract identity used when deciding which contracts are still present after sync
+   * ({@code billingProviderId} + {@code subscriptionNumber}).
+   */
+  public record AgreementIdentity(String billingProviderId, String subscriptionNumber) {}
 }
