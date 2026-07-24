@@ -197,7 +197,7 @@ public class ContractService {
   public StatusResponse createPartnerContract(PartnerEntitlementsRequest request) {
     var partnerEntitlementsProvider = findPartnerEntitlementsProvider(request);
     if (partnerEntitlementsProvider == null) {
-      log.info("Can't process the contract from UMB: {}", request);
+      log.info("Can't process the partner contract: {}", request);
       return INVALID_MESSAGE_UNPROCESSED.toStatus();
     }
 
