@@ -3,7 +3,7 @@ version: '3.1'
 services:
   export:
     container_name: export-server
-    image: quay.io/cloudservices/export-service:f6c95f2
+    image: quay.io/redhat-services-prod/hcc-integrations-tenant/export-service:f5f5016
     environment:
       - PGSQL_PORT=5432
       - PGSQL_HOSTNAME=db
@@ -17,9 +17,11 @@ services:
       - AWS_SECRET_ACCESS_KEY=minioadmin
       - PUBLIC_PORT=8000
       - METRICS_PORT=9090
+      - AWS_REGION=us-east-1
       - MINIO_HOST=s3
       - MINIO_PORT=9099
       - PRIVATE_PORT=10010
+      - EXPORT_ENABLE_APPS={"subscriptions":["instances","subscriptions"]}
     ports:
       - 8002:8000
       - 10000:10010
@@ -45,9 +47,9 @@ services:
     restart: on-failure
     entrypoint: >
       /bin/sh -c "
-      /usr/bin/mc config host add myminio http://s3:9099 ${AWS_ACCESS_KEY-minio} ${AWS_SECRET_ACCESS_KEY-minioadmin} || exit 1;
+      until /usr/bin/mc alias set myminio http://s3:9099 ${AWS_ACCESS_KEY-minio} ${AWS_SECRET_ACCESS_KEY-minioadmin}; do echo 'Waiting for MinIO...'; sleep 2; done;
       /usr/bin/mc mb --ignore-existing myminio/exports-bucket;
-      /usr/bin/mc policy set public myminio/exports-bucket;
+      /usr/bin/mc anonymous set public myminio/exports-bucket;
       "
 networks:
   swatch-network:
