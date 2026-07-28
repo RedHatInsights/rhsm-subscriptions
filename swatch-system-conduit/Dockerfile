@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/openjdk-21:1.24-2.1782292637
+FROM registry.access.redhat.com/ubi10/openjdk-25:1784351724
 
 USER root
 # Add git, so that the build can determine the git hash
@@ -6,8 +6,8 @@ USER root
 # this makes the container buildable without needing RHEL repos.
 RUN microdnf \
   --disablerepo=* \
-  --enablerepo=ubi-9-appstream-rpms \
-  --enablerepo=ubi-9-baseos-rpms \
+  --enablerepo=ubi-10-appstream-rpms \
+  --enablerepo=ubi-10-baseos-rpms \
   install -y \
   git
 WORKDIR /stage
@@ -25,21 +25,21 @@ RUN mvn --no-transfer-progress -U -s /tmp/maven-settings.xml ${MAVEN_TASKS} -pl 
 RUN (cd /stage/swatch-system-conduit && exec jar -xf ./target/*.jar)
 RUN ls -al /stage/swatch-system-conduit
 
-FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:1.24-2.1782293370
+FROM registry.access.redhat.com/ubi10/openjdk-25-runtime:1784364635
 
 ARG VERSION=1.0.0
 
 # Required labels for Enterprise Contract
 LABEL name="swatch-system-conduit"
 LABEL maintainer="Red Hat, Inc."
-LABEL version="ubi9"
+LABEL version="ubi10"
 LABEL release="${VERSION}"
 LABEL vendor="Red Hat, Inc."
 LABEL url="https://github.com/RedHatInsights/rhsm-subscriptions"
 LABEL com.redhat.component="swatch-system-conduit"
 LABEL distribution-scope="public"
-LABEL io.k8s.description="SWATCH System Conduit service based on UBI9 OpenJDK 21."
-LABEL description="SWATCH System Conduit service based on UBI9 OpenJDK 21."
+LABEL io.k8s.description="SWATCH System Conduit service based on UBI10 OpenJDK 25."
+LABEL description="SWATCH System Conduit service based on UBI10 OpenJDK 25."
 
 #label for EULA
 LABEL com.redhat.license_terms="https://www.redhat.com/en/about/red-hat-end-user-license-agreements#UBI"
@@ -47,7 +47,7 @@ LABEL com.redhat.license_terms="https://www.redhat.com/en/about/red-hat-end-user
 USER root
 RUN microdnf \
     --disablerepo=* \
-    --enablerepo=ubi-9-baseos-rpms \
+    --enablerepo=ubi-10-baseos-rpms \
     install -y tar rsync
 
 COPY --from=0 /stage/swatch-system-conduit/BOOT-INF/lib /deployments/lib

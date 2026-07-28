@@ -696,7 +696,7 @@ spec:
               # Persist kubeconfig for the next step
               oc config view --minify --raw > "$(workspaces.output.path)/kubeconfig"
           - name: tests
-            image: registry.access.redhat.com/ubi9/openjdk-21
+            image: registry.access.redhat.com/ubi10/openjdk-25:1784351724
             workingDir: $(workspaces.output.path)/source
             env:
               - name: KUBECONFIG
