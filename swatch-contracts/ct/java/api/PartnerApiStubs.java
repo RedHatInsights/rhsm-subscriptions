@@ -235,15 +235,14 @@ public class PartnerApiStubs {
     body.put("rhAccountId", contract.getOrgId());
     body.put("sourcePartner", "aws_marketplace");
     body.put("entitlementDates", buildEntitlementDates(contract));
-    body.put(
-        "partnerIdentities",
-        Map.of(
-            "awsCustomerId",
-            contract.getCustomerId(),
-            "customerAwsAccountId",
-            contract.getBillingAccountId(),
-            "sellerAccountId",
-            contract.getSellerAccountId()));
+    var partnerIdentities = new HashMap<String, Object>();
+    partnerIdentities.put("awsCustomerId", contract.getCustomerId());
+    partnerIdentities.put("customerAwsAccountId", contract.getBillingAccountId());
+    partnerIdentities.put("sellerAccountId", contract.getSellerAccountId());
+    if (contract.getLicenseId() != null) {
+      partnerIdentities.put("licenseArn", contract.getLicenseId());
+    }
+    body.put("partnerIdentities", partnerIdentities);
     body.put(
         "purchase",
         Map.of(
