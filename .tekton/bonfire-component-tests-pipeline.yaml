@@ -698,6 +698,13 @@ spec:
           - name: tests
             image: registry.access.redhat.com/ubi10/openjdk-25:1784351724
             workingDir: $(workspaces.output.path)/source
+            computeResources:
+              requests:
+                cpu: 500m
+                memory: 2Gi
+              limits:
+                cpu: "2"
+                memory: 4Gi
             env:
               - name: KUBECONFIG
                 value: "$(workspaces.output.path)/kubeconfig"
