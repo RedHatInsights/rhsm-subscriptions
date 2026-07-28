@@ -284,6 +284,35 @@ objects:
         containers:
           - name: moto
             image: 'motoserver/moto:5.1.8'
+            # Workaround until https://github.com/getmoto/moto/pull/10133 is released:
+            # BatchMeterUsage must accept CustomerAWSAccountId. Image is read-only and
+            # PWD=/moto shadows PYTHONPATH, so copy+patch under /tmp then start.
+            command: ["/bin/sh", "-c"]
+            args:
+              - |
+                set -eu
+                mkdir -p /tmp/moto-src && cp -a /moto/moto /tmp/moto-src/moto
+                python3 <<'PY'
+                from pathlib import Path
+                path = Path("/tmp/moto-src/moto/meteringmarketplace/models.py")
+                text = path.read_text()
+                text = text.replace(
+                    'customer_identifier=kwargs["CustomerIdentifier"],',
+                    'customer_identifier=kwargs.get("CustomerIdentifier") or kwargs.get("CustomerAWSAccountId"),',
+                    1,
+                )
+                needle = 'self["MeteringRecordId"] = self.usage_record.metering_record_id'
+                insert = (
+                    'if kwargs.get("CustomerAWSAccountId") is not None:\n'
+                    '            self.usage_record["CustomerAWSAccountId"] = kwargs["CustomerAWSAccountId"]\n'
+                    '        ' + needle
+                )
+                if needle not in text:
+                    raise SystemExit("CustomerAWSAccountId moto patch failed")
+                path.write_text(text.replace(needle, insert, 1))
+                PY
+                export PYTHONPATH=/tmp/moto-src
+                cd /tmp && exec moto_server -H 0.0.0.0
             env:
               - name: MOTO_PORT
                 value: '5000'
