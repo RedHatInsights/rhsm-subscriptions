@@ -50,11 +50,9 @@ public class ContractsUnleashService extends UnleashService {
 
   public void enableKesselRbac() {
     enableFlag(USE_KESSEL_RBAC);
-    waitForUnleashPropagation();
   }
 
   public void disableKesselRbac() {
     disableFlag(USE_KESSEL_RBAC);
-    waitForUnleashPropagation();
   }
 }
