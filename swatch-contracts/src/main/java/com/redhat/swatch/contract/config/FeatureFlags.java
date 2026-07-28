@@ -20,6 +20,8 @@
  */
 package com.redhat.swatch.contract.config;
 
+import static com.redhat.swatch.common.security.KesselRolesAugmentor.KESSEL_FLAG;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.contract.model.ItSubscriptionServiceFeatureFlagVariantPayload;
@@ -153,6 +155,10 @@ public class FeatureFlags implements InfoFeatureFlagContributor {
   @Override
   public InfoFeatureFlags getFeatureFlags() {
     return UnleashInfoFeatureFlags.snapshot(
-        unleash, DEFAULT_IS_ENABLED, PARTNER_GATEWAY_CONTRACTS, IT_SUBSCRIPTION_SERVICE);
+        unleash,
+        DEFAULT_IS_ENABLED,
+        PARTNER_GATEWAY_CONTRACTS,
+        IT_SUBSCRIPTION_SERVICE,
+        KESSEL_FLAG);
   }
 }

@@ -32,10 +32,16 @@ import domain.SubscriptionsAccessLevel;
 import io.restassured.response.Response;
 import java.util.Map;
 import org.apache.http.HttpStatus;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
 public class SubscriptionReportAccessComponentTest extends BaseContractComponentTest {
+
+  @AfterEach
+  void resetKesselRbacFlag() {
+    unleash.disableKesselRbac();
+  }
 
   @ParameterizedTest(name = "authorizationModel={0}")
   @EnumSource(AuthorizationModel.class)
