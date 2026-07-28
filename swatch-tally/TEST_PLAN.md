@@ -2170,33 +2170,7 @@ Shared **non-PAYG physical RHEL fixture** (TC001–TC006): product RHEL for x86,
 
 ## RBAC Authorization (RBACv1 and RBACv2 Parity)
 
-### Overview
-
-The swatch-tally service enforces role-based access control through two authorization backends:
-- **RBACv1**: REST-based service (`/api/rbac/v1/access/?application=subscriptions`)
-- **RBACv2 / Kessel**: gRPC-based service with workspace lookup and permission check endpoints
-
-This test section validates that swatch-tally APIs remain functional with both RBACv1 and RBACv2, ensuring authorization behavior is consistent across identity types and permission states.
-
-**Related Jira:**
-- [SWATCH-5267](https://redhat.atlassian.net/browse/SWATCH-5267)
-- [SWATCH-5268](https://redhat.atlassian.net/browse/SWATCH-5268)
-- [SWATCH-4153](https://redhat.atlassian.net/browse/SWATCH-4153) - Achieve RBACv1/RBACv2 Authorization Parity
-- [SWATCH-5264](https://redhat.atlassian.net/browse/SWATCH-5264) - Wiremock setup for RBAC services
-
-### Endpoints Under Test
-
-| Endpoint | Security Annotation | Allowed Roles |
-|----------|---------------------|---------------|
-| E1: `GET /api/rhsm-subscriptions/v1/tally/products/{productId}/{metricId}` | @ReportingAccessRequired | SUBSCRIPTION_WATCH_ADMIN, SUBSCRIPTION_WATCH_REPORT_READER |
-| E2: `GET /api/rhsm-subscriptions/v1/instances/products/{productId}` | @ReportingAccessRequired | SUBSCRIPTION_WATCH_ADMIN, SUBSCRIPTION_WATCH_REPORT_READER |
-| E3: `GET /api/rhsm-subscriptions/v1/instances/{instanceId}/guests` | @ReportingAccessRequired | SUBSCRIPTION_WATCH_ADMIN, SUBSCRIPTION_WATCH_REPORT_READER |
-| E4: `GET /api/rhsm-subscriptions/v1/instances/billing_account_ids` | @ReportingAccessOrInternalRequired | SUBSCRIPTION_WATCH_ADMIN, SUBSCRIPTION_WATCH_REPORT_READER, ROLE_INTERNAL |
-| E5: `GET /api/rhsm-subscriptions/v1/opt-in` | @SubscriptionWatchAdminOnly | SUBSCRIPTION_WATCH_ADMIN, SUBSCRIPTION_WATCH_REPORT_READER |
-| E6: `PUT /api/rhsm-subscriptions/v1/opt-in` | @SubscriptionWatchAdminOnly | SUBSCRIPTION_WATCH_ADMIN, SUBSCRIPTION_WATCH_REPORT_READER |
-| E7: `DELETE /api/rhsm-subscriptions/v1/opt-in` | @SubscriptionWatchAdminOnly | SUBSCRIPTION_WATCH_ADMIN, SUBSCRIPTION_WATCH_REPORT_READER |
-
-### Test Cases - RBACv1 (Kessel Flag OFF)
+### RBACv1 (Kessel Flag OFF)
 
 **rbac-v1-TC001 - User with admin permission accesses all reporting endpoints**
 
@@ -2481,7 +2455,7 @@ This test section validates that swatch-tally APIs remain functional with both R
 - **Verification**: HTTP 403 for opt-in endpoint
 - **Expected Result**: X509 identity denied opt-in endpoint (INTERNAL role not accepted)
 
-### Test Cases - RBACv2 / Kessel (Flag ON)
+### RBACv2 / Kessel (Flag ON)
 
 **rbac-v2-TC001 - User with Kessel permission accesses all reporting endpoints**
 
@@ -2625,7 +2599,7 @@ This test section validates that swatch-tally APIs remain functional with both R
   - No export data is produced
 - **Expected Result**: No Kessel permissions results in export denial
 
-#### Opt-in
+### Opt-in
 
 **rbac-v2-optin-TC001 - User with Kessel permission accesses all opt-in endpoints**
 
