@@ -30,15 +30,21 @@ This test plan covers system-level functionality including version information e
 
 **nightly-tally-TC001 - Validate tally on physical RHEL sockets with socket increase mapping**
 
-- **Description**: Verify that the tally data shows increase count and system table show the correct data
-- **Setup**: Component test environment with swatch-tally is running and an instance of insights db is up, your org is 
-     opted in and you have the current sockets count
-- **Action**: Insert a rhel host into the HBI database and run the tally 
+- **Description**: Verify that nightly tally correctly processes a physical RHEL host from HBI and increments socket counts
+- **Setup**: 
+  - Component test environment with swatch-tally running and HBI database available
+  - Organization is opted in
+  - Record baseline socket count for the organization (before test)
+  - Define fixture host with known socket count (e.g., 4 sockets)
+- **Action**: 
+  - Insert the fixture RHEL host into the HBI database with specified socket count
+  - Run nightly tally
+  - Query instance report by host ID or display name
+  - Query current organization socket totals
 - **Verification**:
-  - verify that initial sockets count plus the expected reported sockets equals the current sockets count 
-  - verify that the instance report, instance's 'measurements' is not null
-  - verify that the following are as expected: 
-    - Display name 
-    - category
-    - expected reported sockets count 
-- **Expected Result**: The tally data shows increase count and system table show the correct data
+  - Instance report contains the fixture host with correct display name
+  - Instance measurements are not null
+  - Instance category is PHYSICAL
+  - Instance socket measurement matches fixture socket count (e.g., 4)
+  - Organization total sockets = baseline + fixture sockets (e.g., baseline + 4)
+- **Expected Result**: Nightly tally correctly processes the specific host from HBI and increments organization totals by the host's socket count

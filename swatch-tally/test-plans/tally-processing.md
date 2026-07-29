@@ -101,8 +101,8 @@ This test plan covers the core tally processing pipeline:
     - Create 5 hourly events across 7-hour window with value V
 - **Action**:
     - Run hourly tally; capture hourly report total for range
-    - Add amendment event at oldest hour (value v1)
-    - Add amendment event at newest hour (value v2)
+    - Add amendment event at oldest hour with distinct instance_id (value v1)
+    - Add amendment event at newest hour with distinct instance_id (value v2)
     - Run hourly tally again
 - **Verification**:
     - New hourly total = prior total + v1 + v2 (per metric under test)
@@ -635,6 +635,7 @@ This test plan covers the core tally processing pipeline:
     - Poll for tally summaries with HOURLY granularity
 - **Verification**:
     - Exactly 4 summary messages are received (one per hour)
+    - Group messages by snapshot_date timestamp to verify each hour is represented
     - All messages have HOURLY granularity
     - No measurements have hardware type "TOTAL"
 - **Expected Result**:

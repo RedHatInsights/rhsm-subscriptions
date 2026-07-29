@@ -6,7 +6,9 @@ This test plan validates authorization parity between RBACv1 and RBACv2/Kessel f
 
 **Test Coverage:**
 - RBACv1 and RBACv2/Kessel authorization backends
-- User, ServiceAccount, Associate, and X509 identity types
+- Identity types:
+  - REST endpoints: User, ServiceAccount, Associate, and X509
+  - Kafka exports: User only
 - Admin and reader permission levels
 - Reporting endpoints (tally reports, instances, billing accounts)
 - Opt-in configuration endpoints

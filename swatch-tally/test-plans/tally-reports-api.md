@@ -21,7 +21,7 @@ This test plan covers the tally reports API endpoints that return aggregated usa
 
 The PAYG tally report filtering test cases are organized into two component test files:
 
-- **TallyReportFiltersPaygTest.java** - Contains 23 PAYG test cases (`tally-report-filters-payg-TC***`; TC009, TC010, TC023 live in EdgeCaseTest):
+- **TallyReportFiltersPaygTest.java** - Contains 22 PAYG test cases (`tally-report-filters-payg-TC***`; TC009, TC010, TC023 live in EdgeCaseTest):
   - TC001-TC008: Basic filtering by granularity, SLA, usage, billing provider, and billing account ID
   - TC011-TC014: Validation errors and metadata verification
   - TC015-TC022: Unfiltered aggregation, daily filtering after nightly tally, monthly/quarterly/yearly granularity
@@ -37,23 +37,25 @@ The PAYG tally report filtering test cases are organized into two component test
 
 All test files use `@BeforeAll` to create test data once and share it across all test methods. Each test is parameterized with `@ValueSource(booleans = {true, false})` to verify behavior with both the legacy query path and the primary row searches feature flag enabled.
 
-**tally-report-filters-payg-TC001 - Daily granularity with all filters**
+**tally-report-filters-payg-TC001 - Daily granularity metadata with all filters**
 
-- **Description**: Verify that tally report API returns daily granularity data with all filter parameters
+- **Description**: Verify that tally report API accepts all filter parameters and correctly reflects them in response metadata
 - **Setup**:
     - Organization is opted in
     - Daily time range is specified (3 days ago to 2 days ago)
 - **Action**:
-    - Request tally report with granularity=Daily, SLA, usage, billing provider, and random billing account ID
+    - Request tally report with granularity=Daily, SLA=PREMIUM, usage=PRODUCTION, billing_provider=AWS, and billing_account_id
 - **Verification**:
-    - Response data is not null
-    - Response metadata matches requested filters
+    - Response metadata is not null
     - Metadata granularity is DAILY
-    - Metadata includes product, metric, SLA, usage, billing provider, and billing account ID
-    - Data count matches metadata count
+    - Metadata includes product tag matching request
+    - Metadata includes metric ID matching request
+    - Metadata SLA is PREMIUM
+    - Metadata usage is PRODUCTION
+    - Metadata billing provider is AWS
+    - Metadata billing account ID matches request
 - **Expected Result**:
-    - API returns daily tally data with all specified filters
-    - Metadata accurately reflects the request parameters
+    - API accepts all filter parameters and accurately reflects them in response metadata (this is a metadata verification test, not a data filtering test)
 
 **tally-report-filters-payg-TC002 - Hourly granularity filtered by SLA**
 
@@ -384,56 +386,44 @@ All test files use `@BeforeAll` to create test data once and share it across all
     - API filters daily snapshot data by billing account ID parameter
     - Only data matching the specified billing account ID is returned from daily aggregation
 
-**tally-report-filters-payg-TC020 - Monthly granularity with all filters**
+**tally-report-filters-payg-TC020 - Monthly granularity**
 
-- **Description**: Verify that tally report API accepts monthly granularity and returns correct metadata with all filter parameters
+- **Description**: Verify that tally report API accepts monthly granularity and returns correct metadata
 - **Setup**:
     - Organization is opted in
-    - Query parameters with granularity=Monthly and all available filters (sla, usage, billing_provider, billing_account_id)
 - **Action**:
-    - Request tally report with granularity=Monthly
+    - Request tally report with granularity=Monthly, beginning and ending timestamps
 - **Verification**:
     - Response metadata includes granularity=MONTHLY
-    - Response metadata includes all specified filters (sla, usage, billing_provider, billing_account_id)
-    - Response metadata includes product tag and metric ID
-    - Response data size matches metadata count
+    - Response metadata is not null
 - **Expected Result**:
     - API accepts and processes monthly granularity queries
-    - All filter parameters are properly reflected in response metadata
 
-**tally-report-filters-payg-TC021 - Quarterly granularity with all filters**
+**tally-report-filters-payg-TC021 - Quarterly granularity**
 
-- **Description**: Verify that tally report API accepts quarterly granularity and returns correct metadata with all filter parameters
+- **Description**: Verify that tally report API accepts quarterly granularity and returns correct metadata
 - **Setup**:
     - Organization is opted in
-    - Query parameters with granularity=Quarterly and all available filters (sla, usage, billing_provider, billing_account_id)
 - **Action**:
-    - Request tally report with granularity=Quarterly
+    - Request tally report with granularity=Quarterly, beginning and ending timestamps
 - **Verification**:
     - Response metadata includes granularity=QUARTERLY
-    - Response metadata includes all specified filters (sla, usage, billing_provider, billing_account_id)
-    - Response metadata includes product tag and metric ID
-    - Response data size matches metadata count
+    - Response metadata is not null
 - **Expected Result**:
     - API accepts and processes quarterly granularity queries
-    - All filter parameters are properly reflected in response metadata
 
-**tally-report-filters-payg-TC022 - Yearly granularity with all filters**
+**tally-report-filters-payg-TC022 - Yearly granularity**
 
-- **Description**: Verify that tally report API accepts yearly granularity and returns correct metadata with all filter parameters
+- **Description**: Verify that tally report API accepts yearly granularity and returns correct metadata
 - **Setup**:
     - Organization is opted in
-    - Query parameters with granularity=Yearly and all available filters (sla, usage, billing_provider, billing_account_id)
 - **Action**:
-    - Request tally report with granularity=Yearly
+    - Request tally report with granularity=Yearly, beginning and ending timestamps
 - **Verification**:
     - Response metadata includes granularity=YEARLY
-    - Response metadata includes all specified filters (sla, usage, billing_provider, billing_account_id)
-    - Response metadata includes product tag and metric ID
-    - Response data size matches metadata count
+    - Response metadata is not null
 - **Expected Result**:
     - API accepts and processes yearly granularity queries
-    - All filter parameters are properly reflected in response metadata
 
 **tally-report-filters-payg-TC023 - Daily report tracks billing account change for same instance**
 

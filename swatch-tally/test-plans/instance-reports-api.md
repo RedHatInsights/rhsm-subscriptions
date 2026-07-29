@@ -313,41 +313,47 @@ This test plan covers the instance reports API endpoints that return host-level 
 - **Expected Result**:
     - Sort parameters affect instance list ordering
 
-**tally-instances-sorting-TC004- Sort by display_name**
+**tally-instances-sorting-TC004 - Sort by display_name**
 
-- **Description**: Verify substring match on host display name
+- **Description**: Verify instances can be sorted by display_name in ascending and descending order
 - **Setup**:
-    - Two instances with different display names
+    - Two instances with different display names (e.g., "nameA" and "nameZ")
 - **Action**:
-    - Query with display_nam matching one name only
+    - Query with sort=display_name and dir=ASC
+    - Query with sort=display_name and dir=DESC
 - **Verification**:
-    - Single matching row; non-matching substring returns empty
+    - ASC query returns instances in alphabetical order (nameA first)
+    - DESC query returns instances in reverse alphabetical order (nameZ first)
 - **Expected Result**:
-    - Display name sorting is applied and shows expected results
+    - Display name sorting parameter correctly orders instances alphabetically
 
 **tally-instances-sorting-TC005 - Sort by metric_id**
 
-- **Description**: Verify metric_id restricts rows when instances differ by billable metric (e.g. cores vs sockets), aligned with server-side measurement logic
+- **Description**: Verify instances can be sorted by metric_id value in ascending and descending order
 - **Setup**:
-    - Two instances contributing under different metric IDs where the product supports both
+    - Two instances with different metric values (e.g., 1.0 and 99.0 for the same metric)
 - **Action**:
-    - Query with each metric_id
+    - Query with sort=<metric_id> and dir=ASC
+    - Query with sort=<metric_id> and dir=DESC
 - **Verification**:
-    - Only the relevant instance appears per metric filter
+    - ASC query returns instances in numerical order (smallest value first)
+    - DESC query returns instances in reverse numerical order (largest value first)
 - **Expected Result**:
-    - Metric sorting works and shows expected results
+    - Metric value sorting parameter correctly orders instances numerically by metric measurement
 
-**tally-instances-sorting-TC006 - Sort by report category**
+**tally-instances-sorting-TC006 - Sort by category**
 
-- **Description**: Verify category (report category / hardware measurement grouping) when instances differ by category
+- **Description**: Verify instances can be sorted by category in ascending and descending order
 - **Setup**:
-    - Events or hosts that map to distinct categories for the product
+    - Two instances with different categories (e.g., PHYSICAL and CLOUD)
 - **Action**:
-    - Query with each category value
+    - Query with sort=category and dir=ASC
+    - Query with sort=category and dir=DESC
 - **Verification**:
-    - Only matching category rows return
+    - ASC and DESC queries return the same instances but in reversed category order
+    - Reversing the ASC category list equals the DESC category list
 - **Expected Result**:
-    - Category sorting works and shows expected results
+    - Category sorting parameter correctly orders instances by report category
 
 **tally-instances-sorting-TC007 - Pagination limit and offset (non-PAYG)**
 
