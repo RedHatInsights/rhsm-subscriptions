@@ -30,6 +30,7 @@ import com.redhat.swatch.aws.exception.AwsUnprocessedRecordsException;
 import com.redhat.swatch.aws.exception.AwsUsageContextLookupException;
 import com.redhat.swatch.aws.exception.DefaultApiException;
 import com.redhat.swatch.aws.exception.SubscriptionCanNotBeDeterminedException;
+import com.redhat.swatch.aws.exception.SubscriptionMissingBillingAccountIdException;
 import com.redhat.swatch.aws.exception.SubscriptionRecentlyTerminatedException;
 import com.redhat.swatch.aws.exception.UsageTimestampOutOfBoundsException;
 import com.redhat.swatch.clients.contracts.api.model.AwsUsageContext;
@@ -156,6 +157,10 @@ public class AwsBillableUsageAggregateConsumer {
           billableUsageAggregate, BillableUsage.ErrorCode.SUBSCRIPTION_TERMINATED);
       log.info("Subscription recently terminated for aggregate={}", billableUsageAggregate, e);
       return;
+    } catch (SubscriptionMissingBillingAccountIdException e) {
+      emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.USAGE_CONTEXT_LOOKUP);
+      log.warn("Subscription missing billingAccountId for aggregate={}", billableUsageAggregate, e);
+      return;
     } catch (AwsUsageContextLookupException e) {
       emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.USAGE_CONTEXT_LOOKUP);
       log.error("Error looking up aws usage context for aggregate={}", billableUsageAggregate, e);
@@ -216,6 +221,11 @@ public class AwsBillableUsageAggregateConsumer {
           .map(error -> "CONTRACTS1005".equals(error.getCode()))
           .orElse(false)) {
         throw new SubscriptionRecentlyTerminatedException(e);
+      }
+      if (ofNullable(e.getError())
+          .map(error -> "CONTRACTS1006".equals(error.getCode()))
+          .orElse(false)) {
+        throw new SubscriptionMissingBillingAccountIdException(e);
       }
       if (Response.Status.NOT_FOUND.getStatusCode() == e.getResponse().getStatus()) {
         throw new SubscriptionCanNotBeDeterminedException(e);
