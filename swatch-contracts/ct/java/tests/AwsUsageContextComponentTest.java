@@ -20,6 +20,7 @@
  */
 package tests;
 
+import static domain.ErrorCodes.SUBSCRIPTION_MISSING_BILLING_ACCOUNT_ID_CODE;
 import static domain.ErrorCodes.SUBSCRIPTION_RECENTLY_TERMINATED_CODE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -28,10 +29,12 @@ import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.contract.test.model.AwsUsageContext;
 import com.redhat.swatch.contract.test.model.ServiceLevelType;
 import com.redhat.swatch.contract.test.model.UsageType;
+import domain.BillingProvider;
 import domain.Contract;
 import domain.Product;
 import io.restassured.response.Response;
 import java.time.OffsetDateTime;
+import java.util.Map;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.Test;
 
@@ -98,6 +101,24 @@ public class AwsUsageContextComponentTest extends BaseContractComponentTest {
         "Inactive subscription should return " + SUBSCRIPTION_RECENTLY_TERMINATED_CODE);
   }
 
+  @TestPlanName("aws-usage-context-TC004")
+  @Test
+  void shouldFailWhenCustomerAwsAccountIdMissing() {
+    givenRosaSubscriptionWithoutBillingAccount();
+
+    // awsAccountId defaults to _ANY so lookup is not filtered by billing_account_id
+    Response response = whenGetAwsMarketplaceContext(null);
+
+    assertEquals(
+        HttpStatus.SC_NOT_FOUND,
+        response.statusCode(),
+        "Missing billingAccountId should return CONTRACTS1006");
+    assertEquals(
+        SUBSCRIPTION_MISSING_BILLING_ACCOUNT_ID_CODE,
+        response.jsonPath().getString("code"),
+        "Missing billingAccountId should return " + SUBSCRIPTION_MISSING_BILLING_ACCOUNT_ID_CODE);
+  }
+
   private Contract givenRosaContractIsTerminated() {
     Contract contract = givenRosaContractIsCreated(10.0);
     OffsetDateTime terminationDate = OffsetDateTime.now().minusMinutes(30);
@@ -106,6 +127,22 @@ public class AwsUsageContextComponentTest extends BaseContractComponentTest {
         service.terminateSubscription(contract, terminationDate).statusCode(),
         "Contract termination should succeed");
     return contract;
+  }
+
+  private void givenRosaSubscriptionWithoutBillingAccount() {
+    Contract contract =
+        Contract.buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, 10.0)).toBuilder()
+            .billingAccountId(null)
+            .build();
+    wiremock.forProductAPI().stubOfferingData(contract.getOffering());
+    assertEquals(
+        HttpStatus.SC_OK,
+        service.syncOffering(contract.getOffering().getSku()).statusCode(),
+        "Sync offering should succeed");
+    assertEquals(
+        HttpStatus.SC_OK,
+        service.saveSubscriptions(true, contract).statusCode(),
+        "Saving subscription without billingAccountId should succeed");
   }
 
   private Response whenGetAwsMarketplaceContext(String billingAccountId) {

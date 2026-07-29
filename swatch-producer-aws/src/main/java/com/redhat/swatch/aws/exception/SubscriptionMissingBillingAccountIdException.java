@@ -18,12 +18,11 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package domain;
+package com.redhat.swatch.aws.exception;
 
-public final class ErrorCodes {
+public class SubscriptionMissingBillingAccountIdException extends AwsProducerException {
 
-  public static final String SUBSCRIPTION_RECENTLY_TERMINATED_CODE = "CONTRACTS1005";
-  public static final String SUBSCRIPTION_MISSING_BILLING_ACCOUNT_ID_CODE = "CONTRACTS1006";
-
-  private ErrorCodes() {}
+  public SubscriptionMissingBillingAccountIdException(Exception e) {
+    super(ErrorCode.SUBSCRIPTION_MISSING_BILLING_ACCOUNT_ID, e);
+  }
 }

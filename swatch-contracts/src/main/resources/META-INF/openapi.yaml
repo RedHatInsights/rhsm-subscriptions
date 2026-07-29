@@ -1519,6 +1519,8 @@ components:
           type: string
     AwsUsageContext:
       description: Encapsulates all data needed to map tally snapshot usage to AWS UsageRecords.
+      required:
+        - customerAwsAccountId
       properties:
         rhSubscriptionId:
           type: string
