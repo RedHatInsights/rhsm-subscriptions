@@ -106,8 +106,8 @@ Source: `tests/integration/rbac/test_rbac.py`
 #### tally-rbac-optin-required-TC002 - Read role without opt-in denied access
 
 - **Given** a group with the Subscriptions user role, a non-admin user added to it, and opt-in deleted
-- **When** the user attempts `get_tally_report_data`, `get_capacity_report_by_metric_id`, `get_instances_by_product`, `get_instance_guests`, `get_sku_capacity_report`
-- **Then** tally/capacity/instances calls return "Opt-in required.", sku capacity returns "Access Denied", and re-opt-in succeeds
+- **When** the user attempts `get_tally_report_data`, `get_instances_by_product`, `get_instance_guests`
+- **Then** all calls return "Opt-in required."
 - **IQE Function:** `test_verify_rbac_not_opt_in_and_with_subscriptions_user_permission_for_swatch_tally`
 
 ## Kessel RBAC (v2) Authorization
@@ -193,5 +193,5 @@ These tests validate that the Kessel authorization backend produces the same out
 #### tally-kessel-optin-required-TC002 - Read role without opt-in denied access via Kessel
 
 - **Given** Kessel RBAC is enabled, a group with the Subscriptions user role, a non-admin user added to it, and opt-in deleted
-- **When** the user attempts `get_tally_report_data`, `get_capacity_report_by_metric_id`, `get_instances_by_product`, `get_instance_guests`, `get_sku_capacity_report`
-- **Then** tally/capacity/instances calls return "Opt-in required.", sku capacity returns "Access Denied", and re-opt-in succeeds, matching RBACv1 behavior
+- **When** the user attempts `get_tally_report_data`, `get_instances_by_product`, `get_instance_guests`
+- **Then** all calls return "Opt-in required.", matching RBACv1 behavior
