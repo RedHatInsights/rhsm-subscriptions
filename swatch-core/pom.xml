@@ -54,17 +54,6 @@
       <artifactId>swatch-common-kessel</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.project-kessel</groupId>
-      <artifactId>kessel-sdk</artifactId>
-      <version>1.9.0</version>
-    </dependency>
-    <dependency>
-      <groupId>io.grpc</groupId>
-      <artifactId>grpc-netty-shaded</artifactId>
-      <version>1.82.2</version>
-      <scope>runtime</scope>
-    </dependency>
-    <dependency>
       <groupId>com.redhat.swatch</groupId>
       <artifactId>swatch-common-clock</artifactId>
     </dependency>
