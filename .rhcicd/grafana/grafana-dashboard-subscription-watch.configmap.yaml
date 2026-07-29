@@ -120,7 +120,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "datasource": {
@@ -220,7 +220,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "datasource": {
@@ -300,7 +300,7 @@ data:
                 "h": 7,
                 "w": 6,
                 "x": 0,
-                "y": 1317
+                "y": 4133
               },
               "id": 113,
               "options": {
@@ -316,7 +316,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "datasource": {
@@ -400,7 +400,7 @@ data:
                 "h": 7,
                 "w": 6,
                 "x": 6,
-                "y": 1317
+                "y": 4133
               },
               "id": 115,
               "options": {
@@ -416,7 +416,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "datasource": {
@@ -510,7 +510,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 4065
+                "y": 5467
               },
               "id": 103,
               "options": {
@@ -526,7 +526,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "datasource": {
@@ -608,7 +608,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 4065
+                "y": 5467
               },
               "id": 76,
               "options": {
@@ -624,7 +624,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~\".*platform.rhsm-subscriptions.metering-tasks\"}) by (consumer_group)",
@@ -705,7 +705,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 4065
+                "y": 5467
               },
               "id": 101,
               "options": {
@@ -721,7 +721,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "datasource": {
@@ -743,7 +743,7 @@ data:
           "type": "row"
         },
         {
-          "collapsed": true,
+          "collapsed": false,
           "gridPos": {
             "h": 1,
             "w": 24,
@@ -751,101 +751,295 @@ data:
             "y": 2
           },
           "id": 86,
-          "panels": [
+          "panels": [],
+          "title": "Logging HEC",
+          "type": "row"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "description": "Per-second Logging HEC transmission failure rate over the past 10 minutes.  The y-axis is the total number of log messages that failed transmission.",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 22,
+            "x": 0,
+            "y": 3
+          },
+          "id": 88,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "11.6.11",
+          "targets": [
             {
               "datasource": {
                 "type": "prometheus",
                 "uid": "${datasource}"
               },
-              "description": "Per-second Logging HEC transmission failure rate over the past 10 minutes.  The y-axis is the total number of log messages that failed transmission.",
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "drawStyle": "line",
-                    "fillOpacity": 0,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 1,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "auto",
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  },
-                  "mappings": [],
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green"
-                      },
-                      {
-                        "color": "red",
-                        "value": 80
-                      }
-                    ]
-                  }
-                },
-                "overrides": []
-              },
-              "gridPos": {
-                "h": 8,
-                "w": 12,
-                "x": 0,
-                "y": 4174
-              },
-              "id": 88,
-              "options": {
-                "legend": {
-                  "calcs": [],
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "mode": "single",
-                  "sort": "none"
-                }
-              },
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${datasource}"
-                  },
-                  "expr": "sum by(service) (rate(splunk_hec_message_failure_total[10m]))",
-                  "refId": "A"
-                }
-              ],
-              "title": "Logging HEC Failures",
-              "type": "timeseries"
+              "expr": "sum by(service) (rate(splunk_hec_message_failure_total[10m]))",
+              "refId": "A"
             }
           ],
-          "title": "Logging HEC",
-          "type": "row"
+          "title": "Logging HEC Failures (Runtime)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "description": "Per-second Logging HEC transmission failure rate over the past 10 minutes.  The y-axis is the total number of log messages that failed transmission.",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 9,
+            "w": 11,
+            "x": 0,
+            "y": 11
+          },
+          "id": 9055,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "11.6.11",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum by (service) (\n  label_replace(\n    increase(otelcol_exporter_send_failed_log_records_total{exporter=\"splunk_hec/logs\"}[10m]),\n    \"service\",\n    \"$1\",\n    \"pod\",\n    \"^(.*)-[a-z0-9]+-[a-z0-9]+$\"\n  )\n)",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Logging HEC Failures (otel container)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 9,
+            "w": 11,
+            "x": 11,
+            "y": 11
+          },
+          "id": 9056,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "11.6.11",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum by (service) (\n  label_replace(\n    increase(otelcol_exporter_sent_log_records_total{exporter=\"splunk_hec/logs\"}[10m]),\n    \"service\",\n    \"$1\",\n    \"pod\",\n    \"^(.*)-[a-z0-9]+-[a-z0-9]+$\"\n  )\n)",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Logging HEC Success Rate (otel container)",
+          "type": "timeseries"
         },
         {
           "collapsed": true,
@@ -853,7 +1047,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 3
+            "y": 20
           },
           "id": 70,
           "panels": [
@@ -874,6 +1068,7 @@ data:
                     "axisLabel": "",
                     "axisPlacement": "auto",
                     "barAlignment": 0,
+                    "barWidthFactor": 0.6,
                     "drawStyle": "line",
                     "fillOpacity": 10,
                     "gradientMode": "none",
@@ -922,7 +1117,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 4175
+                "y": 2075
               },
               "id": 47,
               "options": {
@@ -938,11 +1133,12 @@ data:
                   "showLegend": true
                 },
                 "tooltip": {
+                  "hideZeros": false,
                   "mode": "multi",
                   "sort": "none"
                 }
               },
-              "pluginVersion": "9.0.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "alias": "rhsm-prod",
@@ -1013,6 +1209,7 @@ data:
                     "axisLabel": "",
                     "axisPlacement": "auto",
                     "barAlignment": 0,
+                    "barWidthFactor": 0.6,
                     "drawStyle": "line",
                     "fillOpacity": 10,
                     "gradientMode": "none",
@@ -1059,7 +1256,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 4175
+                "y": 2075
               },
               "id": 52,
               "options": {
@@ -1070,11 +1267,12 @@ data:
                   "showLegend": true
                 },
                 "tooltip": {
+                  "hideZeros": false,
                   "mode": "multi",
                   "sort": "none"
                 }
               },
-              "pluginVersion": "9.0.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "alias": "rhsm-prod",
@@ -1145,6 +1343,7 @@ data:
                     "axisLabel": "",
                     "axisPlacement": "auto",
                     "barAlignment": 0,
+                    "barWidthFactor": 0.6,
                     "drawStyle": "line",
                     "fillOpacity": 10,
                     "gradientMode": "none",
@@ -1193,7 +1392,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 4175
+                "y": 2075
               },
               "id": 54,
               "options": {
@@ -1204,11 +1403,12 @@ data:
                   "showLegend": true
                 },
                 "tooltip": {
+                  "hideZeros": false,
                   "mode": "multi",
                   "sort": "none"
                 }
               },
-              "pluginVersion": "9.0.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "alias": "rhsm-prod read iops avg",
@@ -1327,6 +1527,7 @@ data:
                     "axisLabel": "",
                     "axisPlacement": "auto",
                     "barAlignment": 0,
+                    "barWidthFactor": 0.6,
                     "drawStyle": "line",
                     "fillOpacity": 10,
                     "gradientMode": "none",
@@ -1374,7 +1575,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 4175
+                "y": 2075
               },
               "id": 56,
               "options": {
@@ -1385,11 +1586,12 @@ data:
                   "showLegend": true
                 },
                 "tooltip": {
+                  "hideZeros": false,
                   "mode": "multi",
                   "sort": "none"
                 }
               },
-              "pluginVersion": "9.0.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "alias": "rhsm-prod",
@@ -1460,6 +1662,7 @@ data:
                     "axisLabel": "",
                     "axisPlacement": "auto",
                     "barAlignment": 0,
+                    "barWidthFactor": 0.6,
                     "drawStyle": "line",
                     "fillOpacity": 0,
                     "gradientMode": "none",
@@ -1507,7 +1710,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 4184
+                "y": 4121
               },
               "id": 92,
               "options": {
@@ -1518,10 +1721,12 @@ data:
                   "showLegend": true
                 },
                 "tooltip": {
+                  "hideZeros": false,
                   "mode": "single",
                   "sort": "none"
                 }
               },
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "datasource": {
@@ -1584,7 +1789,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 4
+            "y": 21
           },
           "id": 12,
           "panels": [
@@ -1610,7 +1815,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 0,
-                "y": 319
+                "y": 2076
               },
               "id": 72,
               "options": {
@@ -1630,7 +1835,7 @@ data:
                 "textMode": "auto",
                 "wideLayout": true
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "expr": "sum(increase(inventory_ingress_add_host_failures_total{reporter=\"rhsm-conduit\"}[$__range]))",
@@ -1714,7 +1919,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 6,
-                "y": 319
+                "y": 2076
               },
               "id": 40,
               "options": {
@@ -1734,7 +1939,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~'.*platform.rhsm-conduit.tasks'})",
@@ -1846,7 +2051,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 12,
-                "y": 319
+                "y": 2076
               },
               "id": 59,
               "options": {
@@ -1862,7 +2067,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "expr": "rate(rhsm_conduit_send_inventory_message_total[$__interval])",
@@ -1941,7 +2146,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 18,
-                "y": 319
+                "y": 2076
               },
               "id": 4,
               "options": {
@@ -1957,7 +2162,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "expr": "max(spring_kafka_listener_seconds_max{service=\"swatch-system-conduit-service\"})",
@@ -2036,7 +2241,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 0,
-                "y": 794
+                "y": 3602
               },
               "id": 41,
               "options": {
@@ -2056,7 +2261,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "expr": "sum(rate(aws_kafka_sum_offset_lag_sum{topic=~'.*platform.rhsm-conduit.tasks'}[$__rate_interval]))",
@@ -2166,7 +2371,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 6,
-                "y": 794
+                "y": 3602
               },
               "id": 8,
               "options": {
@@ -2182,7 +2387,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "expr": "sum(process_cpu_usage{service=\"swatch-system-conduit-service\"}) by (pod)",
@@ -2260,7 +2465,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 12,
-                "y": 794
+                "y": 3602
               },
               "id": 10,
               "options": {
@@ -2276,7 +2481,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "expr": "sum by (id, pod) (jvm_memory_used_bytes{service=\"swatch-system-conduit-service\"})",
@@ -2356,7 +2561,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 18,
-                "y": 794
+                "y": 3602
               },
               "id": 96,
               "options": {
@@ -2372,7 +2577,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "datasource": {
@@ -2487,7 +2692,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 804
+                "y": 3612
               },
               "id": 5025,
               "options": {
@@ -2619,7 +2824,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 804
+                "y": 3612
               },
               "id": 5022,
               "options": {
@@ -2728,7 +2933,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 804
+                "y": 3612
               },
               "id": 5023,
               "options": {
@@ -2834,7 +3039,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 804
+                "y": 3612
               },
               "id": 5024,
               "options": {
@@ -2880,7 +3085,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 5
+            "y": 22
           },
           "id": 45,
           "panels": [
@@ -2949,7 +3154,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 315
+                "y": 2077
               },
               "id": 63,
               "options": {
@@ -2969,7 +3174,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~'.*platform.rhsm-subscriptions.tasks'})",
@@ -3080,7 +3285,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 315
+                "y": 2077
               },
               "id": 64,
               "options": {
@@ -3100,7 +3305,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "expr": "sum(rate(aws_kafka_sum_offset_lag_sum{topic=~\".*platform.rhsm-subscriptions.tasks\"}[$__rate_interval]))",
@@ -3210,7 +3415,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 315
+                "y": 2077
               },
               "id": 66,
               "options": {
@@ -3226,7 +3431,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "expr": "sum(process_cpu_usage{service=~\"swatch-tally-service\"}) by (pod)",
@@ -3310,7 +3515,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 315
+                "y": 2077
               },
               "id": 68,
               "options": {
@@ -3326,7 +3531,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "expr": "jvm_memory_used_bytes{service=\"swatch-tally-service\",id=~\"PS Old Gen|PS Survivor Space|PS Eden Space\"}",
@@ -3405,7 +3610,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 1319
+                "y": 2581
               },
               "id": 94,
               "options": {
@@ -3421,7 +3626,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "datasource": {
@@ -3550,7 +3755,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 1319
+                "y": 2581
               },
               "id": 5010,
               "options": {
@@ -3569,7 +3774,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "datasource": {
@@ -3659,7 +3864,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 1319
+                "y": 2581
               },
               "id": 5011,
               "options": {
@@ -3678,7 +3883,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "datasource": {
@@ -3765,7 +3970,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 1319
+                "y": 2581
               },
               "id": 5012,
               "options": {
@@ -3784,7 +3989,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "datasource": {
@@ -3897,7 +4102,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 1327
+                "y": 2589
               },
               "id": 5013,
               "options": {
@@ -3954,7 +4159,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 6
+            "y": 23
           },
           "id": 31,
           "panels": [
@@ -4022,7 +4227,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 821
+                "y": 2078
               },
               "id": 32,
               "options": {
@@ -4038,7 +4243,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "expr": "sum by (uri) (rate(http_server_requests_seconds_count{service=\"swatch-api-service\",uri=~\"/api/rhsm-subscriptions.*\"}[1m]))",
@@ -4116,7 +4321,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 821
+                "y": 2078
               },
               "id": 33,
               "options": {
@@ -4132,7 +4337,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "expr": "sum by (uri) (rate(http_server_requests_seconds_sum{service=\"swatch-api-service\",uri=~\"/api/rhsm-subscriptions.*\"}[1m]) / rate(http_server_requests_seconds_count{service=\"swatch-api-service\",uri=~\"/api/rhsm-subscriptions.*\"}[1m]))",
@@ -4209,7 +4414,7 @@ data:
                 "h": 9,
                 "w": 12,
                 "x": 12,
-                "y": 821
+                "y": 2078
               },
               "id": 34,
               "options": {
@@ -4225,7 +4430,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "expr": "rate(http_server_requests_seconds_count{service=\"swatch-api-service\",exception!=\"None\"}[$__interval])",
@@ -4303,7 +4508,7 @@ data:
                 "h": 11,
                 "w": 6,
                 "x": 0,
-                "y": 1289
+                "y": 2095
               },
               "id": 35,
               "options": {
@@ -4319,7 +4524,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "expr": "sum(process_cpu_usage{service=\"swatch-api-service\"}) by (pod)",
@@ -4397,7 +4602,7 @@ data:
                 "h": 11,
                 "w": 6,
                 "x": 6,
-                "y": 1289
+                "y": 2095
               },
               "id": 36,
               "options": {
@@ -4413,7 +4618,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "expr": "sum by (id, pod) (jvm_memory_used_bytes{service=\"swatch-api-service\"})",
@@ -4493,7 +4698,7 @@ data:
                 "h": 11,
                 "w": 6,
                 "x": 12,
-                "y": 1289
+                "y": 2095
               },
               "id": 95,
               "options": {
@@ -4509,7 +4714,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "datasource": {
@@ -4589,7 +4794,7 @@ data:
                 "h": 11,
                 "w": 6,
                 "x": 18,
-                "y": 1289
+                "y": 2095
               },
               "id": 5015,
               "options": {
@@ -4608,7 +4813,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "datasource": {
@@ -4695,7 +4900,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 1300
+                "y": 2106
               },
               "id": 5016,
               "options": {
@@ -4815,7 +5020,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 1300
+                "y": 2106
               },
               "id": 5014,
               "options": {
@@ -4957,7 +5162,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 1300
+                "y": 2106
               },
               "id": 5017,
               "options": {
@@ -5014,7 +5219,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 7
+            "y": 24
           },
           "id": 9048,
           "panels": [
@@ -5114,7 +5319,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 2652
+                "y": 2079
               },
               "id": 9049,
               "options": {
@@ -5133,7 +5338,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "datasource": {
@@ -5245,7 +5450,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 2652
+                "y": 2079
               },
               "id": 9038,
               "options": {
@@ -5264,7 +5469,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "datasource": {
@@ -5354,7 +5559,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 2652
+                "y": 2079
               },
               "id": 9039,
               "options": {
@@ -5373,7 +5578,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "datasource": {
@@ -5460,7 +5665,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 2652
+                "y": 2079
               },
               "id": 9040,
               "options": {
@@ -5479,7 +5684,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "datasource": {
@@ -5506,7 +5711,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 8
+            "y": 25
           },
           "id": 9050,
           "panels": [
@@ -5606,7 +5811,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 2660
+                "y": 8142
               },
               "id": 9051,
               "options": {
@@ -5737,7 +5942,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 2660
+                "y": 8142
               },
               "id": 9052,
               "options": {
@@ -5846,7 +6051,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 2660
+                "y": 8142
               },
               "id": 9053,
               "options": {
@@ -5952,7 +6157,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 2660
+                "y": 8142
               },
               "id": 9054,
               "options": {
@@ -5998,7 +6203,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 9
+            "y": 26
           },
           "id": 123,
           "panels": [
@@ -6065,7 +6270,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 10
+                "y": 5492
               },
               "id": 124,
               "options": {
@@ -6128,7 +6333,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 10
+                "y": 5492
               },
               "id": 125,
               "options": {
@@ -6228,7 +6433,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 10
+                "y": 5492
               },
               "id": 126,
               "options": {
@@ -6320,7 +6525,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 10
+                "y": 5492
               },
               "id": 127,
               "options": {
@@ -6483,7 +6688,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 19
+                "y": 5501
               },
               "id": 133,
               "options": {
@@ -6615,7 +6820,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 19
+                "y": 5501
               },
               "id": 5018,
               "options": {
@@ -6724,7 +6929,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 19
+                "y": 5501
               },
               "id": 5019,
               "options": {
@@ -6830,7 +7035,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 19
+                "y": 5501
               },
               "id": 5020,
               "options": {
@@ -6962,7 +7167,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 72
+                "y": 5554
               },
               "id": 5021,
               "options": {
@@ -7019,7 +7224,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 10
+            "y": 27
           },
           "id": 16,
           "panels": [
@@ -7089,7 +7294,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 11
+                "y": 5493
               },
               "id": 20,
               "options": {
@@ -7196,7 +7401,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 11
+                "y": 5493
               },
               "id": 89,
               "options": {
@@ -7299,7 +7504,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 11
+                "y": 5493
               },
               "id": 90,
               "options": {
@@ -7395,7 +7600,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 11
+                "y": 5493
               },
               "id": 128,
               "options": {
@@ -7495,7 +7700,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 20
+                "y": 5502
               },
               "id": 5002,
               "options": {
@@ -7594,7 +7799,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 20
+                "y": 5502
               },
               "id": 5001,
               "options": {
@@ -7697,7 +7902,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 20
+                "y": 5502
               },
               "id": 5028,
               "options": {
@@ -7795,7 +8000,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 20
+                "y": 5502
               },
               "id": 5027,
               "options": {
@@ -7961,7 +8166,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 29
+                "y": 5511
               },
               "id": 132,
               "options": {
@@ -8075,7 +8280,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 29
+                "y": 5511
               },
               "id": 118,
               "options": {
@@ -8195,7 +8400,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 29
+                "y": 5511
               },
               "id": 5026,
               "options": {
@@ -8338,7 +8543,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 29
+                "y": 5511
               },
               "id": 5029,
               "options": {
@@ -8473,7 +8678,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 37
+                "y": 5519
               },
               "id": 5003,
               "interval": "1d",
@@ -8598,7 +8803,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 37
+                "y": 5519
               },
               "id": 5004,
               "interval": "1d",
@@ -8723,7 +8928,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 37
+                "y": 5519
               },
               "id": 5049,
               "interval": "1d",
@@ -8848,7 +9053,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 37
+                "y": 5519
               },
               "id": 5050,
               "interval": "1d",
@@ -8916,7 +9121,7 @@ data:
                 "h": 10,
                 "w": 18,
                 "x": 0,
-                "y": 45
+                "y": 5527
               },
               "id": 121,
               "options": {
@@ -8989,7 +9194,7 @@ data:
                 "h": 10,
                 "w": 18,
                 "x": 0,
-                "y": 55
+                "y": 5537
               },
               "id": 122,
               "options": {
@@ -9041,7 +9246,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 11
+            "y": 28
           },
           "id": 74,
           "panels": [
@@ -9111,7 +9316,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 3320
+                "y": 8802
               },
               "id": 83,
               "options": {
@@ -9213,7 +9418,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 3320
+                "y": 8802
               },
               "id": 120,
               "options": {
@@ -9313,7 +9518,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 3320
+                "y": 8802
               },
               "id": 107,
               "options": {
@@ -9412,7 +9617,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 3320
+                "y": 8802
               },
               "id": 98,
               "options": {
@@ -9513,7 +9718,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 3329
+                "y": 8811
               },
               "id": 78,
               "options": {
@@ -9610,7 +9815,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 3329
+                "y": 8811
               },
               "id": 80,
               "options": {
@@ -9704,7 +9909,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 3329
+                "y": 8811
               },
               "id": 119,
               "maxDataPoints": 100,
@@ -9829,7 +10034,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 3329
+                "y": 8811
               },
               "id": 99,
               "maxDataPoints": 100,
@@ -10012,7 +10217,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 3482
+                "y": 8964
               },
               "id": 134,
               "options": {
@@ -10070,7 +10275,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 12
+            "y": 29
           },
           "id": 5048,
           "panels": [
@@ -10170,7 +10375,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 2652
+                "y": 8134
               },
               "id": 5041,
               "options": {
@@ -10301,7 +10506,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 2652
+                "y": 8134
               },
               "id": 5038,
               "options": {
@@ -10410,7 +10615,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 2652
+                "y": 8134
               },
               "id": 5039,
               "options": {
@@ -10516,7 +10721,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 2652
+                "y": 8134
               },
               "id": 5040,
               "options": {
@@ -10562,7 +10767,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 13
+            "y": 30
           },
           "id": 5047,
           "panels": [
@@ -10663,7 +10868,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 325
+                "y": 5807
               },
               "id": 5037,
               "options": {
@@ -10794,7 +10999,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 325
+                "y": 5807
               },
               "id": 5034,
               "options": {
@@ -10903,7 +11108,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 325
+                "y": 5807
               },
               "id": 5035,
               "options": {
@@ -11009,7 +11214,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 325
+                "y": 5807
               },
               "id": 5036,
               "options": {
@@ -11055,7 +11260,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 14
+            "y": 31
           },
           "id": 5046,
           "panels": [
@@ -11155,7 +11360,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 335
+                "y": 5817
               },
               "id": 5045,
               "options": {
@@ -11286,7 +11491,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 335
+                "y": 5817
               },
               "id": 5042,
               "options": {
@@ -11395,7 +11600,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 335
+                "y": 5817
               },
               "id": 5043,
               "options": {
@@ -11501,7 +11706,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 335
+                "y": 5817
               },
               "id": 5044,
               "options": {
@@ -11547,7 +11752,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 15
+            "y": 32
           },
           "id": 129,
           "panels": [
@@ -11615,7 +11820,7 @@ data:
                 "h": 8,
                 "w": 12,
                 "x": 0,
-                "y": 336
+                "y": 5818
               },
               "id": 130,
               "options": {
@@ -11744,7 +11949,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 344
+                "y": 5826
               },
               "id": 5009,
               "options": {
@@ -11875,7 +12080,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 344
+                "y": 5826
               },
               "id": 5006,
               "options": {
@@ -11984,7 +12189,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 344
+                "y": 5826
               },
               "id": 5007,
               "options": {
@@ -12090,7 +12295,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 344
+                "y": 5826
               },
               "id": 5008,
               "options": {
@@ -12188,7 +12393,7 @@ data:
                 "h": 8,
                 "w": 8,
                 "x": 0,
-                "y": 387
+                "y": 5869
               },
               "id": 136,
               "options": {
@@ -12336,7 +12541,7 @@ data:
                 "h": 8,
                 "w": 21,
                 "x": 0,
-                "y": 395
+                "y": 5877
               },
               "id": 137,
               "options": {
@@ -12538,7 +12743,7 @@ data:
                 "h": 8,
                 "w": 21,
                 "x": 0,
-                "y": 403
+                "y": 5885
               },
               "id": 131,
               "options": {

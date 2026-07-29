@@ -24,6 +24,8 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.redhat.swatch.clients.product.api.resources.ApiException;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.contract.config.ApplicationConfiguration;
+import com.redhat.swatch.contract.exception.ErrorCode;
+import com.redhat.swatch.contract.exception.ServiceException;
 import com.redhat.swatch.contract.model.PartnerEntitlementsRequest;
 import com.redhat.swatch.contract.model.SyncResult;
 import com.redhat.swatch.contract.openapi.model.AwsUsageContext;
@@ -57,6 +59,7 @@ import com.redhat.swatch.contract.service.OfferingSyncService;
 import com.redhat.swatch.contract.service.SubscriptionListService;
 import com.redhat.swatch.contract.service.SubscriptionSyncService;
 import com.redhat.swatch.contract.service.UsageContextSubscriptionProvider;
+import io.micrometer.common.util.StringUtils;
 import io.quarkus.runtime.LaunchMode;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -257,6 +260,14 @@ public class ContractsResource implements DefaultApi {
   }
 
   private AwsUsageContext buildAwsUsageContext(SubscriptionEntity subscription) {
+    String billingAccountId = subscription.getBillingAccountId();
+    if (StringUtils.isBlank(billingAccountId)) {
+      throw new ServiceException(
+          ErrorCode.SUBSCRIPTION_MISSING_BILLING_ACCOUNT_ID,
+          Response.Status.NOT_FOUND,
+          ErrorCode.SUBSCRIPTION_MISSING_BILLING_ACCOUNT_ID.getDescription(),
+          subscription.getSubscriptionId());
+    }
     String[] parts = subscription.getBillingProviderId().split(";");
     String productCode = parts[0];
     String customerId = parts[1];
@@ -267,7 +278,7 @@ public class ContractsResource implements DefaultApi {
         .productCode(productCode)
         .customerId(customerId)
         .awsSellerAccountId(sellerAccount)
-        .customerAwsAccountId(subscription.getBillingAccountId());
+        .customerAwsAccountId(billingAccountId);
   }
 
   @Override

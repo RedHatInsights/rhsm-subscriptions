@@ -35,6 +35,7 @@ import com.redhat.swatch.aws.config.FeatureFlags;
 import com.redhat.swatch.aws.exception.AwsUsageContextLookupException;
 import com.redhat.swatch.aws.exception.DefaultApiException;
 import com.redhat.swatch.aws.exception.SubscriptionCanNotBeDeterminedException;
+import com.redhat.swatch.aws.exception.SubscriptionMissingBillingAccountIdException;
 import com.redhat.swatch.aws.exception.SubscriptionRecentlyTerminatedException;
 import com.redhat.swatch.clients.contracts.api.model.AwsUsageContext;
 import com.redhat.swatch.clients.contracts.api.model.Error;
@@ -105,6 +106,7 @@ class AwsBillableUsageAggregateConsumerTest {
       new AwsUsageContext()
           .rhSubscriptionId("id")
           .customerId("customer")
+          .customerAwsAccountId("123456789012")
           .productCode("product")
           .subscriptionStartDate(OffsetDateTime.MIN);
   public static final BatchMeterUsageResponse BATCH_METER_USAGE_SUCCESS_RESPONSE =
@@ -411,6 +413,40 @@ class AwsBillableUsageAggregateConsumerTest {
 
     consumer.process(ROSA_INSTANCE_HOURS_RECORD);
     verifyNoInteractions(meteringClient);
+  }
+
+  @Test
+  void shouldThrowSubscriptionMissingBillingAccountIdException() throws ApiException {
+    Error error = new Error();
+    error.setCode("CONTRACTS1006");
+    var response = Response.status(Response.Status.NOT_FOUND).entity(error).build();
+    var exception = new DefaultApiException(response, error);
+    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
+        .thenThrow(exception);
+
+    assertThrows(
+        SubscriptionMissingBillingAccountIdException.class,
+        () -> consumer.lookupAwsUsageContext(ROSA_INSTANCE_HOURS_RECORD));
+  }
+
+  @Test
+  void shouldSkipMessageIfSubscriptionMissingBillingAccountId() throws ApiException {
+    Error error = new Error();
+    error.setCode("CONTRACTS1006");
+    var response = Response.status(Response.Status.NOT_FOUND).entity(error).build();
+    var exception = new DefaultApiException(response, error);
+    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
+        .thenThrow(exception);
+
+    consumer.process(ROSA_INSTANCE_HOURS_RECORD);
+    verifyNoInteractions(meteringClient);
+    verify(billableUsageStatusProducer)
+        .emitStatus(
+            argThat(
+                usage ->
+                    BillableUsage.Status.FAILED.equals(usage.getStatus())
+                        && BillableUsage.ErrorCode.USAGE_CONTEXT_LOOKUP.equals(
+                            usage.getErrorCode())));
   }
 
   @Test

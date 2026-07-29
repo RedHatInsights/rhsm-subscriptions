@@ -377,6 +377,15 @@ Component tests for GET `/api/swatch-contracts/internal/subscriptions/awsUsageCo
   - HTTP 404  
   - Error code `CONTRACTS1005` (`SUBSCRIPTION_RECENTLY_TERMINATED`)
 
+**aws-usage-context-TC004** - **AWS usage context returns CONTRACTS1006 when billingAccountId is missing**  
+- **Description:** `customerAwsAccountId` is required on `AwsUsageContext`. When a matched subscription has a null/blank `billing_account_id`, contracts returns a controlled error instead of a 200 with a null field.
+- **Setup:** Persist an AWS ROSA subscription via `saveSubscriptions` with marketplace fields (`productCode;customerId;sellerAccount`) but without `billing_account_id`.  
+- **Action:** GET `/api/swatch-contracts/internal/subscriptions/awsUsageContext`.  
+- **Verification:** Check HTTP status and error body.  
+- **Expected Result:**  
+  - HTTP 404  
+  - Error code `CONTRACTS1006` (`SUBSCRIPTION_MISSING_BILLING_ACCOUNT_ID`)
+
 ## Azure Usage Context
 
 Component tests for GET `/api/swatch-contracts/internal/subscriptions/azureUsageContext`. Test class: `AzureUsageContextComponentTest`.
