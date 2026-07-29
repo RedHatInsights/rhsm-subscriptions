@@ -634,7 +634,7 @@ spec:
           - name: name
             value: git-clone
           - name: bundle
-            value: quay.io/konflux-ci/tekton-catalog/task-git-clone:0.2.5@sha256:4a6567757596e348fe2505f7e2cc0286ad98a32d9b510d1a44d0bf6ed6df5469
+            value: quay.io/konflux-ci/tekton-catalog/task-git-clone:0.2.5@sha256:dc8f71a192e51bcdcd9160efcd1c65a091cf37394106b1332c6886c66767deee
           - name: kind
             value: task
         resolver: bundles
@@ -696,8 +696,15 @@ spec:
               # Persist kubeconfig for the next step
               oc config view --minify --raw > "$(workspaces.output.path)/kubeconfig"
           - name: tests
-            image: registry.access.redhat.com/ubi9/openjdk-21
+            image: registry.access.redhat.com/ubi10/openjdk-25:1784351724
             workingDir: $(workspaces.output.path)/source
+            computeResources:
+              requests:
+                cpu: 500m
+                memory: 2Gi
+              limits:
+                cpu: "2"
+                memory: 4Gi
             env:
               - name: KUBECONFIG
                 value: "$(workspaces.output.path)/kubeconfig"
