@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.kessel;
+package org.candlepin.subscriptions.rbac;
 
 import io.grpc.ChannelCredentials;
 import io.grpc.ConnectivityState;
@@ -28,10 +28,12 @@ import io.grpc.ManagedChannel;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.TlsChannelCredentials;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import lombok.extern.slf4j.Slf4j;
 import org.project_kessel.api.inventory.v1beta2.Allowed;
 import org.project_kessel.api.inventory.v1beta2.CheckRequest;
 import org.project_kessel.api.inventory.v1beta2.CheckResponse;
@@ -41,71 +43,70 @@ import org.project_kessel.api.inventory.v1beta2.ReporterReference;
 import org.project_kessel.api.inventory.v1beta2.ResourceReference;
 import org.project_kessel.api.inventory.v1beta2.SubjectReference;
 import org.project_kessel.api.rbac.v2.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Framework-neutral gRPC client for Kessel permission checks.
+ * gRPC client for Kessel permission checks.
  *
  * <p>Resilience features:
  *
  * <ul>
- *   <li>Configurable timeout on all gRPC calls
- *   <li>Automatic retry (up to 3 attempts) on transient failures (UNAVAILABLE, DEADLINE_EXCEEDED,
- *       etc.)
+ *   <li>Configurable timeout on all gRPC calls (rhsm-subscriptions.kessel.timeout-ms)
+ *   <li>Automatic retry (3 attempts) on transient failures (UNAVAILABLE, DEADLINE_EXCEEDED, etc.)
  *   <li>Automatic channel recreation on UNAUTHENTICATED errors (token expiry)
  *   <li>Automatic channel recreation if channel enters SHUTDOWN state
  * </ul>
  */
-@Slf4j
-public class KesselAuthorizationClient {
+public class KesselService {
 
-  static final String RBAC_APP_NAME = "subscriptions";
-  static final String RBAC_ADMIN_PERMISSION = RBAC_APP_NAME + ":*:*";
-  static final String RBAC_READER_PERMISSION = RBAC_APP_NAME + ":reports:read";
-  static final String KESSEL_DOMAIN = "redhat";
+  private static final Logger log = LoggerFactory.getLogger(KesselService.class);
 
-  static final Map<String, String> PERMISSION_TO_RELATION =
+  private static final String RBAC_APP_NAME = "subscriptions";
+  private static final String RBAC_ADMIN_PERMISSION = RBAC_APP_NAME + ":*:*";
+  private static final String RBAC_READER_PERMISSION = RBAC_APP_NAME + ":reports:read";
+  private static final Map<String, String> PERMISSION_TO_RELATION =
       Map.of(
           RBAC_ADMIN_PERMISSION, "subscriptions_report_view",
           RBAC_READER_PERMISSION, "subscriptions_report_view");
 
-  static final List<Status.Code> TRANSIENT_FAILURE_CODES =
+  private static final List<String> SWATCH_PERMISSIONS =
+      List.of(RBAC_ADMIN_PERMISSION, RBAC_READER_PERMISSION);
+
+  private static final List<Status.Code> TRANSIENT_FAILURE_CODES =
       List.of(
           Status.Code.UNAVAILABLE,
           Status.Code.DEADLINE_EXCEEDED,
           Status.Code.RESOURCE_EXHAUSTED,
           Status.Code.ABORTED);
 
-  static final int MAX_RETRIES = 3;
-  static final long RETRY_DELAY_MS = 100;
-  static final long CHANNEL_SHUTDOWN_TIMEOUT_SECONDS = 30;
+  private static final int MAX_RETRIES = 3;
+  private static final long RETRY_DELAY_MS = 100;
+  private static final long CHANNEL_SHUTDOWN_TIMEOUT_SECONDS = 30;
 
-  private final KesselConfig config;
-  private final WorkspaceResolver workspaceResolver;
+  private final KesselProperties properties;
   private volatile KesselInventoryServiceBlockingStub stub;
   private volatile ManagedChannel channel;
 
-  public KesselAuthorizationClient(KesselConfig config, WorkspaceResolver workspaceResolver) {
-    this.config = config;
-    this.workspaceResolver = workspaceResolver;
+  public KesselService(KesselProperties properties) {
+    this.properties = properties;
   }
 
-  public void init() {
+  @PostConstruct
+  void init() {
     try {
-      initializeChannel("startup", null);
+      initializeChannel("startup");
     } catch (Exception e) {
       log.warn(
           "Failed to initialize Kessel authorization client; auth checks will deny by default", e);
     }
   }
 
-  synchronized void initializeChannel(String reason, ManagedChannel brokenChannel) {
-    if (this.channel != null && this.channel != brokenChannel) {
-      return;
-    }
-    ManagedChannel oldChannel = this.channel;
+  private synchronized void initializeChannel(String reason) {
+    ManagedChannel oldChannel = channel;
 
     ChannelCredentials creds;
-    if (config.insecure()) {
+    if (properties.isInsecure()) {
       log.warn(
           "Initializing insecure client for Kessel: OAuth2 authentication and TLS verification"
               + " will be disabled");
@@ -114,11 +115,11 @@ public class KesselAuthorizationClient {
       creds = TlsChannelCredentials.create();
     }
 
-    this.channel = Grpc.newChannelBuilder(config.endpoint(), creds).build();
+    this.channel = Grpc.newChannelBuilder(properties.getEndpoint(), creds).build();
     this.stub = KesselInventoryServiceGrpc.newBlockingStub(this.channel);
     log.info(
         "Kessel authorization client initialized: endpoint={} reason={}",
-        config.endpoint(),
+        properties.getEndpoint(),
         reason);
 
     if (oldChannel != null) {
@@ -126,20 +127,17 @@ public class KesselAuthorizationClient {
     }
   }
 
-  KesselInventoryServiceBlockingStub getClient() {
-    ManagedChannel currentChannel = channel;
-    if (currentChannel == null) {
-      return stub;
-    }
-    if (currentChannel.getState(false) != ConnectivityState.SHUTDOWN) {
+  private KesselInventoryServiceBlockingStub getClient() {
+    if (channel != null && channel.getState(false) != ConnectivityState.SHUTDOWN) {
       return stub;
     }
     log.warn("Kessel gRPC channel is unhealthy, recreating");
-    initializeChannel("unhealthy_channel", currentChannel);
+    initializeChannel("unhealthy_channel");
     return stub;
   }
 
-  public void shutdown() {
+  @PreDestroy
+  void shutdown() {
     if (channel == null) {
       return;
     }
@@ -155,21 +153,12 @@ public class KesselAuthorizationClient {
     }
   }
 
-  /**
-   * Check if the given subject has the specified RBACv1-style permission via Kessel.
-   *
-   * @param subjectId the Kessel principal identifier (e.g. user_id)
-   * @param permission RBACv1 permission string (e.g. "subscriptions:reports:read")
-   * @param orgId the organization ID, used to resolve the workspace
-   * @return true if access is allowed
-   */
-  public boolean checkAccess(String subjectId, String permission, String orgId) {
+  public boolean checkAccess(String subjectId, String permission) {
     if (stub == null) {
       log.warn("Kessel client not initialized; denying access for subject={}", subjectId);
       return false;
     }
     var relation = mapPermissionToRelation(permission);
-    var workspaceId = workspaceResolver.getDefaultWorkspaceId(orgId);
 
     var request =
         CheckRequest.newBuilder()
@@ -183,24 +172,30 @@ public class KesselAuthorizationClient {
                             .build())
                     .build())
             .setRelation(relation)
-            .setObject(Utils.workspaceResource(workspaceId))
+            .setObject(Utils.workspaceResource("default"))
             .build();
 
     StatusRuntimeException lastException = null;
     for (int attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       try {
-        ManagedChannel currentChannel = channel;
         CheckResponse response =
-            getClient().withDeadlineAfter(config.timeoutMs(), TimeUnit.MILLISECONDS).check(request);
+            getClient()
+                .withDeadlineAfter(properties.getTimeoutMs(), TimeUnit.MILLISECONDS)
+                .check(request);
         boolean allowed = response.getAllowed() == Allowed.ALLOWED_TRUE;
-        log.debug(
-            "Kessel {} subject={}/{} relation={} on workspace={} (permission={})",
-            allowed ? "allowed" : "denied",
-            KESSEL_DOMAIN,
-            subjectId,
-            relation,
-            workspaceId,
-            permission);
+        if (allowed) {
+          log.debug(
+              "Kessel allowed subject=redhat/{} relation={} on workspace=default (permission={})",
+              subjectId,
+              relation,
+              permission);
+        } else {
+          log.debug(
+              "Kessel denied subject=redhat/{} relation={} on workspace=default (permission={})",
+              subjectId,
+              relation,
+              permission);
+        }
         return allowed;
       } catch (StatusRuntimeException e) {
         lastException = e;
@@ -213,7 +208,7 @@ public class KesselAuthorizationClient {
               MAX_RETRIES + 1,
               code,
               e.getMessage());
-          initializeChannel("unauthenticated", channel);
+          initializeChannel("unauthenticated");
         } else if (TRANSIENT_FAILURE_CODES.contains(code) && attempt < MAX_RETRIES) {
           log.warn(
               "Transient gRPC error from Kessel (attempt {}/{}): {} - {}",
@@ -229,8 +224,7 @@ public class KesselAuthorizationClient {
           }
         } else {
           log.warn(
-              "Kessel check failed for subject={}/{}, permission={}: {}",
-              KESSEL_DOMAIN,
+              "Kessel check failed for subject={}, permission={}: {}",
               subjectId,
               permission,
               e.getStatus());
@@ -240,30 +234,26 @@ public class KesselAuthorizationClient {
     }
 
     log.warn(
-        "Kessel check exhausted retries for subject={}/{}, permission={}: {}",
-        KESSEL_DOMAIN,
+        "Kessel check exhausted retries for subject={}, permission={}: {}",
         subjectId,
         permission,
         lastException != null ? lastException.getStatus() : "unknown");
     return false;
   }
 
-  /**
-   * Get granted RBACv1-style permissions for the given subject via Kessel.
-   *
-   * <p>Currently both admin and reader permissions map to the same Kessel relation, so a single
-   * Check call is made. Only the reader permission is emitted until distinct Kessel relations
-   * exist.
-   */
-  public List<String> getPermissions(String subjectId, String orgId) {
+  public List<String> getPermissions(String subjectId) {
     if (subjectId == null || subjectId.isBlank()) {
       log.warn("Missing Kessel subject id; denying access");
       return List.of();
     }
-    if (checkAccess(subjectId, RBAC_READER_PERMISSION, orgId)) {
-      return List.of(RBAC_READER_PERMISSION);
+    var granted = new ArrayList<String>();
+    for (var permission : SWATCH_PERMISSIONS) {
+      if (checkAccess(subjectId, permission)) {
+        granted.add(permission);
+      }
     }
-    return List.of();
+    log.debug("Kessel permissions for subject={}: granted={}", subjectId, granted);
+    return granted;
   }
 
   /**
@@ -271,7 +261,7 @@ public class KesselAuthorizationClient {
    * rbac-config schema where v1 permissions map to v2 relations with singular resource names and
    * "view" instead of "read" (e.g. "subscriptions:reports:read" -> "subscriptions_report_view").
    */
-  public static String mapPermissionToRelation(String rbacPermission) {
+  static String mapPermissionToRelation(String rbacPermission) {
     var relation = PERMISSION_TO_RELATION.get(rbacPermission);
     if (relation == null) {
       throw new IllegalArgumentException("Unknown RBACv1 permission: " + rbacPermission);
@@ -280,7 +270,7 @@ public class KesselAuthorizationClient {
   }
 
   // Visible for testing
-  public void setStub(KesselInventoryServiceBlockingStub stub) {
+  void setStub(KesselInventoryServiceBlockingStub stub) {
     this.stub = stub;
   }
 }
