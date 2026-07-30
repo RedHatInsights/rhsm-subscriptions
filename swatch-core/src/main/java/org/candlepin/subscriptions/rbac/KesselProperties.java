@@ -28,6 +28,10 @@ public class KesselProperties implements KesselConfig {
   private String endpoint = "localhost:9000";
   private boolean insecure = true;
   private long timeoutMs = 5000;
+  private String rbacBaseEndpoint = "http://localhost:8080";
+  private String authDiscoveryIssuerUrl;
+  private String authClientId;
+  private String authClientSecret;
 
   @Override
   public String endpoint() {

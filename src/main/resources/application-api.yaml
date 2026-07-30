@@ -19,6 +19,10 @@ rhsm-subscriptions:
     endpoint: ${KESSEL_ENDPOINT}
     insecure: ${KESSEL_INSECURE}
     timeout-ms: ${KESSEL_TIMEOUT_MS}
+    rbac-base-endpoint: ${RBAC_BASE_ENDPOINT:${RHSM_RBAC_URL}}
+    auth-discovery-issuer-url: ${AUTH_DISCOVERY_ISSUER_URL:}
+    auth-client-id: ${KESSEL_AUTH_CLIENT_ID:}
+    auth-client-secret: ${KESSEL_AUTH_CLIENT_SECRET:}
   contracts:
     client:
       back-off-initial-interval: ${CONTRACT_CLIENT_BACK_OFF_INITIAL_INTERVAL_MILLIS:1000}
