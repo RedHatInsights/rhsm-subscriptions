@@ -1535,34 +1535,14 @@ This section verifies the automatic contract termination behavior when contracts
 - **Verification**: Poll contracts for the test org via internal API
 - **Expected Result**: Still exactly 1 contract for the org
 
-**partner-gateway-kafka-TC009 - Unknown fields in Kafka message are tolerated**
-- **Description**: Verify that a Kafka message containing an unknown top-level field (e.g. `licenseArn`) is deserialized without error and the contract is created normally. Reproduces SWATCH-4946.
-- **Setup**:
-  - Unleash toggle enabled
-  - Stub Product API, Partner API, and Search API for the contract
-  - Sync offering via HTTP API
-  - The message JSON includes an extra top-level `"licenseArn"` field
-- **Action**: Produce a `PartnerEntitlementContract` JSON message containing the extra `"licenseArn"` field to Kafka
-- **Verification**: Poll internal contracts API until 1 contract appears for the org
-- **Expected Result**:
-  - 1 contract with correct `org_id`, `sku`, `billing_provider=aws`
-  - No deserialization error logged
-
-**partner-gateway-kafka-TC010 - Ignore Kafka message when feature flag is globally disabled**
-- **Description**: Verify that when the Unleash toggle is **disabled**, the Kafka consumer exits early and no contract is persisted.
-- **Setup**: Unleash toggle disabled; stubs in place and offering synced
-- **Action**: Produce a valid `PartnerEntitlementContract` JSON message to Kafka
-- **Verification**: Poll contracts after 3 second delay via internal API
-- **Expected Result**: Zero contracts created for the test org
-
-**partner-gateway-kafka-TC011 - Ignore Kafka message when Kafka consumer disabled via config variant**
+**partner-gateway-kafka-TC009 - Ignore Kafka message when Kafka consumer disabled via config variant**
 - **Description**: Verify that a `config` variant payload of `{"kafka_consumer_enabled":false}` blocks the Kafka consumer while the flag itself remains enabled.
 - **Setup**: Unleash toggle enabled; `config` variant set with `kafka_consumer_enabled=false`; stubs in place and offering synced
 - **Action**: Produce a valid `PartnerEntitlementContract` JSON message to Kafka
 - **Verification**: Poll contracts after 3 second delay via internal API
 - **Expected Result**: Zero contracts created for the test org
 
-**partner-gateway-kafka-TC012 - Process Kafka message when UMB consumer disabled via config variant**
+**partner-gateway-kafka-TC010 - Process Kafka message when UMB consumer disabled via config variant**
 - **Description**: Verify that disabling the UMB consumer via variant (`umb_consumer_enabled=false`) does not prevent the Kafka consumer from working.
 - **Setup**: Unleash toggle enabled; `config` variant set with `{"kafka_consumer_enabled":true,"umb_consumer_enabled":false}`; stubs in place and offering synced
 - **Action**: Produce a valid `PartnerEntitlementContract` JSON message to Kafka
@@ -1571,7 +1551,7 @@ This section verifies the automatic contract termination behavior when contracts
   - Contract created with correct `org_id`, `sku`, and `billing_provider`
   - UMB consumer is independently disabled (not tested in this TC)
 
-**partner-gateway-kafka-TC013 - Process Kafka message when both consumers explicitly enabled via config variant**
+**partner-gateway-kafka-TC011 - Process Kafka message when both consumers explicitly enabled via config variant**
 - **Description**: Verify that explicitly enabling both Kafka and UMB consumers via variant (`{"kafka_consumer_enabled":true,"umb_consumer_enabled":true}`) allows both to function correctly.
 - **Setup**: Unleash toggle enabled; `config` variant set with `{"kafka_consumer_enabled":true,"umb_consumer_enabled":true}`; stubs in place and offering synced
 - **Action**: Produce a valid `PartnerEntitlementContract` JSON message to Kafka
@@ -1580,7 +1560,7 @@ This section verifies the automatic contract termination behavior when contracts
   - Contract created with correct `org_id`, `sku`, and `billing_provider`
   - Both Kafka and UMB consumers are enabled and operational
 
-**partner-gateway-kafka-TC014 - Reject Kafka message with missing required fields**
+**partner-gateway-kafka-TC012 - Reject Kafka message with missing required fields**
 - **Description**: Verify that a Kafka message missing required fields causes a warn log and no contract is persisted; the consumer continues processing.
 - **Setup**: Unleash toggle enabled; no additional stubs needed
 - **Action**: Publish a `PartnerEntitlementContract` JSON missing required fields (e.g., no `rhSubscriptions`) to the `partner-integration.entitlement-gateway.partner-entitlement.protected` topic
@@ -1590,7 +1570,7 @@ This section verifies the automatic contract termination behavior when contracts
   - No contract created for the test org
   - Consumer continues to accept subsequent messages
 
-**partner-gateway-kafka-TC015 - Null/empty optional fields in Kafka message**
+**partner-gateway-kafka-TC013 - Null/empty optional fields in Kafka message**
 - **Description**: Verify that a Kafka message with null or empty optional fields (e.g., null `sellerAccountId`, empty `azureTenantId`) is processed successfully without errors.
 - **Setup**:
   - Unleash toggle enabled
@@ -1604,7 +1584,7 @@ This section verifies the automatic contract termination behavior when contracts
   - Optional fields with null values stored as null (not rejected)
   - No `NullPointerException` or validation errors logged
 
-**partner-gateway-kafka-TC016 - Invalid/unknown source value in Kafka message**
+**partner-gateway-kafka-TC014 - Invalid/unknown source value in Kafka message**
 - **Description**: Verify that a Kafka message with an invalid or unknown `source` value (e.g., `"GCP"`) is handled gracefully — no contract persisted, service stays healthy.
 - **Setup**: Unleash toggle enabled; no additional stubs needed
 - **Action**: Produce a `PartnerEntitlementContract` JSON message with an unknown `source` value to `partner-integration.entitlement-gateway.partner-entitlement.protected` via Kafka Bridge
@@ -1612,16 +1592,6 @@ This section verifies the automatic contract termination behavior when contracts
 - **Expected Result**:
   - No contract created for the test org
   - Warn log indicates unknown source value
-  - Consumer continues to accept subsequent messages
-
-**partner-gateway-kafka-TC017 - Null payload in Kafka message**
-- **Description**: Verify that a null/empty payload on the IT Partner Gateway Kafka topic is dropped silently without crashing the consumer.
-- **Setup**: Unleash toggle enabled
-- **Action**: Produce a null payload to the `partner-integration.entitlement-gateway.partner-entitlement.protected` topic
-- **Verification**: Poll contracts for the test org via internal API; check service health
-- **Expected Result**:
-  - Zero contracts persisted
-  - Service health checks all UP
   - Consumer continues to accept subsequent messages
 
 **partner-gateway-umb-TC001 - Ignore UMB message when feature flag is globally disabled**
