@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.configuration.FeatureFlags;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
@@ -59,6 +60,7 @@ import org.springframework.util.StringUtils;
 @SuppressWarnings({"linelength", "indentation", "unchecked"})
 @Repository
 @AllArgsConstructor
+@Slf4j
 public class TallyInstanceViewRepository {
 
   public static final Map<String, String> FIELD_SORT_PARAM_MAPPING =
@@ -159,10 +161,12 @@ public class TallyInstanceViewRepository {
       throw new IllegalArgumentException("productId must be specified in search criteria");
     }
 
+    boolean usePrimary = usePrimary(criteria);
+    log.debug("Using primary row search for instance view: {}", usePrimary);
     if (criteria.getProductId().isPayg()) {
-      return criteria.isUsePrimary() ? paygPrimaryViewRepository : paygViewRepository;
+      return usePrimary ? paygPrimaryViewRepository : paygViewRepository;
     }
-    return criteria.isUsePrimary() ? nonPaygPrimaryViewRepository : nonPaygViewRepository;
+    return usePrimary ? nonPaygPrimaryViewRepository : nonPaygViewRepository;
   }
 
   /**
@@ -322,9 +326,7 @@ public class TallyInstanceViewRepository {
   @SuppressWarnings("java:S107")
   public static <T extends TallyInstanceView> Specification<T> buildSearchSpecification(
       TallyInstancesDbReportCriteria criteria) {
-    if (criteria.isUsePrimary()) {
-      sanitizeCriteriaForPrimaryRows(criteria);
-    }
+    boolean usePrimary = usePrimary(criteria);
     var searchCriteria = Specification.<T>unrestricted();
     searchCriteria =
         searchCriteria.and(
@@ -336,16 +338,16 @@ public class TallyInstanceViewRepository {
     if (Objects.nonNull(criteria.getProductId())) {
       searchCriteria = searchCriteria.and(productIdEquals(criteria.getProductId()));
     }
-    if (Objects.nonNull(criteria.getSla())) {
+    if (shouldApplyFilter(criteria.getSla(), ServiceLevel._ANY, usePrimary)) {
       searchCriteria = searchCriteria.and(slaEquals(criteria.getSla()));
     }
-    if (Objects.nonNull(criteria.getUsage())) {
+    if (shouldApplyFilter(criteria.getUsage(), Usage._ANY, usePrimary)) {
       searchCriteria = searchCriteria.and(usageEquals(criteria.getUsage()));
     }
-    if (Objects.nonNull(criteria.getBillingProvider())) {
+    if (shouldApplyFilter(criteria.getBillingProvider(), BillingProvider._ANY, usePrimary)) {
       searchCriteria = searchCriteria.and(billingProviderEquals(criteria.getBillingProvider()));
     }
-    if (Objects.nonNull(criteria.getBillingAccountId())) {
+    if (shouldApplyFilter(criteria.getBillingAccountId(), ResourceUtils.ANY, usePrimary)) {
       searchCriteria = searchCriteria.and(billingAccountIdEquals(criteria.getBillingAccountId()));
     }
     if (StringUtils.hasText(criteria.getDisplayNameSubstring())) {
@@ -375,19 +377,26 @@ public class TallyInstanceViewRepository {
     return searchCriteria;
   }
 
-  private static void sanitizeCriteriaForPrimaryRows(TallyInstancesDbReportCriteria criteria) {
-    if (ServiceLevel._ANY.equals(criteria.getSla())) {
-      criteria.setSla(null);
-    }
-    if (Usage._ANY.equals(criteria.getUsage())) {
-      criteria.setUsage(null);
-    }
-    if (BillingProvider._ANY.equals(criteria.getBillingProvider())) {
-      criteria.setBillingProvider(null);
-    }
-    if (ResourceUtils.ANY.equals(criteria.getBillingAccountId())) {
-      criteria.setBillingAccountId(null);
-    }
+  /**
+   * Determines whether a filter predicate should be applied for a given criteria value. A null
+   * value never gets a predicate. When searching primary rows, a value equal to its "any" sentinel
+   * is also skipped, since primary rows are already deduplicated to a single representative row.
+   */
+  private static boolean shouldApplyFilter(
+      Object value, Object anySentinelValue, boolean usePrimary) {
+    return Objects.nonNull(value) && !(usePrimary && anySentinelValue.equals(value));
+  }
+
+  /**
+   * Primary rows only track a single representative bucket per host, so they can't be used to
+   * satisfy a search restricted to the HYPERVISOR hardware measurement type. In that case, fall
+   * back to the non-primary filtering behavior even if primary row searches are enabled.
+   */
+  private static boolean usePrimary(TallyInstancesDbReportCriteria criteria) {
+    boolean searchingHypervisor =
+        ObjectUtils.isEmpty(criteria.getHardwareMeasurementTypes())
+            || criteria.getHardwareMeasurementTypes().contains(HardwareMeasurementType.HYPERVISOR);
+    return criteria.isUsePrimary() && !searchingHypervisor;
   }
 
   private static Optional<MetricId> getMetricIdToSort(String sort) {

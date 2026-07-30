@@ -42,6 +42,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.candlepin.subscriptions.configuration.FeatureFlags;
 import org.candlepin.subscriptions.db.model.AccountServiceInventory;
 import org.candlepin.subscriptions.db.model.AccountServiceInventoryId;
@@ -469,6 +470,14 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
           Usage.PRODUCTION,
           1,
           1);
+      withTraditionalProductBuckets(
+          host3,
+          HardwareMeasurementType.HYPERVISOR,
+          RHEL,
+          ServiceLevel.PREMIUM,
+          Usage.DISASTER_RECOVERY,
+          1,
+          1);
       persistHosts(host1, host2, host3);
 
       Page<TallyInstanceView> results =
@@ -499,7 +508,7 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
               "a1",
               RHEL,
               ServiceLevel.PREMIUM,
-              Usage.PRODUCTION,
+              Usage._ANY,
               "",
               0,
               0,
@@ -742,6 +751,74 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
         }
       }
     }
+
+    static Stream<List<HardwareMeasurementType>> hypervisorHardwareMeasurementTypeParams() {
+      return Stream.of(
+          List.of(HardwareMeasurementType.HYPERVISOR),
+          List.of(),
+          List.of(HardwareMeasurementType.HYPERVISOR, HardwareMeasurementType.PHYSICAL),
+          null);
+    }
+
+    @ParameterizedTest
+    @MethodSource("hypervisorHardwareMeasurementTypeParams")
+    @Transactional
+    void testNonPrimaryBucketSearchForHypervisorHardwareTypeFilter(
+        List<HardwareMeasurementType> hardwareTypes) {
+      Host hypervisorHost = createHost("inv-hypervisor", "org-hypervisor");
+      addBucketToHost(
+          hypervisorHost,
+          RHEL,
+          ServiceLevel.PREMIUM,
+          Usage.PRODUCTION,
+          HardwareMeasurementType.HYPERVISOR,
+          BillingProvider._ANY,
+          2,
+          4);
+      addBucketToHost(
+          hypervisorHost,
+          RHEL,
+          ServiceLevel.PREMIUM,
+          Usage.DISASTER_RECOVERY,
+          HardwareMeasurementType.HYPERVISOR,
+          BillingProvider._ANY,
+          18,
+          36);
+      addBucketToHost(
+          hypervisorHost,
+          RHEL,
+          ServiceLevel.PREMIUM,
+          Usage._ANY,
+          HardwareMeasurementType.HYPERVISOR,
+          BillingProvider._ANY,
+          20,
+          40);
+
+      persistHosts(hypervisorHost);
+
+      Page<TallyInstanceView> hypervisors =
+          repo.findAllBy(
+              hypervisorHost.getOrgId(),
+              RHEL,
+              ServiceLevel.PREMIUM,
+              Usage._ANY,
+              "",
+              0,
+              0,
+              null,
+              MetricIdUtils.getCores(),
+              BillingProvider._ANY,
+              BILLING_ACCOUNT_ID_ANY,
+              hardwareTypes,
+              0,
+              10,
+              SORT_BY_CORES,
+              SortDirection.ASC);
+
+      assertEquals(1, hypervisors.getTotalElements());
+      // Should always pick the non-primary bucket when HMT is HYPERVISOR no matter the flag.
+      assertEquals(20, hypervisors.get().toList().getFirst().getSockets());
+    }
   }
 
   private void addMeasurementsToMonthlyTotals(Host host, OffsetDateTime month) {
@@ -803,7 +880,7 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
               MetricIdUtils.getCores(),
               BillingProvider._ANY,
               BILLING_ACCOUNT_ID_ANY,
-              null,
+              List.of(HardwareMeasurementType.PHYSICAL),
               0,
               10,
               SORT_BY_CORES,
@@ -862,7 +939,7 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
               MetricIdUtils.getCores(),
               BillingProvider._ANY,
               BILLING_ACCOUNT_ID_ANY,
-              null,
+              List.of(HardwareMeasurementType.PHYSICAL),
               0,
               10,
               SORT_BY_CORES,
