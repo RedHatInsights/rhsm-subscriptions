@@ -60,9 +60,7 @@ public class KesselConfiguration {
                         FetchWorkspace.fetchDefaultWorkspace(
                             props.getRbacBaseEndpoint(), id, rbacAuth);
                     log.info(
-                        "Fetched default workspace for orgId={}: id={}",
-                        id,
-                        workspace.getId());
+                        "Fetched default workspace for orgId={}: id={}", id, workspace.getId());
                     return workspace.getId();
                   } catch (Exception e) {
                     throw new RuntimeException(
