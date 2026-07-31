@@ -307,7 +307,7 @@ public class ContractService {
       if (matchingUpdatedContract == null) {
         log.info(
             "Deleting contract that does not align to IT partner gateway: {}", existingContract);
-        contractRepository.delete(existingContract);
+        detachAndDeleteContract(existingContract);
         hasDeletedContracts = true;
       } else {
         if (!matchingUpdatedContract.equals(existingContract)) {
@@ -677,9 +677,11 @@ public class ContractService {
    * @return existing contract record, or null
    */
   private List<ContractEntity> findExistingContractRecords(ContractEntity contract) {
-    Specification<ContractEntity> specification;
+    Specification<ContractEntity> specification = ContractEntity.orgIdEquals(contract.getOrgId());
     if (contract.getBillingProvider().startsWith("aws")) {
-      specification = ContractEntity.billingProviderIdEquals(contract.getBillingProviderId());
+      specification =
+          specification.and(
+              ContractEntity.billingProviderIdEquals(contract.getBillingProviderId()));
       // AWS contracts can share billingProviderId with different subscriptionNumbers. Scope by
       // subscription number when present so syncing one does not delete the other. Null
       // subscription number keeps legacy billingProviderId-only lookup.
@@ -689,12 +691,23 @@ public class ContractService {
                 ContractEntity.subscriptionNumberEquals(contract.getSubscriptionNumber()));
       }
     } else if (contract.getBillingProvider().startsWith("azure")) {
-      specification = ContractEntity.azureResourceIdEquals(contract.getAzureResourceId());
+      specification =
+          specification.and(ContractEntity.azureResourceIdEquals(contract.getAzureResourceId()));
     } else {
       throw new UnsupportedOperationException(
           String.format("Billing provider %s not implemented", contract.getBillingProvider()));
     }
     return contractRepository.findContracts(specification).toList();
+  }
+
+  private void detachAndDeleteContract(ContractEntity existingContract) {
+    UUID uuid = existingContract.getUuid();
+    var entityManager = contractRepository.getEntityManager();
+    if (entityManager.contains(existingContract)) {
+      entityManager.detach(existingContract);
+    }
+
+    contractRepository.delete("uuid", uuid);
   }
 
   private List<ContractEntity> mapUpstreamContractToContractEntities(
