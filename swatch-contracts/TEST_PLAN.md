@@ -1431,6 +1431,197 @@ This section verifies the automatic contract termination behavior when contracts
   - Valid offerings remain unaffected by malformed UMB events.
   - Appropriate error handling and logging for debugging malformed events.
 
+## Contract Management via IT Partner Gateway
+
+**partner-gateway-kafka-TC001 - Process a valid PAYG contract via Kafka for AWS Marketplace**
+- **Description**: Verify that a valid AWS partner entitlement message delivered via the IT Partner Gateway Kafka topic creates a contract with correct AWS billing fields.
+- **Setup**:
+  - Unleash toggle enabled
+  - Stub Product API, Partner API, and Search API for the contract
+  - Sync offering via HTTP API
+- **Action**: Produce a `PartnerEntitlementContract` JSON message to `partner-integration.entitlement-gateway.partner-entitlement.protected` via Kafka Bridge
+- **Verification**: Poll internal contracts API until 1 contract appears for the org
+- **Expected Result**:
+  - 1 contract with correct `org_id`, `sku`, `billing_provider=aws`
+  - `billing_provider_id` = `{vendorProductCode};{awsCustomerId};{sellerAccountId}`
+  - `billing_account_id` = `awsCustomerAccountId`
+  - 1 metric with correct dimension and value
+
+**partner-gateway-kafka-TC002 - Process a valid PAYG contract via Kafka for Azure Marketplace**
+- **Description**: Verify that a valid Azure partner entitlement message delivered via Kafka creates a contract with correct Azure billing fields.
+- **Setup**:
+  - Unleash toggle enabled
+  - Stub Product API, Partner API, and Search API for the contract
+  - Sync offering via HTTP API
+- **Action**: Produce an Azure `PartnerEntitlementContract` JSON message to `partner-integration.entitlement-gateway.partner-entitlement.protected` via Kafka Bridge
+- **Verification**: Poll internal contracts API until 1 contract appears for the org
+- **Expected Result**:
+  - 1 contract with correct `org_id`, `sku`, `billing_provider=azure`
+  - `billing_provider_id` = `{azureResourceId};{planId};{vendorProductCode};{customer};{clientId}`
+  - `billing_account_id` = `azureTenantId`
+  - 1 metric with correct dimension and value
+
+**partner-gateway-kafka-TC003 - Process a pure PAYG AWS contract via Kafka when all dimensions are invalid**
+- **Description**: Verify that a Kafka message with only invalid dimensions (e.g. Sockets for ROSA) creates a contract with 0 metrics (pure PAYG).
+- **Setup**:
+  - Unleash toggle enabled
+  - Stub Product API, Partner API, and Search API for the contract
+  - Sync offering via HTTP API
+  - The dimension in the message is `Sockets` (not valid for ROSA product)
+- **Action**: Produce a `PartnerEntitlementContract` JSON message to `partner-integration.entitlement-gateway.partner-entitlement.protected` via Kafka Bridge
+- **Verification**: Poll internal contracts API until 1 contract appears for the org
+- **Expected Result**:
+  - 1 contract with correct `org_id`, `sku`, `billing_provider=aws`
+  - `metrics` is empty (all dimensions filtered out)
+
+**partner-gateway-kafka-TC004 - Process a contract with multiple valid metrics via Kafka**
+- **Description**: Verify that a Kafka message with multiple valid dimensions (Cores + Instance-hours) creates a contract with both metrics stored.
+- **Setup**:
+  - Unleash toggle enabled
+  - Stub Product API, Partner API, and Search API for the contract
+  - Sync offering via HTTP API
+  - The message contains two valid dimensions: Cores and Instance-hours
+- **Action**: Produce a `PartnerEntitlementContract` JSON message to `partner-integration.entitlement-gateway.partner-entitlement.protected` via Kafka Bridge
+- **Verification**: Poll internal contracts API until 1 contract with 2 metrics appears
+- **Expected Result**:
+  - 1 contract with correct `org_id`, `sku`, `billing_provider=aws`
+  - Both Cores and Instance-hours metrics stored with correct values after billing factor conversion
+
+**partner-gateway-kafka-TC005 - Malformed JSON in IT Partner Gateway Kafka message**
+- **Description**: Verify that a non-JSON-object value in the Kafka message is handled gracefully — warning logged, no contract persisted, service stays healthy.
+- **Setup**: Unleash toggle enabled; no additional stubs needed
+- **Action**: Publish a non-JSON string to the `partner-integration.entitlement-gateway.partner-entitlement.protected` topic via Kafka Bridge
+- **Verification**:
+  - Wait for warn log: `Unable to read IT Partner Kafka message from JSON`
+  - Poll contracts for the test org via internal API
+  - Check service health
+- **Expected Result**:
+  - Zero contracts persisted
+  - Service health checks all UP
+  - Consumer continues to accept subsequent messages (`failure-strategy=ignore`)
+
+**partner-gateway-kafka-TC006 - No contract persisted when Search API returns no subscription**
+- **Description**: Verify that a Kafka message with missing subscription data (Search API returns no match) results in no contract persisted.
+- **Setup**:
+  - Unleash toggle enabled
+  - Stub Partner API and Product API for the contract
+  - Stub Search API to return no subscription for the subscription number
+  - Sync offering
+- **Action**: Produce a valid `PartnerEntitlementContract` JSON message to Kafka
+- **Verification**: Poll contracts for the test org via internal API
+- **Expected Result**: Zero contracts created for the test org
+
+**partner-gateway-kafka-TC007 - Partner API unavailable (503) during Kafka contract enrichment**
+- **Description**: Verify that when the IT Partner Gateway REST API returns HTTP 503 during Kafka-triggered enrichment, no contract is persisted and the service remains healthy.
+- **Setup**:
+  - Unleash toggle enabled
+  - Stub Product API and sync offering
+  - Stub Partner API to return 503
+- **Action**: Produce a valid `PartnerEntitlementContract` JSON message to Kafka
+- **Verification**:
+  - Poll contracts for the test org via internal API
+  - Check service health endpoint
+- **Expected Result**:
+  - Zero contracts persisted
+  - Service health checks all UP
+
+**partner-gateway-kafka-TC008 - Duplicate IT Partner Gateway Kafka messages (idempotency)**
+- **Description**: Verify that receiving the same partner entitlement Kafka message twice results in exactly one contract — the second message is treated as an idempotent update.
+- **Setup**:
+  - Unleash toggle enabled
+  - Stub Product API, Partner API, and Search API for the contract
+  - Sync offering via HTTP API
+- **Action**: Produce the same valid `PartnerEntitlementContract` JSON message to Kafka twice
+- **Verification**: Poll contracts for the test org via internal API
+- **Expected Result**: Still exactly 1 contract for the org
+
+**partner-gateway-kafka-TC009 - Ignore Kafka message when Kafka consumer disabled via config variant**
+- **Description**: Verify that a `config` variant payload of `{"kafka_consumer_enabled":false}` blocks the Kafka consumer while the flag itself remains enabled.
+- **Setup**: Unleash toggle enabled; `config` variant set with `kafka_consumer_enabled=false`; stubs in place and offering synced
+- **Action**: Produce a valid `PartnerEntitlementContract` JSON message to Kafka
+- **Verification**: Poll contracts after 3 second delay via internal API
+- **Expected Result**: Zero contracts created for the test org
+
+**partner-gateway-kafka-TC010 - Process Kafka message when UMB consumer disabled via config variant**
+- **Description**: Verify that disabling the UMB consumer via variant (`umb_consumer_enabled=false`) does not prevent the Kafka consumer from working.
+- **Setup**: Unleash toggle enabled; `config` variant set with `{"kafka_consumer_enabled":true,"umb_consumer_enabled":false}`; stubs in place and offering synced
+- **Action**: Produce a valid `PartnerEntitlementContract` JSON message to Kafka
+- **Verification**: Poll internal contracts API until 1 contract appears
+- **Expected Result**:
+  - Contract created with correct `org_id`, `sku`, and `billing_provider`
+  - UMB consumer is independently disabled (not tested in this TC)
+
+**partner-gateway-kafka-TC011 - Process Kafka message when both consumers explicitly enabled via config variant**
+- **Description**: Verify that explicitly enabling both Kafka and UMB consumers via variant (`{"kafka_consumer_enabled":true,"umb_consumer_enabled":true}`) allows both to function correctly.
+- **Setup**: Unleash toggle enabled; `config` variant set with `{"kafka_consumer_enabled":true,"umb_consumer_enabled":true}`; stubs in place and offering synced
+- **Action**: Produce a valid `PartnerEntitlementContract` JSON message to Kafka
+- **Verification**: Poll internal contracts API until 1 contract appears
+- **Expected Result**:
+  - Contract created with correct `org_id`, `sku`, and `billing_provider`
+  - Both Kafka and UMB consumers are enabled and operational
+
+**partner-gateway-kafka-TC012 - Reject Kafka message with missing required fields**
+- **Description**: Verify that a Kafka message missing required fields causes a warn log and no contract is persisted; the consumer continues processing.
+- **Setup**: Unleash toggle enabled; no additional stubs needed
+- **Action**: Publish a `PartnerEntitlementContract` JSON missing required fields (e.g., no `rhSubscriptions`) to the `partner-integration.entitlement-gateway.partner-entitlement.protected` topic
+- **Verification**: Check service logs and contracts table
+- **Expected Result**:
+  - Warn log or validation error logged
+  - No contract created for the test org
+  - Consumer continues to accept subsequent messages
+
+**partner-gateway-kafka-TC013 - Null/empty optional fields in Kafka message**
+- **Description**: Verify that a Kafka message with null or empty optional fields (e.g., null `sellerAccountId`, empty `azureTenantId`) is processed successfully without errors.
+- **Setup**:
+  - Unleash toggle enabled
+  - Stub Product API, Partner API, and Search API for the contract
+  - Sync offering via HTTP API
+  - The message contains null/empty values for optional billing fields (e.g., null `sellerAccountId`, empty `azureTenantId`)
+- **Action**: Produce a `PartnerEntitlementContract` JSON message with null/empty optional fields to `partner-integration.entitlement-gateway.partner-entitlement.protected` via Kafka Bridge
+- **Verification**: Poll internal contracts API until 1 contract appears for the org
+- **Expected Result**:
+  - Contract created with correct `org_id`, `sku`, and `billing_provider`
+  - Optional fields with null values stored as null (not rejected)
+  - No `NullPointerException` or validation errors logged
+
+**partner-gateway-kafka-TC014 - Invalid/unknown source value in Kafka message**
+- **Description**: Verify that a Kafka message with an invalid or unknown `source` value (e.g., `"GCP"`) is handled gracefully — no contract persisted, service stays healthy.
+- **Setup**: Unleash toggle enabled; no additional stubs needed
+- **Action**: Produce a `PartnerEntitlementContract` JSON message with an unknown `source` value to `partner-integration.entitlement-gateway.partner-entitlement.protected` via Kafka Bridge
+- **Verification**: Check service logs and contracts table
+- **Expected Result**:
+  - No contract created for the test org
+  - Warn log indicates unknown source value
+  - Consumer continues to accept subsequent messages
+
+**partner-gateway-umb-TC001 - Ignore UMB message when feature flag is globally disabled**
+- **Description**: Verify that when the Unleash toggle is **disabled**, the UMB consumer exits early and no contract is persisted.
+- **Setup**:
+  - Ensure `UMB_ENABLED=true`
+  - Unleash toggle disabled; stubs in place and offering synced
+- **Action**: Publish a valid `PartnerEntitlementContract` JSON message to the `VirtualTopic.services.partner-entitlement-gateway` UMB channel
+- **Verification**: Poll contracts after 3 second delay via internal API
+- **Expected Result**: Zero contracts created for the test org
+
+**partner-gateway-umb-TC002 - Ignore UMB message when UMB consumer disabled via config variant**
+- **Description**: Verify that a `config` variant payload of `{"umb_consumer_enabled":false}` blocks the UMB consumer while the flag itself remains enabled.
+- **Setup**:
+  - Ensure `UMB_ENABLED=true`
+  - Unleash toggle enabled; `config` variant set with `umb_consumer_enabled=false`; stubs in place and offering synced
+- **Action**: Publish a valid `PartnerEntitlementContract` JSON message to the `VirtualTopic.services.partner-entitlement-gateway` UMB channel
+- **Verification**: Poll contracts after 3 second delay via internal API
+- **Expected Result**: Zero contracts created for the test org
+
+**partner-gateway-umb-TC003 - Process UMB message when Kafka consumer disabled via config variant**
+- **Description**: Verify that disabling the Kafka consumer via variant (`kafka_consumer_enabled=false`) does not prevent the UMB consumer from working.
+- **Setup**:
+  - Ensure `UMB_ENABLED=true`
+  - Unleash toggle enabled; `config` variant set with `{"kafka_consumer_enabled":false,"umb_consumer_enabled":true}`; stubs in place and offering synced
+- **Action**: Publish a valid `PartnerEntitlementContract` JSON message to the `VirtualTopic.services.partner-entitlement-gateway` UMB channel
+- **Verification**: Poll internal contracts API until 1 contract appears
+- **Expected Result**:
+  - Contract created with correct `org_id`, `sku`, and `billing_provider`
+
 ## Contract Integration
 
 **offering-contract-TC001: Create contract with offering capacity**
