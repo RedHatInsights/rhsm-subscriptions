@@ -23,12 +23,12 @@ package tests;
 import static com.redhat.swatch.component.tests.utils.SwatchUtils.X_RH_IDENTITY_HEADER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import api.AuthorizationModel;
+import com.redhat.swatch.component.tests.api.AuthorizationModel;
+import com.redhat.swatch.component.tests.api.SubscriptionsAccessLevel;
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.component.tests.utils.SwatchUtils;
 import domain.Product;
-import domain.SubscriptionsAccessLevel;
 import io.restassured.response.Response;
 import java.util.Map;
 import org.apache.http.HttpStatus;

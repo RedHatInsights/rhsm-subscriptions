@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package domain;
+package com.redhat.swatch.component.tests.api;
 
 /** Permission outcome stubbed for the subscriptions application. */
 public enum SubscriptionsAccessLevel {

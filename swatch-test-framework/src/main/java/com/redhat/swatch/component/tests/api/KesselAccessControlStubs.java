@@ -18,9 +18,8 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package api;
+package com.redhat.swatch.component.tests.api;
 
-import domain.SubscriptionsAccessLevel;
 import java.util.List;
 import java.util.Map;
 import org.apache.http.HttpStatus;
@@ -32,9 +31,9 @@ public class KesselAccessControlStubs {
   private static final String WORKSPACE_PATH = "/api/rbac/v2/workspaces/";
   private static final String SUBSCRIPTIONS_REPORT_VIEW = "subscriptions_report_view";
 
-  private final ContractsWiremockService wiremockService;
+  private final WiremockService wiremockService;
 
-  KesselAccessControlStubs(ContractsWiremockService wiremockService) {
+  KesselAccessControlStubs(WiremockService wiremockService) {
     this.wiremockService = wiremockService;
   }
 

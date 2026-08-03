@@ -18,25 +18,10 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package domain;
+package com.redhat.swatch.component.tests.api;
 
-/** Permission outcome stubbed for the subscriptions application. */
-public enum SubscriptionsAccessLevel {
-  GRANTED_ADMIN("subscriptions:*:*"),
-  GRANTED_READER("subscriptions:reports:read"),
-  DENIED;
-
-  private final String permission;
-
-  SubscriptionsAccessLevel() {
-    this.permission = null;
-  }
-
-  SubscriptionsAccessLevel(String permission) {
-    this.permission = permission;
-  }
-
-  public String permission() {
-    return permission;
-  }
+/** Authorization model exercised by parameterized access-control component tests. */
+public enum AuthorizationModel {
+  RBAC,
+  KESSEL
 }

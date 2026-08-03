@@ -23,13 +23,14 @@ package tests;
 import static com.redhat.swatch.component.tests.utils.SwatchUtils.X_RH_IDENTITY_HEADER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import api.AuthorizationModel;
+import com.redhat.swatch.component.tests.api.AuthorizationModel;
+import com.redhat.swatch.component.tests.api.SubscriptionsAccessLevel;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.component.tests.utils.SwatchUtils;
-import domain.SubscriptionsAccessLevel;
 import io.restassured.response.Response;
 import java.util.Map;
 import org.apache.http.HttpStatus;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -42,6 +43,11 @@ class TallyReportAccessComponentTest extends BaseTallyComponentTest {
   @BeforeEach
   void setUpAccessControl() {
     service.createOptInConfig(orgId);
+  }
+
+  @AfterAll
+  static void resetKesselRbacFlag() {
+    unleash.disableKesselRbac();
   }
 
   @ParameterizedTest(name = "authorizationModel={0}")

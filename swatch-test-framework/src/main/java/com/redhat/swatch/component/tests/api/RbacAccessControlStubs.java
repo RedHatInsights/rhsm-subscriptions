@@ -18,9 +18,8 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package api;
+package com.redhat.swatch.component.tests.api;
 
-import domain.SubscriptionsAccessLevel;
 import java.util.List;
 import java.util.Map;
 import org.apache.http.HttpStatus;
@@ -31,9 +30,9 @@ public class RbacAccessControlStubs {
   private static final String RBAC_ACCESS_PATH = "/api/rbac/v1/access/";
   private static final String SUBSCRIPTIONS_APPLICATION = "subscriptions";
 
-  private final TallyWiremockService wiremockService;
+  private final WiremockService wiremockService;
 
-  RbacAccessControlStubs(TallyWiremockService wiremockService) {
+  RbacAccessControlStubs(WiremockService wiremockService) {
     this.wiremockService = wiremockService;
   }
 
