@@ -16,8 +16,9 @@ This document outlines the test plan for swatch-producer-aws.
 **Assumptions:**
 
 * The swatch-producer-aws service is deployed in a stable and functional environment
-* **swatch-contracts** provides accurate `AwsUsageContext` for subscribed orgs
+* **swatch-contracts** provides accurate `AwsUsageContext` for subscribed orgs (including `customerAwsAccountId` and, when applicable, license-scoped context per SWATCH-5297)
 * Kafka is available for billable-usage input and status output topics
+* Billable-usage hourly aggregates may carry `licenseId` on the aggregate body (SWATCH-5301)
 * AWS Marketplace and contracts APIs are stubbed via Wiremock in component tests
 
 **Constraints:**
@@ -43,7 +44,6 @@ Test cases should be testable locally and in deployed environments.
 ## Customer identification on BatchMeterUsage
 
 When the feature flag is enabled, usage records may use `CustomerAWSAccountId` from `AwsUsageContext.customerAwsAccountId` instead of `CustomerIdentifier`. Covered by component tests in `CustomerAwsAccountIdComponentTest`.
-
 **Feature flag covered:** `swatch.swatch-producer-aws.use-customer-aws-account-id` (default off)
 
 **producer-aws-customer-id-TC001 - Use CustomerIdentifier when feature flag is off**
@@ -95,6 +95,126 @@ When the feature flag is enabled, usage records may use `CustomerAWSAccountId` f
   - Remittance status is `SUCCEEDED`
   - `UsageRecords[0].CustomerIdentifier` equals `customerId`
   - Warning logged about missing `customerAwsAccountId`
+
+
+## LicenseArn on BatchMeterUsage (SWATCH-5050 / SWATCH-5303)
+
+**producer-aws-license-TC001 - Omit LicenseArn when feature flag is off**
+
+- **Description**: Verify that with `use-license` disabled (default), usage records do not include `LicenseArn` even if the aggregate carries `licenseId`.
+- **Setup**:
+  - Unleash toggle `swatch.swatch-producer-aws.use-license` is off
+  - Produce an AWS billable-usage aggregate **with** `licenseId` set on the aggregate body
+  - Wiremock returns a valid `awsUsageContext`
+- **Action**:
+  - Produce the aggregate to Kafka
+- **Verification**:
+  - Wait for `SUCCEEDED` on `billable-usage.status`
+  - Inspect captured `BatchMeterUsage` request
+- **Expected Result**:
+  - `UsageRecords[0].LicenseArn` is absent / null
+  - `ProductCode` is still present on the request
+  - Remittance status is `SUCCEEDED`
+
+**producer-aws-license-TC002 - Set LicenseArn when feature flag is on and licenseId is present**
+
+- **Description**: Verify that with `use-license` enabled and aggregate `licenseId` present, `BatchMeterUsage` includes matching `LicenseArn`.
+- **Setup**:
+  - Unleash toggle `swatch.swatch-producer-aws.use-license` is enabled
+  - Aggregate body includes `licenseId` (e.g. `arn:aws:license-manager:...:license:swatch-test-license`)
+  - Wiremock stubs `getAwsUsageContext` successfully (with optional `licenseId` query param per SWATCH-5297 when implemented)
+- **Action**:
+  - Produce the aggregate to Kafka
+- **Verification**:
+  - Wait for `SUCCEEDED` on `billable-usage.status`
+  - Inspect captured `BatchMeterUsage` request and status payload
+- **Expected Result**:
+  - `UsageRecords[0].LicenseArn` equals the aggregate `licenseId`
+  - `ProductCode` is still present
+  - Status message / aggregate on `billable-usage.status` carries the same `licenseId`
+  - Remittance status is `SUCCEEDED`
+
+**producer-aws-license-TC003 - Omit LicenseArn when flag is on but licenseId is missing**
+
+- **Description**: Verify that with `use-license` enabled but aggregate `licenseId` null/absent, the producer meters without LicenseArn (legacy shape), logs a warning, and still succeeds.
+- **Setup**:
+  - Unleash toggle `swatch.swatch-producer-aws.use-license` is enabled
+  - Aggregate has **no** `licenseId`
+  - Wiremock returns a valid `awsUsageContext`
+- **Action**:
+  - Produce the aggregate to Kafka
+- **Verification**:
+  - Wait for `SUCCEEDED` on `billable-usage.status`
+  - Inspect captured `BatchMeterUsage` request
+- **Expected Result**:
+  - Remittance status is `SUCCEEDED`
+  - `UsageRecords[0].LicenseArn` is absent / null
+  - `ProductCode` is still present
+  - Warning logged about missing `licenseId` while `use-license` is on
+  - Status may emit with null `licenseId`
+
+**producer-aws-license-TC004 - LicenseArn combined with CustomerAWSAccountId**
+
+- **Description**: Verify the two SWATCH-5050 toggles are orthogonal: both can be on so the usage record has `CustomerAWSAccountId` **and** `LicenseArn`.
+- **Setup**:
+  - `use-customer-aws-account-id` enabled; `use-license` enabled
+  - Aggregate includes `licenseId`
+  - Wiremock `awsUsageContext` includes `customerAwsAccountId`
+- **Action**:
+  - Produce the aggregate to Kafka
+- **Verification**:
+  - Wait for `SUCCEEDED` on `billable-usage.status`
+  - Inspect captured `BatchMeterUsage` request
+- **Expected Result**:
+  - `UsageRecords[0].CustomerAWSAccountId` matches context
+  - `UsageRecords[0].LicenseArn` matches aggregate `licenseId`
+  - `CustomerIdentifier` absent
+  - `ProductCode` still present
+
+**producer-aws-license-TC005 - Pass licenseId to getAwsUsageContext when looking up context**
+
+- **Description**: verify the producer requests usage context for the specific license used for billing.
+- **Setup**:
+  - `use-license` enabled
+  - Aggregate includes `licenseId`
+  - Wiremock can match `getAwsUsageContext` with optional `licenseId` parameter
+- **Action**:
+  - Produce the aggregate to Kafka
+- **Verification**:
+  - Inspect contracts Wiremock recorded request for `awsUsageContext`
+- **Expected Result**:
+  - Contracts lookup includes the aggregate `licenseId` (when the API contract requires/accepts it)
+  - Successful remittance uses that context
+  - If no contract matches the licenseId, behavior matches contracts error handling (404 / existing classification — see usage-context section)
+
+**producer-aws-license-TC006 - Status emission includes licenseId on success path**
+
+- **Description**: Verify remittance status messages carry the `licenseId` used for metering after a successful AWS remittance (`emitStatus` success path; remittance correlation per SWATCH-5303 / SWATCH-5335).
+- **Setup**:
+  - `use-license` enabled
+  - Aggregate includes `licenseId`
+  - Wiremock stubs successful `getAwsUsageContext` and successful AWS `BatchMeterUsage`
+- **Action**:
+  - Produce the aggregate to Kafka
+- **Verification**:
+  - Read `billable-usage.status` payload
+- **Expected Result**:
+  - Status is successful and the status aggregate includes the metering `licenseId`
+
+**producer-aws-license-TC007 - Status emission includes licenseId on failure path**
+
+- **Description**: Verify remittance status messages still carry `licenseId` when remittance fails after `licenseId` was known (`emitStatus` failure path; remittance correlation per SWATCH-5303 / SWATCH-5335).
+- **Setup**:
+  - `use-license` enabled
+  - Aggregate includes `licenseId`
+  - Wiremock stubs a contracts or AWS failure that still emits status (e.g. contracts `awsUsageContext` 404)
+- **Action**:
+  - Produce the aggregate to Kafka
+- **Verification**:
+  - Read `billable-usage.status` payload
+- **Expected Result**:
+  - Status is `FAILED` with the applicable error code
+  - Status aggregate still includes `licenseId`
 
 ## AWS usage context error handling
 
