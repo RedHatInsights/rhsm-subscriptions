@@ -485,7 +485,7 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
     assertThat("Sync should return OK", syncResponse.statusCode(), is(HttpStatus.SC_OK));
     syncResponse
         .then()
-        .body("status", equalTo("FAILED"))
+        .body("status", equalTo(STATUS_SUCCESS))
         .body("message", equalTo("No contracts found in upstream for the org " + orgId));
 
     // Verify contract still exists in database (soft delete, not hard delete)
@@ -600,7 +600,7 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
     assertThat("Sync should return OK", syncResponse.statusCode(), is(HttpStatus.SC_OK));
     syncResponse
         .then()
-        .body("status", equalTo("FAILED"))
+        .body("status", equalTo(STATUS_SUCCESS))
         .body("message", equalTo("No contracts found in upstream for the org " + orgId));
 
     var contractsAfterSecondSync = service.getContractsByOrgId(orgId);

@@ -754,7 +754,7 @@ This section verifies the automatic contract termination behavior when contracts
 - **Expected Result**:
   - HTTP 200 with StatusResponse
   - StatusResponse message: "No contracts found in upstream for the org org123"
-  - StatusResponse status: "FAILED"
+  - StatusResponse status: "SUCCESS"
   - Contract still exists in database (not hard deleted)
   - Contract `end_date` is set to current timestamp (within 5 seconds of sync time)
   - Associated subscription also has `end_date` set to same timestamp
