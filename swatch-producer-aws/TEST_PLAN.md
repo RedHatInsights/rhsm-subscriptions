@@ -187,19 +187,34 @@ When the feature flag is enabled, usage records may use `CustomerAWSAccountId` f
   - Successful remittance uses that context
   - If no contract matches the licenseId, behavior matches contracts error handling (404 / existing classification — see usage-context section)
 
-**producer-aws-license-TC006 - Status emission includes licenseId on success and failure paths**
+**producer-aws-license-TC006 - Status emission includes licenseId on success path**
 
-- **Description**: Verify remittance status messages carry the `licenseId` used for metering (or null when omitted), on both success and failure emissions that call `emitStatus`.
+- **Description**: Verify remittance status messages carry the `licenseId` used for metering after a successful AWS remittance (`emitStatus` success path; remittance correlation per SWATCH-5303 / SWATCH-5335).
 - **Setup**:
-  - Scenario A: `use-license` on, aggregate with `licenseId`, successful AWS call
-  - Scenario B: `use-license` on, aggregate with `licenseId`, contracts/AWS failure that still emits status
+  - `use-license` enabled
+  - Aggregate includes `licenseId`
+  - Wiremock stubs successful `getAwsUsageContext` and successful AWS `BatchMeterUsage`
 - **Action**:
-  - Produce aggregates for each scenario
+  - Produce the aggregate to Kafka
 - **Verification**:
-  - Read `billable-usage.status` payloads
+  - Read `billable-usage.status` payload
 - **Expected Result**:
-  - Success path: status aggregate includes the metering `licenseId`
-  - Failure path that emits status: status aggregate still includes `licenseId` when it was known at emit time (for remittance correlation per SWATCH-5303 / SWATCH-5335)
+  - Status is successful and the status aggregate includes the metering `licenseId`
+
+**producer-aws-license-TC007 - Status emission includes licenseId on failure path**
+
+- **Description**: Verify remittance status messages still carry `licenseId` when remittance fails after `licenseId` was known (`emitStatus` failure path; remittance correlation per SWATCH-5303 / SWATCH-5335).
+- **Setup**:
+  - `use-license` enabled
+  - Aggregate includes `licenseId`
+  - Wiremock stubs a contracts or AWS failure that still emits status (e.g. contracts `awsUsageContext` 404)
+- **Action**:
+  - Produce the aggregate to Kafka
+- **Verification**:
+  - Read `billable-usage.status` payload
+- **Expected Result**:
+  - Status is `FAILED` with the applicable error code
+  - Status aggregate still includes `licenseId`
 
 ## AWS usage context error handling
 
@@ -219,19 +234,3 @@ Contracts `awsUsageContext` lookup failures and remittance error classification.
 - **Expected Result**:
   - Remittance status is `FAILED` with `SUBSCRIPTION_TERMINATED`
   - AWS Marketplace is not called
-
-**producer-aws-usage-context-TC002 - License-scoped context not found (SWATCH-5297)**
-
-- **Description**: Verify behavior when `use-license` is on, aggregate has `licenseId`, and contracts returns 404 / empty for that license-scoped `awsUsageContext` lookup.
-- **Setup**:
-  - `use-license` enabled; aggregate includes `licenseId`
-  - Wiremock returns 404 (or empty) for `getAwsUsageContext` with that `licenseId`
-- **Action**:
-  - Produce the aggregate to Kafka
-- **Verification**:
-  - Remittance status on `billable-usage.status`
-  - Confirm whether `BatchMeterUsage` was called
-- **Expected Result**:
-  - Align with existing contracts error classification (e.g. `SUBSCRIPTION_NOT_FOUND` / terminated codes as applicable)
-  - No successful AWS metering for a missing license context
-  - Status includes `licenseId` when emitted (for remittance correlation)
