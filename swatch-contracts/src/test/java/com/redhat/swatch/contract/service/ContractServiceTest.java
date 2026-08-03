@@ -311,6 +311,7 @@ class ContractServiceTest extends BaseUnitTest {
 
     StatusResponse statusResponse = contractService.syncContractsByOrgId(ORG_ID);
 
+    assertEquals(ContractService.SUCCESS_MESSAGE, statusResponse.getStatus());
     assertEquals(
         "No contracts found in upstream for the org " + ORG_ID, statusResponse.getMessage());
 
@@ -333,6 +334,7 @@ class ContractServiceTest extends BaseUnitTest {
 
     StatusResponse statusResponse = contractService.syncContractsByOrgId(ORG_ID);
 
+    assertEquals(ContractService.SUCCESS_MESSAGE, statusResponse.getStatus());
     assertEquals(
         "No contracts found in upstream for the org " + ORG_ID, statusResponse.getMessage());
 
@@ -575,6 +577,7 @@ class ContractServiceTest extends BaseUnitTest {
 
     StatusResponse statusResponse = contractService.syncContractsByOrgId(ORG_ID);
 
+    assertEquals(ContractService.SUCCESS_MESSAGE, statusResponse.getStatus());
     assertEquals(
         "No contracts found in upstream for the org " + ORG_ID, statusResponse.getMessage());
 

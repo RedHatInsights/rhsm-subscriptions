@@ -266,7 +266,7 @@ public class AwsBillableUsageAggregateConsumer {
               result -> {
                 if (result.status() == UsageRecordResultStatus.CUSTOMER_NOT_SUBSCRIBED) {
                   log.warn(
-                      "No subscription found for aggregate={}, result={}",
+                      "AWS BatchMeterUsage CUSTOMER_NOT_SUBSCRIBED (No subscription found) for aggregate={}, result={}",
                       billableUsageAggregate,
                       result);
                 } else if (result.status() != UsageRecordResultStatus.SUCCESS) {

@@ -473,11 +473,10 @@ public class ContractService {
 
       if (!upstreamContracts.isEmpty()) {
         statusResponse.setMessage("Contracts Synced for " + contractOrgSync);
-        statusResponse.setStatus(SUCCESS_MESSAGE);
       } else {
         statusResponse.setMessage("No contracts found in upstream for the org " + contractOrgSync);
-        statusResponse.setStatus(FAILURE_MESSAGE);
       }
+      statusResponse.setStatus(SUCCESS_MESSAGE);
     } catch (NumberFormatException e) {
       log.error(e.getMessage());
       statusResponse.setStatus(FAILURE_MESSAGE);
