@@ -28,12 +28,15 @@ import static com.redhat.swatch.contract.model.MeasurementMetricIdTransformer.ME
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.AdditionalMatchers.aryEq;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -74,10 +77,12 @@ import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.repository.SubscriptionRepository;
 import com.redhat.swatch.contract.test.resources.InjectWireMock;
 import com.redhat.swatch.contract.test.resources.WireMockResource;
+import io.quarkus.narayana.jta.QuarkusTransaction;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectSpy;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -123,6 +128,7 @@ class ContractServiceTest extends BaseUnitTest {
   @Inject OfferingRepository offeringRepository;
   @InjectSpy SubscriptionRepository subscriptionRepository;
   @InjectSpy SubscriptionService subscriptionService;
+  @Inject EntityManager entityManager;
   @InjectWireMock WireMockServer wireMockServer;
   @InjectSpy MeasurementMetricIdTransformer measurementMetricIdTransformer;
 
@@ -216,8 +222,28 @@ class ContractServiceTest extends BaseUnitTest {
     StatusResponse statusResponse = contractService.createPartnerContract(contract);
 
     assertNotEquals("Redundant message ignored", statusResponse.getMessage());
-    verify(contractRepository).delete(argThat(c -> c.getUuid().equals(orphanContract.getUuid())));
+    verify(contractRepository).delete(eq("uuid"), aryEq(new Object[] {orphanContract.getUuid()}));
     verify(subscriptionService, never()).save(any(SubscriptionEntity.class));
+  }
+
+  @Test
+  void syncContractsByOrgIdContinuesWhenConcurrentHardDeleteAlreadyRemovedRow() throws Exception {
+    mockPartnerApi();
+    UUID contractUuid = givenMisalignedAzureContract().getUuid();
+
+    doAnswer(
+            invocation -> {
+              hardDeleteContractInNewTransaction(contractUuid);
+              return invocation.callRealMethod();
+            })
+        .when(contractRepository)
+        .delete(eq("uuid"), aryEq(new Object[] {contractUuid}));
+
+    StatusResponse statusResponse = contractService.syncContractsByOrgId(AZURE_PARTNER_ORG_ID);
+
+    assertEquals("Contracts Synced for " + AZURE_PARTNER_ORG_ID, statusResponse.getMessage());
+    assertEquals("SUCCESS", statusResponse.getStatus());
+    assertNull(contractRepository.findById(contractUuid));
   }
 
   @Test
@@ -249,16 +275,34 @@ class ContractServiceTest extends BaseUnitTest {
 
   @Test
   void createPartnerContractUpdateContract() {
-    ContractEntity existingContract = givenExistingContractWithExistingMetrics();
+    ContractEntity existingContract =
+        givenExistingContract(givenContractRequest(PARTNER_API_AWS_SUBSCRIPTION_NUMBER));
     givenExistingSubscriptionWithBillingProviderId("1234:agb1:1fa");
+    UUID deletedContractUuid = existingContract.getUuid();
+    assertTrue(
+        existingContract.getMetrics().size() > 0,
+        "precondition: contract under test must have metrics");
 
     var request = givenPartnerEntitlementContractRequest();
 
     StatusResponse statusResponse = contractService.createPartnerContract(request);
     verify(subscriptionService, times(2)).save(any(SubscriptionEntity.class));
     verify(contractRepository, times(2)).persist(any(ContractEntity.class));
-    verify(contractRepository).delete(existingContract);
+    verify(contractRepository).delete(eq("uuid"), aryEq(new Object[] {deletedContractUuid}));
     assertEquals("New contract created", statusResponse.getMessage());
+    entityManager.clear();
+    assertEquals(
+        0,
+        countContractMetrics(deletedContractUuid),
+        "DB ON DELETE CASCADE must remove contract_metrics with the contract");
+  }
+
+  private long countContractMetrics(UUID contractUuid) {
+    return (long)
+        entityManager
+            .createQuery("SELECT COUNT(m) FROM ContractMetricEntity m WHERE m.contractUuid = :uuid")
+            .setParameter("uuid", contractUuid)
+            .getSingleResult();
   }
 
   @Test
@@ -897,22 +941,6 @@ class ContractServiceTest extends BaseUnitTest {
     return givenExistingContract(givenContractRequest());
   }
 
-  private ContractEntity givenExistingContractWithExistingMetrics() {
-    var request = givenContractRequest(PARTNER_API_AWS_SUBSCRIPTION_NUMBER);
-    var contract = request.getPartnerEntitlement().getPurchase().getContracts().get(0);
-
-    // existing metrics are coming from WireMockResource.stubForRhPartnerApi() method
-    var metric1 = new DimensionV1();
-    metric1.setName("Instance-hours");
-    metric1.setValue("1000000");
-
-    var metric2 = new DimensionV1();
-    metric2.setName("Cores");
-    metric2.setValue("1000000");
-    contract.setDimensions(List.of(metric1, metric2));
-    return givenExistingContract(request);
-  }
-
   private ContractEntity givenExistingContract(ContractRequest request) {
     ContractResponse created = contractService.createContract(request);
     var entity = contractRepository.findById(UUID.fromString(created.getContract().getUuid()));
@@ -920,6 +948,29 @@ class ContractServiceTest extends BaseUnitTest {
     reset(contractRepository);
     clearInvocations(subscriptionService);
     return entity;
+  }
+
+  @Transactional
+  ContractEntity givenMisalignedAzureContract() {
+    var contract =
+        ContractEntity.builder()
+            .uuid(UUID.randomUUID())
+            .subscriptionNumber(SUBSCRIPTION_NUMBER)
+            .startDate(ORPHAN_SEGMENT_START_DATE)
+            .endDate(DEFAULT_END_DATE)
+            .orgId(AZURE_PARTNER_ORG_ID)
+            .offering(offeringRepository.findById(SKU))
+            .billingProvider("azure")
+            .billingProviderId(
+                "a69ff71c-aa8b-43d9-dea8-822fab4bbb86;rh-rhel-sub-1yr;azureProductCode;"
+                    + "eadf26ee-6fbc-4295-9a9e-25d4fea8951d_2019-05-31;")
+            .billingAccountId("fa650050-dedd-4958-b901-d8e5118c0a5f")
+            .vendorProductCode("azureProductCode")
+            .lastUpdated(OffsetDateTime.now(ZoneOffset.UTC))
+            .build();
+    contractRepository.persist(contract);
+    reset(contractRepository);
+    return contract;
   }
 
   @Transactional
@@ -1177,5 +1228,16 @@ class ContractServiceTest extends BaseUnitTest {
                 aResponse()
                     .withHeader("Content-Type", "application/json")
                     .withBody(objectMapper.writeValueAsString(response))));
+  }
+
+  /** Necessary to simulate a concurrent transaction that deletes one contract. */
+  private void hardDeleteContractInNewTransaction(UUID uuid) {
+    QuarkusTransaction.requiringNew()
+        .run(
+            () ->
+                entityManager
+                    .createNativeQuery("DELETE FROM contracts WHERE uuid = :uuid")
+                    .setParameter("uuid", uuid)
+                    .executeUpdate());
   }
 }
