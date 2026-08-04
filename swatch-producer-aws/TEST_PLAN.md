@@ -37,36 +37,17 @@ Test cases should be testable locally and in deployed environments.
 - Billable-usage aggregates can be published directly to the Kafka `billable-usage-hourly-aggregate` topic
 - Contracts `awsUsageContext` and AWS `BatchMeterUsage` can be stubbed via Wiremock (`AwsWiremockService`)
 - Outcomes can be verified on the `billable-usage.status` topic and, where relevant, on captured AWS request bodies
-- Unleash toggles can be exercised through the component-test harness (`AwsUnleashService`) when feature-flag behavior is under test
 
 # Test Cases
 
 ## Customer identification on BatchMeterUsage
 
-When the feature flag is enabled, usage records may use `CustomerAWSAccountId` from `AwsUsageContext.customerAwsAccountId` instead of `CustomerIdentifier`. Covered by component tests in `CustomerAwsAccountIdComponentTest`.
-**Feature flag covered:** `swatch.swatch-producer-aws.use-customer-aws-account-id` (default off)
+Usage records always use `CustomerAWSAccountId` from `AwsUsageContext.customerAwsAccountId`. Covered by component tests in `CustomerAwsAccountIdComponentTest`.
 
-**producer-aws-customer-id-TC001 - Use CustomerIdentifier when feature flag is off**
+**producer-aws-customer-id-TC001 - Use CustomerAWSAccountId on BatchMeterUsage**
 
-- **Description**: Verify that with the toggle disabled (default), usage records sent to AWS use `CustomerIdentifier` from `AwsUsageContext.customerId`.
+- **Description**: Verify that usage records sent to AWS use `CustomerAWSAccountId` from `AwsUsageContext.customerAwsAccountId`.
 - **Setup**:
-  - Unleash toggle `swatch.swatch-producer-aws.use-customer-aws-account-id` is off
-  - Wiremock returns `awsUsageContext` with distinct `customerId` and `customerAwsAccountId`
-  - Kafka topics for billable-usage hourly aggregate and status are available
-- **Action**:
-  - Produce a valid AWS billable-usage aggregate to Kafka
-- **Verification**:
-  - Wait for `SUCCEEDED` on `billable-usage.status`
-  - Inspect captured `BatchMeterUsage` request in Wiremock
-- **Expected Result**:
-  - `UsageRecords[0].CustomerIdentifier` equals `customerId`
-  - `CustomerAWSAccountId` is absent from the usage record
-
-**producer-aws-customer-id-TC002 - Use CustomerAWSAccountId when feature flag is on**
-
-- **Description**: Verify that with the toggle enabled and `customerAwsAccountId` present, usage records use `CustomerAWSAccountId`.
-- **Setup**:
-  - Unleash toggle `swatch.swatch-producer-aws.use-customer-aws-account-id` is enabled
   - Wiremock returns `awsUsageContext` with distinct `customerId` and `customerAwsAccountId`
   - Kafka topics for billable-usage hourly aggregate and status are available
 - **Action**:
@@ -78,24 +59,6 @@ When the feature flag is enabled, usage records may use `CustomerAWSAccountId` f
   - `UsageRecords[0].CustomerAWSAccountId` matches `customerAwsAccountId` from context
   - `CustomerIdentifier` is absent from the usage record
   - `ProductCode` is still sent on the request
-
-**producer-aws-customer-id-TC003 - Fall back to CustomerIdentifier when account id is missing**
-
-- **Description**: Verify that with the toggle enabled but `customerAwsAccountId` absent from context, the producer logs a warning and falls back to `CustomerIdentifier`.
-- **Setup**:
-  - Unleash toggle `swatch.swatch-producer-aws.use-customer-aws-account-id` is enabled
-  - Wiremock returns `awsUsageContext` without `customerAwsAccountId`
-  - Kafka topics for billable-usage hourly aggregate and status are available
-- **Action**:
-  - Produce a valid AWS billable-usage aggregate to Kafka
-- **Verification**:
-  - Wait for `SUCCEEDED` on `billable-usage.status`
-  - Inspect captured `BatchMeterUsage` request in Wiremock
-- **Expected Result**:
-  - Remittance status is `SUCCEEDED`
-  - `UsageRecords[0].CustomerIdentifier` equals `customerId`
-  - Warning logged about missing `customerAwsAccountId`
-
 
 ## LicenseArn on BatchMeterUsage (SWATCH-5050 / SWATCH-5303)
 
@@ -155,9 +118,9 @@ When the feature flag is enabled, usage records may use `CustomerAWSAccountId` f
 
 **producer-aws-license-TC004 - LicenseArn combined with CustomerAWSAccountId**
 
-- **Description**: Verify the two SWATCH-5050 toggles are orthogonal: both can be on so the usage record has `CustomerAWSAccountId` **and** `LicenseArn`.
+- **Description**: Verify `CustomerAWSAccountId` (always set) and `LicenseArn` (when `use-license` is on) can appear together on the usage record.
 - **Setup**:
-  - `use-customer-aws-account-id` enabled; `use-license` enabled
+  - `use-license` enabled
   - Aggregate includes `licenseId`
   - Wiremock `awsUsageContext` includes `customerAwsAccountId`
 - **Action**:
@@ -185,7 +148,7 @@ When the feature flag is enabled, usage records may use `CustomerAWSAccountId` f
 - **Expected Result**:
   - Contracts lookup includes the aggregate `licenseId` (when the API contract requires/accepts it)
   - Successful remittance uses that context
-  - If no contract matches the licenseId, behavior matches contracts error handling (404 / existing classification — see usage-context section)
+  - If no contract matches the licenseId, behavior matches contracts error handling (404 / existing classification - see usage-context section)
 
 **producer-aws-license-TC006 - Status emission includes licenseId on success path**
 
