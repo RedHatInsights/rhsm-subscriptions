@@ -2,7 +2,7 @@
 
 Component-level testing is covered in [SWATCH-TALLY-COMPONENT-TEST-PLAN.md](SWATCH-TALLY-COMPONENT-TEST-PLAN.md). This document covers integration testing that exercises swatch-tally against real downstream services in a deployed environment (stage or ephemeral).
 
-Integration tests live in the IQE plugin: iqe-rhsm-subscriptions-plugin
+Integration tests live in the IQE plugin: [iqe-rhsm-subscriptions-plugin](https://gitlab.cee.redhat.com/insights-qe/iqe-rhsm-subscriptions-plugin/-/tree/master/iqe_rhsm_subscriptions/tests/integration/swatch_tally?ref_type=heads)
 
 All tests are marked `@pytest.mark.post_stage_deploy`.
 
@@ -90,7 +90,7 @@ Source: `tests/integration/rbac/test_rbac.py`
 
 ### Opt-in Enforcement
 
-**Service Flow:** User authenticates → RBAC check (may pass or fail) → opt-in check finds organization not opted in → swatch-tally API returns "Opt-in required" for data endpoints, "Access Denied" for subscription table
+**Service Flow:** User authenticates → RBAC check (may pass or fail) → opt-in check finds organization not opted in → swatch-tally API returns "Opt-in required" for data endpoints, "Access Denied" for subscription
 
 **Services Tested:** console.redhat.com RBAC, swatch opt-in service, swatch-tally
 
@@ -107,7 +107,7 @@ Source: `tests/integration/rbac/test_rbac.py`
 
 - **Given** a group with the Subscriptions user role, a non-admin user added to it, and opt-in deleted
 - **When** the user attempts `get_tally_report_data`, `get_instances_by_product`, `get_instance_guests`
-- **Then** all calls return "Opt-in required."
+- **Then** all calls raise exception with "Opt-in required."
 - **IQE Function:** `test_verify_rbac_not_opt_in_and_with_subscriptions_user_permission_for_swatch_tally`
 
 ## Kessel RBAC (v2) Authorization
@@ -194,4 +194,4 @@ These tests validate that the Kessel authorization backend produces the same out
 
 - **Given** Kessel RBAC is enabled, a group with the Subscriptions user role, a non-admin user added to it, and opt-in deleted
 - **When** the user attempts `get_tally_report_data`, `get_instances_by_product`, `get_instance_guests`
-- **Then** all calls return "Opt-in required.", matching RBACv1 behavior
+- **Then** all calls raise exception with "Opt-in required.", matching RBACv1 behavior

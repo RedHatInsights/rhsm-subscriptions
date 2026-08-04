@@ -36,4 +36,4 @@ Component tests use the `@TestPlanName` Java annotation. Integration tests use t
 ## References
 
 - [Component Testing Framework](component-tests.md) — framework overview and getting started guide
-- IQE Plugin: iqe-rhsm-subscriptions-plugin — integration test source (external)
+- IQE Plugin: [iqe-rhsm-subscriptions-plugin](https://gitlab.cee.redhat.com/insights-qe/iqe-rhsm-subscriptions-plugin) — integration test source (external)

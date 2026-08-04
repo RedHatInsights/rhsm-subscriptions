@@ -2,7 +2,7 @@
 
 Component-level testing is covered in [SWATCH-CONTRACTS-COMPONENT-TEST-PLAN.md](SWATCH-CONTRACTS-COMPONENT-TEST-PLAN.md). This document covers integration testing that exercises swatch-contracts against real downstream services in a deployed environment (stage or ephemeral).
 
-Integration tests live in the IQE plugin: iqe-rhsm-subscriptions-plugin
+Integration tests live in the IQE plugin: [iqe-rhsm-subscriptions-plugin](https://gitlab.cee.redhat.com/insights-qe/iqe-rhsm-subscriptions-plugin/-/tree/master/iqe_rhsm_subscriptions/tests/integration/swatch_contracts?ref_type=heads)
 
 All tests are marked `@pytest.mark.post_stage_deploy`.
 
@@ -12,6 +12,7 @@ All tests are marked `@pytest.mark.post_stage_deploy`.
 |---|---|---|
 | `get_sku_capacity_report` | `/v1/subscriptions/products/{product_id}` | `getSkuCapacityReport` |
 | `get_capacity_report_by_metric_id` | `/v1/capacity/products/{product_id}/{metric_id}` | `getCapacityReportByMetricId` |
+| `get_today_capacity_report` | `/v1/capacity/products/{product_id}/{metric_id}` | `getCapacityReportByMetricId` |
 
 ## RBAC Authorization (RBACv1)
 
