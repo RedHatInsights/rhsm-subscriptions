@@ -42,7 +42,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -50,7 +49,6 @@ import org.apache.http.HttpStatus;
 import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -507,8 +505,14 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
         events.toArray(Event[]::new));
   }
 
+  @AfterAll
+  void resetPrimaryBucketSearchesFlag() {
+    // Reset once after all parameterized FilterTests instances finish.
+    givenPrimaryBucketSearchesEnabled(false);
+  }
+
   // Use a nested test class to isolate the filter setup phase to toggling the primary
-  // bucket search flag, while keeping the test data setup in the main class' beforeAll.
+  // bucket search flag, while keeping the test data setup in the main class beforeAll.
   @Nested
   @TestInstance(TestInstance.Lifecycle.PER_CLASS)
   @ParameterizedClass(name = "Using primary bucket searches: {0}")
@@ -516,24 +520,10 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
   class FilterTests {
 
     @Parameter boolean usePrimaryBucketSearches;
-    Boolean lastSearchConfig;
 
-    // Ensure we disable primary bucket search after all tests are run
-    // to get it back in the default state.
-    @AfterAll
-    void teardown() {
-      // Disable primary bucket search
-      givenPrimaryBucketSearchesEnabled(false);
-    }
-
-    @BeforeEach
+    @BeforeAll
     void setup() {
-      // Check if the parameter value has changed and only toggle the flag if it has. This avoids
-      // needing to make a request to unleash before each test.
-      if (Objects.isNull(lastSearchConfig) || !lastSearchConfig.equals(usePrimaryBucketSearches)) {
-        givenPrimaryBucketSearchesEnabled(usePrimaryBucketSearches);
-      }
-      lastSearchConfig = usePrimaryBucketSearches;
+      givenPrimaryBucketSearchesEnabled(usePrimaryBucketSearches);
     }
 
     @Test
