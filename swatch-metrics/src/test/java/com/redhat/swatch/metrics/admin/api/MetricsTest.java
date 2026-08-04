@@ -23,6 +23,7 @@ package com.redhat.swatch.metrics.admin.api;
 import static io.restassured.RestAssured.get;
 import static io.restassured.RestAssured.given;
 import static io.restassured.RestAssured.put;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -164,6 +165,27 @@ class MetricsTest {
     syncMetricsForAllAccounts();
 
     verify(tasks).updateMetricsForAllAccounts("OpenShift-metrics");
+  }
+
+  @Test
+  void testGetProductConfigurationByTagReturnsYaml() {
+    String body =
+        get("/api/swatch-metrics/v1/internal/product-configuration/rhacm")
+            .then()
+            .statusCode(HttpStatus.SC_OK)
+            .contentType("application/yaml")
+            .extract()
+            .asString();
+
+    assertTrue(body.contains("id: rhacm"));
+    assertTrue(body.contains("tag: rhacm"));
+  }
+
+  @Test
+  void testGetProductConfigurationByTagReturnsNotFound() {
+    get("/api/swatch-metrics/v1/internal/product-configuration/not-a-real-tag")
+        .then()
+        .statusCode(HttpStatus.SC_NOT_FOUND);
   }
 
   @Test

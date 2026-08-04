@@ -20,6 +20,7 @@ serviceType: rhacm Instance
 contractEnabled: true
 
 metrics:
+# legacy combined
   - id: vCPUs
     type: counter
     awsDimension: acm_vcpu_hours
@@ -29,4 +30,31 @@ metrics:
         instanceKey: _id
         productLabelRegex: (moa-hostedcontrolplane|moa)
         metric: acm_capacity_effective_cpu_cores:sum
+        metadataMetric: ocm_subscription
+# https://github.com/openshift/telemeter/pull/612/changes
+  - id: cores-self-managed
+    enabled: false
+    type: counter
+    awsDimension: acm_vcpu_hours
+    # azureDimension: acm_vcpu_hours_slfmng
+    prometheus:
+      queryKey: rosa
+      queryParams:
+        instanceKey: _id
+        productLabelRegex: (moa-hostedcontrolplane|moa)
+        # metric: acm:managed_cluster_worker_cores:self_managed:sum
+        metric: sum by (_id) (acm_managed_cluster_worker_cores:max and on(hub_cluster_id, managed_cluster_id) acm_managed_cluster_info{product=~"OpenShift|MicroShift"})
+        metadataMetric: ocm_subscription
+  - id: cores-managed
+    enabled: false
+    type: counter
+    awsDimension: acm_vcpu_hours
+    # azureDimension: acm_vcpu_hours_mng
+    prometheus:
+      queryKey: rosa
+      queryParams:
+        instanceKey: _id
+        productLabelRegex: (moa-hostedcontrolplane|moa)
+        # metric: acm:managed_cluster_worker_cores:managed:sum
+        metric: sum by (_id) (acm_managed_cluster_worker_cores:max and on(hub_cluster_id, managed_cluster_id) acm_managed_cluster_info{product!~"OpenShift|MicroShift"})
         metadataMetric: ocm_subscription

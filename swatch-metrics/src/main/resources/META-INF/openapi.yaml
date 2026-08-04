@@ -5,6 +5,31 @@ info:
   version: 1.0.0
 
 paths:
+  /api/swatch-metrics/v1/internal/product-configuration/{productTag}:
+    description: 'Look up subscription product configuration YAML by variant tag.'
+    get:
+      operationId: getProductConfigurationByTag
+      summary: "Get product configuration YAML for a variant tag."
+      parameters:
+        - name: productTag
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "Variant tag (e.g. rhacm, rosa)."
+      responses:
+        '200':
+          description: "Product configuration YAML."
+          content:
+            application/yaml:
+              schema:
+                type: string
+        '403':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
   /api/swatch-metrics/v1/internal/metering/sync:
     description: 'Perform product metering for all accounts.'
     put:

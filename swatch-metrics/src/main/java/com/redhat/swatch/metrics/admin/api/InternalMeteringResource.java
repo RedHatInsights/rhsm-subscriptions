@@ -25,12 +25,14 @@ import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.metrics.configuration.ApplicationConfiguration;
 import com.redhat.swatch.metrics.configuration.MetricProperties;
+import com.redhat.swatch.metrics.service.ProductConfigurationService;
 import com.redhat.swatch.metrics.service.PrometheusMeteringController;
 import com.redhat.swatch.metrics.service.PrometheusMetricsTaskManager;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.SecurityContext;
 import java.time.OffsetDateTime;
@@ -49,18 +51,31 @@ public class InternalMeteringResource implements DefaultApi {
   private final MetricProperties metricProperties;
   private final ApplicationConfiguration applicationConfiguration;
   private final ApplicationClock clock;
+  private final ProductConfigurationService productConfigurationService;
 
   public InternalMeteringResource(
       PrometheusMetricsTaskManager tasks,
       PrometheusMeteringController controller,
       MetricProperties metricProperties,
       ApplicationConfiguration applicationConfiguration,
-      ApplicationClock clock) {
+      ApplicationClock clock,
+      ProductConfigurationService productConfigurationService) {
     this.tasks = tasks;
     this.controller = controller;
     this.metricProperties = metricProperties;
     this.clock = clock;
     this.applicationConfiguration = applicationConfiguration;
+    this.productConfigurationService = productConfigurationService;
+  }
+
+  @Override
+  public String getProductConfigurationByTag(String productTag) {
+    return productConfigurationService
+        .getYamlByVariantTag(productTag)
+        .orElseThrow(
+            () ->
+                new NotFoundException(
+                    String.format("No product configuration found for tag: %s", productTag)));
   }
 
   @Override
