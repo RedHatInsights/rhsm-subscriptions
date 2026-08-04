@@ -28,8 +28,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 
 @ApplicationScoped
 public class FeatureFlags implements InfoFeatureFlagContributor {
-  public static final String USE_CUSTOMER_AWS_ACCOUNT_ID =
-      "swatch.swatch-producer-aws.use-customer-aws-account-id";
 
   private final Unleash unleash;
 
@@ -37,12 +35,8 @@ public class FeatureFlags implements InfoFeatureFlagContributor {
     this.unleash = unleash;
   }
 
-  public boolean useCustomerAwsAccountId() {
-    return unleash.isEnabled(USE_CUSTOMER_AWS_ACCOUNT_ID);
-  }
-
   @Override
   public InfoFeatureFlags getFeatureFlags() {
-    return UnleashInfoFeatureFlags.snapshot(unleash, USE_CUSTOMER_AWS_ACCOUNT_ID);
+    return UnleashInfoFeatureFlags.snapshot(unleash);
   }
 }

@@ -25,11 +25,10 @@ import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE_HOUR
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE_STATUS;
 
 import api.MessageValidators;
+import com.redhat.swatch.component.tests.api.TestPlanName;
 import domain.Product;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class CustomerAwsAccountIdComponentTest extends BaseAwsComponentTest {
@@ -37,18 +36,9 @@ public class CustomerAwsAccountIdComponentTest extends BaseAwsComponentTest {
   private static final double TOTAL_VALUE = 2.0;
   private static final String CUSTOMER_AWS_ACCOUNT_ID = "123456789012";
 
-  @BeforeEach
-  void setUpFlagDisabled() {
-    unleash.disableUseCustomerAwsAccountId();
-  }
-
-  @AfterEach
-  void tearDown() {
-    unleash.disableUseCustomerAwsAccountId();
-  }
-
+  @TestPlanName("producer-aws-customer-id-TC001")
   @Test
-  void testUsesCustomerIdentifierWhenFlagOff() {
+  void shouldUseCustomerAwsAccountIdOnBatchMeterUsage() {
     String metricId = Product.ROSA.getFirstMetric().getId();
 
     wiremock.setupAwsUsageContext(
@@ -59,43 +49,6 @@ public class CustomerAwsAccountIdComponentTest extends BaseAwsComponentTest {
         productCode,
         CUSTOMER_AWS_ACCOUNT_ID);
 
-    produceAggregateAndWaitForSuccess(metricId);
-
-    wiremock.verifyBatchMeterUsageCustomerIdentifier(customerId);
-  }
-
-  @Test
-  void testUsesCustomerAwsAccountIdWhenFlagOn() {
-    String metricId = Product.ROSA.getFirstMetric().getId();
-
-    unleash.enableUseCustomerAwsAccountId();
-    wiremock.setupAwsUsageContext(
-        awsAccountId,
-        awsSellerAccountId,
-        rhSubscriptionId,
-        customerId,
-        productCode,
-        CUSTOMER_AWS_ACCOUNT_ID);
-
-    produceAggregateAndWaitForSuccess(metricId);
-
-    wiremock.verifyBatchMeterUsageCustomerAwsAccountId(CUSTOMER_AWS_ACCOUNT_ID);
-  }
-
-  @Test
-  void testFallsBackToCustomerIdentifierWhenFlagOnAndAccountIdMissing() {
-    String metricId = Product.ROSA.getFirstMetric().getId();
-
-    unleash.enableUseCustomerAwsAccountId();
-    wiremock.setupAwsUsageContext(
-        awsAccountId, awsSellerAccountId, rhSubscriptionId, customerId, productCode);
-
-    produceAggregateAndWaitForSuccess(metricId);
-
-    wiremock.verifyBatchMeterUsageCustomerIdentifier(customerId);
-  }
-
-  private void produceAggregateAndWaitForSuccess(String metricId) {
     BillableUsageAggregate aggregateData =
         createUsageAggregate(Product.ROSA.getName(), awsAccountId, metricId, TOTAL_VALUE, orgId);
     kafkaBridge.produceKafkaMessage(BILLABLE_USAGE_HOURLY_AGGREGATE, aggregateData);
@@ -104,5 +57,7 @@ public class CustomerAwsAccountIdComponentTest extends BaseAwsComponentTest {
         BILLABLE_USAGE_STATUS,
         MessageValidators.aggregateMatches(awsAccountId, BillableUsage.Status.SUCCEEDED),
         1);
+
+    wiremock.verifyBatchMeterUsageCustomerAwsAccountId(CUSTOMER_AWS_ACCOUNT_ID);
   }
 }
