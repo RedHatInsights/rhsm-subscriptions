@@ -420,6 +420,26 @@ This test plan covers the core tally processing pipeline:
 - **Expected Result**:
     - Guest mapping updates change hypervisor visibility in tally inventory
 
+**tally-hypervisor-TC007 - RHEL hypervisor with overlapping guest SLA appears once in instances**
+
+- **Description**: Verify a hypervisor that inherited multiple guest SLA/usage combinations (multiple primary HYPERVISOR host tally buckets) appears only once in the instances report when SLA and USAGE are wildcarded, for both primary bucket search flag states
+- **Setup**:
+    - Organization is opted in
+    - Feature flag `swatch.swatch-tally.enable-host-tally-bucket-primary-row-searches` is toggled on and off (parameterized)
+    - HBI hypervisor host seeded for RHEL for x86
+    - Two HBI guests mapped to that hypervisor with overlapping SLA and different usages:
+        - Premium + Production
+        - Premium + Development/Test
+    - Nightly tally run for the organization
+- **Action**:
+    - GET instances report with category=hypervisor (SLA and usage wildcarded / default \_ANY)
+- **Verification**:
+    - Hypervisor subscription manager ID appears exactly once
+    - Result count is the same with primary bucket searches enabled and disabled
+- **Expected Result**:
+    - Guest-derived overlapping SLA/usage buckets do not duplicate the hypervisor row when wildcard filters are used
+    - Primary-row search behavior matches non-primary for hypervisor category queries
+
 ## Data Persistence
 
 **tally-persistence-TC001 - Tally report is idempotent across separate tally runs**

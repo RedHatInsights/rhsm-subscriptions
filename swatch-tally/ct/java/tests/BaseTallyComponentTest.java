@@ -111,6 +111,10 @@ public class BaseTallyComponentTest {
     }
   }
 
+  protected void givenPrimaryBucketSearchesEnabled(boolean enablePrimaryBucketSearches) {
+    unleash.enableHostTallyBucketPrimaryRowSearches(enablePrimaryBucketSearches);
+  }
+
   // --- Shared tally report query helpers ---
 
   protected double getHourlyTallySum(

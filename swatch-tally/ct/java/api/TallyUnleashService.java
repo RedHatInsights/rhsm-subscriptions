@@ -25,6 +25,8 @@ import com.redhat.swatch.component.tests.api.UnleashService;
 public class TallyUnleashService extends UnleashService {
   private static final String ENABLE_PRIMARY_ROW_SEARCHES =
       "swatch.swatch-tally.enable-primary-row-searches";
+  private static final String ENABLE_HTB_PRIMARY_ROW_SEARCHES =
+      "swatch.swatch-tally.enable-host-tally-bucket-primary-row-searches";
 
   public void enablePrimaryRowSearches() {
     enableFlag(ENABLE_PRIMARY_ROW_SEARCHES);
@@ -32,5 +34,13 @@ public class TallyUnleashService extends UnleashService {
 
   public void disablePrimaryRowSearches() {
     disableFlag(ENABLE_PRIMARY_ROW_SEARCHES);
+  }
+
+  public void enableHostTallyBucketPrimaryRowSearches(boolean enabled) {
+    if (enabled) {
+      enableFlag(ENABLE_HTB_PRIMARY_ROW_SEARCHES);
+    } else {
+      disableFlag(ENABLE_HTB_PRIMARY_ROW_SEARCHES);
+    }
   }
 }

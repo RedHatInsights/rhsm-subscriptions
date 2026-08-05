@@ -26,6 +26,7 @@ import static utils.TallyTestProducts.RHEL_FOR_X86;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.tally.test.model.InstanceData;
+import com.redhat.swatch.tally.test.model.InstanceResponse;
 import com.redhat.swatch.tally.test.model.TallyReportDataPoint;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -35,10 +36,37 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import utils.TallyDbHostSeeder;
+import utils.TallyHbiDbSeeder;
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class TallyHypervisorTest extends BaseTallyComponentTest {
+
+  private TallyHbiDbSeeder hbiSeeder;
+
+  @BeforeEach
+  void setupHbiSeeder() {
+    hbiSeeder = new TallyHbiDbSeeder(hbiDatabase);
+  }
+
+  @AfterEach
+  void cleanupHbiHosts() {
+    if (hbiSeeder != null) {
+      hbiSeeder.deleteAllInsertedHosts();
+    }
+  }
+
+  @AfterAll
+  void resetPrimaryBucketSearchesFlag() {
+    givenPrimaryBucketSearchesEnabled(false);
+  }
 
   @Test
   @TestPlanName("tally-hypervisor-TC003")
@@ -90,6 +118,69 @@ public class TallyHypervisorTest extends BaseTallyComponentTest {
     long newSockets = getDailySocketsTotal(startOfToday, endOfToday);
     assertEquals(
         initialSockets, newSockets, "Hypervisor without guests should not change total sockets");
+  }
+
+  @ParameterizedTest(name = "Using primary bucket searches: {0}")
+  @ValueSource(booleans = {true, false})
+  @TestPlanName("tally-hypervisor-TC007")
+  void shouldReportHypervisorOnceWhenSlaAndUsageWildcarded(boolean usePrimaryBucketSearches) {
+    // Given: Hypervisor with overlapping guest SLA/usage and primary-bucket flag configured
+    givenPrimaryBucketSearchesEnabled(usePrimaryBucketSearches);
+    service.createOptInConfig(orgId);
+    TallyHbiDbSeeder.SeededHost hypervisor = givenHypervisorWithOverlappingGuestSla();
+    OffsetDateTime start = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
+    OffsetDateTime end = start.plusDays(1).minusNanos(1);
+
+    // When: Fetching instances with category=hypervisor (SLA and usage wildcarded)
+    InstanceResponse response =
+        service.getInstancesByProduct(
+            orgId, RHEL_FOR_X86.productTag(), start, end, Map.of("category", "hypervisor"));
+
+    // Then: Hypervisor appears exactly once despite multiple primary HYPERVISOR buckets
+    long count =
+        response.getData() == null
+            ? 0
+            : response.getData().stream()
+                .filter(
+                    i -> hypervisor.subscriptionManagerId().equals(i.getSubscriptionManagerId()))
+                .count();
+    assertEquals(1, count, "Hypervisor must appear once in instances report");
+  }
+
+  // --- Given helper methods ---
+
+  private TallyHbiDbSeeder.SeededHost givenHypervisorWithOverlappingGuestSla() {
+    // Hypervisor subscription_manager_id must be a UUID so guests can set virtual_host_uuid
+    String hypervisorSubManId = UUID.randomUUID().toString();
+    TallyHbiDbSeeder.SeededHost hypervisor =
+        hbiSeeder
+            .rhelHost(orgId)
+            .subscriptionManagerId(hypervisorSubManId)
+            .displayName("hypervisor-overlapping-guest-sla")
+            .cores(8)
+            .sockets(2)
+            .insert();
+
+    // Guests mapped to the hypervisor with overlapping SLA and different usages
+    hbiSeeder
+        .rhelHost(orgId)
+        .hypervisorUuid(hypervisorSubManId)
+        .sla("Premium")
+        .usage("Production")
+        .cores(4)
+        .sockets(1)
+        .insert();
+    hbiSeeder
+        .rhelHost(orgId)
+        .hypervisorUuid(hypervisorSubManId)
+        .sla("Premium")
+        .usage("Development/Test")
+        .cores(4)
+        .sockets(1)
+        .insert();
+
+    service.tallyOrg(orgId);
+    return hypervisor;
   }
 
   // --- Then helper methods ---
