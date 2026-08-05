@@ -314,6 +314,28 @@ public class SubscriptionEntity extends ModificationTrackedEntity {
         builder.like(root.get(SubscriptionEntity_.billingAccountId), billingAccountId + "%");
   }
 
+  private static Specification<SubscriptionEntity> hasLicenseId(String licenseId) {
+    return (root, query, builder) -> {
+      var subquery = query.subquery(Integer.class);
+      var contractRoot = subquery.from(ContractEntity.class);
+      subquery
+          .select(builder.literal(1))
+          .where(
+              builder.and(
+                  builder.equal(contractRoot.get(ContractEntity_.licenseId), licenseId),
+                  builder.equal(
+                      contractRoot.get(ContractEntity_.subscriptionNumber),
+                      root.get(SubscriptionEntity_.subscriptionNumber)),
+                  builder.equal(
+                      contractRoot.get(ContractEntity_.startDate),
+                      root.get(SubscriptionEntity_.startDate)),
+                  builder.equal(
+                      contractRoot.get(ContractEntity_.orgId),
+                      root.get(SubscriptionEntity_.orgId))));
+      return builder.exists(subquery);
+    };
+  }
+
   private static Specification<SubscriptionEntity> metricsCriteria(
       HypervisorReportCategory hypervisorReportCategory, String metricId) {
     return (root, query, builder) -> {
@@ -393,6 +415,10 @@ public class SubscriptionEntity extends ModificationTrackedEntity {
         && !dbReportCriteria.getBillingAccountId().equals("_ANY")) {
       searchCriteria =
           searchCriteria.and(billingAccountIdLike(dbReportCriteria.getBillingAccountId()));
+    }
+    if (Objects.nonNull(dbReportCriteria.getLicenseId())
+        && !dbReportCriteria.getLicenseId().isBlank()) {
+      searchCriteria = searchCriteria.and(hasLicenseId(dbReportCriteria.getLicenseId()));
     }
     if (Objects.nonNull(dbReportCriteria.getMetricId())
         || Objects.nonNull(dbReportCriteria.getHypervisorReportCategory())) {

@@ -18,28 +18,14 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.contract.repository;
+package domain;
 
-import com.redhat.swatch.common.model.ServiceLevel;
-import com.redhat.swatch.common.model.Usage;
-import java.time.OffsetDateTime;
-import lombok.Builder;
-import lombok.Data;
+/** Test helpers for AWS Partner Gateway licenseArn / contract licenseId values. */
+public final class AwsLicenseArns {
 
-/** Common criteria that can be used to filter instances, subscriptions, and tally snapshots */
-@Data
-@Builder(toBuilder = true)
-public class DbReportCriteria {
-  private String orgId;
-  private String productTag;
-  private ServiceLevel serviceLevel;
-  private Usage usage;
-  private BillingProvider billingProvider;
-  private String billingAccountId;
-  private String licenseId;
-  private boolean payg;
-  private OffsetDateTime beginning;
-  private OffsetDateTime ending;
-  private String metricId;
-  private HypervisorReportCategory hypervisorReportCategory;
+  private AwsLicenseArns() {}
+
+  public static String awsLicenseArn(String subscriptionNumber) {
+    return "arn:aws:license-manager:us-east-1:000000000000:license:" + subscriptionNumber;
+  }
 }
