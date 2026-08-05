@@ -22,16 +22,4 @@ package api;
 
 import com.redhat.swatch.component.tests.api.UnleashService;
 
-public class AwsUnleashService extends UnleashService {
-
-  public static final String USE_CUSTOMER_AWS_ACCOUNT_ID =
-      "swatch.swatch-producer-aws.use-customer-aws-account-id";
-
-  public void enableUseCustomerAwsAccountId() {
-    enableFlag(USE_CUSTOMER_AWS_ACCOUNT_ID);
-  }
-
-  public void disableUseCustomerAwsAccountId() {
-    disableFlag(USE_CUSTOMER_AWS_ACCOUNT_ID);
-  }
-}
+public class AwsUnleashService extends UnleashService {}

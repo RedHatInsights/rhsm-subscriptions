@@ -31,7 +31,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import com.redhat.swatch.aws.config.FeatureFlags;
 import com.redhat.swatch.aws.exception.AwsUsageContextLookupException;
 import com.redhat.swatch.aws.exception.DefaultApiException;
 import com.redhat.swatch.aws.exception.SubscriptionCanNotBeDeterminedException;
@@ -126,7 +125,6 @@ class AwsBillableUsageAggregateConsumerTest {
   @InjectMock AwsMarketplaceMeteringClientFactory clientFactory;
   MarketplaceMeteringClient meteringClient;
   @InjectMock BillableUsageStatusProducer billableUsageStatusProducer;
-  @InjectMock FeatureFlags featureFlags;
 
   @Inject MeterRegistry meterRegistry;
   Counter acceptedCounter;
@@ -177,7 +175,6 @@ class AwsBillableUsageAggregateConsumerTest {
             "status", BillableUsage.Status.SUCCEEDED.toString(), "error_code", "");
 
     meteringClient = mock(MarketplaceMeteringClient.class);
-    when(featureFlags.useCustomerAwsAccountId()).thenReturn(false);
   }
 
   @Test
@@ -211,7 +208,7 @@ class AwsBillableUsageAggregateConsumerTest {
   }
 
   @Test
-  void shouldUseCustomerIdentifierWhenFlagOff() throws ApiException {
+  void shouldUseCustomerAwsAccountId() throws ApiException {
     AwsUsageContext context =
         new AwsUsageContext()
             .rhSubscriptionId("id")
@@ -220,41 +217,10 @@ class AwsBillableUsageAggregateConsumerTest {
             .productCode("product")
             .subscriptionStartDate(OffsetDateTime.MIN);
 
-    UsageRecord record = processUsageAndCaptureRecord(context, false);
-
-    assertEquals("marketplace-customer", record.customerIdentifier());
-    assertTrue(record.customerAWSAccountId() == null || record.customerAWSAccountId().isBlank());
-  }
-
-  @Test
-  void shouldUseCustomerAwsAccountIdWhenFlagOn() throws ApiException {
-    AwsUsageContext context =
-        new AwsUsageContext()
-            .rhSubscriptionId("id")
-            .customerId("marketplace-customer")
-            .customerAwsAccountId("123456789012")
-            .productCode("product")
-            .subscriptionStartDate(OffsetDateTime.MIN);
-
-    UsageRecord record = processUsageAndCaptureRecord(context, true);
+    UsageRecord record = processUsageAndCaptureRecord(context);
 
     assertEquals("123456789012", record.customerAWSAccountId());
     assertTrue(record.customerIdentifier() == null || record.customerIdentifier().isBlank());
-  }
-
-  @Test
-  void shouldFallbackToCustomerIdentifierWhenFlagOnAndAccountIdNull() throws ApiException {
-    AwsUsageContext context =
-        new AwsUsageContext()
-            .rhSubscriptionId("id")
-            .customerId("marketplace-customer")
-            .productCode("product")
-            .subscriptionStartDate(OffsetDateTime.MIN);
-
-    UsageRecord record = processUsageAndCaptureRecord(context, true);
-
-    assertEquals("marketplace-customer", record.customerIdentifier());
-    assertTrue(record.customerAWSAccountId() == null || record.customerAWSAccountId().isBlank());
   }
 
   @Test
@@ -378,8 +344,7 @@ class AwsBillableUsageAggregateConsumerTest {
             clientFactory,
             Optional.of(true),
             Duration.of(1, ChronoUnit.HOURS),
-            billableUsageStatusProducer,
-            featureFlags);
+            billableUsageStatusProducer);
     when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
         .thenReturn(MOCK_AWS_USAGE_CONTEXT);
     processor.process(ROSA_INSTANCE_HOURS_RECORD);
@@ -493,8 +458,7 @@ class AwsBillableUsageAggregateConsumerTest {
                             usage.getErrorCode())));
 
     // verify success
-    reset(contractsApi, billableUsageStatusProducer, featureFlags);
-    when(featureFlags.useCustomerAwsAccountId()).thenReturn(false);
+    reset(contractsApi, billableUsageStatusProducer);
     when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
         .thenReturn(MOCK_AWS_USAGE_CONTEXT);
     when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
@@ -541,9 +505,7 @@ class AwsBillableUsageAggregateConsumerTest {
     assertEquals(isValid, consumer.isUsageDateValid(clock, aggregate));
   }
 
-  private UsageRecord processUsageAndCaptureRecord(
-      AwsUsageContext context, boolean useCustomerAwsAccountId) throws ApiException {
-    when(featureFlags.useCustomerAwsAccountId()).thenReturn(useCustomerAwsAccountId);
+  private UsageRecord processUsageAndCaptureRecord(AwsUsageContext context) throws ApiException {
     when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
         .thenReturn(context);
     when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
