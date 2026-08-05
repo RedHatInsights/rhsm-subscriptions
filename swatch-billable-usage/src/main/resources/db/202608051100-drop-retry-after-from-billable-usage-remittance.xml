@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+  <changeSet id="202608051100-001" author="vbusch">
+    <preConditions onFail="MARK_RAN">
+      <indexExists tableName="billable_usage_remittance" indexName="billable_usage_retry_after_idx"/>
+    </preConditions>
+    <comment>Drop index on retry_after column before removing the column</comment>
+    <dropIndex tableName="billable_usage_remittance" indexName="billable_usage_retry_after_idx"/>
+
+    <rollback>
+      <createIndex tableName="billable_usage_remittance" indexName="billable_usage_retry_after_idx">
+        <column name="retry_after"/>
+      </createIndex>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202608051100-002" author="vbusch">
+    <preConditions onFail="MARK_RAN">
+      <columnExists tableName="billable_usage_remittance" columnName="retry_after"/>
+    </preConditions>
+    <comment>Drop retry_after column from billable_usage_remittance; retry logic was removed and all code references were cleaned up</comment>
+    <dropColumn tableName="billable_usage_remittance" columnName="retry_after"/>
+
+    <rollback>
+      <addColumn tableName="billable_usage_remittance">
+        <column name="retry_after" type="TIMESTAMP WITH TIME ZONE">
+          <constraints nullable="true"/>
+        </column>
+      </addColumn>
+    </rollback>
+  </changeSet>
+
+</databaseChangeLog>
