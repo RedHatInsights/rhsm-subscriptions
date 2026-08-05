@@ -117,25 +117,32 @@ public final class TallyHbiDbSeeder {
   }
 
   /** Record of RHEL facts. */
+  @com.fasterxml.jackson.annotation.JsonInclude(
+      com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
   private record RhsmFacts(
       @JsonProperty("RH_PROD") List<String> rhProd,
       @JsonProperty("IS_VIRTUAL") String isVirtual,
       @JsonProperty("ARCHITECTURE") String architecture,
       @JsonProperty("CORES") String cores,
-      @JsonProperty("SOCKETS") String sockets) {}
+      @JsonProperty("SOCKETS") String sockets,
+      @JsonProperty("SYSPURPOSE_SLA") String syspurposeSla,
+      @JsonProperty("SYSPURPOSE_USAGE") String syspurposeUsage) {}
 
   /** Record of the top level facts */
   private record Facts(RhsmFacts rhsm) {}
 
-  /** Build facts JSON for RHEL host with product and capacity information. */
-  private String buildRhelFacts(int cores, int sockets) {
+  /** Build facts JSON for a RHEL host, optionally virtual and with syspurpose SLA/usage. */
+  private String buildRhelFacts(
+      int cores, int sockets, boolean isVirtual, String sla, String usage) {
     RhsmFacts rhsm =
         new RhsmFacts(
             List.of(RHEL_PRODUCT_ID),
-            "false",
+            String.valueOf(isVirtual),
             "x86_64",
             String.valueOf(cores),
-            String.valueOf(sockets));
+            String.valueOf(sockets),
+            sla,
+            usage);
 
     Facts facts = new Facts(rhsm);
     try {
@@ -196,6 +203,9 @@ public final class TallyHbiDbSeeder {
     private String[] reporters = new String[] {"component-test"};
     private String cloudProvider;
     private String providerId;
+    private String sla;
+    private String usage;
+    private String hypervisorUuid;
 
     private RhelHostBuilder(String orgId) {
       this.orgId = Objects.requireNonNull(orgId, "orgId is required");
@@ -250,6 +260,28 @@ public final class TallyHbiDbSeeder {
       return this;
     }
 
+    /** Set syspurpose SLA (e.g. {Premium}, {Standard}). */
+    public RhelHostBuilder sla(String sla) {
+      this.sla = sla;
+      return this;
+    }
+
+    /** Set syspurpose usage (e.g. {Production}, {Development/Test}). */
+    public RhelHostBuilder usage(String usage) {
+      this.usage = usage;
+      return this;
+    }
+
+    /**
+     * Map this host as a guest of the given hypervisor. Sets infrastructure to virtual and stores
+     * the value as {system_profiles_static.virtual_host_uuid} (must be a UUID string matching the
+     * hypervisor's subscription_manager_id).
+     */
+    public RhelHostBuilder hypervisorUuid(String hypervisorUuid) {
+      this.hypervisorUuid = hypervisorUuid;
+      return this;
+    }
+
     public SeededHost insert() {
       return insertRhelHost(
           orgId,
@@ -261,7 +293,10 @@ public final class TallyHbiDbSeeder {
           reporter,
           reporters,
           cloudProvider,
-          providerId);
+          providerId,
+          sla,
+          usage,
+          hypervisorUuid);
     }
   }
 
@@ -435,12 +470,16 @@ public final class TallyHbiDbSeeder {
         reporter,
         reporters,
         null,
+        null,
+        null,
+        null,
         null);
   }
 
   /**
    * Insert a RHEL host into the HBI database. When cloudProvider is null, creates a physical host.
    * When cloudProvider is set (e.g. "aws"), creates a virtual cloud host with RHEL product facts.
+   * When hypervisorUuid is set, creates a virtual guest mapped to that hypervisor.
    *
    * @param orgId the organization ID
    * @param inventoryId the inventory ID (must be unique)
@@ -465,9 +504,47 @@ public final class TallyHbiDbSeeder {
       String[] reporters,
       String cloudProvider,
       String providerId) {
+    return insertRhelHost(
+        orgId,
+        inventoryId,
+        subscriptionManagerId,
+        displayName,
+        cores,
+        sockets,
+        reporter,
+        reporters,
+        cloudProvider,
+        providerId,
+        null,
+        null,
+        null);
+  }
+
+  /**
+   * Insert a RHEL host into the HBI database with optional syspurpose and guest mapping.
+   *
+   * @param sla syspurpose SLA (e.g. Premium), or null
+   * @param usage syspurpose usage (e.g. Production), or null
+   * @param hypervisorUuid hypervisor subscription_manager_id to map this guest, or null
+   */
+  public SeededHost insertRhelHost(
+      String orgId,
+      String inventoryId,
+      String subscriptionManagerId,
+      String displayName,
+      int cores,
+      int sockets,
+      String reporter,
+      String[] reporters,
+      String cloudProvider,
+      String providerId,
+      String sla,
+      String usage,
+      String hypervisorUuid) {
     waitForSchemaReady();
     Objects.requireNonNull(orgId, "orgId is required");
 
+    boolean isGuest = hypervisorUuid != null;
     boolean isCloud = cloudProvider != null;
 
     // Use defaults if null values passed
@@ -499,6 +576,16 @@ public final class TallyHbiDbSeeder {
           "Sockets cannot be 0 (would cause division by zero when calculating cores_per_socket)");
     }
 
+    if (isGuest) {
+      try {
+        UUID.fromString(hypervisorUuid);
+      } catch (IllegalArgumentException e) {
+        throw new IllegalArgumentException(
+            "hypervisorUuid must be a UUID string matching the hypervisor subscription_manager_id",
+            e);
+      }
+    }
+
     // Track host after validation but before INSERT, so cleanup works even if INSERT fails
     insertedHostIds.add(hostId);
 
@@ -525,7 +612,7 @@ public final class TallyHbiDbSeeder {
         ps.setObject(7, now);
         ps.setObject(8, now);
         ps.setObject(9, now);
-        ps.setString(10, buildRhelFacts(cores, sockets));
+        ps.setString(10, buildRhelFacts(cores, sockets, isGuest || isCloud, sla, usage));
         ps.setString(11, "[]");
         ps.setString(12, actualReporter);
         ps.setArray(13, conn.createArrayOf("varchar", actualReporters));
@@ -536,10 +623,10 @@ public final class TallyHbiDbSeeder {
           """
           INSERT INTO hbi.system_profiles_static
             (org_id, host_id, cores_per_socket, number_of_sockets,
-             infrastructure_type, cloud_provider, arch)
+             infrastructure_type, cloud_provider, arch, virtual_host_uuid)
           VALUES
             (?, ?, ?, ?,
-             ?, ?, ?)
+             ?, ?, ?, ?)
           """;
 
       try (PreparedStatement ps = conn.prepareStatement(profileSql)) {
@@ -547,9 +634,14 @@ public final class TallyHbiDbSeeder {
         ps.setObject(2, hostId);
         ps.setInt(3, cores / sockets);
         ps.setInt(4, sockets);
-        ps.setString(5, isCloud ? "virtual" : "physical");
-        ps.setString(6, cloudProvider); // null for physical hosts
+        ps.setString(5, (isGuest || isCloud) ? "virtual" : "physical");
+        ps.setString(6, cloudProvider); // null for physical/guest hosts
         ps.setString(7, "x86_64");
+        if (isGuest) {
+          ps.setObject(8, UUID.fromString(hypervisorUuid));
+        } else {
+          ps.setObject(8, null);
+        }
         ps.executeUpdate();
       }
     } catch (SQLException e) {
