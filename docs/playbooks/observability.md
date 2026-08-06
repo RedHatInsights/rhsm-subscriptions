@@ -23,9 +23,6 @@ Read more about the prerequisites in [here](../../CONTRIBUTING.md#build).
 ```
 SERVER_PORT=8002 \
 QUARKUS_MANAGEMENT_PORT=9002 \
-LOGGING_HEC_ENABLED=true \
-LOGGING_HEC_URL=https://localhost:8088 \
-LOGGING_HEC_TOKEN=29fe2838-cab6-4d17-a392-37b7b8f41f75 \
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 \
 EVENT_SOURCE=telemeter \
 PROM_URL="http://localhost:8101/api/v1/" \
@@ -52,9 +49,6 @@ java -DLOGGING_HEC_ENABLED=true \
 ```
 SERVER_PORT=8004 \
 QUARKUS_MANAGEMENT_PORT=9004 \
-LOGGING_HEC_ENABLED=true \
-LOGGING_HEC_URL=https://localhost:8088 \
-LOGGING_HEC_TOKEN=29fe2838-cab6-4d17-a392-37b7b8f41f75 \
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 \
 ./mvnw quarkus:dev
 ```
