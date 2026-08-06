@@ -907,6 +907,7 @@ This section verifies the automatic contract termination behavior when contracts
 - **Verification**:
   - Two contracts for the org
   - Each `subscriptionNumber` present
+  - Each contract keeps its own `licenseId` from upstream
   - Re-sync with the same upstream stubs leaves both contracts (stable UUIDs)
 - **Expected Result**: HTTP 200. Both contracts persisted. Second sync is idempotent
 
@@ -930,7 +931,7 @@ This section verifies the automatic contract termination behavior when contracts
   - Stub one AWS ROSA entitlement **without** `partnerIdentities.licenseArn`
   - Stub Search API and sync offering
 - **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/{org_id}`
-- **Verification**: One contract for the org; sync status SUCCESS
+- **Verification**: One contract for the org with null `licenseId`; sync status SUCCESS
 - **Expected Result**: HTTP 200; sync succeeds with no failure when `partnerIdentities.licenseArn` is absent
 
 ## Subscription Management via IT Subscription

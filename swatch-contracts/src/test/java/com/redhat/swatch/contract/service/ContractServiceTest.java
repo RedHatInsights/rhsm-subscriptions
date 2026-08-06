@@ -169,6 +169,27 @@ class ContractServiceTest extends BaseUnitTest {
   }
 
   @Test
+  void testGetContractsReturnsLicenseId() {
+    String licenseId = "arn:aws:license-manager:us-east-1:000000000000:license:swatch-test-license";
+    var request = givenContractRequest();
+    request.getPartnerEntitlement().getPartnerIdentities().setLicenseArn(licenseId);
+    givenExistingContract(request);
+    List<Contract> contracts =
+        contractService.getContracts(ORG_ID, PRODUCT_TAG, null, null, null, null);
+    assertEquals(1, contracts.size());
+    assertEquals(licenseId, contracts.get(0).getLicenseId());
+  }
+
+  @Test
+  void testGetContractsReturnsNullLicenseIdWhenNotSet() {
+    givenExistingContract();
+    List<Contract> contracts =
+        contractService.getContracts(ORG_ID, PRODUCT_TAG, null, null, null, null);
+    assertEquals(1, contracts.size());
+    assertNull(contracts.get(0).getLicenseId());
+  }
+
+  @Test
   void createPartnerContractWhenNonNullEntityAndContractNotFoundInDB() {
     var contract = givenPartnerEntitlementContractRequest();
     StatusResponse statusResponse = contractService.createPartnerContract(contract);
