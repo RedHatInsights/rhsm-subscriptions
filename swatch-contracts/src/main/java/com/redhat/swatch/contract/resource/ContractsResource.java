@@ -231,10 +231,11 @@ public class ContractsResource implements DefaultApi {
       String orgId,
       String sla,
       String usage,
-      String awsAccountId)
+      String awsAccountId,
+      String licenseId)
       throws ProcessingException {
-    return getPaygSubscription(date, productId, orgId, BillingProvider.AWS, awsAccountId)
-        .map(this::buildAwsUsageContext)
+    return getPaygSubscription(date, productId, orgId, BillingProvider.AWS, awsAccountId, licenseId)
+        .map(s -> buildAwsUsageContext(s, licenseId))
         .orElseThrow();
   }
 
@@ -244,6 +245,16 @@ public class ContractsResource implements DefaultApi {
       String orgId,
       BillingProvider billingProvider,
       String awsAccountId) {
+    return getPaygSubscription(date, productId, orgId, billingProvider, awsAccountId, null);
+  }
+
+  private Optional<SubscriptionEntity> getPaygSubscription(
+      OffsetDateTime date,
+      String productId,
+      String orgId,
+      BillingProvider billingProvider,
+      String awsAccountId,
+      String licenseId) {
     DbReportCriteria criteria =
         DbReportCriteria.builder()
             .orgId(orgId)
@@ -255,11 +266,12 @@ public class ContractsResource implements DefaultApi {
             // Set start date one hour in past to pickup recently terminated subscriptions
             .beginning(date.minusHours(1))
             .ending(date)
+            .licenseId(licenseId)
             .build();
     return usageContextSubscriptionProvider.getSubscription(criteria);
   }
 
-  private AwsUsageContext buildAwsUsageContext(SubscriptionEntity subscription) {
+  private AwsUsageContext buildAwsUsageContext(SubscriptionEntity subscription, String licenseId) {
     String billingAccountId = subscription.getBillingAccountId();
     if (StringUtils.isBlank(billingAccountId)) {
       throw new ServiceException(
@@ -278,7 +290,8 @@ public class ContractsResource implements DefaultApi {
         .productCode(productCode)
         .customerId(customerId)
         .awsSellerAccountId(sellerAccount)
-        .customerAwsAccountId(billingAccountId);
+        .customerAwsAccountId(billingAccountId)
+        .licenseId(licenseId);
   }
 
   @Override

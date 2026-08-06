@@ -22,6 +22,7 @@ package tests;
 
 import static api.PartnerApiStubs.PartnerSubscriptionsStubRequest.forContractsInOrgId;
 import static com.redhat.swatch.component.tests.utils.DateUtils.assertDatesAreEqual;
+import static domain.AwsLicenseArns.awsLicenseArn;
 import static java.util.Collections.disjoint;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -1091,10 +1092,6 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
     stubPartnerAndSearch(contracts.toArray(new Contract[0]));
     Response sync = service.syncOffering(sku);
     assertEquals(HttpStatus.SC_OK, sync.statusCode(), "Sync offering should succeed");
-  }
-
-  private static String awsLicenseArn(String subscriptionNumber) {
-    return "arn:aws:license-manager:us-east-1:000000000000:license:" + subscriptionNumber;
   }
 
   private void stubContractsForOrgSync(Contract... contracts) {

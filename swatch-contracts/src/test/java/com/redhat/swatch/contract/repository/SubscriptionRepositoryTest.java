@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.candlepin.clock.ApplicationClock;
 import org.hamcrest.Matchers;
@@ -67,6 +68,7 @@ class SubscriptionRepositoryTest {
 
   @Inject SubscriptionRepository subscriptionRepo;
   @Inject OfferingRepository offeringRepo;
+  @Inject ContractRepository contractRepo;
   @Inject ApplicationClock clock;
 
   @BeforeEach
@@ -339,6 +341,54 @@ class SubscriptionRepositoryTest {
 
     var result = resultList.get(0);
     assertEquals("testSku1", result.getOffering().getSku());
+  }
+
+  @TestTransaction
+  @Test
+  void filtersByLicenseIdViaContract() {
+    OfferingEntity offering = persistRosaOffering("licenseSku");
+    var matching = persistAwsSubscription(offering, "subA", "license-a");
+    persistAwsSubscription(offering, "subB", "license-b");
+
+    var results = findByLicenseId("license-a");
+
+    assertEquals(1, results.size());
+    assertEquals(matching.getSubscriptionId(), results.get(0).getSubscriptionId());
+  }
+
+  @TestTransaction
+  @Test
+  void licenseIdFilterDoesNotMatchNullLicenseOnContract() {
+    OfferingEntity offering = persistRosaOffering("nullLicenseSku");
+    persistAwsSubscription(offering, "subNull", null);
+
+    assertTrue(findByLicenseId("missing-license").isEmpty());
+  }
+
+  @TestTransaction
+  @Test
+  void licenseIdFilterRequiresMatchingStartDate() {
+    OfferingEntity offering = persistRosaOffering("startDateSku");
+    SubscriptionEntity subscription = createSubscription("org123", "subStart", BILLING_ACCOUNT_ID);
+    subscription.setOffering(offering);
+    subscription.setBillingProvider(BillingProvider.AWS);
+    subscriptionRepo.persist(subscription);
+    contractRepo.persistAndFlush(
+        ContractEntity.builder()
+            .uuid(UUID.randomUUID())
+            .orgId(subscription.getOrgId())
+            .subscriptionNumber(subscription.getSubscriptionNumber())
+            .startDate(subscription.getStartDate().minusDays(1))
+            .endDate(subscription.getEndDate())
+            .lastUpdated(now)
+            .offering(offering)
+            .billingProvider("aws")
+            .billingAccountId(BILLING_ACCOUNT_ID)
+            .vendorProductCode("product-code")
+            .licenseId("license-start")
+            .build());
+
+    assertTrue(findByLicenseId("license-start").isEmpty());
   }
 
   @TestTransaction
@@ -868,6 +918,49 @@ class SubscriptionRepositoryTest {
     var resultBillingAccountIds =
         result.stream().map(BillingAccountInfoDTO::billingAccountId).collect(Collectors.toSet());
     assertTrue(resultBillingAccountIds.containsAll(expectedBillingAccountIds));
+  }
+
+  private OfferingEntity persistRosaOffering(String sku) {
+    OfferingEntity offering =
+        createOffering(sku, PRODUCT_TAG, 1, ServiceLevel.PREMIUM, Usage.PRODUCTION, "ocp");
+    offeringRepo.persist(offering);
+    return offering;
+  }
+
+  private SubscriptionEntity persistAwsSubscription(
+      OfferingEntity offering, String subId, String licenseId) {
+    SubscriptionEntity subscription = createSubscription("org123", subId, BILLING_ACCOUNT_ID);
+    subscription.setOffering(offering);
+    subscription.setBillingProvider(BillingProvider.AWS);
+    subscriptionRepo.persist(subscription);
+    contractRepo.persistAndFlush(
+        ContractEntity.builder()
+            .uuid(UUID.randomUUID())
+            .orgId(subscription.getOrgId())
+            .subscriptionNumber(subscription.getSubscriptionNumber())
+            .startDate(subscription.getStartDate())
+            .endDate(subscription.getEndDate())
+            .lastUpdated(now)
+            .offering(offering)
+            .billingProvider("aws")
+            .billingAccountId(BILLING_ACCOUNT_ID)
+            .vendorProductCode("product-code")
+            .licenseId(licenseId)
+            .build());
+    return subscription;
+  }
+
+  private List<SubscriptionEntity> findByLicenseId(String licenseId) {
+    return subscriptionRepo.findByCriteria(
+        DbReportCriteria.builder()
+            .orgId("org123")
+            .productTag(PRODUCT_TAG)
+            .billingProvider(BillingProvider.AWS)
+            .billingAccountId(BILLING_ACCOUNT_ID)
+            .licenseId(licenseId)
+            .beginning(now)
+            .ending(now)
+            .build());
   }
 
   private OfferingEntity createOffering(String sku, int productId) {

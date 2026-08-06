@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
@@ -201,10 +202,10 @@ class AwsBillableUsageAggregateConsumerTest {
 
   @Test
   void shouldLookupAwsContextOnApplicableSnapshot() throws ApiException {
-    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
+    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any(), isNull()))
         .thenReturn(new AwsUsageContext());
     consumer.process(ROSA_INSTANCE_HOURS_RECORD);
-    verify(contractsApi).getAwsUsageContext(any(), any(), any(), any(), any(), any());
+    verify(contractsApi).getAwsUsageContext(any(), any(), any(), any(), any(), any(), isNull());
   }
 
   @Test
@@ -225,7 +226,7 @@ class AwsBillableUsageAggregateConsumerTest {
 
   @Test
   void shouldSendUsageForApplicableSnapshot() throws ApiException {
-    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
+    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any(), isNull()))
         .thenReturn(MOCK_AWS_USAGE_CONTEXT);
     when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
     consumer.process(ROSA_INSTANCE_HOURS_RECORD);
@@ -234,7 +235,7 @@ class AwsBillableUsageAggregateConsumerTest {
 
   @Test
   void whenThrottlingExceptionThenSetRateLimitErrorCode() throws ApiException {
-    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
+    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any(), isNull()))
         .thenReturn(MOCK_AWS_USAGE_CONTEXT);
     when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
     ThrottlingException throttlingException =
@@ -259,7 +260,7 @@ class AwsBillableUsageAggregateConsumerTest {
             MetricIdUtils.getInstanceHours().toUpperCaseFormatted(),
             OffsetDateTime.now(),
             42.0);
-    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
+    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any(), isNull()))
         .thenThrow(AwsUsageContextLookupException.class);
     consumer.process(aggregate);
     verifyNoInteractions(meteringClient);
@@ -279,16 +280,16 @@ class AwsBillableUsageAggregateConsumerTest {
 
   @Test
   void shouldFindStorageAwsDimension() throws ApiException {
-    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
+    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any(), isNull()))
         .thenReturn(new AwsUsageContext());
     consumer.process(ROSA_STORAGE_CORES_RECORD);
-    verify(contractsApi).getAwsUsageContext(any(), any(), any(), any(), any(), any());
+    verify(contractsApi).getAwsUsageContext(any(), any(), any(), any(), any(), any(), isNull());
   }
 
   @Test
   void shouldIncrementAcceptedAndSuccessCounters() throws ApiException {
     var priorSuccess = successCounter.count();
-    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
+    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any(), isNull()))
         .thenReturn(MOCK_AWS_USAGE_CONTEXT);
     when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
     when(meteringClient.batchMeterUsage(any(BatchMeterUsageRequest.class)))
@@ -305,7 +306,7 @@ class AwsBillableUsageAggregateConsumerTest {
   void shouldIncrementFailureCounterIfUnprocessed() throws ApiException {
     double priorFailed = failedCounter.count();
     double current = rejectedCounter.count();
-    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
+    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any(), isNull()))
         .thenReturn(MOCK_AWS_USAGE_CONTEXT);
     when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
     when(meteringClient.batchMeterUsage(any(BatchMeterUsageRequest.class)))
@@ -326,7 +327,7 @@ class AwsBillableUsageAggregateConsumerTest {
   @Test
   void shouldIncrementFailureCounterOnError() throws ApiException {
     double current = rejectedCounter.count();
-    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
+    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any(), isNull()))
         .thenReturn(MOCK_AWS_USAGE_CONTEXT);
     when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
     when(meteringClient.batchMeterUsage(any(BatchMeterUsageRequest.class)))
@@ -345,7 +346,7 @@ class AwsBillableUsageAggregateConsumerTest {
             Optional.of(true),
             Duration.of(1, ChronoUnit.HOURS),
             billableUsageStatusProducer);
-    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
+    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any(), isNull()))
         .thenReturn(MOCK_AWS_USAGE_CONTEXT);
     processor.process(ROSA_INSTANCE_HOURS_RECORD);
     verifyNoInteractions(clientFactory, meteringClient);
@@ -357,7 +358,7 @@ class AwsBillableUsageAggregateConsumerTest {
     error.setCode("CONTRACTS1005");
     var response = Response.serverError().entity(error).build();
     var exception = new DefaultApiException(response, error);
-    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
+    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any(), isNull()))
         .thenThrow(exception);
 
     assertThrows(
@@ -373,7 +374,7 @@ class AwsBillableUsageAggregateConsumerTest {
     error.setCode("CONTRACTS1005");
     var response = Response.serverError().entity(error).build();
     var exception = new DefaultApiException(response, error);
-    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
+    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any(), isNull()))
         .thenThrow(exception);
 
     consumer.process(ROSA_INSTANCE_HOURS_RECORD);
@@ -386,7 +387,7 @@ class AwsBillableUsageAggregateConsumerTest {
     error.setCode("CONTRACTS1006");
     var response = Response.status(Response.Status.NOT_FOUND).entity(error).build();
     var exception = new DefaultApiException(response, error);
-    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
+    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any(), isNull()))
         .thenThrow(exception);
 
     assertThrows(
@@ -400,7 +401,7 @@ class AwsBillableUsageAggregateConsumerTest {
     error.setCode("CONTRACTS1006");
     var response = Response.status(Response.Status.NOT_FOUND).entity(error).build();
     var exception = new DefaultApiException(response, error);
-    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
+    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any(), isNull()))
         .thenThrow(exception);
 
     consumer.process(ROSA_INSTANCE_HOURS_RECORD);
@@ -417,7 +418,7 @@ class AwsBillableUsageAggregateConsumerTest {
   @Test
   void shouldSkipMessageProcessingIfUsageIsOutsideTheUsageWindow() throws Exception {
     double currentIgnored = ignoredCounter.count();
-    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
+    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any(), isNull()))
         .thenReturn(MOCK_AWS_USAGE_CONTEXT);
     BillableUsageAggregate aggregate =
         createAggregate(
@@ -446,7 +447,7 @@ class AwsBillableUsageAggregateConsumerTest {
             42.0);
 
     // verify failure
-    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
+    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any(), isNull()))
         .thenThrow(new SubscriptionCanNotBeDeterminedException(null));
     consumer.process(aggregate);
     verify(billableUsageStatusProducer)
@@ -459,7 +460,7 @@ class AwsBillableUsageAggregateConsumerTest {
 
     // verify success
     reset(contractsApi, billableUsageStatusProducer);
-    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
+    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any(), isNull()))
         .thenReturn(MOCK_AWS_USAGE_CONTEXT);
     when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
     when(meteringClient.batchMeterUsage(any(BatchMeterUsageRequest.class)))
@@ -506,7 +507,7 @@ class AwsBillableUsageAggregateConsumerTest {
   }
 
   private UsageRecord processUsageAndCaptureRecord(AwsUsageContext context) throws ApiException {
-    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
+    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any(), isNull()))
         .thenReturn(context);
     when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
     when(meteringClient.batchMeterUsage(any(BatchMeterUsageRequest.class)))
