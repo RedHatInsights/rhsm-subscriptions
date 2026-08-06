@@ -62,22 +62,16 @@ parameters:
     value: env-swatch-system-conduit
   - name: ORG_SYNC_SCHEDULE
     value: 0 0 * * *
-  - name: LOGGING_HEC_ENABLED
-    value: 'true'
   - name: LOGGING_SOURCE
     value: 'swatch-system-conduit'
   - name: LOGGING_SOURCE_TYPE
     value: 'swatch'
-  - name: LOGGING_MESSAGE_FORMAT
-    value: 'text'
+  - name: LOGGING_FILE_LOG_ENABLED
+    value: 'true'
+  - name: LOGGING_FILE_MAX_SIZE
+    value: '10MB'
   - name: LOGGING_HEC_URL
     value: https://splunk-hec.redhat.com:8088
-  - name: LOGGING_HEC_CONNECT_TIMEOUT
-    value: '5000'
-  - name: LOGGING_HEC_BATCH_SIZE
-    value: '1'
-  - name: LOGGING_HEC_TERMINATION_TIMEOUT
-    value: '2000'
   - name: CURL_CRON_IMAGE
     value: registry.access.redhat.com/ubi8/ubi-minimal
   - name: CURL_CRON_IMAGE_TAG
@@ -174,6 +168,8 @@ objects:
         replicas: ${{REPLICAS}}
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
+          # Extra grace time so the otel sidecar can finish reading /logs/server.log and export to HEC before the shared volume is torn down.
+          terminationGracePeriodSeconds: 90
           env:
             - name: JAVA_DEBUG
               value: ${JAVA_DEBUG}
@@ -183,41 +179,19 @@ objects:
               value: ${JAVA_TOOL_OPTIONS}
             - name: SPRING_LIQUIBASE_ENABLED
               value: 'false'
-            - name: LOGGING_HEC_ENABLED
-              value: ${LOGGING_HEC_ENABLED}
-            - name: LOGGING_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.namespace
+            - name: TOLERATE_MISSING_ACCOUNT_NUMBER
+              value: ${TOLERATE_MISSING_ACCOUNT_NUMBER}
+            - name: SPRING_PROFILES_ACTIVE
+              value: kafka-queue
             - name: HOST_NAME
               valueFrom:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: metadata.name
-            - name: LOGGING_HEC_URL
-              value: ${LOGGING_HEC_URL}
-            - name: LOGGING_HEC_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: splunk-hec-external
-                  key: token
-            - name: TOLERATE_MISSING_ACCOUNT_NUMBER
-              value: ${TOLERATE_MISSING_ACCOUNT_NUMBER}
-            - name: LOGGING_SOURCE
-              value: ${LOGGING_SOURCE}
-            - name: LOGGING_SOURCE_TYPE
-              value: ${LOGGING_SOURCE_TYPE}
-            - name: LOGGING_MESSAGE_FORMAT
-              value: ${LOGGING_MESSAGE_FORMAT}
-            - name: LOGGING_HEC_CONNECT_TIMEOUT
-              value: ${LOGGING_HEC_CONNECT_TIMEOUT}
-            - name: LOGGING_HEC_BATCH_SIZE
-              value: ${LOGGING_HEC_BATCH_SIZE}
-            - name: LOGGING_HEC_TERMINATION_TIMEOUT
-              value: ${LOGGING_HEC_TERMINATION_TIMEOUT}
-            - name: SPRING_PROFILES_ACTIVE
-              value: kafka-queue
+            - name: LOGGING_FILE_LOG_ENABLED
+              value: ${LOGGING_FILE_LOG_ENABLED}
+            - name: LOGGING_FILE_MAX_SIZE
+              value: ${LOGGING_FILE_MAX_SIZE}
             - name: LOG_FILE
               value: /logs/server.log
             - name: JAVA_MAX_MEM_RATIO
@@ -363,6 +337,9 @@ objects:
             enabled: true
             configMap: ${OTEL_SIDECAR_CONFIG_MAP}
             image: ${OTEL_SIDECAR_IMAGE}
+            volumeMounts:
+              - name: logs
+                mountPath: /logs
             envVars:
               - name: ENV_NAME
                 value: ${OTEL_ENV_NAME}
