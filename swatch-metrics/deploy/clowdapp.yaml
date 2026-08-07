@@ -53,24 +53,18 @@ parameters:
     value: 1500m
   - name: DEV_MODE
     value: 'false'
-  - name: LOGGING_HEC_ENABLED
-    value: 'true'
+  - name: LOGGING_HEC_URL
+    value: https://splunk-hec.redhat.com:8088
   - name: LOGGING_SOURCE
     value: 'swatch-metrics'
   - name: LOGGING_SOURCE_RHEL
     value: 'swatch-metrics-rhel'
   - name: LOGGING_SOURCE_TYPE
     value: 'swatch'
-  - name: LOGGING_MESSAGE_FORMAT
-    value: 'text'
-  - name: LOGGING_HEC_URL
-    value: https://splunk-hec.redhat.com:8088
-  - name: LOGGING_HEC_CONNECT_TIMEOUT
-    value: '5000'
-  - name: LOGGING_HEC_BATCH_SIZE
-    value: '1000'
-  - name: LOGGING_HEC_TERMINATION_TIMEOUT
-    value: '2000'
+  - name: LOGGING_FILE_LOG_ENABLED
+    value: 'true'
+  - name: LOGGING_FILE_MAX_SIZE
+    value: '10M'
   - name: SERVER_MAX_HTTP_HEADER_SIZE
     value: '96000'
   - name: LOGGING_LEVEL_ROOT
@@ -193,6 +187,8 @@ objects:
                 ignore-check.kube-linter.io/no-liveness-probe: The token refresher sidecar container doesn't have a liveness probe instrumented but the service container does
                 ignore-check.kube-linter.io/no-readiness-probe: The token refresher sidecar container doesn't have a readiness probe instrumented but the service container does
             image: ${IMAGE}:${IMAGE_TAG}
+            # Extra grace time so the otel sidecar can finish reading /logs/server.log and export to HEC before the shared volume is torn down.
+            terminationGracePeriodSeconds: 90
             command:
             sidecars:
               - name: token-refresher
@@ -201,6 +197,9 @@ objects:
                 enabled: true
                 configMap: ${OTEL_SIDECAR_CONFIG_MAP}
                 image: ${OTEL_SIDECAR_IMAGE}
+                volumeMounts:
+                  - name: logs
+                    mountPath: /logs
                 envVars:
                   - name: ENV_NAME
                     value: ${OTEL_ENV_NAME}
@@ -243,37 +242,15 @@ objects:
                 value: ${USER_OPTS_APPEND}
               - name: QUARKUS_LAUNCH_DEVMODE
                 value: ${QUARKUS_LAUNCH_DEVMODE}
-              - name: LOGGING_HEC_ENABLED
-                value: ${LOGGING_HEC_ENABLED}
-              - name: LOGGING_NAMESPACE
-                valueFrom:
-                  fieldRef:
-                    apiVersion: v1
-                    fieldPath: metadata.namespace
               - name: HOST_NAME
                 valueFrom:
                   fieldRef:
                     apiVersion: v1
                     fieldPath: metadata.name
-              - name: LOGGING_HEC_URL
-                value: ${LOGGING_HEC_URL}
-              - name: LOGGING_HEC_TOKEN
-                valueFrom:
-                  secretKeyRef:
-                    name: splunk-hec-external
-                    key: token
-              - name: LOGGING_SOURCE
-                value: ${LOGGING_SOURCE}
-              - name: LOGGING_SOURCE_TYPE
-                value: ${LOGGING_SOURCE_TYPE}
-              - name: LOGGING_MESSAGE_FORMAT
-                value: ${LOGGING_MESSAGE_FORMAT}
-              - name: LOGGING_HEC_CONNECT_TIMEOUT
-                value: ${LOGGING_HEC_CONNECT_TIMEOUT}
-              - name: LOGGING_HEC_BATCH_SIZE
-                value: ${LOGGING_HEC_BATCH_SIZE}
-              - name: LOGGING_HEC_TERMINATION_TIMEOUT
-                value: ${LOGGING_HEC_TERMINATION_TIMEOUT}
+              - name: LOGGING_FILE_LOG_ENABLED
+                value: ${LOGGING_FILE_LOG_ENABLED}
+              - name: LOGGING_FILE_MAX_SIZE
+                value: ${LOGGING_FILE_MAX_SIZE}
               - name: QUARKUS_HTTP_LIMITS_MAX_HEADER_SIZE
                 value: ${SERVER_MAX_HTTP_HEADER_SIZE}
               - name: LOG_FILE
@@ -436,6 +413,8 @@ objects:
                 ignore-check.kube-linter.io/no-liveness-probe: The token refresher sidecar container doesn't have a liveness probe instrumented but the service container does
                 ignore-check.kube-linter.io/no-readiness-probe: The token refresher sidecar container doesn't have a readiness probe instrumented but the service container does
             image: ${IMAGE}:${IMAGE_TAG}
+            # Extra grace time so the otel sidecar can finish reading /logs/server.log and export to HEC before the shared volume is torn down.
+            terminationGracePeriodSeconds: 90
             command:
             sidecars:
               - name: token-refresher
@@ -444,6 +423,9 @@ objects:
                 enabled: true
                 configMap: ${OTEL_SIDECAR_CONFIG_MAP}
                 image: ${OTEL_SIDECAR_IMAGE}
+                volumeMounts:
+                  - name: logs
+                    mountPath: /logs
                 envVars:
                   - name: ENV_NAME
                     value: ${OTEL_ENV_NAME}-rhel
@@ -484,37 +466,15 @@ objects:
                 value: ${JAVA_DEBUG}
               - name: USER_OPTS_APPEND
                 value: ${USER_OPTS_APPEND}
-              - name: LOGGING_HEC_ENABLED
-                value: ${LOGGING_HEC_ENABLED}
-              - name: LOGGING_NAMESPACE
-                valueFrom:
-                  fieldRef:
-                    apiVersion: v1
-                    fieldPath: metadata.namespace
               - name: HOST_NAME
                 valueFrom:
                   fieldRef:
                     apiVersion: v1
                     fieldPath: metadata.name
-              - name: LOGGING_HEC_URL
-                value: ${LOGGING_HEC_URL}
-              - name: LOGGING_HEC_TOKEN
-                valueFrom:
-                  secretKeyRef:
-                    name: splunk-hec-external
-                    key: token
-              - name: LOGGING_SOURCE
-                value: ${LOGGING_SOURCE_RHEL}
-              - name: LOGGING_SOURCE_TYPE
-                value: ${LOGGING_SOURCE_TYPE}
-              - name: LOGGING_MESSAGE_FORMAT
-                value: ${LOGGING_MESSAGE_FORMAT}
-              - name: LOGGING_HEC_CONNECT_TIMEOUT
-                value: ${LOGGING_HEC_CONNECT_TIMEOUT}
-              - name: LOGGING_HEC_BATCH_SIZE
-                value: ${LOGGING_HEC_BATCH_SIZE}
-              - name: LOGGING_HEC_TERMINATION_TIMEOUT
-                value: ${LOGGING_HEC_TERMINATION_TIMEOUT}
+              - name: LOGGING_FILE_LOG_ENABLED
+                value: ${LOGGING_FILE_LOG_ENABLED}
+              - name: LOGGING_FILE_MAX_SIZE
+                value: ${LOGGING_FILE_MAX_SIZE}
               - name: QUARKUS_HTTP_LIMITS_MAX_HEADER_SIZE
                 value: ${SERVER_MAX_HTTP_HEADER_SIZE}
               - name: LOG_FILE

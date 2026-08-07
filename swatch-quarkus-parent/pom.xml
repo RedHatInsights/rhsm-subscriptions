@@ -91,11 +91,6 @@
       </dependency>
       <dependency>
         <groupId>com.redhat.swatch</groupId>
-        <artifactId>swatch-common-splunk</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.redhat.swatch</groupId>
         <artifactId>swatch-common-logging</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -128,11 +123,6 @@
         <groupId>io.quarkiverse.logging.logback</groupId>
         <artifactId>quarkus-logging-logback</artifactId>
         <version>1.2.0</version>
-      </dependency>
-      <dependency>
-        <groupId>io.quarkiverse.logging.splunk</groupId>
-        <artifactId>quarkus-logging-splunk</artifactId>
-        <version>6.0.0</version>
       </dependency>
       <dependency>
         <groupId>io.quarkiverse.unleash</groupId>
