@@ -24,10 +24,10 @@ import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.kafka.KafkaException;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.listener.MessageListenerContainer;
+import org.springframework.lang.NonNull;
 import org.springframework.util.backoff.FixedBackOff;
 
 /**
@@ -49,10 +49,10 @@ public class KafkaTransientDataAccessErrorHandler extends DefaultErrorHandler {
 
   @Override
   public void handleRemaining(
-      @NotNull Exception thrownException,
-      @NotNull List<ConsumerRecord<?, ?>> records,
-      @NotNull Consumer<?, ?> consumer,
-      @NotNull MessageListenerContainer container) {
+      @NonNull Exception thrownException,
+      @NonNull List<ConsumerRecord<?, ?>> records,
+      @NonNull Consumer<?, ?> consumer,
+      @NonNull MessageListenerContainer container) {
     Throwable rootCause;
     if (thrownException instanceof KafkaException) {
       rootCause = thrownException.getCause();
