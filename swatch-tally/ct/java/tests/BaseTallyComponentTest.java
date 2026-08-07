@@ -32,6 +32,7 @@ import com.redhat.swatch.component.tests.api.HbiDatabase;
 import com.redhat.swatch.component.tests.api.KafkaBridge;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.api.SpringBoot;
+import com.redhat.swatch.component.tests.api.SubscriptionsAccessLevel;
 import com.redhat.swatch.component.tests.api.SwatchDatabase;
 import com.redhat.swatch.component.tests.api.Unleash;
 import com.redhat.swatch.component.tests.api.Wiremock;
@@ -39,6 +40,7 @@ import com.redhat.swatch.component.tests.api.db.DatabaseService;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
+import com.redhat.swatch.component.tests.utils.SwatchUtils;
 import com.redhat.swatch.tally.test.model.InstanceData;
 import com.redhat.swatch.tally.test.model.InstanceResponse;
 import com.redhat.swatch.tally.test.model.TallyReportData;
@@ -99,6 +101,10 @@ public class BaseTallyComponentTest {
   @BeforeEach
   void setUp() {
     orgId = RandomUtils.generateRandom();
+    String identityHeader = SwatchUtils.createUserIdentityHeader(orgId);
+    wiremock
+        .forRbacAccessControl()
+        .stubSubscriptionsAccess(identityHeader, SubscriptionsAccessLevel.GRANTED_ADMIN);
   }
 
   // --- Protected helper methods ---

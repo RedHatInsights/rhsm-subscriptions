@@ -300,6 +300,29 @@ public class TallySwatchService extends SwatchService {
         .response();
   }
 
+  /**
+   * Retrieves tally report using caller-supplied request headers (for access control tests).
+   *
+   * @param productId the product ID
+   * @param metricId the metric ID
+   * @param requestHeaders map containing x-rh-identity and other headers
+   * @return the raw HTTP response
+   */
+  public Response getTallyReportWithHeaders(
+      String productId, String metricId, Map<String, String> requestHeaders) {
+    return given()
+        .headers(requestHeaders)
+        .queryParams(
+            Map.of(
+                "granularity", "Hourly",
+                "beginning", OffsetDateTime.now().minusDays(1).toString(),
+                "ending", OffsetDateTime.now().toString()))
+        .get(API_PATH + "/tally/products/{productId}/{metricId}", productId, metricId)
+        .then()
+        .extract()
+        .response();
+  }
+
   public Response getBillingAccountIds(String orgId, Map<String, ?> queryParams) {
     Map<String, Object> params = new HashMap<>();
     params.put("org_id", orgId);

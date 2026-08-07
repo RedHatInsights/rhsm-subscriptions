@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.redhat.swatch.common.security.KesselRolesAugmentor;
 import com.redhat.swatch.info.InfoFeatureFlagContributor;
 import com.redhat.swatch.info.model.InfoFeatureFlag;
 import com.redhat.swatch.info.model.InfoFeatureFlags;
@@ -71,9 +72,11 @@ class FeatureFlagsTest {
     when(unleash.isEnabled(FeatureFlags.SEND_NOTIFICATIONS_ORGS_ALLOWLIST)).thenReturn(false);
     when(unleash.getVariant(FeatureFlags.SEND_NOTIFICATIONS_ORGS_ALLOWLIST))
         .thenReturn(allowlistVariant);
+    when(unleash.isEnabled(KesselRolesAugmentor.KESSEL_FLAG)).thenReturn(false);
+    when(unleash.getVariant(KesselRolesAugmentor.KESSEL_FLAG)).thenReturn(Variant.DISABLED_VARIANT);
 
     InfoFeatureFlags info = featureFlags.getFeatureFlags();
-    assertEquals(2, info.getFlags().size());
+    assertEquals(3, info.getFlags().size());
 
     InfoFeatureFlag sendNotifications = findFlag(info, FeatureFlags.SEND_NOTIFICATIONS);
     assertTrue(sendNotifications.getEnabled());
@@ -87,9 +90,12 @@ class FeatureFlagsTest {
     assertFalse(allowlist.getEnabled());
     assertEquals("disabled", allowlist.getVariant().getName());
 
+    InfoFeatureFlag kessel = findFlag(info, KesselRolesAugmentor.KESSEL_FLAG);
+    assertFalse(kessel.getEnabled());
+
     @SuppressWarnings("unchecked")
     List<InfoFeatureFlag> data = (List<InfoFeatureFlag>) featureFlags.data();
-    assertEquals(2, data.size());
+    assertEquals(3, data.size());
   }
 
   @Test

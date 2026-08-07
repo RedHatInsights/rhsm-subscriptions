@@ -145,7 +145,7 @@ public class SubscriptionsCreationComponentTest extends BaseContractComponentTes
     thenSubscriptionIsCreated(subscription);
 
     // when we update the subscription and send a new message
-    subscription.toBuilder().quantity(3).build();
+    subscription = subscription.toBuilder().quantity(3).build();
     wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(subscription);
     artemis.forSubscriptions().send(subscription);
     // then the subscription is updated
