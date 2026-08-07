@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.clowder;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import org.apache.commons.logging.Log;
 import org.springframework.boot.EnvironmentPostProcessor;
@@ -32,6 +31,8 @@ import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.util.StringUtils;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * An {@link org.springframework.boot.EnvironmentPostProcessor} that inserts a {@link
@@ -65,7 +66,7 @@ public class ClowderJsonEnvironmentPostProcessor implements EnvironmentPostProce
      * ClowderJsonEnvironmentPostProcessor accept a ConfigurableBootstrapContext parameter. We
      * can then configure the ObjectMapper in the BootstrapContext.
      */
-    this.objectMapper = new ObjectMapper();
+    this.objectMapper = JsonMapper.builder().build();
   }
 
   @Override

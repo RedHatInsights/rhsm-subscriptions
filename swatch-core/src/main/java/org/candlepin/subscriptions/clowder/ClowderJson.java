@@ -20,9 +20,6 @@
  */
 package org.candlepin.subscriptions.clowder;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,6 +29,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Pattern;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 /** Class to represent the clowder JSON for the ClowderJsonPathPropertySource */
 public class ClowderJson {
@@ -41,7 +42,9 @@ public class ClowderJson {
   private final JsonNode root;
 
   public ClowderJson() throws IOException {
-    this(new ByteArrayInputStream(EMPTY_JSON.getBytes(StandardCharsets.UTF_8)), new ObjectMapper());
+    this(
+        new ByteArrayInputStream(EMPTY_JSON.getBytes(StandardCharsets.UTF_8)),
+        JsonMapper.builder().build());
   }
 
   public ClowderJson(InputStream s, ObjectMapper mapper) throws IOException {

@@ -28,7 +28,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Base64;
 import org.junit.jupiter.api.Test;
@@ -42,7 +41,9 @@ import org.mockito.quality.Strictness;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class IdentityHeaderAuthenticationFilterTest {
 
-  private ObjectMapper mapper = new ObjectMapper();
+  // RhIdentity uses Jackson 2 annotations (in swatch-core shared library)
+  private com.fasterxml.jackson.databind.ObjectMapper mapper =
+      new com.fasterxml.jackson.databind.ObjectMapper();
 
   @Mock private HttpServletRequest request;
 

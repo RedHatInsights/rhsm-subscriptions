@@ -23,7 +23,6 @@ package com.redhat.swatch.component.tests.api;
 import static com.redhat.swatch.component.tests.utils.SwatchUtils.MANAGEMENT_PORT;
 import static org.apache.http.HttpStatus.SC_OK;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.redhat.swatch.component.tests.logging.Log;
 import com.redhat.swatch.component.tests.model.InfoFeatureFlag;
 import com.redhat.swatch.component.tests.model.InfoFeatureFlags;
@@ -37,6 +36,7 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import tools.jackson.core.type.TypeReference;
 
 public class SwatchService extends RestService {
 
