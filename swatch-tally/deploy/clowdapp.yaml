@@ -82,10 +82,6 @@ parameters:
     value: liquibase-only
   - name: SPRING_PROFILES_ACTIVE_SERVICE
     value: worker,api,kafka-queue
-  - name: SPRING_PROFILES_ACTIVE_CAPTURE_SNAPSHOTS
-    value: capture-snapshots
-  - name: SPRING_PROFILES_ACTIVE_CAPTURE_HOURLY_SNAPSHOTS
-    value: capture-hourly-snapshots
   - name: TALLY_SUMMARY_PRODUCER_MAX_ATTEMPTS
     value: '5'
   - name: TALLY_SUMMARY_PRODUCER_BACK_OFF_MAX_INTERVAL
@@ -769,9 +765,6 @@ objects:
                 secretKeyRef:
                   name: swatch-psks
                   key: self
-            # This env property is necessary to pass the test check.
-            - name: SPRING_PROFILES_ACTIVE
-              value: ${SPRING_PROFILES_ACTIVE_CAPTURE_SNAPSHOTS}
           resources:
             requests:
               cpu: ${CURL_CRON_CPU_REQUEST}
@@ -797,9 +790,6 @@ objects:
                 secretKeyRef:
                   name: swatch-psks
                   key: self
-            # This env property is necessary to pass the test check.
-            - name: SPRING_PROFILES_ACTIVE
-              value: ${SPRING_PROFILES_ACTIVE_CAPTURE_HOURLY_SNAPSHOTS}
           resources:
             requests:
               cpu: ${CURL_CRON_CPU_REQUEST}
