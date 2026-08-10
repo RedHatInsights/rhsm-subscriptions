@@ -343,6 +343,13 @@ Test cases should be testable locally and in an ephemeral environment.
   - HTTP 200 with empty array  
   - No errors
 
+**contracts-retrieval-TC007** - **Mixed `license_id` values for the same org**  
+- **Description:** An org can have multiple AWS contracts where only some have a `license_id`; retrieval returns each contract with its own `license_id` value (set or null).  
+- **Setup:** Create two AWS ROSA contracts for the same org and billing account; only one has a `license_id`.  
+- **Action:** GET contracts by `org_id`.  
+- **Verification:** Both contracts returned; `license_id` is set only on the licensed contract.  
+- **Expected Result:** HTTP 200 with both contracts and correct `license_id` values.
+
 ## AWS Usage Context
 
 Component tests for GET `/api/swatch-contracts/internal/subscriptions/awsUsageContext`. Test class: `AwsUsageContextComponentTest`.
