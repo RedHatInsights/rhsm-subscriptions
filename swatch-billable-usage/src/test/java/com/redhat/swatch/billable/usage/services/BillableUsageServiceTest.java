@@ -560,10 +560,11 @@ class BillableUsageServiceTest {
     BillableUsage usage = givenInstanceHoursUsageForRosa(0.0);
     givenExistingRemittanceForUsage(usage, startOfUsage, 1.0, RemittanceStatus.SUCCEEDED);
     givenExistingRemittanceForUsage(usage, startOfUsage.plusDays(2), 5.0, RemittanceStatus.PENDING);
-    // failures be included
+
+    // failed remittances should be excluded
     givenExistingRemittanceForUsage(usage, startOfUsage.plusDays(4), 10.0, RemittanceStatus.FAILED);
-    // failures with retry after null should be filtered out
     givenExistingRemittanceForUsage(usage, startOfUsage.plusDays(4), 30.0, RemittanceStatus.FAILED);
+    // null status should be included
     givenExistingRemittanceForUsage(usage, startOfUsage.plusDays(4), 20.0, null);
 
     var result = service.getTotalRemitted(usage);

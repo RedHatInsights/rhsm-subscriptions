@@ -496,6 +496,17 @@ public class ContractsSwatchService extends SwatchService {
       ServiceLevelType sla,
       UsageType usage,
       String awsAccountId) {
+    return getAwsUsageContext(orgId, product, date, sla, usage, awsAccountId, null);
+  }
+
+  public Response getAwsUsageContext(
+      String orgId,
+      Product product,
+      OffsetDateTime date,
+      ServiceLevelType sla,
+      UsageType usage,
+      String awsAccountId,
+      String licenseId) {
     Objects.requireNonNull(product, "product must not be null");
     Objects.requireNonNull(date, "date must not be null");
 
@@ -515,6 +526,9 @@ public class ContractsSwatchService extends SwatchService {
     }
     if (awsAccountId != null) {
       request.queryParam("awsAccountId", awsAccountId);
+    }
+    if (licenseId != null) {
+      request.queryParam("licenseId", licenseId);
     }
     return request.when().get(AWS_USAGE_CONTEXT_ENDPOINT);
   }

@@ -102,10 +102,6 @@
     </dependency>
     <dependency>
       <groupId>com.redhat.swatch</groupId>
-      <artifactId>swatch-common-splunk</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.redhat.swatch</groupId>
       <artifactId>swatch-common-logging</artifactId>
     </dependency>
     <dependency>

@@ -343,6 +343,13 @@ Test cases should be testable locally and in an ephemeral environment.
   - HTTP 200 with empty array  
   - No errors
 
+**contracts-retrieval-TC007** - **Mixed `license_id` values for the same org**  
+- **Description:** An org can have multiple AWS contracts where only some have a `license_id`; retrieval returns each contract with its own `license_id` value (set or null).  
+- **Setup:** Create two AWS ROSA contracts for the same org and billing account; only one has a `license_id`.  
+- **Action:** GET contracts by `org_id`.  
+- **Verification:** Both contracts returned; `license_id` is set only on the licensed contract.  
+- **Expected Result:** HTTP 200 with both contracts and correct `license_id` values.
+
 ## AWS Usage Context
 
 Component tests for GET `/api/swatch-contracts/internal/subscriptions/awsUsageContext`. Test class: `AwsUsageContextComponentTest`.
@@ -385,6 +392,30 @@ Component tests for GET `/api/swatch-contracts/internal/subscriptions/awsUsageCo
 - **Expected Result:**  
   - HTTP 404  
   - Error code `CONTRACTS1006` (`SUBSCRIPTION_MISSING_BILLING_ACCOUNT_ID`)
+
+**aws-usage-context-TC005** - **Get AWS usage context filtered by licenseId**  
+- **Description:** When `licenseId` is provided, `getAwsUsageContext` returns the usage context for the contract/subscription matching that license.  
+- **Setup:** Create an AWS ROSA contract with a Partner Gateway `licenseArn` persisted as `licenseId`.  
+- **Action:** GET awsUsageContext with matching `awsAccountId` and `licenseId`.  
+- **Verification:** Parse response as `AwsUsageContext`.  
+- **Expected Result:**  
+  - HTTP 200  
+  - Marketplace fields match the contract (`productCode`, `customerId`, `awsSellerAccountId`, `customerAwsAccountId`)  
+  - `licenseId` and `rhSubscriptionId` match the selected contract
+
+**aws-usage-context-TC006** - **AWS usage context returns 404 for unknown licenseId**  
+- **Description:** A non-existent `licenseId` must not match any subscription (including contracts with null `licenseId`).  
+- **Setup:** Create an AWS ROSA contract with a known `licenseId`.  
+- **Action:** GET awsUsageContext with matching `awsAccountId` and a different `licenseId`.  
+- **Expected Result:** HTTP 404 with empty body
+
+**aws-usage-context-TC007** - **Multiple contracts with different licenseIds queried independently**  
+- **Description:** Two AWS contracts sharing `billingAccountId` / `billingProviderId` but different `licenseId`s can each be looked up independently.  
+- **Setup:** Create two AWS ROSA contracts (same billing account, different `subscriptionNumber` and `licenseId`).  
+- **Action:** GET awsUsageContext twice, once per `licenseId`.  
+- **Expected Result:**  
+  - HTTP 200 for each request  
+  - Each response `licenseId` and `rhSubscriptionId` match the contract selected by that filter
 
 ## Azure Usage Context
 

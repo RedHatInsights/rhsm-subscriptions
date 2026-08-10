@@ -20,7 +20,9 @@
  */
 package tests;
 
+import static domain.AwsLicenseArns.awsLicenseArn;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
@@ -140,6 +142,53 @@ public class ContractsRetrievalComponentTest extends BaseContractComponentTest {
   void shouldGetEmptyContractsWhenThereAreNoContractsForOrgId() {
     var contracts = service.getContractsByOrgId(orgId);
     assertTrue(contracts.isEmpty());
+  }
+
+  @TestPlanName("contracts-retrieval-TC007")
+  @Test
+  void shouldReturnMixedLicenseIdsForSameOrg() {
+    // Given: two AWS contracts for the same org; only one has licenseId
+    String subscriptionWithLicense = RandomUtils.generateRandom();
+    String subscriptionWithoutLicense = RandomUtils.generateRandom();
+    Contract shared =
+        Contract.buildRosaContract(
+            orgId, BillingProvider.AWS, Map.of(CORES, 10.0), RandomUtils.generateRandom());
+    Contract withLicense =
+        shared.toBuilder()
+            .subscriptionNumber(subscriptionWithLicense)
+            .subscriptionId(subscriptionWithLicense)
+            .licenseId(awsLicenseArn(subscriptionWithLicense))
+            .build();
+    Contract withoutLicense =
+        shared.toBuilder()
+            .subscriptionNumber(subscriptionWithoutLicense)
+            .subscriptionId(subscriptionWithoutLicense)
+            .licenseId(null)
+            .build();
+    givenContractIsCreated(withLicense);
+    givenContractIsCreated(withoutLicense);
+
+    // When
+    var contracts = service.getContractsByOrgId(orgId);
+
+    // Then
+    assertEquals(2, contracts.size());
+    var withLicenseContract =
+        contracts.stream()
+            .filter(c -> subscriptionWithLicense.equals(c.getSubscriptionNumber()))
+            .findFirst()
+            .orElseThrow();
+    var withoutLicenseContract =
+        contracts.stream()
+            .filter(c -> subscriptionWithoutLicense.equals(c.getSubscriptionNumber()))
+            .findFirst()
+            .orElseThrow();
+    assertEquals(
+        withLicense.getLicenseId(),
+        withLicenseContract.getLicenseId(),
+        "Contract with licenseId must expose it");
+    assertNull(
+        withoutLicenseContract.getLicenseId(), "Contract without licenseId must expose null");
   }
 
   private Contract givenExistingContractForBillingProvider(BillingProvider billingProvider) {

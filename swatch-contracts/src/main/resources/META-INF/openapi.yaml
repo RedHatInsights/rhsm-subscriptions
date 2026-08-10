@@ -529,6 +529,11 @@ paths:
         schema:
           type: string
           default: _ANY
+      - name: licenseId
+        in: query
+        required: false
+        schema:
+          type: string
 
     get:
       summary: "Lookup necessary info to submit a usage record to AWS"
@@ -1361,6 +1366,9 @@ components:
           description: ""
           type: string
           example: "6n58d3s3qpvk22dgew2gal7w3"
+        license_id:
+          description: ""
+          type: string
         metrics:
           description: ""
           type: array
@@ -1532,6 +1540,9 @@ components:
           type: string
         customerAwsAccountId:
           description: AWS customer account ID
+          type: string
+        licenseId:
+          description: AWS license ARN.
           type: string
         subscriptionStartDate:
           type: string

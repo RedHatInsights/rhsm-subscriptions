@@ -211,7 +211,9 @@ public class AwsBillableUsageAggregateConsumer {
           billableUsageAggregate.getAggregateKey().getOrgId(),
           billableUsageAggregate.getAggregateKey().getSla(),
           billableUsageAggregate.getAggregateKey().getUsage(),
-          billableUsageAggregate.getAggregateKey().getBillingAccountId());
+          billableUsageAggregate.getAggregateKey().getBillingAccountId(),
+          // LicenseId will be propagated as part of SWATCH-5301.
+          null);
     } catch (DefaultApiException e) {
       if (ofNullable(e.getError())
           .map(error -> "CONTRACTS1005".equals(error.getCode()))
