@@ -1366,6 +1366,9 @@ components:
           description: ""
           type: string
           example: "6n58d3s3qpvk22dgew2gal7w3"
+        license_id:
+          description: ""
+          type: string
         metrics:
           description: ""
           type: array

@@ -809,6 +809,8 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
         service.syncContractsByOrg(orgId).statusCode(),
         is(HttpStatus.SC_OK));
     thenAssertContractsPresentBySubscriptionNumber(contractA, contractB);
+    verifyContractFields(contractA, getPersistedContract(contractA));
+    verifyContractFields(contractB, getPersistedContract(contractB));
     String uuidA = getPersistedContract(contractA).getUuid();
     String uuidB = getPersistedContract(contractB).getUuid();
 
@@ -899,6 +901,9 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
     assertThat("Sync should succeed", syncResponse.statusCode(), is(HttpStatus.SC_OK));
     syncResponse.then().body("status", equalTo(STATUS_SUCCESS));
     thenContractsSizeAre(1);
+    assertNull(
+        getPersistedContract(contract).getLicenseId(),
+        "Persisted contract licenseId must be null when not set");
   }
 
   protected String getContractUuidByProvider(String orgId, BillingProvider provider) {
@@ -938,6 +943,7 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
         expected.getSubscriptionNumber(),
         actual.getSubscriptionNumber(),
         "contracts.subscription_number must match upstream");
+    assertEquals(expected.getLicenseId(), actual.getLicenseId(), "contracts.license_id must match");
     assertFalse(actual.getProductTags().isEmpty(), "contracts.product_tags must not be empty");
     assertNotNull(actual.getMetrics(), "contract_metrics must not be null");
   }

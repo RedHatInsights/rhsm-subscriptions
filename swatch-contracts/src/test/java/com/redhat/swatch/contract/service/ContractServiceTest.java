@@ -95,6 +95,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -166,6 +167,24 @@ class ContractServiceTest extends BaseUnitTest {
         contractService.getContracts(ORG_ID, PRODUCT_TAG, null, null, null, null);
     assertEquals(1, contractList.size());
     assertEquals(2, contractList.get(0).getMetrics().size());
+  }
+
+  @Test
+  void testGetContractsReturnsMixedLicenseIds() {
+    String licenseId = "arn:aws:license-manager:us-east-1:000000000000:license:swatch-test-license";
+    var withLicenseRequest = givenContractRequest("with-license-sub");
+    withLicenseRequest.getPartnerEntitlement().getPartnerIdentities().setLicenseArn(licenseId);
+    givenExistingContract(withLicenseRequest);
+    givenExistingContract(givenContractRequest("without-license-sub"));
+
+    List<Contract> contracts =
+        contractService.getContracts(ORG_ID, PRODUCT_TAG, null, null, null, null);
+
+    assertEquals(2, contracts.size());
+    var bySubscription =
+        contracts.stream().collect(Collectors.toMap(Contract::getSubscriptionNumber, c -> c));
+    assertEquals(licenseId, bySubscription.get("with-license-sub").getLicenseId());
+    assertNull(bySubscription.get("without-license-sub").getLicenseId());
   }
 
   @Test
