@@ -140,11 +140,6 @@
     </dependency>
     <dependency>
       <groupId>com.redhat.swatch</groupId>
-      <artifactId>swatch-common-splunk</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.redhat.swatch</groupId>
       <artifactId>swatch-common-logging</artifactId>
       <version>${project.version}</version>
     </dependency>

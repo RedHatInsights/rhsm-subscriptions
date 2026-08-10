@@ -82,7 +82,7 @@
     </dependency>
     <dependency>
       <groupId>com.redhat.swatch</groupId>
-      <artifactId>swatch-common-splunk</artifactId>
+      <artifactId>swatch-common-logging</artifactId>
     </dependency>
     <dependency>
       <groupId>com.redhat.swatch</groupId>
@@ -99,10 +99,6 @@
     <dependency>
       <groupId>com.redhat.cloud.common</groupId>
       <artifactId>clowder-quarkus-config-source</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkiverse.logging.splunk</groupId>
-      <artifactId>quarkus-logging-splunk</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>
