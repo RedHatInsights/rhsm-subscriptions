@@ -52,6 +52,50 @@ Once we have all the requirements properly installed and configured, we can buil
 ./mvnw clean install
 ```
 
+## IntelliJ IDEA Setup
+
+### Annotation Processing
+
+IntelliJ must have annotation processing enabled for Lombok, MapStruct, and Hibernate
+metamodel generation to work. On first import, IntelliJ should auto-configure this from the
+POMs. If prompted, enable annotation processing.
+
+### Generated Sources
+
+This project uses OpenAPI and jsonschema2pojo to generate source code during Maven's
+`generate-sources` phase. IntelliJ cannot generate these on its own, so you must run Maven
+first after a fresh clone or after `./mvnw clean`:
+
+```shell
+./mvnw generate-sources
+```
+
+Then open (or reimport) the project in IntelliJ.
+
+### Avoiding Maven / IntelliJ Build Conflicts
+
+Maven and IntelliJ both write annotation processor output (MapStruct impls, Hibernate
+metamodel classes) to `target/generated-sources/annotations/`. If Maven has already generated
+these files and IntelliJ tries to regenerate them, you will get an error like:
+
+```
+java: Internal error in the mapping processor: javax.annotation.processing.FilerException:
+Attempt to recreate a file for type ...
+```
+
+To avoid this, follow these guidelines:
+
+- **Day-to-day development:** Use IntelliJ's build and test runner normally. No special steps
+  needed.
+- **After running `./mvnw compile`, `test`, or `verify` from the CLI:** Reset the state for
+  IntelliJ by running:
+  ```shell
+  ./mvnw clean generate-sources
+  ```
+  This removes Maven's annotation processor output and regenerates the OpenAPI/JSON schema
+  sources that IntelliJ needs.
+- **Fresh clone:** Run `./mvnw generate-sources` before opening IntelliJ.
+
 -------------
 # Code Style
 
