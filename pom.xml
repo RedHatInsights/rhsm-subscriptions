@@ -261,7 +261,7 @@
       <dependency>
         <groupId>com.splunk.logging</groupId>
         <artifactId>splunk-library-javalogging</artifactId>
-        <version>1.11.10</version>
+        <version>1.11.11</version>
       </dependency>
       <!-- There is a conflict with splunk-library-javalogging and kubernetes-httpclient-okhttp having transitive dependencies
             on different versions of okhttp. This explicit declaration is required to resolve the conflict where
