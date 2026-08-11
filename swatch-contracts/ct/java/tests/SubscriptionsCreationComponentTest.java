@@ -145,17 +145,39 @@ public class SubscriptionsCreationComponentTest extends BaseContractComponentTes
     thenSubscriptionIsCreated(subscription);
 
     // when we update the subscription and send a new message
-    subscription = subscription.toBuilder().quantity(3).build();
-    wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(subscription);
-    artemis.forSubscriptions().send(subscription);
-    // then the subscription is updated
+    Subscription updatedSubscription = subscription.toBuilder().quantity(3).build();
+    wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(updatedSubscription);
+    artemis.forSubscriptions().send(updatedSubscription);
+
+    // then quantity change ends the existing segment and creates a new one
     AwaitilityUtils.untilAsserted(
         () -> {
           var subscriptions = service.getSubscriptionsByOrgId(orgId);
-          assertEquals(1, subscriptions.size());
-          assertEquals(
-              subscription.getSubscriptionNumber(), subscriptions.get(0).getSubscriptionNumber());
-          assertEquals(subscription.getQuantity(), subscriptions.get(0).getQuantity());
+          assertEquals(2, subscriptions.size(), "Quantity change should create a new segment");
+          assertTrue(
+              subscriptions.stream()
+                  .allMatch(
+                      s ->
+                          Objects.equals(
+                              s.getSubscriptionNumber(),
+                              updatedSubscription.getSubscriptionNumber())));
+
+          var previousSegment =
+              subscriptions.stream()
+                  .filter(s -> Objects.equals(s.getQuantity(), subscription.getQuantity()))
+                  .findFirst();
+          assertTrue(previousSegment.isPresent());
+          assertNotNull(previousSegment.get().getEndDate());
+
+          var currentSegment =
+              subscriptions.stream()
+                  .filter(s -> Objects.equals(s.getQuantity(), updatedSubscription.getQuantity()))
+                  .findFirst();
+          assertTrue(currentSegment.isPresent());
+          assertEquals(updatedSubscription.getQuantity(), currentSegment.get().getQuantity());
+          assertTrue(
+              !previousSegment.get().getEndDate().isAfter(currentSegment.get().getStartDate()),
+              "Previous segment should end at or before the new segment starts");
         });
   }
 
