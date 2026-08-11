@@ -18,23 +18,14 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.billable.usage.services.model;
+package domain;
 
-import lombok.Builder;
-import lombok.Getter;
+import java.time.OffsetDateTime;
+import java.util.Map;
 
-@Getter
-@Builder
-public class ContractCoverage {
-  private final String metricId;
-  private final boolean gratis;
-  private final double total;
-  private final String licenseId;
-
-  @Override
-  public String toString() {
-    return String.format(
-        "Coverage for metric '%s': %s%s licenseId=%s",
-        metricId, total, gratis ? "(Gratis)" : "", licenseId);
-  }
-}
+/** WireMock stub fields for one contracts-API agreement. */
+public record ContractStub(
+    OffsetDateTime startDate,
+    OffsetDateTime endDate,
+    Map<String, Double> metricCoverage,
+    String licenseId) {}

@@ -268,6 +268,93 @@ Java component tests in `ContractCoverageComponentTest` (`swatch-billable-usage/
 - **Expected Result:**  
   - Contract lookup failure prevents billable remittance and billing
 
+**billable-usage-contract-coverage-TC009 - Multi-contract coverage fully covers usage**
+
+- **Description:** Verify summed capacities across contracts with `licenseId` still suppress remittance when usage is within total coverage.  
+- **Setup:**  
+  - Two ROSA contracts with licenseIds; combined coverage = 6 Instance-hours  
+  - Tally `current_total` = 5
+- **Action:**  
+  - Publish tally summary
+- **Verification:**  
+  - Account remittance `remittedValue` = 0  
+  - No Kafka message emitted (blocked by known bug: SWATCH-5443 — zero remitted still produces BillableUsage; assertion commented in CT until fixed)
+- **Expected Result:**  
+  - Prepaid coverage math unchanged (sum of capacities)
+
+**billable-usage-contract-coverage-TC010 - Overage remittance stamps newest licenseId**
+
+- **Description:** Verify PAYG overage selects the newest agreement licenseId and stamps remittance + BillableUsage.  
+- **Setup:**  
+  - Two ROSA contracts (coverage 2+2), different start dates and licenseIds  
+  - Tally `current_total` = 5 (overage 1)
+- **Action:**  
+  - Publish tally summary
+- **Verification:**  
+  - One remittance with `remitted_pending_value` = 1 and selected (newest) `licenseId`  
+  - One Kafka BillableUsage with same `licenseId` and value 1
+- **Expected Result:**  
+  - Single overage remittance allocated to newest agreement
+
+**billable-usage-contract-coverage-TC011 - Mixed licensed and unlicensed contracts**
+
+- **Description:** Verify coverage sums all contracts; overage licenseId comes only from licensed set.  
+- **Setup:**  
+  - Older licensed contract (coverage 2) + newer unlicensed contract (coverage 2)  
+  - Tally `current_total` = 5 (overage 1)
+- **Action:**  
+  - Publish tally summary
+- **Verification:**  
+  - Remittance pending value = 1 with licensed agreement's `licenseId`  
+  - Kafka BillableUsage carries the same `licenseId`
+- **Expected Result:**  
+  - Mixed set: coverage includes both; selection ignores null licenseId
+
+**billable-usage-contract-coverage-TC012 - Mixed gratis-eligible and established agreements**
+
+- **Description:** Verify multiple contracts with `licenseId` still require every active agreement to be gratis-eligible; if any established (non-gratis) agreement exists, overage is billed to the newest `licenseId`.  
+- **Setup:**  
+  - Product: `ansible-aap-managed` (gratis-enabled metric)  
+  - Established agreement at month start (00:00 UTC) + mid-month agreement (newer `licenseId`); combined coverage = 2  
+  - Tally `current_total` = 3 (overage 1) in start month
+- **Action:**  
+  - Publish tally summary
+- **Verification:**  
+  - Remittance status = `pending`, value = 1, `licenseId` = mid-month agreement  
+  - Kafka BillableUsage emitted with same `licenseId`
+- **Expected Result:**  
+  - Newest agreement does not make the period gratis by itself; one established agreement disqualifies gratis
+
+**billable-usage-contract-coverage-TC013 - All agreements gratis-eligible**
+
+- **Description:** Verify when every active agreement starts after month start, overage remittance is `gratis` and stamps the newest `licenseId` (no Kafka emission).  
+- **Setup:**  
+  - Product: `ansible-aap-managed`  
+  - Two mid-month agreements with different start dates/licenseIds; combined coverage = 2  
+  - Tally `current_total` = 3 (overage 1) in start month
+- **Action:**  
+  - Publish tally summary
+- **Verification:**  
+  - Remittance status = `gratis`, value = 1, `licenseId` = newest agreement  
+  - No message on `billable-usage` topic
+- **Expected Result:**  
+  - All-agreements gratis rule unchanged; selected overage `licenseId` still recorded on remittance
+
+**billable-usage-contract-coverage-TC014 - Same startDate uses lexicographic licenseId tie-break**
+
+- **Description:** Verify when two licensed agreements share the same `startDate`, overage uses the lexicographically smaller `licenseId` regardless of contracts API order.  
+- **Setup:**  
+  - Two ROSA contracts with identical start/end dates (coverage 2+2)  
+  - Larger `licenseId` listed first, smaller second  
+  - Tally `current_total` = 5 (overage 1)
+- **Action:**  
+  - Publish tally summary
+- **Verification:**  
+  - One remittance with `remitted_pending_value` = 1 and smaller `licenseId`  
+  - One Kafka BillableUsage with the same smaller `licenseId` and value 1
+- **Expected Result:**  
+  - Deterministic overage allocation when start dates tie (lexicographically smaller wins)
+
 ---
 
 ## Contract Adjustment Remittance

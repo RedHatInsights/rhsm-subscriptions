@@ -98,7 +98,6 @@ class BillableUsageServiceTest {
 
   @Inject ApplicationClock clock;
   @Inject BillableUsageService service;
-  @Inject BillableUsageService billableUsageService;
   @Inject MeterRegistry meterRegistry;
 
   private final SubscriptionDefinitionRegistry mockSubscriptionDefinitionRegistry =
@@ -136,6 +135,35 @@ class BillableUsageServiceTest {
     thenRemittanceIsUpdated(usage, 1.0);
     thenUsageIsSent(usage, 1.0);
     thenBillableMeterMatches(usage, 1.0);
+  }
+
+  @Test
+  void monthlyWindowStampsSelectedLicenseIdOnRemittanceAndUsage() throws ApiException {
+    BillableUsage usage = givenInstanceHoursUsageForRosa(0.0003);
+    Contract older = contractWithCoverage(usage, 0);
+    older.setStartDate(usage.getSnapshotDate().minusMonths(2));
+    older.setLicenseId("arn:aws:license-manager:us-east-1:1:license:older");
+    Contract newer = contractWithCoverage(usage, 0);
+    newer.setStartDate(usage.getSnapshotDate().minusDays(5));
+    newer.setLicenseId("arn:aws:license-manager:us-east-1:1:license:newer");
+    givenContractApiReturnsContracts(older, newer);
+
+    service.submitBillableUsage(usage);
+
+    thenRemittanceIsUpdated(usage, 1.0, newer.getLicenseId());
+    thenUsageIsSent(usage, 1.0, newer.getLicenseId());
+    thenBillableMeterMatches(usage, 1.0);
+  }
+
+  @Test
+  void monthlyWindowKeepsNullLicenseIdWhenContractsHaveNone() {
+    BillableUsage usage = givenInstanceHoursUsageForRosa(0.0003);
+    givenExistingContractForUsage(usage);
+
+    service.submitBillableUsage(usage);
+
+    thenRemittanceIsUpdated(usage, 1.0, null);
+    thenUsageIsSent(usage, 1.0, null);
   }
 
   @Test
@@ -819,6 +847,11 @@ class BillableUsageServiceTest {
   }
 
   private void thenUsageIsSent(BillableUsage usage, double expectedValue) {
+    thenUsageIsSent(usage, expectedValue, null);
+  }
+
+  private void thenUsageIsSent(
+      BillableUsage usage, double expectedValue, String expectedLicenseId) {
     verify(producer)
         .produce(
             argThat(
@@ -827,6 +860,7 @@ class BillableUsageServiceTest {
                   assertEquals(usage.getTallyId(), output.getTallyId());
                   assertEquals(expectedValue, output.getValue());
                   assertEquals(usage.getCurrentTotal(), output.getCurrentTotal());
+                  assertEquals(expectedLicenseId, output.getLicenseId());
                   return true;
                 }));
   }
@@ -867,13 +901,19 @@ class BillableUsageServiceTest {
   }
 
   private void thenRemittanceIsUpdated(BillableUsage usage, double expectedRemittedPendingValue) {
-    thenRemittanceIsUpdated(usage, CLOCK.now(), expectedRemittedPendingValue, null);
+    thenRemittanceIsUpdated(usage, CLOCK.now(), expectedRemittedPendingValue, null, null);
+  }
+
+  private void thenRemittanceIsUpdated(
+      BillableUsage usage, double expectedRemittedPendingValue, String expectedLicenseId) {
+    thenRemittanceIsUpdated(
+        usage, CLOCK.now(), expectedRemittedPendingValue, null, expectedLicenseId);
   }
 
   private void thenRemittanceIsUpdatedWithStatusGratis(
       BillableUsage usage, double expectedRemittedPendingValue) {
     thenRemittanceIsUpdated(
-        usage, clock.now(), expectedRemittedPendingValue, RemittanceStatus.GRATIS);
+        usage, clock.now(), expectedRemittedPendingValue, RemittanceStatus.GRATIS, null);
   }
 
   private void thenRemittanceIsUpdated(
@@ -881,6 +921,16 @@ class BillableUsageServiceTest {
       OffsetDateTime expectedAccumulationPeriodDate,
       double expectedRemittedPendingValue,
       RemittanceStatus expectedStatus) {
+    thenRemittanceIsUpdated(
+        usage, expectedAccumulationPeriodDate, expectedRemittedPendingValue, expectedStatus, null);
+  }
+
+  private void thenRemittanceIsUpdated(
+      BillableUsage usage,
+      OffsetDateTime expectedAccumulationPeriodDate,
+      double expectedRemittedPendingValue,
+      RemittanceStatus expectedStatus,
+      String expectedLicenseId) {
     verify(remittanceRepo)
         .persistAndFlush(
             argThat(
@@ -898,6 +948,7 @@ class BillableUsageServiceTest {
                   if (expectedStatus != null) {
                     assertEquals(expectedStatus, remittance.getStatus());
                   }
+                  assertEquals(expectedLicenseId, remittance.getLicenseId());
                   return true;
                 }));
   }

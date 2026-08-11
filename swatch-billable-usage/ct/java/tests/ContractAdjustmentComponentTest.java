@@ -31,7 +31,9 @@ import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import domain.BillingProvider;
+import domain.ContractStub;
 import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -184,12 +186,22 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
   /** Stub two active contracts; billable-usage aggregates coverage across both. */
   private void givenMultipleRosaContractsWithEqualMetricCoverage(
       double firstContractBillableUnits, double secondContractBillableUnits) {
-    contractsWiremock.setupMultipleMultiMetricContracts(
+    OffsetDateTime startDate = OffsetDateTime.now().minusMonths(1);
+    OffsetDateTime endDate = OffsetDateTime.now().plusYears(1);
+    contractsWiremock.setupContracts(
         orgId,
         ROSA.getName(),
         List.of(
-            equalCoverageForAllRosaMetrics(firstContractBillableUnits),
-            equalCoverageForAllRosaMetrics(secondContractBillableUnits)));
+            new ContractStub(
+                startDate,
+                endDate,
+                equalCoverageForAllRosaMetrics(firstContractBillableUnits),
+                null),
+            new ContractStub(
+                startDate,
+                endDate,
+                equalCoverageForAllRosaMetrics(secondContractBillableUnits),
+                null)));
   }
 
   /** Stub contracts API so no contract exists for the org/product. */
