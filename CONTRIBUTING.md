@@ -72,6 +72,38 @@ first after a fresh clone or after `./mvnw clean`:
 
 Then open (or reimport) the project in IntelliJ.
 
+### Component Tests
+
+Component test (ct) modules live under each service directory (e.g. `swatch-tally/ct/`) and
+are only included by the `component-tests` Maven profile. Two setup steps are required to
+work on them in IntelliJ:
+
+**1. Activate the `component-tests` profile in IntelliJ:**
+
+- Open the Maven tool window (_View_ → _Tool Windows_ → _Maven_)
+- Expand _Profiles_
+- Check `component-tests`
+- Click the reload button (or press Ctrl+Shift+O) to reimport
+
+Without this profile active, IntelliJ will not import the ct modules at all.
+
+**2. Generate ct source code:**
+
+Component tests generate models during Maven's `generate-test-sources` phase. Run this after
+a fresh clone, after `./mvnw clean`, or any time the ct `target/` directory is missing:
+
+```shell
+./mvnw generate-test-sources -Pcomponent-tests
+```
+
+To generate for a single ct module (faster):
+
+```shell
+./mvnw generate-test-sources -pl swatch-tally/ct -Pcomponent-tests -am
+```
+
+After generating, reimport the Maven project in IntelliJ (Ctrl+Shift+O).
+
 ### Avoiding Maven / IntelliJ Build Conflicts
 
 Maven and IntelliJ both write annotation processor output (MapStruct impls, Hibernate
@@ -93,8 +125,12 @@ To avoid this, follow these guidelines:
   ./mvnw clean generate-sources
   ```
   This removes Maven's annotation processor output and regenerates the OpenAPI/JSON schema
-  sources that IntelliJ needs.
-- **Fresh clone:** Run `./mvnw generate-sources` before opening IntelliJ.
+  sources that IntelliJ needs. If you are also working on component tests, follow up with:
+  ```shell
+  ./mvnw generate-test-sources -Pcomponent-tests
+  ```
+- **Fresh clone:** Run `./mvnw generate-sources` before opening IntelliJ. If working on
+  component tests, also run `./mvnw generate-test-sources -Pcomponent-tests`.
 
 -------------
 # Code Style
