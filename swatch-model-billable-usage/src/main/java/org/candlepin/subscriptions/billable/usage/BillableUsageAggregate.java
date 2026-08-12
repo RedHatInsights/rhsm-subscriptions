@@ -44,6 +44,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class BillableUsageAggregate {
 
+  public static final String FLUSH_ORG = "flush";
+
   private BigDecimal totalValue = new BigDecimal(0);
   private OffsetDateTime windowTimestamp;
   private UUID aggregateId;
@@ -53,10 +55,11 @@ public class BillableUsageAggregate {
   private BillableUsage.ErrorCode errorCode;
   private OffsetDateTime billedOn;
   private List<String> remittanceUuids = new ArrayList<>();
+  private String licenseId;
 
   public BillableUsageAggregate updateFrom(BillableUsage billableUsage) {
     // Flush org used only to force publish suppressed messages.
-    if (Objects.equals(billableUsage.getOrgId(), "flush")) {
+    if (Objects.equals(billableUsage.getOrgId(), FLUSH_ORG)) {
       return new BillableUsageAggregate();
     }
 
@@ -72,14 +75,21 @@ public class BillableUsageAggregate {
     if (billableUsage.getUuid() != null) {
       remittanceUuids.add(billableUsage.getUuid().toString());
     }
+    if (billableUsage.getLicenseId() != null) {
+      licenseId = billableUsage.getLicenseId();
+    }
     totalValue = totalValue.add(BigDecimal.valueOf(billableUsage.getValue()));
     snapshotDates.add(billableUsage.getSnapshotDate());
     log.info(
-        "Adding billableUsage: {} to aggregate with aggregateId: {}, totalValue:{}, remittanceUuids:{} "
+        "Adding billableUsage: {} to aggregate with aggregateId: {}, "
+            + "totalValue:{}, "
+            + "licenseId:{}, "
+            + "remittanceUuids:{} "
             + "and windowTimestamp: {}",
         billableUsage,
         aggregateId,
         totalValue,
+        licenseId,
         remittanceUuids,
         windowTimestamp);
     return this;

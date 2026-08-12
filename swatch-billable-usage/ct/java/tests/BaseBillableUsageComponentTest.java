@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static utils.BillableUsageAggregateHelper.mergeHourlyAggregates;
 
 import api.BillableUsageSwatchService;
 import api.ContractsWiremockService;
@@ -39,6 +40,8 @@ import com.redhat.swatch.component.tests.api.KafkaBridge;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.api.Quarkus;
 import com.redhat.swatch.component.tests.api.Wiremock;
+import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
+import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
@@ -49,10 +52,13 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.awaitility.Awaitility;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
@@ -85,6 +91,56 @@ public class BaseBillableUsageComponentTest {
   void setUp() {
     orgId = RandomUtils.generateRandom();
     billingAccountId = RandomUtils.generateRandom();
+    // Drain suppressed windows left by prior tests on shared Kafka before producing new usages.
+    service.flushBillableUsageAggregationTopic();
+  }
+
+  protected BillableUsageAggregate whenHourlyAggregateContainsRemittances(
+      Collection<BillableUsage> usages) {
+
+    var expectedRemittanceUuids =
+        usages.stream().map(BillableUsage::getUuid).map(UUID::toString).collect(Collectors.toSet());
+
+    // Ensure every usage is on BILLABLE_USAGE before any flush. Flush advances Kafka Streams
+    // event-time; if the window closes (window + grace) before Streams has appended a usage,
+    // that remittance is dropped and can never appear in a later partial aggregate.
+    kafkaBridge.waitForKafkaMessage(
+        BILLABLE_USAGE,
+        MessageValidators.billableUsageMatchesUuids(expectedRemittanceUuids),
+        expectedRemittanceUuids.size());
+
+    for (BillableUsage usage : usages) {
+      if (usage.getTallyId() != null) {
+        waitForRemittanceStatus(usage.getTallyId().toString(), RemittanceStatus.PENDING);
+      }
+    }
+
+    // Flush once per outer retry: merge covers the remaining case where suppress still
+    // emits a clean split rollup.
+    return AwaitilityUtils.until(
+        () -> {
+          service.flushBillableUsageAggregationTopic();
+          List<BillableUsageAggregate> partials =
+              kafkaBridge.waitForKafkaMessage(
+                  BILLABLE_USAGE_HOURLY_AGGREGATE,
+                  MessageValidators.billableUsageAggregateForExpectedRemittances(
+                      orgId, expectedRemittanceUuids),
+                  1,
+                  AwaitilitySettings.using(Duration.ofMillis(500), Duration.ofSeconds(12)));
+          return mergeHourlyAggregates(partials, expectedRemittanceUuids);
+        },
+        Objects::nonNull,
+        AwaitilitySettings.using(Duration.ofSeconds(2), Duration.ofSeconds(90)));
+  }
+
+  protected List<BillableUsageAggregate> whenHourlyAggregatesAreReceived(
+      String orgId, int expectedCount) {
+    return kafkaBridge.waitForKafkaMessage(
+        BILLABLE_USAGE_HOURLY_AGGREGATE,
+        MessageValidators.billableUsageAggregateMatchesOrg(orgId),
+        expectedCount,
+        AwaitilitySettings.using(Duration.ofSeconds(2), Duration.ofSeconds(90))
+            .onConditionNotMet(service::flushBillableUsageAggregationTopic));
   }
 
   /** Asserts only the valid probe produced billable usage and service remains healthy. */

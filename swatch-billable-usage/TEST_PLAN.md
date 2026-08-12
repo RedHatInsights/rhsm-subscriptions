@@ -411,6 +411,33 @@ Java component tests in `ContractAdjustmentComponentTest` (`swatch-billable-usag
 - **Expected Result:**  
   - Hourly rollup for marketplace producers
 
+**billable-usage-aggregation-TC002 - Keep latest non-null licenseId on hourly aggregate**
+
+- **Description:** Verify hourly aggregation carries `licenseId` on the aggregate body and keeps the latest non-null value when multiple BillableUsage messages share the same key.  
+- **Setup:**  
+  - Publish three BillableUsage messages for the same org/product/metric/billingAccountId with values 1, 2, 3 and licenseIds A, null, B  
+- **Action:**  
+  - Trigger flush: `POST /internal/rpc/topics/flush`
+- **Verification:**  
+  - One message on `billable-usage-hourly-aggregate`  
+  - `licenseId` = B (latest non-null)  
+  - `totalValue` = 6  
+  - Aggregate key dimensions unchanged (no licenseId on key)
+- **Expected Result:**  
+  - Latest non-null license wins; null does not create a separate aggregate
+
+**billable-usage-aggregation-TC003 - Retain prior licenseId when later usage is null**
+
+- **Description:** Verify a later BillableUsage with null `licenseId` does not clear a previously set aggregate license.  
+- **Setup:**  
+  - Publish BillableUsage with licenseId A, then another for the same key with null licenseId  
+- **Action:**  
+  - Trigger flush: `POST /internal/rpc/topics/flush`
+- **Verification:**  
+  - One hourly aggregate with `licenseId` = A and summed `totalValue`
+- **Expected Result:**  
+  - Legacy/null license messages do not wipe the license already carried on the aggregate
+
 ---
 
 ## Negative and Resilience

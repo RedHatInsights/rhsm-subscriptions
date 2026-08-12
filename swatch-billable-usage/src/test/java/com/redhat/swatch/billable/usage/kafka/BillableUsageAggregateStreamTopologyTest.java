@@ -21,9 +21,11 @@
 package com.redhat.swatch.billable.usage.kafka;
 
 import static com.redhat.swatch.billable.usage.kafka.streams.StreamTopologyProducer.USAGE_TOTAL_AGGREGATED_METRIC;
+import static org.candlepin.subscriptions.billable.usage.BillableUsageAggregate.FLUSH_ORG;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -39,11 +41,14 @@ import io.quarkus.kafka.client.serialization.ObjectMapperSerde;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.TestInputTopic;
 import org.apache.kafka.streams.TestOutputTopic;
 import org.apache.kafka.streams.TopologyTestDriver;
@@ -62,12 +67,15 @@ class BillableUsageAggregateStreamTopologyTest {
   private static final Duration WINDOW_DURATION = Duration.ofSeconds(1);
   private static final Duration GRACE_DURATION = Duration.ofSeconds(0);
   private static final String PRODUCT = "OpenShift-metrics";
+  private static final String ORG_ID = "org123";
+  private static final String ACCOUNT_ID = "testAccountId";
+  private static final String LICENSE_A = "arn:aws:license-manager:us-east-1:1:license:a";
+  private static final String LICENSE_B = "arn:aws:license-manager:us-east-1:1:license:b";
 
   private final MeterRegistry meterRegistry = new SimpleMeterRegistry();
-  private ObjectMapperSerde<BillableUsage> billableUsageSerde;
-  private ObjectMapperSerde<BillableUsageAggregate> billableUsageAggregateSerde;
-  private ObjectMapperSerde<BillableUsageAggregateKey> billableUsageAggregateKeySerde;
   private TopologyTestDriver testDriver;
+  private TestInputTopic<String, BillableUsage> inputTopic;
+  private TestOutputTopic<BillableUsageAggregateKey, BillableUsageAggregate> outputTopic;
 
   @BeforeEach
   void initializeTopology() {
@@ -84,118 +92,132 @@ class BillableUsageAggregateStreamTopologyTest {
     objectMapper.registerModule(new JavaTimeModule());
     StreamTopologyProducer topologyProducer =
         new StreamTopologyProducer(properties, objectMapper, meterRegistry);
-    this.testDriver = new TopologyTestDriver(topologyProducer.buildTopology());
-    this.billableUsageSerde = new ObjectMapperSerde<>(BillableUsage.class, objectMapper);
-    this.billableUsageAggregateSerde =
-        new ObjectMapperSerde<>(BillableUsageAggregate.class, objectMapper);
-    this.billableUsageAggregateKeySerde =
-        new ObjectMapperSerde<>(BillableUsageAggregateKey.class, objectMapper);
-  }
+    testDriver = new TopologyTestDriver(topologyProducer.buildTopology());
 
-  @Test
-  void testAggregateSingleBillableUsage() {
-    TestInputTopic<String, BillableUsage> inputTopic =
+    var billableUsageSerde = new ObjectMapperSerde<>(BillableUsage.class, objectMapper);
+    var billableUsageAggregateSerde =
+        new ObjectMapperSerde<>(BillableUsageAggregate.class, objectMapper);
+    var billableUsageAggregateKeySerde =
+        new ObjectMapperSerde<>(BillableUsageAggregateKey.class, objectMapper);
+    inputTopic =
         testDriver.createInputTopic(
             BILLABLE_USAGE_TOPIC, new StringSerializer(), billableUsageSerde.serializer());
-    TestOutputTopic<BillableUsageAggregateKey, BillableUsageAggregate> outputTopic =
+    outputTopic =
         testDriver.createOutputTopic(
             BILLABLE_USAGE_AGGREGATE_TOPIC,
             billableUsageAggregateKeySerde.deserializer(),
             billableUsageAggregateSerde.deserializer());
-    var snapshotDate = OffsetDateTime.of(2024, 1, 1, 1, 1, 1, 1, ZoneOffset.UTC);
-    var usage = createBillableUsage("testAccountId", 36, snapshotDate);
-    inputTopic.pipeInput("org123", usage);
-    // Make the window pass then input a new message to trigger sending suppressed messages.
-    inputTopic.advanceTime(WINDOW_DURATION.plusSeconds(5));
-    inputTopic.pipeInput("org124", usage);
-    var expectedAggregateKey = new BillableUsageAggregateKey(usage);
-    var keyValue = outputTopic.readKeyValue();
-    var actualAggregate = keyValue.value;
-    assertEquals(expectedAggregateKey, keyValue.key);
-    assertEquals(36.0, actualAggregate.getTotalValue().doubleValue());
-    assertEquals(Set.of(usage.getSnapshotDate()), actualAggregate.getSnapshotDates());
-    assertEquals(usage.getUuid().toString(), actualAggregate.getRemittanceUuids().get(0));
-    assertNotNull(actualAggregate.getWindowTimestamp());
+  }
+
+  @Test
+  void testAggregateSingleBillableUsage() {
+    var usage = createBillableUsage(ACCOUNT_ID, 36, snapshotAtHour(1));
+
+    whenUsagesAreAggregated(usage);
+
+    var aggregate = thenAggregateIsEmittedFor(usage);
+    assertEquals(36.0, aggregate.getTotalValue().doubleValue());
+    assertEquals(Set.of(usage.getSnapshotDate()), aggregate.getSnapshotDates());
+    assertEquals(usage.getUuid().toString(), aggregate.getRemittanceUuids().get(0));
+    assertNotNull(aggregate.getWindowTimestamp());
     assertUsageTotalAggregatedMetricIs(36.0);
   }
 
   @Test
   void testAggregateMultipleBillableUsage() {
-    TestInputTopic<String, BillableUsage> inputTopic =
-        testDriver.createInputTopic(
-            BILLABLE_USAGE_TOPIC, new StringSerializer(), billableUsageSerde.serializer());
-    TestOutputTopic<BillableUsageAggregateKey, BillableUsageAggregate> outputTopic =
-        testDriver.createOutputTopic(
-            BILLABLE_USAGE_AGGREGATE_TOPIC,
-            billableUsageAggregateKeySerde.deserializer(),
-            billableUsageAggregateSerde.deserializer());
-    var snapshotDate1 = OffsetDateTime.of(2024, 1, 1, 1, 1, 1, 1, ZoneOffset.UTC);
-    var snapshotDate2 = OffsetDateTime.of(2024, 1, 1, 2, 1, 1, 1, ZoneOffset.UTC);
-    var snapshotDate3 = OffsetDateTime.of(2024, 1, 1, 3, 1, 1, 1, ZoneOffset.UTC);
-    var usage1 = createBillableUsage("testAccountId", 1, snapshotDate1);
-    var usage2 = createBillableUsage("testAccountId", 3, snapshotDate2);
-    var usage3 = createBillableUsage("testAccountId", 5, snapshotDate3);
-    inputTopic.pipeInput("org123", usage1);
-    inputTopic.pipeInput("org123", usage2);
-    inputTopic.pipeInput("org123", usage3);
-    // Make the window pass then input a new message to trigger sending suppressed messages.
-    inputTopic.advanceTime(WINDOW_DURATION.plusSeconds(5));
-    inputTopic.pipeInput("org123", usage1);
-    var expectedAggregateKey = new BillableUsageAggregateKey(usage1);
-    var keyValue = outputTopic.readKeyValue();
-    var actualAggregate = keyValue.value;
-    assertEquals(expectedAggregateKey, keyValue.key);
-    assertEquals(9.0, actualAggregate.getTotalValue().doubleValue());
+    var usage1 = createBillableUsage(ACCOUNT_ID, 1, snapshotAtHour(1));
+    var usage2 = createBillableUsage(ACCOUNT_ID, 3, snapshotAtHour(2));
+    var usage3 = createBillableUsage(ACCOUNT_ID, 5, snapshotAtHour(3));
+
+    whenUsagesAreAggregated(usage1, usage2, usage3);
+
+    var aggregate = thenAggregateIsEmittedFor(usage1);
+    assertEquals(9.0, aggregate.getTotalValue().doubleValue());
     assertEquals(
-        Set.of(snapshotDate1, snapshotDate2, snapshotDate3), actualAggregate.getSnapshotDates());
-    assertIterableEquals(
-        List.of(
-            usage1.getUuid().toString(), usage2.getUuid().toString(), usage3.getUuid().toString()),
-        actualAggregate.getRemittanceUuids());
-    assertNotNull(actualAggregate.getWindowTimestamp());
+        Set.of(usage1.getSnapshotDate(), usage2.getSnapshotDate(), usage3.getSnapshotDate()),
+        aggregate.getSnapshotDates());
+    assertIterableEquals(remittanceUuidsOf(usage1, usage2, usage3), aggregate.getRemittanceUuids());
+    assertNotNull(aggregate.getWindowTimestamp());
     assertUsageTotalAggregatedMetricIs(9.0);
   }
 
   @Test
+  void testAggregateKeepsLatestLicenseIdForSameKey() {
+    var usage1 = createBillableUsage(ACCOUNT_ID, 1, snapshotAtHour(1), LICENSE_A);
+    var usage2 = createBillableUsage(ACCOUNT_ID, 3, snapshotAtHour(2), LICENSE_B);
+
+    whenUsagesAreAggregated(usage1, usage2);
+
+    var aggregate = thenAggregateIsEmittedFor(usage1);
+    assertEquals(new BillableUsageAggregateKey(usage2), new BillableUsageAggregateKey(usage1));
+    assertEquals(4.0, aggregate.getTotalValue().doubleValue());
+    assertEquals(LICENSE_B, aggregate.getLicenseId());
+    assertEquals(
+        Set.of(usage1.getSnapshotDate(), usage2.getSnapshotDate()), aggregate.getSnapshotDates());
+  }
+
+  @Test
+  void testAggregateKeepsNullLicenseIdWhenUsagesHaveNone() {
+    var usage1 = createBillableUsage(ACCOUNT_ID, 2, snapshotAtHour(1));
+    var usage2 = createBillableUsage(ACCOUNT_ID, 5, snapshotAtHour(2));
+
+    whenUsagesAreAggregated(usage1, usage2);
+
+    var aggregate = thenAggregateIsEmittedFor(usage1);
+    assertNull(aggregate.getLicenseId());
+    assertEquals(7.0, aggregate.getTotalValue().doubleValue());
+  }
+
+  @Test
+  void testAggregateIgnoresNullLicenseAfterNonNull() {
+    var usage1 = createBillableUsage(ACCOUNT_ID, 2, snapshotAtHour(1), LICENSE_A);
+    var usage2 = createBillableUsage(ACCOUNT_ID, 5, snapshotAtHour(2), null);
+
+    whenUsagesAreAggregated(usage1, usage2);
+
+    var aggregate = thenAggregateIsEmittedFor(usage1);
+    assertEquals(LICENSE_A, aggregate.getLicenseId());
+    assertEquals(7.0, aggregate.getTotalValue().doubleValue());
+  }
+
+  @Test
   void testAggregateMultipleSubscriptionsBillableUsage() {
-    TestInputTopic<String, BillableUsage> inputTopic =
-        testDriver.createInputTopic(
-            BILLABLE_USAGE_TOPIC, new StringSerializer(), billableUsageSerde.serializer());
-    TestOutputTopic<BillableUsageAggregateKey, BillableUsageAggregate> outputTopic =
-        testDriver.createOutputTopic(
-            BILLABLE_USAGE_AGGREGATE_TOPIC,
-            billableUsageAggregateKeySerde.deserializer(),
-            billableUsageAggregateSerde.deserializer());
-    var snapshotDate1 = OffsetDateTime.of(2024, 1, 1, 1, 1, 1, 1, ZoneOffset.UTC);
-    var snapshotDate2 = OffsetDateTime.of(2024, 1, 1, 2, 1, 1, 1, ZoneOffset.UTC);
-    var firstSubUsage1 = createBillableUsage("testAccountId1", 1, snapshotDate1);
-    var fistSubUsage2 = createBillableUsage("testAccountId1", 2, snapshotDate2);
-    var secondSubUsage1 = createBillableUsage("testAccountId2", 3, snapshotDate1);
-    var secondSubUsage2 = createBillableUsage("testAccountId2", 5, snapshotDate2);
-    inputTopic.pipeInput("org123", firstSubUsage1);
-    inputTopic.pipeInput("org123", secondSubUsage1);
-    inputTopic.pipeInput("org123", fistSubUsage2);
-    inputTopic.pipeInput("org123", secondSubUsage2);
-    // Make the window pass then input a new message to trigger sending suppressed messages.
-    inputTopic.advanceTime(WINDOW_DURATION.plusSeconds(5));
-    inputTopic.pipeInput("org123", firstSubUsage1);
-    var expectedFirstAggregateKey = new BillableUsageAggregateKey(firstSubUsage1);
-    var expectedSecondAggregateKey = new BillableUsageAggregateKey(secondSubUsage1);
+    var firstSubUsage1 = createBillableUsage("testAccountId1", 1, snapshotAtHour(1));
+    var firstSubUsage2 = createBillableUsage("testAccountId1", 2, snapshotAtHour(2));
+    var secondSubUsage1 = createBillableUsage("testAccountId2", 3, snapshotAtHour(1));
+    var secondSubUsage2 = createBillableUsage("testAccountId2", 5, snapshotAtHour(2));
+
+    whenUsagesAreAggregated(firstSubUsage1, secondSubUsage1, firstSubUsage2, secondSubUsage2);
+
     var firstRecord = outputTopic.readKeyValue();
     var secondRecord = outputTopic.readKeyValue();
-    var actualFirstAggregate = firstRecord.value;
-    var actualSecondAggregate = secondRecord.value;
-    assertEquals(expectedFirstAggregateKey, firstRecord.key);
-    assertEquals(expectedSecondAggregateKey, secondRecord.key);
-    assertEquals(3.0, actualFirstAggregate.getTotalValue().doubleValue());
-    assertEquals(8.0, actualSecondAggregate.getTotalValue().doubleValue());
+    assertEquals(new BillableUsageAggregateKey(firstSubUsage1), firstRecord.key);
+    assertEquals(new BillableUsageAggregateKey(secondSubUsage1), secondRecord.key);
+    assertEquals(3.0, firstRecord.value.getTotalValue().doubleValue());
+    assertEquals(8.0, secondRecord.value.getTotalValue().doubleValue());
     assertIterableEquals(
-        List.of(firstSubUsage1.getUuid().toString(), fistSubUsage2.getUuid().toString()),
-        actualFirstAggregate.getRemittanceUuids());
+        remittanceUuidsOf(firstSubUsage1, firstSubUsage2), firstRecord.value.getRemittanceUuids());
     assertIterableEquals(
-        List.of(secondSubUsage1.getUuid().toString(), secondSubUsage2.getUuid().toString()),
-        actualSecondAggregate.getRemittanceUuids());
+        remittanceUuidsOf(secondSubUsage1, secondSubUsage2),
+        secondRecord.value.getRemittanceUuids());
     assertUsageTotalAggregatedMetricIs(11.0);
+  }
+
+  private void whenUsagesAreAggregated(BillableUsage... usages) {
+    for (BillableUsage usage : usages) {
+      inputTopic.pipeInput(ORG_ID, usage);
+    }
+    // Advance past the window, then publish the flush org to emit suppressed aggregates.
+    inputTopic.advanceTime(WINDOW_DURATION.plusSeconds(5));
+    var flushUsage = new BillableUsage();
+    flushUsage.setOrgId(FLUSH_ORG);
+    inputTopic.pipeInput(FLUSH_ORG, flushUsage);
+  }
+
+  private BillableUsageAggregate thenAggregateIsEmittedFor(BillableUsage usage) {
+    KeyValue<BillableUsageAggregateKey, BillableUsageAggregate> record = outputTopic.readKeyValue();
+    assertEquals(new BillableUsageAggregateKey(usage), record.key);
+    return record.value;
   }
 
   private void assertUsageTotalAggregatedMetricIs(double expectedTotal) {
@@ -208,10 +230,25 @@ class BillableUsageAggregateStreamTopologyTest {
     assertEquals(metric.get().measure().iterator().next().getValue(), expectedTotal);
   }
 
+  private static OffsetDateTime snapshotAtHour(int hour) {
+    return OffsetDateTime.of(2024, 1, 1, hour, 1, 1, 1, ZoneOffset.UTC);
+  }
+
+  private static List<String> remittanceUuidsOf(BillableUsage... usages) {
+    return Arrays.stream(usages)
+        .map(usage -> usage.getUuid().toString())
+        .collect(Collectors.toList());
+  }
+
   private BillableUsage createBillableUsage(
       String billingAccountId, int value, OffsetDateTime snapshotDate) {
+    return createBillableUsage(billingAccountId, value, snapshotDate, null);
+  }
+
+  private BillableUsage createBillableUsage(
+      String billingAccountId, int value, OffsetDateTime snapshotDate, String licenseId) {
     var usage = new BillableUsage();
-    usage.setOrgId("org123");
+    usage.setOrgId(ORG_ID);
     usage.setProductId(PRODUCT);
     usage.setSnapshotDate(snapshotDate);
     usage.setUsage(BillableUsage.Usage.PRODUCTION);
@@ -221,6 +258,7 @@ class BillableUsageAggregateStreamTopologyTest {
     usage.setBillingProvider(BillableUsage.BillingProvider.AZURE);
     usage.setBillingAccountId(billingAccountId);
     usage.setUuid(UUID.randomUUID());
+    usage.setLicenseId(licenseId);
     return usage;
   }
 
