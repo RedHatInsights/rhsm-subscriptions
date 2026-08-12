@@ -36,6 +36,7 @@ import com.redhat.swatch.contract.test.model.ContractRequest;
 import com.redhat.swatch.contract.test.model.GranularityType;
 import com.redhat.swatch.contract.test.model.ReportCategory;
 import com.redhat.swatch.contract.test.model.ServiceLevelType;
+import com.redhat.swatch.contract.test.model.SkuCapacityReportV1;
 import com.redhat.swatch.contract.test.model.SkuCapacityReportV2;
 import com.redhat.swatch.contract.test.model.SkuCapacityV2;
 import com.redhat.swatch.contract.test.model.SubscriptionResponse;
@@ -65,7 +66,9 @@ public class ContractsSwatchService extends SwatchService {
   private static final String RESET_DATA_ENDPOINT = ENDPOINT_PREFIX + "/rpc/reset/%s";
   private static final String CONTRACTS_ENDPOINT = ENDPOINT_PREFIX + "/contracts";
   private static final String SUBSCRIPTIONS_ENDPOINT = ENDPOINT_PREFIX + "/subscriptions";
-  private static final String GET_SKU_ENDPOINT =
+  private static final String GET_SKU_CAPACITY_REPORT_V1_ENDPOINT =
+      "/api/rhsm-subscriptions/v1/subscriptions/products/{product_id}";
+  private static final String GET_SKU_CAPACITY_REPORT_V2_ENDPOINT =
       "/api/rhsm-subscriptions/v2/subscriptions/products/{product_id}";
   private static final String CAPACITY_REPORT_ENDPOINT =
       "/api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}";
@@ -221,6 +224,25 @@ public class ContractsSwatchService extends SwatchService {
     return getSkuCapacityByProductIdForOrg(subscription.getProduct(), subscription.getOrgId());
   }
 
+  public SkuCapacityReportV1 getSkuCapacityReportV1(Product product, String orgId) {
+    Objects.requireNonNull(product, "product id must not be null");
+    Objects.requireNonNull(orgId, "org id must not be null");
+
+    return given()
+        .headers(securityHeadersWithServiceRole(orgId))
+        .accept("application/vnd.api+json")
+        .pathParam("product_id", product.getName())
+        .get(GET_SKU_CAPACITY_REPORT_V1_ENDPOINT)
+        .then()
+        .statusCode(SC_OK)
+        .extract()
+        .as(SkuCapacityReportV1.class);
+  }
+
+  public SkuCapacityReportV2 getSkuCapacityReportV2(Product product, String orgId) {
+    return getSkuCapacityByProductIdForOrg(product, orgId);
+  }
+
   public SkuCapacityReportV2 getSkuCapacityByProductIdForOrg(Product product, String orgId) {
     return getSkuCapacityByProductIdForOrg(product, orgId, null, null);
   }
@@ -241,7 +263,12 @@ public class ContractsSwatchService extends SwatchService {
     if (ending != null) {
       request = request.queryParam("ending", ending.toString());
     }
-    return request.get(GET_SKU_ENDPOINT).then().extract().as(SkuCapacityReportV2.class);
+    return request
+        .get(GET_SKU_CAPACITY_REPORT_V2_ENDPOINT)
+        .then()
+        .statusCode(SC_OK)
+        .extract()
+        .as(SkuCapacityReportV2.class);
   }
 
   public CapacityReportByMetricId getCapacityReportByMetricId(
