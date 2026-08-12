@@ -1329,13 +1329,19 @@ This section verifies the automatic contract termination behavior when contracts
 
 **subscriptions-termination-TC001** - **Terminate subscription with timestamp**  
 - **Description:** Verify manual subscription termination.  
-- **Setup:** Create an active subscription.  
-- **Action:** POST `/api/swatch-contracts/internal/subscriptions/terminate/{subscription_id}?timestamp=2024-01-01T00:00:00Z`.  
-- **Verification:** Check subscription end date.  
+- **Setup:**
+  - Create an active subscription
+  - Confirm it appears in the active subscription search (SKU capacity report)
+- **Action:** POST `/api/swatch-contracts/internal/subscriptions/terminate/{subscription_id}?timestamp=<past>`.  
+- **Verification:**
+  - Check subscription `end_date` via internal GET subscriptions
+  - Re-query the v2 SKU capacity report (active subscription search) for the org/product
+  - Confirm the report shows zero active capacity (`meta.count` is 0)
 - **Expected Result:**  
   - TerminationRequest with message  
   - Subscription `end_date` set to timestamp  
-  - Subscription effectively terminated
+  - Subscription no longer appears in the active subscription search for the org/product/SKU  
+  - v2 SKU capacity report returns zero active capacity (`meta.count` is 0)
 
 ## Offering Synchronization
 
