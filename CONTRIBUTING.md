@@ -54,23 +54,40 @@ Once we have all the requirements properly installed and configured, we can buil
 
 ## IntelliJ IDEA Setup
 
+### Build and Run Configuration
+
+For a faster workflow, uncheck **Delegate IDE build/run actions to Maven** in _Settings_ →
+_Build, Execution, Deployment_ → _Build Tools_ → _Maven_ → _Runner_. This lets IntelliJ
+use its own compiler and test runner, avoiding Maven overhead.
+
+### Running Tests from the IDE
+
+You can run individual tests by clicking the gutter arrow next to a test class or method.
+With Maven delegation disabled (see above), IntelliJ compiles and runs the test directly,
+which is significantly faster.
+
+If IntelliJ shows compilation errors in other modules, you can still run a test — IntelliJ
+will compile the code required for that test and its dependencies, skipping unrelated
+modules with errors.
+
 ### Annotation Processing
 
 IntelliJ must have annotation processing enabled for Lombok, MapStruct, and Hibernate
 metamodel generation to work. On first import, IntelliJ should auto-configure this from the
-POMs. If prompted, enable annotation processing.
+POMs. If prompted, enable annotation processing. You can verify this in _Settings_ →
+_Build, Execution, Deployment_ → _Compiler_ → _Annotation Processors_.
 
 ### Generated Sources
 
 This project uses OpenAPI and jsonschema2pojo to generate source code during Maven's
 `generate-sources` phase. IntelliJ cannot generate these on its own, so you must run Maven
-first after a fresh clone or after `./mvnw clean`:
+after a fresh clone or after `./mvnw clean`:
 
-```shell
-./mvnw generate-sources
-```
-
-Then open (or reimport) the project in IntelliJ.
+1. Reload the Maven project in IntelliJ (Ctrl+Shift+O)
+2. Run the generate commands:
+   ```shell
+   ./mvnw clean generate-resources generate-sources
+   ```
 
 ### Component Tests
 
@@ -102,8 +119,6 @@ To generate for a single ct module (faster):
 ./mvnw generate-test-sources -pl swatch-tally/ct -Pcomponent-tests -am
 ```
 
-After generating, reimport the Maven project in IntelliJ (Ctrl+Shift+O).
-
 ### Avoiding Maven / IntelliJ Build Conflicts
 
 Maven and IntelliJ both write annotation processor output (MapStruct impls, Hibernate
@@ -121,16 +136,15 @@ To avoid this, follow these guidelines:
   needed.
 - **After running `./mvnw compile`, `test`, or `verify` from the CLI:** Reset the state for
   IntelliJ by running:
-  ```shell
-  ./mvnw clean generate-sources
-  ```
-  This removes Maven's annotation processor output and regenerates the OpenAPI/JSON schema
-  sources that IntelliJ needs. If you are also working on component tests, follow up with:
-  ```shell
-  ./mvnw generate-test-sources -Pcomponent-tests
-  ```
-- **Fresh clone:** Run `./mvnw generate-sources` before opening IntelliJ. If working on
-  component tests, also run `./mvnw generate-test-sources -Pcomponent-tests`.
+  1. Reload the Maven project in IntelliJ (Ctrl+Shift+O)
+  2. Run the generate commands:
+     ```shell
+     ./mvnw clean generate-resources generate-sources
+     ```
+  3. If you are also working on component tests, follow up with:
+     ```shell
+     ./mvnw generate-test-sources -Pcomponent-tests
+     ```
 
 -------------
 # Code Style
