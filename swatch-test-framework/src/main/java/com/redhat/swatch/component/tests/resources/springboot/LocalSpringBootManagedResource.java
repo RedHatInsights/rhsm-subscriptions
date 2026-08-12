@@ -45,7 +45,7 @@ public class LocalSpringBootManagedResource extends DevProcessManagedResource {
           "Port .* was already in use");
 
   private static final String MANAGEMENT_PORT_PROPERTY = "management.server.port";
-  private static final String SPRING_PROFILES_INCLUDE_PROPERTY = "spring.profiles.include";
+  private static final String SPRING_PROFILES_ACTIVE_PROPERTY = "spring.profiles.active";
 
   private static final String SERVICE_ARGUMENTS = "spring-boot.run.arguments";
   private static final String JVM_ARGUMENTS = "spring-boot.run.jvmArguments";
@@ -120,7 +120,8 @@ public class LocalSpringBootManagedResource extends DevProcessManagedResource {
   }
 
   private void configureSpringProfiles() {
-    addArguments(JVM_ARGUMENTS, "-D" + SPRING_PROFILES_INCLUDE_PROPERTY + "=dev");
+    addArguments(
+        JVM_ARGUMENTS, "-D" + SPRING_PROFILES_ACTIVE_PROPERTY + "=api,worker,kafka-queue,dev,ct");
   }
 
   private void addArguments(String property, String argument) {

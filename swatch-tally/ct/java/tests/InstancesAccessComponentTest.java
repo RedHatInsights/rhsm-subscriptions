@@ -35,10 +35,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
-class TallyReportAccessComponentTest extends BaseTallyComponentTest {
+class InstancesAccessComponentTest extends BaseTallyComponentTest {
 
   private static final String PRODUCT_TAG = "rhel-for-x86-els-payg";
-  private static final String METRIC_ID = "vCPUs";
 
   @BeforeEach
   void setUpAccessControl() {
@@ -52,42 +51,42 @@ class TallyReportAccessComponentTest extends BaseTallyComponentTest {
 
   @ParameterizedTest(name = "authorizationModel={0}")
   @EnumSource(AuthorizationModel.class)
-  void shouldAllowTallyReportWhenAdminAccessGranted(AuthorizationModel authorizationModel) {
+  void shouldAllowInstancesWhenAdminAccessGranted(AuthorizationModel authorizationModel) {
     String userId = RandomUtils.generateRandom();
     var requestHeaders = SwatchUtils.securityHeadersWithUserRole(orgId, userId);
     String identityHeader = requestHeaders.get(X_RH_IDENTITY_HEADER);
     givenSubscriptionsAccess(
         authorizationModel, userId, identityHeader, SubscriptionsAccessLevel.GRANTED_ADMIN);
 
-    Response response = whenGetTallyReport(requestHeaders);
+    Response response = whenGetInstances(requestHeaders);
 
     thenResponseStatusIs(response, HttpStatus.SC_OK);
   }
 
   @ParameterizedTest(name = "authorizationModel={0}")
   @EnumSource(AuthorizationModel.class)
-  void shouldAllowTallyReportWhenReaderAccessGranted(AuthorizationModel authorizationModel) {
+  void shouldAllowInstancesWhenReaderAccessGranted(AuthorizationModel authorizationModel) {
     String userId = RandomUtils.generateRandom();
     var requestHeaders = SwatchUtils.securityHeadersWithUserRole(orgId, userId);
     String identityHeader = requestHeaders.get(X_RH_IDENTITY_HEADER);
     givenSubscriptionsAccess(
         authorizationModel, userId, identityHeader, SubscriptionsAccessLevel.GRANTED_READER);
 
-    Response response = whenGetTallyReport(requestHeaders);
+    Response response = whenGetInstances(requestHeaders);
 
     thenResponseStatusIs(response, HttpStatus.SC_OK);
   }
 
   @ParameterizedTest(name = "authorizationModel={0}")
   @EnumSource(AuthorizationModel.class)
-  void shouldDenyTallyReportWhenAccessDenied(AuthorizationModel authorizationModel) {
+  void shouldDenyInstancesWhenAccessDenied(AuthorizationModel authorizationModel) {
     String userId = RandomUtils.generateRandom();
     var requestHeaders = SwatchUtils.securityHeadersWithUserRole(orgId, userId);
     String identityHeader = requestHeaders.get(X_RH_IDENTITY_HEADER);
     givenSubscriptionsAccess(
         authorizationModel, userId, identityHeader, SubscriptionsAccessLevel.DENIED);
 
-    Response response = whenGetTallyReport(requestHeaders);
+    Response response = whenGetInstances(requestHeaders);
 
     thenResponseStatusIs(response, HttpStatus.SC_FORBIDDEN);
   }
@@ -107,8 +106,8 @@ class TallyReportAccessComponentTest extends BaseTallyComponentTest {
     }
   }
 
-  private Response whenGetTallyReport(Map<String, String> requestHeaders) {
-    return service.getTallyReportWithHeaders(PRODUCT_TAG, METRIC_ID, requestHeaders);
+  private Response whenGetInstances(Map<String, String> requestHeaders) {
+    return service.getInstancesByProductWithHeaders(PRODUCT_TAG, requestHeaders);
   }
 
   private void thenResponseStatusIs(Response response, int expectedStatus) {

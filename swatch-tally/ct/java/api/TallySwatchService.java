@@ -353,6 +353,20 @@ public class TallySwatchService extends SwatchService {
         .response();
   }
 
+  public Response getInstancesByProductWithHeaders(
+      String productId, Map<String, String> requestHeaders) {
+    return given()
+        .headers(requestHeaders)
+        .queryParams(
+            Map.of(
+                "beginning", OffsetDateTime.now().minusDays(1).toString(),
+                "ending", OffsetDateTime.now().toString()))
+        .get(API_PATH + "/instances/products/{productId}", productId)
+        .then()
+        .extract()
+        .response();
+  }
+
   public Response getBillingAccountIds(String orgId, Map<String, ?> queryParams) {
     Map<String, Object> params = new HashMap<>();
     params.put("org_id", orgId);
