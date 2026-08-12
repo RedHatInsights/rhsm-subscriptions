@@ -6,13 +6,13 @@ Central index of all test plans across SWATCH services. Each service has compone
 
 | Service | Component Test Plan | Integration Test Plan |
 |---|---|---|
-| swatch-tally | [SWATCH-TALLY-COMPONENT-TEST-PLAN.md](../swatch-tally/SWATCH-TALLY-COMPONENT-TEST-PLAN.md) | [SWATCH-TALLY-INTEGRATION-TEST-PLAN.md](../swatch-tally/SWATCH-TALLY-INTEGRATION-TEST-PLAN.md) |
-| swatch-contracts | [SWATCH-CONTRACTS-COMPONENT-TEST-PLAN.md](../swatch-contracts/SWATCH-CONTRACTS-COMPONENT-TEST-PLAN.md) | [SWATCH-CONTRACTS-INTEGRATION-TEST-PLAN.md](../swatch-contracts/SWATCH-CONTRACTS-INTEGRATION-TEST-PLAN.md) |
-| swatch-billable-usage | [TEST_PLAN.md](../swatch-billable-usage/TEST_PLAN.md) | TBD |
-| swatch-metrics-hbi | [TEST_PLAN.md](../swatch-metrics-hbi/TEST_PLAN.md) | TBD |
-| swatch-metrics | [TEST_PLAN.md](../swatch-metrics/ct/TEST_PLAN.md) | TBD |
-| swatch-producer-aws | [TEST_PLAN.md](../swatch-producer-aws/TEST_PLAN.md) | TBD |
-| swatch-utilization | [TEST_PLAN.md](../swatch-utilization/TEST_PLAN.md) | TBD |
+| swatch-tally | [COMPONENT_TEST_PLAN.md](../swatch-tally/COMPONENT_TEST_PLAN.md) | [INTEGRATION_TEST_PLAN.md](../swatch-tally/INTEGRATION_TEST_PLAN.md) |
+| swatch-contracts | [COMPONENT_TEST_PLAN.md](../swatch-contracts/COMPONENT_TEST_PLAN.md) | [INTEGRATION_TEST_PLAN.md](../swatch-contracts/INTEGRATION_TEST_PLAN.md) |
+| swatch-billable-usage | [COMPONENT_TEST_PLAN.md](../swatch-billable-usage/COMPONENT_TEST_PLAN.md) | TBD |
+| swatch-metrics-hbi | [COMPONENT_TEST_PLAN.md](../swatch-metrics-hbi/COMPONENT_TEST_PLAN.md) | TBD |
+| swatch-metrics | [COMPONENT_TEST_PLAN.md](../swatch-metrics/COMPONENT_TEST_PLAN.md) | TBD |
+| swatch-producer-aws | [COMPONENT_TEST_PLAN.md](../swatch-producer-aws/COMPONENT_TEST_PLAN.md) | TBD |
+| swatch-utilization | [COMPONENT_TEST_PLAN.md](../swatch-utilization/COMPONENT_TEST_PLAN.md) | TBD |
 
 ## Cross-Service Integration Plans
 

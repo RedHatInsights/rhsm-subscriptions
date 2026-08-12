@@ -43,7 +43,8 @@ import org.junit.jupiter.api.Test;
 /**
  * Component tests for ROSA contract-adjustment remittance (SWATCH-4615).
  *
- * <p>See {@code swatch-billable-usage/TEST_PLAN.md} — Contract Adjustment Remittance (TC001–TC002).
+ * <p>See {@code swatch-billable-usage/COMPONENT_TEST_PLAN.md} — Contract Adjustment Remittance
+ * (TC001–TC002).
  *
  * <p>Contract coverage is stubbed via {@link api.ContractsWiremockService}; usage arrives on Kafka
  * {@code TALLY}; assertions use {@link api.BillableUsageSwatchService#getRemittances}. Expected
