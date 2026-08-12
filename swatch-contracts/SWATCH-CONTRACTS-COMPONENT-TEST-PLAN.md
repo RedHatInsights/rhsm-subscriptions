@@ -1446,6 +1446,40 @@ This section verifies the automatic contract termination behavior when contracts
   - Capacity values indicate unlimited status appropriately.
   - Subscription correctly linked to unlimited offering in response.
 
+## Subscription Type (SKU capacity report meta)
+
+**subscription-type-TC001: Report On-demand subscription type on V1 for PAYG products**
+- **Description:** Verify that the v1 SKU capacity report returns On-demand subscription type for PAYG products.
+- **Setup:** Create a PAYG ROSA contract for the organization.
+- **Action:** Query the v1 SKU capacity report for the PAYG product.
+- **Verification:** Inspect the subscription type in the report metadata.
+- **Expected Result:**
+  - Report metadata indicates On-demand subscription type.
+
+**subscription-type-TC002: Report On-demand subscription type on V2 for PAYG products**
+- **Description:** Verify that the v2 SKU capacity report returns On-demand subscription type for PAYG products.
+- **Setup:** Create a PAYG ROSA contract for the organization.
+- **Action:** Query the v2 SKU capacity report for the PAYG product.
+- **Verification:** Inspect the subscription type in the report metadata.
+- **Expected Result:**
+  - Report metadata indicates On-demand subscription type.
+
+**subscription-type-TC003: Report Annual subscription type on V1 for non-PAYG products**
+- **Description:** Verify that the v1 SKU capacity report returns Annual subscription type for non-PAYG products.
+- **Setup:** Create a non-PAYG (annual) RHEL subscription for the organization.
+- **Action:** Query the v1 SKU capacity report for the non-PAYG product.
+- **Verification:** Inspect the subscription type in the report metadata.
+- **Expected Result:**
+  - Report metadata indicates Annual subscription type.
+
+**subscription-type-TC004: Report Annual subscription type on V2 for non-PAYG products**
+- **Description:** Verify that the v2 SKU capacity report returns Annual subscription type for non-PAYG products.
+- **Setup:** Create a non-PAYG (annual) RHEL subscription for the organization.
+- **Action:** Query the v2 SKU capacity report for the non-PAYG product.
+- **Verification:** Inspect the subscription type in the report metadata.
+- **Expected Result:**
+  - Report metadata indicates Annual subscription type.
+
 ## Offering Update
 
 **offering-update-TC001: Process product update event**
