@@ -92,10 +92,22 @@ public class TallyRhelTest extends BaseTallyComponentTest {
   @MethodSource("socketMappingProvider")
   void test_validate_tally_on_physical_rhel_sockets(
       int actualSockets, int expectedReportedSockets) {
+    // Card 1: A testing framwork seeder that can be used to generate random values for the test
+    // cases.
+    // Move theses to the seeder, use the seeder to overide these if we want to
+    // Inventory ID is the primary id for the HBU db host table (?)
     String inventoryId = helpers.generateUUIDOfSize(false, 5) + "-" + actualSockets;
+    // Inventory ID is the primary id for the HBU db host system_profiles_static table (?)
     String subscriptionManagerId = helpers.generateUUIDOfSize(false, 5) + "-" + actualSockets;
     String displayName =
         "RHEL Host " + helpers.generateUUIDOfSize(false, 5) + actualSockets + " sockets";
+    // Move the values above to the seeder, and ensure that we can replicate the random values if
+    // the exact seed is passed in.
+
+    // Card 2: Use trace ids ( and more? validate messages in kafka by added a unique id in the
+    // message) in component tests
+
+    // Move to the before each
     // Given: Org is opted in
     service.createOptInConfig(orgId);
 
@@ -110,6 +122,7 @@ public class TallyRhelTest extends BaseTallyComponentTest {
     Log.info("Initial sockets: %.0f", initialSockets);
 
     // And: Create RHEL host
+    // Rename the actualSockets to testValue/count ?
     int cores = actualSockets; // 1 core per socket (matches IQE)
 
     SeededHost host =
@@ -130,10 +143,14 @@ public class TallyRhelTest extends BaseTallyComponentTest {
     // Then: Verify socket count increased
     // Matches IQE: assert current_usage["sockets"] == initial["sockets"] +
     // rhel_per_socket_increase[sockets]
+    // Rename getSocketCount to getSocketCountForOrg
+    // Setup a naming pattern for these tests
     double currentSockets =
         getSocketCount(service, orgId, RHEL_FOR_X86.productTag(), "Daily", beginning, ending);
     Log.info("Current sockets: %.0f (increase: %d)", currentSockets, expectedReportedSockets);
 
+    // Use the slf4j for logging
+    // Create a helper method for grouping the assertions
     assertEquals(
         initialSockets + expectedReportedSockets,
         currentSockets,
