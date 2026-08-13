@@ -27,7 +27,7 @@ data:
       "editable": true,
       "fiscalYearStartMonth": 0,
       "graphTooltip": 1,
-      "id": 1103676,
+      "id": 1120034,
       "links": [],
       "panels": [
         {
@@ -300,7 +300,7 @@ data:
                 "h": 7,
                 "w": 6,
                 "x": 0,
-                "y": 4133
+                "y": 4142
               },
               "id": 113,
               "options": {
@@ -400,7 +400,7 @@ data:
                 "h": 7,
                 "w": 6,
                 "x": 6,
-                "y": 4133
+                "y": 4142
               },
               "id": 115,
               "options": {
@@ -438,7 +438,7 @@ data:
           "type": "row"
         },
         {
-          "collapsed": true,
+          "collapsed": false,
           "gridPos": {
             "h": 1,
             "w": 24,
@@ -446,301 +446,300 @@ data:
             "y": 1
           },
           "id": 105,
-          "panels": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${aws_kafka_datasource}"
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 0,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 1,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "auto",
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  },
-                  "mappings": [],
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green"
-                      },
-                      {
-                        "color": "red",
-                        "value": 80
-                      }
-                    ]
-                  }
-                },
-                "overrides": []
-              },
-              "gridPos": {
-                "h": 9,
-                "w": 6,
-                "x": 0,
-                "y": 5467
-              },
-              "id": 103,
-              "options": {
-                "legend": {
-                  "calcs": [],
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "single",
-                  "sort": "none"
-                }
-              },
-              "pluginVersion": "11.6.11",
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${aws_kafka_datasource}"
-                  },
-                  "editorMode": "code",
-                  "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~'.*platform.rhsm-subscriptions.service-instance-ingress'})",
-                  "legendFormat": "__auto",
-                  "range": true,
-                  "refId": "A"
-                }
-              ],
-              "title": "service instance ingress consumer group lag",
-              "type": "timeseries"
-            },
-            {
-              "datasource": {
-                "uid": "${aws_kafka_datasource}"
-              },
-              "description": "⬇️ OCM provides usage metrics that are read by the metering collector job ⬇️\n\n(TIP: if this isn't working, data will not land in swatch DB at all)",
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 10,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 1,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "never",
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "normal"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  },
-                  "mappings": [],
-                  "min": 0,
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green"
-                      },
-                      {
-                        "color": "red",
-                        "value": 80
-                      }
-                    ]
-                  },
-                  "unit": "short"
-                },
-                "overrides": []
-              },
-              "gridPos": {
-                "h": 9,
-                "w": 6,
-                "x": 6,
-                "y": 5467
-              },
-              "id": 76,
-              "options": {
-                "legend": {
-                  "calcs": [],
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "multi",
-                  "sort": "none"
-                }
-              },
-              "pluginVersion": "11.6.11",
-              "targets": [
-                {
-                  "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~\".*platform.rhsm-subscriptions.metering-tasks\"}) by (consumer_group)",
-                  "format": "time_series",
-                  "instant": false,
-                  "interval": "",
-                  "intervalFactor": 1,
-                  "legendFormat": "partition {{ partition }}",
-                  "refId": "A"
-                }
-              ],
-              "title": "OpenShift Metering Task Lag",
-              "type": "timeseries"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${aws_kafka_datasource}"
-              },
-              "description": "Rhelemeter provides usage metrics that are read by the metering collector job",
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 10,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 1,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "never",
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "normal"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  },
-                  "mappings": [],
-                  "min": 0,
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green"
-                      },
-                      {
-                        "color": "red",
-                        "value": 80
-                      }
-                    ]
-                  },
-                  "unit": "none"
-                },
-                "overrides": []
-              },
-              "gridPos": {
-                "h": 9,
-                "w": 6,
-                "x": 12,
-                "y": 5467
-              },
-              "id": 101,
-              "options": {
-                "legend": {
-                  "calcs": [],
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "single",
-                  "sort": "none"
-                }
-              },
-              "pluginVersion": "11.6.11",
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${datasource}"
-                  },
-                  "editorMode": "code",
-                  "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~\".*platform.rhsm-subscriptions.metering-rhel-tasks\"}) by (consumer_group)",
-                  "legendFormat": "partition {{partition}}",
-                  "range": true,
-                  "refId": "A"
-                }
-              ],
-              "title": "Rhelemeter Metering Task Lag",
-              "type": "timeseries"
-            }
-          ],
+          "panels": [],
           "title": "Event Ingestion",
           "type": "row"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${aws_kafka_datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 9,
+            "w": 6,
+            "x": 0,
+            "y": 2
+          },
+          "id": 103,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "11.6.11",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${aws_kafka_datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~'.*platform.rhsm-subscriptions.service-instance-ingress'})",
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "service instance ingress consumer group lag",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "uid": "${aws_kafka_datasource}"
+          },
+          "description": "⬇️ OCM provides usage metrics that are read by the metering collector job ⬇️\n\n(TIP: if this isn't working, data will not land in swatch DB at all)",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "normal"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 9,
+            "w": 6,
+            "x": 6,
+            "y": 2
+          },
+          "id": 76,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "11.6.11",
+          "targets": [
+            {
+              "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~\".*platform.rhsm-subscriptions.metering-tasks\"}) by (consumer_group)",
+              "format": "time_series",
+              "instant": false,
+              "interval": "",
+              "intervalFactor": 1,
+              "legendFormat": "partition {{ partition }}",
+              "refId": "A"
+            }
+          ],
+          "title": "OpenShift Metering Task Lag",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${aws_kafka_datasource}"
+          },
+          "description": "Rhelemeter provides usage metrics that are read by the metering collector job",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "normal"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "none"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 9,
+            "w": 6,
+            "x": 12,
+            "y": 2
+          },
+          "id": 101,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "11.6.11",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~\".*platform.rhsm-subscriptions.metering-rhel-tasks\"}) by (consumer_group)",
+              "legendFormat": "partition {{partition}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Rhelemeter Metering Task Lag",
+          "type": "timeseries"
         },
         {
           "collapsed": false,
@@ -748,7 +747,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 2
+            "y": 11
           },
           "id": 86,
           "panels": [],
@@ -816,104 +815,10 @@ data:
             "overrides": []
           },
           "gridPos": {
-            "h": 8,
-            "w": 22,
-            "x": 0,
-            "y": 3
-          },
-          "id": 88,
-          "options": {
-            "legend": {
-              "calcs": [],
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "hideZeros": false,
-              "mode": "single",
-              "sort": "none"
-            }
-          },
-          "pluginVersion": "11.6.11",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "expr": "sum by(service) (rate(splunk_hec_message_failure_total[10m]))",
-              "refId": "A"
-            }
-          ],
-          "title": "Logging HEC Failures (Runtime)",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "description": "Per-second Logging HEC transmission failure rate over the past 10 minutes.  The y-axis is the total number of log messages that failed transmission.",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisBorderShow": false,
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "barWidthFactor": 0.6,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "insertNulls": false,
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green"
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
             "h": 9,
-            "w": 11,
+            "w": 18,
             "x": 0,
-            "y": 11
+            "y": 12
           },
           "id": 9055,
           "options": {
@@ -942,7 +847,7 @@ data:
               "refId": "A"
             }
           ],
-          "title": "Logging HEC Failures (otel container)",
+          "title": "Logging HEC Failures",
           "type": "timeseries"
         },
         {
@@ -1007,9 +912,9 @@ data:
           },
           "gridPos": {
             "h": 9,
-            "w": 11,
-            "x": 11,
-            "y": 11
+            "w": 18,
+            "x": 0,
+            "y": 21
           },
           "id": 9056,
           "options": {
@@ -1038,7 +943,7 @@ data:
               "refId": "A"
             }
           ],
-          "title": "Logging HEC Success Rate (otel container)",
+          "title": "Logging HEC Success Rate",
           "type": "timeseries"
         },
         {
@@ -1047,7 +952,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 20
+            "y": 30
           },
           "id": 70,
           "panels": [
@@ -1117,7 +1022,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 2075
+                "y": 2084
               },
               "id": 47,
               "options": {
@@ -1256,7 +1161,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 2075
+                "y": 2084
               },
               "id": 52,
               "options": {
@@ -1392,7 +1297,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 2075
+                "y": 2084
               },
               "id": 54,
               "options": {
@@ -1575,7 +1480,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 2075
+                "y": 2084
               },
               "id": 56,
               "options": {
@@ -1710,7 +1615,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 4121
+                "y": 4130
               },
               "id": 92,
               "options": {
@@ -1789,7 +1694,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 21
+            "y": 31
           },
           "id": 12,
           "panels": [
@@ -1815,7 +1720,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 0,
-                "y": 2076
+                "y": 2085
               },
               "id": 72,
               "options": {
@@ -1919,7 +1824,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 6,
-                "y": 2076
+                "y": 2085
               },
               "id": 40,
               "options": {
@@ -2051,7 +1956,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 12,
-                "y": 2076
+                "y": 2085
               },
               "id": 59,
               "options": {
@@ -2146,7 +2051,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 18,
-                "y": 2076
+                "y": 2085
               },
               "id": 4,
               "options": {
@@ -2241,7 +2146,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 0,
-                "y": 3602
+                "y": 3611
               },
               "id": 41,
               "options": {
@@ -2371,7 +2276,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 6,
-                "y": 3602
+                "y": 3611
               },
               "id": 8,
               "options": {
@@ -2465,7 +2370,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 12,
-                "y": 3602
+                "y": 3611
               },
               "id": 10,
               "options": {
@@ -2561,7 +2466,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 18,
-                "y": 3602
+                "y": 3611
               },
               "id": 96,
               "options": {
@@ -2692,7 +2597,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 3612
+                "y": 3621
               },
               "id": 5025,
               "options": {
@@ -2824,7 +2729,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 3612
+                "y": 3621
               },
               "id": 5022,
               "options": {
@@ -2933,7 +2838,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 3612
+                "y": 3621
               },
               "id": 5023,
               "options": {
@@ -3039,7 +2944,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 3612
+                "y": 3621
               },
               "id": 5024,
               "options": {
@@ -3085,7 +2990,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 22
+            "y": 32
           },
           "id": 45,
           "panels": [
@@ -3154,7 +3059,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 2077
+                "y": 2086
               },
               "id": 63,
               "options": {
@@ -3285,7 +3190,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 2077
+                "y": 2086
               },
               "id": 64,
               "options": {
@@ -3415,7 +3320,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 2077
+                "y": 2086
               },
               "id": 66,
               "options": {
@@ -3515,7 +3420,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 2077
+                "y": 2086
               },
               "id": 68,
               "options": {
@@ -3610,7 +3515,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 2581
+                "y": 2590
               },
               "id": 94,
               "options": {
@@ -3755,7 +3660,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 2581
+                "y": 2590
               },
               "id": 5010,
               "options": {
@@ -3864,7 +3769,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 2581
+                "y": 2590
               },
               "id": 5011,
               "options": {
@@ -3970,7 +3875,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 2581
+                "y": 2590
               },
               "id": 5012,
               "options": {
@@ -4102,7 +4007,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 2589
+                "y": 2598
               },
               "id": 5013,
               "options": {
@@ -4159,7 +4064,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 23
+            "y": 33
           },
           "id": 31,
           "panels": [
@@ -4227,7 +4132,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 2078
+                "y": 2087
               },
               "id": 32,
               "options": {
@@ -4321,7 +4226,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 2078
+                "y": 2087
               },
               "id": 33,
               "options": {
@@ -4414,7 +4319,7 @@ data:
                 "h": 9,
                 "w": 12,
                 "x": 12,
-                "y": 2078
+                "y": 2087
               },
               "id": 34,
               "options": {
@@ -4508,7 +4413,7 @@ data:
                 "h": 11,
                 "w": 6,
                 "x": 0,
-                "y": 2095
+                "y": 2104
               },
               "id": 35,
               "options": {
@@ -4602,7 +4507,7 @@ data:
                 "h": 11,
                 "w": 6,
                 "x": 6,
-                "y": 2095
+                "y": 2104
               },
               "id": 36,
               "options": {
@@ -4698,7 +4603,7 @@ data:
                 "h": 11,
                 "w": 6,
                 "x": 12,
-                "y": 2095
+                "y": 2104
               },
               "id": 95,
               "options": {
@@ -4794,7 +4699,7 @@ data:
                 "h": 11,
                 "w": 6,
                 "x": 18,
-                "y": 2095
+                "y": 2104
               },
               "id": 5015,
               "options": {
@@ -4900,7 +4805,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 2106
+                "y": 2115
               },
               "id": 5016,
               "options": {
@@ -5020,7 +4925,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 2106
+                "y": 2115
               },
               "id": 5014,
               "options": {
@@ -5162,7 +5067,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 2106
+                "y": 2115
               },
               "id": 5017,
               "options": {
@@ -5219,7 +5124,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 24
+            "y": 34
           },
           "id": 9048,
           "panels": [
@@ -5319,7 +5224,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 2079
+                "y": 2088
               },
               "id": 9049,
               "options": {
@@ -5450,7 +5355,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 2079
+                "y": 2088
               },
               "id": 9038,
               "options": {
@@ -5559,7 +5464,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 2079
+                "y": 2088
               },
               "id": 9039,
               "options": {
@@ -5665,7 +5570,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 2079
+                "y": 2088
               },
               "id": 9040,
               "options": {
@@ -5711,7 +5616,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 25
+            "y": 35
           },
           "id": 9050,
           "panels": [
@@ -5811,7 +5716,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 8142
+                "y": 8151
               },
               "id": 9051,
               "options": {
@@ -5942,7 +5847,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 8142
+                "y": 8151
               },
               "id": 9052,
               "options": {
@@ -6051,7 +5956,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 8142
+                "y": 8151
               },
               "id": 9053,
               "options": {
@@ -6157,7 +6062,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 8142
+                "y": 8151
               },
               "id": 9054,
               "options": {
@@ -6203,7 +6108,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 26
+            "y": 36
           },
           "id": 123,
           "panels": [
@@ -6270,7 +6175,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 5492
+                "y": 5501
               },
               "id": 124,
               "options": {
@@ -6333,7 +6238,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 5492
+                "y": 5501
               },
               "id": 125,
               "options": {
@@ -6433,7 +6338,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 5492
+                "y": 5501
               },
               "id": 126,
               "options": {
@@ -6525,7 +6430,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 5492
+                "y": 5501
               },
               "id": 127,
               "options": {
@@ -6688,7 +6593,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 5501
+                "y": 5510
               },
               "id": 133,
               "options": {
@@ -6820,7 +6725,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 5501
+                "y": 5510
               },
               "id": 5018,
               "options": {
@@ -6929,7 +6834,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 5501
+                "y": 5510
               },
               "id": 5019,
               "options": {
@@ -7035,7 +6940,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 5501
+                "y": 5510
               },
               "id": 5020,
               "options": {
@@ -7167,7 +7072,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 5554
+                "y": 5563
               },
               "id": 5021,
               "options": {
@@ -7224,7 +7129,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 27
+            "y": 37
           },
           "id": 16,
           "panels": [
@@ -7294,7 +7199,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 5493
+                "y": 5502
               },
               "id": 20,
               "options": {
@@ -7401,7 +7306,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 5493
+                "y": 5502
               },
               "id": 89,
               "options": {
@@ -7504,7 +7409,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 5493
+                "y": 5502
               },
               "id": 90,
               "options": {
@@ -7600,7 +7505,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 5493
+                "y": 5502
               },
               "id": 128,
               "options": {
@@ -7700,7 +7605,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 5502
+                "y": 5511
               },
               "id": 5002,
               "options": {
@@ -7799,7 +7704,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 5502
+                "y": 5511
               },
               "id": 5001,
               "options": {
@@ -7902,7 +7807,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 5502
+                "y": 5511
               },
               "id": 5028,
               "options": {
@@ -8000,7 +7905,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 5502
+                "y": 5511
               },
               "id": 5027,
               "options": {
@@ -8166,7 +8071,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 5511
+                "y": 5520
               },
               "id": 132,
               "options": {
@@ -8280,7 +8185,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 5511
+                "y": 5520
               },
               "id": 118,
               "options": {
@@ -8400,7 +8305,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 5511
+                "y": 5520
               },
               "id": 5026,
               "options": {
@@ -8543,7 +8448,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 5511
+                "y": 5520
               },
               "id": 5029,
               "options": {
@@ -8678,7 +8583,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 5519
+                "y": 5528
               },
               "id": 5003,
               "interval": "1d",
@@ -8803,7 +8708,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 5519
+                "y": 5528
               },
               "id": 5004,
               "interval": "1d",
@@ -8928,7 +8833,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 5519
+                "y": 5528
               },
               "id": 5049,
               "interval": "1d",
@@ -9053,7 +8958,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 5519
+                "y": 5528
               },
               "id": 5050,
               "interval": "1d",
@@ -9121,7 +9026,7 @@ data:
                 "h": 10,
                 "w": 18,
                 "x": 0,
-                "y": 5527
+                "y": 5536
               },
               "id": 121,
               "options": {
@@ -9194,7 +9099,7 @@ data:
                 "h": 10,
                 "w": 18,
                 "x": 0,
-                "y": 5537
+                "y": 5546
               },
               "id": 122,
               "options": {
@@ -9246,7 +9151,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 28
+            "y": 38
           },
           "id": 74,
           "panels": [
@@ -9316,7 +9221,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 8802
+                "y": 8811
               },
               "id": 83,
               "options": {
@@ -9418,7 +9323,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 8802
+                "y": 8811
               },
               "id": 120,
               "options": {
@@ -9518,7 +9423,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 8802
+                "y": 8811
               },
               "id": 107,
               "options": {
@@ -9617,7 +9522,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 8802
+                "y": 8811
               },
               "id": 98,
               "options": {
@@ -9718,7 +9623,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 8811
+                "y": 8820
               },
               "id": 78,
               "options": {
@@ -9815,7 +9720,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 8811
+                "y": 8820
               },
               "id": 80,
               "options": {
@@ -9909,7 +9814,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 8811
+                "y": 8820
               },
               "id": 119,
               "maxDataPoints": 100,
@@ -10034,7 +9939,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 8811
+                "y": 8820
               },
               "id": 99,
               "maxDataPoints": 100,
@@ -10217,7 +10122,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 8964
+                "y": 8973
               },
               "id": 134,
               "options": {
@@ -10275,7 +10180,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 29
+            "y": 39
           },
           "id": 5048,
           "panels": [
@@ -10375,7 +10280,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 8134
+                "y": 8143
               },
               "id": 5041,
               "options": {
@@ -10506,7 +10411,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 8134
+                "y": 8143
               },
               "id": 5038,
               "options": {
@@ -10615,7 +10520,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 8134
+                "y": 8143
               },
               "id": 5039,
               "options": {
@@ -10721,7 +10626,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 8134
+                "y": 8143
               },
               "id": 5040,
               "options": {
@@ -10767,7 +10672,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 30
+            "y": 40
           },
           "id": 5047,
           "panels": [
@@ -10868,7 +10773,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 5807
+                "y": 5816
               },
               "id": 5037,
               "options": {
@@ -10999,7 +10904,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 5807
+                "y": 5816
               },
               "id": 5034,
               "options": {
@@ -11108,7 +11013,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 5807
+                "y": 5816
               },
               "id": 5035,
               "options": {
@@ -11214,7 +11119,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 5807
+                "y": 5816
               },
               "id": 5036,
               "options": {
@@ -11260,7 +11165,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 31
+            "y": 41
           },
           "id": 5046,
           "panels": [
@@ -11360,7 +11265,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 5817
+                "y": 5826
               },
               "id": 5045,
               "options": {
@@ -11491,7 +11396,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 5817
+                "y": 5826
               },
               "id": 5042,
               "options": {
@@ -11600,7 +11505,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 5817
+                "y": 5826
               },
               "id": 5043,
               "options": {
@@ -11706,7 +11611,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 5817
+                "y": 5826
               },
               "id": 5044,
               "options": {
@@ -11752,7 +11657,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 32
+            "y": 42
           },
           "id": 129,
           "panels": [
@@ -11820,7 +11725,7 @@ data:
                 "h": 8,
                 "w": 12,
                 "x": 0,
-                "y": 5818
+                "y": 5827
               },
               "id": 130,
               "options": {
@@ -11949,7 +11854,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 5826
+                "y": 5835
               },
               "id": 5009,
               "options": {
@@ -12080,7 +11985,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 5826
+                "y": 5835
               },
               "id": 5006,
               "options": {
@@ -12189,7 +12094,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 5826
+                "y": 5835
               },
               "id": 5007,
               "options": {
@@ -12295,7 +12200,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 5826
+                "y": 5835
               },
               "id": 5008,
               "options": {
@@ -12393,7 +12298,7 @@ data:
                 "h": 8,
                 "w": 8,
                 "x": 0,
-                "y": 5869
+                "y": 5878
               },
               "id": 136,
               "options": {
@@ -12541,7 +12446,7 @@ data:
                 "h": 8,
                 "w": 21,
                 "x": 0,
-                "y": 5877
+                "y": 5886
               },
               "id": 137,
               "options": {
@@ -12743,7 +12648,7 @@ data:
                 "h": 8,
                 "w": 21,
                 "x": 0,
-                "y": 5885
+                "y": 5894
               },
               "id": 131,
               "options": {
