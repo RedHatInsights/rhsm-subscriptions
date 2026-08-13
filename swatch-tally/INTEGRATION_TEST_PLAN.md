@@ -1,6 +1,6 @@
 # Integration Test Plan for swatch-tally
 
-Component-level testing is covered in [SWATCH-TALLY-COMPONENT-TEST-PLAN.md](SWATCH-TALLY-COMPONENT-TEST-PLAN.md). This document covers integration testing that exercises swatch-tally against real downstream services in a deployed environment (stage or ephemeral).
+Component-level testing is covered in [COMPONENT_TEST_PLAN.md](COMPONENT_TEST_PLAN.md). This document covers integration testing that exercises swatch-tally against real downstream services in a deployed environment (stage or ephemeral).
 
 Integration tests live in the IQE plugin: [iqe-rhsm-subscriptions-plugin](https://gitlab.cee.redhat.com/insights-qe/iqe-rhsm-subscriptions-plugin/-/tree/master/iqe_rhsm_subscriptions/tests/integration/swatch_tally?ref_type=heads)
 

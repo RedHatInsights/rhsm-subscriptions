@@ -19,7 +19,7 @@ Before reviewing, **ALWAYS** read the latest version of the component testing do
 1. Read `docs/component-tests.md` for the overall framework architecture and features
 2. Review the common component test code in `swatch-test-framework/` to understand the framework implementation, utilities, and available tools
 3. Check the specific service's `ct/README.md` for deployment and execution instructions
-4. **Check if the service has a `TEST_PLAN.md`** file in the service root directory (e.g., `swatch-contracts/TEST_PLAN.md`). If it exists:
+4. **Check if the service has a `COMPONENT_TEST_PLAN.md`** file in the service root directory (e.g., `swatch-contracts/COMPONENT_TEST_PLAN.md`). If it exists:
    - Each test annotated with `@TestPlanName("test-id")` must correspond to a test case defined in this document
    - Verify that the test implementation matches the test case description, objectives, and expected behavior
    - Ensure the test covers all the requirements specified in the test plan
@@ -586,8 +586,8 @@ When reviewing a component test:
 - [ ] Is the test method name descriptive?
 - [ ] Do test and helper method names not exceed 65 characters?
 - [ ] Is `@TestPlanName` annotation present (if applicable)?
-- [ ] If `@TestPlanName` is used, does the service have a `TEST_PLAN.md` file?
-- [ ] If `TEST_PLAN.md` exists, does the test implementation match the test case definition?
+- [ ] If `@TestPlanName` is used, does the service have a `COMPONENT_TEST_PLAN.md` file?
+- [ ] If `COMPONENT_TEST_PLAN.md` exists, does the test implementation match the test case definition?
 - [ ] Does the test cover all requirements specified in the corresponding test plan case?
 
 ### 2. Code Quality Review
@@ -706,7 +706,7 @@ assertEquals(2, contracts.size(), "Should have exactly two contracts");
 
 - **Always read** `docs/component-tests.md` before reviewing
 - **Always review** `swatch-test-framework/` code to understand available utilities and patterns
-- **Always check** for `TEST_PLAN.md` in the service directory and validate `@TestPlanName` correspondence
+- **Always check** for `COMPONENT_TEST_PLAN.md` in the service directory and validate `@TestPlanName` correspondence
 - **Always verify** test class names match test plan naming convention (remove `-TCXXX` suffix, add `ComponentTest`)
 - **Always verify** service facade methods match OpenAPI `operationId` names exactly
 - **Always verify** methods are ordered according to Java conventions (static → public → protected → private) and helper methods follow given-when-then order

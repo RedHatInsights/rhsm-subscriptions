@@ -22,7 +22,7 @@ This document defines the **component-level test plan** for `swatch-billable-usa
 - Unit tests (covered in service unit test suites; not tracked in this plan)
 - End-to-end marketplace API submission (covered by `swatch-producer-aws`, `swatch-producer-azure`, and IQE integration tests)
 - `swatch-tally` tally computation logic
-- `swatch-contracts` contract creation and sync logic (covered by `swatch-contracts/TEST_PLAN.md`)
+- `swatch-contracts` contract creation and sync logic (covered by `swatch-contracts/COMPONENT_TEST_PLAN.md`)
 - Stage/prod long-run heartbeat tests
 - Performance, load, and chaos testing
 
