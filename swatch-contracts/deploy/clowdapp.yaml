@@ -121,6 +121,10 @@ parameters:
     value: '3'
   - name: KAFKA_IT_SUBSCRIPTION_PARTITIONS
     value: '3'
+  - name: KAFKA_IT_PRODUCT_REPLICAS
+    value: '3'
+  - name: KAFKA_IT_PRODUCT_PARTITIONS
+    value: '3'
   - name: CURL_CRON_IMAGE
     value: registry.access.redhat.com/ubi8/ubi-minimal
   - name: CURL_CRON_IMAGE_TAG
@@ -284,6 +288,9 @@ objects:
         - replicas: ${{KAFKA_IT_SUBSCRIPTION_REPLICAS}}
           partitions: ${{KAFKA_IT_SUBSCRIPTION_PARTITIONS}}
           topicName: subscription.subscriptions.private
+        - replicas: ${{KAFKA_IT_PRODUCT_REPLICAS}}
+          partitions: ${{KAFKA_IT_PRODUCT_PARTITIONS}}
+          topicName: product-service.operationalproduct.protected
 
       deployments:
         - name: service

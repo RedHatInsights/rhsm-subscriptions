@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.contract.product.umb;
+package com.redhat.swatch.contract.service;
 
 import static com.redhat.swatch.contract.config.Channels.OFFERING_SYNC_TASK_SERVICE_UMB;
 
@@ -26,7 +26,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.contract.config.Channels;
 import com.redhat.swatch.contract.openapi.model.OperationalProductEvent;
 import com.redhat.swatch.contract.product.UpstreamProductData;
-import com.redhat.swatch.contract.service.OfferingSyncService;
 import io.smallrye.common.annotation.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -68,14 +67,19 @@ public class ProductStatusUMBMessageConsumer {
 
       log.info(
           "IT Product message consumed: source=umb, productCode={}, eventType={}, "
-              + "productCategory={}",
+              + "productCategory={}, childSku={}",
           productEvent.getProductCode(),
           productEvent.getEventType(),
-          productEvent.getProductCategory());
+          productEvent.getProductCategory(),
+          isChildSku(productEvent.getProductCode()));
 
       service.syncUmbProductFromEvent(productEvent);
     } catch (Exception e) {
       log.error("Unable to read UMB product message for JSON: {}", message, e);
     }
+  }
+
+  private static boolean isChildSku(String productCode) {
+    return productCode != null && productCode.startsWith("SVC");
   }
 }

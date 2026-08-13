@@ -36,6 +36,7 @@ import com.redhat.swatch.contract.test.model.ContractRequest;
 import com.redhat.swatch.contract.test.model.GranularityType;
 import com.redhat.swatch.contract.test.model.ReportCategory;
 import com.redhat.swatch.contract.test.model.ServiceLevelType;
+import com.redhat.swatch.contract.test.model.SkuCapacityReportV1;
 import com.redhat.swatch.contract.test.model.SkuCapacityReportV2;
 import com.redhat.swatch.contract.test.model.SkuCapacityV2;
 import com.redhat.swatch.contract.test.model.SubscriptionResponse;
@@ -65,7 +66,9 @@ public class ContractsSwatchService extends SwatchService {
   private static final String RESET_DATA_ENDPOINT = ENDPOINT_PREFIX + "/rpc/reset/%s";
   private static final String CONTRACTS_ENDPOINT = ENDPOINT_PREFIX + "/contracts";
   private static final String SUBSCRIPTIONS_ENDPOINT = ENDPOINT_PREFIX + "/subscriptions";
-  private static final String GET_SKU_ENDPOINT =
+  private static final String GET_SKU_CAPACITY_REPORT_V1_ENDPOINT =
+      "/api/rhsm-subscriptions/v1/subscriptions/products/{product_id}";
+  private static final String GET_SKU_CAPACITY_REPORT_V2_ENDPOINT =
       "/api/rhsm-subscriptions/v2/subscriptions/products/{product_id}";
   private static final String CAPACITY_REPORT_ENDPOINT =
       "/api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}";
@@ -130,6 +133,13 @@ public class ContractsSwatchService extends SwatchService {
     Objects.requireNonNull(orgId, "orgId must not be null");
     Objects.requireNonNull(billingProvider, "billingProvider must not be null");
     return getContracts(Map.of("org_id", orgId, "billing_provider", billingProvider.toApiModel()));
+  }
+
+  public List<com.redhat.swatch.contract.test.model.Contract>
+      getContractsByOrgIdAndBillingAccountId(String orgId, String billingAccountId) {
+    Objects.requireNonNull(orgId, "orgId must not be null");
+    Objects.requireNonNull(billingAccountId, "billingAccountId must not be null");
+    return getContracts(Map.of("org_id", orgId, "billing_account_id", billingAccountId));
   }
 
   public List<com.redhat.swatch.contract.test.model.Contract>
@@ -221,6 +231,25 @@ public class ContractsSwatchService extends SwatchService {
     return getSkuCapacityByProductIdForOrg(subscription.getProduct(), subscription.getOrgId());
   }
 
+  public SkuCapacityReportV1 getSkuCapacityReportV1(Product product, String orgId) {
+    Objects.requireNonNull(product, "product id must not be null");
+    Objects.requireNonNull(orgId, "org id must not be null");
+
+    return given()
+        .headers(securityHeadersWithServiceRole(orgId))
+        .accept("application/vnd.api+json")
+        .pathParam("product_id", product.getName())
+        .get(GET_SKU_CAPACITY_REPORT_V1_ENDPOINT)
+        .then()
+        .statusCode(SC_OK)
+        .extract()
+        .as(SkuCapacityReportV1.class);
+  }
+
+  public SkuCapacityReportV2 getSkuCapacityReportV2(Product product, String orgId) {
+    return getSkuCapacityByProductIdForOrg(product, orgId);
+  }
+
   public SkuCapacityReportV2 getSkuCapacityByProductIdForOrg(Product product, String orgId) {
     return getSkuCapacityByProductIdForOrg(product, orgId, null, null);
   }
@@ -241,7 +270,12 @@ public class ContractsSwatchService extends SwatchService {
     if (ending != null) {
       request = request.queryParam("ending", ending.toString());
     }
-    return request.get(GET_SKU_ENDPOINT).then().extract().as(SkuCapacityReportV2.class);
+    return request
+        .get(GET_SKU_CAPACITY_REPORT_V2_ENDPOINT)
+        .then()
+        .statusCode(SC_OK)
+        .extract()
+        .as(SkuCapacityReportV2.class);
   }
 
   public Response getSkuCapacityByProductId(Product product, Map<String, String> requestHeaders) {
@@ -380,7 +414,7 @@ public class ContractsSwatchService extends SwatchService {
   }
 
   /**
-   * Get capacity report with raw granularity string (for testing invalid values).
+   * Get capacity report with raw query strings (for testing invalid values).
    *
    * @return Raw Response object for status code validation
    */
@@ -392,7 +426,36 @@ public class ContractsSwatchService extends SwatchService {
       OffsetDateTime ending,
       String granularity,
       ReportCategory category) {
+    return getCapacityReportByMetricIdRaw(
+        product, orgId, metricId, beginning, ending, granularity, category, null, null);
+  }
+
+  public Response getCapacityReportByMetricIdRaw(
+      Product product,
+      String orgId,
+      String metricId,
+      OffsetDateTime beginning,
+      OffsetDateTime ending,
+      String granularity,
+      ReportCategory category,
+      String sla,
+      String usage) {
     Objects.requireNonNull(product, "product must not be null");
+    return getCapacityReportByMetricIdRaw(
+        product.getName(), orgId, metricId, beginning, ending, granularity, category, sla, usage);
+  }
+
+  public Response getCapacityReportByMetricIdRaw(
+      String productId,
+      String orgId,
+      String metricId,
+      OffsetDateTime beginning,
+      OffsetDateTime ending,
+      String granularity,
+      ReportCategory category,
+      String sla,
+      String usage) {
+    Objects.requireNonNull(productId, "productId must not be null");
     Objects.requireNonNull(orgId, "orgId must not be null");
     Objects.requireNonNull(metricId, "metricId must not be null");
     Objects.requireNonNull(beginning, "beginning must not be null");
@@ -403,7 +466,7 @@ public class ContractsSwatchService extends SwatchService {
         given()
             .headers(securityHeadersWithServiceRole(orgId))
             .accept("application/vnd.api+json")
-            .pathParam("product_id", product.getName())
+            .pathParam("product_id", productId)
             .pathParam("metric_id", metricId)
             .queryParam("beginning", beginning.toString())
             .queryParam("ending", ending.toString())
@@ -411,6 +474,12 @@ public class ContractsSwatchService extends SwatchService {
 
     if (category != null) {
       request.queryParam("category", category);
+    }
+    if (sla != null) {
+      request.queryParam("sla", sla);
+    }
+    if (usage != null) {
+      request.queryParam("usage", usage);
     }
 
     return request.when().get(CAPACITY_REPORT_ENDPOINT);

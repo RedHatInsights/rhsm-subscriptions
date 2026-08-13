@@ -191,8 +191,35 @@ public class ContractsRetrievalComponentTest extends BaseContractComponentTest {
         withoutLicenseContract.getLicenseId(), "Contract without licenseId must expose null");
   }
 
+  @TestPlanName("contracts-retrieval-TC008")
+  @Test
+  void shouldGetContractsByBillingAccountId() {
+    final String firstBillingAccountId = "billing-" + RandomUtils.generateRandom();
+    final String secondBillingAccountId = "billing-" + RandomUtils.generateRandom();
+    var firstContract = givenExistingContractForBillingAccountId(firstBillingAccountId);
+    var secondContract = givenExistingContractForBillingAccountId(secondBillingAccountId);
+    final String firstUuid = service.getContracts(firstContract).get(0).getUuid();
+    final String secondUuid = service.getContracts(secondContract).get(0).getUuid();
+
+    var contracts = service.getContractsByOrgIdAndBillingAccountId(orgId, firstBillingAccountId);
+    assertEquals(1, contracts.size());
+    assertEquals(firstUuid, contracts.get(0).getUuid());
+    assertEquals(firstBillingAccountId, contracts.get(0).getBillingAccountId());
+
+    contracts = service.getContractsByOrgIdAndBillingAccountId(orgId, secondBillingAccountId);
+    assertEquals(1, contracts.size());
+    assertEquals(secondUuid, contracts.get(0).getUuid());
+    assertEquals(secondBillingAccountId, contracts.get(0).getBillingAccountId());
+  }
+
   private Contract givenExistingContractForBillingProvider(BillingProvider billingProvider) {
     Contract contract = (Contract) contractBuilder().billingProvider(billingProvider).build();
+    givenContractIsCreated(contract);
+    return contract;
+  }
+
+  private Contract givenExistingContractForBillingAccountId(String billingAccountId) {
+    Contract contract = (Contract) contractBuilder().billingAccountId(billingAccountId).build();
     givenContractIsCreated(contract);
     return contract;
   }

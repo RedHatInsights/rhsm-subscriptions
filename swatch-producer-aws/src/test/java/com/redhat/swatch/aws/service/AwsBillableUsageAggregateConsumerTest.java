@@ -21,10 +21,12 @@
 package com.redhat.swatch.aws.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
@@ -32,6 +34,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.redhat.swatch.aws.config.FeatureFlags;
 import com.redhat.swatch.aws.exception.AwsUsageContextLookupException;
 import com.redhat.swatch.aws.exception.DefaultApiException;
 import com.redhat.swatch.aws.exception.SubscriptionCanNotBeDeterminedException;
@@ -126,6 +129,7 @@ class AwsBillableUsageAggregateConsumerTest {
   @InjectMock AwsMarketplaceMeteringClientFactory clientFactory;
   MarketplaceMeteringClient meteringClient;
   @InjectMock BillableUsageStatusProducer billableUsageStatusProducer;
+  @InjectMock FeatureFlags featureFlags;
 
   @Inject MeterRegistry meterRegistry;
   Counter acceptedCounter;
@@ -176,6 +180,7 @@ class AwsBillableUsageAggregateConsumerTest {
             "status", BillableUsage.Status.SUCCEEDED.toString(), "error_code", "");
 
     meteringClient = mock(MarketplaceMeteringClient.class);
+    when(featureFlags.useLicense()).thenReturn(false);
   }
 
   @Test
@@ -218,10 +223,117 @@ class AwsBillableUsageAggregateConsumerTest {
             .productCode("product")
             .subscriptionStartDate(OffsetDateTime.MIN);
 
-    UsageRecord record = processUsageAndCaptureRecord(context);
+    UsageRecord record = processUsageAndCaptureRecord(context, ROSA_INSTANCE_HOURS_RECORD);
 
     assertEquals("123456789012", record.customerAWSAccountId());
     assertTrue(record.customerIdentifier() == null || record.customerIdentifier().isBlank());
+  }
+
+  @Test
+  void shouldOmitLicenseArnWhenUseLicenseFlagOff() throws ApiException {
+    when(featureFlags.useLicense()).thenReturn(false);
+    BillableUsageAggregate aggregateWithLicense =
+        createAggregateWithLicense("arn:aws:license:test");
+
+    UsageRecord record = processUsageAndCaptureRecord(MOCK_AWS_USAGE_CONTEXT, aggregateWithLicense);
+
+    assertNull(record.licenseArn());
+    verify(contractsApi).getAwsUsageContext(any(), any(), any(), any(), any(), any(), isNull());
+  }
+
+  @Test
+  void shouldSetLicenseArnWhenUseLicenseFlagOn() throws ApiException {
+    when(featureFlags.useLicense()).thenReturn(true);
+    String licenseId = "arn:aws:license-manager:us-east-1:123:license:swatch-test";
+    BillableUsageAggregate aggregateWithLicense = createAggregateWithLicense(licenseId);
+
+    UsageRecord record = processUsageAndCaptureRecord(MOCK_AWS_USAGE_CONTEXT, aggregateWithLicense);
+
+    assertEquals(licenseId, record.licenseArn());
+  }
+
+  @Test
+  void shouldOmitLicenseArnWhenFlagOnButLicenseIdMissing() throws ApiException {
+    when(featureFlags.useLicense()).thenReturn(true);
+
+    UsageRecord record =
+        processUsageAndCaptureRecord(MOCK_AWS_USAGE_CONTEXT, ROSA_INSTANCE_HOURS_RECORD);
+
+    assertNull(record.licenseArn());
+  }
+
+  @Test
+  void shouldPassLicenseIdToGetAwsUsageContext() throws ApiException {
+    when(featureFlags.useLicense()).thenReturn(true);
+    String licenseId = "arn:aws:license-manager:us-east-1:123:license:lookup";
+    BillableUsageAggregate aggregate = createAggregateWithLicense(licenseId);
+    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any(), eq(licenseId)))
+        .thenReturn(MOCK_AWS_USAGE_CONTEXT);
+    when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
+    when(meteringClient.batchMeterUsage(any(BatchMeterUsageRequest.class)))
+        .thenReturn(BATCH_METER_USAGE_SUCCESS_RESPONSE);
+
+    consumer.process(aggregate);
+
+    verify(contractsApi)
+        .getAwsUsageContext(any(), any(), any(), any(), any(), any(), eq(licenseId));
+  }
+
+  @Test
+  void shouldOmitLicenseIdFromContextLookupWhenFlagOff() throws ApiException {
+    when(featureFlags.useLicense()).thenReturn(false);
+    BillableUsageAggregate aggregate =
+        createAggregateWithLicense("arn:aws:license-manager:us-east-1:123:license:legacy");
+    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any(), isNull()))
+        .thenReturn(MOCK_AWS_USAGE_CONTEXT);
+    when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
+    when(meteringClient.batchMeterUsage(any(BatchMeterUsageRequest.class)))
+        .thenReturn(BATCH_METER_USAGE_SUCCESS_RESPONSE);
+
+    consumer.process(aggregate);
+
+    verify(contractsApi).getAwsUsageContext(any(), any(), any(), any(), any(), any(), isNull());
+  }
+
+  @Test
+  void shouldEmitStatusWithLicenseIdOnSuccess() throws ApiException {
+    when(featureFlags.useLicense()).thenReturn(true);
+    String licenseId = "arn:aws:license-manager:us-east-1:123:license:status-ok";
+    BillableUsageAggregate aggregate = createAggregateWithLicense(licenseId);
+    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any(), eq(licenseId)))
+        .thenReturn(MOCK_AWS_USAGE_CONTEXT);
+    when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
+    when(meteringClient.batchMeterUsage(any(BatchMeterUsageRequest.class)))
+        .thenReturn(BATCH_METER_USAGE_SUCCESS_RESPONSE);
+
+    consumer.process(aggregate);
+
+    verify(billableUsageStatusProducer)
+        .emitStatus(
+            argThat(
+                usage ->
+                    BillableUsage.Status.SUCCEEDED.equals(usage.getStatus())
+                        && licenseId.equals(usage.getLicenseId())));
+  }
+
+  @Test
+  void shouldEmitStatusWithLicenseIdOnFailure() throws ApiException {
+    when(featureFlags.useLicense()).thenReturn(true);
+    String licenseId = "arn:aws:license-manager:us-east-1:123:license:status-fail";
+    BillableUsageAggregate aggregate = createAggregateWithLicense(licenseId);
+    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any(), eq(licenseId)))
+        .thenThrow(new SubscriptionCanNotBeDeterminedException(null));
+
+    consumer.process(aggregate);
+
+    verify(billableUsageStatusProducer)
+        .emitStatus(
+            argThat(
+                usage ->
+                    BillableUsage.Status.FAILED.equals(usage.getStatus())
+                        && BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND.equals(
+                            usage.getErrorCode())
+                        && licenseId.equals(usage.getLicenseId())));
   }
 
   @Test
@@ -289,13 +401,14 @@ class AwsBillableUsageAggregateConsumerTest {
   @Test
   void shouldIncrementAcceptedAndSuccessCounters() throws ApiException {
     var priorSuccess = successCounter.count();
+    var priorAccepted = acceptedCounter.count();
     when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any(), isNull()))
         .thenReturn(MOCK_AWS_USAGE_CONTEXT);
     when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
     when(meteringClient.batchMeterUsage(any(BatchMeterUsageRequest.class)))
         .thenReturn(BATCH_METER_USAGE_SUCCESS_RESPONSE);
     consumer.process(ROSA_INSTANCE_HOURS_RECORD);
-    assertEquals(1.0, acceptedCounter.count());
+    assertEquals(priorAccepted + 1.0, acceptedCounter.count());
 
     var metric = getMeteredTotalMetricForSucceeded(MetricIdUtils.getInstanceHours().getValue());
     assertTrue(metric.isPresent());
@@ -345,7 +458,8 @@ class AwsBillableUsageAggregateConsumerTest {
             clientFactory,
             Optional.of(true),
             Duration.of(1, ChronoUnit.HOURS),
-            billableUsageStatusProducer);
+            billableUsageStatusProducer,
+            featureFlags);
     when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any(), isNull()))
         .thenReturn(MOCK_AWS_USAGE_CONTEXT);
     processor.process(ROSA_INSTANCE_HOURS_RECORD);
@@ -506,8 +620,9 @@ class AwsBillableUsageAggregateConsumerTest {
     assertEquals(isValid, consumer.isUsageDateValid(clock, aggregate));
   }
 
-  private UsageRecord processUsageAndCaptureRecord(AwsUsageContext context) throws ApiException {
-    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any(), isNull()))
+  private UsageRecord processUsageAndCaptureRecord(
+      AwsUsageContext context, BillableUsageAggregate aggregate) throws ApiException {
+    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(context);
     when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
     when(meteringClient.batchMeterUsage(any(BatchMeterUsageRequest.class)))
@@ -515,9 +630,21 @@ class AwsBillableUsageAggregateConsumerTest {
 
     ArgumentCaptor<BatchMeterUsageRequest> requestCaptor =
         ArgumentCaptor.forClass(BatchMeterUsageRequest.class);
-    consumer.process(ROSA_INSTANCE_HOURS_RECORD);
+    consumer.process(aggregate);
     verify(meteringClient).batchMeterUsage(requestCaptor.capture());
-    return requestCaptor.getValue().usageRecords().get(0);
+    var captured = requestCaptor.getValue();
+    return captured.usageRecords().getFirst();
+  }
+
+  private static BillableUsageAggregate createAggregateWithLicense(String licenseId) {
+    BillableUsageAggregate aggregate =
+        createAggregate(
+            "rosa",
+            MetricIdUtils.getInstanceHours().toUpperCaseFormatted(),
+            OffsetDateTime.now(Clock.systemUTC()),
+            42.0);
+    aggregate.setLicenseId(licenseId);
+    return aggregate;
   }
 
   private static BillableUsageAggregate createAggregate(

@@ -23,6 +23,7 @@ package com.redhat.swatch.aws.service;
 import static com.redhat.swatch.configuration.registry.SubscriptionDefinition.getBillingFactor;
 import static java.util.Optional.ofNullable;
 
+import com.redhat.swatch.aws.config.FeatureFlags;
 import com.redhat.swatch.aws.exception.AwsMissingCredentialsException;
 import com.redhat.swatch.aws.exception.AwsThrottlingException;
 import com.redhat.swatch.aws.exception.AwsUnprocessedRecordsException;
@@ -81,6 +82,7 @@ public class AwsBillableUsageAggregateConsumer {
   private final Optional<Boolean> isDryRun;
   private final Duration awsUsageWindow;
   private final BillableUsageStatusProducer billableUsageStatusProducer;
+  private final FeatureFlags featureFlags;
   private final MeterProvider<Counter> meteredTotalCounter;
 
   public AwsBillableUsageAggregateConsumer(
@@ -89,7 +91,8 @@ public class AwsBillableUsageAggregateConsumer {
       AwsMarketplaceMeteringClientFactory awsMarketplaceMeteringClientFactory,
       @ConfigProperty(name = "ENABLE_AWS_DRY_RUN") Optional<Boolean> isDryRun,
       @ConfigProperty(name = "AWS_MARKETPLACE_USAGE_WINDOW") Duration awsUsageWindow,
-      BillableUsageStatusProducer billableUsageStatusProducer) {
+      BillableUsageStatusProducer billableUsageStatusProducer,
+      FeatureFlags featureFlags) {
     acceptedCounter = meterRegistry.counter("swatch_aws_marketplace_batch_accepted_total");
     rejectedCounter = meterRegistry.counter("swatch_aws_marketplace_batch_rejected_total");
     ignoreCounter = meterRegistry.counter("swatch_aws_marketplace_batch_ignored_total");
@@ -99,6 +102,7 @@ public class AwsBillableUsageAggregateConsumer {
     this.isDryRun = isDryRun;
     this.awsUsageWindow = awsUsageWindow;
     this.billableUsageStatusProducer = billableUsageStatusProducer;
+    this.featureFlags = featureFlags;
   }
 
   @Incoming("billable-usage-hourly-aggregate-in")
@@ -205,6 +209,7 @@ public class AwsBillableUsageAggregateConsumer {
   public AwsUsageContext lookupAwsUsageContext(BillableUsageAggregate billableUsageAggregate)
       throws AwsUsageContextLookupException {
     try {
+      String licenseId = featureFlags.useLicense() ? billableUsageAggregate.getLicenseId() : null;
       return contractsApi.getAwsUsageContext(
           billableUsageAggregate.getWindowTimestamp(),
           billableUsageAggregate.getAggregateKey().getProductId(),
@@ -212,8 +217,7 @@ public class AwsBillableUsageAggregateConsumer {
           billableUsageAggregate.getAggregateKey().getSla(),
           billableUsageAggregate.getAggregateKey().getUsage(),
           billableUsageAggregate.getAggregateKey().getBillingAccountId(),
-          // LicenseId will be propagated as part of SWATCH-5301.
-          null);
+          licenseId);
     } catch (DefaultApiException e) {
       if (ofNullable(e.getError())
           .map(error -> "CONTRACTS1005".equals(error.getCode()))
@@ -319,12 +323,37 @@ public class AwsBillableUsageAggregateConsumer {
           "Unable to send usage since it is outside of the AWS processing window");
     }
 
-    return UsageRecord.builder()
-        .customerAWSAccountId(context.getCustomerAwsAccountId())
-        .dimension(metric.getAwsDimension())
-        .quantity(billableUsageAggregate.getTotalValue().intValueExact())
-        .timestamp(effectiveTimestamp.toInstant())
-        .build();
+    UsageRecord.Builder usageRecord =
+        UsageRecord.builder()
+            .customerAWSAccountId(context.getCustomerAwsAccountId())
+            .dimension(metric.getAwsDimension())
+            .quantity(billableUsageAggregate.getTotalValue().intValueExact())
+            .timestamp(effectiveTimestamp.toInstant());
+
+    applyLicenseArnIfEnabled(usageRecord, billableUsageAggregate);
+
+    return usageRecord.build();
+  }
+
+  private void applyLicenseArnIfEnabled(
+      UsageRecord.Builder usageRecord, BillableUsageAggregate billableUsageAggregate) {
+    if (!featureFlags.useLicense()) {
+      log.debug(
+          "use-license flag off; omitting LicenseArn for aggregateId={}",
+          billableUsageAggregate.getAggregateId());
+      return;
+    }
+
+    String licenseId = billableUsageAggregate.getLicenseId();
+    if (licenseId == null || licenseId.isBlank()) {
+      log.warn(
+          "use-license is enabled but licenseId is missing; omitting LicenseArn"
+              + " for aggregateId={}",
+          billableUsageAggregate.getAggregateId());
+      return;
+    }
+
+    usageRecord.licenseArn(licenseId);
   }
 
   private boolean isForAws(BillableUsageAggregateKey aggregationKey) {

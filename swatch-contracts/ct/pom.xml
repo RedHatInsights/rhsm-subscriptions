@@ -178,9 +178,6 @@
                   <includes>
                     <include>com/redhat/swatch/contract/product/umb/**</include>
                   </includes>
-                  <excludes>
-                    <exclude>**/ProductStatusUMBMessageConsumer.java</exclude>
-                  </excludes>
                 </resource>
               </resources>
             </configuration>

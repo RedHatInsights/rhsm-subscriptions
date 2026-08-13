@@ -604,16 +604,6 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
   }
 
   private List<BillableUsageAggregate> whenHourlyAggregatesAreReceived(
-      String orgId, int expectedCount) {
-    return kafkaBridge.waitForKafkaMessage(
-        BILLABLE_USAGE_HOURLY_AGGREGATE,
-        MessageValidators.billableUsageAggregateMatchesOrg(orgId),
-        expectedCount,
-        AwaitilitySettings.defaults()
-            .onConditionNotMet(service::flushBillableUsageAggregationTopic));
-  }
-
-  private List<BillableUsageAggregate> whenHourlyAggregatesAreReceived(
       Set<String> orgIds, int expectedCount) {
     return kafkaBridge.waitForKafkaMessage(
         BILLABLE_USAGE_HOURLY_AGGREGATE,

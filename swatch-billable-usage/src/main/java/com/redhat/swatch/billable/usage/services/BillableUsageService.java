@@ -61,7 +61,7 @@ public class BillableUsageService {
   private final ApplicationClock clock;
   private final BillingProducer billingProducer;
   private final BillableUsageRemittanceRepository billableUsageRemittanceRepository;
-  private final ContractsController contractsController;
+  private final ContractCoverageService contractCoverageService;
   private final MeterProvider<Counter> coveredUsageCounter;
   private final MeterProvider<Counter> billableUsageCounter;
 
@@ -69,12 +69,12 @@ public class BillableUsageService {
       ApplicationClock clock,
       BillingProducer billingProducer,
       BillableUsageRemittanceRepository billableUsageRemittanceRepository,
-      ContractsController contractsController,
+      ContractCoverageService contractCoverageService,
       MeterRegistry meterRegistry) {
     this.clock = clock;
     this.billingProducer = billingProducer;
     this.billableUsageRemittanceRepository = billableUsageRemittanceRepository;
-    this.contractsController = contractsController;
+    this.contractCoverageService = contractCoverageService;
     this.coveredUsageCounter = Counter.builder(COVERED_USAGE_METRIC).withRegistry(meterRegistry);
     this.billableUsageCounter = Counter.builder(BILLABLE_USAGE_METRIC).withRegistry(meterRegistry);
   }
@@ -161,7 +161,7 @@ public class BillableUsageService {
   private ContractCoverage getContractCoverage(BillableUsage usage)
       throws ContractCoverageException {
     try {
-      return contractsController.getContractCoverage(usage);
+      return contractCoverageService.getContractCoverage(usage);
     } catch (ContractMissingException ex) {
       if (usage.getSnapshotDate().isAfter(OffsetDateTime.now().minus(30, ChronoUnit.MINUTES))) {
         log.warn(
@@ -250,6 +250,7 @@ public class BillableUsageService {
             .usage(usage.getUsage().value())
             .remittancePendingDate(clock.now())
             .tallyId(usage.getTallyId())
+            .licenseId(contractCoverage.getLicenseId())
             .status(
                 contractCoverage.isGratis() ? RemittanceStatus.GRATIS : RemittanceStatus.PENDING)
             .build();
@@ -263,6 +264,7 @@ public class BillableUsageService {
     usage.setStatus(
         contractCoverage.isGratis() ? BillableUsage.Status.GRATIS : BillableUsage.Status.PENDING);
     usage.setUuid(newRemittance.getUuid());
+    usage.setLicenseId(contractCoverage.getLicenseId());
   }
 
   private void updateBillableUsageMeter(BillableUsage usage, BillableUsageCalculation usageCalc) {

@@ -37,6 +37,16 @@ public final class AwsTestHelper {
 
   public static BillableUsageAggregate createUsageAggregate(
       String productId, String billingAccountId, String metricId, double totalValue, String orgId) {
+    return createUsageAggregate(productId, billingAccountId, metricId, totalValue, orgId, null);
+  }
+
+  public static BillableUsageAggregate createUsageAggregate(
+      String productId,
+      String billingAccountId,
+      String metricId,
+      double totalValue,
+      String orgId,
+      String licenseId) {
     OffsetDateTime snapshotDate =
         OffsetDateTime.now().minusHours(1).withOffsetSameInstant(ZoneOffset.UTC);
 
@@ -45,6 +55,7 @@ public final class AwsTestHelper {
     aggregate.setWindowTimestamp(
         OffsetDateTime.now().truncatedTo(ChronoUnit.HOURS).withOffsetSameInstant(ZoneOffset.UTC));
     aggregate.setAggregateId(UUID.randomUUID());
+    aggregate.setLicenseId(licenseId);
 
     var key = new BillableUsageAggregateKey();
     key.setOrgId(orgId);

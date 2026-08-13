@@ -350,6 +350,15 @@ Test cases should be testable locally and in an ephemeral environment.
 - **Verification:** Both contracts returned; `license_id` is set only on the licensed contract.  
 - **Expected Result:** HTTP 200 with both contracts and correct `license_id` values.
 
+**contracts-retrieval-TC008** - **Get contracts by `billing_account_id`**  
+- **Description:** Verify filtering by billing account ID returns only the matching contract.  
+- **Setup:** Create two AWS ROSA contracts for the same org with different `billing_account_id` values.  
+- **Action:** GET `/api/swatch-contracts/internal/contracts?org_id={org_id}&billing_account_id={billing_account_id}` for each billing account.  
+- **Verification:** Check the returned contract list.  
+- **Expected Result:**  
+  - Only the contract with the matching `billing_account_id` is returned  
+  - Response includes the correct contract `uuid` and `billing_account_id`
+
 ## AWS Usage Context
 
 Component tests for GET `/api/swatch-contracts/internal/subscriptions/awsUsageContext`. Test class: `AwsUsageContextComponentTest`.
@@ -1329,13 +1338,19 @@ This section verifies the automatic contract termination behavior when contracts
 
 **subscriptions-termination-TC001** - **Terminate subscription with timestamp**  
 - **Description:** Verify manual subscription termination.  
-- **Setup:** Create an active subscription.  
-- **Action:** POST `/api/swatch-contracts/internal/subscriptions/terminate/{subscription_id}?timestamp=2024-01-01T00:00:00Z`.  
-- **Verification:** Check subscription end date.  
+- **Setup:**
+  - Create an active subscription
+  - Confirm it appears in the active subscription search (SKU capacity report)
+- **Action:** POST `/api/swatch-contracts/internal/subscriptions/terminate/{subscription_id}?timestamp=<past>`.  
+- **Verification:**
+  - Check subscription `end_date` via internal GET subscriptions
+  - Re-query the v2 SKU capacity report (active subscription search) for the org/product
+  - Confirm the report shows zero active capacity (`meta.count` is 0)
 - **Expected Result:**  
   - TerminationRequest with message  
   - Subscription `end_date` set to timestamp  
-  - Subscription effectively terminated
+  - Subscription no longer appears in the active subscription search for the org/product/SKU  
+  - v2 SKU capacity report returns zero active capacity (`meta.count` is 0)
 
 ## Offering Synchronization
 
@@ -1439,6 +1454,40 @@ This section verifies the automatic contract termination behavior when contracts
   - API response shows unlimited capacity flag set.
   - Capacity values indicate unlimited status appropriately.
   - Subscription correctly linked to unlimited offering in response.
+
+## Subscription Type (SKU capacity report meta)
+
+**subscription-type-TC001: Report On-demand subscription type on V1 for PAYG products**
+- **Description:** Verify that the v1 SKU capacity report returns On-demand subscription type for PAYG products.
+- **Setup:** Create a PAYG ROSA contract for the organization.
+- **Action:** Query the v1 SKU capacity report for the PAYG product.
+- **Verification:** Inspect the subscription type in the report metadata.
+- **Expected Result:**
+  - Report metadata indicates On-demand subscription type.
+
+**subscription-type-TC002: Report On-demand subscription type on V2 for PAYG products**
+- **Description:** Verify that the v2 SKU capacity report returns On-demand subscription type for PAYG products.
+- **Setup:** Create a PAYG ROSA contract for the organization.
+- **Action:** Query the v2 SKU capacity report for the PAYG product.
+- **Verification:** Inspect the subscription type in the report metadata.
+- **Expected Result:**
+  - Report metadata indicates On-demand subscription type.
+
+**subscription-type-TC003: Report Annual subscription type on V1 for non-PAYG products**
+- **Description:** Verify that the v1 SKU capacity report returns Annual subscription type for non-PAYG products.
+- **Setup:** Create a non-PAYG (annual) RHEL subscription for the organization.
+- **Action:** Query the v1 SKU capacity report for the non-PAYG product.
+- **Verification:** Inspect the subscription type in the report metadata.
+- **Expected Result:**
+  - Report metadata indicates Annual subscription type.
+
+**subscription-type-TC004: Report Annual subscription type on V2 for non-PAYG products**
+- **Description:** Verify that the v2 SKU capacity report returns Annual subscription type for non-PAYG products.
+- **Setup:** Create a non-PAYG (annual) RHEL subscription for the organization.
+- **Action:** Query the v2 SKU capacity report for the non-PAYG product.
+- **Verification:** Inspect the subscription type in the report metadata.
+- **Expected Result:**
+  - Report metadata indicates Annual subscription type.
 
 ## Offering Update
 
@@ -1846,6 +1895,39 @@ This section verifies the automatic contract termination behavior when contracts
 - **Test Steps**:
   1. Create a subscription with capacity
   2. GET capacity for unsupported granularity with granularity=HOURLLY
+- **Expected Results**:
+  - HTTP 400 Bad Request
+
+**capacity-report-granularity-TC008 - Unknown Product**
+- **Description**: Verify error when requesting capacity for an unsupported product
+- **Setup**:
+  - User authenticated with a valid org_id
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}`
+- **Test Steps**:
+  1. GET capacity for a product_id that is not present in product configuration, with metric=Cores
+  2. Include a valid time range and granularity
+- **Expected Results**:
+  - HTTP 404 Not Found
+
+**capacity-report-granularity-TC009 - Invalid SLA**
+- **Description**: Verify error when requesting capacity with an invalid SLA query parameter
+- **Setup**:
+  - User authenticated with a valid org_id
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}?sla={sla}&usage={usage}&granularity={granularity}`
+- **Test Steps**:
+  1. GET capacity for product=RHEL for x86 with metric=Cores
+  2. Use an invalid sla value (for example sla=Home) with otherwise valid usage and granularity
+- **Expected Results**:
+  - HTTP 400 Bad Request
+
+**capacity-report-granularity-TC010 - Invalid Usage**
+- **Description**: Verify error when requesting capacity with an invalid usage query parameter
+- **Setup**:
+  - User authenticated with a valid org_id
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}?sla={sla}&usage={usage}&granularity={granularity}`
+- **Test Steps**:
+  1. GET capacity for product=RHEL for x86 with metric=Cores
+  2. Use an invalid usage value (for example usage=backup) with otherwise valid sla and granularity
 - **Expected Results**:
   - HTTP 400 Bad Request
 
