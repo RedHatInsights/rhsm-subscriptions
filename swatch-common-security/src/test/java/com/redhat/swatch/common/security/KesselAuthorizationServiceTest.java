@@ -139,7 +139,7 @@ class KesselAuthorizationServiceTest {
     var request = captor.getValue();
     assertEquals("subscriptions_report_view", request.getRelation());
     assertEquals("principal", request.getSubject().getResource().getResourceType());
-    assertEquals("user123", request.getSubject().getResource().getResourceId());
+    assertEquals("redhat/user123", request.getSubject().getResource().getResourceId());
     assertEquals("workspace", request.getObject().getResourceType());
     assertEquals("test-workspace-id", request.getObject().getResourceId());
   }

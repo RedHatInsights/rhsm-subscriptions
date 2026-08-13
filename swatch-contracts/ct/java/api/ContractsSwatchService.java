@@ -287,7 +287,7 @@ public class ContractsSwatchService extends SwatchService {
         .accept("application/vnd.api+json")
         .pathParam("product_id", product.getName())
         .when()
-        .get(GET_SKU_ENDPOINT);
+        .get(GET_SKU_CAPACITY_REPORT_V2_ENDPOINT);
   }
 
   public CapacityReportByMetricId getCapacityReportByMetricId(

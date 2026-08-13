@@ -22,8 +22,10 @@ package org.candlepin.subscriptions.rbac;
 
 import com.redhat.swatch.kessel.KesselConfig;
 import lombok.Data;
+import lombok.ToString;
 
 @Data
+@ToString(exclude = "authClientSecret")
 public class KesselProperties implements KesselConfig {
   private String endpoint = "localhost:9000";
   private boolean insecure = true;

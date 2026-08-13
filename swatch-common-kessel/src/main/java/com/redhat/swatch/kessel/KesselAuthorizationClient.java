@@ -37,9 +37,6 @@ import org.project_kessel.api.inventory.v1beta2.CheckRequest;
 import org.project_kessel.api.inventory.v1beta2.CheckResponse;
 import org.project_kessel.api.inventory.v1beta2.KesselInventoryServiceGrpc;
 import org.project_kessel.api.inventory.v1beta2.KesselInventoryServiceGrpc.KesselInventoryServiceBlockingStub;
-import org.project_kessel.api.inventory.v1beta2.ReporterReference;
-import org.project_kessel.api.inventory.v1beta2.ResourceReference;
-import org.project_kessel.api.inventory.v1beta2.SubjectReference;
 import org.project_kessel.api.rbac.v2.Utils;
 
 /**
@@ -173,15 +170,7 @@ public class KesselAuthorizationClient {
 
     var request =
         CheckRequest.newBuilder()
-            .setSubject(
-                SubjectReference.newBuilder()
-                    .setResource(
-                        ResourceReference.newBuilder()
-                            .setResourceType("principal")
-                            .setResourceId(subjectId)
-                            .setReporter(ReporterReference.newBuilder().setType("rbac").build())
-                            .build())
-                    .build())
+            .setSubject(Utils.principalSubject(subjectId, KESSEL_DOMAIN))
             .setRelation(relation)
             .setObject(Utils.workspaceResource(workspaceId))
             .build();

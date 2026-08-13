@@ -30,6 +30,7 @@ public class KesselAccessControlStubs {
   private static final String CHECK_PATH = "/kessel.inventory.v1beta2.KesselInventoryService/Check";
   private static final String WORKSPACE_PATH = "/api/rbac/v2/workspaces/";
   private static final String SUBSCRIPTIONS_REPORT_VIEW = "subscriptions_report_view";
+  private static final String KESSEL_DOMAIN = "redhat";
 
   private final WiremockService wiremockService;
 
@@ -107,7 +108,7 @@ public class KesselAccessControlStubs {
                                 "expression",
                                 "$.subject.resource.resourceId",
                                 "equalTo",
-                                userId)))),
+                                KESSEL_DOMAIN + "/" + userId)))),
                 "response",
                 Map.of(
                     "status",
