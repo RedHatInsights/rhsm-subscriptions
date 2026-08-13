@@ -350,6 +350,15 @@ Test cases should be testable locally and in an ephemeral environment.
 - **Verification:** Both contracts returned; `license_id` is set only on the licensed contract.  
 - **Expected Result:** HTTP 200 with both contracts and correct `license_id` values.
 
+**contracts-retrieval-TC008** - **Get contracts by `billing_account_id`**  
+- **Description:** Verify filtering by billing account ID returns only the matching contract.  
+- **Setup:** Create two AWS ROSA contracts for the same org with different `billing_account_id` values.  
+- **Action:** GET `/api/swatch-contracts/internal/contracts?org_id={org_id}&billing_account_id={billing_account_id}` for each billing account.  
+- **Verification:** Check the returned contract list.  
+- **Expected Result:**  
+  - Only the contract with the matching `billing_account_id` is returned  
+  - Response includes the correct contract `uuid` and `billing_account_id`
+
 ## AWS Usage Context
 
 Component tests for GET `/api/swatch-contracts/internal/subscriptions/awsUsageContext`. Test class: `AwsUsageContextComponentTest`.
