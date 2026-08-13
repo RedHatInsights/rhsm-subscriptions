@@ -67,14 +67,19 @@ public class ProductStatusUMBMessageConsumer {
 
       log.info(
           "IT Product message consumed: source=umb, productCode={}, eventType={}, "
-              + "productCategory={}",
+              + "productCategory={}, childSku={}",
           productEvent.getProductCode(),
           productEvent.getEventType(),
-          productEvent.getProductCategory());
+          productEvent.getProductCategory(),
+          isChildSku(productEvent.getProductCode()));
 
       service.syncUmbProductFromEvent(productEvent);
     } catch (Exception e) {
       log.error("Unable to read UMB product message for JSON: {}", message, e);
     }
+  }
+
+  private static boolean isChildSku(String productCode) {
+    return productCode != null && productCode.startsWith("SVC");
   }
 }
