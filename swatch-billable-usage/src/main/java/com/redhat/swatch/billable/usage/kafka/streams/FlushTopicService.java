@@ -20,6 +20,8 @@
  */
 package com.redhat.swatch.billable.usage.kafka.streams;
 
+import static org.candlepin.subscriptions.billable.usage.BillableUsageAggregate.FLUSH_ORG;
+
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
@@ -43,7 +45,6 @@ public class FlushTopicService {
   @ConfigProperty(name = "KAFKA_BILLABLE_USAGE_PARTITIONS")
   int billableUsagePartitionSize;
 
-  private static final String FLUSH_ORG = "flush";
   private final BillableUsage flushUsage;
   private final BillableUsageAggregateKey flushKey;
 
