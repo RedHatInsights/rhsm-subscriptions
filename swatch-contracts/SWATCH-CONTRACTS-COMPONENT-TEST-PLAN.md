@@ -1889,6 +1889,39 @@ This section verifies the automatic contract termination behavior when contracts
 - **Expected Results**:
   - HTTP 400 Bad Request
 
+**capacity-report-granularity-TC008 - Unknown Product**
+- **Description**: Verify error when requesting capacity for an unsupported product
+- **Setup**:
+  - User authenticated with a valid org_id
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}`
+- **Test Steps**:
+  1. GET capacity for a product_id that is not present in product configuration, with metric=Cores
+  2. Include a valid time range and granularity
+- **Expected Results**:
+  - HTTP 404 Not Found
+
+**capacity-report-granularity-TC009 - Invalid SLA**
+- **Description**: Verify error when requesting capacity with an invalid SLA query parameter
+- **Setup**:
+  - User authenticated with a valid org_id
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}?sla={sla}&usage={usage}&granularity={granularity}`
+- **Test Steps**:
+  1. GET capacity for product=RHEL for x86 with metric=Cores
+  2. Use an invalid sla value (for example sla=Home) with otherwise valid usage and granularity
+- **Expected Results**:
+  - HTTP 400 Bad Request
+
+**capacity-report-granularity-TC010 - Invalid Usage**
+- **Description**: Verify error when requesting capacity with an invalid usage query parameter
+- **Setup**:
+  - User authenticated with a valid org_id
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}?sla={sla}&usage={usage}&granularity={granularity}`
+- **Test Steps**:
+  1. GET capacity for product=RHEL for x86 with metric=Cores
+  2. Use an invalid usage value (for example usage=backup) with otherwise valid sla and granularity
+- **Expected Results**:
+  - HTTP 400 Bad Request
+
 ## Capacity Filtering
 **capacity-report-filtering-TC001 - Filter by Service Level**
 - **Description**: Verify capacity filtering by service level

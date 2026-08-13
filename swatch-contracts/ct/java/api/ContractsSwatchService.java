@@ -395,7 +395,7 @@ public class ContractsSwatchService extends SwatchService {
   }
 
   /**
-   * Get capacity report with raw granularity string (for testing invalid values).
+   * Get capacity report with raw query strings (for testing invalid values).
    *
    * @return Raw Response object for status code validation
    */
@@ -407,7 +407,36 @@ public class ContractsSwatchService extends SwatchService {
       OffsetDateTime ending,
       String granularity,
       ReportCategory category) {
+    return getCapacityReportByMetricIdRaw(
+        product, orgId, metricId, beginning, ending, granularity, category, null, null);
+  }
+
+  public Response getCapacityReportByMetricIdRaw(
+      Product product,
+      String orgId,
+      String metricId,
+      OffsetDateTime beginning,
+      OffsetDateTime ending,
+      String granularity,
+      ReportCategory category,
+      String sla,
+      String usage) {
     Objects.requireNonNull(product, "product must not be null");
+    return getCapacityReportByMetricIdRaw(
+        product.getName(), orgId, metricId, beginning, ending, granularity, category, sla, usage);
+  }
+
+  public Response getCapacityReportByMetricIdRaw(
+      String productId,
+      String orgId,
+      String metricId,
+      OffsetDateTime beginning,
+      OffsetDateTime ending,
+      String granularity,
+      ReportCategory category,
+      String sla,
+      String usage) {
+    Objects.requireNonNull(productId, "productId must not be null");
     Objects.requireNonNull(orgId, "orgId must not be null");
     Objects.requireNonNull(metricId, "metricId must not be null");
     Objects.requireNonNull(beginning, "beginning must not be null");
@@ -418,7 +447,7 @@ public class ContractsSwatchService extends SwatchService {
         given()
             .headers(securityHeadersWithServiceRole(orgId))
             .accept("application/vnd.api+json")
-            .pathParam("product_id", product.getName())
+            .pathParam("product_id", productId)
             .pathParam("metric_id", metricId)
             .queryParam("beginning", beginning.toString())
             .queryParam("ending", ending.toString())
@@ -426,6 +455,12 @@ public class ContractsSwatchService extends SwatchService {
 
     if (category != null) {
       request.queryParam("category", category);
+    }
+    if (sla != null) {
+      request.queryParam("sla", sla);
+    }
+    if (usage != null) {
+      request.queryParam("usage", usage);
     }
 
     return request.when().get(CAPACITY_REPORT_ENDPOINT);
