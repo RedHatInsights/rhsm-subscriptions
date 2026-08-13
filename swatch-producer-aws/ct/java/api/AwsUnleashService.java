@@ -22,4 +22,15 @@ package api;
 
 import com.redhat.swatch.component.tests.api.UnleashService;
 
-public class AwsUnleashService extends UnleashService {}
+public class AwsUnleashService extends UnleashService {
+
+  public static final String USE_LICENSE = "swatch.swatch-producer-aws.use-license";
+
+  public void enableUseLicense() {
+    enableFlag(USE_LICENSE);
+  }
+
+  public void disableUseLicense() {
+    disableFlag(USE_LICENSE);
+  }
+}
