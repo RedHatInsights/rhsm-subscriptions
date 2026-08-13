@@ -24,6 +24,7 @@ import static com.redhat.swatch.contract.config.Channels.OFFERING_SYNC_TASK_SERV
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.contract.config.Channels;
+import com.redhat.swatch.contract.config.FeatureFlags;
 import com.redhat.swatch.contract.openapi.model.OperationalProductEvent;
 import com.redhat.swatch.contract.product.UpstreamProductData;
 import io.smallrye.common.annotation.Blocking;
@@ -40,6 +41,7 @@ public class ProductStatusUMBMessageConsumer {
 
   @Inject ObjectMapper mapper;
   @Inject OfferingSyncService service;
+  @Inject FeatureFlags featureFlags;
 
   @ConfigProperty(name = "UMB_ENABLED")
   boolean umbEnabled;
@@ -48,15 +50,19 @@ public class ProductStatusUMBMessageConsumer {
   @Incoming(OFFERING_SYNC_TASK_SERVICE_UMB)
   public void consumeMessage(String message) {
     log.info("Received message from UMB offering sync service.  product {}", message);
-    if (umbEnabled) {
-      try {
-        MDC.put(UpstreamProductData.REQUEST_SOURCE, Channels.OFFERING_SYNC_TASK_SERVICE_UMB);
-        consumeProduct(message);
-      } finally {
-        MDC.remove(UpstreamProductData.REQUEST_SOURCE);
-      }
-    } else {
+    if (!umbEnabled) {
       log.debug("UMB processing is not enabled");
+      return;
+    }
+    if (!featureFlags.isProductServiceUmbConsumerEnabled()) {
+      log.debug("IT Product UMB consumer is disabled by feature flag.");
+      return;
+    }
+    try {
+      MDC.put(UpstreamProductData.REQUEST_SOURCE, Channels.OFFERING_SYNC_TASK_SERVICE_UMB);
+      consumeProduct(message);
+    } finally {
+      MDC.remove(UpstreamProductData.REQUEST_SOURCE);
     }
   }
 
