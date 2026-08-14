@@ -36,10 +36,14 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
+import com.redhat.swatch.configuration.registry.Metric;
+import com.redhat.swatch.contract.test.model.MetricResponse;
 import com.redhat.swatch.contract.test.model.OfferingProductTags;
 import domain.Offering;
 import domain.Product;
+import io.restassured.common.mapper.TypeRef;
 import io.restassured.response.Response;
+import java.util.List;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.Test;
 
@@ -113,6 +117,16 @@ public class OfferingTagsComponentTest extends BaseContractComponentTest {
         "Response should return 404 Not Found for non-existent SKU");
   }
 
+  @TestPlanName("offering-tags-TC004")
+  @Test
+  void shouldReturnTagMetricsForRosa() {
+    // When: Retrieving tag metrics for rosa
+    List<MetricResponse> metrics = whenGetTagMetrics(ROSA.getName());
+
+    // Then: Each metric has aws_dimension and metric_id from product configuration
+    thenTagMetricsMatchProductConfiguration(metrics, ROSA);
+  }
+
   private Offering givenRosaOfferingExists() {
     return givenOfferingExists(buildRosaOffering(generateRandom()));
   }
@@ -142,6 +156,36 @@ public class OfferingTagsComponentTest extends BaseContractComponentTest {
         .statusCode(SC_OK)
         .extract()
         .as(OfferingProductTags.class);
+  }
+
+  private List<MetricResponse> whenGetTagMetrics(String tag) {
+    return service.getTagMetrics(tag).then().statusCode(SC_OK).extract().as(new TypeRef<>() {});
+  }
+
+  private void thenTagMetricsMatchProductConfiguration(
+      List<MetricResponse> metrics, Product product) {
+    assertNotNull(metrics, "Tag metrics should not be null");
+    assertFalse(metrics.isEmpty(), "Tag metrics should not be empty");
+    assertEquals(
+        product.getMetrics().size(),
+        metrics.size(),
+        "Should return all configured metrics for " + product.getName());
+
+    for (Metric expected : product.getMetrics().values()) {
+      MetricResponse actual =
+          metrics.stream()
+              .filter(metric -> expected.getId().equals(metric.getMetricId()))
+              .findFirst()
+              .orElseThrow(
+                  () ->
+                      new AssertionError("Missing metric_id " + expected.getId() + " in response"));
+      assertNotNull(actual.getAwsDimension(), "aws_dimension must not be null");
+      assertFalse(actual.getAwsDimension().isBlank(), "aws_dimension must not be blank");
+      assertEquals(
+          expected.getAwsDimension(),
+          actual.getAwsDimension(),
+          "aws_dimension should match product configuration for " + expected.getId());
+    }
   }
 
   private void thenProductTagsShouldMatch(OfferingProductTags tags, Product productName) {
