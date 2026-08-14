@@ -24,6 +24,7 @@ import static com.redhat.swatch.contract.config.Channels.IT_OFFERING_SYNC;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.redhat.swatch.contract.config.FeatureFlags;
 import com.redhat.swatch.contract.openapi.model.OperationalProductEvent;
 import io.smallrye.common.annotation.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -35,6 +36,7 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 @Slf4j
 public class ProductStatusKafkaMessageConsumer {
 
+  @Inject FeatureFlags featureFlags;
   @Inject ObjectMapper mapper;
 
   @Blocking
@@ -42,6 +44,10 @@ public class ProductStatusKafkaMessageConsumer {
   public void consumeMessage(String message) throws JsonProcessingException {
     log.debug("IT Product Kafka consumer was called");
     if (message == null) {
+      return;
+    }
+    if (!featureFlags.isProductServiceKafkaConsumerEnabled()) {
+      log.debug("IT Product Kafka consumer is disabled by feature flag.");
       return;
     }
     consumeProduct(message);
