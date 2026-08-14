@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.redhat.swatch.component.tests.api.AuthorizationModel;
 import com.redhat.swatch.component.tests.api.SubscriptionsAccessLevel;
+import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.component.tests.utils.SwatchUtils;
 import io.restassured.response.Response;
@@ -51,11 +52,12 @@ class InstancesAccessComponentTest extends BaseTallyComponentTest {
 
   @ParameterizedTest(name = "authorizationModel={0}")
   @EnumSource(AuthorizationModel.class)
+  @TestPlanName("rbac-parity-TC001")
   void shouldAllowInstancesWhenAdminAccessGranted(AuthorizationModel authorizationModel) {
     String userId = RandomUtils.generateRandom();
     var requestHeaders = SwatchUtils.securityHeadersWithUserRole(orgId, userId);
     String identityHeader = requestHeaders.get(X_RH_IDENTITY_HEADER);
-    givenSubscriptionsAccess(
+    rbacHelper.givenUserHasSubscriptionsAccess(
         authorizationModel, userId, identityHeader, SubscriptionsAccessLevel.GRANTED_ADMIN);
 
     Response response = whenGetInstances(requestHeaders);
@@ -65,11 +67,12 @@ class InstancesAccessComponentTest extends BaseTallyComponentTest {
 
   @ParameterizedTest(name = "authorizationModel={0}")
   @EnumSource(AuthorizationModel.class)
+  @TestPlanName("rbac-parity-TC003")
   void shouldAllowInstancesWhenReaderAccessGranted(AuthorizationModel authorizationModel) {
     String userId = RandomUtils.generateRandom();
     var requestHeaders = SwatchUtils.securityHeadersWithUserRole(orgId, userId);
     String identityHeader = requestHeaders.get(X_RH_IDENTITY_HEADER);
-    givenSubscriptionsAccess(
+    rbacHelper.givenUserHasSubscriptionsAccess(
         authorizationModel, userId, identityHeader, SubscriptionsAccessLevel.GRANTED_READER);
 
     Response response = whenGetInstances(requestHeaders);
@@ -79,11 +82,12 @@ class InstancesAccessComponentTest extends BaseTallyComponentTest {
 
   @ParameterizedTest(name = "authorizationModel={0}")
   @EnumSource(AuthorizationModel.class)
+  @TestPlanName("rbac-parity-TC005")
   void shouldDenyInstancesWhenAccessDenied(AuthorizationModel authorizationModel) {
     String userId = RandomUtils.generateRandom();
     var requestHeaders = SwatchUtils.securityHeadersWithUserRole(orgId, userId);
     String identityHeader = requestHeaders.get(X_RH_IDENTITY_HEADER);
-    givenSubscriptionsAccess(
+    rbacHelper.givenUserHasSubscriptionsAccess(
         authorizationModel, userId, identityHeader, SubscriptionsAccessLevel.DENIED);
 
     Response response = whenGetInstances(requestHeaders);
@@ -91,19 +95,51 @@ class InstancesAccessComponentTest extends BaseTallyComponentTest {
     thenResponseStatusIs(response, HttpStatus.SC_FORBIDDEN);
   }
 
-  private void givenSubscriptionsAccess(
-      AuthorizationModel authorizationModel,
-      String userId,
-      String identityHeader,
-      SubscriptionsAccessLevel accessLevel) {
-    if (authorizationModel == AuthorizationModel.KESSEL) {
-      unleash.enableKesselRbac();
-      wiremock.forKesselAccessControl().stubDefaultWorkspace(orgId);
-      wiremock.forKesselAccessControl().stubSubscriptionsAccess(userId, accessLevel);
-    } else {
-      unleash.disableKesselRbac();
-      wiremock.forRbacAccessControl().stubSubscriptionsAccess(identityHeader, accessLevel);
-    }
+  @ParameterizedTest(name = "authorizationModel={0}")
+  @EnumSource(AuthorizationModel.class)
+  @TestPlanName("rbac-parity-TC006")
+  void shouldAllowInstancesWhenServiceAccountAdminAccessGranted(
+      AuthorizationModel authorizationModel) {
+    String clientId = RandomUtils.generateRandom();
+    var requestHeaders = SwatchUtils.securityHeadersWithServiceAccount(orgId, clientId);
+    String identityHeader = requestHeaders.get(X_RH_IDENTITY_HEADER);
+    rbacHelper.givenServiceAccountHasSubscriptionsAccess(
+        authorizationModel, clientId, identityHeader, SubscriptionsAccessLevel.GRANTED_ADMIN);
+
+    Response response = whenGetInstances(requestHeaders);
+
+    thenResponseStatusIs(response, HttpStatus.SC_OK);
+  }
+
+  @ParameterizedTest(name = "authorizationModel={0}")
+  @EnumSource(AuthorizationModel.class)
+  @TestPlanName("rbac-parity-TC006")
+  void shouldAllowInstancesWhenServiceAccountReaderAccessGranted(
+      AuthorizationModel authorizationModel) {
+    String clientId = RandomUtils.generateRandom();
+    var requestHeaders = SwatchUtils.securityHeadersWithServiceAccount(orgId, clientId);
+    String identityHeader = requestHeaders.get(X_RH_IDENTITY_HEADER);
+    rbacHelper.givenServiceAccountHasSubscriptionsAccess(
+        authorizationModel, clientId, identityHeader, SubscriptionsAccessLevel.GRANTED_READER);
+
+    Response response = whenGetInstances(requestHeaders);
+
+    thenResponseStatusIs(response, HttpStatus.SC_OK);
+  }
+
+  @ParameterizedTest(name = "authorizationModel={0}")
+  @EnumSource(AuthorizationModel.class)
+  @TestPlanName("rbac-parity-TC007")
+  void shouldDenyInstancesWhenServiceAccountAccessDenied(AuthorizationModel authorizationModel) {
+    String clientId = RandomUtils.generateRandom();
+    var requestHeaders = SwatchUtils.securityHeadersWithServiceAccount(orgId, clientId);
+    String identityHeader = requestHeaders.get(X_RH_IDENTITY_HEADER);
+    rbacHelper.givenServiceAccountHasSubscriptionsAccess(
+        authorizationModel, clientId, identityHeader, SubscriptionsAccessLevel.DENIED);
+
+    Response response = whenGetInstances(requestHeaders);
+
+    thenResponseStatusIs(response, HttpStatus.SC_FORBIDDEN);
   }
 
   private Response whenGetInstances(Map<String, String> requestHeaders) {

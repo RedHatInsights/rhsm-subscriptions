@@ -121,7 +121,8 @@ public class LocalSpringBootManagedResource extends DevProcessManagedResource {
 
   private void configureSpringProfiles() {
     addArguments(
-        JVM_ARGUMENTS, "-D" + SPRING_PROFILES_ACTIVE_PROPERTY + "=api,worker,kafka-queue,dev,ct");
+        JVM_ARGUMENTS,
+        "-D" + SPRING_PROFILES_ACTIVE_PROPERTY + "=api,worker,kafka-queue,dev,local-ct");
   }
 
   private void addArguments(String property, String argument) {
