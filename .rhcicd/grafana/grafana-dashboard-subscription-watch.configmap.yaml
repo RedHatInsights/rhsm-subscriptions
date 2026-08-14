@@ -27,7 +27,7 @@ data:
       "editable": true,
       "fiscalYearStartMonth": 0,
       "graphTooltip": 1,
-      "id": 1120034,
+      "id": 1122808,
       "links": [],
       "panels": [
         {
@@ -300,7 +300,7 @@ data:
                 "h": 7,
                 "w": 6,
                 "x": 0,
-                "y": 4142
+                "y": 4196
               },
               "id": 113,
               "options": {
@@ -400,7 +400,7 @@ data:
                 "h": 7,
                 "w": 6,
                 "x": 6,
-                "y": 4142
+                "y": 4196
               },
               "id": 115,
               "options": {
@@ -438,7 +438,7 @@ data:
           "type": "row"
         },
         {
-          "collapsed": false,
+          "collapsed": true,
           "gridPos": {
             "h": 1,
             "w": 24,
@@ -446,505 +446,301 @@ data:
             "y": 1
           },
           "id": 105,
-          "panels": [],
-          "title": "Event Ingestion",
-          "type": "row"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${aws_kafka_datasource}"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisBorderShow": false,
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "barWidthFactor": 0.6,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "insertNulls": false,
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green"
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 9,
-            "w": 6,
-            "x": 0,
-            "y": 2
-          },
-          "id": 103,
-          "options": {
-            "legend": {
-              "calcs": [],
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "hideZeros": false,
-              "mode": "single",
-              "sort": "none"
-            }
-          },
-          "pluginVersion": "11.6.11",
-          "targets": [
+          "panels": [
             {
               "datasource": {
                 "type": "prometheus",
                 "uid": "${aws_kafka_datasource}"
               },
-              "editorMode": "code",
-              "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~'.*platform.rhsm-subscriptions.service-instance-ingress'})",
-              "legendFormat": "__auto",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "service instance ingress consumer group lag",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "uid": "${aws_kafka_datasource}"
-          },
-          "description": "⬇️ OCM provides usage metrics that are read by the metering collector job ⬇️\n\n(TIP: if this isn't working, data will not land in swatch DB at all)",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 0,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green"
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  }
+                },
+                "overrides": []
               },
-              "custom": {
-                "axisBorderShow": false,
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "barWidthFactor": 0.6,
-                "drawStyle": "line",
-                "fillOpacity": 10,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
+              "gridPos": {
+                "h": 9,
+                "w": 6,
+                "x": 0,
+                "y": 2
+              },
+              "id": 103,
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
                 },
-                "insertNulls": false,
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "never",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "normal"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "single",
+                  "sort": "none"
                 }
               },
-              "mappings": [],
-              "min": 0,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green"
+              "pluginVersion": "11.6.11",
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "${aws_kafka_datasource}"
                   },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "short"
+                  "editorMode": "code",
+                  "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~'.*platform.rhsm-subscriptions.service-instance-ingress'})",
+                  "legendFormat": "__auto",
+                  "range": true,
+                  "refId": "A"
+                }
+              ],
+              "title": "service instance ingress consumer group lag",
+              "type": "timeseries"
             },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 9,
-            "w": 6,
-            "x": 6,
-            "y": 2
-          },
-          "id": 76,
-          "options": {
-            "legend": {
-              "calcs": [],
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "hideZeros": false,
-              "mode": "multi",
-              "sort": "none"
-            }
-          },
-          "pluginVersion": "11.6.11",
-          "targets": [
             {
-              "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~\".*platform.rhsm-subscriptions.metering-tasks\"}) by (consumer_group)",
-              "format": "time_series",
-              "instant": false,
-              "interval": "",
-              "intervalFactor": 1,
-              "legendFormat": "partition {{ partition }}",
-              "refId": "A"
-            }
-          ],
-          "title": "OpenShift Metering Task Lag",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${aws_kafka_datasource}"
-          },
-          "description": "Rhelemeter provides usage metrics that are read by the metering collector job",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
+              "datasource": {
+                "uid": "${aws_kafka_datasource}"
               },
-              "custom": {
-                "axisBorderShow": false,
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "barWidthFactor": 0.6,
-                "drawStyle": "line",
-                "fillOpacity": 10,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
+              "description": "⬇️ OCM provides usage metrics that are read by the metering collector job ⬇️\n\n(TIP: if this isn't working, data will not land in swatch DB at all)",
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "normal"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "mappings": [],
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green"
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "short"
                 },
-                "insertNulls": false,
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 9,
+                "w": 6,
+                "x": 6,
+                "y": 2
+              },
+              "id": 76,
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
                 },
-                "showPoints": "never",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "normal"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "none"
                 }
               },
-              "mappings": [],
-              "min": 0,
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green"
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "none"
+              "pluginVersion": "11.6.11",
+              "targets": [
+                {
+                  "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~\".*platform.rhsm-subscriptions.metering-tasks\"}) by (consumer_group)",
+                  "format": "time_series",
+                  "instant": false,
+                  "interval": "",
+                  "intervalFactor": 1,
+                  "legendFormat": "partition {{ partition }}",
+                  "refId": "A"
+                }
+              ],
+              "title": "OpenShift Metering Task Lag",
+              "type": "timeseries"
             },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 9,
-            "w": 6,
-            "x": 12,
-            "y": 2
-          },
-          "id": 101,
-          "options": {
-            "legend": {
-              "calcs": [],
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "hideZeros": false,
-              "mode": "single",
-              "sort": "none"
-            }
-          },
-          "pluginVersion": "11.6.11",
-          "targets": [
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "${datasource}"
+                "uid": "${aws_kafka_datasource}"
               },
-              "editorMode": "code",
-              "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~\".*platform.rhsm-subscriptions.metering-rhel-tasks\"}) by (consumer_group)",
-              "legendFormat": "partition {{partition}}",
-              "range": true,
-              "refId": "A"
+              "description": "Rhelemeter provides usage metrics that are read by the metering collector job",
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "normal"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "mappings": [],
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green"
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "none"
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 9,
+                "w": 6,
+                "x": 12,
+                "y": 2
+              },
+              "id": 101,
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "single",
+                  "sort": "none"
+                }
+              },
+              "pluginVersion": "11.6.11",
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "${datasource}"
+                  },
+                  "editorMode": "code",
+                  "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~\".*platform.rhsm-subscriptions.metering-rhel-tasks\"}) by (consumer_group)",
+                  "legendFormat": "partition {{partition}}",
+                  "range": true,
+                  "refId": "A"
+                }
+              ],
+              "title": "Rhelemeter Metering Task Lag",
+              "type": "timeseries"
             }
           ],
-          "title": "Rhelemeter Metering Task Lag",
-          "type": "timeseries"
-        },
-        {
-          "collapsed": false,
-          "gridPos": {
-            "h": 1,
-            "w": 24,
-            "x": 0,
-            "y": 11
-          },
-          "id": 86,
-          "panels": [],
-          "title": "Logging HEC",
+          "title": "Event Ingestion",
           "type": "row"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "description": "Per-second Logging HEC transmission failure rate over the past 10 minutes.  The y-axis is the total number of log messages that failed transmission.",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisBorderShow": false,
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "barWidthFactor": 0.6,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "insertNulls": false,
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green"
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 9,
-            "w": 18,
-            "x": 0,
-            "y": 12
-          },
-          "id": 9055,
-          "options": {
-            "legend": {
-              "calcs": [],
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "hideZeros": false,
-              "mode": "single",
-              "sort": "none"
-            }
-          },
-          "pluginVersion": "11.6.11",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "editorMode": "code",
-              "expr": "sum by (service) (\n  label_replace(\n    increase(otelcol_exporter_send_failed_log_records_total{exporter=\"splunk_hec/logs\"}[10m]),\n    \"service\",\n    \"$1\",\n    \"pod\",\n    \"^(.*)-[a-z0-9]+-[a-z0-9]+$\"\n  )\n)",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "Logging HEC Failures",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "description": "",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisBorderShow": false,
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "barWidthFactor": 0.6,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "insertNulls": false,
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green"
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 9,
-            "w": 18,
-            "x": 0,
-            "y": 21
-          },
-          "id": 9056,
-          "options": {
-            "legend": {
-              "calcs": [],
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "hideZeros": false,
-              "mode": "single",
-              "sort": "none"
-            }
-          },
-          "pluginVersion": "11.6.11",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "editorMode": "code",
-              "expr": "sum by (service) (\n  label_replace(\n    increase(otelcol_exporter_sent_log_records_total{exporter=\"splunk_hec/logs\"}[10m]),\n    \"service\",\n    \"$1\",\n    \"pod\",\n    \"^(.*)-[a-z0-9]+-[a-z0-9]+$\"\n  )\n)",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "Logging HEC Success Rate",
-          "type": "timeseries"
         },
         {
           "collapsed": true,
@@ -952,7 +748,213 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 30
+            "y": 2
+          },
+          "id": 86,
+          "panels": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "description": "Per-second Logging HEC transmission failure rate over the past 10 minutes.  The y-axis is the total number of log messages that failed transmission.",
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 0,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green"
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  }
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 9,
+                "w": 18,
+                "x": 0,
+                "y": 3
+              },
+              "id": 9055,
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "single",
+                  "sort": "none"
+                }
+              },
+              "pluginVersion": "11.6.11",
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "${datasource}"
+                  },
+                  "editorMode": "code",
+                  "expr": "sum by (service) (\n  label_replace(\n    increase(otelcol_exporter_send_failed_log_records_total{exporter=\"splunk_hec/logs\"}[10m]),\n    \"service\",\n    \"$1\",\n    \"pod\",\n    \"^(.*)-[a-z0-9]+-[a-z0-9]+$\"\n  )\n)",
+                  "range": true,
+                  "refId": "A"
+                }
+              ],
+              "title": "Logging HEC Failures",
+              "type": "timeseries"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "description": "",
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 0,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green"
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  }
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 9,
+                "w": 18,
+                "x": 0,
+                "y": 66
+              },
+              "id": 9056,
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "single",
+                  "sort": "none"
+                }
+              },
+              "pluginVersion": "11.6.11",
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "${datasource}"
+                  },
+                  "editorMode": "code",
+                  "expr": "sum by (service) (\n  label_replace(\n    increase(otelcol_exporter_sent_log_records_total{exporter=\"splunk_hec/logs\"}[10m]),\n    \"service\",\n    \"$1\",\n    \"pod\",\n    \"^(.*)-[a-z0-9]+-[a-z0-9]+$\"\n  )\n)",
+                  "range": true,
+                  "refId": "A"
+                }
+              ],
+              "title": "Logging HEC Success Rate",
+              "type": "timeseries"
+            }
+          ],
+          "title": "Logging HEC",
+          "type": "row"
+        },
+        {
+          "collapsed": true,
+          "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 3
           },
           "id": 70,
           "panels": [
@@ -1022,7 +1024,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 2084
+                "y": 2138
               },
               "id": 47,
               "options": {
@@ -1161,7 +1163,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 2084
+                "y": 2138
               },
               "id": 52,
               "options": {
@@ -1297,7 +1299,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 2084
+                "y": 2138
               },
               "id": 54,
               "options": {
@@ -1480,7 +1482,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 2084
+                "y": 2138
               },
               "id": 56,
               "options": {
@@ -1615,7 +1617,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 4130
+                "y": 4184
               },
               "id": 92,
               "options": {
@@ -1694,7 +1696,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 31
+            "y": 4
           },
           "id": 12,
           "panels": [
@@ -1720,7 +1722,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 0,
-                "y": 2085
+                "y": 2139
               },
               "id": 72,
               "options": {
@@ -1824,7 +1826,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 6,
-                "y": 2085
+                "y": 2139
               },
               "id": 40,
               "options": {
@@ -1956,7 +1958,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 12,
-                "y": 2085
+                "y": 2139
               },
               "id": 59,
               "options": {
@@ -2051,7 +2053,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 18,
-                "y": 2085
+                "y": 2139
               },
               "id": 4,
               "options": {
@@ -2146,7 +2148,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 0,
-                "y": 3611
+                "y": 3665
               },
               "id": 41,
               "options": {
@@ -2276,7 +2278,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 6,
-                "y": 3611
+                "y": 3665
               },
               "id": 8,
               "options": {
@@ -2370,7 +2372,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 12,
-                "y": 3611
+                "y": 3665
               },
               "id": 10,
               "options": {
@@ -2466,7 +2468,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 18,
-                "y": 3611
+                "y": 3665
               },
               "id": 96,
               "options": {
@@ -2597,7 +2599,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 3621
+                "y": 3675
               },
               "id": 5025,
               "options": {
@@ -2729,7 +2731,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 3621
+                "y": 3675
               },
               "id": 5022,
               "options": {
@@ -2838,7 +2840,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 3621
+                "y": 3675
               },
               "id": 5023,
               "options": {
@@ -2944,7 +2946,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 3621
+                "y": 3675
               },
               "id": 5024,
               "options": {
@@ -2990,7 +2992,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 32
+            "y": 5
           },
           "id": 45,
           "panels": [
@@ -3059,7 +3061,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 2086
+                "y": 2140
               },
               "id": 63,
               "options": {
@@ -3190,7 +3192,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 2086
+                "y": 2140
               },
               "id": 64,
               "options": {
@@ -3320,7 +3322,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 2086
+                "y": 2140
               },
               "id": 66,
               "options": {
@@ -3420,7 +3422,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 2086
+                "y": 2140
               },
               "id": 68,
               "options": {
@@ -3515,7 +3517,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 2590
+                "y": 2644
               },
               "id": 94,
               "options": {
@@ -3660,7 +3662,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 2590
+                "y": 2644
               },
               "id": 5010,
               "options": {
@@ -3769,7 +3771,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 2590
+                "y": 2644
               },
               "id": 5011,
               "options": {
@@ -3875,7 +3877,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 2590
+                "y": 2644
               },
               "id": 5012,
               "options": {
@@ -4007,7 +4009,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 2598
+                "y": 2652
               },
               "id": 5013,
               "options": {
@@ -4064,7 +4066,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 33
+            "y": 6
           },
           "id": 31,
           "panels": [
@@ -4132,7 +4134,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 2087
+                "y": 2141
               },
               "id": 32,
               "options": {
@@ -4226,7 +4228,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 2087
+                "y": 2141
               },
               "id": 33,
               "options": {
@@ -4319,7 +4321,7 @@ data:
                 "h": 9,
                 "w": 12,
                 "x": 12,
-                "y": 2087
+                "y": 2141
               },
               "id": 34,
               "options": {
@@ -4413,7 +4415,7 @@ data:
                 "h": 11,
                 "w": 6,
                 "x": 0,
-                "y": 2104
+                "y": 2158
               },
               "id": 35,
               "options": {
@@ -4507,7 +4509,7 @@ data:
                 "h": 11,
                 "w": 6,
                 "x": 6,
-                "y": 2104
+                "y": 2158
               },
               "id": 36,
               "options": {
@@ -4603,7 +4605,7 @@ data:
                 "h": 11,
                 "w": 6,
                 "x": 12,
-                "y": 2104
+                "y": 2158
               },
               "id": 95,
               "options": {
@@ -4699,7 +4701,7 @@ data:
                 "h": 11,
                 "w": 6,
                 "x": 18,
-                "y": 2104
+                "y": 2158
               },
               "id": 5015,
               "options": {
@@ -4805,7 +4807,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 2115
+                "y": 2169
               },
               "id": 5016,
               "options": {
@@ -4925,7 +4927,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 2115
+                "y": 2169
               },
               "id": 5014,
               "options": {
@@ -5067,7 +5069,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 2115
+                "y": 2169
               },
               "id": 5017,
               "options": {
@@ -5124,7 +5126,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 34
+            "y": 7
           },
           "id": 9048,
           "panels": [
@@ -5224,7 +5226,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 2088
+                "y": 2142
               },
               "id": 9049,
               "options": {
@@ -5355,7 +5357,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 2088
+                "y": 2142
               },
               "id": 9038,
               "options": {
@@ -5464,7 +5466,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 2088
+                "y": 2142
               },
               "id": 9039,
               "options": {
@@ -5570,7 +5572,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 2088
+                "y": 2142
               },
               "id": 9040,
               "options": {
@@ -5616,7 +5618,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 35
+            "y": 8
           },
           "id": 9050,
           "panels": [
@@ -5716,7 +5718,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 8151
+                "y": 8205
               },
               "id": 9051,
               "options": {
@@ -5847,7 +5849,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 8151
+                "y": 8205
               },
               "id": 9052,
               "options": {
@@ -5956,7 +5958,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 8151
+                "y": 8205
               },
               "id": 9053,
               "options": {
@@ -6062,7 +6064,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 8151
+                "y": 8205
               },
               "id": 9054,
               "options": {
@@ -6108,7 +6110,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 36
+            "y": 9
           },
           "id": 123,
           "panels": [
@@ -6175,7 +6177,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 5501
+                "y": 5555
               },
               "id": 124,
               "options": {
@@ -6238,7 +6240,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 5501
+                "y": 5555
               },
               "id": 125,
               "options": {
@@ -6338,7 +6340,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 5501
+                "y": 5555
               },
               "id": 126,
               "options": {
@@ -6430,7 +6432,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 5501
+                "y": 5555
               },
               "id": 127,
               "options": {
@@ -6593,7 +6595,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 5510
+                "y": 5564
               },
               "id": 133,
               "options": {
@@ -6725,7 +6727,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 5510
+                "y": 5564
               },
               "id": 5018,
               "options": {
@@ -6834,7 +6836,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 5510
+                "y": 5564
               },
               "id": 5019,
               "options": {
@@ -6940,7 +6942,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 5510
+                "y": 5564
               },
               "id": 5020,
               "options": {
@@ -7072,7 +7074,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 5563
+                "y": 5617
               },
               "id": 5021,
               "options": {
@@ -7124,2026 +7126,2359 @@ data:
           "type": "row"
         },
         {
-          "collapsed": true,
+          "collapsed": false,
           "gridPos": {
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 37
+            "y": 10
           },
           "id": 16,
-          "panels": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${aws_kafka_datasource}"
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 10,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 1,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "never",
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "normal"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  },
-                  "links": [],
-                  "mappings": [],
-                  "min": 0,
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green"
-                      },
-                      {
-                        "color": "red",
-                        "value": 80
-                      }
-                    ]
-                  },
-                  "unit": "short"
-                },
-                "overrides": []
-              },
-              "gridPos": {
-                "h": 9,
-                "w": 6,
-                "x": 0,
-                "y": 5502
-              },
-              "id": 20,
-              "options": {
-                "legend": {
-                  "calcs": [],
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "multi",
-                  "sort": "none"
-                }
-              },
-              "pluginVersion": "11.6.11",
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${aws_kafka_datasource}"
-                  },
-                  "disableTextWrap": false,
-                  "editorMode": "code",
-                  "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=\"platform.rhsm-subscriptions.subscription-sync-task\"}) by (consumer_group)",
-                  "format": "time_series",
-                  "fullMetaSearch": false,
-                  "includeNullMetadata": true,
-                  "interval": "",
-                  "intervalFactor": 1,
-                  "legendFormat": "partition {{partition}}",
-                  "range": true,
-                  "refId": "A",
-                  "useBackend": false
-                }
-              ],
-              "title": "Subscription Sync Task Lag",
-              "type": "timeseries"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${aws_kafka_datasource}"
-              },
-              "description": "",
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 10,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 1,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "never",
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "normal"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  },
-                  "links": [],
-                  "mappings": [],
-                  "min": 0,
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green"
-                      },
-                      {
-                        "color": "red",
-                        "value": 80
-                      }
-                    ]
-                  },
-                  "unit": "short"
-                },
-                "overrides": []
-              },
-              "gridPos": {
-                "h": 9,
-                "w": 6,
-                "x": 6,
-                "y": 5502
-              },
-              "id": 89,
-              "options": {
-                "legend": {
-                  "calcs": [],
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "multi",
-                  "sort": "none"
-                }
-              },
-              "pluginVersion": "11.6.11",
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${aws_kafka_datasource}"
-                  },
-                  "editorMode": "code",
-                  "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~\".*platform.rhsm-subscriptions.offering-sync\"}) by (consumer_group)",
-                  "format": "time_series",
-                  "interval": "",
-                  "intervalFactor": 1,
-                  "legendFormat": "partition {{partition}}",
-                  "range": true,
-                  "refId": "A"
-                }
-              ],
-              "title": "Offering Sync Task Lag",
-              "type": "timeseries"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${aws_kafka_datasource}"
-              },
-              "description": "",
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 10,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 1,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "never",
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "normal"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  },
-                  "links": [],
-                  "mappings": [],
-                  "min": 0,
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green"
-                      },
-                      {
-                        "color": "red",
-                        "value": 80
-                      }
-                    ]
-                  },
-                  "unit": "short"
-                },
-                "overrides": []
-              },
-              "gridPos": {
-                "h": 9,
-                "w": 6,
-                "x": 12,
-                "y": 5502
-              },
-              "id": 90,
-              "options": {
-                "legend": {
-                  "calcs": [],
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "multi",
-                  "sort": "none"
-                }
-              },
-              "pluginVersion": "11.6.11",
-              "targets": [
-                {
-                  "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~\".*platform.rhsm-subscriptions.capacity-reconcile\"}) by (consumer_group)",
-                  "format": "time_series",
-                  "interval": "",
-                  "intervalFactor": 1,
-                  "legendFormat": "partition {{partition}}",
-                  "range": true,
-                  "refId": "A"
-                }
-              ],
-              "title": "Capacity Reconcile Task Lag",
-              "type": "timeseries"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${aws_kafka_datasource}"
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 10,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 1,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "never",
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "normal"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  },
-                  "mappings": [],
-                  "min": 0,
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green"
-                      },
-                      {
-                        "color": "red",
-                        "value": 80
-                      }
-                    ]
-                  },
-                  "unit": "short"
-                },
-                "overrides": []
-              },
-              "gridPos": {
-                "h": 9,
-                "w": 6,
-                "x": 18,
-                "y": 5502
-              },
-              "id": 128,
-              "options": {
-                "legend": {
-                  "calcs": [],
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "multi",
-                  "sort": "none"
-                }
-              },
-              "pluginVersion": "11.6.11",
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${aws_kafka_datasource}"
-                  },
-                  "editorMode": "code",
-                  "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~\".*platform.rhsm-subscriptions.tally\",consumer_group=\"swatch-contracts-tally-worker\"})",
-                  "legendFormat": "__auto",
-                  "range": true,
-                  "refId": "A"
-                }
-              ],
-              "title": "Tally to Contracts Lag",
-              "type": "timeseries"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${aws_kafka_datasource}"
-              },
-              "description": "Consumer lag for platform.rhsm-subscriptions.contract-sync (per-org contract sync tasks).",
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 10,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 1,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "never",
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "normal"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  },
-                  "links": [],
-                  "mappings": [],
-                  "min": 0,
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green"
-                      },
-                      {
-                        "color": "red",
-                        "value": 80
-                      }
-                    ]
-                  },
-                  "unit": "short"
-                },
-                "overrides": []
-              },
-              "gridPos": {
-                "h": 9,
-                "w": 6,
-                "x": 0,
-                "y": 5511
-              },
-              "id": 5002,
-              "options": {
-                "legend": {
-                  "calcs": [],
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "multi",
-                  "sort": "none"
-                }
-              },
-              "pluginVersion": "11.6.11",
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${aws_kafka_datasource}"
-                  },
-                  "editorMode": "code",
-                  "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~\".*platform.rhsm-subscriptions.contract-sync\"}) by (consumer_group)",
-                  "format": "time_series",
-                  "interval": "",
-                  "intervalFactor": 1,
-                  "legendFormat": "{{ consumer_group }}",
-                  "range": true,
-                  "refId": "A"
-                }
-              ],
-              "title": "Contract Sync Task Lag",
-              "type": "timeseries"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "description": "How many per-org contract syncs complete per second (aggregate across pods). From Micrometer timer swatch_contract_sync on ContractService.syncContractsByOrgId.",
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 10,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 1,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "never",
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  },
-                  "links": [],
-                  "mappings": [],
-                  "min": 0,
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green"
-                      }
-                    ]
-                  },
-                  "unit": "ops"
-                },
-                "overrides": []
-              },
-              "gridPos": {
-                "h": 9,
-                "w": 6,
-                "x": 6,
-                "y": 5511
-              },
-              "id": 5001,
-              "options": {
-                "legend": {
-                  "calcs": [],
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "multi",
-                  "sort": "none"
-                }
-              },
-              "pluginVersion": "11.6.11",
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${datasource}"
-                  },
-                  "editorMode": "code",
-                  "expr": "sum(rate(swatch_contract_sync_seconds_count{service=\"swatch-contracts-service\"}[$__rate_interval]))",
-                  "format": "time_series",
-                  "legendFormat": "tasks/sec",
-                  "range": true,
-                  "refId": "A"
-                }
-              ],
-              "title": "Contract sync processing rate (tasks/sec)",
-              "type": "timeseries"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "description": "Native Memory Estimation = Container Memory - Heap - Non-Heap\nMemory used by native libraries (Kafka, HTTP, logging) not tracked by JVM",
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 10,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 2,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "auto",
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  },
-                  "mappings": [],
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green"
-                      },
-                      {
-                        "color": "yellow",
-                        "value": 200000000
-                      },
-                      {
-                        "color": "red",
-                        "value": 300000000
-                      }
-                    ]
-                  },
-                  "unit": "bytes"
-                },
-                "overrides": []
-              },
-              "gridPos": {
-                "h": 9,
-                "w": 6,
-                "x": 12,
-                "y": 5511
-              },
-              "id": 5028,
-              "options": {
-                "legend": {
-                  "calcs": [
-                    "last",
-                    "max"
-                  ],
-                  "displayMode": "table",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "multi",
-                  "sort": "none"
-                }
-              },
-              "pluginVersion": "11.6.11",
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${datasource}"
-                  },
-                  "editorMode": "code",
-                  "expr": "sum(container_memory_working_set_bytes{pod=~\"swatch-contracts-service-.*\", container=\"swatch-contracts-service\"}) by (pod) - sum(jvm_memory_used_bytes{area=\"heap\", pod=~\"swatch-contracts-service-.*\"}) by (pod) - sum(jvm_memory_used_bytes{area=\"nonheap\", pod=~\"swatch-contracts-service-.*\"}) by (pod)",
-                  "legendFormat": "{{pod}} - Native Memory (est.)",
-                  "range": true,
-                  "refId": "A"
-                }
-              ],
-              "title": "swatch-contracts - Native Memory (Estimated)",
-              "type": "timeseries"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "description": "JVM Non-Heap Memory - class definitions, compiled code, metadata",
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 10,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 2,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "auto",
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  },
-                  "mappings": [],
-                  "min": 0,
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green"
-                      }
-                    ]
-                  },
-                  "unit": "bytes"
-                },
-                "overrides": []
-              },
-              "gridPos": {
-                "h": 9,
-                "w": 6,
-                "x": 18,
-                "y": 5511
-              },
-              "id": 5027,
-              "options": {
-                "legend": {
-                  "calcs": [
-                    "last",
-                    "max"
-                  ],
-                  "displayMode": "table",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "multi",
-                  "sort": "none"
-                }
-              },
-              "pluginVersion": "11.6.11",
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${datasource}"
-                  },
-                  "editorMode": "code",
-                  "expr": "sum(jvm_memory_used_bytes{area=\"nonheap\", pod=~\"swatch-contracts-service-.*\"}) by (pod)",
-                  "legendFormat": "{{pod}} - Non-Heap",
-                  "range": true,
-                  "refId": "A"
-                }
-              ],
-              "title": "swatch-contracts - JVM Non-Heap Memory",
-              "type": "timeseries"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 0,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 1,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "auto",
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  },
-                  "mappings": [],
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green"
-                      },
-                      {
-                        "color": "red",
-                        "value": 80
-                      }
-                    ]
-                  }
-                },
-                "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byFrameRefID",
-                      "options": "A"
-                    },
-                    "properties": [
-                      {
-                        "id": "unit",
-                        "value": "percent"
-                      },
-                      {
-                        "id": "thresholds",
-                        "value": {
-                          "mode": "absolute",
-                          "steps": [
-                            {
-                              "color": "green"
-                            },
-                            {
-                              "color": "#EAB839",
-                              "value": 2
-                            },
-                            {
-                              "color": "red",
-                              "value": 5
-                            }
-                          ]
-                        }
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byFrameRefID",
-                      "options": "B"
-                    },
-                    "properties": [
-                      {
-                        "id": "custom.axisPlacement",
-                        "value": "right"
-                      },
-                      {
-                        "id": "unit",
-                        "value": "s"
-                      },
-                      {
-                        "id": "thresholds",
-                        "value": {
-                          "mode": "absolute",
-                          "steps": [
-                            {
-                              "color": "green"
-                            },
-                            {
-                              "color": "yellow",
-                              "value": 80
-                            },
-                            {
-                              "color": "red",
-                              "value": 90
-                            }
-                          ]
-                        }
-                      }
-                    ]
-                  }
-                ]
-              },
-              "gridPos": {
-                "h": 8,
-                "w": 6,
-                "x": 0,
-                "y": 5520
-              },
-              "id": 132,
-              "options": {
-                "legend": {
-                  "calcs": [],
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "single",
-                  "sort": "none"
-                }
-              },
-              "pluginVersion": "11.6.11",
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${datasource}"
-                  },
-                  "editorMode": "code",
-                  "exemplar": false,
-                  "expr": "sum(agroal_active_count{service=\"swatch-contracts-service\"}) / (sum(agroal_active_count{service=\"swatch-contracts-service\"}) + sum(agroal_available_count{service=\"swatch-contracts-service\"})) * 100",
-                  "instant": false,
-                  "legendFormat": "Pool Usage %",
-                  "range": true,
-                  "refId": "A"
-                },
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${datasource}"
-                  },
-                  "editorMode": "code",
-                  "expr": "sum(rate(agroal_blocking_time_total_milliseconds{service=\"swatch-contracts-service\"}[1m])) / 1000",
-                  "hide": false,
-                  "instant": false,
-                  "legendFormat": "Wait Time (s)",
-                  "range": true,
-                  "refId": "B"
-                }
-              ],
-              "title": "swatch-contracts Database Connection Pool",
-              "type": "timeseries"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 10,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 1,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "never",
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  },
-                  "links": [],
-                  "mappings": [],
-                  "min": 0,
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green"
-                      },
-                      {
-                        "color": "red",
-                        "value": 80
-                      }
-                    ]
-                  },
-                  "unit": "bytes"
-                },
-                "overrides": []
-              },
-              "gridPos": {
-                "h": 8,
-                "w": 6,
-                "x": 6,
-                "y": 5520
-              },
-              "id": 118,
-              "options": {
-                "legend": {
-                  "calcs": [],
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "multi",
-                  "sort": "none"
-                }
-              },
-              "pluginVersion": "11.6.11",
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${datasource}"
-                  },
-                  "editorMode": "code",
-                  "expr": "sum(container_memory_working_set_bytes{pod=~\"swatch-contracts-service.*\", container=''}) by (pod)",
-                  "format": "time_series",
-                  "interval": "",
-                  "intervalFactor": 1,
-                  "legendFormat": "{{ pod }}",
-                  "range": true,
-                  "refId": "A"
-                }
-              ],
-              "title": "swatch-contracts Memory Used",
-              "type": "timeseries"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "description": "JVM Heap Memory usage - shows how full the heap is (Java objects in memory)",
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 10,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 2,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "auto",
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  },
-                  "mappings": [],
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green"
-                      },
-                      {
-                        "color": "red",
-                        "value": 80
-                      }
-                    ]
-                  },
-                  "unit": "bytes"
-                },
-                "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byRegexp",
-                      "options": ".*Max.*"
-                    },
-                    "properties": [
-                      {
-                        "id": "custom.lineStyle",
-                        "value": {
-                          "dash": [
-                            10,
-                            10
-                          ],
-                          "fill": "dash"
-                        }
-                      }
-                    ]
-                  }
-                ]
-              },
-              "gridPos": {
-                "h": 8,
-                "w": 6,
-                "x": 12,
-                "y": 5520
-              },
-              "id": 5026,
-              "options": {
-                "legend": {
-                  "calcs": [
-                    "last",
-                    "max"
-                  ],
-                  "displayMode": "table",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "multi",
-                  "sort": "none"
-                }
-              },
-              "pluginVersion": "11.6.11",
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${datasource}"
-                  },
-                  "editorMode": "code",
-                  "expr": "sum by (pod) (jvm_memory_used_bytes{area=\"heap\", pod=~\"swatch-contracts-service-.*\"})",
-                  "legendFormat": "{{pod}} - Used",
-                  "range": true,
-                  "refId": "A"
-                },
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${datasource}"
-                  },
-                  "editorMode": "code",
-                  "expr": "jvm_memory_max_bytes{area=\"heap\", pod=~\"swatch-contracts-service-.*\"}",
-                  "legendFormat": "{{pod}} - Max (-Xmx)",
-                  "range": true,
-                  "refId": "B"
-                }
-              ],
-              "title": "swatch-contracts - JVM Heap Memory",
-              "type": "timeseries"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "description": "Container memory limits and actual usage (excludes sidecar containers)",
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 10,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 2,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "auto",
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  },
-                  "mappings": [],
-                  "min": 0,
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green"
-                      },
-                      {
-                        "color": "yellow",
-                        "value": 500000000
-                      },
-                      {
-                        "color": "red",
-                        "value": 580000000
-                      }
-                    ]
-                  },
-                  "unit": "bytes"
-                },
-                "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byRegexp",
-                      "options": ".*Limit.*"
-                    },
-                    "properties": [
-                      {
-                        "id": "custom.lineStyle",
-                        "value": {
-                          "dash": [
-                            10,
-                            10
-                          ],
-                          "fill": "dash"
-                        }
-                      },
-                      {
-                        "id": "color",
-                        "value": {
-                          "fixedColor": "red",
-                          "mode": "fixed"
-                        }
-                      }
-                    ]
-                  }
-                ]
-              },
-              "gridPos": {
-                "h": 8,
-                "w": 6,
-                "x": 18,
-                "y": 5520
-              },
-              "id": 5029,
-              "options": {
-                "legend": {
-                  "calcs": [
-                    "last",
-                    "max"
-                  ],
-                  "displayMode": "table",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "multi",
-                  "sort": "none"
-                }
-              },
-              "pluginVersion": "11.6.11",
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${datasource}"
-                  },
-                  "editorMode": "code",
-                  "expr": "kube_pod_container_resource_limits{resource=\"memory\", pod=~\"swatch-contracts-service-.*\", container=\"swatch-contracts-service\"}",
-                  "legendFormat": "{{pod}} - Limit",
-                  "range": true,
-                  "refId": "A"
-                },
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${datasource}"
-                  },
-                  "editorMode": "code",
-                  "expr": "container_memory_working_set_bytes{pod=~\"swatch-contracts-service-.*\", container!=\"\", container!=\"POD\"}",
-                  "legendFormat": "{{pod}} - {{container}} - Used",
-                  "range": true,
-                  "refId": "B"
-                }
-              ],
-              "title": "swatch-contracts - Container Memory",
-              "type": "timeseries"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 0,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 1,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "auto",
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  },
-                  "mappings": [],
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green"
-                      },
-                      {
-                        "color": "red",
-                        "value": 80
-                      }
-                    ]
-                  }
-                },
-                "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "contracts"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "from UMB"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "contracts-from-gateway"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "from Kafka"
-                      }
-                    ]
-                  }
-                ]
-              },
-              "gridPos": {
-                "h": 8,
-                "w": 6,
-                "x": 0,
-                "y": 5528
-              },
-              "id": 5003,
-              "interval": "1d",
-              "options": {
-                "legend": {
-                  "calcs": [],
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "single",
-                  "sort": "none"
-                }
-              },
-              "pluginVersion": "11.6.11",
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${datasource}"
-                  },
-                  "editorMode": "code",
-                  "exemplar": false,
-                  "expr": "sum by (channel) (\n  increase(quarkus_messaging_message_count_total{\n    channel=~\"contracts-from-gateway|contracts\"\n  }[$__rate_interval])\n)",
-                  "format": "time_series",
-                  "instant": false,
-                  "legendFormat": "__auto",
-                  "range": true,
-                  "refId": "A"
-                }
-              ],
-              "title": "IT Partner - Contracts Messages Consumed",
-              "type": "timeseries"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 0,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 1,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "auto",
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  },
-                  "mappings": [],
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green"
-                      },
-                      {
-                        "color": "red",
-                        "value": 80
-                      }
-                    ]
-                  }
-                },
-                "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "contracts"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "from UMB"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "contracts-from-gateway"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "from Kafka"
-                      }
-                    ]
-                  }
-                ]
-              },
-              "gridPos": {
-                "h": 8,
-                "w": 6,
-                "x": 6,
-                "y": 5528
-              },
-              "id": 5004,
-              "interval": "1d",
-              "options": {
-                "legend": {
-                  "calcs": [],
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "single",
-                  "sort": "none"
-                }
-              },
-              "pluginVersion": "11.6.11",
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${datasource}"
-                  },
-                  "editorMode": "code",
-                  "exemplar": false,
-                  "expr": "sum by (channel) (\n  increase(quarkus_messaging_message_failures_total{\n    channel=~\"contracts-from-gateway|contracts\"\n  }[$__rate_interval])\n)",
-                  "format": "time_series",
-                  "instant": false,
-                  "legendFormat": "__auto",
-                  "range": true,
-                  "refId": "A"
-                }
-              ],
-              "title": "IT Partner - Contract message failures",
-              "type": "timeseries"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 0,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 1,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "auto",
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  },
-                  "mappings": [],
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green"
-                      },
-                      {
-                        "color": "red",
-                        "value": 80
-                      }
-                    ]
-                  }
-                },
-                "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "contracts"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "from UMB"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "contracts-from-gateway"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "from Kafka"
-                      }
-                    ]
-                  }
-                ]
-              },
-              "gridPos": {
-                "h": 8,
-                "w": 6,
-                "x": 12,
-                "y": 5528
-              },
-              "id": 5049,
-              "interval": "1d",
-              "options": {
-                "legend": {
-                  "calcs": [],
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "single",
-                  "sort": "none"
-                }
-              },
-              "pluginVersion": "11.6.11",
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${datasource}"
-                  },
-                  "editorMode": "code",
-                  "exemplar": false,
-                  "expr": "sum by (channel) (\n  increase(quarkus_messaging_message_count_total{\n    channel=~\"it-subscription-sync|subscription-sync-umb\"\n  }[$__rate_interval])\n)",
-                  "format": "time_series",
-                  "instant": false,
-                  "legendFormat": "__auto",
-                  "range": true,
-                  "refId": "A"
-                }
-              ],
-              "title": "IT Subscriptions - Contracts Messages Consumed",
-              "type": "timeseries"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 0,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 1,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "auto",
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  },
-                  "mappings": [],
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green"
-                      },
-                      {
-                        "color": "red",
-                        "value": 80
-                      }
-                    ]
-                  }
-                },
-                "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "contracts"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "from UMB"
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "contracts-from-gateway"
-                    },
-                    "properties": [
-                      {
-                        "id": "displayName",
-                        "value": "from Kafka"
-                      }
-                    ]
-                  }
-                ]
-              },
-              "gridPos": {
-                "h": 8,
-                "w": 6,
-                "x": 18,
-                "y": 5528
-              },
-              "id": 5050,
-              "interval": "1d",
-              "options": {
-                "legend": {
-                  "calcs": [],
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "single",
-                  "sort": "none"
-                }
-              },
-              "pluginVersion": "11.6.11",
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${datasource}"
-                  },
-                  "editorMode": "code",
-                  "exemplar": false,
-                  "expr": "sum by (channel) (\n  increase(quarkus_messaging_message_failures_total{\n    channel=~\"it-subscription-sync|subscription-sync-umb\"\n  }[$__rate_interval])\n)",
-                  "format": "time_series",
-                  "instant": false,
-                  "legendFormat": "__auto",
-                  "range": true,
-                  "refId": "A"
-                }
-              ],
-              "title": "IT Subscriptions - Contract message failures",
-              "type": "timeseries"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "thresholds"
-                  },
-                  "links": [],
-                  "mappings": [],
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green"
-                      },
-                      {
-                        "color": "red",
-                        "value": 80
-                      }
-                    ]
-                  }
-                },
-                "overrides": []
-              },
-              "gridPos": {
-                "h": 10,
-                "w": 18,
-                "x": 0,
-                "y": 5536
-              },
-              "id": 121,
-              "options": {
-                "colorMode": "value",
-                "graphMode": "none",
-                "justifyMode": "auto",
-                "orientation": "auto",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                  "calcs": [
-                    "last"
-                  ],
-                  "fields": "",
-                  "values": false
-                },
-                "showPercentChange": false,
-                "textMode": "auto",
-                "wideLayout": true
-              },
-              "pluginVersion": "11.6.11",
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${datasource}"
-                  },
-                  "editorMode": "code",
-                  "exemplar": true,
-                  "expr": "sum(swatch_ambiguous_subscriptions_total) by(product)",
-                  "format": "heatmap",
-                  "instant": true,
-                  "interval": "",
-                  "intervalFactor": 1,
-                  "legendFormat": "__auto",
-                  "range": true,
-                  "refId": "A"
-                }
-              ],
-              "title": "Ambiguous Subscriptions by Product",
-              "type": "stat"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "thresholds"
-                  },
-                  "links": [],
-                  "mappings": [],
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green"
-                      },
-                      {
-                        "color": "red",
-                        "value": 80
-                      }
-                    ]
-                  }
-                },
-                "overrides": []
-              },
-              "gridPos": {
-                "h": 10,
-                "w": 18,
-                "x": 0,
-                "y": 5546
-              },
-              "id": 122,
-              "options": {
-                "colorMode": "value",
-                "graphMode": "none",
-                "justifyMode": "auto",
-                "orientation": "auto",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                  "calcs": [
-                    "last"
-                  ],
-                  "fields": "",
-                  "values": false
-                },
-                "showPercentChange": false,
-                "textMode": "auto",
-                "wideLayout": true
-              },
-              "pluginVersion": "11.6.11",
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${datasource}"
-                  },
-                  "editorMode": "code",
-                  "exemplar": true,
-                  "expr": "sum(swatch_missing_subscriptions) by(product)",
-                  "format": "heatmap",
-                  "instant": true,
-                  "interval": "",
-                  "intervalFactor": 1,
-                  "legendFormat": "__auto",
-                  "range": true,
-                  "refId": "A"
-                }
-              ],
-              "title": "Missing Subscriptions by Product",
-              "type": "stat"
-            }
-          ],
+          "panels": [],
           "title": "Subscriptions & Contracts",
           "type": "row"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${aws_kafka_datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "normal"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "links": [],
+              "mappings": [],
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 9,
+            "w": 6,
+            "x": 0,
+            "y": 11
+          },
+          "id": 20,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "11.6.11",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${aws_kafka_datasource}"
+              },
+              "disableTextWrap": false,
+              "editorMode": "code",
+              "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=\"platform.rhsm-subscriptions.subscription-sync-task\"}) by (consumer_group)",
+              "format": "time_series",
+              "fullMetaSearch": false,
+              "includeNullMetadata": true,
+              "interval": "",
+              "intervalFactor": 1,
+              "legendFormat": "partition {{partition}}",
+              "range": true,
+              "refId": "A",
+              "useBackend": false
+            }
+          ],
+          "title": "Subscription Sync Task Lag",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${aws_kafka_datasource}"
+          },
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "normal"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "links": [],
+              "mappings": [],
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 9,
+            "w": 6,
+            "x": 6,
+            "y": 11
+          },
+          "id": 89,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "11.6.11",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${aws_kafka_datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~\".*platform.rhsm-subscriptions.offering-sync\"}) by (consumer_group)",
+              "format": "time_series",
+              "interval": "",
+              "intervalFactor": 1,
+              "legendFormat": "partition {{partition}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Offering Sync Task Lag",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${aws_kafka_datasource}"
+          },
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "normal"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "links": [],
+              "mappings": [],
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 9,
+            "w": 6,
+            "x": 12,
+            "y": 11
+          },
+          "id": 90,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "11.6.11",
+          "targets": [
+            {
+              "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~\".*platform.rhsm-subscriptions.capacity-reconcile\"}) by (consumer_group)",
+              "format": "time_series",
+              "interval": "",
+              "intervalFactor": 1,
+              "legendFormat": "partition {{partition}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Capacity Reconcile Task Lag",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${aws_kafka_datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "normal"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 9,
+            "w": 6,
+            "x": 18,
+            "y": 11
+          },
+          "id": 128,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "11.6.11",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${aws_kafka_datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~\".*platform.rhsm-subscriptions.tally\",consumer_group=\"swatch-contracts-tally-worker\"})",
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Tally to Contracts Lag",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${aws_kafka_datasource}"
+          },
+          "description": "Consumer lag for platform.rhsm-subscriptions.contract-sync (per-org contract sync tasks).",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "normal"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "links": [],
+              "mappings": [],
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 9,
+            "w": 6,
+            "x": 0,
+            "y": 20
+          },
+          "id": 5002,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "11.6.11",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${aws_kafka_datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~\".*platform.rhsm-subscriptions.contract-sync\"}) by (consumer_group)",
+              "format": "time_series",
+              "interval": "",
+              "intervalFactor": 1,
+              "legendFormat": "{{ consumer_group }}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Contract Sync Task Lag",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "description": "How many per-org contract syncs complete per second (aggregate across pods). From Micrometer timer swatch_contract_sync on ContractService.syncContractsByOrgId.",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "links": [],
+              "mappings": [],
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  }
+                ]
+              },
+              "unit": "ops"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 9,
+            "w": 6,
+            "x": 6,
+            "y": 20
+          },
+          "id": 5001,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "11.6.11",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum(rate(swatch_contract_sync_seconds_count{service=\"swatch-contracts-service\"}[$__rate_interval]))",
+              "format": "time_series",
+              "legendFormat": "tasks/sec",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Contract sync processing rate (tasks/sec)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "description": "Native Memory Estimation = Container Memory - Heap - Non-Heap\nMemory used by native libraries (Kafka, HTTP, logging) not tracked by JVM",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 2,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "yellow",
+                    "value": 200000000
+                  },
+                  {
+                    "color": "red",
+                    "value": 300000000
+                  }
+                ]
+              },
+              "unit": "bytes"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 9,
+            "w": 6,
+            "x": 12,
+            "y": 20
+          },
+          "id": 5028,
+          "options": {
+            "legend": {
+              "calcs": [
+                "last",
+                "max"
+              ],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "11.6.11",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum(container_memory_working_set_bytes{pod=~\"swatch-contracts-service-.*\", container=\"swatch-contracts-service\"}) by (pod) - sum(jvm_memory_used_bytes{area=\"heap\", pod=~\"swatch-contracts-service-.*\"}) by (pod) - sum(jvm_memory_used_bytes{area=\"nonheap\", pod=~\"swatch-contracts-service-.*\"}) by (pod)",
+              "legendFormat": "{{pod}} - Native Memory (est.)",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "swatch-contracts - Native Memory (Estimated)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "description": "JVM Non-Heap Memory - class definitions, compiled code, metadata",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 2,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  }
+                ]
+              },
+              "unit": "bytes"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 9,
+            "w": 6,
+            "x": 18,
+            "y": 20
+          },
+          "id": 5027,
+          "options": {
+            "legend": {
+              "calcs": [
+                "last",
+                "max"
+              ],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "11.6.11",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum(jvm_memory_used_bytes{area=\"nonheap\", pod=~\"swatch-contracts-service-.*\"}) by (pod)",
+              "legendFormat": "{{pod}} - Non-Heap",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "swatch-contracts - JVM Non-Heap Memory",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byFrameRefID",
+                  "options": "A"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "percent"
+                  },
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "green"
+                        },
+                        {
+                          "color": "#EAB839",
+                          "value": 2
+                        },
+                        {
+                          "color": "red",
+                          "value": 5
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byFrameRefID",
+                  "options": "B"
+                },
+                "properties": [
+                  {
+                    "id": "custom.axisPlacement",
+                    "value": "right"
+                  },
+                  {
+                    "id": "unit",
+                    "value": "s"
+                  },
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "green"
+                        },
+                        {
+                          "color": "yellow",
+                          "value": 80
+                        },
+                        {
+                          "color": "red",
+                          "value": 90
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 6,
+            "x": 0,
+            "y": 29
+          },
+          "id": 132,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "11.6.11",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "sum(agroal_active_count{service=\"swatch-contracts-service\"}) / (sum(agroal_active_count{service=\"swatch-contracts-service\"}) + sum(agroal_available_count{service=\"swatch-contracts-service\"})) * 100",
+              "instant": false,
+              "legendFormat": "Pool Usage %",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum(rate(agroal_blocking_time_total_milliseconds{service=\"swatch-contracts-service\"}[1m])) / 1000",
+              "hide": false,
+              "instant": false,
+              "legendFormat": "Wait Time (s)",
+              "range": true,
+              "refId": "B"
+            }
+          ],
+          "title": "swatch-contracts Database Connection Pool",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "links": [],
+              "mappings": [],
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "bytes"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 6,
+            "x": 6,
+            "y": 29
+          },
+          "id": 118,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "11.6.11",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum(container_memory_working_set_bytes{pod=~\"swatch-contracts-service.*\", container=''}) by (pod)",
+              "format": "time_series",
+              "interval": "",
+              "intervalFactor": 1,
+              "legendFormat": "{{ pod }}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "swatch-contracts Memory Used",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "description": "JVM Heap Memory usage - shows how full the heap is (Java objects in memory)",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 2,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "bytes"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": ".*Max.*"
+                },
+                "properties": [
+                  {
+                    "id": "custom.lineStyle",
+                    "value": {
+                      "dash": [
+                        10,
+                        10
+                      ],
+                      "fill": "dash"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 6,
+            "x": 12,
+            "y": 29
+          },
+          "id": 5026,
+          "options": {
+            "legend": {
+              "calcs": [
+                "last",
+                "max"
+              ],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "11.6.11",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum by (pod) (jvm_memory_used_bytes{area=\"heap\", pod=~\"swatch-contracts-service-.*\"})",
+              "legendFormat": "{{pod}} - Used",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "jvm_memory_max_bytes{area=\"heap\", pod=~\"swatch-contracts-service-.*\"}",
+              "legendFormat": "{{pod}} - Max (-Xmx)",
+              "range": true,
+              "refId": "B"
+            }
+          ],
+          "title": "swatch-contracts - JVM Heap Memory",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "description": "Container memory limits and actual usage (excludes sidecar containers)",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 2,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "yellow",
+                    "value": 500000000
+                  },
+                  {
+                    "color": "red",
+                    "value": 580000000
+                  }
+                ]
+              },
+              "unit": "bytes"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": ".*Limit.*"
+                },
+                "properties": [
+                  {
+                    "id": "custom.lineStyle",
+                    "value": {
+                      "dash": [
+                        10,
+                        10
+                      ],
+                      "fill": "dash"
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "red",
+                      "mode": "fixed"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 6,
+            "x": 18,
+            "y": 29
+          },
+          "id": 5029,
+          "options": {
+            "legend": {
+              "calcs": [
+                "last",
+                "max"
+              ],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "11.6.11",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "kube_pod_container_resource_limits{resource=\"memory\", pod=~\"swatch-contracts-service-.*\", container=\"swatch-contracts-service\"}",
+              "legendFormat": "{{pod}} - Limit",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "container_memory_working_set_bytes{pod=~\"swatch-contracts-service-.*\", container!=\"\", container!=\"POD\"}",
+              "legendFormat": "{{pod}} - {{container}} - Used",
+              "range": true,
+              "refId": "B"
+            }
+          ],
+          "title": "swatch-contracts - Container Memory",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "contracts"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "from UMB"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "yellow",
+                      "mode": "fixed"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "contracts-from-gateway"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "from Kafka"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "green",
+                      "mode": "fixed"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 6,
+            "x": 0,
+            "y": 37
+          },
+          "id": 5003,
+          "interval": "1d",
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "11.6.11",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "sum by (channel) (\n  increase(quarkus_messaging_message_count_total{\n    channel=~\"contracts-from-gateway|contracts\"\n  }[$__rate_interval])\n)",
+              "format": "time_series",
+              "instant": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "IT Partner - Contracts Messages Consumed",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "contracts"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "from UMB"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "yellow",
+                      "mode": "fixed"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "contracts-from-gateway"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "from Kafka"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "green",
+                      "mode": "fixed"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 6,
+            "x": 6,
+            "y": 37
+          },
+          "id": 5004,
+          "interval": "1d",
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "11.6.11",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "sum by (channel) (\n  increase(quarkus_messaging_message_failures_total{\n    channel=~\"contracts-from-gateway|contracts\"\n  }[$__rate_interval])\n)",
+              "format": "time_series",
+              "instant": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "IT Partner - Contract message failures",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "subscription-sync-umb"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "from UMB"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "yellow",
+                      "mode": "fixed"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "it-subscription-sync"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "from Kafka"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "green",
+                      "mode": "fixed"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 6,
+            "x": 0,
+            "y": 45
+          },
+          "id": 5049,
+          "interval": "1d",
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "11.6.11",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "sum by (channel) (\n  increase(quarkus_messaging_message_count_total{\n    channel=~\"it-subscription-sync|subscription-sync-umb\"\n  }[$__rate_interval])\n)",
+              "format": "time_series",
+              "instant": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "IT Subscriptions - Contracts Messages Consumed",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "subscription-sync-umb"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "from UMB"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "yellow",
+                      "mode": "fixed"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "it-subscription-sync"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "from Kafka"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "green",
+                      "mode": "fixed"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 6,
+            "x": 6,
+            "y": 45
+          },
+          "id": 5050,
+          "interval": "1d",
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "11.6.11",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "sum by (channel) (\n  increase(quarkus_messaging_message_failures_total{\n    channel=~\"it-subscription-sync|subscription-sync-umb\"\n  }[$__rate_interval])\n)",
+              "format": "time_series",
+              "instant": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "IT Subscriptions - Contract message failures",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "offering-sync-service-umb"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "from UMB"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "yellow",
+                      "mode": "fixed"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "it-offering-sync"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "from Kafka"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "green",
+                      "mode": "fixed"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 6,
+            "x": 0,
+            "y": 53
+          },
+          "id": 9057,
+          "interval": "1d",
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "11.6.11",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "sum by (channel) (\n  increase(quarkus_messaging_message_count_total{\n    channel=~\"it-offering-sync|offering-sync-service-umb\"\n  }[$__rate_interval])\n)",
+              "format": "time_series",
+              "instant": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "IT Product - Offering Messages Consumed",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "offering-sync-service-umb"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "from UMB"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "yellow",
+                      "mode": "fixed"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "it-offering-sync"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "from Kafka"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "green",
+                      "mode": "fixed"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 6,
+            "x": 6,
+            "y": 53
+          },
+          "id": 9058,
+          "interval": "1d",
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "11.6.11",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "sum by (channel) (\n  increase(quarkus_messaging_message_failures_total{\n    channel=~\"it-offering-sync|offering-sync-service-umb\"\n  }[$__rate_interval])\n)",
+              "format": "time_series",
+              "instant": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "IT Product - Offering message failures",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "links": [],
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 10,
+            "w": 18,
+            "x": 0,
+            "y": 61
+          },
+          "id": 121,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "percentChangeColorMode": "standard",
+            "reduceOptions": {
+              "calcs": [
+                "last"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "pluginVersion": "11.6.11",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "exemplar": true,
+              "expr": "sum(swatch_ambiguous_subscriptions_total) by(product)",
+              "format": "heatmap",
+              "instant": true,
+              "interval": "",
+              "intervalFactor": 1,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Ambiguous Subscriptions by Product",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "links": [],
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 10,
+            "w": 18,
+            "x": 0,
+            "y": 71
+          },
+          "id": 122,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "percentChangeColorMode": "standard",
+            "reduceOptions": {
+              "calcs": [
+                "last"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "pluginVersion": "11.6.11",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "exemplar": true,
+              "expr": "sum(swatch_missing_subscriptions) by(product)",
+              "format": "heatmap",
+              "instant": true,
+              "interval": "",
+              "intervalFactor": 1,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Missing Subscriptions by Product",
+          "type": "stat"
         },
         {
           "collapsed": true,
@@ -9151,7 +9486,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 38
+            "y": 81
           },
           "id": 74,
           "panels": [
@@ -9221,7 +9556,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 8811
+                "y": 8865
               },
               "id": 83,
               "options": {
@@ -9323,7 +9658,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 8811
+                "y": 8865
               },
               "id": 120,
               "options": {
@@ -9423,7 +9758,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 8811
+                "y": 8865
               },
               "id": 107,
               "options": {
@@ -9522,7 +9857,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 8811
+                "y": 8865
               },
               "id": 98,
               "options": {
@@ -9623,7 +9958,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 8820
+                "y": 8874
               },
               "id": 78,
               "options": {
@@ -9720,7 +10055,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 8820
+                "y": 8874
               },
               "id": 80,
               "options": {
@@ -9814,7 +10149,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 8820
+                "y": 8874
               },
               "id": 119,
               "maxDataPoints": 100,
@@ -9939,7 +10274,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 8820
+                "y": 8874
               },
               "id": 99,
               "maxDataPoints": 100,
@@ -10122,7 +10457,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 8973
+                "y": 9027
               },
               "id": 134,
               "options": {
@@ -10180,7 +10515,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 39
+            "y": 82
           },
           "id": 5048,
           "panels": [
@@ -10280,7 +10615,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 8143
+                "y": 8197
               },
               "id": 5041,
               "options": {
@@ -10411,7 +10746,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 8143
+                "y": 8197
               },
               "id": 5038,
               "options": {
@@ -10520,7 +10855,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 8143
+                "y": 8197
               },
               "id": 5039,
               "options": {
@@ -10626,7 +10961,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 8143
+                "y": 8197
               },
               "id": 5040,
               "options": {
@@ -10672,7 +11007,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 40
+            "y": 83
           },
           "id": 5047,
           "panels": [
@@ -10773,7 +11108,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 5816
+                "y": 5870
               },
               "id": 5037,
               "options": {
@@ -10904,7 +11239,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 5816
+                "y": 5870
               },
               "id": 5034,
               "options": {
@@ -11013,7 +11348,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 5816
+                "y": 5870
               },
               "id": 5035,
               "options": {
@@ -11119,7 +11454,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 5816
+                "y": 5870
               },
               "id": 5036,
               "options": {
@@ -11165,7 +11500,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 41
+            "y": 84
           },
           "id": 5046,
           "panels": [
@@ -11265,7 +11600,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 5826
+                "y": 5880
               },
               "id": 5045,
               "options": {
@@ -11396,7 +11731,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 5826
+                "y": 5880
               },
               "id": 5042,
               "options": {
@@ -11505,7 +11840,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 5826
+                "y": 5880
               },
               "id": 5043,
               "options": {
@@ -11611,7 +11946,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 5826
+                "y": 5880
               },
               "id": 5044,
               "options": {
@@ -11657,7 +11992,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 42
+            "y": 85
           },
           "id": 129,
           "panels": [
@@ -11725,7 +12060,7 @@ data:
                 "h": 8,
                 "w": 12,
                 "x": 0,
-                "y": 5827
+                "y": 5881
               },
               "id": 130,
               "options": {
@@ -11854,7 +12189,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 5835
+                "y": 5889
               },
               "id": 5009,
               "options": {
@@ -11985,7 +12320,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 5835
+                "y": 5889
               },
               "id": 5006,
               "options": {
@@ -12094,7 +12429,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 5835
+                "y": 5889
               },
               "id": 5007,
               "options": {
@@ -12200,7 +12535,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 5835
+                "y": 5889
               },
               "id": 5008,
               "options": {
@@ -12298,7 +12633,7 @@ data:
                 "h": 8,
                 "w": 8,
                 "x": 0,
-                "y": 5878
+                "y": 5932
               },
               "id": 136,
               "options": {
@@ -12446,7 +12781,7 @@ data:
                 "h": 8,
                 "w": 21,
                 "x": 0,
-                "y": 5886
+                "y": 5940
               },
               "id": 137,
               "options": {
@@ -12648,7 +12983,7 @@ data:
                 "h": 8,
                 "w": 21,
                 "x": 0,
-                "y": 5894
+                "y": 5948
               },
               "id": 131,
               "options": {
