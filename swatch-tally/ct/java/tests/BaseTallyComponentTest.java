@@ -53,6 +53,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
+import utils.RbacAccessTestHelper;
 import utils.TallyDbHostSeeder;
 import utils.TallyTestHelpers;
 
@@ -97,11 +98,26 @@ public class BaseTallyComponentTest {
 
   protected final TallyDbHostSeeder seeder = new TallyDbHostSeeder(swatchDatabase);
   protected String orgId;
+  protected RbacAccessTestHelper rbacHelper;
 
   @BeforeEach
   void setUp() {
     orgId = RandomUtils.generateRandom();
+    rbacHelper = new RbacAccessTestHelper(unleash, wiremock, orgId);
     String identityHeader = SwatchUtils.createUserIdentityHeader(orgId);
+    wiremock
+        .forRbacAccessControl()
+        .stubSubscriptionsAccess(identityHeader, SubscriptionsAccessLevel.GRANTED_ADMIN);
+  }
+
+  /**
+   * Helper method to stub RBAC access for a custom org ID (for tests that don't use the instance
+   * orgId).
+   *
+   * @param customOrgId the organization ID to stub access for
+   */
+  protected void stubRbacAccessForOrg(String customOrgId) {
+    String identityHeader = SwatchUtils.createUserIdentityHeader(customOrgId);
     wiremock
         .forRbacAccessControl()
         .stubSubscriptionsAccess(identityHeader, SubscriptionsAccessLevel.GRANTED_ADMIN);
