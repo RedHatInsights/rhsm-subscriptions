@@ -107,14 +107,16 @@ public class BillableUsageRemittanceRepository
       List<String> uuids,
       RemittanceStatus status,
       OffsetDateTime billedOn,
-      RemittanceErrorCode errorCode) {
+      RemittanceErrorCode errorCode,
+      String licenseId) {
     List<UUID> uuidList = uuids.stream().map(UUID::fromString).toList();
     update(
-        "status = ?1, billedOn=?2, errorCode=?3, updatedAt=?4 where uuid in (?5)",
+        "status = ?1, billedOn=?2, errorCode=?3, updatedAt=?4, licenseId=?5 where uuid in (?6)",
         status,
         billedOn,
         errorCode,
         OffsetDateTime.now(ZoneOffset.UTC),
+        licenseId,
         uuidList);
   }
 

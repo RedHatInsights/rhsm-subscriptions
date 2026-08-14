@@ -246,12 +246,13 @@ public class BaseBillableUsageComponentTest {
             status,
             errorCode,
             billedOn,
-            List.of(billableUsage.getUuid().toString())));
+            List.of(billableUsage.getUuid().toString()),
+            null));
     waitForRemittanceStatus(billableUsage.getTallyId().toString(), expectedRemittanceStatus);
     return billableUsage;
   }
 
-  private BillableUsageAggregate buildBillableUsageAggregate(
+  protected BillableUsageAggregate buildBillableUsageAggregate(
       String orgId,
       String productId,
       String metricId,
@@ -259,7 +260,8 @@ public class BaseBillableUsageComponentTest {
       BillableUsage.Status status,
       BillableUsage.ErrorCode errorCode,
       OffsetDateTime billedOn,
-      List<String> remittanceUuids) {
+      List<String> remittanceUuids,
+      String licenseId) {
     var aggregateKey = new BillableUsageAggregateKey();
     aggregateKey.setOrgId(orgId);
     aggregateKey.setProductId(productId);
@@ -279,6 +281,7 @@ public class BaseBillableUsageComponentTest {
     Set<OffsetDateTime> snapshotDateSet = new HashSet<>();
     snapshotDateSet.add(OffsetDateTime.now(ZoneOffset.UTC).minusDays(3));
     aggregate.setSnapshotDates(snapshotDateSet);
+    aggregate.setLicenseId(licenseId);
     if (errorCode != null) {
       aggregate.setErrorCode(errorCode);
     }
