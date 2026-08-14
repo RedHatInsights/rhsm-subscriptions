@@ -49,6 +49,7 @@ import org.apache.http.HttpStatus;
 import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -136,6 +137,11 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
   private CrossMonthPair crossMonth;
 
   private static final int EXPECTED_CURRENT_MONTH_INSTANCE_ROWS = 16;
+
+  @BeforeEach
+  void setUpRbacForTestOrg() {
+    stubRbacAccessForOrg(testOrgId);
+  }
 
   @BeforeAll
   void setupSharedFixture() {

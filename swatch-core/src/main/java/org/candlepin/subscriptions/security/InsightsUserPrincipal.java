@@ -25,7 +25,12 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Objects;
 import java.util.Optional;
 
-/** Represents a normal cloud.redhat.com user authenticated via the x-rh-identity header. */
+/**
+ * Represents a user or service account authenticated via the x-rh-identity header.
+ *
+ * <p>This class handles both "User" and "ServiceAccount" identity types from the x-rh-identity
+ * header, as they share the same org_id structure and authentication flow.
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class InsightsUserPrincipal implements RhIdentity.Identity {
 
@@ -54,19 +59,6 @@ public class InsightsUserPrincipal implements RhIdentity.Identity {
     }
   }
 
-  @JsonProperty("account_number")
-  private String accountNumber;
-
-  @JsonProperty("org_id")
-  private String orgId;
-
-  @JsonProperty("user_id")
-  private String userId;
-
-  private Internal internal = new Internal();
-
-  private User user = new User();
-
   /** POJO representation of "user" object inside the x-rh-identity object JSON. */
   @JsonIgnoreProperties(ignoreUnknown = true)
   public static class User {
@@ -82,17 +74,58 @@ public class InsightsUserPrincipal implements RhIdentity.Identity {
     }
   }
 
+  /** POJO representation of "service_account" object inside the x-rh-identity object JSON. */
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  public static class ServiceAccount {
+    @JsonProperty("client_id")
+    private String clientId;
+
+    public String getClientId() {
+      return clientId;
+    }
+
+    public void setClientId(String clientId) {
+      this.clientId = clientId;
+    }
+  }
+
+  @JsonProperty("account_number")
+  private String accountNumber;
+
+  @JsonProperty("org_id")
+  private String orgId;
+
+  @JsonProperty("user_id")
+  private String userId;
+
+  private Internal internal = new Internal();
+
+  private User user = new User();
+
+  @JsonProperty("service_account")
+  private ServiceAccount serviceAccount;
+
   /**
    * Returns the principal identifier used for Kessel authorization checks ({@code redhat/{id}}).
    *
-   * <p>Matches insights-rbac, which checks permissions for user principals, not org IDs.
+   * <p>For users, this returns the user_id. For service accounts, this returns the client_id.
+   *
+   * <p>Matches insights-rbac and swatch-common-security KesselPrincipalIds logic.
    */
   public Optional<String> getKesselPrincipalId() {
+    // Check top-level user_id first (present in both user and service account identities)
     if (userId != null && !userId.isBlank()) {
       return Optional.of(userId);
     }
+    // Check nested user.user_id (for User type)
     if (user != null && user.getUserId() != null && !user.getUserId().isBlank()) {
       return Optional.of(user.getUserId());
+    }
+    // Check service_account.client_id (for ServiceAccount type)
+    if (serviceAccount != null
+        && serviceAccount.getClientId() != null
+        && !serviceAccount.getClientId().isBlank()) {
+      return Optional.of(serviceAccount.getClientId());
     }
     return Optional.empty();
   }

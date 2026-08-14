@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.UUID;
 import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -47,6 +48,12 @@ import org.junit.jupiter.params.provider.ValueSource;
  */
 public class TallyReportFiltersEdgeCaseTest extends BaseTallyComponentTest {
   private static String testOrgId;
+
+  @BeforeEach
+  void setUpRbacForTestOrg() {
+    stubRbacAccessForOrg(testOrgId);
+  }
+
   private static final String PRODUCT_ID = RHEL_FOR_X86_ELS_PAYG.productId();
   private static final String PRODUCT_TAG = RHEL_FOR_X86_ELS_PAYG.productTag();
   private static final String METRIC_ID = RHEL_FOR_X86_ELS_PAYG.metricIds().get(0);

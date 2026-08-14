@@ -77,7 +77,7 @@ public class TallySwatchService extends SwatchService {
     return response.as(VersionInfo.class);
   }
 
-  // --- Configuration methods ---
+  // --- Opt-in configuration methods ---
 
   /**
    * Creates opt-in configuration for an organization.
@@ -103,6 +103,36 @@ public class TallySwatchService extends SwatchService {
             + response.getBody().asString());
 
     Log.info(this, "Opt-in config created successfully for org: %s", orgId);
+  }
+
+  /**
+   * Retrieves opt-in status using caller-supplied request headers (for access control tests).
+   *
+   * @param requestHeaders map containing x-rh-identity and other headers
+   * @return the raw HTTP response
+   */
+  public Response getOptInWithHeaders(Map<String, String> requestHeaders) {
+    return given().headers(requestHeaders).get(API_PATH + "/opt-in").then().extract().response();
+  }
+
+  /**
+   * Creates/updates opt-in using caller-supplied request headers (for access control tests).
+   *
+   * @param requestHeaders map containing x-rh-identity and other headers
+   * @return the raw HTTP response
+   */
+  public Response putOptInWithHeaders(Map<String, String> requestHeaders) {
+    return given().headers(requestHeaders).put(API_PATH + "/opt-in").then().extract().response();
+  }
+
+  /**
+   * Deletes opt-in using caller-supplied request headers (for access control tests).
+   *
+   * @param requestHeaders map containing x-rh-identity and other headers
+   * @return the raw HTTP response
+   */
+  public Response deleteOptInWithHeaders(Map<String, String> requestHeaders) {
+    return given().headers(requestHeaders).delete(API_PATH + "/opt-in").then().extract().response();
   }
 
   // --- Tally operation methods ---
