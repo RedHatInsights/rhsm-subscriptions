@@ -6,6 +6,9 @@ set -euo pipefail
 # Each service uses a unique port, so all can run simultaneously.
 # Usage: ./bin/test-all-services.sh [service1 service2 ...]
 # If no services are specified, all services will be tested.
+#
+# Services in SERIAL_SERVICES are started alone (not in a parallel batch)
+# because they are heavier to boot under CI load.
 
 ALL_SERVICES=(
     "swatch-tally:9010"
@@ -18,6 +21,11 @@ ALL_SERVICES=(
     "swatch-system-conduit:9017"
     "swatch-utilization:9018"
     "swatch-api:9019"
+)
+
+# Heavier services: run alone so they are not starved by sibling quarkus:dev JVMs.
+SERIAL_SERVICES=(
+    "swatch-contracts"
 )
 
 MAX_PARALLEL=${MAX_PARALLEL:-5}
@@ -34,6 +42,17 @@ get_service_port() {
         fi
     done
     echo ""
+}
+
+is_serial_service() {
+    local service_name=$1
+    local serial
+    for serial in "${SERIAL_SERVICES[@]}"; do
+        if [ "$serial" = "$service_name" ]; then
+            return 0
+        fi
+    done
+    return 1
 }
 
 if [ $# -gt 0 ]; then
@@ -58,9 +77,20 @@ else
     echo "Testing all services..."
 fi
 
+SERIAL_TO_TEST=()
+PARALLEL_TO_TEST=()
+for service_info in "${SERVICES_TO_TEST[@]}"; do
+    IFS=':' read -r service_name _ <<< "$service_info"
+    if is_serial_service "$service_name"; then
+        SERIAL_TO_TEST+=("$service_info")
+    else
+        PARALLEL_TO_TEST+=("$service_info")
+    fi
+done
+
 total=${#SERVICES_TO_TEST[@]}
 echo "════════════════════════════════════════"
-echo "Launching up to $MAX_PARALLEL services in parallel ($total total)"
+echo "Testing $total service(s): ${#SERIAL_TO_TEST[@]} serial, ${#PARALLEL_TO_TEST[@]} parallel (max $MAX_PARALLEL)"
 echo ""
 
 TMPDIR_BASE=$(mktemp -d)
@@ -101,21 +131,25 @@ check_health_bg() {
 FAILED_SERVICES=()
 PASSED_SERVICES=()
 
-batch_start=0
-while [ $batch_start -lt $total ]; do
-    batch_end=$((batch_start + MAX_PARALLEL))
-    if [ $batch_end -gt $total ]; then
-        batch_end=$total
+# Runs one batch of services (size limited by caller via the list passed).
+# Arguments: service_info entries ("name:port" ...).
+run_batch() {
+    local -a batch_services=("$@")
+    local batch_count=${#batch_services[@]}
+    if [ "$batch_count" -eq 0 ]; then
+        return
     fi
 
-    batch_make_pids=()
-    batch_health_pids=()
-    batch_names=()
+    local batch_make_pids=()
+    local batch_health_pids=()
+    local batch_names=()
+    local service_info service_name management_port svc_log make_pid
+    local i svc_name health_pid pid
 
-    echo "Launching batch: services $((batch_start+1)) to $batch_end of $total"
+    echo "Launching batch: $batch_count service(s)"
 
-    for (( idx=batch_start; idx<batch_end; idx++ )); do
-        IFS=':' read -r service_name management_port <<< "${SERVICES_TO_TEST[$idx]}"
+    for service_info in "${batch_services[@]}"; do
+        IFS=':' read -r service_name management_port <<< "$service_info"
         svc_log="$TMPDIR_BASE/${service_name}.log"
 
         QUARKUS_LIVE_RELOAD_ENABLED=false QUARKUS_UNLEASH_ACTIVE=false SUSPEND_DEBUG=true make "$service_name" > "$svc_log" 2>&1 &
@@ -156,6 +190,26 @@ while [ $batch_start -lt $total ]; do
         wait "$pid" 2>/dev/null || true
     done
     echo ""
+}
+
+# Serial services first (alone), then the rest in parallel batches.
+if [ ${#SERIAL_TO_TEST[@]} -gt 0 ]; then
+    echo "Serial services (one at a time):"
+    for service_info in "${SERIAL_TO_TEST[@]}"; do
+        run_batch "$service_info"
+    done
+fi
+
+parallel_total=${#PARALLEL_TO_TEST[@]}
+batch_start=0
+while [ "$batch_start" -lt "$parallel_total" ]; do
+    batch_end=$((batch_start + MAX_PARALLEL))
+    if [ "$batch_end" -gt "$parallel_total" ]; then
+        batch_end=$parallel_total
+    fi
+
+    batch=("${PARALLEL_TO_TEST[@]:$batch_start:$((batch_end - batch_start))}")
+    run_batch "${batch[@]}"
 
     batch_start=$batch_end
 done
