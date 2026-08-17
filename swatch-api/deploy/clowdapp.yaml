@@ -84,7 +84,6 @@ parameters:
     value: token
   - name: DB_POD
     value: swatch-database
-  - name: KESSEL_URL
   - name: KESSEL_INSECURE
     value: 'true'
   - name: KESSEL_AUTH_ENABLED
@@ -150,8 +149,6 @@ objects:
                 value: ${USER_OPTS_APPEND}
               - name: DEV_MODE
                 value: ${DEV_MODE}
-              - name: KESSEL_URL
-                value: ${KESSEL_URL}
               - name: KESSEL_INSECURE
                 value: ${KESSEL_INSECURE}
               - name: KESSEL_AUTH_ENABLED

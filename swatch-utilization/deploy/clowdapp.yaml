@@ -110,7 +110,6 @@ parameters:
   - name: FLOORIST_S3_SNOWPIPE_PATH
     description: Path for dataproduct in snowpipe s3 bucket
     value: 'swatch'
-  - name: KESSEL_URL
   - name: KESSEL_INSECURE
     value: 'true'
   - name: KESSEL_AUTH_ENABLED
@@ -213,8 +212,6 @@ objects:
               value: ${USER_OPTS_APPEND}
             - name: QUARKUS_LAUNCH_DEVMODE
               value: ${QUARKUS_LAUNCH_DEVMODE}
-            - name: KESSEL_URL
-              value: ${KESSEL_URL}
             - name: KESSEL_INSECURE
               value: ${KESSEL_INSECURE}
             - name: KESSEL_AUTH_ENABLED
