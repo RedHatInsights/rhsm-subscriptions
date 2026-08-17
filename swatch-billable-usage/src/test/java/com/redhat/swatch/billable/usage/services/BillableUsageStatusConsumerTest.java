@@ -63,6 +63,8 @@ import org.junit.jupiter.api.Test;
 class BillableUsageStatusConsumerTest {
 
   private static final String ORG_ID = "org123";
+  private static final String LICENSE_A = "arn:aws:license-manager:1:license:a";
+  private static final String LICENSE_B = "arn:aws:license-manager:1:license:b";
   private static final OffsetDateTime BILLED_ON =
       OffsetDateTime.of(2024, 5, 10, 10, 20, 5, 0, ZoneOffset.UTC);
 
@@ -204,9 +206,55 @@ class BillableUsageStatusConsumerTest {
     Awaitility.await().untilAsserted(this::verifyUpdateForSuccess);
   }
 
+  @Test
+  void testWhenStatusHasLicenseIdThenRemittancesUpdatedToThatLicense() {
+    var remittanceA = givenExistingRemittanceWithLicense(LICENSE_A);
+    var remittanceB = givenExistingRemittanceWithLicense(LICENSE_B);
+    var remittanceNull = givenExistingRemittanceWithLicense(null);
+
+    var successMessage =
+        createBillableUsageAggregate(
+            Status.SUCCEEDED, null, BILLED_ON, LICENSE_B, remittanceA, remittanceB, remittanceNull);
+
+    whenSendResponse(successMessage);
+    Awaitility.await()
+        .untilAsserted(
+            () ->
+                verifyRemittancesHaveLicense(
+                    List.of(
+                        remittanceA.getUuid().toString(),
+                        remittanceB.getUuid().toString(),
+                        remittanceNull.getUuid().toString()),
+                    LICENSE_B));
+  }
+
+  @Test
+  void testWhenStatusHasNullLicenseIdThenRemittanceLicenseCleared() {
+    var remittanceA = givenExistingRemittanceWithLicense(LICENSE_A);
+    var remittanceNull = givenExistingRemittanceWithLicense(null);
+
+    var successMessage =
+        createBillableUsageAggregate(
+            Status.SUCCEEDED, null, BILLED_ON, (String) null, remittanceA, remittanceNull);
+
+    whenSendResponse(successMessage);
+    Awaitility.await()
+        .untilAsserted(
+            () ->
+                verifyRemittancesHaveLicense(
+                    List.of(remittanceA.getUuid().toString(), remittanceNull.getUuid().toString()),
+                    null));
+  }
+
   @Transactional
   BillableUsageRemittanceEntity givenExistingRemittance() {
+    return givenExistingRemittanceWithLicense(null);
+  }
+
+  @Transactional
+  BillableUsageRemittanceEntity givenExistingRemittanceWithLicense(String licenseId) {
     var remittance = buildBillableUsageRemittanceEntity();
+    remittance.setLicenseId(licenseId);
     remittanceRepository.persist(remittance);
     return remittance;
   }
@@ -295,10 +343,33 @@ class BillableUsageStatusConsumerTest {
         .forEach(assertion);
   }
 
+  @Transactional
+  void verifyRemittancesHaveLicense(List<String> uuids, String expectedLicenseId) {
+    verifyUpdateForSuccess();
+    verifyRemittances(
+        uuids,
+        result -> {
+          if (expectedLicenseId == null) {
+            assertNull(result.getLicenseId());
+          } else {
+            assertEquals(expectedLicenseId, result.getLicenseId());
+          }
+        });
+  }
+
   private BillableUsageAggregate createBillableUsageAggregate(
       Status status,
       ErrorCode errorCode,
       OffsetDateTime billedOn,
+      BillableUsageRemittanceEntity... remittances) {
+    return createBillableUsageAggregate(status, errorCode, billedOn, null, remittances);
+  }
+
+  private BillableUsageAggregate createBillableUsageAggregate(
+      Status status,
+      ErrorCode errorCode,
+      OffsetDateTime billedOn,
+      String licenseId,
       BillableUsageRemittanceEntity... remittances) {
     var aggregate = new BillableUsageAggregate();
     aggregate.setStatus(status);
@@ -308,6 +379,7 @@ class BillableUsageStatusConsumerTest {
     if (billedOn != null) {
       aggregate.setBilledOn(billedOn);
     }
+    aggregate.setLicenseId(licenseId);
     aggregate.setRemittanceUuids(
         Stream.of(remittances)
             .map(BillableUsageRemittanceEntity::getUuid)
