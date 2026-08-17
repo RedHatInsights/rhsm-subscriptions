@@ -440,6 +440,63 @@ Java component tests in `ContractAdjustmentComponentTest` (`swatch-billable-usag
 
 ---
 
+## Status Consumer (marketplace feedback)
+
+**billable-usage-status-TC001 - Align remittance licenses to status aggregate licenseId**
+
+- **Description:** Verify when a status aggregate carries a non-null `licenseId`, all referenced remittance rows are updated to that final metering license (even if they previously had a different or null license).  
+- **Setup:**  
+  - Create two pending remittances for the **same** org/billingAccountId (same hourly aggregate key)  
+  - Stamp them with licenseIds A then B via successive tallies as contracts change  
+- **Action:**  
+  - Publish `billable-usage.status` aggregate referencing both remittance UUIDs with `status=SUCCEEDED` and `licenseId=B`  
+- **Verification:**  
+  - Both remittances reach `SUCCEEDED`  
+  - Both remittances have `licenseId=B`  
+- **Expected Result:**  
+  - Remittance ledger matches the license actually used for AWS metering
+
+**billable-usage-status-TC002 - Null status licenseId clears remittance license**
+
+- **Description:** Verify a status update with null `licenseId` updates status/billedOn and sets remittance `license_id` to null (same value as the metering status payload).  
+- **Setup:**  
+  - Create a pending remittance stamped with licenseId A  
+- **Action:**  
+  - Publish status aggregate with `status=SUCCEEDED` and null `licenseId`  
+- **Verification:**  
+  - Remittance status = `SUCCEEDED`  
+  - Remittance `licenseId` is null  
+- **Expected Result:**  
+  - Remittance license always mirrors the status aggregate licenseId
+
+**billable-usage-status-TC003 - Update remittance with SUCCEEDED status**
+
+- **Description:** Verify status consumer marks remittance SUCCEEDED and sets billedOn.  
+- **Setup:**  
+  - Create a pending remittance (no contract coverage)  
+- **Action:**  
+  - Publish status aggregate with `status=SUCCEEDED` and billedOn  
+- **Verification:**  
+  - Remittance status = `SUCCEEDED`  
+  - `billedOn` is set near the published timestamp  
+- **Expected Result:**  
+  - Successful marketplace feedback updates remittance lifecycle fields
+
+**billable-usage-status-TC004 - Update remittance with FAILED status**
+
+- **Description:** Verify status consumer marks remittance FAILED and sets errorCode.  
+- **Setup:**  
+  - Create a pending remittance (no contract coverage)  
+- **Action:**  
+  - Publish status aggregate with `status=FAILED` and `errorCode=SUBSCRIPTION_NOT_FOUND`  
+- **Verification:**  
+  - Remittance status = `FAILED`  
+  - `errorCode` = `SUBSCRIPTION_NOT_FOUND`  
+- **Expected Result:**  
+  - Failed marketplace feedback updates remittance lifecycle fields
+
+---
+
 ## Negative and Resilience
 
 **billable-usage-negative-TC001 - Service survives null tally message**

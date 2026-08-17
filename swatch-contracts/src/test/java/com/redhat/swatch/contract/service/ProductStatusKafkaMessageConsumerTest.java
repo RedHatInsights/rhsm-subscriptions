@@ -23,10 +23,14 @@ package com.redhat.swatch.contract.service;
 import static com.redhat.swatch.contract.config.Channels.IT_OFFERING_SYNC;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.after;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import com.redhat.swatch.contract.config.FeatureFlags;
 import com.redhat.swatch.contract.test.LoggerCaptor;
+import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectSpy;
 import io.smallrye.reactive.messaging.memory.InMemoryConnector;
@@ -61,6 +65,7 @@ class ProductStatusKafkaMessageConsumerTest {
         }
         """;
 
+  @InjectMock FeatureFlags featureFlags;
   @Inject @Any InMemoryConnector connector;
   @InjectSpy ProductStatusKafkaMessageConsumer consumer;
 
@@ -75,6 +80,7 @@ class ProductStatusKafkaMessageConsumerTest {
   void setUp() {
     productKafkaChannel = connector.source(IT_OFFERING_SYNC);
     LoggerCaptor.clearRecords();
+    when(featureFlags.isProductServiceKafkaConsumerEnabled()).thenReturn(true);
   }
 
   @Test
@@ -119,6 +125,13 @@ class ProductStatusKafkaMessageConsumerTest {
 
     LoggerCaptor.thenLogNothing();
     verify(consumer, never()).consumeProduct(anyString());
+  }
+
+  @Test
+  void shouldIgnoreMessagesWhenFeatureFlagIsDisabled() throws Exception {
+    when(featureFlags.isProductServiceKafkaConsumerEnabled()).thenReturn(false);
+    whenSendMessage(VALID_JSON_MESSAGE);
+    verify(consumer, after(500).never()).consumeProduct(VALID_JSON_MESSAGE);
   }
 
   private void whenSendMessage(String message) {

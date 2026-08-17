@@ -88,6 +88,7 @@ public class ContractsSwatchService extends SwatchService {
       ENDPOINT_PREFIX + "/rpc/sync/contracts/%s/subscriptions";
   private static final String SKU_PRODUCT_TAGS_ENDPOINT =
       ENDPOINT_PREFIX + "/offerings/%s/product_tags";
+  private static final String TAG_METRICS_ENDPOINT = ENDPOINT_PREFIX + "/tags/%s/metrics";
   private static final String FORCE_RECONCILE_OFFERING_ENDPOINT =
       ENDPOINT_PREFIX + "/rpc/offerings/reconcile/%s";
 
@@ -548,6 +549,13 @@ public class ContractsSwatchService extends SwatchService {
     Objects.requireNonNull(sku, "sku must not be null");
 
     String endpoint = String.format(SKU_PRODUCT_TAGS_ENDPOINT, sku);
+    return given().headers(SECURITY_HEADERS).accept("application/json").when().get(endpoint);
+  }
+
+  public Response getTagMetrics(String tag) {
+    Objects.requireNonNull(tag, "tag must not be null");
+
+    String endpoint = String.format(TAG_METRICS_ENDPOINT, tag);
     return given().headers(SECURITY_HEADERS).accept("application/json").when().get(endpoint);
   }
 

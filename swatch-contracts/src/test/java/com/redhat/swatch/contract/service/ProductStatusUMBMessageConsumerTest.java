@@ -23,8 +23,11 @@ package com.redhat.swatch.contract.service;
 import static com.redhat.swatch.contract.config.Channels.OFFERING_SYNC_TASK_SERVICE_UMB;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import com.redhat.swatch.contract.config.FeatureFlags;
 import com.redhat.swatch.contract.openapi.model.OperationalProductEvent;
 import com.redhat.swatch.contract.test.LoggerCaptor;
 import com.redhat.swatch.contract.test.resources.EnableUmbResource;
@@ -56,6 +59,7 @@ class ProductStatusUMBMessageConsumerTest {
         """;
 
   @InjectMock OfferingSyncService offeringSyncService;
+  @InjectMock FeatureFlags featureFlags;
   @Inject @Any InMemoryConnector connector;
   @InjectSpy ProductStatusUMBMessageConsumer consumer;
 
@@ -70,6 +74,7 @@ class ProductStatusUMBMessageConsumerTest {
   void setUp() {
     productUmbChannel = connector.source(OFFERING_SYNC_TASK_SERVICE_UMB);
     LoggerCaptor.clearRecords();
+    when(featureFlags.isProductServiceUmbConsumerEnabled()).thenReturn(true);
   }
 
   @Test
@@ -84,6 +89,15 @@ class ProductStatusUMBMessageConsumerTest {
               verify(offeringSyncService)
                   .syncUmbProductFromEvent(any(OperationalProductEvent.class));
             });
+  }
+
+  @Test
+  void shouldIgnoreMessagesWhenFeatureFlagIsDisabled() {
+    when(featureFlags.isProductServiceUmbConsumerEnabled()).thenReturn(false);
+    consumer.consumeMessage(VALID_JSON_MESSAGE);
+    verify(consumer, never()).consumeProduct(VALID_JSON_MESSAGE);
+    verify(offeringSyncService, never())
+        .syncUmbProductFromEvent(any(OperationalProductEvent.class));
   }
 
   private void whenSendMessage(String message) {

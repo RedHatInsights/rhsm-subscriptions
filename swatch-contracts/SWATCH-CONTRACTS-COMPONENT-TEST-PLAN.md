@@ -1433,6 +1433,15 @@ This section verifies the automatic contract termination behavior when contracts
   - Operation completes without causing system errors.
   - API response properly handles non-existent SKU (appropriate error code or message).
 
+**offering-tags-TC004: Retrieve tag metrics for product tag**
+- **Description:** Verify that tag metrics can be retrieved for a configured product tag such as `rosa`.
+- **Setup:** None (reads from product configuration registry).
+- **Action:** Call internal GET `/api/swatch-contracts/internal/tags/{tag}/metrics` for `rosa`.
+- **Verification:** Assert HTTP 200 and each returned entry has non-null `metric_id` and `aws_dimension` matching the product configuration.
+- **Expected Result:**
+  - API returns all metrics configured for the tag.
+  - Each metric includes `metric_id` and `aws_dimension` values from product configuration.
+
 ## Capacity Management
 
 **offering-capacity-TC001: Verify capacity calculation for metered offerings**

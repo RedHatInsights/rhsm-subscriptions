@@ -461,7 +461,9 @@ class TallyResourceTest {
       assertEquals(48, response.getMeta().getTotalMonthly().getValue());
     }
 
-    @EnumSource(names = "CLOUD", mode = EnumSource.Mode.EXCLUDE)
+    @EnumSource(
+        names = {"CLOUD", "HYPERVISOR"},
+        mode = EnumSource.Mode.EXCLUDE)
     @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
     void testTallyReportDataCategoriesUsingHardwareMeasurements(ReportCategory category) {
       List<TallyMeasurementAggregate> aggregates = new ArrayList<>();
@@ -495,6 +497,43 @@ class TallyResourceTest {
               null);
       assertEquals(
           4.0, response.getData().stream().mapToDouble(TallyReportDataPoint::getValue).sum());
+    }
+
+    @Test
+    void testTallyReportDataHypervisorCategoryUsingHardwareMeasurements() {
+      TallySnapshot snapshot = new TallySnapshot();
+      snapshot.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
+      for (HardwareMeasurementType hardwareMeasurementType : HardwareMeasurementType.values()) {
+        snapshot.setMeasurement(hardwareMeasurementType, MetricIdUtils.getCores(), 4.0);
+      }
+      when(repository.findSnapshot(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+          .thenReturn(new PageImpl<>(List.of(snapshot)));
+
+      TallyReportData response =
+          resource.getTallyReportData(
+              RHEL_FOR_X86,
+              METRIC_ID_CORES,
+              GranularityType.DAILY,
+              OffsetDateTime.parse("2021-10-01T00:00Z"),
+              OffsetDateTime.parse("2021-10-30T00:00Z"),
+              ReportCategory.HYPERVISOR,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              false,
+              null);
+      assertEquals(
+          4.0, response.getData().stream().mapToDouble(TallyReportDataPoint::getValue).sum());
+      Mockito.verify(repository)
+          .findSnapshot(any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
+      Mockito.verify(repository, Mockito.never())
+          .findSummedMeasurements(
+              any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+              any());
     }
 
     @Test
