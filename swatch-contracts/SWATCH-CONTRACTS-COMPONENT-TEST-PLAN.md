@@ -343,6 +343,22 @@ Test cases should be testable locally and in an ephemeral environment.
   - HTTP 200 with empty array  
   - No errors
 
+**contracts-retrieval-TC007** - **Mixed `license_id` values for the same org**  
+- **Description:** An org can have multiple AWS contracts where only some have a `license_id`; retrieval returns each contract with its own `license_id` value (set or null).  
+- **Setup:** Create two AWS ROSA contracts for the same org and billing account; only one has a `license_id`.  
+- **Action:** GET contracts by `org_id`.  
+- **Verification:** Both contracts returned; `license_id` is set only on the licensed contract.  
+- **Expected Result:** HTTP 200 with both contracts and correct `license_id` values.
+
+**contracts-retrieval-TC008** - **Get contracts by `billing_account_id`**  
+- **Description:** Verify filtering by billing account ID returns only the matching contract.  
+- **Setup:** Create two AWS ROSA contracts for the same org with different `billing_account_id` values.  
+- **Action:** GET `/api/swatch-contracts/internal/contracts?org_id={org_id}&billing_account_id={billing_account_id}` for each billing account.  
+- **Verification:** Check the returned contract list.  
+- **Expected Result:**  
+  - Only the contract with the matching `billing_account_id` is returned  
+  - Response includes the correct contract `uuid` and `billing_account_id`
+
 ## AWS Usage Context
 
 Component tests for GET `/api/swatch-contracts/internal/subscriptions/awsUsageContext`. Test class: `AwsUsageContextComponentTest`.
@@ -376,6 +392,39 @@ Component tests for GET `/api/swatch-contracts/internal/subscriptions/awsUsageCo
 - **Expected Result:**  
   - HTTP 404  
   - Error code `CONTRACTS1005` (`SUBSCRIPTION_RECENTLY_TERMINATED`)
+
+**aws-usage-context-TC004** - **AWS usage context returns CONTRACTS1006 when billingAccountId is missing**  
+- **Description:** `customerAwsAccountId` is required on `AwsUsageContext`. When a matched subscription has a null/blank `billing_account_id`, contracts returns a controlled error instead of a 200 with a null field.
+- **Setup:** Persist an AWS ROSA subscription via `saveSubscriptions` with marketplace fields (`productCode;customerId;sellerAccount`) but without `billing_account_id`.  
+- **Action:** GET `/api/swatch-contracts/internal/subscriptions/awsUsageContext`.  
+- **Verification:** Check HTTP status and error body.  
+- **Expected Result:**  
+  - HTTP 404  
+  - Error code `CONTRACTS1006` (`SUBSCRIPTION_MISSING_BILLING_ACCOUNT_ID`)
+
+**aws-usage-context-TC005** - **Get AWS usage context filtered by licenseId**  
+- **Description:** When `licenseId` is provided, `getAwsUsageContext` returns the usage context for the contract/subscription matching that license.  
+- **Setup:** Create an AWS ROSA contract with a Partner Gateway `licenseArn` persisted as `licenseId`.  
+- **Action:** GET awsUsageContext with matching `awsAccountId` and `licenseId`.  
+- **Verification:** Parse response as `AwsUsageContext`.  
+- **Expected Result:**  
+  - HTTP 200  
+  - Marketplace fields match the contract (`productCode`, `customerId`, `awsSellerAccountId`, `customerAwsAccountId`)  
+  - `licenseId` and `rhSubscriptionId` match the selected contract
+
+**aws-usage-context-TC006** - **AWS usage context returns 404 for unknown licenseId**  
+- **Description:** A non-existent `licenseId` must not match any subscription (including contracts with null `licenseId`).  
+- **Setup:** Create an AWS ROSA contract with a known `licenseId`.  
+- **Action:** GET awsUsageContext with matching `awsAccountId` and a different `licenseId`.  
+- **Expected Result:** HTTP 404 with empty body
+
+**aws-usage-context-TC007** - **Multiple contracts with different licenseIds queried independently**  
+- **Description:** Two AWS contracts sharing `billingAccountId` / `billingProviderId` but different `licenseId`s can each be looked up independently.  
+- **Setup:** Create two AWS ROSA contracts (same billing account, different `subscriptionNumber` and `licenseId`).  
+- **Action:** GET awsUsageContext twice, once per `licenseId`.  
+- **Expected Result:**  
+  - HTTP 200 for each request  
+  - Each response `licenseId` and `rhSubscriptionId` match the contract selected by that filter
 
 ## Azure Usage Context
 
@@ -745,7 +794,7 @@ This section verifies the automatic contract termination behavior when contracts
 - **Expected Result**:
   - HTTP 200 with StatusResponse
   - StatusResponse message: "No contracts found in upstream for the org org123"
-  - StatusResponse status: "FAILED"
+  - StatusResponse status: "SUCCESS"
   - Contract still exists in database (not hard deleted)
   - Contract `end_date` is set to current timestamp (within 5 seconds of sync time)
   - Associated subscription also has `end_date` set to same timestamp
@@ -862,6 +911,43 @@ This section verifies the automatic contract termination behavior when contracts
   - HTTP 200 with StatusResponse status: "SUCCESS"
   - Contract synced with upstream end_date
   - Subscription retains all contract-provided state
+
+**contracts-sync-TC019 - Two AWS contracts with same billingProviderId both persist**
+- **Description**: Two AWS contracts for the same org/product/AWS account (same `billingProviderId`) but different `subscriptionNumber` and `partnerIdentities.licenseArn` must both survive sync. Syncing must not delete one when processing the other.
+- **Setup**:
+  - Stub Partner Gateway with two AWS ROSA entitlements sharing product code, aws customer id, and seller account id
+  - Different `subscriptionNumber` and `partnerIdentities.licenseArn` on each
+  - Stub Search API for both subscription numbers
+  - Sync offering for the shared SKU
+- **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/{org_id}`
+- **Verification**:
+  - Two contracts for the org
+  - Each `subscriptionNumber` present
+  - Re-sync with the same upstream stubs leaves both contracts (stable UUIDs)
+- **Expected Result**: HTTP 200. Both contracts persisted. Second sync is idempotent
+
+**contracts-sync-TC020 - Re-sync updates only one of two AWS contracts sharing billingProviderId**
+- **Description**: After two AWS contracts with the same `billingProviderId` exist, changing capacity/`endDate` for contract A only must update A and leave B unchanged.
+- **Setup**:
+  - Stub Partner Gateway with two AWS ROSA entitlements that share product code, aws customer id, and seller account id (same `billingProviderId`)
+  - Different `subscriptionNumber` and `partnerIdentities.licenseArn` on each entitlement
+  - Stub Search API for both subscription numbers and sync the shared SKU offering
+  - Sync contracts once so both contracts exist
+  - Re-stub Partner Gateway with A’s metrics/`endDate` changed and B unchanged
+- **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/{org_id}`
+- **Verification**:
+  - Contract for A’s `subscriptionNumber` reflects the new end date / capacity
+  - Contract for B’s `subscriptionNumber` keeps prior UUID and end date
+- **Expected Result**: HTTP 200. Only contract A updated
+
+**contracts-sync-TC021 - Entitlement without Partner Gateway licenseArn syncs with null licenseId**
+- **Description**: Legacy entitlements with no `partnerIdentities.licenseArn` still sync successfully; contract is created with `licenseId` null (no failure when the field is absent).
+- **Setup**:
+  - Stub one AWS ROSA entitlement **without** `partnerIdentities.licenseArn`
+  - Stub Search API and sync offering
+- **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/{org_id}`
+- **Verification**: One contract for the org; sync status SUCCESS
+- **Expected Result**: HTTP 200; sync succeeds with no failure when `partnerIdentities.licenseArn` is absent
 
 ## Subscription Management via IT Subscription
 
@@ -1252,13 +1338,19 @@ This section verifies the automatic contract termination behavior when contracts
 
 **subscriptions-termination-TC001** - **Terminate subscription with timestamp**  
 - **Description:** Verify manual subscription termination.  
-- **Setup:** Create an active subscription.  
-- **Action:** POST `/api/swatch-contracts/internal/subscriptions/terminate/{subscription_id}?timestamp=2024-01-01T00:00:00Z`.  
-- **Verification:** Check subscription end date.  
+- **Setup:**
+  - Create an active subscription
+  - Confirm it appears in the active subscription search (SKU capacity report)
+- **Action:** POST `/api/swatch-contracts/internal/subscriptions/terminate/{subscription_id}?timestamp=<past>`.  
+- **Verification:**
+  - Check subscription `end_date` via internal GET subscriptions
+  - Re-query the v2 SKU capacity report (active subscription search) for the org/product
+  - Confirm the report shows zero active capacity (`meta.count` is 0)
 - **Expected Result:**  
   - TerminationRequest with message  
   - Subscription `end_date` set to timestamp  
-  - Subscription effectively terminated
+  - Subscription no longer appears in the active subscription search for the org/product/SKU  
+  - v2 SKU capacity report returns zero active capacity (`meta.count` is 0)
 
 ## Offering Synchronization
 
@@ -1341,6 +1433,15 @@ This section verifies the automatic contract termination behavior when contracts
   - Operation completes without causing system errors.
   - API response properly handles non-existent SKU (appropriate error code or message).
 
+**offering-tags-TC004: Retrieve tag metrics for product tag**
+- **Description:** Verify that tag metrics can be retrieved for a configured product tag such as `rosa`.
+- **Setup:** None (reads from product configuration registry).
+- **Action:** Call internal GET `/api/swatch-contracts/internal/tags/{tag}/metrics` for `rosa`.
+- **Verification:** Assert HTTP 200 and each returned entry has non-null `metric_id` and `aws_dimension` matching the product configuration.
+- **Expected Result:**
+  - API returns all metrics configured for the tag.
+  - Each metric includes `metric_id` and `aws_dimension` values from product configuration.
+
 ## Capacity Management
 
 **offering-capacity-TC001: Verify capacity calculation for metered offerings**
@@ -1363,6 +1464,40 @@ This section verifies the automatic contract termination behavior when contracts
   - Capacity values indicate unlimited status appropriately.
   - Subscription correctly linked to unlimited offering in response.
 
+## Subscription Type (SKU capacity report meta)
+
+**subscription-type-TC001: Report On-demand subscription type on V1 for PAYG products**
+- **Description:** Verify that the v1 SKU capacity report returns On-demand subscription type for PAYG products.
+- **Setup:** Create a PAYG ROSA contract for the organization.
+- **Action:** Query the v1 SKU capacity report for the PAYG product.
+- **Verification:** Inspect the subscription type in the report metadata.
+- **Expected Result:**
+  - Report metadata indicates On-demand subscription type.
+
+**subscription-type-TC002: Report On-demand subscription type on V2 for PAYG products**
+- **Description:** Verify that the v2 SKU capacity report returns On-demand subscription type for PAYG products.
+- **Setup:** Create a PAYG ROSA contract for the organization.
+- **Action:** Query the v2 SKU capacity report for the PAYG product.
+- **Verification:** Inspect the subscription type in the report metadata.
+- **Expected Result:**
+  - Report metadata indicates On-demand subscription type.
+
+**subscription-type-TC003: Report Annual subscription type on V1 for non-PAYG products**
+- **Description:** Verify that the v1 SKU capacity report returns Annual subscription type for non-PAYG products.
+- **Setup:** Create a non-PAYG (annual) RHEL subscription for the organization.
+- **Action:** Query the v1 SKU capacity report for the non-PAYG product.
+- **Verification:** Inspect the subscription type in the report metadata.
+- **Expected Result:**
+  - Report metadata indicates Annual subscription type.
+
+**subscription-type-TC004: Report Annual subscription type on V2 for non-PAYG products**
+- **Description:** Verify that the v2 SKU capacity report returns Annual subscription type for non-PAYG products.
+- **Setup:** Create a non-PAYG (annual) RHEL subscription for the organization.
+- **Action:** Query the v2 SKU capacity report for the non-PAYG product.
+- **Verification:** Inspect the subscription type in the report metadata.
+- **Expected Result:**
+  - Report metadata indicates Annual subscription type.
+
 ## Offering Update
 
 **offering-update-TC001: Process product update event**
@@ -1384,6 +1519,197 @@ This section verifies the automatic contract termination behavior when contracts
   - System processes the malformed event without crashing or data corruption.
   - Valid offerings remain unaffected by malformed UMB events.
   - Appropriate error handling and logging for debugging malformed events.
+
+## Contract Management via IT Partner Gateway
+
+**partner-gateway-kafka-TC001 - Process a valid PAYG contract via Kafka for AWS Marketplace**
+- **Description**: Verify that a valid AWS partner entitlement message delivered via the IT Partner Gateway Kafka topic creates a contract with correct AWS billing fields.
+- **Setup**:
+  - Unleash toggle enabled
+  - Stub Product API, Partner API, and Search API for the contract
+  - Sync offering via HTTP API
+- **Action**: Produce a `PartnerEntitlementContract` JSON message to `partner-integration.entitlement-gateway.partner-entitlement.protected` via Kafka Bridge
+- **Verification**: Poll internal contracts API until 1 contract appears for the org
+- **Expected Result**:
+  - 1 contract with correct `org_id`, `sku`, `billing_provider=aws`
+  - `billing_provider_id` = `{vendorProductCode};{awsCustomerId};{sellerAccountId}`
+  - `billing_account_id` = `awsCustomerAccountId`
+  - 1 metric with correct dimension and value
+
+**partner-gateway-kafka-TC002 - Process a valid PAYG contract via Kafka for Azure Marketplace**
+- **Description**: Verify that a valid Azure partner entitlement message delivered via Kafka creates a contract with correct Azure billing fields.
+- **Setup**:
+  - Unleash toggle enabled
+  - Stub Product API, Partner API, and Search API for the contract
+  - Sync offering via HTTP API
+- **Action**: Produce an Azure `PartnerEntitlementContract` JSON message to `partner-integration.entitlement-gateway.partner-entitlement.protected` via Kafka Bridge
+- **Verification**: Poll internal contracts API until 1 contract appears for the org
+- **Expected Result**:
+  - 1 contract with correct `org_id`, `sku`, `billing_provider=azure`
+  - `billing_provider_id` = `{azureResourceId};{planId};{vendorProductCode};{customer};{clientId}`
+  - `billing_account_id` = `azureTenantId`
+  - 1 metric with correct dimension and value
+
+**partner-gateway-kafka-TC003 - Process a pure PAYG AWS contract via Kafka when all dimensions are invalid**
+- **Description**: Verify that a Kafka message with only invalid dimensions (e.g. Sockets for ROSA) creates a contract with 0 metrics (pure PAYG).
+- **Setup**:
+  - Unleash toggle enabled
+  - Stub Product API, Partner API, and Search API for the contract
+  - Sync offering via HTTP API
+  - The dimension in the message is `Sockets` (not valid for ROSA product)
+- **Action**: Produce a `PartnerEntitlementContract` JSON message to `partner-integration.entitlement-gateway.partner-entitlement.protected` via Kafka Bridge
+- **Verification**: Poll internal contracts API until 1 contract appears for the org
+- **Expected Result**:
+  - 1 contract with correct `org_id`, `sku`, `billing_provider=aws`
+  - `metrics` is empty (all dimensions filtered out)
+
+**partner-gateway-kafka-TC004 - Process a contract with multiple valid metrics via Kafka**
+- **Description**: Verify that a Kafka message with multiple valid dimensions (Cores + Instance-hours) creates a contract with both metrics stored.
+- **Setup**:
+  - Unleash toggle enabled
+  - Stub Product API, Partner API, and Search API for the contract
+  - Sync offering via HTTP API
+  - The message contains two valid dimensions: Cores and Instance-hours
+- **Action**: Produce a `PartnerEntitlementContract` JSON message to `partner-integration.entitlement-gateway.partner-entitlement.protected` via Kafka Bridge
+- **Verification**: Poll internal contracts API until 1 contract with 2 metrics appears
+- **Expected Result**:
+  - 1 contract with correct `org_id`, `sku`, `billing_provider=aws`
+  - Both Cores and Instance-hours metrics stored with correct values after billing factor conversion
+
+**partner-gateway-kafka-TC005 - Malformed JSON in IT Partner Gateway Kafka message**
+- **Description**: Verify that a non-JSON-object value in the Kafka message is handled gracefully — warning logged, no contract persisted, service stays healthy.
+- **Setup**: Unleash toggle enabled; no additional stubs needed
+- **Action**: Publish a non-JSON string to the `partner-integration.entitlement-gateway.partner-entitlement.protected` topic via Kafka Bridge
+- **Verification**:
+  - Wait for warn log: `Unable to read IT Partner Kafka message from JSON`
+  - Poll contracts for the test org via internal API
+  - Check service health
+- **Expected Result**:
+  - Zero contracts persisted
+  - Service health checks all UP
+  - Consumer continues to accept subsequent messages (`failure-strategy=ignore`)
+
+**partner-gateway-kafka-TC006 - No contract persisted when Search API returns no subscription**
+- **Description**: Verify that a Kafka message with missing subscription data (Search API returns no match) results in no contract persisted.
+- **Setup**:
+  - Unleash toggle enabled
+  - Stub Partner API and Product API for the contract
+  - Stub Search API to return no subscription for the subscription number
+  - Sync offering
+- **Action**: Produce a valid `PartnerEntitlementContract` JSON message to Kafka
+- **Verification**: Poll contracts for the test org via internal API
+- **Expected Result**: Zero contracts created for the test org
+
+**partner-gateway-kafka-TC007 - Partner API unavailable (503) during Kafka contract enrichment**
+- **Description**: Verify that when the IT Partner Gateway REST API returns HTTP 503 during Kafka-triggered enrichment, no contract is persisted and the service remains healthy.
+- **Setup**:
+  - Unleash toggle enabled
+  - Stub Product API and sync offering
+  - Stub Partner API to return 503
+- **Action**: Produce a valid `PartnerEntitlementContract` JSON message to Kafka
+- **Verification**:
+  - Poll contracts for the test org via internal API
+  - Check service health endpoint
+- **Expected Result**:
+  - Zero contracts persisted
+  - Service health checks all UP
+
+**partner-gateway-kafka-TC008 - Duplicate IT Partner Gateway Kafka messages (idempotency)**
+- **Description**: Verify that receiving the same partner entitlement Kafka message twice results in exactly one contract — the second message is treated as an idempotent update.
+- **Setup**:
+  - Unleash toggle enabled
+  - Stub Product API, Partner API, and Search API for the contract
+  - Sync offering via HTTP API
+- **Action**: Produce the same valid `PartnerEntitlementContract` JSON message to Kafka twice
+- **Verification**: Poll contracts for the test org via internal API
+- **Expected Result**: Still exactly 1 contract for the org
+
+**partner-gateway-kafka-TC009 - Ignore Kafka message when Kafka consumer disabled via config variant**
+- **Description**: Verify that a `config` variant payload of `{"kafka_consumer_enabled":false}` blocks the Kafka consumer while the flag itself remains enabled.
+- **Setup**: Unleash toggle enabled; `config` variant set with `kafka_consumer_enabled=false`; stubs in place and offering synced
+- **Action**: Produce a valid `PartnerEntitlementContract` JSON message to Kafka
+- **Verification**: Poll contracts after 3 second delay via internal API
+- **Expected Result**: Zero contracts created for the test org
+
+**partner-gateway-kafka-TC010 - Process Kafka message when UMB consumer disabled via config variant**
+- **Description**: Verify that disabling the UMB consumer via variant (`umb_consumer_enabled=false`) does not prevent the Kafka consumer from working.
+- **Setup**: Unleash toggle enabled; `config` variant set with `{"kafka_consumer_enabled":true,"umb_consumer_enabled":false}`; stubs in place and offering synced
+- **Action**: Produce a valid `PartnerEntitlementContract` JSON message to Kafka
+- **Verification**: Poll internal contracts API until 1 contract appears
+- **Expected Result**:
+  - Contract created with correct `org_id`, `sku`, and `billing_provider`
+  - UMB consumer is independently disabled (not tested in this TC)
+
+**partner-gateway-kafka-TC011 - Process Kafka message when both consumers explicitly enabled via config variant**
+- **Description**: Verify that explicitly enabling both Kafka and UMB consumers via variant (`{"kafka_consumer_enabled":true,"umb_consumer_enabled":true}`) allows both to function correctly.
+- **Setup**: Unleash toggle enabled; `config` variant set with `{"kafka_consumer_enabled":true,"umb_consumer_enabled":true}`; stubs in place and offering synced
+- **Action**: Produce a valid `PartnerEntitlementContract` JSON message to Kafka
+- **Verification**: Poll internal contracts API until 1 contract appears
+- **Expected Result**:
+  - Contract created with correct `org_id`, `sku`, and `billing_provider`
+  - Both Kafka and UMB consumers are enabled and operational
+
+**partner-gateway-kafka-TC012 - Reject Kafka message with missing required fields**
+- **Description**: Verify that a Kafka message missing required fields causes a warn log and no contract is persisted; the consumer continues processing.
+- **Setup**: Unleash toggle enabled; no additional stubs needed
+- **Action**: Publish a `PartnerEntitlementContract` JSON missing required fields (e.g., no `rhSubscriptions`) to the `partner-integration.entitlement-gateway.partner-entitlement.protected` topic
+- **Verification**: Check service logs and contracts table
+- **Expected Result**:
+  - Warn log or validation error logged
+  - No contract created for the test org
+  - Consumer continues to accept subsequent messages
+
+**partner-gateway-kafka-TC013 - Null/empty optional fields in Kafka message**
+- **Description**: Verify that a Kafka message with null or empty optional fields (e.g., null `sellerAccountId`, empty `azureTenantId`) is processed successfully without errors.
+- **Setup**:
+  - Unleash toggle enabled
+  - Stub Product API, Partner API, and Search API for the contract
+  - Sync offering via HTTP API
+  - The message contains null/empty values for optional billing fields (e.g., null `sellerAccountId`, empty `azureTenantId`)
+- **Action**: Produce a `PartnerEntitlementContract` JSON message with null/empty optional fields to `partner-integration.entitlement-gateway.partner-entitlement.protected` via Kafka Bridge
+- **Verification**: Poll internal contracts API until 1 contract appears for the org
+- **Expected Result**:
+  - Contract created with correct `org_id`, `sku`, and `billing_provider`
+  - Optional fields with null values stored as null (not rejected)
+  - No `NullPointerException` or validation errors logged
+
+**partner-gateway-kafka-TC014 - Invalid/unknown source value in Kafka message**
+- **Description**: Verify that a Kafka message with an invalid or unknown `source` value (e.g., `"GCP"`) is handled gracefully — no contract persisted, service stays healthy.
+- **Setup**: Unleash toggle enabled; no additional stubs needed
+- **Action**: Produce a `PartnerEntitlementContract` JSON message with an unknown `source` value to `partner-integration.entitlement-gateway.partner-entitlement.protected` via Kafka Bridge
+- **Verification**: Check service logs and contracts table
+- **Expected Result**:
+  - No contract created for the test org
+  - Warn log indicates unknown source value
+  - Consumer continues to accept subsequent messages
+
+**partner-gateway-umb-TC001 - Ignore UMB message when feature flag is globally disabled**
+- **Description**: Verify that when the Unleash toggle is **disabled**, the UMB consumer exits early and no contract is persisted.
+- **Setup**:
+  - Ensure `UMB_ENABLED=true`
+  - Unleash toggle disabled; stubs in place and offering synced
+- **Action**: Publish a valid `PartnerEntitlementContract` JSON message to the `VirtualTopic.services.partner-entitlement-gateway` UMB channel
+- **Verification**: Poll contracts after 3 second delay via internal API
+- **Expected Result**: Zero contracts created for the test org
+
+**partner-gateway-umb-TC002 - Ignore UMB message when UMB consumer disabled via config variant**
+- **Description**: Verify that a `config` variant payload of `{"umb_consumer_enabled":false}` blocks the UMB consumer while the flag itself remains enabled.
+- **Setup**:
+  - Ensure `UMB_ENABLED=true`
+  - Unleash toggle enabled; `config` variant set with `umb_consumer_enabled=false`; stubs in place and offering synced
+- **Action**: Publish a valid `PartnerEntitlementContract` JSON message to the `VirtualTopic.services.partner-entitlement-gateway` UMB channel
+- **Verification**: Poll contracts after 3 second delay via internal API
+- **Expected Result**: Zero contracts created for the test org
+
+**partner-gateway-umb-TC003 - Process UMB message when Kafka consumer disabled via config variant**
+- **Description**: Verify that disabling the Kafka consumer via variant (`kafka_consumer_enabled=false`) does not prevent the UMB consumer from working.
+- **Setup**:
+  - Ensure `UMB_ENABLED=true`
+  - Unleash toggle enabled; `config` variant set with `{"kafka_consumer_enabled":false,"umb_consumer_enabled":true}`; stubs in place and offering synced
+- **Action**: Publish a valid `PartnerEntitlementContract` JSON message to the `VirtualTopic.services.partner-entitlement-gateway` UMB channel
+- **Verification**: Poll internal contracts API until 1 contract appears
+- **Expected Result**:
+  - Contract created with correct `org_id`, `sku`, and `billing_provider`
 
 ## Contract Integration
 
@@ -1578,6 +1904,39 @@ This section verifies the automatic contract termination behavior when contracts
 - **Test Steps**:
   1. Create a subscription with capacity
   2. GET capacity for unsupported granularity with granularity=HOURLLY
+- **Expected Results**:
+  - HTTP 400 Bad Request
+
+**capacity-report-granularity-TC008 - Unknown Product**
+- **Description**: Verify error when requesting capacity for an unsupported product
+- **Setup**:
+  - User authenticated with a valid org_id
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}`
+- **Test Steps**:
+  1. GET capacity for a product_id that is not present in product configuration, with metric=Cores
+  2. Include a valid time range and granularity
+- **Expected Results**:
+  - HTTP 404 Not Found
+
+**capacity-report-granularity-TC009 - Invalid SLA**
+- **Description**: Verify error when requesting capacity with an invalid SLA query parameter
+- **Setup**:
+  - User authenticated with a valid org_id
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}?sla={sla}&usage={usage}&granularity={granularity}`
+- **Test Steps**:
+  1. GET capacity for product=RHEL for x86 with metric=Cores
+  2. Use an invalid sla value (for example sla=Home) with otherwise valid usage and granularity
+- **Expected Results**:
+  - HTTP 400 Bad Request
+
+**capacity-report-granularity-TC010 - Invalid Usage**
+- **Description**: Verify error when requesting capacity with an invalid usage query parameter
+- **Setup**:
+  - User authenticated with a valid org_id
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}?sla={sla}&usage={usage}&granularity={granularity}`
+- **Test Steps**:
+  1. GET capacity for product=RHEL for x86 with metric=Cores
+  2. Use an invalid usage value (for example usage=backup) with otherwise valid sla and granularity
 - **Expected Results**:
   - HTTP 400 Bad Request
 

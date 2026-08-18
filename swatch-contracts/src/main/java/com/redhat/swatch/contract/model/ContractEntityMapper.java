@@ -77,6 +77,10 @@ public interface ContractEntityMapper {
   @Mapping(target = "startDate", expression = "java(extractStartDate(entitlement, contract))")
   @Mapping(target = "endDate", expression = "java(extractEndDate(entitlement, contract))")
   @Mapping(target = "metrics", source = "contract.dimensions", qualifiedByName = "metrics")
+  @Mapping(
+      target = "licenseId",
+      source = "entitlement.partnerIdentities",
+      qualifiedByName = "licenseId")
   @BeanMapping(ignoreByDefault = true)
   ContractEntity mapEntitlementToContractEntity(
       PartnerEntitlementV1 entitlement, SaasContractV1 contract);
@@ -107,6 +111,11 @@ public interface ContractEntityMapper {
       return accountId.getAzureSubscriptionId();
     }
     return null;
+  }
+
+  @Named("licenseId")
+  default String extractLicenseId(PartnerIdentityV1 partnerIdentities) {
+    return partnerIdentities == null ? null : partnerIdentities.getLicenseArn();
   }
 
   /** Extract billingProviderId from Partner Gateway API response */

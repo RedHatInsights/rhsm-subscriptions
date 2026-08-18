@@ -91,11 +91,6 @@
       </dependency>
       <dependency>
         <groupId>com.redhat.swatch</groupId>
-        <artifactId>swatch-common-splunk</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.redhat.swatch</groupId>
         <artifactId>swatch-common-logging</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -130,14 +125,9 @@
         <version>1.2.0</version>
       </dependency>
       <dependency>
-        <groupId>io.quarkiverse.logging.splunk</groupId>
-        <artifactId>quarkus-logging-splunk</artifactId>
-        <version>6.0.0</version>
-      </dependency>
-      <dependency>
         <groupId>io.quarkiverse.unleash</groupId>
         <artifactId>quarkus-unleash</artifactId>
-        <version>1.14.0</version>
+        <version>1.15.0</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

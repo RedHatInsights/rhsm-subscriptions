@@ -119,6 +119,10 @@ components:
           type: string
         sellerAccountId:
           type: string
+        licenseArn:
+          description: AWS License Manager ARN for the entitlement.
+          type: string
+          nullable: true
         azureSubscriptionId:
           type: string
         azureTenantId:

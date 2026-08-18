@@ -23,21 +23,15 @@ package com.redhat.swatch.billable.usage.services;
 import com.redhat.swatch.billable.usage.exceptions.ContractMissingException;
 import com.redhat.swatch.billable.usage.exceptions.ErrorCode;
 import com.redhat.swatch.billable.usage.exceptions.ExternalServiceException;
-import com.redhat.swatch.billable.usage.services.model.ContractCoverage;
 import com.redhat.swatch.clients.contracts.api.model.Contract;
-import com.redhat.swatch.clients.contracts.api.model.Metric;
 import com.redhat.swatch.clients.contracts.api.resources.ApiException;
 import com.redhat.swatch.clients.contracts.api.resources.DefaultApi;
-import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.faulttolerance.api.RetryWithExponentialBackoff;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
-import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
@@ -45,30 +39,16 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 @ApplicationScoped
 public class ContractsController {
   @RestClient DefaultApi contractsApi;
-  @Inject ApplicationClock clock;
 
   @RetryWithExponentialBackoff(
       maxRetries = "${CONTRACT_CLIENT_MAX_ATTEMPTS:1}",
       delay = "${CONTRACT_CLIENT_BACK_OFF_INITIAL_INTERVAL_MILLIS:1000ms}",
       maxDelay = "${CONTRACT_CLIENT_BACK_OFF_MAX_INTERVAL_MILLIS:64s}",
       factor = "${CONTRACT_CLIENT_BACK_OFF_MULTIPLIER:2}")
-  public ContractCoverage getContractCoverage(BillableUsage usage) throws ContractMissingException {
+  public List<Contract> getValidContracts(BillableUsage usage) throws ContractMissingException {
     if (!SubscriptionDefinition.isContractEnabled(usage.getProductId())) {
       throw new IllegalStateException(
           String.format("Product %s is not contract enabled.", usage.getProductId()));
-    }
-
-    String contractMetricId =
-        getContractMetricId(
-            usage.getBillingProvider(),
-            usage.getProductId(),
-            MetricId.fromString(usage.getMetricId()));
-
-    if (contractMetricId == null || contractMetricId.isEmpty()) {
-      throw new IllegalStateException(
-          String.format(
-              "Contract metric ID is not configured for billingProvider=%s product=%s metric=%s",
-              usage.getBillingProvider(), usage.getProductId(), usage.getMetricId()));
     }
 
     log.debug("Looking up contract information for usage {}", usage);
@@ -94,42 +74,7 @@ public class ContractsController {
           String.format("No contract info found for usage! %s", usage));
     }
 
-    MetricId metricId = MetricId.fromString(usage.getMetricId());
-    boolean isGratisContract =
-        SubscriptionDefinition.isMetricGratis(usage.getProductId(), metricId);
-    double total = 0;
-    for (Contract contract : contracts) {
-      if (isValidContract(contract, usage)) {
-        var value =
-            contract.getMetrics().stream()
-                .filter(metric -> metric.getMetricId().equals(contractMetricId))
-                .map(Metric::getValue)
-                .reduce(0, Integer::sum);
-        isGratisContract &= isContractCompatibleWithGratis(contract, usage);
-        total += value;
-      }
-    }
-
-    log.debug("Total contract coverage is {} for usage {} ", total, usage);
-    return ContractCoverage.builder()
-        .metricId(contractMetricId)
-        .gratis(isGratisContract)
-        .total(total)
-        .build();
-  }
-
-  /**
-   * Check whether contract start date applies the condition for a gratis usage: contract starts on
-   * the current month. See more in <a
-   * href="https://issues.redhat.com/browse/SWATCH-2571">SWATCH-2571</a>. contract starting in Jan
-   * First part billable usage in Jan -> gratis 'jan 2' != null && 'jan 2'.isAfter(startOfMonth('jan
-   * 4')) -> true && 'jan 2'.isAfter('jan 1') = true. Second part billable usage in Feb -> not 'jan
-   * 2' != null && 'jan 2'.isAfter(startOfMonth('feb 4')) -> true && 'jan 2'.isAfter('feb 1') =
-   * false
-   */
-  private boolean isContractCompatibleWithGratis(Contract contract, BillableUsage usage) {
-    OffsetDateTime startDate = contract.getStartDate();
-    return startDate != null && startDate.isAfter(clock.startOfMonth(usage.getSnapshotDate()));
+    return contracts.stream().filter(contract -> isValidContract(contract, usage)).toList();
   }
 
   private boolean isValidContract(Contract contract, BillableUsage usage) {
@@ -138,18 +83,5 @@ public class ContractsController {
         Objects.isNull(contract.getEndDate())
             || usage.getSnapshotDate().isBefore(contract.getEndDate());
     return isWithinStart && isWithinEnd;
-  }
-
-  private String getContractMetricId(
-      BillableUsage.BillingProvider billingProvider, String productId, MetricId metricId) {
-    String measurementMetricId = metricId.toString();
-    if (BillableUsage.BillingProvider.AWS.equals(billingProvider)) {
-      return SubscriptionDefinition.getAwsDimension(productId, measurementMetricId);
-    } else if (BillableUsage.BillingProvider.RED_HAT.equals(billingProvider)) {
-      return SubscriptionDefinition.getRhmMetricId(productId, measurementMetricId);
-    } else if (BillableUsage.BillingProvider.AZURE.equals(billingProvider)) {
-      return SubscriptionDefinition.getAzureDimension(productId, measurementMetricId);
-    }
-    return null;
   }
 }

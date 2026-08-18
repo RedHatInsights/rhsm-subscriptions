@@ -169,35 +169,16 @@ local otel exporter: `java -DOTEL_ENDPOINT=http://localhost:4317 -jar swatch-con
 
 ### Logging HEC
 
-In deployed environments, services forward logs via Logging HEC (HTTP Event
-Collector) to the enterprise log stack. By default, Logging HEC is
-**disabled** in the `dev` profile (`LOGGING_HEC_ENABLED=false`), so local
-development logs go to the console only.
-
-The following environment variables control Logging HEC forwarding:
+In deployed environments, services write JSON logs to a shared
+`/logs/server.log` volume. The OpenTelemetry collector sidecar tails that file
+and forwards events to Logging HEC (HTTP Event Collector). File logging is
+controlled with `LOGGING_FILE_LOG_ENABLED` (enabled in ClowdApp templates).
 
 | Variable | Purpose |
 |----------|---------|
-| `LOGGING_HEC_ENABLED` | Toggle Logging HEC forwarding (`true`/`false`) |
-| `LOGGING_HEC_URL` | Logging HEC endpoint URL |
-| `LOGGING_HEC_TOKEN` | Authentication token for the Logging HEC endpoint |
-
-These map to the `quarkus.log.handler.splunk` Quarkus extension properties.
-If you ever need to test Logging HEC forwarding locally (for example against a
-local collector), set the variables above when starting the service:
-
-```
-SERVER_PORT=8001 \
-LOGGING_HEC_ENABLED=true \
-LOGGING_HEC_URL=https://localhost:8088 \
-LOGGING_HEC_TOKEN=<your-token> \
-./mvnw quarkus:dev
-```
-
-SSL/TLS certificate validation is disabled by default in the `dev` profile
-for `swatch-producer-aws`, `swatch-producer-azure`, and `swatch-contracts`.
-If you see SSL/TLS errors elsewhere, set
-`QUARKUS_LOG_HANDLER_SPLUNK_DISABLE_CERTIFICATE_VALIDATION=true`.
+| `LOGGING_FILE_LOG_ENABLED` | Toggle JSON file logging in the service (`true`/`false`) |
+| `LOGGING_FILE_MAX_SIZE` | Max size per rotated log file (default `10M`) |
+| `LOGGING_HEC_URL` / `LOGGING_HEC_TOKEN` | Sidecar HEC endpoint and token |
 
 ### Export Service
 

@@ -39,6 +39,10 @@
       <artifactId>jackson-annotations</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.openapitools</groupId>
+      <artifactId>jackson-databind-nullable</artifactId>
+    </dependency>
+    <dependency>
       <groupId>jakarta.annotation</groupId>
       <artifactId>jakarta.annotation-api</artifactId>
     </dependency>
@@ -174,9 +178,6 @@
                   <includes>
                     <include>com/redhat/swatch/contract/product/umb/**</include>
                   </includes>
-                  <excludes>
-                    <exclude>**/ProductStatusUMBMessageConsumer.java</exclude>
-                  </excludes>
                 </resource>
               </resources>
             </configuration>

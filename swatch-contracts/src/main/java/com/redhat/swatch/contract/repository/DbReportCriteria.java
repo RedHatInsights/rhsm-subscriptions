@@ -36,6 +36,7 @@ public class DbReportCriteria {
   private Usage usage;
   private BillingProvider billingProvider;
   private String billingAccountId;
+  private String licenseId;
   private boolean payg;
   private OffsetDateTime beginning;
   private OffsetDateTime ending;

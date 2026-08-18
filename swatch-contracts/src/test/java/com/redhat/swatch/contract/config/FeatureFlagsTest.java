@@ -24,6 +24,7 @@ import static com.redhat.swatch.contract.config.FeatureFlags.CONFIG_VARIANT;
 import static com.redhat.swatch.contract.config.FeatureFlags.DEFAULT_IS_ENABLED;
 import static com.redhat.swatch.contract.config.FeatureFlags.IT_SUBSCRIPTION_SERVICE;
 import static com.redhat.swatch.contract.config.FeatureFlags.PARTNER_GATEWAY_CONTRACTS;
+import static com.redhat.swatch.contract.config.FeatureFlags.PRODUCT_SERVICE_CONSUMER;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
@@ -228,5 +229,46 @@ class FeatureFlagsTest {
   private void givenItSubscriptionServiceEnabledWithVariant(Variant variant) {
     when(unleash.isEnabled(IT_SUBSCRIPTION_SERVICE, DEFAULT_IS_ENABLED)).thenReturn(true);
     when(unleash.getVariant(IT_SUBSCRIPTION_SERVICE)).thenReturn(variant);
+  }
+
+  @Test
+  void shouldReturnFalse_whenProductServiceConsumerDisabled() {
+    when(unleash.isEnabled(PRODUCT_SERVICE_CONSUMER, DEFAULT_IS_ENABLED)).thenReturn(false);
+
+    assertFalse(featureFlags.isProductServiceKafkaConsumerEnabled());
+    assertFalse(featureFlags.isProductServiceUmbConsumerEnabled());
+  }
+
+  @Test
+  void shouldRespectProductServiceKafkaConsumerFlag() {
+    givenProductServiceConsumerEnabledWithConfigPayload("{\"kafka_consumer_enabled\":false}");
+
+    assertFalse(featureFlags.isProductServiceKafkaConsumerEnabled());
+  }
+
+  @Test
+  void shouldRespectProductServiceUmbConsumerFlag() {
+    givenProductServiceConsumerEnabledWithConfigPayload("{\"umb_consumer_enabled\":false}");
+
+    assertFalse(featureFlags.isProductServiceUmbConsumerEnabled());
+  }
+
+  @Test
+  void shouldDecoupleKafkaAndUmbForProductServiceConsumer() {
+    givenProductServiceConsumerEnabledWithConfigPayload(
+        "{\"kafka_consumer_enabled\":false,\"umb_consumer_enabled\":true}");
+
+    assertFalse(featureFlags.isProductServiceKafkaConsumerEnabled());
+    assertTrue(featureFlags.isProductServiceUmbConsumerEnabled());
+  }
+
+  private void givenProductServiceConsumerEnabledWithConfigPayload(String json) {
+    givenProductServiceConsumerEnabledWithVariant(
+        new Variant(CONFIG_VARIANT, new Payload("json", json), true, "any", true));
+  }
+
+  private void givenProductServiceConsumerEnabledWithVariant(Variant variant) {
+    when(unleash.isEnabled(PRODUCT_SERVICE_CONSUMER, DEFAULT_IS_ENABLED)).thenReturn(true);
+    when(unleash.getVariant(PRODUCT_SERVICE_CONSUMER)).thenReturn(variant);
   }
 }

@@ -52,6 +52,7 @@ import com.redhat.swatch.contract.openapi.model.ServiceLevelType;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.openapi.model.Subscription;
 import com.redhat.swatch.contract.openapi.model.UsageType;
+import com.redhat.swatch.contract.repository.DbReportCriteria;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.repository.SubscriptionRepository;
 import com.redhat.swatch.contract.service.ContractService;
@@ -77,6 +78,10 @@ import java.util.UUID;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 @QuarkusTest
@@ -375,6 +380,42 @@ class ContractsResourceTest {
   }
 
   @Test
+  void passesLicenseIdWhenProvidedOnAwsUsageContextLookup() {
+    SubscriptionEntity sub = new SubscriptionEntity();
+    sub.setBillingProviderId("foo1;foo2;foo3");
+    sub.setBillingAccountId("123");
+    sub.setEndDate(defaultEndDate);
+    when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(List.of(sub));
+
+    String licenseId = "arn:aws:license-manager:us-east-1:1:license:abc";
+    given()
+        .queryParams(
+            "orgId",
+            ORG_ID,
+            "date",
+            defaultLookUpDate.withOffsetSameInstant(ZoneOffset.UTC).toString(),
+            "productId",
+            ROSA,
+            "sla",
+            ServiceLevelType.PREMIUM.toString(),
+            "usage",
+            UsageType.PRODUCTION.toString(),
+            "awsAccountId",
+            "123",
+            "licenseId",
+            licenseId)
+        .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
+        .get("/api/swatch-contracts/internal/subscriptions/awsUsageContext")
+        .then()
+        .statusCode(200);
+
+    ArgumentCaptor<DbReportCriteria> criteriaCaptor =
+        ArgumentCaptor.forClass(DbReportCriteria.class);
+    verify(subscriptionRepository).findByCriteria(criteriaCaptor.capture(), any());
+    assertEquals(licenseId, criteriaCaptor.getValue().getLicenseId());
+  }
+
+  @Test
   void shouldThrowSubscriptionsExceptionForTerminatedSubscriptionWhenOrgIdPresent() {
     var endDate = OffsetDateTime.of(2022, 1, 1, 6, 0, 0, 0, ZoneOffset.UTC);
     SubscriptionEntity sub1 = new SubscriptionEntity();
@@ -442,6 +483,39 @@ class ContractsResourceTest {
     assertEquals("bar2", awsUsageContext.getCustomerId());
     assertEquals("bar3", awsUsageContext.getAwsSellerAccountId());
     assertEquals("123", awsUsageContext.getCustomerAwsAccountId());
+  }
+
+  @ParameterizedTest
+  @NullAndEmptySource
+  @ValueSource(strings = {"   "})
+  void shouldFailWhenAwsUsageContextHasBlankBillingAccountId(String billingAccountId) {
+    SubscriptionEntity sub = new SubscriptionEntity();
+    sub.setSubscriptionId("sub-blank-billing-account");
+    sub.setBillingProviderId("foo1;foo2;foo3");
+    sub.setBillingAccountId(billingAccountId);
+    sub.setEndDate(defaultEndDate);
+    when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(List.of(sub));
+
+    given()
+        .queryParams(
+            "orgId",
+            ORG_ID,
+            "date",
+            defaultLookUpDate.withOffsetSameInstant(ZoneOffset.UTC).toString(),
+            "productId",
+            ROSA,
+            "sla",
+            ServiceLevelType.PREMIUM.toString(),
+            "usage",
+            UsageType.PRODUCTION.toString(),
+            "awsAccountId",
+            "123")
+        .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
+        .get("/api/swatch-contracts/internal/subscriptions/awsUsageContext")
+        .then()
+        .statusCode(HttpStatus.SC_NOT_FOUND)
+        .body("code", equalTo(ErrorCode.SUBSCRIPTION_MISSING_BILLING_ACCOUNT_ID.getCode()))
+        .body("title", equalTo(ErrorCode.SUBSCRIPTION_MISSING_BILLING_ACCOUNT_ID.getDescription()));
   }
 
   @Test

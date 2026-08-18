@@ -27,7 +27,7 @@ data:
       "editable": true,
       "fiscalYearStartMonth": 0,
       "graphTooltip": 1,
-      "id": 1103334,
+      "id": 1122808,
       "links": [],
       "panels": [
         {
@@ -120,7 +120,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "datasource": {
@@ -220,7 +220,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "datasource": {
@@ -300,7 +300,7 @@ data:
                 "h": 7,
                 "w": 6,
                 "x": 0,
-                "y": 1125
+                "y": 4196
               },
               "id": 113,
               "options": {
@@ -316,7 +316,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "datasource": {
@@ -400,7 +400,7 @@ data:
                 "h": 7,
                 "w": 6,
                 "x": 6,
-                "y": 1125
+                "y": 4196
               },
               "id": 115,
               "options": {
@@ -416,7 +416,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "datasource": {
@@ -510,7 +510,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 3873
+                "y": 2
               },
               "id": 103,
               "options": {
@@ -526,7 +526,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "datasource": {
@@ -608,7 +608,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 3873
+                "y": 2
               },
               "id": 76,
               "options": {
@@ -624,7 +624,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~\".*platform.rhsm-subscriptions.metering-tasks\"}) by (consumer_group)",
@@ -705,7 +705,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 3873
+                "y": 2
               },
               "id": 101,
               "options": {
@@ -721,7 +721,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "datasource": {
@@ -770,6 +770,7 @@ data:
                     "axisLabel": "",
                     "axisPlacement": "auto",
                     "barAlignment": 0,
+                    "barWidthFactor": 0.6,
                     "drawStyle": "line",
                     "fillOpacity": 0,
                     "gradientMode": "none",
@@ -812,12 +813,12 @@ data:
                 "overrides": []
               },
               "gridPos": {
-                "h": 8,
-                "w": 12,
+                "h": 9,
+                "w": 18,
                 "x": 0,
-                "y": 3982
+                "y": 3
               },
-              "id": 88,
+              "id": 9055,
               "options": {
                 "legend": {
                   "calcs": [],
@@ -826,21 +827,121 @@ data:
                   "showLegend": true
                 },
                 "tooltip": {
+                  "hideZeros": false,
                   "mode": "single",
                   "sort": "none"
                 }
               },
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "datasource": {
                     "type": "prometheus",
                     "uid": "${datasource}"
                   },
-                  "expr": "sum by(service) (rate(splunk_hec_message_failure_total[10m]))",
+                  "editorMode": "code",
+                  "expr": "sum by (service) (\n  label_replace(\n    increase(otelcol_exporter_send_failed_log_records_total{exporter=\"splunk_hec/logs\"}[10m]),\n    \"service\",\n    \"$1\",\n    \"pod\",\n    \"^(.*)-[a-z0-9]+-[a-z0-9]+$\"\n  )\n)",
+                  "range": true,
                   "refId": "A"
                 }
               ],
               "title": "Logging HEC Failures",
+              "type": "timeseries"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "description": "",
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 0,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green"
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  }
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 9,
+                "w": 18,
+                "x": 0,
+                "y": 66
+              },
+              "id": 9056,
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "single",
+                  "sort": "none"
+                }
+              },
+              "pluginVersion": "11.6.11",
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "${datasource}"
+                  },
+                  "editorMode": "code",
+                  "expr": "sum by (service) (\n  label_replace(\n    increase(otelcol_exporter_sent_log_records_total{exporter=\"splunk_hec/logs\"}[10m]),\n    \"service\",\n    \"$1\",\n    \"pod\",\n    \"^(.*)-[a-z0-9]+-[a-z0-9]+$\"\n  )\n)",
+                  "range": true,
+                  "refId": "A"
+                }
+              ],
+              "title": "Logging HEC Success Rate",
               "type": "timeseries"
             }
           ],
@@ -874,6 +975,7 @@ data:
                     "axisLabel": "",
                     "axisPlacement": "auto",
                     "barAlignment": 0,
+                    "barWidthFactor": 0.6,
                     "drawStyle": "line",
                     "fillOpacity": 10,
                     "gradientMode": "none",
@@ -922,7 +1024,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 3983
+                "y": 2138
               },
               "id": 47,
               "options": {
@@ -938,11 +1040,12 @@ data:
                   "showLegend": true
                 },
                 "tooltip": {
+                  "hideZeros": false,
                   "mode": "multi",
                   "sort": "none"
                 }
               },
-              "pluginVersion": "9.0.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "alias": "rhsm-prod",
@@ -1013,6 +1116,7 @@ data:
                     "axisLabel": "",
                     "axisPlacement": "auto",
                     "barAlignment": 0,
+                    "barWidthFactor": 0.6,
                     "drawStyle": "line",
                     "fillOpacity": 10,
                     "gradientMode": "none",
@@ -1059,7 +1163,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 3983
+                "y": 2138
               },
               "id": 52,
               "options": {
@@ -1070,11 +1174,12 @@ data:
                   "showLegend": true
                 },
                 "tooltip": {
+                  "hideZeros": false,
                   "mode": "multi",
                   "sort": "none"
                 }
               },
-              "pluginVersion": "9.0.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "alias": "rhsm-prod",
@@ -1145,6 +1250,7 @@ data:
                     "axisLabel": "",
                     "axisPlacement": "auto",
                     "barAlignment": 0,
+                    "barWidthFactor": 0.6,
                     "drawStyle": "line",
                     "fillOpacity": 10,
                     "gradientMode": "none",
@@ -1193,7 +1299,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 3983
+                "y": 2138
               },
               "id": 54,
               "options": {
@@ -1204,11 +1310,12 @@ data:
                   "showLegend": true
                 },
                 "tooltip": {
+                  "hideZeros": false,
                   "mode": "multi",
                   "sort": "none"
                 }
               },
-              "pluginVersion": "9.0.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "alias": "rhsm-prod read iops avg",
@@ -1327,6 +1434,7 @@ data:
                     "axisLabel": "",
                     "axisPlacement": "auto",
                     "barAlignment": 0,
+                    "barWidthFactor": 0.6,
                     "drawStyle": "line",
                     "fillOpacity": 10,
                     "gradientMode": "none",
@@ -1374,7 +1482,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 3983
+                "y": 2138
               },
               "id": 56,
               "options": {
@@ -1385,11 +1493,12 @@ data:
                   "showLegend": true
                 },
                 "tooltip": {
+                  "hideZeros": false,
                   "mode": "multi",
                   "sort": "none"
                 }
               },
-              "pluginVersion": "9.0.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "alias": "rhsm-prod",
@@ -1460,6 +1569,7 @@ data:
                     "axisLabel": "",
                     "axisPlacement": "auto",
                     "barAlignment": 0,
+                    "barWidthFactor": 0.6,
                     "drawStyle": "line",
                     "fillOpacity": 0,
                     "gradientMode": "none",
@@ -1507,7 +1617,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 3992
+                "y": 4184
               },
               "id": 92,
               "options": {
@@ -1518,10 +1628,12 @@ data:
                   "showLegend": true
                 },
                 "tooltip": {
+                  "hideZeros": false,
                   "mode": "single",
                   "sort": "none"
                 }
               },
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "datasource": {
@@ -1610,7 +1722,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 0,
-                "y": 127
+                "y": 2139
               },
               "id": 72,
               "options": {
@@ -1630,7 +1742,7 @@ data:
                 "textMode": "auto",
                 "wideLayout": true
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "expr": "sum(increase(inventory_ingress_add_host_failures_total{reporter=\"rhsm-conduit\"}[$__range]))",
@@ -1714,7 +1826,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 6,
-                "y": 127
+                "y": 2139
               },
               "id": 40,
               "options": {
@@ -1734,7 +1846,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~'.*platform.rhsm-conduit.tasks'})",
@@ -1846,7 +1958,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 12,
-                "y": 127
+                "y": 2139
               },
               "id": 59,
               "options": {
@@ -1862,7 +1974,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "expr": "rate(rhsm_conduit_send_inventory_message_total[$__interval])",
@@ -1941,7 +2053,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 18,
-                "y": 127
+                "y": 2139
               },
               "id": 4,
               "options": {
@@ -1957,7 +2069,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "expr": "max(spring_kafka_listener_seconds_max{service=\"swatch-system-conduit-service\"})",
@@ -2036,7 +2148,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 0,
-                "y": 602
+                "y": 3665
               },
               "id": 41,
               "options": {
@@ -2056,7 +2168,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "expr": "sum(rate(aws_kafka_sum_offset_lag_sum{topic=~'.*platform.rhsm-conduit.tasks'}[$__rate_interval]))",
@@ -2166,7 +2278,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 6,
-                "y": 602
+                "y": 3665
               },
               "id": 8,
               "options": {
@@ -2182,7 +2294,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "expr": "sum(process_cpu_usage{service=\"swatch-system-conduit-service\"}) by (pod)",
@@ -2260,7 +2372,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 12,
-                "y": 602
+                "y": 3665
               },
               "id": 10,
               "options": {
@@ -2276,7 +2388,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "expr": "sum by (id, pod) (jvm_memory_used_bytes{service=\"swatch-system-conduit-service\"})",
@@ -2356,7 +2468,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 18,
-                "y": 602
+                "y": 3665
               },
               "id": 96,
               "options": {
@@ -2372,7 +2484,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "datasource": {
@@ -2487,7 +2599,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 612
+                "y": 3675
               },
               "id": 5025,
               "options": {
@@ -2619,7 +2731,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 612
+                "y": 3675
               },
               "id": 5022,
               "options": {
@@ -2728,7 +2840,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 612
+                "y": 3675
               },
               "id": 5023,
               "options": {
@@ -2834,7 +2946,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 612
+                "y": 3675
               },
               "id": 5024,
               "options": {
@@ -2949,7 +3061,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 123
+                "y": 2140
               },
               "id": 63,
               "options": {
@@ -2969,7 +3081,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "expr": "sum(aws_kafka_sum_offset_lag_sum{topic=~'.*platform.rhsm-subscriptions.tasks'})",
@@ -3080,7 +3192,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 123
+                "y": 2140
               },
               "id": 64,
               "options": {
@@ -3100,7 +3212,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "expr": "sum(rate(aws_kafka_sum_offset_lag_sum{topic=~\".*platform.rhsm-subscriptions.tasks\"}[$__rate_interval]))",
@@ -3210,7 +3322,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 123
+                "y": 2140
               },
               "id": 66,
               "options": {
@@ -3226,7 +3338,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "expr": "sum(process_cpu_usage{service=~\"swatch-tally-service\"}) by (pod)",
@@ -3310,7 +3422,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 123
+                "y": 2140
               },
               "id": 68,
               "options": {
@@ -3326,7 +3438,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "expr": "jvm_memory_used_bytes{service=\"swatch-tally-service\",id=~\"PS Old Gen|PS Survivor Space|PS Eden Space\"}",
@@ -3405,7 +3517,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 1127
+                "y": 2644
               },
               "id": 94,
               "options": {
@@ -3421,7 +3533,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "datasource": {
@@ -3550,7 +3662,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 1127
+                "y": 2644
               },
               "id": 5010,
               "options": {
@@ -3569,7 +3681,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "datasource": {
@@ -3659,7 +3771,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 1127
+                "y": 2644
               },
               "id": 5011,
               "options": {
@@ -3678,7 +3790,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "datasource": {
@@ -3765,7 +3877,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 1127
+                "y": 2644
               },
               "id": 5012,
               "options": {
@@ -3784,7 +3896,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "datasource": {
@@ -3897,7 +4009,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 1135
+                "y": 2652
               },
               "id": 5013,
               "options": {
@@ -4022,7 +4134,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 629
+                "y": 2141
               },
               "id": 32,
               "options": {
@@ -4038,7 +4150,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "expr": "sum by (uri) (rate(http_server_requests_seconds_count{service=\"swatch-api-service\",uri=~\"/api/rhsm-subscriptions.*\"}[1m]))",
@@ -4116,7 +4228,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 629
+                "y": 2141
               },
               "id": 33,
               "options": {
@@ -4132,7 +4244,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "expr": "sum by (uri) (rate(http_server_requests_seconds_sum{service=\"swatch-api-service\",uri=~\"/api/rhsm-subscriptions.*\"}[1m]) / rate(http_server_requests_seconds_count{service=\"swatch-api-service\",uri=~\"/api/rhsm-subscriptions.*\"}[1m]))",
@@ -4209,7 +4321,7 @@ data:
                 "h": 9,
                 "w": 12,
                 "x": 12,
-                "y": 629
+                "y": 2141
               },
               "id": 34,
               "options": {
@@ -4225,7 +4337,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "expr": "rate(http_server_requests_seconds_count{service=\"swatch-api-service\",exception!=\"None\"}[$__interval])",
@@ -4303,7 +4415,7 @@ data:
                 "h": 11,
                 "w": 6,
                 "x": 0,
-                "y": 1097
+                "y": 2158
               },
               "id": 35,
               "options": {
@@ -4319,7 +4431,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "expr": "sum(process_cpu_usage{service=\"swatch-api-service\"}) by (pod)",
@@ -4397,7 +4509,7 @@ data:
                 "h": 11,
                 "w": 6,
                 "x": 6,
-                "y": 1097
+                "y": 2158
               },
               "id": 36,
               "options": {
@@ -4413,7 +4525,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "expr": "sum by (id, pod) (jvm_memory_used_bytes{service=\"swatch-api-service\"})",
@@ -4493,7 +4605,7 @@ data:
                 "h": 11,
                 "w": 6,
                 "x": 12,
-                "y": 1097
+                "y": 2158
               },
               "id": 95,
               "options": {
@@ -4509,7 +4621,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "datasource": {
@@ -4589,7 +4701,7 @@ data:
                 "h": 11,
                 "w": 6,
                 "x": 18,
-                "y": 1097
+                "y": 2158
               },
               "id": 5015,
               "options": {
@@ -4608,7 +4720,7 @@ data:
                   "sort": "none"
                 }
               },
-              "pluginVersion": "11.6.3",
+              "pluginVersion": "11.6.11",
               "targets": [
                 {
                   "datasource": {
@@ -4695,7 +4807,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 1108
+                "y": 2169
               },
               "id": 5016,
               "options": {
@@ -4815,7 +4927,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 1108
+                "y": 2169
               },
               "id": 5014,
               "options": {
@@ -4957,7 +5069,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 1108
+                "y": 2169
               },
               "id": 5017,
               "options": {
@@ -5006,6 +5118,990 @@ data:
             }
           ],
           "title": "swatch-api",
+          "type": "row"
+        },
+        {
+          "collapsed": true,
+          "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 7
+          },
+          "id": 9048,
+          "panels": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "description": "Container memory limits and actual usage (excludes sidecar containers)",
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 2,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "mappings": [],
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green"
+                      },
+                      {
+                        "color": "yellow",
+                        "value": 500000000
+                      },
+                      {
+                        "color": "red",
+                        "value": 580000000
+                      }
+                    ]
+                  },
+                  "unit": "bytes"
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byRegexp",
+                      "options": ".*Limit.*"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.lineStyle",
+                        "value": {
+                          "dash": [
+                            10,
+                            10
+                          ],
+                          "fill": "dash"
+                        }
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "red",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "gridPos": {
+                "h": 8,
+                "w": 6,
+                "x": 0,
+                "y": 2142
+              },
+              "id": 9049,
+              "options": {
+                "legend": {
+                  "calcs": [
+                    "last",
+                    "max"
+                  ],
+                  "displayMode": "table",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "none"
+                }
+              },
+              "pluginVersion": "11.6.11",
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "${datasource}"
+                  },
+                  "editorMode": "code",
+                  "expr": "kube_pod_container_resource_limits{resource=\"memory\", pod=~\"swatch-metrics-service-.*\", container=\"swatch-metrics-service\"}",
+                  "legendFormat": "{{pod}} - Limit",
+                  "range": true,
+                  "refId": "A"
+                },
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "${datasource}"
+                  },
+                  "editorMode": "code",
+                  "expr": "container_memory_working_set_bytes{pod=~\"swatch-metrics-service-.*\", container!=\"\", container!=\"POD\"}",
+                  "legendFormat": "{{pod}} - {{container}} - Used",
+                  "range": true,
+                  "refId": "B"
+                }
+              ],
+              "title": "swatch-metrics - Container Memory",
+              "type": "timeseries"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "description": "JVM Heap Memory usage - shows how full the heap is (Java objects in memory)",
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 2,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green"
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "bytes"
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byRegexp",
+                      "options": ".*Max.*"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.lineStyle",
+                        "value": {
+                          "dash": [
+                            10,
+                            10
+                          ],
+                          "fill": "dash"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "gridPos": {
+                "h": 8,
+                "w": 6,
+                "x": 6,
+                "y": 2142
+              },
+              "id": 9038,
+              "options": {
+                "legend": {
+                  "calcs": [
+                    "last",
+                    "max"
+                  ],
+                  "displayMode": "table",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "none"
+                }
+              },
+              "pluginVersion": "11.6.11",
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "${datasource}"
+                  },
+                  "editorMode": "code",
+                  "expr": "sum by (pod) (jvm_memory_used_bytes{area=\"heap\", pod=~\"swatch-metrics-service-.*\"})",
+                  "legendFormat": "{{pod}} - Used",
+                  "range": true,
+                  "refId": "A"
+                },
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "${datasource}"
+                  },
+                  "editorMode": "code",
+                  "expr": "sum by (pod) (jvm_memory_max_bytes{area=\"heap\", pod=~\"swatch-metrics-service-.*\"})",
+                  "legendFormat": "{{pod}} - Max (-Xmx)",
+                  "range": true,
+                  "refId": "B"
+                }
+              ],
+              "title": "swatch-metrics - JVM Heap Memory",
+              "type": "timeseries"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "description": "JVM Non-Heap Memory - class definitions, compiled code, metadata",
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 2,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "mappings": [],
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "unit": "bytes"
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 8,
+                "w": 6,
+                "x": 12,
+                "y": 2142
+              },
+              "id": 9039,
+              "options": {
+                "legend": {
+                  "calcs": [
+                    "last",
+                    "max"
+                  ],
+                  "displayMode": "table",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "none"
+                }
+              },
+              "pluginVersion": "11.6.11",
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "${datasource}"
+                  },
+                  "editorMode": "code",
+                  "expr": "sum(jvm_memory_used_bytes{area=\"nonheap\", pod=~\"swatch-metrics-service-.*\"}) by (pod)",
+                  "legendFormat": "{{pod}} - Non-Heap",
+                  "range": true,
+                  "refId": "A"
+                }
+              ],
+              "title": "swatch-metrics - JVM Non-Heap Memory",
+              "type": "timeseries"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "description": "Native Memory Estimation = Container Memory - Heap - Non-Heap\nMemory used by native libraries (Kafka, HTTP, logging) not tracked by JVM",
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 2,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "mappings": [],
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green"
+                      },
+                      {
+                        "color": "yellow",
+                        "value": 200000000
+                      },
+                      {
+                        "color": "red",
+                        "value": 300000000
+                      }
+                    ]
+                  },
+                  "unit": "bytes"
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 8,
+                "w": 6,
+                "x": 18,
+                "y": 2142
+              },
+              "id": 9040,
+              "options": {
+                "legend": {
+                  "calcs": [
+                    "last",
+                    "max"
+                  ],
+                  "displayMode": "table",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "none"
+                }
+              },
+              "pluginVersion": "11.6.11",
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "${datasource}"
+                  },
+                  "editorMode": "code",
+                  "expr": "sum(container_memory_working_set_bytes{pod=~\"swatch-metrics-service-.*\", container=\"swatch-metrics-service\"}) by (pod) - sum(jvm_memory_used_bytes{area=\"heap\", pod=~\"swatch-metrics-service-.*\"}) by (pod) - sum(jvm_memory_used_bytes{area=\"nonheap\", pod=~\"swatch-metrics-service-.*\"}) by (pod)",
+                  "legendFormat": "{{pod}} - Native Memory (est.)",
+                  "range": true,
+                  "refId": "A"
+                }
+              ],
+              "title": "swatch-metrics - Native Memory (Estimated)",
+              "type": "timeseries"
+            }
+          ],
+          "title": "swatch-metrics",
+          "type": "row"
+        },
+        {
+          "collapsed": true,
+          "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 8
+          },
+          "id": 9050,
+          "panels": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "description": "Container memory limits and actual usage (excludes sidecar containers)",
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 2,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "mappings": [],
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green"
+                      },
+                      {
+                        "color": "yellow",
+                        "value": 500000000
+                      },
+                      {
+                        "color": "red",
+                        "value": 580000000
+                      }
+                    ]
+                  },
+                  "unit": "bytes"
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byRegexp",
+                      "options": ".*Limit.*"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.lineStyle",
+                        "value": {
+                          "dash": [
+                            10,
+                            10
+                          ],
+                          "fill": "dash"
+                        }
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "fixedColor": "red",
+                          "mode": "fixed"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "gridPos": {
+                "h": 8,
+                "w": 6,
+                "x": 0,
+                "y": 8205
+              },
+              "id": 9051,
+              "options": {
+                "legend": {
+                  "calcs": [
+                    "last",
+                    "max"
+                  ],
+                  "displayMode": "table",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "none"
+                }
+              },
+              "pluginVersion": "11.6.3",
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "${datasource}"
+                  },
+                  "editorMode": "code",
+                  "expr": "kube_pod_container_resource_limits{resource=\"memory\", pod=~\"swatch-metrics-rhel-service-.*\", container=\"swatch-metrics-rhel-service\"}",
+                  "legendFormat": "{{pod}} - Limit",
+                  "range": true,
+                  "refId": "A"
+                },
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "${datasource}"
+                  },
+                  "editorMode": "code",
+                  "expr": "container_memory_working_set_bytes{pod=~\"swatch-metrics-rhel-service-.*\", container!=\"\", container!=\"POD\"}",
+                  "legendFormat": "{{pod}} - {{container}} - Used",
+                  "range": true,
+                  "refId": "B"
+                }
+              ],
+              "title": "swatch-metrics-rhel - Container Memory",
+              "type": "timeseries"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "description": "JVM Heap Memory usage - shows how full the heap is (Java objects in memory)",
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 2,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green"
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "bytes"
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byRegexp",
+                      "options": ".*Max.*"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.lineStyle",
+                        "value": {
+                          "dash": [
+                            10,
+                            10
+                          ],
+                          "fill": "dash"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "gridPos": {
+                "h": 8,
+                "w": 6,
+                "x": 6,
+                "y": 8205
+              },
+              "id": 9052,
+              "options": {
+                "legend": {
+                  "calcs": [
+                    "last",
+                    "max"
+                  ],
+                  "displayMode": "table",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "none"
+                }
+              },
+              "pluginVersion": "11.6.3",
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "${datasource}"
+                  },
+                  "editorMode": "code",
+                  "expr": "sum by (pod) (jvm_memory_used_bytes{area=\"heap\", pod=~\"swatch-metrics-rhel-service-.*\"})",
+                  "legendFormat": "{{pod}} - Used",
+                  "range": true,
+                  "refId": "A"
+                },
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "${datasource}"
+                  },
+                  "editorMode": "code",
+                  "expr": "sum by (pod) (jvm_memory_max_bytes{area=\"heap\", pod=~\"swatch-metrics-rhel-service-.*\"})",
+                  "legendFormat": "{{pod}} - Max (-Xmx)",
+                  "range": true,
+                  "refId": "B"
+                }
+              ],
+              "title": "swatch-metrics-rhel - JVM Heap Memory",
+              "type": "timeseries"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "description": "JVM Non-Heap Memory - class definitions, compiled code, metadata",
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 2,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "mappings": [],
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "unit": "bytes"
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 8,
+                "w": 6,
+                "x": 12,
+                "y": 8205
+              },
+              "id": 9053,
+              "options": {
+                "legend": {
+                  "calcs": [
+                    "last",
+                    "max"
+                  ],
+                  "displayMode": "table",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "none"
+                }
+              },
+              "pluginVersion": "11.6.3",
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "${datasource}"
+                  },
+                  "editorMode": "code",
+                  "expr": "sum(jvm_memory_used_bytes{area=\"nonheap\", pod=~\"swatch-metrics-rhel-service-.*\"}) by (pod)",
+                  "legendFormat": "{{pod}} - Non-Heap",
+                  "range": true,
+                  "refId": "A"
+                }
+              ],
+              "title": "swatch-metrics-rhel - JVM Non-Heap Memory",
+              "type": "timeseries"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "description": "Native Memory Estimation = Container Memory - Heap - Non-Heap\nMemory used by native libraries (Kafka, HTTP, logging) not tracked by JVM",
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 2,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "mappings": [],
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green"
+                      },
+                      {
+                        "color": "yellow",
+                        "value": 200000000
+                      },
+                      {
+                        "color": "red",
+                        "value": 300000000
+                      }
+                    ]
+                  },
+                  "unit": "bytes"
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 8,
+                "w": 6,
+                "x": 18,
+                "y": 8205
+              },
+              "id": 9054,
+              "options": {
+                "legend": {
+                  "calcs": [
+                    "last",
+                    "max"
+                  ],
+                  "displayMode": "table",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "none"
+                }
+              },
+              "pluginVersion": "11.6.3",
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "${datasource}"
+                  },
+                  "editorMode": "code",
+                  "expr": "sum(container_memory_working_set_bytes{pod=~\"swatch-metrics-rhel-service-.*\", container=\"swatch-metrics-rhel-service\"}) by (pod) - sum(jvm_memory_used_bytes{area=\"heap\", pod=~\"swatch-metrics-rhel-service-.*\"}) by (pod) - sum(jvm_memory_used_bytes{area=\"nonheap\", pod=~\"swatch-metrics-rhel-service-.*\"}) by (pod)",
+                  "legendFormat": "{{pod}} - Native Memory (est.)",
+                  "range": true,
+                  "refId": "A"
+                }
+              ],
+              "title": "swatch-metrics-rhel - Native Memory (Estimated)",
+              "type": "timeseries"
+            }
+          ],
+          "title": "swatch-metrics-rhel",
           "type": "row"
         },
         {
@@ -5081,7 +6177,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 2
+                "y": 5555
               },
               "id": 124,
               "options": {
@@ -5144,7 +6240,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 2
+                "y": 5555
               },
               "id": 125,
               "options": {
@@ -5244,7 +6340,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 2
+                "y": 5555
               },
               "id": 126,
               "options": {
@@ -5336,7 +6432,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 2
+                "y": 5555
               },
               "id": 127,
               "options": {
@@ -5499,7 +6595,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 106
+                "y": 5564
               },
               "id": 133,
               "options": {
@@ -5631,7 +6727,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 106
+                "y": 5564
               },
               "id": 5018,
               "options": {
@@ -5740,7 +6836,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 106
+                "y": 5564
               },
               "id": 5019,
               "options": {
@@ -5846,7 +6942,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 106
+                "y": 5564
               },
               "id": 5020,
               "options": {
@@ -5978,7 +7074,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 114
+                "y": 5617
               },
               "id": 5021,
               "options": {
@@ -6108,7 +7204,7 @@ data:
             "h": 9,
             "w": 6,
             "x": 0,
-            "y": 9
+            "y": 11
           },
           "id": 20,
           "options": {
@@ -6215,7 +7311,7 @@ data:
             "h": 9,
             "w": 6,
             "x": 6,
-            "y": 9
+            "y": 11
           },
           "id": 89,
           "options": {
@@ -6318,7 +7414,7 @@ data:
             "h": 9,
             "w": 6,
             "x": 12,
-            "y": 9
+            "y": 11
           },
           "id": 90,
           "options": {
@@ -6414,7 +7510,7 @@ data:
             "h": 9,
             "w": 6,
             "x": 18,
-            "y": 9
+            "y": 11
           },
           "id": 128,
           "options": {
@@ -6514,7 +7610,7 @@ data:
             "h": 9,
             "w": 6,
             "x": 0,
-            "y": 18
+            "y": 20
           },
           "id": 5002,
           "options": {
@@ -6613,7 +7709,7 @@ data:
             "h": 9,
             "w": 6,
             "x": 6,
-            "y": 18
+            "y": 20
           },
           "id": 5001,
           "options": {
@@ -6716,7 +7812,7 @@ data:
             "h": 9,
             "w": 6,
             "x": 12,
-            "y": 18
+            "y": 20
           },
           "id": 5028,
           "options": {
@@ -6814,7 +7910,7 @@ data:
             "h": 9,
             "w": 6,
             "x": 18,
-            "y": 18
+            "y": 20
           },
           "id": 5027,
           "options": {
@@ -6980,7 +8076,7 @@ data:
             "h": 8,
             "w": 6,
             "x": 0,
-            "y": 27
+            "y": 29
           },
           "id": 132,
           "options": {
@@ -7094,7 +8190,7 @@ data:
             "h": 8,
             "w": 6,
             "x": 6,
-            "y": 27
+            "y": 29
           },
           "id": 118,
           "options": {
@@ -7214,7 +8310,7 @@ data:
             "h": 8,
             "w": 6,
             "x": 12,
-            "y": 27
+            "y": 29
           },
           "id": 5026,
           "options": {
@@ -7357,7 +8453,7 @@ data:
             "h": 8,
             "w": 6,
             "x": 18,
-            "y": 27
+            "y": 29
           },
           "id": 5029,
           "options": {
@@ -7471,6 +8567,13 @@ data:
                   {
                     "id": "displayName",
                     "value": "from UMB"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "yellow",
+                      "mode": "fixed"
+                    }
                   }
                 ]
               },
@@ -7483,6 +8586,13 @@ data:
                   {
                     "id": "displayName",
                     "value": "from Kafka"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "green",
+                      "mode": "fixed"
+                    }
                   }
                 ]
               }
@@ -7492,7 +8602,7 @@ data:
             "h": 8,
             "w": 6,
             "x": 0,
-            "y": 35
+            "y": 37
           },
           "id": 5003,
           "interval": "1d",
@@ -7596,6 +8706,13 @@ data:
                   {
                     "id": "displayName",
                     "value": "from UMB"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "yellow",
+                      "mode": "fixed"
+                    }
                   }
                 ]
               },
@@ -7608,6 +8725,13 @@ data:
                   {
                     "id": "displayName",
                     "value": "from Kafka"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "green",
+                      "mode": "fixed"
+                    }
                   }
                 ]
               }
@@ -7617,7 +8741,7 @@ data:
             "h": 8,
             "w": 6,
             "x": 6,
-            "y": 35
+            "y": 37
           },
           "id": 5004,
           "interval": "1d",
@@ -7715,24 +8839,38 @@ data:
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "contracts"
+                  "options": "subscription-sync-umb"
                 },
                 "properties": [
                   {
                     "id": "displayName",
                     "value": "from UMB"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "yellow",
+                      "mode": "fixed"
+                    }
                   }
                 ]
               },
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "contracts-from-gateway"
+                  "options": "it-subscription-sync"
                 },
                 "properties": [
                   {
                     "id": "displayName",
                     "value": "from Kafka"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "green",
+                      "mode": "fixed"
+                    }
                   }
                 ]
               }
@@ -7741,8 +8879,8 @@ data:
           "gridPos": {
             "h": 8,
             "w": 6,
-            "x": 12,
-            "y": 35
+            "x": 0,
+            "y": 45
           },
           "id": 5049,
           "interval": "1d",
@@ -7840,24 +8978,38 @@ data:
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "contracts"
+                  "options": "subscription-sync-umb"
                 },
                 "properties": [
                   {
                     "id": "displayName",
                     "value": "from UMB"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "yellow",
+                      "mode": "fixed"
+                    }
                   }
                 ]
               },
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "contracts-from-gateway"
+                  "options": "it-subscription-sync"
                 },
                 "properties": [
                   {
                     "id": "displayName",
                     "value": "from Kafka"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "green",
+                      "mode": "fixed"
+                    }
                   }
                 ]
               }
@@ -7866,8 +9018,8 @@ data:
           "gridPos": {
             "h": 8,
             "w": 6,
-            "x": 18,
-            "y": 35
+            "x": 6,
+            "y": 45
           },
           "id": 5050,
           "interval": "1d",
@@ -7912,6 +9064,284 @@ data:
           "fieldConfig": {
             "defaults": {
               "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "offering-sync-service-umb"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "from UMB"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "yellow",
+                      "mode": "fixed"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "it-offering-sync"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "from Kafka"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "green",
+                      "mode": "fixed"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 6,
+            "x": 0,
+            "y": 53
+          },
+          "id": 9057,
+          "interval": "1d",
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "11.6.11",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "sum by (channel) (\n  increase(quarkus_messaging_message_count_total{\n    channel=~\"it-offering-sync|offering-sync-service-umb\"\n  }[$__rate_interval])\n)",
+              "format": "time_series",
+              "instant": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "IT Product - Offering Messages Consumed",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "offering-sync-service-umb"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "from UMB"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "yellow",
+                      "mode": "fixed"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "it-offering-sync"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "from Kafka"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": "green",
+                      "mode": "fixed"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 6,
+            "x": 6,
+            "y": 53
+          },
+          "id": 9058,
+          "interval": "1d",
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "11.6.11",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "sum by (channel) (\n  increase(quarkus_messaging_message_failures_total{\n    channel=~\"it-offering-sync|offering-sync-service-umb\"\n  }[$__rate_interval])\n)",
+              "format": "time_series",
+              "instant": false,
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "IT Product - Offering message failures",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
                 "mode": "thresholds"
               },
               "links": [],
@@ -7935,7 +9365,7 @@ data:
             "h": 10,
             "w": 18,
             "x": 0,
-            "y": 43
+            "y": 61
           },
           "id": 121,
           "options": {
@@ -8008,7 +9438,7 @@ data:
             "h": 10,
             "w": 18,
             "x": 0,
-            "y": 53
+            "y": 71
           },
           "id": 122,
           "options": {
@@ -8056,7 +9486,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 63
+            "y": 81
           },
           "id": 74,
           "panels": [
@@ -8126,7 +9556,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 3128
+                "y": 8865
               },
               "id": 83,
               "options": {
@@ -8228,7 +9658,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 3128
+                "y": 8865
               },
               "id": 120,
               "options": {
@@ -8328,7 +9758,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 3128
+                "y": 8865
               },
               "id": 107,
               "options": {
@@ -8427,7 +9857,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 3128
+                "y": 8865
               },
               "id": 98,
               "options": {
@@ -8528,7 +9958,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 3137
+                "y": 8874
               },
               "id": 78,
               "options": {
@@ -8625,7 +10055,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 3137
+                "y": 8874
               },
               "id": 80,
               "options": {
@@ -8719,7 +10149,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 3137
+                "y": 8874
               },
               "id": 119,
               "maxDataPoints": 100,
@@ -8844,7 +10274,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 3137
+                "y": 8874
               },
               "id": 99,
               "maxDataPoints": 100,
@@ -9027,7 +10457,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 3290
+                "y": 9027
               },
               "id": 134,
               "options": {
@@ -9085,7 +10515,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 64
+            "y": 82
           },
           "id": 5048,
           "panels": [
@@ -9185,7 +10615,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 2460
+                "y": 8197
               },
               "id": 5041,
               "options": {
@@ -9316,7 +10746,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 2460
+                "y": 8197
               },
               "id": 5038,
               "options": {
@@ -9425,7 +10855,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 2460
+                "y": 8197
               },
               "id": 5039,
               "options": {
@@ -9531,7 +10961,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 2460
+                "y": 8197
               },
               "id": 5040,
               "options": {
@@ -9577,7 +11007,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 65
+            "y": 83
           },
           "id": 5047,
           "panels": [
@@ -9678,7 +11108,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 133
+                "y": 5870
               },
               "id": 5037,
               "options": {
@@ -9809,7 +11239,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 133
+                "y": 5870
               },
               "id": 5034,
               "options": {
@@ -9918,7 +11348,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 133
+                "y": 5870
               },
               "id": 5035,
               "options": {
@@ -10024,7 +11454,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 133
+                "y": 5870
               },
               "id": 5036,
               "options": {
@@ -10070,7 +11500,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 66
+            "y": 84
           },
           "id": 5046,
           "panels": [
@@ -10170,7 +11600,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 143
+                "y": 5880
               },
               "id": 5045,
               "options": {
@@ -10301,7 +11731,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 143
+                "y": 5880
               },
               "id": 5042,
               "options": {
@@ -10410,7 +11840,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 143
+                "y": 5880
               },
               "id": 5043,
               "options": {
@@ -10516,7 +11946,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 143
+                "y": 5880
               },
               "id": 5044,
               "options": {
@@ -10562,7 +11992,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 67
+            "y": 85
           },
           "id": 129,
           "panels": [
@@ -10630,7 +12060,7 @@ data:
                 "h": 8,
                 "w": 12,
                 "x": 0,
-                "y": 144
+                "y": 5881
               },
               "id": 130,
               "options": {
@@ -10759,7 +12189,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 152
+                "y": 5889
               },
               "id": 5009,
               "options": {
@@ -10890,7 +12320,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 152
+                "y": 5889
               },
               "id": 5006,
               "options": {
@@ -10999,7 +12429,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 152
+                "y": 5889
               },
               "id": 5007,
               "options": {
@@ -11105,7 +12535,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 152
+                "y": 5889
               },
               "id": 5008,
               "options": {
@@ -11203,7 +12633,7 @@ data:
                 "h": 8,
                 "w": 8,
                 "x": 0,
-                "y": 195
+                "y": 5932
               },
               "id": 136,
               "options": {
@@ -11351,7 +12781,7 @@ data:
                 "h": 8,
                 "w": 21,
                 "x": 0,
-                "y": 203
+                "y": 5940
               },
               "id": 137,
               "options": {
@@ -11553,7 +12983,7 @@ data:
                 "h": 8,
                 "w": 21,
                 "x": 0,
-                "y": 211
+                "y": 5948
               },
               "id": 131,
               "options": {
@@ -11642,990 +13072,6 @@ data:
             }
           ],
           "title": "swatch-utilization",
-          "type": "row"
-        },
-        {
-          "collapsed": true,
-          "gridPos": {
-            "h": 1,
-            "w": 24,
-            "x": 0,
-            "y": 7
-          },
-          "id": 9048,
-          "panels": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "description": "Container memory limits and actual usage (excludes sidecar containers)",
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 10,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 2,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "auto",
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  },
-                  "mappings": [],
-                  "min": 0,
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green"
-                      },
-                      {
-                        "color": "yellow",
-                        "value": 500000000
-                      },
-                      {
-                        "color": "red",
-                        "value": 580000000
-                      }
-                    ]
-                  },
-                  "unit": "bytes"
-                },
-                "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byRegexp",
-                      "options": ".*Limit.*"
-                    },
-                    "properties": [
-                      {
-                        "id": "custom.lineStyle",
-                        "value": {
-                          "dash": [
-                            10,
-                            10
-                          ],
-                          "fill": "dash"
-                        }
-                      },
-                      {
-                        "id": "color",
-                        "value": {
-                          "fixedColor": "red",
-                          "mode": "fixed"
-                        }
-                      }
-                    ]
-                  }
-                ]
-              },
-              "gridPos": {
-                "h": 8,
-                "w": 6,
-                "x": 0,
-                "y": 2460
-              },
-              "id": 9049,
-              "options": {
-                "legend": {
-                  "calcs": [
-                    "last",
-                    "max"
-                  ],
-                  "displayMode": "table",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "multi",
-                  "sort": "none"
-                }
-              },
-              "pluginVersion": "11.6.3",
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${datasource}"
-                  },
-                  "editorMode": "code",
-                  "expr": "kube_pod_container_resource_limits{resource=\"memory\", pod=~\"swatch-metrics-service-.*\", container=\"swatch-metrics-service\"}",
-                  "legendFormat": "{{pod}} - Limit",
-                  "range": true,
-                  "refId": "A"
-                },
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${datasource}"
-                  },
-                  "editorMode": "code",
-                  "expr": "container_memory_working_set_bytes{pod=~\"swatch-metrics-service-.*\", container!=\"\", container!=\"POD\"}",
-                  "legendFormat": "{{pod}} - {{container}} - Used",
-                  "range": true,
-                  "refId": "B"
-                }
-              ],
-              "title": "swatch-metrics - Container Memory",
-              "type": "timeseries"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "description": "JVM Heap Memory usage - shows how full the heap is (Java objects in memory)",
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 10,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 2,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "auto",
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  },
-                  "mappings": [],
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green"
-                      },
-                      {
-                        "color": "red",
-                        "value": 80
-                      }
-                    ]
-                  },
-                  "unit": "bytes"
-                },
-                "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byRegexp",
-                      "options": ".*Max.*"
-                    },
-                    "properties": [
-                      {
-                        "id": "custom.lineStyle",
-                        "value": {
-                          "dash": [
-                            10,
-                            10
-                          ],
-                          "fill": "dash"
-                        }
-                      }
-                    ]
-                  }
-                ]
-              },
-              "gridPos": {
-                "h": 8,
-                "w": 6,
-                "x": 6,
-                "y": 2460
-              },
-              "id": 9038,
-              "options": {
-                "legend": {
-                  "calcs": [
-                    "last",
-                    "max"
-                  ],
-                  "displayMode": "table",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "multi",
-                  "sort": "none"
-                }
-              },
-              "pluginVersion": "11.6.3",
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${datasource}"
-                  },
-                  "editorMode": "code",
-                  "expr": "sum by (pod) (jvm_memory_used_bytes{area=\"heap\", pod=~\"swatch-metrics-service-.*\"})",
-                  "legendFormat": "{{pod}} - Used",
-                  "range": true,
-                  "refId": "A"
-                },
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${datasource}"
-                  },
-                  "editorMode": "code",
-                  "expr": "sum by (pod) (jvm_memory_max_bytes{area=\"heap\", pod=~\"swatch-metrics-service-.*\"})",
-                  "legendFormat": "{{pod}} - Max (-Xmx)",
-                  "range": true,
-                  "refId": "B"
-                }
-              ],
-              "title": "swatch-metrics - JVM Heap Memory",
-              "type": "timeseries"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "description": "JVM Non-Heap Memory - class definitions, compiled code, metadata",
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 10,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 2,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "auto",
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  },
-                  "mappings": [],
-                  "min": 0,
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green"
-                      }
-                    ]
-                  },
-                  "unit": "bytes"
-                },
-                "overrides": []
-              },
-              "gridPos": {
-                "h": 8,
-                "w": 6,
-                "x": 12,
-                "y": 2460
-              },
-              "id": 9039,
-              "options": {
-                "legend": {
-                  "calcs": [
-                    "last",
-                    "max"
-                  ],
-                  "displayMode": "table",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "multi",
-                  "sort": "none"
-                }
-              },
-              "pluginVersion": "11.6.3",
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${datasource}"
-                  },
-                  "editorMode": "code",
-                  "expr": "sum(jvm_memory_used_bytes{area=\"nonheap\", pod=~\"swatch-metrics-service-.*\"}) by (pod)",
-                  "legendFormat": "{{pod}} - Non-Heap",
-                  "range": true,
-                  "refId": "A"
-                }
-              ],
-              "title": "swatch-metrics - JVM Non-Heap Memory",
-              "type": "timeseries"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "description": "Native Memory Estimation = Container Memory - Heap - Non-Heap\nMemory used by native libraries (Kafka, HTTP, logging) not tracked by JVM",
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 10,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 2,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "auto",
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  },
-                  "mappings": [],
-                  "min": 0,
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green"
-                      },
-                      {
-                        "color": "yellow",
-                        "value": 200000000
-                      },
-                      {
-                        "color": "red",
-                        "value": 300000000
-                      }
-                    ]
-                  },
-                  "unit": "bytes"
-                },
-                "overrides": []
-              },
-              "gridPos": {
-                "h": 8,
-                "w": 6,
-                "x": 18,
-                "y": 2460
-              },
-              "id": 9040,
-              "options": {
-                "legend": {
-                  "calcs": [
-                    "last",
-                    "max"
-                  ],
-                  "displayMode": "table",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "multi",
-                  "sort": "none"
-                }
-              },
-              "pluginVersion": "11.6.3",
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${datasource}"
-                  },
-                  "editorMode": "code",
-                  "expr": "sum(container_memory_working_set_bytes{pod=~\"swatch-metrics-service-.*\", container=\"swatch-metrics-service\"}) by (pod) - sum(jvm_memory_used_bytes{area=\"heap\", pod=~\"swatch-metrics-service-.*\"}) by (pod) - sum(jvm_memory_used_bytes{area=\"nonheap\", pod=~\"swatch-metrics-service-.*\"}) by (pod)",
-                  "legendFormat": "{{pod}} - Native Memory (est.)",
-                  "range": true,
-                  "refId": "A"
-                }
-              ],
-              "title": "swatch-metrics - Native Memory (Estimated)",
-              "type": "timeseries"
-            }
-          ],
-          "title": "swatch-metrics",
-          "type": "row"
-        },
-        {
-          "collapsed": true,
-          "gridPos": {
-            "h": 1,
-            "w": 24,
-            "x": 0,
-            "y": 8
-          },
-          "id": 9050,
-          "panels": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "description": "Container memory limits and actual usage (excludes sidecar containers)",
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 10,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 2,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "auto",
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  },
-                  "mappings": [],
-                  "min": 0,
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green"
-                      },
-                      {
-                        "color": "yellow",
-                        "value": 500000000
-                      },
-                      {
-                        "color": "red",
-                        "value": 580000000
-                      }
-                    ]
-                  },
-                  "unit": "bytes"
-                },
-                "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byRegexp",
-                      "options": ".*Limit.*"
-                    },
-                    "properties": [
-                      {
-                        "id": "custom.lineStyle",
-                        "value": {
-                          "dash": [
-                            10,
-                            10
-                          ],
-                          "fill": "dash"
-                        }
-                      },
-                      {
-                        "id": "color",
-                        "value": {
-                          "fixedColor": "red",
-                          "mode": "fixed"
-                        }
-                      }
-                    ]
-                  }
-                ]
-              },
-              "gridPos": {
-                "h": 8,
-                "w": 6,
-                "x": 0,
-                "y": 2468
-              },
-              "id": 9051,
-              "options": {
-                "legend": {
-                  "calcs": [
-                    "last",
-                    "max"
-                  ],
-                  "displayMode": "table",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "multi",
-                  "sort": "none"
-                }
-              },
-              "pluginVersion": "11.6.3",
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${datasource}"
-                  },
-                  "editorMode": "code",
-                  "expr": "kube_pod_container_resource_limits{resource=\"memory\", pod=~\"swatch-metrics-rhel-service-.*\", container=\"swatch-metrics-rhel-service\"}",
-                  "legendFormat": "{{pod}} - Limit",
-                  "range": true,
-                  "refId": "A"
-                },
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${datasource}"
-                  },
-                  "editorMode": "code",
-                  "expr": "container_memory_working_set_bytes{pod=~\"swatch-metrics-rhel-service-.*\", container!=\"\", container!=\"POD\"}",
-                  "legendFormat": "{{pod}} - {{container}} - Used",
-                  "range": true,
-                  "refId": "B"
-                }
-              ],
-              "title": "swatch-metrics-rhel - Container Memory",
-              "type": "timeseries"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "description": "JVM Heap Memory usage - shows how full the heap is (Java objects in memory)",
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 10,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 2,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "auto",
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  },
-                  "mappings": [],
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green"
-                      },
-                      {
-                        "color": "red",
-                        "value": 80
-                      }
-                    ]
-                  },
-                  "unit": "bytes"
-                },
-                "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byRegexp",
-                      "options": ".*Max.*"
-                    },
-                    "properties": [
-                      {
-                        "id": "custom.lineStyle",
-                        "value": {
-                          "dash": [
-                            10,
-                            10
-                          ],
-                          "fill": "dash"
-                        }
-                      }
-                    ]
-                  }
-                ]
-              },
-              "gridPos": {
-                "h": 8,
-                "w": 6,
-                "x": 6,
-                "y": 2468
-              },
-              "id": 9052,
-              "options": {
-                "legend": {
-                  "calcs": [
-                    "last",
-                    "max"
-                  ],
-                  "displayMode": "table",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "multi",
-                  "sort": "none"
-                }
-              },
-              "pluginVersion": "11.6.3",
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${datasource}"
-                  },
-                  "editorMode": "code",
-                  "expr": "sum by (pod) (jvm_memory_used_bytes{area=\"heap\", pod=~\"swatch-metrics-rhel-service-.*\"})",
-                  "legendFormat": "{{pod}} - Used",
-                  "range": true,
-                  "refId": "A"
-                },
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${datasource}"
-                  },
-                  "editorMode": "code",
-                  "expr": "sum by (pod) (jvm_memory_max_bytes{area=\"heap\", pod=~\"swatch-metrics-rhel-service-.*\"})",
-                  "legendFormat": "{{pod}} - Max (-Xmx)",
-                  "range": true,
-                  "refId": "B"
-                }
-              ],
-              "title": "swatch-metrics-rhel - JVM Heap Memory",
-              "type": "timeseries"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "description": "JVM Non-Heap Memory - class definitions, compiled code, metadata",
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 10,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 2,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "auto",
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  },
-                  "mappings": [],
-                  "min": 0,
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green"
-                      }
-                    ]
-                  },
-                  "unit": "bytes"
-                },
-                "overrides": []
-              },
-              "gridPos": {
-                "h": 8,
-                "w": 6,
-                "x": 12,
-                "y": 2468
-              },
-              "id": 9053,
-              "options": {
-                "legend": {
-                  "calcs": [
-                    "last",
-                    "max"
-                  ],
-                  "displayMode": "table",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "multi",
-                  "sort": "none"
-                }
-              },
-              "pluginVersion": "11.6.3",
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${datasource}"
-                  },
-                  "editorMode": "code",
-                  "expr": "sum(jvm_memory_used_bytes{area=\"nonheap\", pod=~\"swatch-metrics-rhel-service-.*\"}) by (pod)",
-                  "legendFormat": "{{pod}} - Non-Heap",
-                  "range": true,
-                  "refId": "A"
-                }
-              ],
-              "title": "swatch-metrics-rhel - JVM Non-Heap Memory",
-              "type": "timeseries"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "description": "Native Memory Estimation = Container Memory - Heap - Non-Heap\nMemory used by native libraries (Kafka, HTTP, logging) not tracked by JVM",
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "palette-classic"
-                  },
-                  "custom": {
-                    "axisBorderShow": false,
-                    "axisCenteredZero": false,
-                    "axisColorMode": "text",
-                    "axisLabel": "",
-                    "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "line",
-                    "fillOpacity": 10,
-                    "gradientMode": "none",
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 2,
-                    "pointSize": 5,
-                    "scaleDistribution": {
-                      "type": "linear"
-                    },
-                    "showPoints": "auto",
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "none"
-                    },
-                    "thresholdsStyle": {
-                      "mode": "off"
-                    }
-                  },
-                  "mappings": [],
-                  "min": 0,
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green"
-                      },
-                      {
-                        "color": "yellow",
-                        "value": 200000000
-                      },
-                      {
-                        "color": "red",
-                        "value": 300000000
-                      }
-                    ]
-                  },
-                  "unit": "bytes"
-                },
-                "overrides": []
-              },
-              "gridPos": {
-                "h": 8,
-                "w": 6,
-                "x": 18,
-                "y": 2468
-              },
-              "id": 9054,
-              "options": {
-                "legend": {
-                  "calcs": [
-                    "last",
-                    "max"
-                  ],
-                  "displayMode": "table",
-                  "placement": "bottom",
-                  "showLegend": true
-                },
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "multi",
-                  "sort": "none"
-                }
-              },
-              "pluginVersion": "11.6.3",
-              "targets": [
-                {
-                  "datasource": {
-                    "type": "prometheus",
-                    "uid": "${datasource}"
-                  },
-                  "editorMode": "code",
-                  "expr": "sum(container_memory_working_set_bytes{pod=~\"swatch-metrics-rhel-service-.*\", container=\"swatch-metrics-rhel-service\"}) by (pod) - sum(jvm_memory_used_bytes{area=\"heap\", pod=~\"swatch-metrics-rhel-service-.*\"}) by (pod) - sum(jvm_memory_used_bytes{area=\"nonheap\", pod=~\"swatch-metrics-rhel-service-.*\"}) by (pod)",
-                  "legendFormat": "{{pod}} - Native Memory (est.)",
-                  "range": true,
-                  "refId": "A"
-                }
-              ],
-              "title": "swatch-metrics-rhel - Native Memory (Estimated)",
-              "type": "timeseries"
-            }
-          ],
-          "title": "swatch-metrics-rhel",
           "type": "row"
         }
       ],

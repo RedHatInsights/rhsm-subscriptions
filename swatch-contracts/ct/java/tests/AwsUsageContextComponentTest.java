@@ -20,18 +20,23 @@
  */
 package tests;
 
+import static domain.AwsLicenseArns.awsLicenseArn;
+import static domain.ErrorCodes.SUBSCRIPTION_MISSING_BILLING_ACCOUNT_ID_CODE;
 import static domain.ErrorCodes.SUBSCRIPTION_RECENTLY_TERMINATED_CODE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
+import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.contract.test.model.AwsUsageContext;
 import com.redhat.swatch.contract.test.model.ServiceLevelType;
 import com.redhat.swatch.contract.test.model.UsageType;
+import domain.BillingProvider;
 import domain.Contract;
 import domain.Product;
 import io.restassured.response.Response;
 import java.time.OffsetDateTime;
+import java.util.Map;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.Test;
 
@@ -49,22 +54,7 @@ public class AwsUsageContextComponentTest extends BaseContractComponentTest {
             .extract()
             .as(AwsUsageContext.class);
 
-    assertEquals(
-        contract.getProductCode(),
-        usageContext.getProductCode(),
-        "productCode should match billing_provider_id");
-    assertEquals(
-        contract.getCustomerId(),
-        usageContext.getCustomerId(),
-        "customerId should match billing_provider_id");
-    assertEquals(
-        contract.getSellerAccountId(),
-        usageContext.getAwsSellerAccountId(),
-        "awsSellerAccountId should match billing_provider_id");
-    assertEquals(
-        contract.getBillingAccountId(),
-        usageContext.getCustomerAwsAccountId(),
-        "customerAwsAccountId should match billing_account_id");
+    thenAwsUsageContextMatchesContract(contract, usageContext);
   }
 
   @TestPlanName("aws-usage-context-TC002")
@@ -98,6 +88,103 @@ public class AwsUsageContextComponentTest extends BaseContractComponentTest {
         "Inactive subscription should return " + SUBSCRIPTION_RECENTLY_TERMINATED_CODE);
   }
 
+  @TestPlanName("aws-usage-context-TC004")
+  @Test
+  void shouldFailWhenCustomerAwsAccountIdMissing() {
+    givenRosaSubscriptionWithoutBillingAccount();
+
+    // awsAccountId defaults to _ANY so lookup is not filtered by billing_account_id
+    Response response = whenGetAwsMarketplaceContext(null);
+
+    assertEquals(
+        HttpStatus.SC_NOT_FOUND,
+        response.statusCode(),
+        "Missing billingAccountId should return CONTRACTS1006");
+    assertEquals(
+        SUBSCRIPTION_MISSING_BILLING_ACCOUNT_ID_CODE,
+        response.jsonPath().getString("code"),
+        "Missing billingAccountId should return " + SUBSCRIPTION_MISSING_BILLING_ACCOUNT_ID_CODE);
+  }
+
+  @TestPlanName("aws-usage-context-TC005")
+  @Test
+  void shouldReturnAwsUsageContextWhenLicenseIdProvided() {
+    Contract contract =
+        Contract.buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, 10.0)).toBuilder()
+            .licenseId(awsLicenseArn(RandomUtils.generateRandom()))
+            .build();
+    givenContractIsCreated(contract);
+
+    AwsUsageContext usageContext =
+        whenGetAwsMarketplaceContext(contract.getBillingAccountId(), contract.getLicenseId())
+            .then()
+            .statusCode(HttpStatus.SC_OK)
+            .extract()
+            .as(AwsUsageContext.class);
+
+    thenAwsUsageContextMatchesContract(contract, usageContext);
+  }
+
+  @TestPlanName("aws-usage-context-TC006")
+  @Test
+  void shouldReturn404WhenLicenseIdDoesNotMatch() {
+    Contract contract =
+        Contract.buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, 10.0)).toBuilder()
+            .licenseId(awsLicenseArn(RandomUtils.generateRandom()))
+            .build();
+    givenContractIsCreated(contract);
+
+    Response response =
+        whenGetAwsMarketplaceContext(
+            contract.getBillingAccountId(), awsLicenseArn("unknown-license"));
+
+    assertEquals(
+        HttpStatus.SC_NOT_FOUND, response.statusCode(), "Unknown licenseId should return 404");
+    assertTrue(
+        response.body().asString().isBlank(),
+        "Unknown licenseId should return 404 without an error body");
+  }
+
+  @TestPlanName("aws-usage-context-TC007")
+  @Test
+  void shouldReturnUsageContextPerLicenseWhenMultipleContracts() {
+    Contract baseContract =
+        Contract.buildRosaContract(
+            orgId, BillingProvider.AWS, Map.of(CORES, 10.0), RandomUtils.generateRandom());
+    String subscriptionA = baseContract.getSubscriptionNumber();
+    String subscriptionB = RandomUtils.generateRandom();
+    Contract contractA =
+        baseContract.toBuilder()
+            .subscriptionNumber(subscriptionA)
+            .subscriptionId(subscriptionA)
+            .licenseId(awsLicenseArn(subscriptionA))
+            .build();
+    Contract contractB =
+        baseContract.toBuilder()
+            .subscriptionNumber(subscriptionB)
+            .subscriptionId(subscriptionB)
+            .licenseId(awsLicenseArn(subscriptionB))
+            .build();
+    givenContractIsCreated(contractA);
+    givenContractIsCreated(contractB);
+
+    AwsUsageContext contextA =
+        whenGetAwsMarketplaceContext(contractA.getBillingAccountId(), contractA.getLicenseId())
+            .then()
+            .statusCode(HttpStatus.SC_OK)
+            .extract()
+            .as(AwsUsageContext.class);
+    AwsUsageContext contextB =
+        whenGetAwsMarketplaceContext(contractB.getBillingAccountId(), contractB.getLicenseId())
+            .then()
+            .statusCode(HttpStatus.SC_OK)
+            .extract()
+            .as(AwsUsageContext.class);
+
+    thenAwsUsageContextMatchesContract(contractA, contextA);
+    thenAwsUsageContextMatchesContract(contractB, contextB);
+  }
+
   private Contract givenRosaContractIsTerminated() {
     Contract contract = givenRosaContractIsCreated(10.0);
     OffsetDateTime terminationDate = OffsetDateTime.now().minusMinutes(30);
@@ -108,13 +195,61 @@ public class AwsUsageContextComponentTest extends BaseContractComponentTest {
     return contract;
   }
 
+  private void givenRosaSubscriptionWithoutBillingAccount() {
+    Contract contract =
+        Contract.buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, 10.0)).toBuilder()
+            .billingAccountId(null)
+            .build();
+    wiremock.forProductAPI().stubOfferingData(contract.getOffering());
+    assertEquals(
+        HttpStatus.SC_OK,
+        service.syncOffering(contract.getOffering().getSku()).statusCode(),
+        "Sync offering should succeed");
+    assertEquals(
+        HttpStatus.SC_OK,
+        service.saveSubscriptions(true, contract).statusCode(),
+        "Saving subscription without billingAccountId should succeed");
+  }
+
   private Response whenGetAwsMarketplaceContext(String billingAccountId) {
+    return whenGetAwsMarketplaceContext(billingAccountId, null);
+  }
+
+  private Response whenGetAwsMarketplaceContext(String billingAccountId, String licenseId) {
     return service.getAwsUsageContext(
         orgId,
         Product.ROSA,
         OffsetDateTime.now(),
         ServiceLevelType.PREMIUM,
         UsageType.PRODUCTION,
-        billingAccountId);
+        billingAccountId,
+        licenseId);
+  }
+
+  private void thenAwsUsageContextMatchesContract(Contract contract, AwsUsageContext usageContext) {
+    assertEquals(
+        contract.getProductCode(),
+        usageContext.getProductCode(),
+        "productCode should match billing_provider_id");
+    assertEquals(
+        contract.getCustomerId(),
+        usageContext.getCustomerId(),
+        "customerId should match billing_provider_id");
+    assertEquals(
+        contract.getSellerAccountId(),
+        usageContext.getAwsSellerAccountId(),
+        "awsSellerAccountId should match billing_provider_id");
+    assertEquals(
+        contract.getBillingAccountId(),
+        usageContext.getCustomerAwsAccountId(),
+        "customerAwsAccountId should match billing_account_id");
+    assertEquals(
+        contract.getLicenseId(),
+        usageContext.getLicenseId(),
+        "licenseId should match the selected contract");
+    assertEquals(
+        contract.getSubscriptionId(),
+        usageContext.getRhSubscriptionId(),
+        "rhSubscriptionId should match the selected contract");
   }
 }

@@ -15,7 +15,7 @@
   <packaging>quarkus</packaging>
 
   <properties>
-    <java.version>21</java.version>
+    <java.version>25</java.version>
     <maven.compiler.release>${java.version}</maven.compiler.release>
   </properties>
 
@@ -99,10 +99,6 @@
     <dependency>
       <groupId>com.redhat.swatch</groupId>
       <artifactId>swatch-common-smallrye-fault-tolerance</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.redhat.swatch</groupId>
-      <artifactId>swatch-common-splunk</artifactId>
     </dependency>
     <dependency>
       <groupId>com.redhat.swatch</groupId>

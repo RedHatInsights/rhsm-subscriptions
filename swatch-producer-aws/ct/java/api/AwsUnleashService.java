@@ -24,14 +24,13 @@ import com.redhat.swatch.component.tests.api.UnleashService;
 
 public class AwsUnleashService extends UnleashService {
 
-  public static final String USE_CUSTOMER_AWS_ACCOUNT_ID =
-      "swatch.swatch-producer-aws.use-customer-aws-account-id";
+  public static final String USE_LICENSE = "swatch.swatch-producer-aws.use-license";
 
-  public void enableUseCustomerAwsAccountId() {
-    enableFlag(USE_CUSTOMER_AWS_ACCOUNT_ID);
+  public void enableUseLicense() {
+    enableFlag(USE_LICENSE);
   }
 
-  public void disableUseCustomerAwsAccountId() {
-    disableFlag(USE_CUSTOMER_AWS_ACCOUNT_ID);
+  public void disableUseLicense() {
+    disableFlag(USE_LICENSE);
   }
 }

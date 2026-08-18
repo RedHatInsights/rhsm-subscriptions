@@ -15,7 +15,7 @@
   <packaging>quarkus</packaging>
 
   <properties>
-    <java.version>21</java.version>
+    <java.version>25</java.version>
     <maven.compiler.release>${java.version}</maven.compiler.release>
   </properties>
 
@@ -94,7 +94,7 @@
     </dependency>
     <dependency>
       <groupId>com.redhat.swatch</groupId>
-      <artifactId>swatch-common-splunk</artifactId>
+      <artifactId>swatch-common-logging</artifactId>
     </dependency>
     <dependency>
       <groupId>com.redhat.swatch</groupId>
@@ -348,6 +348,7 @@
                 <sourcePath>subscriptions_export_json_measurement.yaml</sourcePath>
                 <sourcePath>enable_partner_gateway_contracts_variant_payload.yaml</sourcePath>
                 <sourcePath>it_subscription_service_feature_flag_variant_payload.yaml</sourcePath>
+                <sourcePath>product_service_consumer_feature_flag_variant_payload.yaml</sourcePath>
               </sourcePaths>
             </configuration>
           </execution>

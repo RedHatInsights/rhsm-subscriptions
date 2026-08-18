@@ -25,6 +25,7 @@ import static com.redhat.swatch.contract.config.Channels.CONTRACT_SYNC;
 import com.redhat.swatch.contract.model.ContractSyncTask;
 import com.redhat.swatch.contract.repository.ContractRepository;
 import io.smallrye.reactive.messaging.MutinyEmitter;
+import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -32,6 +33,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.reactive.messaging.Channel;
+import org.eclipse.microprofile.reactive.messaging.Message;
 
 /**
  * Enqueues per-org contract sync tasks onto the Kafka topic. Analogous to {@code
@@ -66,7 +68,9 @@ public class ContractSyncService {
     try (Stream<String> orgIds = contractRepository.getDistinctOrgIds()) {
       orgIds.forEach(
           orgId -> {
-            contractSyncTaskEmitter.sendAndAwait(new ContractSyncTask(orgId));
+            contractSyncTaskEmitter.sendMessageAndAwait(
+                Message.of(new ContractSyncTask(orgId))
+                    .addMetadata(OutgoingKafkaRecordMetadata.builder().withKey(orgId).build()));
             count.incrementAndGet();
           });
     }

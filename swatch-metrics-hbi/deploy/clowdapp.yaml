@@ -29,22 +29,16 @@ parameters:
     value: quay.io/cloudservices/swatch-metrics-hbi
   - name: IMAGE_TAG
     value: latest
-  - name: LOGGING_HEC_ENABLED
-    value: 'true'
   - name: LOGGING_HEC_URL
     value: https://splunk-hec.redhat.com:8088
   - name: LOGGING_SOURCE
     value: 'swatch-metrics-hbi'
   - name: LOGGING_SOURCE_TYPE
     value: 'swatch'
-  - name: LOGGING_HEC_BATCH_SIZE
-    value: '1000'
-  - name: LOGGING_HEC_BATCH_INTERVAL
-    value: '10S'
-  - name: LOGGING_HEC_RETRY_COUNT
-    value: '3'
-  - name: LOGGING_HEC_INCLUDE_EX
+  - name: LOGGING_FILE_LOG_ENABLED
     value: 'true'
+  - name: LOGGING_FILE_MAX_SIZE
+    value: '10M'
   - name: LOGGING_LEVEL_ROOT
     value: 'INFO'
   - name: LOGGING_LEVEL_COM_REDHAT_SWATCH
@@ -163,6 +157,8 @@ objects:
             enabled: true
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
+          # Extra grace time so the otel sidecar can finish reading /logs/server.log and export to HEC before the shared volume is torn down.
+          terminationGracePeriodSeconds: 90
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -203,37 +199,15 @@ objects:
               value: ${LOGGING_LEVEL_COM_REDHAT_SWATCH}
             - name: LOGGING_SHOW_SQL_QUERIES
               value: ${LOGGING_SHOW_SQL_QUERIES}
-            - name: LOGGING_HEC_ENABLED
-              value: ${LOGGING_HEC_ENABLED}
-            - name: LOGGING_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.namespace
             - name: HOST_NAME
               valueFrom:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: metadata.name
-            - name: LOGGING_HEC_URL
-              value: ${LOGGING_HEC_URL}
-            - name: LOGGING_HEC_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: splunk-hec-external
-                  key: token
-            - name: LOGGING_SOURCE
-              value: ${LOGGING_SOURCE}
-            - name: LOGGING_SOURCE_TYPE
-              value: ${LOGGING_SOURCE_TYPE}
-            - name: LOGGING_HEC_BATCH_SIZE
-              value: ${LOGGING_HEC_BATCH_SIZE}
-            - name: LOGGING_HEC_BATCH_INTERVAL
-              value: ${LOGGING_HEC_BATCH_INTERVAL}
-            - name: LOGGING_HEC_RETRY_COUNT
-              value: ${LOGGING_HEC_RETRY_COUNT}
-            - name: LOGGING_HEC_INCLUDE_EX
-              value: ${LOGGING_HEC_INCLUDE_EX}
+            - name: LOGGING_FILE_LOG_ENABLED
+              value: ${LOGGING_FILE_LOG_ENABLED}
+            - name: LOGGING_FILE_MAX_SIZE
+              value: ${LOGGING_FILE_MAX_SIZE}
             - name: SWATCH_SELF_PSK
               valueFrom:
                 secretKeyRef:
@@ -292,6 +266,9 @@ objects:
             enabled: true
             configMap: ${OTEL_SIDECAR_CONFIG_MAP}
             image: ${OTEL_SIDECAR_IMAGE}
+            volumeMounts:
+              - name: logs
+                mountPath: /logs
             envVars:
               - name: ENV_NAME
                 value: ${OTEL_ENV_NAME}

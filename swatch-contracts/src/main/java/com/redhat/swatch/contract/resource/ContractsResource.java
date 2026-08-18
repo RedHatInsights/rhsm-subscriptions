@@ -24,6 +24,8 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.redhat.swatch.clients.product.api.resources.ApiException;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.contract.config.ApplicationConfiguration;
+import com.redhat.swatch.contract.exception.ErrorCode;
+import com.redhat.swatch.contract.exception.ServiceException;
 import com.redhat.swatch.contract.model.PartnerEntitlementsRequest;
 import com.redhat.swatch.contract.model.SyncResult;
 import com.redhat.swatch.contract.openapi.model.AwsUsageContext;
@@ -57,6 +59,7 @@ import com.redhat.swatch.contract.service.OfferingSyncService;
 import com.redhat.swatch.contract.service.SubscriptionListService;
 import com.redhat.swatch.contract.service.SubscriptionSyncService;
 import com.redhat.swatch.contract.service.UsageContextSubscriptionProvider;
+import io.micrometer.common.util.StringUtils;
 import io.quarkus.runtime.LaunchMode;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -228,10 +231,11 @@ public class ContractsResource implements DefaultApi {
       String orgId,
       String sla,
       String usage,
-      String awsAccountId)
+      String awsAccountId,
+      String licenseId)
       throws ProcessingException {
-    return getPaygSubscription(date, productId, orgId, BillingProvider.AWS, awsAccountId)
-        .map(this::buildAwsUsageContext)
+    return getPaygSubscription(date, productId, orgId, BillingProvider.AWS, awsAccountId, licenseId)
+        .map(s -> buildAwsUsageContext(s, licenseId))
         .orElseThrow();
   }
 
@@ -241,6 +245,16 @@ public class ContractsResource implements DefaultApi {
       String orgId,
       BillingProvider billingProvider,
       String awsAccountId) {
+    return getPaygSubscription(date, productId, orgId, billingProvider, awsAccountId, null);
+  }
+
+  private Optional<SubscriptionEntity> getPaygSubscription(
+      OffsetDateTime date,
+      String productId,
+      String orgId,
+      BillingProvider billingProvider,
+      String awsAccountId,
+      String licenseId) {
     DbReportCriteria criteria =
         DbReportCriteria.builder()
             .orgId(orgId)
@@ -252,11 +266,20 @@ public class ContractsResource implements DefaultApi {
             // Set start date one hour in past to pickup recently terminated subscriptions
             .beginning(date.minusHours(1))
             .ending(date)
+            .licenseId(licenseId)
             .build();
     return usageContextSubscriptionProvider.getSubscription(criteria);
   }
 
-  private AwsUsageContext buildAwsUsageContext(SubscriptionEntity subscription) {
+  private AwsUsageContext buildAwsUsageContext(SubscriptionEntity subscription, String licenseId) {
+    String billingAccountId = subscription.getBillingAccountId();
+    if (StringUtils.isBlank(billingAccountId)) {
+      throw new ServiceException(
+          ErrorCode.SUBSCRIPTION_MISSING_BILLING_ACCOUNT_ID,
+          Response.Status.NOT_FOUND,
+          ErrorCode.SUBSCRIPTION_MISSING_BILLING_ACCOUNT_ID.getDescription(),
+          subscription.getSubscriptionId());
+    }
     String[] parts = subscription.getBillingProviderId().split(";");
     String productCode = parts[0];
     String customerId = parts[1];
@@ -267,7 +290,8 @@ public class ContractsResource implements DefaultApi {
         .productCode(productCode)
         .customerId(customerId)
         .awsSellerAccountId(sellerAccount)
-        .customerAwsAccountId(subscription.getBillingAccountId());
+        .customerAwsAccountId(billingAccountId)
+        .licenseId(licenseId);
   }
 
   @Override

@@ -30,6 +30,7 @@ import com.redhat.swatch.aws.exception.AwsUnprocessedRecordsException;
 import com.redhat.swatch.aws.exception.AwsUsageContextLookupException;
 import com.redhat.swatch.aws.exception.DefaultApiException;
 import com.redhat.swatch.aws.exception.SubscriptionCanNotBeDeterminedException;
+import com.redhat.swatch.aws.exception.SubscriptionMissingBillingAccountIdException;
 import com.redhat.swatch.aws.exception.SubscriptionRecentlyTerminatedException;
 import com.redhat.swatch.aws.exception.UsageTimestampOutOfBoundsException;
 import com.redhat.swatch.clients.contracts.api.model.AwsUsageContext;
@@ -81,8 +82,8 @@ public class AwsBillableUsageAggregateConsumer {
   private final Optional<Boolean> isDryRun;
   private final Duration awsUsageWindow;
   private final BillableUsageStatusProducer billableUsageStatusProducer;
-  private final MeterProvider<Counter> meteredTotalCounter;
   private final FeatureFlags featureFlags;
+  private final MeterProvider<Counter> meteredTotalCounter;
 
   public AwsBillableUsageAggregateConsumer(
       MeterRegistry meterRegistry,
@@ -156,6 +157,10 @@ public class AwsBillableUsageAggregateConsumer {
           billableUsageAggregate, BillableUsage.ErrorCode.SUBSCRIPTION_TERMINATED);
       log.info("Subscription recently terminated for aggregate={}", billableUsageAggregate, e);
       return;
+    } catch (SubscriptionMissingBillingAccountIdException e) {
+      emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.USAGE_CONTEXT_LOOKUP);
+      log.warn("Subscription missing billingAccountId for aggregate={}", billableUsageAggregate, e);
+      return;
     } catch (AwsUsageContextLookupException e) {
       emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.USAGE_CONTEXT_LOOKUP);
       log.error("Error looking up aws usage context for aggregate={}", billableUsageAggregate, e);
@@ -204,18 +209,25 @@ public class AwsBillableUsageAggregateConsumer {
   public AwsUsageContext lookupAwsUsageContext(BillableUsageAggregate billableUsageAggregate)
       throws AwsUsageContextLookupException {
     try {
+      String licenseId = featureFlags.useLicense() ? billableUsageAggregate.getLicenseId() : null;
       return contractsApi.getAwsUsageContext(
           billableUsageAggregate.getWindowTimestamp(),
           billableUsageAggregate.getAggregateKey().getProductId(),
           billableUsageAggregate.getAggregateKey().getOrgId(),
           billableUsageAggregate.getAggregateKey().getSla(),
           billableUsageAggregate.getAggregateKey().getUsage(),
-          billableUsageAggregate.getAggregateKey().getBillingAccountId());
+          billableUsageAggregate.getAggregateKey().getBillingAccountId(),
+          licenseId);
     } catch (DefaultApiException e) {
       if (ofNullable(e.getError())
           .map(error -> "CONTRACTS1005".equals(error.getCode()))
           .orElse(false)) {
         throw new SubscriptionRecentlyTerminatedException(e);
+      }
+      if (ofNullable(e.getError())
+          .map(error -> "CONTRACTS1006".equals(error.getCode()))
+          .orElse(false)) {
+        throw new SubscriptionMissingBillingAccountIdException(e);
       }
       if (Response.Status.NOT_FOUND.getStatusCode() == e.getResponse().getStatus()) {
         throw new SubscriptionCanNotBeDeterminedException(e);
@@ -256,7 +268,7 @@ public class AwsBillableUsageAggregateConsumer {
               result -> {
                 if (result.status() == UsageRecordResultStatus.CUSTOMER_NOT_SUBSCRIBED) {
                   log.warn(
-                      "No subscription found for aggregate={}, result={}",
+                      "AWS BatchMeterUsage CUSTOMER_NOT_SUBSCRIBED (No subscription found) for aggregate={}, result={}",
                       billableUsageAggregate,
                       result);
                 } else if (result.status() != UsageRecordResultStatus.SUCCESS) {
@@ -311,35 +323,37 @@ public class AwsBillableUsageAggregateConsumer {
           "Unable to send usage since it is outside of the AWS processing window");
     }
 
-    UsageRecord.Builder recordBuilder =
+    UsageRecord.Builder usageRecord =
         UsageRecord.builder()
+            .customerAWSAccountId(context.getCustomerAwsAccountId())
             .dimension(metric.getAwsDimension())
             .quantity(billableUsageAggregate.getTotalValue().intValueExact())
             .timestamp(effectiveTimestamp.toInstant());
 
-    applyCustomerIdentification(recordBuilder, context);
+    applyLicenseArnIfEnabled(usageRecord, billableUsageAggregate);
 
-    return recordBuilder.build();
+    return usageRecord.build();
   }
 
-  private void applyCustomerIdentification(
-      UsageRecord.Builder recordBuilder, AwsUsageContext context) {
-    if (!featureFlags.useCustomerAwsAccountId()) {
-      recordBuilder.customerIdentifier(context.getCustomerId());
+  private void applyLicenseArnIfEnabled(
+      UsageRecord.Builder usageRecord, BillableUsageAggregate billableUsageAggregate) {
+    if (!featureFlags.useLicense()) {
+      log.debug(
+          "use-license flag off; omitting LicenseArn for aggregateId={}",
+          billableUsageAggregate.getAggregateId());
       return;
     }
 
-    String customerAwsAccountId = context.getCustomerAwsAccountId();
-    if (customerAwsAccountId != null) {
-      recordBuilder.customerAWSAccountId(customerAwsAccountId);
+    String licenseId = billableUsageAggregate.getLicenseId();
+    if (licenseId == null || licenseId.isBlank()) {
+      log.warn(
+          "use-license is enabled but licenseId is missing; omitting LicenseArn"
+              + " for aggregateId={}",
+          billableUsageAggregate.getAggregateId());
       return;
     }
 
-    log.warn(
-        "customerAwsAccountId missing; falling back to customerIdentifier rhSubscriptionId={} awsCustomerId={}",
-        context.getRhSubscriptionId(),
-        context.getCustomerId());
-    recordBuilder.customerIdentifier(context.getCustomerId());
+    usageRecord.licenseArn(licenseId);
   }
 
   private boolean isForAws(BillableUsageAggregateKey aggregationKey) {

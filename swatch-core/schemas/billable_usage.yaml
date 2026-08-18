@@ -82,3 +82,7 @@ properties:
   currentTotal:
     description: Sum of all measurements between the start of the month to the snapshot date.
     type: number
+  license_id:
+    description: License ID to use for billing
+    type: string
+    nullable: true

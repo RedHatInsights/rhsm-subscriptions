@@ -22,6 +22,7 @@ package tests;
 
 import static com.redhat.swatch.component.tests.utils.DateUtils.assertDatesAreEqual;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import domain.Subscription;
@@ -37,15 +38,24 @@ public class SubscriptionsTerminationComponentTest extends BaseContractComponent
   @Test
   void shouldTerminateSubscriptionWithTimestamp() {
     Subscription subscription = givenActiveSubscription();
-    OffsetDateTime terminationDate =
-        OffsetDateTime.now().plusDays(1).withHour(23).withMinute(59).withSecond(59).withNano(0);
+    int initialCapacity = givenCapacityIsIncreased(subscription);
+
+    OffsetDateTime terminationDate = OffsetDateTime.now().withNano(0).minusHours(1);
 
     Response response = service.terminateSubscription(subscription, terminationDate);
     assertEquals(HttpStatus.SC_OK, response.statusCode());
 
-    service
-        .getSubscriptionsByOrgId(orgId)
-        .forEach(s -> assertDatesAreEqual(terminationDate, s.getEndDate()));
+    var terminatedSubscription =
+        service.getSubscriptionsByOrgId(orgId).stream()
+            .filter(s -> subscription.getSubscriptionId().equals(s.getSubscriptionId()))
+            .findFirst()
+            .orElse(null);
+    assertNotNull(
+        terminatedSubscription, "Terminated subscription should remain in subscription table");
+    assertDatesAreEqual(terminationDate, terminatedSubscription.getEndDate());
+
+    int remainingCapacity = thenCapacityIsDecreased(subscription, initialCapacity);
+    assertEquals(0, remainingCapacity, "Active subscription capacity should drop to zero");
   }
 
   private Subscription givenActiveSubscription() {

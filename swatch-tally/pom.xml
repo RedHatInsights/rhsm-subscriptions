@@ -14,7 +14,7 @@
   <name>SWATCH - Services - Tally</name>
 
   <properties>
-    <java.version>21</java.version>
+    <java.version>25</java.version>
     <maven.compiler.release>${java.version}</maven.compiler.release>
     <tally_api_spec_file>${maven.multiModuleProjectDirectory}/src/main/spec/internal-tally-api-spec.yaml</tally_api_spec_file>
   </properties>
@@ -171,10 +171,6 @@
     <dependency>
       <groupId>org.mapstruct</groupId>
       <artifactId>mapstruct</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.mapstruct</groupId>
-      <artifactId>mapstruct-processor</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>

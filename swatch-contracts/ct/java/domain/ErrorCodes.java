@@ -23,6 +23,7 @@ package domain;
 public final class ErrorCodes {
 
   public static final String SUBSCRIPTION_RECENTLY_TERMINATED_CODE = "CONTRACTS1005";
+  public static final String SUBSCRIPTION_MISSING_BILLING_ACCOUNT_ID_CODE = "CONTRACTS1006";
 
   private ErrorCodes() {}
 }

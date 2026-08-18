@@ -619,3 +619,152 @@ Additional cases can be added under the same `utilization-notifications-featuref
     - Check absence of notification message on notifications topic
 - **Expected Result**:
     - No notification event created
+
+## Customer API access control
+
+**org-preferences-auth-TC001 - User with wildcard subscriptions permission can read org preferences**
+- **Description**: Verify that a User with `subscriptions:*:*` receives HTTP 200 from GET org-preferences under both authorization models.
+- **Setup**:
+  - Prepare x-rh-identity with type=User, org_id, user_id, is_org_admin=false
+  - **RBAC**: stub RBAC to grant `subscriptions:*:*`
+  - **KESSEL**: stub Kessel Check to return `ALLOWED_TRUE` for the test user_id / `subscriptions_report_view` relation; stub workspace resolution
+- **Action**:
+  - GET E1 with the identity header
+- **Verification**:
+  - HTTP 200 under both models
+- **Expected Result**:
+  - Request authorized; identical 200 under RBACv1 and RBACv2
+
+**org-preferences-auth-TC002 - User with reader permission can read org preferences**
+- **Description**: Verify that a User with `subscriptions:reports:read` receives HTTP 200 from GET org-preferences under both authorization models. Both RBAC permission strings (`subscriptions:*:*` and `subscriptions:reports:read`) map to the same Kessel relation `subscriptions_report_view`; this case confirms the reader path specifically. The Kessel stub is intentionally identical to TC001 — the differentiation is exclusively in the RBAC permission string.
+- **Setup**:
+  - Prepare x-rh-identity with type=User, org_id, user_id, is_org_admin=false
+  - **RBAC**: stub RBAC to grant `subscriptions:reports:read`
+  - **KESSEL**: stub Kessel Check to return `ALLOWED_TRUE` for the test user_id / `subscriptions_report_view` relation; stub workspace resolution
+- **Action**:
+  - GET E1 with the identity header
+- **Verification**:
+  - HTTP 200 under both models
+- **Expected Result**:
+  - Reader-level permission sufficient for GET; identical 200 under RBACv1 and RBACv2
+
+**org-preferences-auth-TC003 - User without subscriptions permission is denied GET**
+- **Description**: Verify that a User with no subscriptions permissions receives HTTP 403 from GET org-preferences under both authorization models.
+- **Setup**:
+  - Prepare x-rh-identity with type=User, org_id, user_id, is_org_admin=false
+  - **RBAC**: stub RBAC to return no subscriptions permissions
+  - **KESSEL**: stub Kessel Check to return `ALLOWED_FALSE`; stub workspace resolution
+- **Action**:
+  - GET E1 with the identity header
+- **Verification**:
+  - HTTP 403 under both models
+- **Expected Result**:
+  - Request denied; identical 403 under RBACv1 and RBACv2
+
+**org-preferences-auth-TC004 - User with subscriptions permission but not org_admin is denied POST**
+- **Description**: Verify that a User granted subscriptions access but with `is_org_admin=false` is denied POST org-preferences under both authorization models. POST requires `org_admin`; `customer` is not sufficient.
+- **Setup**:
+  - Prepare x-rh-identity with type=User, org_id, user_id, is_org_admin=false
+  - **RBAC**: stub RBAC to grant `subscriptions:*:*`
+  - **KESSEL**: stub Kessel Check to return `ALLOWED_TRUE`; stub workspace resolution
+- **Action**:
+  - POST E2 with the identity header
+- **Verification**:
+  - HTTP 403 under both models
+- **Expected Result**:
+  - `customer` role not sufficient for POST; identical 403 under RBACv1 and RBACv2
+
+**org-preferences-auth-TC005 - org_admin without subscriptions permission: POST allowed, GET denied**
+- **Description**: Verify the `org_admin`/`customer` role boundary in one scenario. A User with `is_org_admin=true` but no subscriptions permissions can POST (`org_admin` is identity-derived) but cannot GET (`org_admin` does not grant `customer`). RBAC and Kessel return no permissions; the access difference comes from the identity header alone.
+- **Setup**:
+  - Prepare x-rh-identity with type=User, org_id, user_id, is_org_admin=true
+  - **RBAC**: stub RBAC to return no subscriptions permissions
+  - **KESSEL**: stub Kessel Check to return `ALLOWED_FALSE`; stub workspace resolution
+- **Action**:
+  - POST E2 with the identity header
+  - GET E1 with the identity header
+- **Verification**:
+  - HTTP 200 for POST (org_admin grants write)
+  - HTTP 403 for GET (org_admin does not grant read)
+- **Expected Result**:
+  - Role boundaries correctly enforced; identical behavior under RBACv1 and RBACv2
+
+**org-preferences-auth-TC006 - Service role can access both endpoints**
+- **Description**: Verify that PSK-authenticated service calls receive HTTP 200 from both endpoints. The `service` role is granted by the PSK mechanism and bypasses RBAC and Kessel entirely.
+- **Setup**:
+  - Authenticate via `x-rh-swatch-psk` with valid PSK; supply x-rh-identity for org_id resolution
+  - No RBAC or Kessel stub required
+- **Action**:
+  - GET E1 with PSK auth
+  - POST E2 with PSK auth
+- **Verification**:
+  - HTTP 200 for both
+- **Expected Result**:
+  - `service` role bypasses both authorization backends; both endpoints accessible
+
+**org-preferences-auth-TC007 - ServiceAccount with subscriptions permission can read org preferences**
+- **Description**: Verify that a ServiceAccount identity granted subscriptions access receives HTTP 200 from GET org-preferences under both authorization models. Kessel resolves the ServiceAccount principal ID from `client_id`, not `user_id` — this tests that code path specifically.
+- **Setup**:
+  - Prepare x-rh-identity with type=ServiceAccount, org_id, client_id
+  - **RBAC**: stub RBAC to grant `subscriptions:*:*` for the ServiceAccount
+  - **KESSEL**: stub Kessel Check to return `ALLOWED_TRUE` for the client_id principal / `subscriptions_report_view` relation; stub workspace resolution
+- **Action**:
+  - GET E1 with the identity header
+- **Verification**:
+  - HTTP 200 under both models
+- **Expected Result**:
+  - ServiceAccount principal ID resolved correctly under RBACv1 and RBACv2; identical 200
+
+**org-preferences-auth-TC008 - ServiceAccount without subscriptions permission is denied**
+- **Description**: Verify that a ServiceAccount with no subscriptions permissions is denied access to both endpoints under both authorization models. ServiceAccount identity cannot carry the `org_admin` role (it is only derivable from `is_org_admin=true` in a User identity header); POST denial is structural, not permission-based.
+- **Setup**:
+  - Prepare x-rh-identity with type=ServiceAccount, org_id, client_id
+  - **RBAC**: stub RBAC to return no subscriptions permissions
+  - **KESSEL**: stub Kessel Check to return `ALLOWED_FALSE` for the client_id principal; stub workspace resolution
+- **Action**:
+  - GET E1 and POST E2 with the identity header
+- **Verification**:
+  - HTTP 403 for both endpoints under both models
+- **Expected Result**:
+  - ServiceAccount denial identical under RBACv1 and RBACv2
+
+**org-preferences-auth-TC009 - Kessel unavailable falls back to denial**
+- **Description**: Verify fail-closed behavior: when the Kessel service is unreachable and the Unleash flag is ON, access is denied rather than granted. KESSEL model only.
+- **Setup**:
+  - Prepare x-rh-identity with type=User, org_id, user_id, is_org_admin=false
+  - Unleash flag ON
+  - Stub workspace resolution to succeed (`GET /api/rbac/v2/workspaces/?type=default` returns valid workspace)
+  - Do not stub (or stub to return gRPC error for) the Kessel Check endpoint
+- **Action**:
+  - GET E1 with the identity header
+- **Verification**:
+  - HTTP 403
+- **Expected Result**:
+  - Access denied when Kessel is unavailable (fail-closed)
+
+**org-preferences-auth-TC010 - Associate identity is denied both endpoints**
+- **Description**: Verify that a Red Hat Associate identity is denied access to both endpoints. Associates receive only the `support` role via `RolesAugmentor`; neither RBAC nor Kessel is invoked for them. `support` is not in the allowed roles for either endpoint.
+- **Setup**:
+  - Not parameterized — run once; Unleash flag state does not affect the result
+  - Prepare x-rh-identity with type=Associate, associate.email
+  - No RBAC or Kessel stub required (augmentors are not invoked for Associate identities)
+- **Action**:
+  - GET E1 with the identity header
+  - POST E2 with the identity header
+- **Verification**:
+  - HTTP 403 for both endpoints
+- **Expected Result**:
+  - Associate identity denied regardless of Unleash flag state; RBAC and Kessel are not called
+
+**org-preferences-auth-TC011 - RBAC unavailable falls back to denial**
+- **Description**: Verify fail-closed behavior for the RBAC code path: when the RBAC service is unreachable and the Unleash flag is OFF, `RbacRolesAugmentor` catches the exception, returns the identity without the `customer` role, and access is denied. RBAC model only.
+- **Setup**:
+  - Prepare x-rh-identity with type=User, org_id, user_id, is_org_admin=false
+  - Unleash flag OFF
+  - Do not stub (or stub to return an error for) the RBAC access endpoint
+- **Action**:
+  - GET E1 with the identity header
+- **Verification**:
+  - HTTP 403
+- **Expected Result**:
+  - Access denied when RBAC is unavailable (fail-closed); symmetric behavior to TC009

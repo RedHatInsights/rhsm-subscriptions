@@ -15,7 +15,7 @@
   <packaging>quarkus</packaging>
 
   <properties>
-    <java.version>21</java.version>
+    <java.version>25</java.version>
     <maven.compiler.release>${java.version}</maven.compiler.release>
   </properties>
 
@@ -77,12 +77,8 @@
       <artifactId>jakarta.validation-api</artifactId>
     </dependency>
     <dependency>
-      <groupId>io.quarkiverse.logging.splunk</groupId>
-      <artifactId>quarkus-logging-splunk</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.splunk.logging</groupId>
-      <artifactId>splunk-library-javalogging</artifactId>
+      <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-common-logging</artifactId>
     </dependency>
     <dependency>
       <groupId>io.quarkiverse.unleash</groupId>

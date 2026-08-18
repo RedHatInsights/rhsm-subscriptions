@@ -307,7 +307,7 @@ public class ContractService {
       if (matchingUpdatedContract == null) {
         log.info(
             "Deleting contract that does not align to IT partner gateway: {}", existingContract);
-        contractRepository.delete(existingContract);
+        detachAndDeleteContract(existingContract);
         hasDeletedContracts = true;
       } else {
         if (!matchingUpdatedContract.equals(existingContract)) {
@@ -460,24 +460,23 @@ public class ContractService {
     StatusResponse statusResponse = new StatusResponse();
 
     try {
-      Set<String> upstreamBillingProviderIds = new HashSet<>();
+      Set<ContractEntity.ContractIdentity> upstreamContracts = new HashSet<>();
       int totalPages = 1;
       for (int pageNumber = 0; pageNumber < totalPages; pageNumber++) {
-        var result = syncContractsByOrgId(contractOrgSync, pageNumber, upstreamBillingProviderIds);
+        var result = syncContractsByOrgId(contractOrgSync, pageNumber, upstreamContracts);
         if (result.getPage() != null && result.getPage().getTotalPages() != null) {
           totalPages = result.getPage().getTotalPages();
         }
       }
 
-      terminateContractsOrphanedByBillingProviders(contractOrgSync, upstreamBillingProviderIds);
+      terminateContractsOrphanedByBillingProviders(contractOrgSync, upstreamContracts);
 
-      if (!upstreamBillingProviderIds.isEmpty()) {
+      if (!upstreamContracts.isEmpty()) {
         statusResponse.setMessage("Contracts Synced for " + contractOrgSync);
-        statusResponse.setStatus(SUCCESS_MESSAGE);
       } else {
         statusResponse.setMessage("No contracts found in upstream for the org " + contractOrgSync);
-        statusResponse.setStatus(FAILURE_MESSAGE);
       }
+      statusResponse.setStatus(SUCCESS_MESSAGE);
     } catch (NumberFormatException e) {
       log.error(e.getMessage());
       statusResponse.setStatus(FAILURE_MESSAGE);
@@ -493,14 +492,13 @@ public class ContractService {
   }
 
   private void terminateContractsOrphanedByBillingProviders(
-      String orgId, Set<String> upstreamBillingProviderIds) {
+      String orgId, Set<ContractEntity.ContractIdentity> upstreamContracts) {
     var now = OffsetDateTime.now();
 
     Specification<ContractEntity> spec =
         ContractEntity.orgIdEquals(orgId)
             .and(ContractEntity.activeOn(now))
-            .and(ContractEntity.billingProviderIdNullOrNotIn(upstreamBillingProviderIds));
-
+            .and(ContractEntity.orphanedByUpstreamContracts(upstreamContracts));
     var orphanedContracts = contractRepository.findContracts(spec).toList();
 
     if (!orphanedContracts.isEmpty()) {
@@ -509,7 +507,6 @@ public class ContractService {
           orphanedContracts.size(),
           orgId);
       orphanedContracts.forEach(contract -> terminateContract(contract, now));
-
       orphanedContracts.forEach(contract -> terminateActiveSubscriptionsForContract(contract, now));
     }
   }
@@ -565,7 +562,8 @@ public class ContractService {
   }
 
   private PartnerEntitlements syncContractsByOrgId(
-      String orgId, int pageNumber, Set<String> upstreamBillingProviderIds) throws ApiException {
+      String orgId, int pageNumber, Set<ContractEntity.ContractIdentity> upstreamContracts)
+      throws ApiException {
     PageRequest page = new PageRequest();
     page.setSize(PAGE_SIZE);
     page.setNumber(pageNumber);
@@ -579,7 +577,8 @@ public class ContractService {
             && ContractSourcePartnerEnum.isSupported(entitlement.getSourcePartner())) {
           String bpId = contractEntityMapper.extractBillingProviderId(entitlement);
           if (bpId != null) {
-            upstreamBillingProviderIds.add(bpId);
+            upstreamContracts.add(
+                new ContractEntity.ContractIdentity(bpId, findSubscriptionNumber(entitlement)));
             tryUpsertPartnerContract(entitlement);
           } else {
             log.warn(
@@ -677,16 +676,37 @@ public class ContractService {
    * @return existing contract record, or null
    */
   private List<ContractEntity> findExistingContractRecords(ContractEntity contract) {
-    Specification<ContractEntity> specification;
+    Specification<ContractEntity> specification = ContractEntity.orgIdEquals(contract.getOrgId());
     if (contract.getBillingProvider().startsWith("aws")) {
-      specification = ContractEntity.billingProviderIdEquals(contract.getBillingProviderId());
+      specification =
+          specification.and(
+              ContractEntity.billingProviderIdEquals(contract.getBillingProviderId()));
+      // AWS contracts can share billingProviderId with different subscriptionNumbers. Scope by
+      // subscription number when present so syncing one does not delete the other. Null
+      // subscription number keeps legacy billingProviderId-only lookup.
+      if (contract.getSubscriptionNumber() != null) {
+        specification =
+            specification.and(
+                ContractEntity.subscriptionNumberEquals(contract.getSubscriptionNumber()));
+      }
     } else if (contract.getBillingProvider().startsWith("azure")) {
-      specification = ContractEntity.azureResourceIdEquals(contract.getAzureResourceId());
+      specification =
+          specification.and(ContractEntity.azureResourceIdEquals(contract.getAzureResourceId()));
     } else {
       throw new UnsupportedOperationException(
           String.format("Billing provider %s not implemented", contract.getBillingProvider()));
     }
     return contractRepository.findContracts(specification).toList();
+  }
+
+  private void detachAndDeleteContract(ContractEntity existingContract) {
+    UUID uuid = existingContract.getUuid();
+    var entityManager = contractRepository.getEntityManager();
+    if (entityManager.contains(existingContract)) {
+      entityManager.detach(existingContract);
+    }
+
+    contractRepository.delete("uuid", uuid);
   }
 
   private List<ContractEntity> mapUpstreamContractToContractEntities(

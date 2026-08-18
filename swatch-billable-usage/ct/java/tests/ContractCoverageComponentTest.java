@@ -26,31 +26,29 @@ import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import api.MessageValidators;
 import com.redhat.swatch.billable.usage.openapi.model.MonthlyRemittance;
 import com.redhat.swatch.billable.usage.openapi.model.TallyRemittance;
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
+import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import domain.BillingProvider;
+import domain.ContractStub;
 import domain.RemittanceStatus;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
-import org.awaitility.Awaitility;
+import java.util.Map;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.TallySummary;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-/**
- * Component tests for contract coverage integration with swatch-contracts (mocked via Wiremock).
- *
- * <p>See {@code swatch-billable-usage/TEST_PLAN.md} — Contract Coverage (TC001–TC008).
- */
 public class ContractCoverageComponentTest extends BaseBillableUsageComponentTest {
 
   private static final MetricId INSTANCE_HOURS = MetricIdUtils.getInstanceHours();
@@ -75,8 +73,8 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
 
     whenRosaTallyIsPublished(CORES.toString(), 20.0, OffsetDateTime.now(ZoneOffset.UTC));
 
-    thenEventuallyAccountRemittanceEquals(ROSA.getName(), CORES.toString(), 0.0);
-    thenEventuallyNoBillableUsageKafkaMessage(ROSA.getName());
+    thenAccountRemittanceEquals(ROSA.getName(), CORES.toString(), 0.0);
+    thenNoBillableUsageKafkaMessage(ROSA.getName());
   }
 
   @Test
@@ -89,7 +87,7 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
     whenRosaTallyIsPublished(
         INSTANCE_HOURS.toString(), currentTotal, OffsetDateTime.now(ZoneOffset.UTC));
 
-    thenEventuallyAccountRemittanceEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 0.0);
+    thenAccountRemittanceEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 0.0);
   }
 
   @Test
@@ -102,9 +100,9 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
     TallySummary tallySummary =
         whenRosaTallyIsPublished(
             INSTANCE_HOURS.toString(), currentTotal, OffsetDateTime.now(ZoneOffset.UTC));
-    String tallyId = tallySummary.getTallySnapshots().get(0).getId().toString();
+    String tallyId = tallySummary.getTallySnapshots().getFirst().getId().toString();
 
-    thenEventuallyTallyRemittancePendingValueEquals(tallyId, 1.0);
+    thenTallyRemittancePendingValueEquals(tallyId, 1.0);
   }
 
   @Test
@@ -116,9 +114,9 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
     TallySummary tallySummary =
         whenRosaTallyIsPublished(
             INSTANCE_HOURS.toString(), currentTotal, OffsetDateTime.now(ZoneOffset.UTC));
-    String tallyId = tallySummary.getTallySnapshots().get(0).getId().toString();
+    String tallyId = tallySummary.getTallySnapshots().getFirst().getId().toString();
 
-    thenEventuallyTallyRemittancePendingValueEquals(tallyId, currentTotal);
+    thenTallyRemittancePendingValueEquals(tallyId, currentTotal);
   }
 
   @Test
@@ -129,10 +127,10 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
 
     TallySummary tallySummary =
         whenAnsibleTallyIsPublished(usageValue, ANSIBLE_GRATIS_SNAPSHOT_DATE);
-    String tallyId = tallySummary.getTallySnapshots().get(0).getId().toString();
+    String tallyId = tallySummary.getTallySnapshots().getFirst().getId().toString();
 
-    thenEventuallyTallyRemittanceStatusEquals(tallyId, RemittanceStatus.GRATIS);
-    thenEventuallyNoBillableUsageKafkaMessage(ANSIBLE_AAP_MANAGED.getName());
+    thenTallyRemittanceStatusEquals(tallyId, RemittanceStatus.GRATIS);
+    thenNoBillableUsageKafkaMessage(ANSIBLE_AAP_MANAGED.getName());
   }
 
   @Test
@@ -143,10 +141,10 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
 
     TallySummary tallySummary =
         whenAnsibleTallyIsPublished(usageValue, ANSIBLE_NEXT_MONTH_SNAPSHOT_DATE);
-    String tallyId = tallySummary.getTallySnapshots().get(0).getId().toString();
+    String tallyId = tallySummary.getTallySnapshots().getFirst().getId().toString();
 
-    thenEventuallyTallyRemittanceStatusEquals(tallyId, RemittanceStatus.PENDING);
-    thenEventuallyBillableUsageKafkaMessageEmitted(ANSIBLE_AAP_MANAGED.getName(), usageValue);
+    thenTallyRemittanceStatusEquals(tallyId, RemittanceStatus.PENDING);
+    thenBillableUsageKafkaMessageEmitted(ANSIBLE_AAP_MANAGED.getName(), usageValue);
   }
 
   @Test
@@ -159,7 +157,7 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
 
     whenRosaTallyIsPublished(CORES.toString(), currentTotal, OffsetDateTime.now(ZoneOffset.UTC));
 
-    thenEventuallyAccountRemittanceEquals(ROSA.getName(), CORES.toString(), 0.0);
+    thenAccountRemittanceEquals(ROSA.getName(), CORES.toString(), 0.0);
   }
 
   @Test
@@ -169,12 +167,182 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
 
     whenRosaTallyIsPublished(CORES.toString(), 8.0, OffsetDateTime.now(ZoneOffset.UTC));
 
-    thenEventuallyAccountRemittanceEquals(ROSA.getName(), CORES.toString(), 0.0);
-    thenEventuallyNoBillableUsageKafkaMessage(ROSA.getName());
+    thenAccountRemittanceEquals(ROSA.getName(), CORES.toString(), 0.0);
+    thenNoBillableUsageKafkaMessage(ROSA.getName());
+  }
+
+  @Test
+  @TestPlanName("billable-usage-contract-coverage-TC009")
+  void shouldSkipRemittanceWhenUsageWithinMultiContractCoverage() {
+    String awsDimension = ROSA.getMetric(INSTANCE_HOURS).getAwsDimension();
+    OffsetDateTime end = OffsetDateTime.now(ZoneOffset.UTC).plusYears(1);
+    givenContracts(
+        ROSA.getName(),
+        List.of(
+            new ContractStub(
+                OffsetDateTime.now(ZoneOffset.UTC).minusMonths(2),
+                end,
+                Map.of(awsDimension, 3.0),
+                "arn:aws:license-manager:1:license:a"),
+            new ContractStub(
+                OffsetDateTime.now(ZoneOffset.UTC).minusMonths(1),
+                end,
+                Map.of(awsDimension, 3.0),
+                "arn:aws:license-manager:1:license:b")));
+
+    whenRosaTallyIsPublished(INSTANCE_HOURS.toString(), 5.0, OffsetDateTime.now(ZoneOffset.UTC));
+
+    thenAccountRemittanceEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 0.0);
+    // TODO(SWATCH-5443): restore once zero remitted value no longer emits BillableUsage to Kafka
+    // thenNoBillableUsageKafkaMessage(ROSA.getName());
+  }
+
+  @Test
+  @TestPlanName("billable-usage-contract-coverage-TC010")
+  void shouldStampNewestLicenseIdWhenUsageExceedsCoverage() {
+    String awsDimension = ROSA.getMetric(INSTANCE_HOURS).getAwsDimension();
+    String newerLicense = "arn:aws:license-manager:1:license:newer";
+    OffsetDateTime end = OffsetDateTime.now(ZoneOffset.UTC).plusYears(1);
+    givenContracts(
+        ROSA.getName(),
+        List.of(
+            new ContractStub(
+                OffsetDateTime.now(ZoneOffset.UTC).minusMonths(2),
+                end,
+                Map.of(awsDimension, 2.0),
+                "arn:aws:license-manager:1:license:older"),
+            new ContractStub(
+                OffsetDateTime.now(ZoneOffset.UTC).minusMonths(1),
+                end,
+                Map.of(awsDimension, 2.0),
+                newerLicense)));
+
+    TallySummary tallySummary =
+        whenRosaTallyIsPublished(
+            INSTANCE_HOURS.toString(), 5.0, OffsetDateTime.now(ZoneOffset.UTC));
+    String tallyId = tallySummary.getTallySnapshots().getFirst().getId().toString();
+
+    thenTallyRemittancePendingValueAndLicenseEquals(tallyId, 1.0, newerLicense);
+    thenBillableUsageKafkaMessageWithLicense(ROSA.getName(), 1.0, newerLicense);
+  }
+
+  @Test
+  @TestPlanName("billable-usage-contract-coverage-TC011")
+  void shouldSelectLicensedAgreementWhenMixedWithUnlicensed() {
+    String awsDimension = ROSA.getMetric(INSTANCE_HOURS).getAwsDimension();
+    String licensedId = "arn:aws:license-manager:1:license:only";
+    OffsetDateTime end = OffsetDateTime.now(ZoneOffset.UTC).plusYears(1);
+    givenContracts(
+        ROSA.getName(),
+        List.of(
+            new ContractStub(
+                OffsetDateTime.now(ZoneOffset.UTC).minusMonths(2),
+                end,
+                Map.of(awsDimension, 2.0),
+                licensedId),
+            new ContractStub(
+                OffsetDateTime.now(ZoneOffset.UTC).minusDays(10),
+                end,
+                Map.of(awsDimension, 2.0),
+                null)));
+
+    TallySummary tallySummary =
+        whenRosaTallyIsPublished(
+            INSTANCE_HOURS.toString(), 5.0, OffsetDateTime.now(ZoneOffset.UTC));
+    String tallyId = tallySummary.getTallySnapshots().getFirst().getId().toString();
+
+    thenTallyRemittancePendingValueAndLicenseEquals(tallyId, 1.0, licensedId);
+    thenBillableUsageKafkaMessageWithLicense(ROSA.getName(), 1.0, licensedId);
+  }
+
+  @Test
+  @TestPlanName("billable-usage-contract-coverage-TC012")
+  void shouldBillWhenMixedGratisAndEstablishedAgreements() {
+    // Gratis requires EVERY active agreement to start after month start — not only the newest.
+    String awsDimension = ANSIBLE_AAP_MANAGED.getMetric(MANAGED_NODES).getAwsDimension();
+    OffsetDateTime monthStart = OffsetDateTime.of(2026, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
+    OffsetDateTime end = ANSIBLE_GRATIS_SNAPSHOT_DATE.plusYears(1);
+    String newestLicense = "arn:aws:license-manager:1:license:jan-15";
+    givenContracts(
+        ANSIBLE_AAP_MANAGED.getName(),
+        List.of(
+            new ContractStub(
+                monthStart,
+                end,
+                Map.of(awsDimension, 1.0),
+                "arn:aws:license-manager:1:license:jan-1"),
+            new ContractStub(
+                ANSIBLE_GRATIS_SNAPSHOT_DATE.withDayOfMonth(15),
+                end,
+                Map.of(awsDimension, 1.0),
+                newestLicense)));
+
+    TallySummary tallySummary = whenAnsibleTallyIsPublished(3.0, ANSIBLE_GRATIS_SNAPSHOT_DATE);
+    String tallyId = tallySummary.getTallySnapshots().getFirst().getId().toString();
+
+    thenTallyRemittanceStatusLicenseAndValueEquals(
+        tallyId, RemittanceStatus.PENDING, newestLicense, 1.0);
+    thenBillableUsageKafkaMessageWithLicense(ANSIBLE_AAP_MANAGED.getName(), 1.0, newestLicense);
+  }
+
+  @Test
+  @TestPlanName("billable-usage-contract-coverage-TC013")
+  void shouldMarkGratisWhenAllAgreementsAreGratisEligible() {
+    String awsDimension = ANSIBLE_AAP_MANAGED.getMetric(MANAGED_NODES).getAwsDimension();
+    OffsetDateTime snapshotDate = OffsetDateTime.of(2026, 1, 25, 12, 0, 0, 0, ZoneOffset.UTC);
+    OffsetDateTime end = snapshotDate.plusYears(1);
+    String newestLicense = "arn:aws:license-manager:1:license:jan-20";
+    givenContracts(
+        ANSIBLE_AAP_MANAGED.getName(),
+        List.of(
+            new ContractStub(
+                OffsetDateTime.of(2026, 1, 10, 12, 0, 0, 0, ZoneOffset.UTC),
+                end,
+                Map.of(awsDimension, 1.0),
+                "arn:aws:license-manager:1:license:jan-10"),
+            new ContractStub(
+                OffsetDateTime.of(2026, 1, 20, 12, 0, 0, 0, ZoneOffset.UTC),
+                end,
+                Map.of(awsDimension, 1.0),
+                newestLicense)));
+
+    TallySummary tallySummary = whenAnsibleTallyIsPublished(3.0, snapshotDate);
+    String tallyId = tallySummary.getTallySnapshots().getFirst().getId().toString();
+
+    thenTallyRemittanceStatusLicenseAndValueEquals(
+        tallyId, RemittanceStatus.GRATIS, newestLicense, 1.0);
+    thenNoBillableUsageKafkaMessage(ANSIBLE_AAP_MANAGED.getName());
+  }
+
+  @Test
+  @TestPlanName("billable-usage-contract-coverage-TC014")
+  void shouldSelectLexicographicallySmallerLicenseOnTie() {
+    String awsDimension = ROSA.getMetric(INSTANCE_HOURS).getAwsDimension();
+    String smallerLicense = "arn:aws:license-manager:1:license:a";
+    String largerLicense = "arn:aws:license-manager:1:license:z";
+    OffsetDateTime sameStart = OffsetDateTime.now(ZoneOffset.UTC).minusMonths(1);
+    OffsetDateTime end = OffsetDateTime.now(ZoneOffset.UTC).plusYears(1);
+    givenContracts(
+        ROSA.getName(),
+        List.of(
+            new ContractStub(sameStart, end, Map.of(awsDimension, 2.0), largerLicense),
+            new ContractStub(sameStart, end, Map.of(awsDimension, 2.0), smallerLicense)));
+
+    TallySummary tallySummary =
+        whenRosaTallyIsPublished(
+            INSTANCE_HOURS.toString(), 5.0, OffsetDateTime.now(ZoneOffset.UTC));
+    String tallyId = tallySummary.getTallySnapshots().getFirst().getId().toString();
+
+    thenTallyRemittancePendingValueAndLicenseEquals(tallyId, 1.0, smallerLicense);
+    thenBillableUsageKafkaMessageWithLicense(ROSA.getName(), 1.0, smallerLicense);
   }
 
   private void givenNoContractExistsForRosa() {
     contractsWiremock.setupContractNotFound(orgId, ROSA.getName());
+  }
+
+  private void givenContracts(String productId, List<ContractStub> contracts) {
+    contractsWiremock.setupContracts(orgId, productId, contracts);
   }
 
   private void givenRosaContractWithEmptyMetrics() {
@@ -233,101 +401,131 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
     return tallySummary;
   }
 
-  private void thenEventuallyAccountRemittanceEquals(
+  private void thenAccountRemittanceEquals(
       String productId, String metricId, double expectedRemittedValue) {
-    Awaitility.await()
-        .atMost(Duration.ofSeconds(30))
-        .pollInterval(Duration.ofSeconds(2))
-        .untilAsserted(
-            () -> {
-              List<MonthlyRemittance> remittances =
-                  service.getRemittances(
-                      productId,
-                      orgId,
-                      metricId,
-                      BillingProvider.AWS.toTallyApiModel().value(),
-                      billingAccountId);
-              assertFalse(remittances.isEmpty(), "Expected account remittance response");
-              assertEquals(
-                  expectedRemittedValue,
-                  remittances.get(0).getRemittedValue(),
-                  0.001,
-                  "Account remittance value mismatch");
-            });
+    AwaitilityUtils.untilAsserted(
+        () -> {
+          List<MonthlyRemittance> remittances =
+              service.getRemittances(
+                  productId,
+                  orgId,
+                  metricId,
+                  BillingProvider.AWS.toTallyApiModel().value(),
+                  billingAccountId);
+          assertFalse(remittances.isEmpty(), "Expected account remittance response");
+          assertEquals(
+              expectedRemittedValue,
+              remittances.get(0).getRemittedValue(),
+              0.001,
+              "Account remittance value mismatch");
+        });
   }
 
-  private void thenEventuallyTallyRemittancePendingValueEquals(
+  private void thenTallyRemittancePendingValueEquals(
       String tallyId, double expectedRemittedPendingValue) {
-    Awaitility.await()
-        .atMost(Duration.ofSeconds(30))
-        .pollInterval(Duration.ofSeconds(2))
-        .untilAsserted(
-            () -> {
-              List<TallyRemittance> remittances = service.getRemittancesByTally(tallyId);
-              assertNotNull(remittances, "Remittances should exist for tally " + tallyId);
-              assertEquals(1, remittances.size(), "Expected one remittance for tally " + tallyId);
-              assertEquals(
-                  expectedRemittedPendingValue,
-                  remittances.get(0).getRemittedPendingValue(),
-                  0.001,
-                  "Remitted pending value mismatch");
-            });
+    AwaitilityUtils.untilAsserted(
+        () -> {
+          List<TallyRemittance> remittances = service.getRemittancesByTally(tallyId);
+          assertNotNull(remittances, "Remittances should exist for tally " + tallyId);
+          assertEquals(1, remittances.size(), "Expected one remittance for tally " + tallyId);
+          assertEquals(
+              expectedRemittedPendingValue,
+              remittances.get(0).getRemittedPendingValue(),
+              0.001,
+              "Remitted pending value mismatch");
+        });
   }
 
-  private void thenEventuallyTallyRemittanceStatusEquals(
-      String tallyId, RemittanceStatus expectedStatus) {
-    Awaitility.await()
-        .atMost(Duration.ofSeconds(30))
-        .pollInterval(Duration.ofSeconds(2))
-        .untilAsserted(
-            () -> {
-              List<TallyRemittance> remittances = service.getRemittancesByTally(tallyId);
-              assertNotNull(remittances, "Remittances should exist for tally " + tallyId);
-              assertEquals(1, remittances.size(), "Expected one remittance for tally " + tallyId);
-              assertEquals(
-                  expectedStatus.name(),
-                  remittances.get(0).getStatus(),
-                  "Remittance status mismatch for tally " + tallyId);
-            });
+  private void thenTallyRemittanceStatusEquals(String tallyId, RemittanceStatus expectedStatus) {
+    AwaitilityUtils.untilAsserted(
+        () -> {
+          List<TallyRemittance> remittances = service.getRemittancesByTally(tallyId);
+          assertNotNull(remittances, "Remittances should exist for tally " + tallyId);
+          assertEquals(1, remittances.size(), "Expected one remittance for tally " + tallyId);
+          assertEquals(
+              expectedStatus.name(),
+              remittances.get(0).getStatus(),
+              "Remittance status mismatch for tally " + tallyId);
+        });
   }
 
-  private void thenEventuallyNoBillableUsageKafkaMessage(String productId) {
-    Awaitility.await()
-        .during(Duration.ofSeconds(8))
-        .atMost(Duration.ofSeconds(15))
-        .pollInterval(Duration.ofSeconds(2))
-        .untilAsserted(
-            () ->
-                assertEquals(
-                    0,
-                    kafkaBridge
-                        .waitForKafkaMessage(
-                            BILLABLE_USAGE,
-                            MessageValidators.billableUsageMatches(orgId, productId),
-                            0,
-                            AwaitilitySettings.using(Duration.ofSeconds(1), Duration.ofSeconds(2)))
-                        .size(),
-                    "Expected no billable-usage Kafka message for org/product"));
+  private void thenNoBillableUsageKafkaMessage(String productId) {
+    AwaitilityUtils.untilAsserted(
+        () ->
+            assertEquals(
+                0,
+                kafkaBridge
+                    .waitForKafkaMessage(
+                        BILLABLE_USAGE,
+                        MessageValidators.billableUsageMatches(orgId, productId),
+                        0,
+                        AwaitilitySettings.using(Duration.ofSeconds(1), Duration.ofSeconds(2)))
+                    .size(),
+                "Expected no billable-usage Kafka message for org/product"),
+        AwaitilitySettings.usingTimeout(Duration.ofSeconds(15)));
   }
 
-  private void thenEventuallyBillableUsageKafkaMessageEmitted(
-      String productId, double expectedValue) {
-    Awaitility.await()
-        .atMost(Duration.ofSeconds(60))
-        .pollInterval(Duration.ofSeconds(2))
-        .untilAsserted(
-            () -> {
-              List<BillableUsage> messages =
-                  kafkaBridge.waitForKafkaMessage(
-                      BILLABLE_USAGE,
-                      MessageValidators.billableUsageMatchesWithValue(
-                          orgId, productId, expectedValue),
-                      1,
-                      AwaitilitySettings.using(Duration.ofSeconds(1), Duration.ofSeconds(5)));
-              assertEquals(
+  private void thenBillableUsageKafkaMessageEmitted(String productId, double expectedValue) {
+    thenBillableUsageKafkaMessageWithLicense(productId, expectedValue, null);
+  }
+
+  private void thenTallyRemittancePendingValueAndLicenseEquals(
+      String tallyId, double expectedRemittedPendingValue, String expectedLicenseId) {
+    thenTallyRemittanceStatusLicenseAndValueEquals(
+        tallyId, null, expectedLicenseId, expectedRemittedPendingValue);
+  }
+
+  private void thenTallyRemittanceStatusLicenseAndValueEquals(
+      String tallyId,
+      RemittanceStatus expectedStatus,
+      String expectedLicenseId,
+      double expectedRemittedPendingValue) {
+    AwaitilityUtils.untilAsserted(
+        () -> {
+          List<TallyRemittance> remittances = service.getRemittancesByTally(tallyId);
+          assertNotNull(remittances, "Remittances should exist for tally " + tallyId);
+          assertEquals(1, remittances.size(), "Expected one remittance for tally " + tallyId);
+          assertEquals(
+              expectedRemittedPendingValue,
+              remittances.get(0).getRemittedPendingValue(),
+              0.001,
+              "Remitted pending value mismatch");
+          if (expectedStatus != null) {
+            assertEquals(
+                expectedStatus.name(),
+                remittances.getFirst().getStatus(),
+                "Remittance status mismatch for tally " + tallyId);
+          }
+          String actualLicenseId = remittances.getFirst().getLicenseId();
+          if (expectedLicenseId == null) {
+            assertNull(actualLicenseId, "Expected null licenseId");
+          } else {
+            assertEquals(expectedLicenseId, actualLicenseId, "Remittance licenseId mismatch");
+          }
+        });
+  }
+
+  private void thenBillableUsageKafkaMessageWithLicense(
+      String productId, double expectedValue, String expectedLicenseId) {
+    AwaitilityUtils.untilAsserted(
+        () -> {
+          List<BillableUsage> messages =
+              kafkaBridge.waitForKafkaMessage(
+                  BILLABLE_USAGE,
+                  MessageValidators.billableUsageMatchesWithValue(orgId, productId, expectedValue),
                   1,
-                  messages.size(),
-                  "Expected one billable-usage Kafka message for org/product/value");
-            });
+                  AwaitilitySettings.using(Duration.ofSeconds(1), Duration.ofSeconds(5)));
+          assertEquals(
+              1,
+              messages.size(),
+              "Expected one billable-usage Kafka message for org/product/value");
+          String actualLicenseId = messages.getFirst().getLicenseId();
+          if (expectedLicenseId == null) {
+            assertNull(actualLicenseId, "Expected null licenseId on usage");
+          } else {
+            assertEquals(expectedLicenseId, actualLicenseId, "BillableUsage licenseId mismatch");
+          }
+        },
+        AwaitilitySettings.usingTimeout(Duration.ofSeconds(60)));
   }
 }

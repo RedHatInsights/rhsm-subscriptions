@@ -37,10 +37,15 @@ public class AwsContractRequestMapper extends ContractRequestMapper {
 
   @Override
   protected PartnerIdentityV1 buildPartnerIdentities(Contract contract) {
-    return new PartnerIdentityV1()
-        .awsCustomerId(contract.getCustomerId())
-        .sellerAccountId(contract.getSellerAccountId())
-        .customerAwsAccountId(contract.getBillingAccountId());
+    PartnerIdentityV1 partnerIdentities =
+        new PartnerIdentityV1()
+            .awsCustomerId(contract.getCustomerId())
+            .sellerAccountId(contract.getSellerAccountId())
+            .customerAwsAccountId(contract.getBillingAccountId());
+    if (contract.getLicenseId() != null) {
+      partnerIdentities.licenseArn(contract.getLicenseId());
+    }
+    return partnerIdentities;
   }
 
   @Override
