@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.UUID;
 import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class TallyInstancesBillingAccountIdsTest extends BaseTallyComponentTest {
@@ -60,6 +61,11 @@ class TallyInstancesBillingAccountIdsTest extends BaseTallyComponentTest {
   private static ThreeBillings three;
   private static SharedByTwoEvents shared;
   private static MixedProviderBillings providers;
+
+  @BeforeEach
+  void setUpRbacForTestOrg() {
+    stubRbacAccessForOrg(testOrgId);
+  }
 
   @BeforeAll
   static void setupEvents() {
@@ -229,6 +235,7 @@ class TallyInstancesBillingAccountIdsTest extends BaseTallyComponentTest {
   @TestPlanName("tally-instances-billing-account-TC001")
   void shouldExcludeBillingAccountsWithLastSeenBeforeCurrentMonth() {
     final String isolatedOrg = RandomUtils.generateRandom();
+    stubRbacAccessForOrg(isolatedOrg);
     final String testInventoryId = UUID.randomUUID().toString();
     final String billingAccountId = UUID.randomUUID().toString();
     final OffsetDateTime lastMonthDate =

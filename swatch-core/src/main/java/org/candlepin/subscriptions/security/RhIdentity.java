@@ -41,6 +41,7 @@ public class RhIdentity {
       defaultImpl = InsightsUserPrincipal.class)
   @JsonSubTypes({
     @JsonSubTypes.Type(value = InsightsUserPrincipal.class, name = "User"),
+    @JsonSubTypes.Type(value = InsightsUserPrincipal.class, name = "ServiceAccount"),
     @JsonSubTypes.Type(value = RhAssociatePrincipal.class, name = "Associate"),
     @JsonSubTypes.Type(value = X509Principal.class, name = "X509")
   })

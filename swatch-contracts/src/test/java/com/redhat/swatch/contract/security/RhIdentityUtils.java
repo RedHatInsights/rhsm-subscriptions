@@ -56,7 +56,8 @@ public class RhIdentityUtils {
             {
               "identity": {
                 "type": "User",
-                "org_id": "org123"
+                "org_id": "org123",
+                "user_id": "user123"
               }
             }
             """;

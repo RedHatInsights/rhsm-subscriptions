@@ -279,6 +279,18 @@ public class ContractsSwatchService extends SwatchService {
         .as(SkuCapacityReportV2.class);
   }
 
+  public Response getSkuCapacityByProductId(Product product, Map<String, String> requestHeaders) {
+    Objects.requireNonNull(product, "product must not be null");
+    Objects.requireNonNull(requestHeaders, "requestHeaders must not be null");
+
+    return given()
+        .headers(requestHeaders)
+        .accept("application/vnd.api+json")
+        .pathParam("product_id", product.getName())
+        .when()
+        .get(GET_SKU_CAPACITY_REPORT_V2_ENDPOINT);
+  }
+
   public CapacityReportByMetricId getCapacityReportByMetricId(
       Product product,
       String orgId,

@@ -44,6 +44,21 @@
       <artifactId>rbac-client</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.getunleash</groupId>
+      <artifactId>unleash-client-java</artifactId>
+      <version>10.0.2</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-common-kessel</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.nimbusds</groupId>
+      <artifactId>oauth2-oidc-sdk</artifactId>
+      <version>${oauth2-oidc-sdk.version}</version>
+    </dependency>
+    <dependency>
       <groupId>com.redhat.swatch</groupId>
       <artifactId>swatch-common-clock</artifactId>
     </dependency>
