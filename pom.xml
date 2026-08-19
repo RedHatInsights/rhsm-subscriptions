@@ -46,7 +46,7 @@
     <rest-assured.version>6.0.1</rest-assured.version>
     <kessel-sdk.version>1.9.0</kessel-sdk.version>
     <grpc.version>1.82.2</grpc.version>
-    <oauth2-oidc-sdk.version>11.30.2</oauth2-oidc-sdk.version>
+    <oauth2-oidc-sdk.version>11.38.2</oauth2-oidc-sdk.version>
 
     <!-- Plugins -->
     <compiler-plugin.version>3.15.0</compiler-plugin.version>
