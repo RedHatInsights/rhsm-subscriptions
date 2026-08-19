@@ -22,10 +22,13 @@ package com.redhat.swatch.common.security;
 
 import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
+import java.net.URI;
 import java.util.Optional;
 
 @ConfigMapping(prefix = "swatch.kessel")
 public interface KesselProperties {
+
+  int GRPC_PORT = 9000;
 
   @WithDefault("localhost:9000")
   String endpoint();
@@ -44,4 +47,16 @@ public interface KesselProperties {
   Optional<String> authClientId();
 
   Optional<String> authClientSecret();
+
+  default String resolvedEndpoint() {
+    var ep = endpoint();
+    if (!ep.contains("://")) {
+      return ep;
+    }
+    var host = URI.create(ep).getHost();
+    if (host == null) {
+      throw new IllegalArgumentException("Cannot resolve hostname from Kessel endpoint: " + ep);
+    }
+    return host + ":" + GRPC_PORT;
+  }
 }
