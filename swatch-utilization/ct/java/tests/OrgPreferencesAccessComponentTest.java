@@ -127,8 +127,7 @@ class OrgPreferencesAccessComponentTest extends BaseUtilizationComponentTest {
         "org-preferences endpoint responses",
         () -> assertEquals(HttpStatus.SC_OK, postResponse.statusCode(), "POST org-preferences"),
         () ->
-            assertEquals(
-                HttpStatus.SC_FORBIDDEN, getResponse.statusCode(), "GET org-preferences"));
+            assertEquals(HttpStatus.SC_FORBIDDEN, getResponse.statusCode(), "GET org-preferences"));
   }
 
   @Test
@@ -164,8 +163,7 @@ class OrgPreferencesAccessComponentTest extends BaseUtilizationComponentTest {
   @ParameterizedTest(name = "authorizationModel={0}")
   @EnumSource(AuthorizationModel.class)
   @TestPlanName("org-preferences-auth-TC008")
-  void shouldDenyBothEndpointsWhenServiceAccountHasNoAccess(
-      AuthorizationModel authorizationModel) {
+  void shouldDenyBothEndpointsWhenServiceAccountHasNoAccess(AuthorizationModel authorizationModel) {
     String clientId = RandomUtils.generateRandom();
     var requestHeaders = SwatchUtils.securityHeadersWithServiceAccount(orgId, clientId);
     String identityHeader = requestHeaders.get(X_RH_IDENTITY_HEADER);
@@ -178,8 +176,7 @@ class OrgPreferencesAccessComponentTest extends BaseUtilizationComponentTest {
     assertAll(
         "org-preferences endpoint responses",
         () ->
-            assertEquals(
-                HttpStatus.SC_FORBIDDEN, getResponse.statusCode(), "GET org-preferences"),
+            assertEquals(HttpStatus.SC_FORBIDDEN, getResponse.statusCode(), "GET org-preferences"),
         () ->
             assertEquals(
                 HttpStatus.SC_FORBIDDEN, postResponse.statusCode(), "POST org-preferences"));
@@ -210,8 +207,7 @@ class OrgPreferencesAccessComponentTest extends BaseUtilizationComponentTest {
     assertAll(
         "org-preferences endpoint responses",
         () ->
-            assertEquals(
-                HttpStatus.SC_FORBIDDEN, getResponse.statusCode(), "GET org-preferences"),
+            assertEquals(HttpStatus.SC_FORBIDDEN, getResponse.statusCode(), "GET org-preferences"),
         () ->
             assertEquals(
                 HttpStatus.SC_FORBIDDEN, postResponse.statusCode(), "POST org-preferences"));
