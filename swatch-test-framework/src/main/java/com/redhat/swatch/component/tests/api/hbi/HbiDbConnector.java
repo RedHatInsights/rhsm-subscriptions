@@ -18,11 +18,12 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package utils;
+package com.redhat.swatch.component.tests.api.hbi;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.component.tests.api.db.DatabaseService;
+import com.redhat.swatch.component.tests.api.hbi.HostConnector.SeededHost;
 import com.redhat.swatch.component.tests.logging.Log;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
@@ -38,7 +39,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import utils.HostConnector.SeededHost;
 
 /**
  * HBI database connector - inserts hosts directly into the HBI database.
@@ -64,9 +64,9 @@ public class HbiDbConnector implements HostConnector {
 
   @Override
   public SeededHost seed(Host host) {
+
     verifySchema();
 
-    UUID hostId = UUID.randomUUID();
     UUID insightsId =
         host.getInsightsId() != null ? UUID.fromString(host.getInsightsId()) : UUID.randomUUID();
     OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
@@ -76,11 +76,6 @@ public class HbiDbConnector implements HostConnector {
     OffsetDateTime modifiedOn = host.getModifiedOn() != null ? host.getModifiedOn() : now;
     OffsetDateTime lastCheckIn = host.getLastCheckIn() != null ? host.getLastCheckIn() : now;
 
-    // Auto-generate IDs if not provided
-    String inventoryId =
-        host.getInventoryId() != null
-            ? host.getInventoryId()
-            : "inventory-" + UUID.randomUUID().toString().substring(0, 8);
     String subscriptionManagerId = host.getSubscriptionManagerId(); // Can be null
 
     // Validate sockets before INSERT
@@ -89,12 +84,19 @@ public class HbiDbConnector implements HostConnector {
           "Sockets cannot be 0 (would cause division by zero when calculating cores_per_socket)");
     }
 
+    UUID hostId;
     try (Connection conn = hbiDatabase.getConnection()) {
-      insertHost(conn, hostId, insightsId, host, inventoryId, createdOn, modifiedOn, lastCheckIn);
+      // Insert host and get the database-generated ID
+      hostId = insertHost(conn, insightsId, host, createdOn, modifiedOn, lastCheckIn);
       insertSystemProfile(conn, hostId, host);
     } catch (SQLException e) {
       throw new RuntimeException("Failed to seed host into HBI database", e);
     }
+
+    // Use the host ID as the inventory ID
+    // In HBI, the hosts.id column serves as the inventory identifier.
+    // There is no separate inventory_id column in the schema.
+    String inventoryId = hostId.toString();
 
     return new SeededHost(hostId, inventoryId, subscriptionManagerId, host.getOrgId());
   }
@@ -112,6 +114,19 @@ public class HbiDbConnector implements HostConnector {
       Log.debug("Cleaned up host: %s", hostId);
     } catch (SQLException e) {
       throw new RuntimeException("Failed to cleanup host: " + hostId, e);
+    }
+  }
+
+  @Override
+  public boolean hostExists(UUID hostId) {
+    String sql = "SELECT 1 FROM hbi.hosts WHERE id = ? LIMIT 1";
+    try (Connection conn = hbiDatabase.getConnection();
+        PreparedStatement ps = conn.prepareStatement(sql)) {
+      ps.setObject(1, hostId);
+      var rs = ps.executeQuery();
+      return rs.next();
+    } catch (SQLException e) {
+      throw new RuntimeException("Failed to check if host exists: " + hostId, e);
     }
   }
 
@@ -141,12 +156,10 @@ public class HbiDbConnector implements HostConnector {
     Log.info("HBI schema is ready.");
   }
 
-  private void insertHost(
+  private UUID insertHost(
       Connection conn,
-      UUID hostId,
       UUID insightsId,
       Host host,
-      String inventoryId,
       OffsetDateTime createdOn,
       OffsetDateTime modifiedOn,
       OffsetDateTime lastCheckIn)
@@ -159,30 +172,34 @@ public class HbiDbConnector implements HostConnector {
            created_on, modified_on, last_check_in,
            facts, groups, reporter, reporters)
         VALUES
-          (?, ?, ?, ?, ?, ?,
+          (gen_random_uuid(), ?, ?, ?, ?, ?,
            ?, ?, ?,
            ?::jsonb, ?::jsonb, ?, ?)
+        RETURNING id
         """;
 
     try (PreparedStatement ps = conn.prepareStatement(sql)) {
-      ps.setObject(1, hostId);
-      ps.setString(2, host.getOrgId());
+      ps.setString(1, host.getOrgId());
       ps.setString(
-          3,
-          host.getDisplayName() != null
-              ? host.getDisplayName()
-              : "Test Host " + inventoryId.substring(0, 8));
-      ps.setObject(4, insightsId);
-      ps.setString(5, host.getSubscriptionManagerId());
-      ps.setString(6, host.getProviderId());
-      ps.setObject(7, createdOn);
-      ps.setObject(8, modifiedOn);
-      ps.setObject(9, lastCheckIn);
-      ps.setString(10, buildFactsJson(host));
-      ps.setString(11, "[]"); // groups
-      ps.setString(12, host.getReporter());
-      ps.setArray(13, conn.createArrayOf("varchar", host.getReporters()));
-      ps.executeUpdate();
+          2, host.getDisplayName() != null ? host.getDisplayName() : "Test Host (auto-generated)");
+      ps.setObject(3, insightsId);
+      ps.setString(4, host.getSubscriptionManagerId());
+      ps.setString(5, host.getProviderId());
+      ps.setObject(6, createdOn);
+      ps.setObject(7, modifiedOn);
+      ps.setObject(8, lastCheckIn);
+      ps.setString(9, buildFactsJson(host));
+      ps.setString(10, "[]"); // groups
+      ps.setString(11, host.getReporter());
+      ps.setArray(12, conn.createArrayOf("varchar", host.getReporters()));
+
+      // Execute query and retrieve the database-generated ID
+      var rs = ps.executeQuery();
+      if (!rs.next()) {
+        throw new SQLException("Failed to retrieve generated host ID from database");
+      }
+      UUID hostId = (UUID) rs.getObject("id");
+      return hostId;
     } catch (SQLException e) {
       String errorMessage = "Failed to insert host into hbi.hosts";
       if (e.getMessage() != null && e.getMessage().contains("does not exist")) {
@@ -211,7 +228,7 @@ public class HbiDbConnector implements HostConnector {
         VALUES
           (?, ?, ?, ?, ?,
            ?, ?, ?, ?, ?,
-           ?, ?)
+           ?::uuid, ?)
         """;
 
     try (PreparedStatement ps = conn.prepareStatement(sql)) {

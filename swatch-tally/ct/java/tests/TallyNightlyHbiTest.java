@@ -20,22 +20,21 @@
  */
 package tests;
 
-import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static utils.TallyTestProducts.RHEL_FOR_X86;
 
-import api.MessageValidators;
-import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
+import com.redhat.swatch.component.tests.api.hbi.HbiDbConnector;
+import com.redhat.swatch.component.tests.api.hbi.HostConnector.SeededHost;
+import com.redhat.swatch.component.tests.api.hbi.HostStateManager;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import utils.TallyHbiDbSeeder;
-import utils.TallyHbiDbSeeder.SeededHost;
 
 /**
  * Component tests for nightly tally with HBI database integration.
@@ -44,27 +43,24 @@ import utils.TallyHbiDbSeeder.SeededHost;
  *
  * <ol>
  *   <li>Insert host into HBI database
- *   <li>Send HBI Kafka event (simulating swatch-metrics-hbi)
- *   <li>Verify swatch-tally syncs the host
- *   <li>Run nightly tally
+ *   <li>Run nightly tally (reads from HBI)
  *   <li>Verify tally results
  * </ol>
  */
 public class TallyNightlyHbiTest extends BaseTallyComponentTest {
 
-  private TallyHbiDbSeeder hbiSeeder;
+  private HostStateManager hostManager;
+  private static final String RHEL_PRODUCT_ID = "69";
 
   @BeforeEach
-  void setupHbiSeeder() {
-    // Initialize HBI seeder with database service (auto-configured for local/OpenShift)
-    hbiSeeder = new TallyHbiDbSeeder(hbiDatabase);
+  void setupHostManager() {
+    hostManager = new HostStateManager(new HbiDbConnector(hbiDatabase));
   }
 
   @AfterEach
-  void cleanupHbiHosts() {
-    // Rollback: delete all HBI hosts inserted during test
-    if (hbiSeeder != null) {
-      hbiSeeder.deleteAllInsertedHosts();
+  void cleanupHosts() {
+    if (hostManager != null) {
+      hostManager.cleanupAll();
     }
   }
 
@@ -81,19 +77,38 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
     // Given: No specific setup needed beyond @BeforeEach
 
     // When: Inserting a RHEL host into HBI database
-    SeededHost host = hbiSeeder.insertRhelHost(orgId);
+    SeededHost host = hostManager.createRhsmHost(orgId).physicalRhel1Socket0Cores().insert();
 
     // Then: Host is tracked with expected metadata
     assertNotNull(host.hostId(), "Host ID should be generated");
-    assertTrue(
-        host.inventoryId().startsWith("test-inventory-id"),
-        "Inventory ID should have expected prefix");
-    assertTrue(
-        host.subscriptionManagerId().startsWith("test-subman-id"),
-        "Subscription manager ID should have expected prefix");
     assertEquals(orgId, host.orgId(), "Org ID should match");
-    assertEquals(1, hbiSeeder.getInsertedHostCount(), "Seeder should track one host");
-    assertTrue(hbiSeeder.hostExists(host.hostId()), "Host should exist in HBI database");
+    assertEquals(1, hostManager.getTrackedCount(), "Seeder should track one host");
+    assertTrue(hostManager.hostExists(host.hostId()), "Host should exist in HBI database");
+  }
+
+  @Test
+  void testCanInsertMultipleHosts() {
+    // Given: No specific setup needed beyond @BeforeEach
+
+    // When: Inserting multiple hosts into HBI database
+    SeededHost host1 = hostManager.createRhsmHost(orgId).physicalRhel1Socket0Cores().insert();
+
+    SeededHost host2 =
+        hostManager
+            .createRhsmHost(orgId)
+            .infrastructureType("physical")
+            .arch("x86_64")
+            .rhsmFact("IS_VIRTUAL", "false")
+            .rhsmFact("RH_PROD", List.of(RHEL_PRODUCT_ID))
+            .rhsmFact("ARCHITECTURE", "x86_64")
+            .sockets(1)
+            .cores(0)
+            .displayName("Test Host - 1")
+            .insert();
+
+    // Then: Hosts are tracked with expected metadata
+    assertNotNull(host1.hostId(), "Host ID should be generated");
+    assertNotNull(host2.hostId(), "Host ID should be generated");
   }
 
   /**
@@ -106,15 +121,15 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
   @Test
   void testHbiSeederCanDelete() {
     // Given: A host is inserted into HBI database
-    SeededHost host = hbiSeeder.insertRhelHost(orgId);
+    SeededHost host = hostManager.createRhsmHost(orgId).physicalRhel1Socket0Cores().insert();
     assertNotNull(host.hostId(), "Host ID should be generated");
 
     // When: Deleting the host
-    hbiSeeder.deleteHost(host.hostId());
+    hostManager.cleanup(host.hostId());
 
     // Then: Host is removed from tracking and database
-    assertEquals(0, hbiSeeder.getInsertedHostCount(), "Seeder should track zero hosts");
-    assertFalse(hbiSeeder.hostExists(host.hostId()), "Host should not exist in HBI database");
+    assertEquals(0, hostManager.getTrackedCount(), "Seeder should track zero hosts");
+    assertFalse(hostManager.hostExists(host.hostId()), "Host should not exist in HBI database");
   }
 
   /**
@@ -127,44 +142,39 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
   @Test
   void testHbiSeederRollbackDeletesAllHosts() {
     // Given: Multiple hosts are inserted (mix of RHEL and cloud)
-    SeededHost host1 = hbiSeeder.insertRhelHost(orgId);
-    SeededHost host2 = hbiSeeder.insertCloudHost(orgId);
-    assertEquals(2, hbiSeeder.getInsertedHostCount(), "Seeder should track two hosts");
-    assertTrue(hbiSeeder.hostExists(host1.hostId()), "Host 1 should exist in HBI database");
-    assertTrue(hbiSeeder.hostExists(host2.hostId()), "Host 2 should exist in HBI database");
+    SeededHost host1 = hostManager.createRhsmHost(orgId).insert();
+    SeededHost host2 = hostManager.createRhsmHost(orgId).insert();
+    assertEquals(2, hostManager.getTrackedCount(), "Seeder should track two hosts");
+    assertTrue(hostManager.hostExists(host1.hostId()), "Host 1 should exist in HBI database");
+    assertTrue(hostManager.hostExists(host2.hostId()), "Host 2 should exist in HBI database");
 
     // When: Rolling back all inserted hosts
-    hbiSeeder.deleteAllInsertedHosts();
+    hostManager.cleanupAll();
 
     // Then: All hosts are removed from tracking and database
-    assertEquals(0, hbiSeeder.getInsertedHostCount(), "Seeder should track zero hosts");
-    assertFalse(hbiSeeder.hostExists(host1.hostId()), "Host 1 should not exist in HBI database");
-    assertFalse(hbiSeeder.hostExists(host2.hostId()), "Host 2 should not exist in HBI database");
+    assertEquals(0, hostManager.getTrackedCount(), "Seeder should track zero hosts");
+    assertFalse(hostManager.hostExists(host1.hostId()), "Host 1 should not exist in HBI database");
+    assertFalse(hostManager.hostExists(host2.hostId()), "Host 2 should not exist in HBI database");
   }
 
   /**
    * - **Description**: Verify that we can insert a RHEL product into the the HBI database -
    * **Setup**: Component test environment with swatch-tally is running, an instance of insights db
    * - **Action**: Create a host with a product that is a RHEL product - **Verification**: - verify
-   * that a tally Report for the RHEL product is not null - verify that the total sockets value in
-   * the tally Report is greather that or equal to the 2 sockets - **Expected Result**: All the host
-   * inserted into the db have been deleted from the database
+   * that a tally Report for the RHEL product is not null - verify that the socket count increased
+   * by 2 - **Expected Result**: The tally socket count increased by 2
    */
   @Test
   void testNightlyTallyRhelProduct() {
-    // Given: Org is opted in and RHEL host exists with known capacity
+    // Given: Org is opted in
     service.createOptInConfig(orgId);
-    SeededHost host = hbiSeeder.rhelHost(orgId).cores(8).sockets(2).insert();
-    assertNotNull(host.hostId(), "Host should be created");
 
-    // When: Nightly tally runs
-    service.tallyOrg(orgId);
-
-    // Then: Tally report contains expected socket count
+    // And: Define time range (today only)
     OffsetDateTime beginning = OffsetDateTime.now().minusDays(1);
     OffsetDateTime ending = OffsetDateTime.now().plusDays(1);
 
-    var reportData =
+    // When: Capture initial socket count
+    var initialReportData =
         service.getTallyReportData(
             orgId,
             RHEL_FOR_X86.productTag(),
@@ -174,40 +184,76 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
                 "beginning", beginning.toString(),
                 "ending", ending.toString()));
 
-    assertNotNull(reportData, "Tally report should be created");
-    assertNotNull(reportData.getData(), "Report should have data");
-    assertFalse(reportData.getData().isEmpty(), "Report should not be empty");
+    double initialSockets =
+        initialReportData.getData() != null
+            ? initialReportData.getData().stream()
+                .mapToDouble(point -> point.getValue() != null ? point.getValue() : 0.0)
+                .sum()
+            : 0.0;
 
-    boolean hasExpectedSockets =
-        reportData.getData().stream()
-            .anyMatch(point -> point.getValue() != null && point.getValue() == 2.0);
-    assertTrue(hasExpectedSockets, "Report should contain a data point with exactly 2 sockets");
+    // And: RHEL host with 2 sockets and 8 cores is created
+    SeededHost host =
+        hostManager.createRhsmHost(orgId).physicalRhel2Socket2Cores().cores(8).insert();
+    assertNotNull(host.hostId(), "Host should be created");
+
+    // And: Nightly tally runs
+    service.tallyOrg(orgId);
+
+    // Then: Socket count increased by 2
+    var currentReportData =
+        service.getTallyReportData(
+            orgId,
+            RHEL_FOR_X86.productTag(),
+            "Sockets",
+            Map.of(
+                "granularity", "Daily",
+                "beginning", beginning.toString(),
+                "ending", ending.toString()));
+
+    assertNotNull(currentReportData, "Tally report should be created");
+    assertNotNull(currentReportData.getData(), "Report should have data");
+
+    double currentSockets =
+        currentReportData.getData().stream()
+            .mapToDouble(point -> point.getValue() != null ? point.getValue() : 0.0)
+            .sum();
+
+    assertEquals(
+        initialSockets + 2.0,
+        currentSockets,
+        "Socket count should increase by 2 after adding host with 2 sockets");
   }
 
   /**
-   * - **Description**: Verify that a cloud host with RHEL product produces a TallySummary Kafka
-   * message - **Setup**: Component test environment with swatch-tally is running, an instance of
-   * insights db - **Action**: Create a cloud host with RHEL product facts and run nightly tally -
-   * **Verification**: - verify that the host exists in HBI - verify that a TallySummary message
-   * appears on the tally Kafka topic with the expected product and metric - **Expected Result**: A
-   * TallySummary message is produced, proving the host was accepted by the tally process
+   * - **Description**: Verify that a cloud host with RHEL product appears in the instance report -
+   * **Setup**: Component test environment with swatch-tally is running, an instance of insights db
+   * - **Action**: Create a cloud host with RHEL product facts and run nightly tally -
+   * **Verification**: - verify that the host exists in HBI - verify that the instance appears in
+   * the instances API - **Expected Result**: The instance is visible in the instance report
    */
   @Test
   void testNightlyTallyCloudProduct() {
     // Given: Org is opted in and cloud host with RHEL product exists in HBI database
     service.createOptInConfig(orgId);
-    SeededHost host = hbiSeeder.rhelHost(orgId).cores(8).sockets(2).cloudProvider("aws").insert();
+    SeededHost host = hostManager.createRhsmHost(orgId).awsRhelSockets1Cores1().insert();
     assertNotNull(host.hostId(), "Cloud host should be created");
-    assertTrue(hbiSeeder.hostExists(host.hostId()), "Cloud host should exist in HBI database");
+    assertTrue(hostManager.hostExists(host.hostId()), "Cloud host should exist in HBI database");
 
     // When: Nightly tally runs
     service.tallyOrg(orgId);
 
-    // Then: A TallySummary message is produced on the tally Kafka topic
-    kafkaBridge.waitForKafkaMessage(
-        TALLY,
-        MessageValidators.tallySummaryMatches(
-            orgId, RHEL_FOR_X86.productTag(), "Sockets", Granularity.DAILY),
-        1);
+    // Then: The instance appears in the instances API
+    OffsetDateTime beginning = OffsetDateTime.now().minusDays(1);
+    OffsetDateTime ending = OffsetDateTime.now().plusDays(1);
+
+    var instanceResponse =
+        service.getInstancesByProduct(orgId, RHEL_FOR_X86.productTag(), beginning, ending);
+
+    assertNotNull(instanceResponse.getData(), "Instance response should have data");
+    assertFalse(instanceResponse.getData().isEmpty(), "Instance response should not be empty");
+    assertEquals(
+        1,
+        instanceResponse.getData().size(),
+        "Should have exactly one instance for this org and product");
   }
 }

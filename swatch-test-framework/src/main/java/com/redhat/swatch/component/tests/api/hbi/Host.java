@@ -18,12 +18,13 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package utils;
+package com.redhat.swatch.component.tests.api.hbi;
 
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 
 /**
  * Host data container with fluent setters.
@@ -49,7 +50,7 @@ public class Host {
 
   // ===== Core Identity =====
   private String orgId;
-  private String inventoryId;
+  private UUID inventoryId;
   private String subscriptionManagerId;
   private String insightsId;
   private String displayName;
@@ -86,9 +87,6 @@ public class Host {
   private String conversionsActivity;
   private String billingModel;
 
-  // ===== Test Helper Fields =====
-  private Integer expectedTallySockets; // For test assertions (socket increase mapping)
-
   /**
    * Create a new Host with the specified organization ID.
    *
@@ -98,8 +96,52 @@ public class Host {
     this.orgId = Objects.requireNonNull(orgId, "orgId is required");
   }
 
+  public Host(Host source) {
+
+    // ===== Core Identity =====
+    this.orgId = source.getOrgId();
+    this.inventoryId = source.getInventoryId();
+    this.subscriptionManagerId = source.getSubscriptionManagerId();
+    this.insightsId = source.getInsightsId();
+    this.displayName = source.getDisplayName();
+
+    // ===== System Profile Fields =====
+    this.infrastructureType = source.getInfrastructureType(); // "physical" or "virtual"
+    this.coresPerSocket = source.getCoresPerSocket();
+    this.numberOfSockets = source.getSockets();
+    this.numberOfCpus = source.getCores();
+    this.threadsPerCore = source.getThreadsPerCore();
+    this.arch = source.getArch(); // e.g., "x86_64"
+    this.cloudProvider = source.getCloudProvider(); // e.g., "aws", "azure", null for physical
+    this.providerId = source.getProviderId(); // Cloud provider instance ID
+    this.isMarketplace = source.getIsMarketplace();
+    this.virtualHostUuid =
+        source.getVirtualHostUuid(); // Hypervisor UUID (from system_profiles_static)
+    this.hostType = source.getHostType(); // e.g., "edge" (filtered by query line 153)
+    this.account = source.getAccount(); // Deprecated, but included for completeness
+
+    // ===== Facts (stored as JSONB in HBI) =====
+    this.rhsmFacts = source.getRhsmFacts();
+    this.qpcFacts = source.getQpcFacts();
+    this.satelliteFacts = source.getSatelliteFacts();
+
+    // ===== Reporter Info =====
+    // This made need to be appended to the existing reporters array, not replaced.
+    this.reporter = source.getReporter();
+    this.reporters = source.getReporters();
+
+    // ===== Timestamps =====
+    this.createdOn = source.getCreatedOn();
+    this.modifiedOn = source.getModifiedOn();
+    this.lastCheckIn = source.getLastCheckIn();
+
+    // ===== Additional Fields =====
+    this.conversionsActivity = source.getConversionsActivity();
+    this.billingModel = source.getBillingModel();
+  }
+
   // ===== Core Identity Setters =====
-  // Create doc comment for Not using this setter unless you have to
+  // Do not use this setter unless you have to
   public Host inventoryId(UUID inventoryId) {
     this.inventoryId = inventoryId;
     return this;
@@ -262,20 +304,13 @@ public class Host {
     return this;
   }
 
-  // ===== Test Helper Setters =====
-
-  public Host expectedTallySockets(Integer expectedTallySockets) {
-    this.expectedTallySockets = expectedTallySockets;
-    return this;
-  }
-
   // ===== Getters =====
 
   public String getOrgId() {
     return orgId;
   }
 
-  public String getInventoryId() {
+  public UUID getInventoryId() {
     return inventoryId;
   }
 
@@ -377,64 +412,5 @@ public class Host {
 
   public String getBillingModel() {
     return billingModel;
-  }
-
-  public Integer getExpectedTallySockets() {
-    return expectedTallySockets;
-  }
-
-  /**
-   * Create a deep copy of this Host, preserving all field values.
-   *
-   * <p>Used internally by HostStateManager to layer defaults and templates without modifying the
-   * original Host object.
-   *
-   * @return a new Host instance with all values copied
-   */
-  Host copy() {
-    Host copy = new Host(this.orgId);
-
-    // Core identity
-    copy.inventoryId = this.inventoryId;
-    copy.subscriptionManagerId = this.subscriptionManagerId;
-    copy.insightsId = this.insightsId;
-    copy.displayName = this.displayName;
-
-    // System profile
-    copy.infrastructureType = this.infrastructureType;
-    copy.coresPerSocket = this.coresPerSocket;
-    copy.numberOfSockets = this.numberOfSockets;
-    copy.numberOfCpus = this.numberOfCpus;
-    copy.threadsPerCore = this.threadsPerCore;
-    copy.arch = this.arch;
-    copy.cloudProvider = this.cloudProvider;
-    copy.providerId = this.providerId;
-    copy.isMarketplace = this.isMarketplace;
-    copy.virtualHostUuid = this.virtualHostUuid;
-    copy.hostType = this.hostType;
-    copy.account = this.account;
-
-    // Facts (deep copy maps)
-    copy.rhsmFacts = new HashMap<>(this.rhsmFacts);
-    copy.qpcFacts = new HashMap<>(this.qpcFacts);
-    copy.satelliteFacts = new HashMap<>(this.satelliteFacts);
-
-    // Reporter
-    copy.reporter = this.reporter;
-    copy.reporters = this.reporters != null ? this.reporters.clone() : null;
-
-    // Timestamps
-    copy.createdOn = this.createdOn;
-    copy.modifiedOn = this.modifiedOn;
-    copy.lastCheckIn = this.lastCheckIn;
-
-    // Additional fields
-    copy.conversionsActivity = this.conversionsActivity;
-    copy.billingModel = this.billingModel;
-
-    // Test helpers
-    copy.expectedTallySockets = this.expectedTallySockets;
-
-    return copy;
   }
 }

@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package utils;
+package com.redhat.swatch.component.tests.api.hbi;
 
 import java.util.List;
 import java.util.UUID;
@@ -59,6 +59,14 @@ public interface HostConnector {
    * @param hostId the host UUID to delete
    */
   void cleanup(UUID hostId);
+
+  /**
+   * Check if a host exists.
+   *
+   * @param hostId the host UUID to check
+   * @return true if the host exists, false otherwise
+   */
+  boolean hostExists(UUID hostId);
 
   /**
    * Record of a seeded host for test assertions.
