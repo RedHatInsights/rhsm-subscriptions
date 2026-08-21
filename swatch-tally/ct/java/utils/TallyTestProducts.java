@@ -26,23 +26,36 @@ import java.util.Optional;
 
 /** Test-only productTag + metricId definitions used by swatch-tally component tests. */
 public enum TallyTestProducts {
-  RHEL_FOR_X86("rhel-for-x86", "RHEL for x86", "Sockets", "SOCKETS"),
-  RHEL_FOR_X86_ELS_PAYG("204", "rhel-for-x86-els-payg", "vCPUs", "VCPUS"),
-  RHEL_FOR_X86_ELS_PAYG_ADDON("204", "rhel-for-x86-els-payg-addon", "vCPUs", "VCPUS"),
+  RHEL_FOR_X86("rhel-for-x86", "RHEL for x86", null, "Sockets", "SOCKETS"),
+  RHEL_FOR_X86_ELS_PAYG("204", "rhel-for-x86-els-payg", "RHEL System", "vCPUs", "VCPUS"),
+  RHEL_FOR_X86_ELS_PAYG_ADDON(
+      "204", "rhel-for-x86-els-payg-addon", "RHEL System", "vCPUs", "VCPUS"),
   RHEL_FOR_X86_ELS_UNCONVERTED(
-      "rhel-for-x86-els-unconverted", "rhel-for-x86-els-unconverted", "Sockets", "SOCKETS"),
-  RHACM("rhacm", "rhacm", "vCPUs"),
-  ROSA("rosa", "rosa", "Cores", "Instance-hours"),
+      "rhel-for-x86-els-unconverted", "rhel-for-x86-els-unconverted", null, "Sockets", "SOCKETS"),
+  RHACM("rhacm", "rhacm", "rhacm Instance", "vCPUs"),
+  ROSA("rosa", "rosa", "rosa Instance", "Cores", "Instance-hours"),
   OPENSHIFT_DEDICATED(
-      "openshift-dedicated-metrics", "OpenShift-dedicated-metrics", "Cores", "Instance-hours");
+      "openshift-dedicated-metrics",
+      "OpenShift-dedicated-metrics",
+      "OpenShift Cluster",
+      "Cores",
+      "Instance-hours"),
+  ANSIBLE_AAP_MANAGED(
+      "ansible-aap-managed",
+      "ansible-aap-managed",
+      "Ansible Managed Node",
+      "Managed-nodes",
+      "Instance-hours");
 
   private final String productId;
   private final String productTag;
+  private final String serviceType;
   private final List<String> metricIds;
 
-  TallyTestProducts(String productId, String productTag, String... metricIds) {
+  TallyTestProducts(String productId, String productTag, String serviceType, String... metricIds) {
     this.productId = productId;
     this.productTag = productTag;
+    this.serviceType = serviceType;
     this.metricIds = List.copyOf(Arrays.asList(metricIds));
   }
 
@@ -52,6 +65,10 @@ public enum TallyTestProducts {
 
   public String productTag() {
     return productTag;
+  }
+
+  public String serviceType() {
+    return serviceType;
   }
 
   public List<String> metricIds() {

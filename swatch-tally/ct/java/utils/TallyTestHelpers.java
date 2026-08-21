@@ -238,7 +238,12 @@ public class TallyTestHelpers {
     event.setProductTag(Set.of(productTag));
 
     event.setRole(Event.Role.RED_HAT_ENTERPRISE_LINUX_SERVER);
-    event.setServiceType("RHEL System");
+    String resolvedServiceType =
+        TallyTestProducts.byProductTag(productTag)
+            .map(TallyTestProducts::serviceType)
+            .filter(java.util.Objects::nonNull)
+            .orElse("RHEL System");
+    event.setServiceType(resolvedServiceType);
 
     if (hardwareType == Event.HardwareType.CLOUD) {
       event.setCloudProvider(Event.CloudProvider.AWS);
