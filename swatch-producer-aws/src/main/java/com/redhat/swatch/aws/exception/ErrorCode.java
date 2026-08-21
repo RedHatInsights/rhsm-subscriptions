@@ -36,7 +36,8 @@ public enum ErrorCode {
       "Multiple possible matches found. Likely a subscription is missing part of its billingAccountId."),
   SUBSCRIPTION_MISSING_BILLING_ACCOUNT_ID(
       1012, "Subscription missing billingAccountId required for customerAwsAccountId"),
-  AWS_THROTTLING_ERROR(1011, "AWS throttling error");
+  AWS_THROTTLING_ERROR(1011, "AWS throttling error"),
+  AWS_USAGE_NOT_ACCEPTED(1013, "AWS returned non-Success status for usage record");
 
   private static final String CODE_PREFIX = "SWATCHAWS";
 

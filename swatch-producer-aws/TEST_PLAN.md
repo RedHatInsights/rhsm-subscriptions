@@ -198,3 +198,67 @@ Contracts `awsUsageContext` lookup failures and remittance error classification.
 - **Expected Result**:
   - Remittance status is `FAILED` with `SUBSCRIPTION_TERMINATED`
   - AWS Marketplace is not called
+
+## BatchMeterUsage non-Success response handling
+
+**producer-aws-batch-meter-usage-TC001 - CustomerNotSubscribed emits FAILED**
+
+- **Description**: Verify that when AWS `BatchMeterUsage` returns `UsageRecordResult.Status=CustomerNotSubscribed`, remittance status is `FAILED` with `marketplace_customer_not_subscribed` (not `SUCCEEDED`).
+- **Setup**:
+  - WireMock returns a valid `awsUsageContext`
+  - WireMock `BatchMeterUsage` stub returns `Status=CustomerNotSubscribed`
+  - Kafka topics for billable-usage hourly aggregate and status are available
+- **Action**:
+  - Produce a valid AWS billable-usage aggregate to Kafka
+- **Verification**:
+  - Wait for `FAILED` on `billable-usage.status` with error code `marketplace_customer_not_subscribed`
+  - Inspect captured `BatchMeterUsage` request in WireMock
+- **Expected Result**:
+  - Remittance status is `FAILED` with `marketplace_customer_not_subscribed`
+  - AWS Marketplace was called
+
+**producer-aws-batch-meter-usage-TC002 - DuplicateRecord emits FAILED**
+
+- **Description**: Verify that when AWS `BatchMeterUsage` returns `UsageRecordResult.Status=DuplicateRecord`, remittance status is `FAILED` with `marketplace_duplicate_record` (not `SUCCEEDED`).
+- **Setup**:
+  - WireMock returns a valid `awsUsageContext`
+  - WireMock `BatchMeterUsage` stub returns `Status=DuplicateRecord`
+  - Kafka topics for billable-usage hourly aggregate and status are available
+- **Action**:
+  - Produce a valid AWS billable-usage aggregate to Kafka
+- **Verification**:
+  - Wait for `FAILED` on `billable-usage.status` with error code `marketplace_duplicate_record`
+  - Inspect captured `BatchMeterUsage` request in WireMock
+- **Expected Result**:
+  - Remittance status is `FAILED` with `marketplace_duplicate_record`
+  - AWS Marketplace was called
+
+**producer-aws-batch-meter-usage-TC003 - Unrecognized status emits FAILED with unknown**
+
+- **Description**: Verify that when AWS `BatchMeterUsage` returns a `UsageRecordResult.Status` the SDK does not recognize (`UnknownToSdkVersion`), remittance status is `FAILED` with `unknown`.
+- **Setup**:
+  - WireMock returns a valid `awsUsageContext`
+  - WireMock `BatchMeterUsage` stub returns a `Status` that is not `Success`, `CustomerNotSubscribed`, or `DuplicateRecord`
+  - Kafka topics for billable-usage hourly aggregate and status are available
+- **Action**:
+  - Produce a valid AWS billable-usage aggregate to Kafka
+- **Verification**:
+  - Wait for `FAILED` on `billable-usage.status` with error code `unknown`
+- **Expected Result**:
+  - Remittance status is `FAILED` with `unknown`
+  - AWS Marketplace was called
+
+**producer-aws-batch-meter-usage-TC004 - ThrottlingException emits FAILED**
+
+- **Description**: Verify that when AWS `BatchMeterUsage` returns HTTP 429 / `ThrottlingException`, remittance status is `FAILED` with `marketplace_rate_limit` (not `SUCCEEDED`).
+- **Setup**:
+  - WireMock returns a valid `awsUsageContext`
+  - WireMock `BatchMeterUsage` stub returns HTTP 429 with `ThrottlingException`
+  - Kafka topics for billable-usage hourly aggregate and status are available
+- **Action**:
+  - Produce a valid AWS billable-usage aggregate to Kafka
+- **Verification**:
+  - Wait for `FAILED` on `billable-usage.status` with error code `marketplace_rate_limit`
+- **Expected Result**:
+  - Remittance status is `FAILED` with `marketplace_rate_limit`
+  - AWS Marketplace was called

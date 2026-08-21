@@ -28,6 +28,7 @@ import com.redhat.swatch.aws.exception.AwsMissingCredentialsException;
 import com.redhat.swatch.aws.exception.AwsThrottlingException;
 import com.redhat.swatch.aws.exception.AwsUnprocessedRecordsException;
 import com.redhat.swatch.aws.exception.AwsUsageContextLookupException;
+import com.redhat.swatch.aws.exception.AwsUsageNotAcceptedException;
 import com.redhat.swatch.aws.exception.DefaultApiException;
 import com.redhat.swatch.aws.exception.SubscriptionCanNotBeDeterminedException;
 import com.redhat.swatch.aws.exception.SubscriptionMissingBillingAccountIdException;
@@ -181,6 +182,16 @@ public class AwsBillableUsageAggregateConsumer {
           context.getProductCode(),
           context.getSubscriptionStartDate());
       ignoreCounter.increment();
+    } catch (AwsUsageNotAcceptedException e) {
+      emitErrorStatusOnUsage(
+          billableUsageAggregate, errorCodeForAwsUsageResult(e.getResultStatus()));
+      log.warn(
+          "AWS usage not accepted for rhSubscriptionId={} aggregate={} awsCustomerId={} awsProductCode={} resultStatus={}",
+          context.getRhSubscriptionId(),
+          billableUsageAggregate,
+          context.getCustomerId(),
+          context.getProductCode(),
+          e.getResultStatus());
     } catch (AwsThrottlingException e) {
       emitErrorStatusOnUsage(
           billableUsageAggregate, BillableUsage.ErrorCode.MARKETPLACE_RATE_LIMIT);
@@ -240,7 +251,9 @@ public class AwsBillableUsageAggregateConsumer {
 
   private void transformAndSend(
       AwsUsageContext context, BillableUsageAggregate billableUsageAggregate, Metric metric)
-      throws AwsUnprocessedRecordsException, UsageTimestampOutOfBoundsException {
+      throws AwsUnprocessedRecordsException,
+          AwsUsageNotAcceptedException,
+          UsageTimestampOutOfBoundsException {
     BatchMeterUsageRequest request =
         BatchMeterUsageRequest.builder()
             .productCode(context.getProductCode())
@@ -262,28 +275,23 @@ public class AwsBillableUsageAggregateConsumer {
           awsMarketplaceMeteringClientFactory.buildMarketplaceMeteringClient(context);
       BatchMeterUsageResponse response = send(marketplaceMeteringClient, request);
       log.debug("{}", response);
-      response
-          .results()
-          .forEach(
-              result -> {
-                if (result.status() == UsageRecordResultStatus.CUSTOMER_NOT_SUBSCRIBED) {
-                  log.warn(
-                      "AWS BatchMeterUsage CUSTOMER_NOT_SUBSCRIBED (No subscription found) for aggregate={}, result={}",
-                      billableUsageAggregate,
-                      result);
-                } else if (result.status() != UsageRecordResultStatus.SUCCESS) {
-                  log.warn("{}, aggregate={}", result, billableUsageAggregate);
-                } else {
-                  log.info(
-                      "Sent usage request to AWS: result={}, aggregate={}",
-                      result,
-                      billableUsageAggregate);
-                  acceptedCounter.increment(response.results().size());
-                }
-              });
       if (!response.unprocessedRecords().isEmpty()) {
         rejectedCounter.increment(response.unprocessedRecords().size());
         throw new AwsUnprocessedRecordsException(response.unprocessedRecords().size());
+      }
+      for (var result : response.results()) {
+        if (result.status() == UsageRecordResultStatus.SUCCESS) {
+          log.info(
+              "Sent usage request to AWS: result={}, aggregate={}", result, billableUsageAggregate);
+          acceptedCounter.increment();
+        } else {
+          log.warn(
+              "AWS BatchMeterUsage returned non-Success status for aggregate={}, result={}",
+              billableUsageAggregate,
+              result);
+          rejectedCounter.increment();
+          throw new AwsUsageNotAcceptedException(result.status());
+        }
       }
     } catch (ThrottlingException e) {
       rejectedCounter.increment(request.usageRecords().size());
@@ -399,6 +407,17 @@ public class AwsBillableUsageAggregateConsumer {
     usage.setErrorCode(errorCode);
     incrementMeteredTotal(usage);
     billableUsageStatusProducer.emitStatus(usage);
+  }
+
+  private static BillableUsage.ErrorCode errorCodeForAwsUsageResult(
+      UsageRecordResultStatus resultStatus) {
+    if (resultStatus == UsageRecordResultStatus.CUSTOMER_NOT_SUBSCRIBED) {
+      return BillableUsage.ErrorCode.MARKETPLACE_CUSTOMER_NOT_SUBSCRIBED;
+    }
+    if (resultStatus == UsageRecordResultStatus.DUPLICATE_RECORD) {
+      return BillableUsage.ErrorCode.MARKETPLACE_DUPLICATE_RECORD;
+    }
+    return BillableUsage.ErrorCode.UNKNOWN;
   }
 
   private void incrementMeteredTotal(BillableUsageAggregate usage) {
