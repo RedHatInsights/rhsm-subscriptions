@@ -45,6 +45,9 @@ import com.redhat.swatch.clients.subscription.api.model.Subscription;
 import com.redhat.swatch.clients.subscription.api.model.SubscriptionProduct;
 import com.redhat.swatch.contract.config.ProductDenylist;
 import com.redhat.swatch.contract.model.SyncResult;
+import com.redhat.swatch.contract.openapi.model.SubscriptionOutboxChildProduct;
+import com.redhat.swatch.contract.openapi.model.SubscriptionOutboxPayload;
+import com.redhat.swatch.contract.openapi.model.SubscriptionOutboxProduct;
 import com.redhat.swatch.contract.repository.BillingProvider;
 import com.redhat.swatch.contract.repository.OfferingEntity;
 import com.redhat.swatch.contract.repository.OfferingRepository;
@@ -416,6 +419,118 @@ class SubscriptionSyncServiceTest {
     subscriptionSyncService.saveSubscriptions(subscriptionsJson, true);
     verify(subscriptionService).save(any(SubscriptionEntity.class));
     verify(capacityReconciliationService).reconcileCapacityForSubscription(any());
+  }
+
+  @Test
+  void shouldRejectOutboxPayloadWithoutSku() {
+    var payload =
+        new SubscriptionOutboxPayload()
+            .subscriptionNumber("1234")
+            .customerId("org123")
+            .quantity(10);
+    assertThrows(
+        IllegalStateException.class, () -> subscriptionSyncService.saveSubscription(payload));
+  }
+
+  @Test
+  void shouldRejectOutboxPayloadWithoutSubscriptionNumber() {
+    var payload =
+        new SubscriptionOutboxPayload()
+            .customerId("org123")
+            .quantity(10)
+            .product(new SubscriptionOutboxProduct().sku(SKU));
+    assertThrows(
+        IllegalArgumentException.class, () -> subscriptionSyncService.saveSubscription(payload));
+  }
+
+  @Test
+  void shouldLookUpExistingSubscriptionWhenSavingOutboxPayload() {
+    OfferingEntity offering = OfferingEntity.builder().sku(SKU).build();
+    when(offeringRepository.findById(SKU)).thenReturn(offering);
+    when(denylist.productIdMatches(any())).thenReturn(false);
+    when(subscriptionService.findBySubscriptionNumber("1234")).thenReturn(List.of());
+
+    var payload =
+        new SubscriptionOutboxPayload()
+            .subscriptionNumber("1234")
+            .customerId("org123")
+            .quantity(10)
+            .effectiveStartDate(1704067200000L)
+            .effectiveEndDate(1735689600000L)
+            .product(new SubscriptionOutboxProduct().sku(SKU));
+
+    subscriptionSyncService.saveSubscription(payload);
+
+    verify(subscriptionService).findBySubscriptionNumber("1234");
+  }
+
+  @Test
+  void shouldFallBackToNowWhenTerminatedChildAndNullEndDate() {
+    OfferingEntity offering = OfferingEntity.builder().sku(SKU).build();
+    when(offeringRepository.findByIdOptional(SKU)).thenReturn(Optional.of(offering));
+    when(offeringRepository.findById(SKU)).thenReturn(offering);
+    when(denylist.productIdMatches(any())).thenReturn(false);
+    when(subscriptionService.findBySubscriptionNumber("1234")).thenReturn(List.of());
+    when(subscriptionSearchService.getSubscriptionBySubscriptionNumber("1234"))
+        .thenReturn(createDto(123, "100", "1234", 10));
+
+    var payload =
+        new SubscriptionOutboxPayload()
+            .subscriptionNumber("1234")
+            .customerId("org123")
+            .quantity(10)
+            .effectiveStartDate(1704067200000L)
+            .effectiveEndDate(null)
+            .product(
+                new SubscriptionOutboxProduct()
+                    .sku(SKU)
+                    .addChildProductsItem(
+                        new SubscriptionOutboxChildProduct().sku("RH00002").status("Terminated")));
+
+    subscriptionSyncService.saveSubscription(payload);
+
+    verify(subscriptionService)
+        .save(
+            argThat(
+                (ArgumentMatcher<SubscriptionEntity>)
+                    sub ->
+                        sub.getEndDate() != null
+                            && !sub.getEndDate().isAfter(clock.now().plusSeconds(5))));
+  }
+
+  @Test
+  void shouldNotAdjustEndDateWhenChildProductIsActive() {
+    OfferingEntity offering = OfferingEntity.builder().sku(SKU).build();
+    when(offeringRepository.findByIdOptional(SKU)).thenReturn(Optional.of(offering));
+    when(offeringRepository.findById(SKU)).thenReturn(offering);
+    when(denylist.productIdMatches(any())).thenReturn(false);
+    when(subscriptionService.findBySubscriptionNumber("1234")).thenReturn(List.of());
+    when(subscriptionSearchService.getSubscriptionBySubscriptionNumber("1234"))
+        .thenReturn(createDto(123, "100", "1234", 10));
+
+    long futureEndDate = clock.now().plusYears(1).toInstant().toEpochMilli();
+    var payload =
+        new SubscriptionOutboxPayload()
+            .subscriptionNumber("1234")
+            .customerId("org123")
+            .quantity(10)
+            .effectiveStartDate(1704067200000L)
+            .effectiveEndDate(futureEndDate)
+            .product(
+                new SubscriptionOutboxProduct()
+                    .sku(SKU)
+                    .addChildProductsItem(
+                        new SubscriptionOutboxChildProduct().sku("RH00002").status("Active")));
+
+    subscriptionSyncService.saveSubscription(payload);
+
+    verify(subscriptionService)
+        .save(
+            argThat(
+                (ArgumentMatcher<SubscriptionEntity>)
+                    sub ->
+                        sub.getEndDate() != null
+                            && sub.getEndDate().isAfter(clock.now().plusMonths(6))));
   }
 
   @Test

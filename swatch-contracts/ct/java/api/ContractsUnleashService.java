@@ -40,6 +40,31 @@ public class ContractsUnleashService extends UnleashService {
     enableFlag(IT_SUBSCRIPTION_SERVICE);
   }
 
+  public void enableItSubscriptionServiceKafkaOnly() {
+    enableFlag(IT_SUBSCRIPTION_SERVICE);
+    setVariant(
+        IT_SUBSCRIPTION_SERVICE,
+        "config",
+        "{\"kafka_consumer_enabled\":true,\"umb_consumer_enabled\":false}");
+  }
+
+  public void disableItSubscriptionServiceKafkaConsumer() {
+    enableFlag(IT_SUBSCRIPTION_SERVICE);
+    setVariant(IT_SUBSCRIPTION_SERVICE, "config", "{\"kafka_consumer_enabled\":false}");
+  }
+
+  public void enableItSubscriptionServiceBothConsumers() {
+    enableFlag(IT_SUBSCRIPTION_SERVICE);
+    setVariant(
+        IT_SUBSCRIPTION_SERVICE,
+        "config",
+        "{\"kafka_consumer_enabled\":true,\"umb_consumer_enabled\":true}");
+  }
+
+  public void clearItSubscriptionServiceVariants() {
+    clearVariants(IT_SUBSCRIPTION_SERVICE);
+  }
+
   public void disablePartnerGatewayContracts() {
     disableFlag(PARTNER_GATEWAY_CONTRACTS);
   }

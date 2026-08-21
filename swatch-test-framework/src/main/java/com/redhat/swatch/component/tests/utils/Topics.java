@@ -37,6 +37,7 @@ public final class Topics {
   public static final String SUBSCRIPTION_SYNC_TASK =
       "platform.rhsm-subscriptions.subscription-sync-task";
   public static final String CAPACITY_RECONCILE = SUFFIX + "capacity-reconcile";
+  public static final String IT_SUBSCRIPTION_SYNC = "subscription.subscriptions.private";
 
   private Topics() {}
 }

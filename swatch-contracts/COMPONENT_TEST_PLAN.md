@@ -1116,34 +1116,38 @@ This section verifies the automatic contract termination behavior when contracts
   - Kafka consumer is independently disabled (not tested in this TC)
 
 **subscriptions-creation-kafka-TC001 - Kafka consumer happy path**
-- **Description**: Verify that a valid `CanonicalMessage` XML delivered via Kafka is
+- **Description**: Verify that a valid `SubscriptionOutboxEvent` JSON delivered via Kafka is
   deserialized and persisted as a subscription (Kafka consumer smoke test).
 - **Setup**:
   - Unleash toggle `swatch.swatch-contracts.enable-it-subscription-service` is enabled
   - WireMock stubs for Search API (`getSubscriptionBySubscriptionNumber`) and Product API
     (`offeringData`) are in place
-- **Action**: Publish a valid `CanonicalMessage` XML string to the
-  `subscription.subscriptions.private` Kafka topic via Kafka Bridge
+- **Action**: Publish a valid `SubscriptionOutboxEvent` JSON string (with `entityType: "Subscription"`
+  and a `payload` containing `subscriptionNumber`, `customerId`, `quantity`, `effectiveStartDate`,
+  `effectiveEndDate`, and `product.sku`) to the `subscription.subscriptions.private` Kafka topic
+  via Kafka Bridge
 - **Verification**: Query subscriptions via internal API for the test org
 - **Expected Result**:
   - One subscription created with matching `subscription_number`, `quantity`, `sku`,
-    `start_date`, and `end_date` (dates converted from America/New_York to UTC)
+    `start_date`, and `end_date` (dates converted from epoch milliseconds to UTC)
 
-**subscriptions-creation-kafka-TC002 - Reject malformed XML from Kafka**
-- **Description**: Verify that unparseable XML causes a warn log and does not crash the
+**subscriptions-creation-kafka-TC002 - Reject malformed JSON from Kafka**
+- **Description**: Verify that unparseable JSON causes a warn log and does not crash the
   Kafka consumer or leave a partial subscription in the database (Kafka-specific error handling).
 - **Setup**: IT subscription service flag enabled; no WireMock setup needed
-- **Action**: Publish a non-XML string to the `subscription.subscriptions.private` topic
+- **Action**: Publish a non-JSON string to the `subscription.subscriptions.private` topic
 - **Verification**: Check service logs and subscription table
 - **Expected Result**:
-  - Warn log: `Unable to process IT Subscription Kafka message`
+  - Warn log: `Unable to read IT Subscription Kafka message from JSON.`
   - No subscription created for the test org
   - Consumer continues to accept subsequent messages (`failure-strategy=ignore`)
 
 **subscriptions-creation-kafka-TC003 - Reject Kafka message with missing required fields**
 - **Description**: Verify Kafka consumer validation for incomplete subscription data.
 - **Setup**: IT subscription service flag enabled; WireMock stubs in place
-- **Action**: Publish `CanonicalMessage` with missing required fields (e.g., missing `subscription_number` or `effectiveStartDate`) to the `subscription.subscriptions.private` topic
+- **Action**: Publish a `SubscriptionOutboxEvent` JSON with `entityType: "Subscription"` but
+  missing required payload fields (e.g., missing `subscriptionNumber` or `customerId`/`webCustomerId`)
+  to the `subscription.subscriptions.private` topic
 - **Verification**: Check service logs and subscription table
 - **Expected Result**:
   - Warn log or validation error logged
@@ -1154,7 +1158,7 @@ This section verifies the automatic contract termination behavior when contracts
 - **Description**: Verify that when the Unleash flag
   `swatch.swatch-contracts.enable-it-subscription-service` is **disabled**, the Kafka consumer exits early and no subscription is persisted.
 - **Setup**: Unleash toggle disabled; WireMock stubs in place
-- **Action**: Publish a valid `CanonicalMessage` XML to Kafka
+- **Action**: Publish a valid `SubscriptionOutboxEvent` JSON to Kafka
 - **Verification**: Poll subscriptions after 3 second delay via internal API
 - **Expected Result**: Zero subscriptions created for the test org
 
@@ -1163,7 +1167,7 @@ This section verifies the automatic contract termination behavior when contracts
   `{"kafka_consumer_enabled":false}` blocks the Kafka consumer while the flag itself
   remains enabled.
 - **Setup**: Unleash flag enabled; `config` variant set with `kafka_consumer_enabled=false`
-- **Action**: Publish a valid `CanonicalMessage` XML to Kafka
+- **Action**: Publish a valid `SubscriptionOutboxEvent` JSON to Kafka
 - **Verification**: Poll subscriptions after 3 second delay via internal API
 - **Expected Result**: Zero subscriptions created for the test org
 
@@ -1172,7 +1176,7 @@ This section verifies the automatic contract termination behavior when contracts
   (`umb_consumer_enabled=false`) does not prevent the Kafka consumer from working.
 - **Setup**: Unleash flag enabled; `config` variant set with
   `{"kafka_consumer_enabled":true,"umb_consumer_enabled":false}`; WireMock stubs in place
-- **Action**: Publish a valid `CanonicalMessage` XML to Kafka
+- **Action**: Publish a valid `SubscriptionOutboxEvent` JSON to Kafka
 - **Verification**: Poll subscriptions until created
 - **Expected Result**:
   - Subscription created with correct `quantity` and `sku`
@@ -1183,7 +1187,7 @@ This section verifies the automatic contract termination behavior when contracts
   (`{"kafka_consumer_enabled":true,"umb_consumer_enabled":true}`) allows both to function correctly.
 - **Setup**: Unleash flag enabled; `config` variant set with
   `{"kafka_consumer_enabled":true,"umb_consumer_enabled":true}`; WireMock stubs in place
-- **Action**: Publish a valid `CanonicalMessage` XML to Kafka
+- **Action**: Publish a valid `SubscriptionOutboxEvent` JSON to Kafka
 - **Verification**: Poll subscriptions until created
 - **Expected Result**:
   - Subscription created with correct `quantity` and `sku`
