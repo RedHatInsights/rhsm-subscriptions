@@ -39,22 +39,16 @@ parameters:
     value: '30000'
   - name: DATABASE_MAX_POOL_SIZE
     value: '10'
-  - name: LOGGING_HEC_ENABLED
-    value: 'true'
   - name: LOGGING_SOURCE
     value: 'swatch-api'
   - name: LOGGING_SOURCE_TYPE
     value: 'swatch'
-  - name: LOGGING_MESSAGE_FORMAT
-    value: 'text'
+  - name: LOGGING_FILE_LOG_ENABLED
+    value: 'true'
+  - name: LOGGING_FILE_MAX_SIZE
+    value: '10MB'
   - name: LOGGING_HEC_URL
     value: https://splunk-hec.redhat.com:8088
-  - name: LOGGING_HEC_CONNECT_TIMEOUT
-    value: '5000'
-  - name: LOGGING_HEC_BATCH_SIZE
-    value: '1000'
-  - name: LOGGING_HEC_TERMINATION_TIMEOUT
-    value: '2000'
   - name: OTEL_SERVICE_NAME
     value: swatch-api
   - name: NGINX_OTEL_IMAGE
@@ -90,6 +84,14 @@ parameters:
     value: token
   - name: DB_POD
     value: swatch-database
+  - name: KESSEL_INSECURE
+    value: 'true'
+  - name: KESSEL_AUTH_ENABLED
+    value: 'false'
+#    Environment provides this
+  - name: KESSEL_AUTH_OIDC_ISSUER
+  - name: AUTH_DISCOVERY_ISSUER_URL
+  - name: RBAC_BASE_ENDPOINT
 
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
@@ -109,6 +111,7 @@ objects:
         - rbac
         - swatch-contracts
         - swatch-utilization
+        - kessel-inventory
 
       database:
         sharedDbAppName: ${DB_POD}
@@ -121,6 +124,8 @@ objects:
               enabled: true
           podSpec:
             image: ${IMAGE}:${IMAGE_TAG}
+            # Extra grace time so the otel sidecar can finish reading /logs/server.log and export to HEC before the shared volume is torn down.
+            terminationGracePeriodSeconds: 90
             initContainers:
               - env:
                   - name: JAVA_DEBUG
@@ -144,6 +149,33 @@ objects:
                 value: ${USER_OPTS_APPEND}
               - name: DEV_MODE
                 value: ${DEV_MODE}
+              - name: KESSEL_INSECURE
+                value: ${KESSEL_INSECURE}
+              - name: KESSEL_AUTH_ENABLED
+                value: ${KESSEL_AUTH_ENABLED}
+              - name: KESSEL_AUTH_OIDC_ISSUER
+                value: ${KESSEL_AUTH_OIDC_ISSUER}
+              - name: KESSEL_AUTH_CLIENT_ID
+                valueFrom:
+                  secretKeyRef:
+                    key: client_id
+                    name: swatch-kessel-sa
+                    optional: true
+              - name: KESSEL_AUTH_CLIENT_SECRET
+                valueFrom:
+                  secretKeyRef:
+                    key: client_secret
+                    name: swatch-kessel-sa
+                    optional: true
+              - name: HOST_NAME
+                valueFrom:
+                  fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.name
+              - name: LOGGING_FILE_LOG_ENABLED
+                value: ${LOGGING_FILE_LOG_ENABLED}
+              - name: LOGGING_FILE_MAX_SIZE
+                value: ${LOGGING_FILE_MAX_SIZE}
               - name: LOG_FILE
                 value: /logs/server.log
               - name: SPRING_PROFILES_ACTIVE
@@ -196,37 +228,6 @@ objects:
                   secretKeyRef:
                     name: swatch-psks
                     key: self
-              - name: LOGGING_HEC_ENABLED
-                value: ${LOGGING_HEC_ENABLED}
-              - name: LOGGING_NAMESPACE
-                valueFrom:
-                  fieldRef:
-                    apiVersion: v1
-                    fieldPath: metadata.namespace
-              - name: HOST_NAME
-                valueFrom:
-                  fieldRef:
-                    apiVersion: v1
-                    fieldPath: metadata.name
-              - name: LOGGING_HEC_URL
-                value: ${LOGGING_HEC_URL}
-              - name: LOGGING_HEC_TOKEN
-                valueFrom:
-                  secretKeyRef:
-                    name: splunk-hec-external
-                    key: token
-              - name: LOGGING_SOURCE
-                value: ${LOGGING_SOURCE}
-              - name: LOGGING_SOURCE_TYPE
-                value: ${LOGGING_SOURCE_TYPE}
-              - name: LOGGING_MESSAGE_FORMAT
-                value: ${LOGGING_MESSAGE_FORMAT}
-              - name: LOGGING_HEC_CONNECT_TIMEOUT
-                value: ${LOGGING_HEC_CONNECT_TIMEOUT}
-              - name: LOGGING_HEC_BATCH_SIZE
-                value: ${LOGGING_HEC_BATCH_SIZE}
-              - name: LOGGING_HEC_TERMINATION_TIMEOUT
-                value: ${LOGGING_HEC_TERMINATION_TIMEOUT}
               - name: OTEL_EXPORTER_OTLP_ENDPOINT
                 value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
               - name: OTEL_EXPORTER_OTLP_PROTOCOL
@@ -282,6 +283,9 @@ objects:
                 enabled: true
                 configMap: ${OTEL_SIDECAR_CONFIG_MAP}
                 image: ${OTEL_SIDECAR_IMAGE}
+                volumeMounts:
+                  - name: logs
+                    mountPath: /logs
                 envVars:
                   - name: ENV_NAME
                     value: ${OTEL_ENV_NAME}
@@ -325,6 +329,8 @@ objects:
               apiPath: rhsm-subscriptions
           podSpec:
             image: ${NGINX_OTEL_IMAGE}:${NGINX_OTEL_IMAGE_TAG}
+            # Extra grace time so the otel sidecar can finish reading /logs/server.log and export to HEC before the shared volume is torn down.
+            terminationGracePeriodSeconds: 90
             command:
               - nginx
               - "-g"
@@ -341,15 +347,22 @@ objects:
             volumeMounts:
               - name: swatch-api-nginx-conf
                 mountPath: /etc/nginx
+              - name: logs
+                mountPath: /logs
             volumes:
               - name: swatch-api-nginx-conf
                 configMap:
                   name: nginx-conf
+              - name: logs
+                emptyDir: {}
             sidecars:
               - name: otel-collector
                 enabled: true
                 configMap: ${OTEL_SIDECAR_CONFIG_MAP}
                 image: ${OTEL_SIDECAR_IMAGE}
+                volumeMounts:
+                  - name: logs
+                    mountPath: /logs
                 envVars:
                   - name: ENV_NAME
                     value: ${OTEL_ENV_NAME}
@@ -416,17 +429,27 @@ objects:
           opentelemetry ${OTEL_ENABLED};
           opentelemetry_config /etc/nginx/otel.toml;
 
-          log_format json_combined escape=json
+          # JSON shape expected by swatch-otel-config filelog (message/severity/properties).
+          map $status $swatch_log_severity {
+            ~^[45]  "ERROR";
+            default "INFO";
+          }
+
+          log_format swatch_file escape=json
             '{'
-              '"time_local":"$time_iso8601",'
-              '"remote_addr":"$remote_addr",'
-              '"request":"$request",'
-              '"status":$status,'
-              '"body_bytes_sent":$body_bytes_sent,'
-              '"request_time":$request_time,'
-              '"upstream_response_time":"$upstream_response_time",'
-              '"http_user_agent":"$http_user_agent",'
-              '"http_referer":"$http_referer"'
+              '"severity":"$swatch_log_severity",'
+              '"message":"$request",'
+              '"properties":{'
+                '"time_local":"$time_iso8601",'
+                '"remote_addr":"$remote_addr",'
+                '"request":"$request",'
+                '"status":"$status",'
+                '"body_bytes_sent":"$body_bytes_sent",'
+                '"request_time":"$request_time",'
+                '"upstream_response_time":"$upstream_response_time",'
+                '"http_user_agent":"$http_user_agent",'
+                '"http_referer":"$http_referer"'
+              '}'
             '}';
 
           upstream swatch-api {
@@ -440,12 +463,11 @@ objects:
           }
 
           server {
-            # TODO: Replace syslog with filelog once Clowder supports volumeMounts in sidecars:
-            # https://github.com/RedHatInsights/clowder/pull/1759
+            # Access logs go to the shared /logs volume for the otel-collector filelog receiver.
+            # error_log cannot use a custom JSON format; keep errors on stderr for oc logs.
             error_log  stderr;
-            error_log  syslog:server=127.0.0.1:54526,facility=local7,tag=nginx,severity=error;
-            access_log  /dev/stdout;
-            access_log  syslog:server=127.0.0.1:54526,facility=local7,tag=nginx,severity=info json_combined;
+            access_log  /dev/stdout swatch_file;
+            access_log  /logs/server.log swatch_file;
             listen 8000;
             client_max_body_size 500M;
             client_header_buffer_size 46k;

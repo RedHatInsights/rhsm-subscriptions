@@ -29,10 +29,12 @@ public class ContractCoverage {
   private final String metricId;
   private final boolean gratis;
   private final double total;
+  private final String licenseId;
 
   @Override
   public String toString() {
     return String.format(
-        "Coverage for metric '%s': %s%s", metricId, total, gratis ? "(Gratis)" : "");
+        "Coverage for metric '%s': %s%s licenseId=%s",
+        metricId, total, gratis ? "(Gratis)" : "", licenseId);
   }
 }

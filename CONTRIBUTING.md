@@ -52,6 +52,100 @@ Once we have all the requirements properly installed and configured, we can buil
 ./mvnw clean install
 ```
 
+## IntelliJ IDEA Setup
+
+### Build and Run Configuration
+
+For a faster workflow, uncheck **Delegate IDE build/run actions to Maven** in _Settings_ →
+_Build, Execution, Deployment_ → _Build Tools_ → _Maven_ → _Runner_. This lets IntelliJ
+use its own compiler and test runner, avoiding Maven overhead.
+
+### Running Tests from the IDE
+
+You can run individual tests by clicking the gutter arrow next to a test class or method.
+With Maven delegation disabled (see above), IntelliJ compiles and runs the test directly,
+which is significantly faster.
+
+If IntelliJ shows compilation errors in other modules, you can still run a test — IntelliJ
+will compile the code required for that test and its dependencies, skipping unrelated
+modules with errors.
+
+### Annotation Processing
+
+IntelliJ must have annotation processing enabled for Lombok, MapStruct, and Hibernate
+metamodel generation to work. On first import, IntelliJ should auto-configure this from the
+POMs. If prompted, enable annotation processing. You can verify this in _Settings_ →
+_Build, Execution, Deployment_ → _Compiler_ → _Annotation Processors_.
+
+### Generated Sources
+
+This project uses OpenAPI and jsonschema2pojo to generate source code during Maven's
+`generate-sources` phase. IntelliJ cannot generate these on its own, so you must run Maven
+after a fresh clone or after `./mvnw clean`:
+
+1. Reload the Maven project in IntelliJ (Ctrl+Shift+O)
+2. Run the generate commands:
+   ```shell
+   ./mvnw clean generate-resources generate-sources
+   ```
+
+### Component Tests
+
+Component test (ct) modules live under each service directory (e.g. `swatch-tally/ct/`) and
+are only included by the `component-tests` Maven profile. Two setup steps are required to
+work on them in IntelliJ:
+
+**1. Activate the `component-tests` profile in IntelliJ:**
+
+- Open the Maven tool window (_View_ → _Tool Windows_ → _Maven_)
+- Expand _Profiles_
+- Check `component-tests`
+- Click the reload button (or press Ctrl+Shift+O) to reimport
+
+Without this profile active, IntelliJ will not import the ct modules at all.
+
+**2. Generate ct source code:**
+
+Component tests generate models during Maven's `generate-test-sources` phase. Run this after
+a fresh clone, after `./mvnw clean`, or any time the ct `target/` directory is missing:
+
+```shell
+./mvnw generate-test-sources -Pcomponent-tests
+```
+
+To generate for a single ct module (faster):
+
+```shell
+./mvnw generate-test-sources -pl swatch-tally/ct -Pcomponent-tests -am
+```
+
+### Avoiding Maven / IntelliJ Build Conflicts
+
+Maven and IntelliJ both write annotation processor output (MapStruct impls, Hibernate
+metamodel classes) to `target/generated-sources/annotations/`. If Maven has already generated
+these files and IntelliJ tries to regenerate them, you will get an error like:
+
+```
+java: Internal error in the mapping processor: javax.annotation.processing.FilerException:
+Attempt to recreate a file for type ...
+```
+
+To avoid this, follow these guidelines:
+
+- **Day-to-day development:** Use IntelliJ's build and test runner normally. No special steps
+  needed.
+- **After running `./mvnw compile`, `test`, or `verify` from the CLI:** Reset the state for
+  IntelliJ by running:
+  1. Reload the Maven project in IntelliJ (Ctrl+Shift+O)
+  2. Run the generate commands:
+     ```shell
+     ./mvnw clean generate-resources generate-sources
+     ```
+  3. If you are also working on component tests, follow up with:
+     ```shell
+     ./mvnw generate-test-sources -Pcomponent-tests
+     ```
+
 -------------
 # Code Style
 

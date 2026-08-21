@@ -216,31 +216,27 @@
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>default-compile</id>
-            <goals>
-              <goal>compile</goal>
-            </goals>
-            <configuration>
-              <parameters>true</parameters>
-              <annotationProcessorPaths>
-                <path>
-                  <groupId>org.hibernate.orm</groupId>
-                  <artifactId>hibernate-jpamodelgen</artifactId>
-                </path>
-                <path>
-                  <groupId>org.projectlombok</groupId>
-                  <artifactId>lombok</artifactId>
-                </path>
-                <path>
-                  <groupId>org.mapstruct</groupId>
-                  <artifactId>mapstruct-processor</artifactId>
-                </path>
-              </annotationProcessorPaths>
-            </configuration>
-          </execution>
-        </executions>
+        <configuration>
+          <parameters>true</parameters>
+          <annotationProcessorPaths>
+            <path>
+              <groupId>org.hibernate.orm</groupId>
+              <artifactId>hibernate-jpamodelgen</artifactId>
+            </path>
+            <path>
+              <groupId>org.projectlombok</groupId>
+              <artifactId>lombok</artifactId>
+            </path>
+            <path>
+              <groupId>org.projectlombok</groupId>
+              <artifactId>lombok-mapstruct-binding</artifactId>
+            </path>
+            <path>
+              <groupId>org.mapstruct</groupId>
+              <artifactId>mapstruct-processor</artifactId>
+            </path>
+          </annotationProcessorPaths>
+        </configuration>
       </plugin>
 
       <plugin>
@@ -348,6 +344,7 @@
                 <sourcePath>subscriptions_export_json_measurement.yaml</sourcePath>
                 <sourcePath>enable_partner_gateway_contracts_variant_payload.yaml</sourcePath>
                 <sourcePath>it_subscription_service_feature_flag_variant_payload.yaml</sourcePath>
+                <sourcePath>product_service_consumer_feature_flag_variant_payload.yaml</sourcePath>
               </sourcePaths>
             </configuration>
           </execution>

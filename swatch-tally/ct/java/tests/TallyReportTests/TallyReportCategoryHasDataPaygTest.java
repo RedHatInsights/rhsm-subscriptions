@@ -27,10 +27,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
 
+import com.redhat.swatch.component.tests.api.SubscriptionsAccessLevel;
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
+import com.redhat.swatch.component.tests.utils.SwatchUtils;
 import com.redhat.swatch.tally.test.model.ServiceLevelType;
 import com.redhat.swatch.tally.test.model.TallyReportData;
 import com.redhat.swatch.tally.test.model.TallyReportDataPoint;
@@ -44,6 +46,7 @@ import java.util.Map;
 import java.util.UUID;
 import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -57,6 +60,25 @@ public class TallyReportCategoryHasDataPaygTest extends BaseTallyComponentTest {
   private static final Duration PIPELINE_POLL_INTERVAL = Duration.ofSeconds(2);
 
   private static String firstOrgId;
+
+  private static void stubRbacForOrg(String orgId) {
+    String identityHeader = SwatchUtils.createUserIdentityHeader(orgId);
+    wiremock
+        .forRbacAccessControl()
+        .stubSubscriptionsAccess(identityHeader, SubscriptionsAccessLevel.GRANTED_ADMIN);
+  }
+
+  @BeforeEach
+  void setUpRbacForTestOrg() {
+    // Stub RBAC for test org IDs (wiremock clears mappings before each test)
+    if (firstOrgId != null) {
+      stubRbacForOrg(firstOrgId);
+    }
+    if (dataGapOrgId != null) {
+      stubRbacForOrg(dataGapOrgId);
+    }
+  }
+
   private static OffsetDateTime positiveEventHourStart;
   private static OffsetDateTime positiveEventHourEnd;
   private static OffsetDateTime positiveRangeStart;
@@ -81,6 +103,7 @@ public class TallyReportCategoryHasDataPaygTest extends BaseTallyComponentTest {
     zeroEventHourEnd = zeroEventHourStart.plusHours(1).minusNanos(1);
 
     firstOrgId = RandomUtils.generateRandom();
+    stubRbacForOrg(firstOrgId);
     service.createOptInConfig(firstOrgId);
     givenCloudPaygEventPublished(firstOrgId, positiveEventHourStart, 8.0f);
     AwaitilityUtils.untilAsserted(
@@ -106,6 +129,7 @@ public class TallyReportCategoryHasDataPaygTest extends BaseTallyComponentTest {
     dataGapRangeBeginning = dataGapBaseTime;
     dataGapRangeEnding = dataGapBaseTime.plusHours(4).minusNanos(1);
     dataGapOrgId = RandomUtils.generateRandom();
+    stubRbacForOrg(dataGapOrgId);
     service.createOptInConfig(dataGapOrgId);
     givenCloudPaygEventPublished(dataGapOrgId, dataGapBaseTime, 10.0f);
     givenCloudPaygEventPublished(dataGapOrgId, dataGapBaseTime.plusHours(2), 20.0f);
@@ -155,6 +179,7 @@ public class TallyReportCategoryHasDataPaygTest extends BaseTallyComponentTest {
     // Given: Zero cloud PAYG is published and tallied
     givenFeatureFlagIsConfigured(primaryRowSearches);
     String orgId = RandomUtils.generateRandom();
+    stubRbacForOrg(orgId);
     service.createOptInConfig(orgId);
     givenCloudPaygEventPublished(orgId, zeroEventHourStart, 0.0f);
     givenZeroCloudMeasurementReadyForOrg(orgId);

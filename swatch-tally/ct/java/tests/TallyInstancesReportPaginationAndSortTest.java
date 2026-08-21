@@ -47,6 +47,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class TallyInstancesReportPaginationAndSortTest extends BaseTallyComponentTest {
@@ -77,6 +78,11 @@ public class TallyInstancesReportPaginationAndSortTest extends BaseTallyComponen
   private static DisplayNameSortFixture displayName;
   private static MetricSortFixture metric;
   private static CategorySortFixture category;
+
+  @BeforeEach
+  void setUpRbacForTestOrg() {
+    stubRbacAccessForOrg(testOrgId);
+  }
 
   @BeforeAll
   static void setupEvents() {

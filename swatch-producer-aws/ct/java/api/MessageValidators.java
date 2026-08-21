@@ -36,6 +36,16 @@ public class MessageValidators {
         BillableUsageAggregate.class);
   }
 
+  public static DefaultMessageValidator<BillableUsageAggregate> aggregateMatches(
+      String billingAccountId, Status status, String licenseId) {
+    return new DefaultMessageValidator<>(
+        aggregate ->
+            billingAccountId.equals(aggregate.getAggregateKey().getBillingAccountId())
+                && status.equals(aggregate.getStatus())
+                && licenseId.equals(aggregate.getLicenseId()),
+        BillableUsageAggregate.class);
+  }
+
   public static DefaultMessageValidator<BillableUsageAggregate> alwaysMatch() {
     return new DefaultMessageValidator<>(agg -> true, BillableUsageAggregate.class);
   }

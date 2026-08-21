@@ -113,22 +113,16 @@ parameters:
     value: 'false'
   - name: ENABLE_ACCOUNT_RESET
     value: 'false'
-  - name: LOGGING_HEC_ENABLED
-    value: 'true'
   - name: LOGGING_SOURCE
     value: 'swatch-tally'
   - name: LOGGING_SOURCE_TYPE
     value: 'swatch'
-  - name: LOGGING_MESSAGE_FORMAT
-    value: 'text'
+  - name: LOGGING_FILE_LOG_ENABLED
+    value: 'true'
+  - name: LOGGING_FILE_MAX_SIZE
+    value: '10MB'
   - name: LOGGING_HEC_URL
     value: https://splunk-hec.redhat.com:8088
-  - name: LOGGING_HEC_CONNECT_TIMEOUT
-    value: '5000'
-  - name: LOGGING_HEC_BATCH_SIZE
-    value: '1000'
-  - name: LOGGING_HEC_TERMINATION_TIMEOUT
-    value: '2000'
 # nonprod secret keys have different syntax than prod/stage
   - name: INVENTORY_SECRET_KEY_NAME
     value: 'host-inventory-db'
@@ -281,6 +275,14 @@ parameters:
     value: signalfx
   - name: OTEL_TRACES_TOKEN_SECRET_KEY
     value: token
+  - name: KESSEL_INSECURE
+    value: 'true'
+  - name: KESSEL_AUTH_ENABLED
+    value: 'false'
+#    Environment provides this
+  - name: KESSEL_AUTH_OIDC_ISSUER
+  - name: AUTH_DISCOVERY_ISSUER_URL
+  - name: RBAC_BASE_ENDPOINT
 
 # Shared FloorPlan specification for all environments (sandbox, dev, preprod, prod)
 # Only objectStore differs per environment
@@ -410,6 +412,7 @@ objects:
       - swatch-contracts
       - rbac
       - export-service
+      - kessel-inventory
     # IQE plugin your ClowdApp is associated with
     testing:
       iqePlugin: rhsm-subscriptions
@@ -452,6 +455,8 @@ objects:
             enabled: true
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
+          # Extra grace time so the otel sidecar can finish reading /logs/server.log and export to HEC before the shared volume is torn down.
+          terminationGracePeriodSeconds: 90
           # Run Liquibase migrations in an initContainer since initContainers do not have
           # liveness or readinessProbes which could potentially abort a migration
           initContainers:
@@ -475,6 +480,24 @@ objects:
               value: ${JAVA_DEBUG}
             - name: USER_OPTS_APPEND
               value: ${USER_OPTS_APPEND}
+            - name: KESSEL_INSECURE
+              value: ${KESSEL_INSECURE}
+            - name: KESSEL_AUTH_ENABLED
+              value: ${KESSEL_AUTH_ENABLED}
+            - name: KESSEL_AUTH_OIDC_ISSUER
+              value: ${KESSEL_AUTH_OIDC_ISSUER}
+            - name: KESSEL_AUTH_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  key: client_id
+                  name: swatch-kessel-sa
+                  optional: true
+            - name: KESSEL_AUTH_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  key: client_secret
+                  name: swatch-kessel-sa
+                  optional: true
             - name: JAVA_TOOL_OPTIONS
               value: -javaagent:/opt/splunk-otel-javaagent.jar
             - name: CONTRACT_CLIENT_BACK_OFF_INITIAL_INTERVAL_MILLIS
@@ -487,39 +510,17 @@ objects:
               value: ${CONTRACT_CLIENT_MAX_ATTEMPTS}
             - name: RHSM_CONTRACTS_URL
               value: ${RHSM_CONTRACTS_URL}
-            - name: LOGGING_HEC_ENABLED
-              value: ${LOGGING_HEC_ENABLED}
-            - name: LOGGING_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.namespace
+            - name: SPRING_PROFILES_ACTIVE
+              value: ${SPRING_PROFILES_ACTIVE_SERVICE}
             - name: HOST_NAME
               valueFrom:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: metadata.name
-            - name: LOGGING_HEC_URL
-              value: ${LOGGING_HEC_URL}
-            - name: LOGGING_HEC_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: splunk-hec-external
-                  key: token
-            - name: LOGGING_SOURCE
-              value: ${LOGGING_SOURCE}
-            - name: LOGGING_SOURCE_TYPE
-              value: ${LOGGING_SOURCE_TYPE}
-            - name: LOGGING_MESSAGE_FORMAT
-              value: ${LOGGING_MESSAGE_FORMAT}
-            - name: LOGGING_HEC_CONNECT_TIMEOUT
-              value: ${LOGGING_HEC_CONNECT_TIMEOUT}
-            - name: LOGGING_HEC_BATCH_SIZE
-              value: ${LOGGING_HEC_BATCH_SIZE}
-            - name: LOGGING_HEC_TERMINATION_TIMEOUT
-              value: ${LOGGING_HEC_TERMINATION_TIMEOUT}
-            - name: SPRING_PROFILES_ACTIVE
-              value: ${SPRING_PROFILES_ACTIVE_SERVICE}
+            - name: LOGGING_FILE_LOG_ENABLED
+              value: ${LOGGING_FILE_LOG_ENABLED}
+            - name: LOGGING_FILE_MAX_SIZE
+              value: ${LOGGING_FILE_MAX_SIZE}
             - name: LOG_FILE
               value: /logs/server.log
             - name: JAVA_MAX_MEM_RATIO
@@ -715,6 +716,9 @@ objects:
             enabled: true
             configMap: ${OTEL_SIDECAR_CONFIG_MAP}
             image: ${OTEL_SIDECAR_IMAGE}
+            volumeMounts:
+              - name: logs
+                mountPath: /logs
             envVars:
               - name: ENV_NAME
                 value: ${OTEL_ENV_NAME}

@@ -23,10 +23,12 @@ package com.redhat.swatch.aws.service;
 import static com.redhat.swatch.configuration.registry.SubscriptionDefinition.getBillingFactor;
 import static java.util.Optional.ofNullable;
 
+import com.redhat.swatch.aws.config.FeatureFlags;
 import com.redhat.swatch.aws.exception.AwsMissingCredentialsException;
 import com.redhat.swatch.aws.exception.AwsThrottlingException;
 import com.redhat.swatch.aws.exception.AwsUnprocessedRecordsException;
 import com.redhat.swatch.aws.exception.AwsUsageContextLookupException;
+import com.redhat.swatch.aws.exception.AwsUsageNotAcceptedException;
 import com.redhat.swatch.aws.exception.DefaultApiException;
 import com.redhat.swatch.aws.exception.SubscriptionCanNotBeDeterminedException;
 import com.redhat.swatch.aws.exception.SubscriptionMissingBillingAccountIdException;
@@ -81,6 +83,7 @@ public class AwsBillableUsageAggregateConsumer {
   private final Optional<Boolean> isDryRun;
   private final Duration awsUsageWindow;
   private final BillableUsageStatusProducer billableUsageStatusProducer;
+  private final FeatureFlags featureFlags;
   private final MeterProvider<Counter> meteredTotalCounter;
 
   public AwsBillableUsageAggregateConsumer(
@@ -89,7 +92,8 @@ public class AwsBillableUsageAggregateConsumer {
       AwsMarketplaceMeteringClientFactory awsMarketplaceMeteringClientFactory,
       @ConfigProperty(name = "ENABLE_AWS_DRY_RUN") Optional<Boolean> isDryRun,
       @ConfigProperty(name = "AWS_MARKETPLACE_USAGE_WINDOW") Duration awsUsageWindow,
-      BillableUsageStatusProducer billableUsageStatusProducer) {
+      BillableUsageStatusProducer billableUsageStatusProducer,
+      FeatureFlags featureFlags) {
     acceptedCounter = meterRegistry.counter("swatch_aws_marketplace_batch_accepted_total");
     rejectedCounter = meterRegistry.counter("swatch_aws_marketplace_batch_rejected_total");
     ignoreCounter = meterRegistry.counter("swatch_aws_marketplace_batch_ignored_total");
@@ -99,6 +103,7 @@ public class AwsBillableUsageAggregateConsumer {
     this.isDryRun = isDryRun;
     this.awsUsageWindow = awsUsageWindow;
     this.billableUsageStatusProducer = billableUsageStatusProducer;
+    this.featureFlags = featureFlags;
   }
 
   @Incoming("billable-usage-hourly-aggregate-in")
@@ -177,6 +182,16 @@ public class AwsBillableUsageAggregateConsumer {
           context.getProductCode(),
           context.getSubscriptionStartDate());
       ignoreCounter.increment();
+    } catch (AwsUsageNotAcceptedException e) {
+      emitErrorStatusOnUsage(
+          billableUsageAggregate, errorCodeForAwsUsageResult(e.getResultStatus()));
+      log.warn(
+          "AWS usage not accepted for rhSubscriptionId={} aggregate={} awsCustomerId={} awsProductCode={} resultStatus={}",
+          context.getRhSubscriptionId(),
+          billableUsageAggregate,
+          context.getCustomerId(),
+          context.getProductCode(),
+          e.getResultStatus());
     } catch (AwsThrottlingException e) {
       emitErrorStatusOnUsage(
           billableUsageAggregate, BillableUsage.ErrorCode.MARKETPLACE_RATE_LIMIT);
@@ -205,6 +220,7 @@ public class AwsBillableUsageAggregateConsumer {
   public AwsUsageContext lookupAwsUsageContext(BillableUsageAggregate billableUsageAggregate)
       throws AwsUsageContextLookupException {
     try {
+      String licenseId = featureFlags.useLicense() ? billableUsageAggregate.getLicenseId() : null;
       return contractsApi.getAwsUsageContext(
           billableUsageAggregate.getWindowTimestamp(),
           billableUsageAggregate.getAggregateKey().getProductId(),
@@ -212,8 +228,7 @@ public class AwsBillableUsageAggregateConsumer {
           billableUsageAggregate.getAggregateKey().getSla(),
           billableUsageAggregate.getAggregateKey().getUsage(),
           billableUsageAggregate.getAggregateKey().getBillingAccountId(),
-          // LicenseId will be propagated as part of SWATCH-5301.
-          null);
+          licenseId);
     } catch (DefaultApiException e) {
       if (ofNullable(e.getError())
           .map(error -> "CONTRACTS1005".equals(error.getCode()))
@@ -236,7 +251,9 @@ public class AwsBillableUsageAggregateConsumer {
 
   private void transformAndSend(
       AwsUsageContext context, BillableUsageAggregate billableUsageAggregate, Metric metric)
-      throws AwsUnprocessedRecordsException, UsageTimestampOutOfBoundsException {
+      throws AwsUnprocessedRecordsException,
+          AwsUsageNotAcceptedException,
+          UsageTimestampOutOfBoundsException {
     BatchMeterUsageRequest request =
         BatchMeterUsageRequest.builder()
             .productCode(context.getProductCode())
@@ -258,28 +275,23 @@ public class AwsBillableUsageAggregateConsumer {
           awsMarketplaceMeteringClientFactory.buildMarketplaceMeteringClient(context);
       BatchMeterUsageResponse response = send(marketplaceMeteringClient, request);
       log.debug("{}", response);
-      response
-          .results()
-          .forEach(
-              result -> {
-                if (result.status() == UsageRecordResultStatus.CUSTOMER_NOT_SUBSCRIBED) {
-                  log.warn(
-                      "AWS BatchMeterUsage CUSTOMER_NOT_SUBSCRIBED (No subscription found) for aggregate={}, result={}",
-                      billableUsageAggregate,
-                      result);
-                } else if (result.status() != UsageRecordResultStatus.SUCCESS) {
-                  log.warn("{}, aggregate={}", result, billableUsageAggregate);
-                } else {
-                  log.info(
-                      "Sent usage request to AWS: result={}, aggregate={}",
-                      result,
-                      billableUsageAggregate);
-                  acceptedCounter.increment(response.results().size());
-                }
-              });
       if (!response.unprocessedRecords().isEmpty()) {
         rejectedCounter.increment(response.unprocessedRecords().size());
         throw new AwsUnprocessedRecordsException(response.unprocessedRecords().size());
+      }
+      for (var result : response.results()) {
+        if (result.status() == UsageRecordResultStatus.SUCCESS) {
+          log.info(
+              "Sent usage request to AWS: result={}, aggregate={}", result, billableUsageAggregate);
+          acceptedCounter.increment();
+        } else {
+          log.warn(
+              "AWS BatchMeterUsage returned non-Success status for aggregate={}, result={}",
+              billableUsageAggregate,
+              result);
+          rejectedCounter.increment();
+          throw new AwsUsageNotAcceptedException(result.status());
+        }
       }
     } catch (ThrottlingException e) {
       rejectedCounter.increment(request.usageRecords().size());
@@ -319,12 +331,37 @@ public class AwsBillableUsageAggregateConsumer {
           "Unable to send usage since it is outside of the AWS processing window");
     }
 
-    return UsageRecord.builder()
-        .customerAWSAccountId(context.getCustomerAwsAccountId())
-        .dimension(metric.getAwsDimension())
-        .quantity(billableUsageAggregate.getTotalValue().intValueExact())
-        .timestamp(effectiveTimestamp.toInstant())
-        .build();
+    UsageRecord.Builder usageRecord =
+        UsageRecord.builder()
+            .customerAWSAccountId(context.getCustomerAwsAccountId())
+            .dimension(metric.getAwsDimension())
+            .quantity(billableUsageAggregate.getTotalValue().intValueExact())
+            .timestamp(effectiveTimestamp.toInstant());
+
+    applyLicenseArnIfEnabled(usageRecord, billableUsageAggregate);
+
+    return usageRecord.build();
+  }
+
+  private void applyLicenseArnIfEnabled(
+      UsageRecord.Builder usageRecord, BillableUsageAggregate billableUsageAggregate) {
+    if (!featureFlags.useLicense()) {
+      log.debug(
+          "use-license flag off; omitting LicenseArn for aggregateId={}",
+          billableUsageAggregate.getAggregateId());
+      return;
+    }
+
+    String licenseId = billableUsageAggregate.getLicenseId();
+    if (licenseId == null || licenseId.isBlank()) {
+      log.warn(
+          "use-license is enabled but licenseId is missing; omitting LicenseArn"
+              + " for aggregateId={}",
+          billableUsageAggregate.getAggregateId());
+      return;
+    }
+
+    usageRecord.licenseArn(licenseId);
   }
 
   private boolean isForAws(BillableUsageAggregateKey aggregationKey) {
@@ -370,6 +407,17 @@ public class AwsBillableUsageAggregateConsumer {
     usage.setErrorCode(errorCode);
     incrementMeteredTotal(usage);
     billableUsageStatusProducer.emitStatus(usage);
+  }
+
+  private static BillableUsage.ErrorCode errorCodeForAwsUsageResult(
+      UsageRecordResultStatus resultStatus) {
+    if (resultStatus == UsageRecordResultStatus.CUSTOMER_NOT_SUBSCRIBED) {
+      return BillableUsage.ErrorCode.MARKETPLACE_CUSTOMER_NOT_SUBSCRIBED;
+    }
+    if (resultStatus == UsageRecordResultStatus.DUPLICATE_RECORD) {
+      return BillableUsage.ErrorCode.MARKETPLACE_DUPLICATE_RECORD;
+    }
+    return BillableUsage.ErrorCode.UNKNOWN;
   }
 
   private void incrementMeteredTotal(BillableUsageAggregate usage) {

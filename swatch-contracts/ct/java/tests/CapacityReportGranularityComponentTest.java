@@ -36,6 +36,7 @@ import domain.Product;
 import io.restassured.response.Response;
 import java.time.OffsetDateTime;
 import java.util.List;
+import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -256,7 +257,88 @@ public class CapacityReportGranularityComponentTest extends BaseContractComponen
 
     // Then: Verify response returns HTTP 400 Bad Request
     assertThat(
-        "Invalid granularity should return 400 Bad Request", response.statusCode(), equalTo(400));
+        "Invalid granularity should return 400 Bad Request",
+        response.statusCode(),
+        equalTo(HttpStatus.SC_BAD_REQUEST));
+  }
+
+  @TestPlanName("capacity-report-granularity-TC008")
+  @Test
+  void shouldNotGetCapacityReportForUnknownProduct() {
+    // When: Request capacity report for a product not in configuration
+    final String unsupportedProductId = "UNSUPPORTED_PRODUCT_" + RandomUtils.generateRandom();
+    final OffsetDateTime beginning = clock.startOfToday().minusMonths(1);
+    final OffsetDateTime ending = clock.endOfToday();
+
+    Response response =
+        service.getCapacityReportByMetricIdRaw(
+            unsupportedProductId,
+            orgId,
+            CORES.toString(),
+            beginning,
+            ending,
+            "hourly",
+            null,
+            "premium",
+            "production");
+
+    // Then: Verify response returns HTTP 404 Not Found
+    assertThat(
+        "Unknown product should return 404 Not Found",
+        response.statusCode(),
+        equalTo(HttpStatus.SC_NOT_FOUND));
+  }
+
+  @TestPlanName("capacity-report-granularity-TC009")
+  @Test
+  void shouldNotGetCapacityReportForInvalidSla() {
+    // When: Request capacity report with an invalid sla and otherwise valid parameters
+    final OffsetDateTime beginning = clock.startOfToday().minusMonths(1);
+    final OffsetDateTime ending = clock.endOfToday();
+
+    Response response =
+        service.getCapacityReportByMetricIdRaw(
+            Product.RHEL,
+            orgId,
+            CORES.toString(),
+            beginning,
+            ending,
+            "hourly",
+            null,
+            "Home",
+            "production");
+
+    // Then: Verify response returns HTTP 400 Bad Request
+    assertThat(
+        "Invalid sla should return 400 Bad Request",
+        response.statusCode(),
+        equalTo(HttpStatus.SC_BAD_REQUEST));
+  }
+
+  @TestPlanName("capacity-report-granularity-TC010")
+  @Test
+  void shouldNotGetCapacityReportForInvalidUsage() {
+    // When: Request capacity report with an invalid usage and otherwise valid parameters
+    final OffsetDateTime beginning = clock.startOfToday().minusMonths(1);
+    final OffsetDateTime ending = clock.endOfToday();
+
+    Response response =
+        service.getCapacityReportByMetricIdRaw(
+            Product.RHEL,
+            orgId,
+            CORES.toString(),
+            beginning,
+            ending,
+            "hourly",
+            null,
+            "premium",
+            "backup");
+
+    // Then: Verify response returns HTTP 400 Bad Request
+    assertThat(
+        "Invalid usage should return 400 Bad Request",
+        response.statusCode(),
+        equalTo(HttpStatus.SC_BAD_REQUEST));
   }
 
   /**

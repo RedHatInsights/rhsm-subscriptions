@@ -268,6 +268,93 @@ Java component tests in `ContractCoverageComponentTest` (`swatch-billable-usage/
 - **Expected Result:**  
   - Contract lookup failure prevents billable remittance and billing
 
+**billable-usage-contract-coverage-TC009 - Multi-contract coverage fully covers usage**
+
+- **Description:** Verify summed capacities across contracts with `licenseId` still suppress remittance when usage is within total coverage.  
+- **Setup:**  
+  - Two ROSA contracts with licenseIds; combined coverage = 6 Instance-hours  
+  - Tally `current_total` = 5
+- **Action:**  
+  - Publish tally summary
+- **Verification:**  
+  - Account remittance `remittedValue` = 0  
+  - No Kafka message emitted (blocked by known bug: SWATCH-5443 — zero remitted still produces BillableUsage; assertion commented in CT until fixed)
+- **Expected Result:**  
+  - Prepaid coverage math unchanged (sum of capacities)
+
+**billable-usage-contract-coverage-TC010 - Overage remittance stamps newest licenseId**
+
+- **Description:** Verify PAYG overage selects the newest agreement licenseId and stamps remittance + BillableUsage.  
+- **Setup:**  
+  - Two ROSA contracts (coverage 2+2), different start dates and licenseIds  
+  - Tally `current_total` = 5 (overage 1)
+- **Action:**  
+  - Publish tally summary
+- **Verification:**  
+  - One remittance with `remitted_pending_value` = 1 and selected (newest) `licenseId`  
+  - One Kafka BillableUsage with same `licenseId` and value 1
+- **Expected Result:**  
+  - Single overage remittance allocated to newest agreement
+
+**billable-usage-contract-coverage-TC011 - Mixed licensed and unlicensed contracts**
+
+- **Description:** Verify coverage sums all contracts; overage licenseId comes only from licensed set.  
+- **Setup:**  
+  - Older licensed contract (coverage 2) + newer unlicensed contract (coverage 2)  
+  - Tally `current_total` = 5 (overage 1)
+- **Action:**  
+  - Publish tally summary
+- **Verification:**  
+  - Remittance pending value = 1 with licensed agreement's `licenseId`  
+  - Kafka BillableUsage carries the same `licenseId`
+- **Expected Result:**  
+  - Mixed set: coverage includes both; selection ignores null licenseId
+
+**billable-usage-contract-coverage-TC012 - Mixed gratis-eligible and established agreements**
+
+- **Description:** Verify multiple contracts with `licenseId` still require every active agreement to be gratis-eligible; if any established (non-gratis) agreement exists, overage is billed to the newest `licenseId`.  
+- **Setup:**  
+  - Product: `ansible-aap-managed` (gratis-enabled metric)  
+  - Established agreement at month start (00:00 UTC) + mid-month agreement (newer `licenseId`); combined coverage = 2  
+  - Tally `current_total` = 3 (overage 1) in start month
+- **Action:**  
+  - Publish tally summary
+- **Verification:**  
+  - Remittance status = `pending`, value = 1, `licenseId` = mid-month agreement  
+  - Kafka BillableUsage emitted with same `licenseId`
+- **Expected Result:**  
+  - Newest agreement does not make the period gratis by itself; one established agreement disqualifies gratis
+
+**billable-usage-contract-coverage-TC013 - All agreements gratis-eligible**
+
+- **Description:** Verify when every active agreement starts after month start, overage remittance is `gratis` and stamps the newest `licenseId` (no Kafka emission).  
+- **Setup:**  
+  - Product: `ansible-aap-managed`  
+  - Two mid-month agreements with different start dates/licenseIds; combined coverage = 2  
+  - Tally `current_total` = 3 (overage 1) in start month
+- **Action:**  
+  - Publish tally summary
+- **Verification:**  
+  - Remittance status = `gratis`, value = 1, `licenseId` = newest agreement  
+  - No message on `billable-usage` topic
+- **Expected Result:**  
+  - All-agreements gratis rule unchanged; selected overage `licenseId` still recorded on remittance
+
+**billable-usage-contract-coverage-TC014 - Same startDate uses lexicographic licenseId tie-break**
+
+- **Description:** Verify when two licensed agreements share the same `startDate`, overage uses the lexicographically smaller `licenseId` regardless of contracts API order.  
+- **Setup:**  
+  - Two ROSA contracts with identical start/end dates (coverage 2+2)  
+  - Larger `licenseId` listed first, smaller second  
+  - Tally `current_total` = 5 (overage 1)
+- **Action:**  
+  - Publish tally summary
+- **Verification:**  
+  - One remittance with `remitted_pending_value` = 1 and smaller `licenseId`  
+  - One Kafka BillableUsage with the same smaller `licenseId` and value 1
+- **Expected Result:**  
+  - Deterministic overage allocation when start dates tie (lexicographically smaller wins)
+
 ---
 
 ## Contract Adjustment Remittance
@@ -323,6 +410,90 @@ Java component tests in `ContractAdjustmentComponentTest` (`swatch-billable-usag
   - `totalValue` = sum of individual billable values
 - **Expected Result:**  
   - Hourly rollup for marketplace producers
+
+**billable-usage-aggregation-TC002 - Keep latest non-null licenseId on hourly aggregate**
+
+- **Description:** Verify hourly aggregation carries `licenseId` on the aggregate body and keeps the latest non-null value when multiple BillableUsage messages share the same key.  
+- **Setup:**  
+  - Publish three BillableUsage messages for the same org/product/metric/billingAccountId with values 1, 2, 3 and licenseIds A, null, B  
+- **Action:**  
+  - Trigger flush: `POST /internal/rpc/topics/flush`
+- **Verification:**  
+  - One message on `billable-usage-hourly-aggregate`  
+  - `licenseId` = B (latest non-null)  
+  - `totalValue` = 6  
+  - Aggregate key dimensions unchanged (no licenseId on key)
+- **Expected Result:**  
+  - Latest non-null license wins; null does not create a separate aggregate
+
+**billable-usage-aggregation-TC003 - Retain prior licenseId when later usage is null**
+
+- **Description:** Verify a later BillableUsage with null `licenseId` does not clear a previously set aggregate license.  
+- **Setup:**  
+  - Publish BillableUsage with licenseId A, then another for the same key with null licenseId  
+- **Action:**  
+  - Trigger flush: `POST /internal/rpc/topics/flush`
+- **Verification:**  
+  - One hourly aggregate with `licenseId` = A and summed `totalValue`
+- **Expected Result:**  
+  - Legacy/null license messages do not wipe the license already carried on the aggregate
+
+---
+
+## Status Consumer (marketplace feedback)
+
+**billable-usage-status-TC001 - Align remittance licenses to status aggregate licenseId**
+
+- **Description:** Verify when a status aggregate carries a non-null `licenseId`, all referenced remittance rows are updated to that final metering license (even if they previously had a different or null license).  
+- **Setup:**  
+  - Create two pending remittances for the **same** org/billingAccountId (same hourly aggregate key)  
+  - Stamp them with licenseIds A then B via successive tallies as contracts change  
+- **Action:**  
+  - Publish `billable-usage.status` aggregate referencing both remittance UUIDs with `status=SUCCEEDED` and `licenseId=B`  
+- **Verification:**  
+  - Both remittances reach `SUCCEEDED`  
+  - Both remittances have `licenseId=B`  
+- **Expected Result:**  
+  - Remittance ledger matches the license actually used for AWS metering
+
+**billable-usage-status-TC002 - Null status licenseId clears remittance license**
+
+- **Description:** Verify a status update with null `licenseId` updates status/billedOn and sets remittance `license_id` to null (same value as the metering status payload).  
+- **Setup:**  
+  - Create a pending remittance stamped with licenseId A  
+- **Action:**  
+  - Publish status aggregate with `status=SUCCEEDED` and null `licenseId`  
+- **Verification:**  
+  - Remittance status = `SUCCEEDED`  
+  - Remittance `licenseId` is null  
+- **Expected Result:**  
+  - Remittance license always mirrors the status aggregate licenseId
+
+**billable-usage-status-TC003 - Update remittance with SUCCEEDED status**
+
+- **Description:** Verify status consumer marks remittance SUCCEEDED and sets billedOn.  
+- **Setup:**  
+  - Create a pending remittance (no contract coverage)  
+- **Action:**  
+  - Publish status aggregate with `status=SUCCEEDED` and billedOn  
+- **Verification:**  
+  - Remittance status = `SUCCEEDED`  
+  - `billedOn` is set near the published timestamp  
+- **Expected Result:**  
+  - Successful marketplace feedback updates remittance lifecycle fields
+
+**billable-usage-status-TC004 - Update remittance with FAILED status**
+
+- **Description:** Verify status consumer marks remittance FAILED and sets errorCode.  
+- **Setup:**  
+  - Create a pending remittance (no contract coverage)  
+- **Action:**  
+  - Publish status aggregate with `status=FAILED` and `errorCode=SUBSCRIPTION_NOT_FOUND`  
+- **Verification:**  
+  - Remittance status = `FAILED`  
+  - `errorCode` = `SUBSCRIPTION_NOT_FOUND`  
+- **Expected Result:**  
+  - Failed marketplace feedback updates remittance lifecycle fields
 
 ---
 

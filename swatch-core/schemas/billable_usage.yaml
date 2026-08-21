@@ -64,6 +64,8 @@ properties:
       - unsupported_metric
       - unknown
       - marketplace_rate_limit
+      - marketplace_customer_not_subscribed
+      - marketplace_duplicate_record
   billed_on:
     type: string
     format: date-time
@@ -82,3 +84,7 @@ properties:
   currentTotal:
     description: Sum of all measurements between the start of the month to the snapshot date.
     type: number
+  license_id:
+    description: License ID to use for billing
+    type: string
+    nullable: true

@@ -21,11 +21,14 @@
 package api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.component.tests.api.WiremockService;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -62,18 +65,42 @@ public class AwsWiremockService extends WiremockService {
       String customerId,
       String productCode,
       String customerAwsAccountId) {
-    var contextData = new HashMap<String, Object>();
-    contextData.put("rhSubscriptionId", rhSubscriptionId);
-    contextData.put("customerId", customerId);
-    contextData.put("productCode", productCode);
-    contextData.put("awsSellerAccountId", awsSellerAccountId);
-    contextData.put("subscriptionStartDate", "2020-01-01T00:00:00Z");
-    if (customerAwsAccountId != null) {
-      contextData.put("customerAwsAccountId", customerAwsAccountId);
-    }
+    setupAwsUsageContextWithBatchMeterResultStatus(
+        awsAccountId,
+        awsSellerAccountId,
+        rhSubscriptionId,
+        customerId,
+        productCode,
+        customerAwsAccountId,
+        "Success");
+  }
 
-    registerAwsUsageContextStub(awsAccountId, jsonResponse(200, contextData));
-    setupAwsBatchMeterUsage();
+  public void setupAwsUsageContextWithBatchMeterResultStatus(
+      String awsAccountId,
+      String awsSellerAccountId,
+      String rhSubscriptionId,
+      String customerId,
+      String productCode,
+      String batchMeterResultStatus) {
+    setupAwsUsageContextWithBatchMeterResultStatus(
+        awsAccountId,
+        awsSellerAccountId,
+        rhSubscriptionId,
+        customerId,
+        productCode,
+        null,
+        batchMeterResultStatus);
+  }
+
+  public void setupAwsUsageContextWithBatchMeterThrottling(
+      String awsAccountId,
+      String awsSellerAccountId,
+      String rhSubscriptionId,
+      String customerId,
+      String productCode) {
+    registerAwsUsageContextForBatchMeterUsage(
+        awsAccountId, awsSellerAccountId, rhSubscriptionId, customerId, productCode, null);
+    setupAwsBatchMeterUsageThrottling();
   }
 
   public void setupAwsUsageContextToReturnSubscriptionRecentlyTerminated(String awsAccountId) {
@@ -142,15 +169,6 @@ public class AwsWiremockService extends WiremockService {
         "");
   }
 
-  public void verifyBatchMeterUsageCustomerIdentifier(String expectedCustomerIdentifier) {
-    UsageRecord usageRecord = findLatestBatchMeterUsageUsageRecord();
-    assertEquals(
-        expectedCustomerIdentifier,
-        usageRecord.customerIdentifier(),
-        "customerIdentifier mismatch");
-    assertFieldAbsent("customerAWSAccountId", usageRecord.customerAWSAccountId());
-  }
-
   public void verifyBatchMeterUsageCustomerAwsAccountId(String expectedCustomerAwsAccountId) {
     UsageRecord usageRecord = findLatestBatchMeterUsageUsageRecord();
     assertEquals(
@@ -158,6 +176,37 @@ public class AwsWiremockService extends WiremockService {
         usageRecord.customerAWSAccountId(),
         "customerAWSAccountId mismatch");
     assertFieldAbsent("customerIdentifier", usageRecord.customerIdentifier());
+  }
+
+  public void verifyBatchMeterUsageLicenseArn(String expectedLicenseArn) {
+    UsageRecord usageRecord = findLatestBatchMeterUsageUsageRecord();
+    assertEquals(expectedLicenseArn, usageRecord.licenseArn(), "licenseArn mismatch");
+  }
+
+  public void verifyBatchMeterUsageLicenseArnAbsent() {
+    UsageRecord usageRecord = findLatestBatchMeterUsageUsageRecord();
+    assertFieldAbsent("licenseArn", usageRecord.licenseArn());
+  }
+
+  public void verifyBatchMeterUsageProductCode(String expectedProductCode) {
+    BatchMeterUsageRequest batchRequest = findLatestBatchMeterUsageRequest();
+    assertEquals(expectedProductCode, batchRequest.productCode(), "productCode mismatch");
+  }
+
+  public void verifyAwsUsageContextLicenseId(String expectedLicenseId) {
+    String requestUrl = findLatestAwsUsageContextRequestUrl();
+    String decodedUrl = URLDecoder.decode(requestUrl, StandardCharsets.UTF_8);
+    assertTrue(
+        decodedUrl.contains("licenseId=" + expectedLicenseId),
+        "Expected licenseId query param in awsUsageContext request: " + requestUrl);
+  }
+
+  public void verifyAwsUsageContextLicenseIdAbsent() {
+    String requestUrl = findLatestAwsUsageContextRequestUrl();
+    String decodedUrl = URLDecoder.decode(requestUrl, StandardCharsets.UTF_8);
+    assertFalse(
+        decodedUrl.contains("licenseId="),
+        "Expected no licenseId query param in awsUsageContext request: " + requestUrl);
   }
 
   private static void assertFieldAbsent(String fieldName, String value) {
@@ -172,6 +221,51 @@ public class AwsWiremockService extends WiremockService {
       throw new AssertionError("BatchMeterUsage request missing UsageRecords: " + batchRequest);
     }
     return batchRequest.usageRecords().get(0);
+  }
+
+  private String findLatestAwsUsageContextRequestUrl() {
+    var response =
+        given().when().get("/__admin/requests").then().statusCode(200).extract().response();
+
+    try {
+      ObjectMapper objectMapper = new ObjectMapper();
+      JsonNode responseJson = objectMapper.readTree(response.getBody().asString());
+      JsonNode requests = responseJson.get("requests");
+
+      if (requests == null || requests.isEmpty()) {
+        throw new AssertionError("No requests found in Wiremock");
+      }
+
+      String matchingUrl = null;
+      for (JsonNode requestNode : requests) {
+        JsonNode request = requestNode.get("request");
+        if (request == null) {
+          continue;
+        }
+
+        JsonNode urlNode = request.get("url");
+        JsonNode methodNode = request.get("method");
+        if (urlNode == null || methodNode == null) {
+          continue;
+        }
+
+        String url = urlNode.asText();
+        String method = methodNode.asText();
+        if (!url.contains("awsUsageContext") || !"GET".equals(method)) {
+          continue;
+        }
+        matchingUrl = url;
+      }
+
+      if (matchingUrl == null) {
+        throw new AssertionError("No awsUsageContext requests found");
+      }
+      return matchingUrl;
+    } catch (AssertionError e) {
+      throw e;
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to verify awsUsageContext request: " + e.getMessage(), e);
+    }
   }
 
   private BatchMeterUsageRequest findLatestBatchMeterUsageRequest() {
@@ -227,9 +321,50 @@ public class AwsWiremockService extends WiremockService {
     }
   }
 
-  private void setupAwsBatchMeterUsage() {
-    // The AWS SDK v2 sends JSON (application/x-amz-json-1.1) with the X-Amz-Target header
-    // to identify the operation. We return a minimal valid BatchMeterUsage JSON response.
+  private void setupAwsUsageContextWithBatchMeterResultStatus(
+      String awsAccountId,
+      String awsSellerAccountId,
+      String rhSubscriptionId,
+      String customerId,
+      String productCode,
+      String customerAwsAccountId,
+      String batchMeterResultStatus) {
+    registerAwsUsageContextForBatchMeterUsage(
+        awsAccountId,
+        awsSellerAccountId,
+        rhSubscriptionId,
+        customerId,
+        productCode,
+        customerAwsAccountId);
+    setupAwsBatchMeterUsageResultStatus(batchMeterResultStatus);
+  }
+
+  private void registerAwsUsageContextForBatchMeterUsage(
+      String awsAccountId,
+      String awsSellerAccountId,
+      String rhSubscriptionId,
+      String customerId,
+      String productCode,
+      String customerAwsAccountId) {
+    var contextData = new HashMap<String, Object>();
+    contextData.put("rhSubscriptionId", rhSubscriptionId);
+    contextData.put("customerId", customerId);
+    contextData.put("productCode", productCode);
+    contextData.put("awsSellerAccountId", awsSellerAccountId);
+    contextData.put("subscriptionStartDate", "2020-01-01T00:00:00Z");
+    if (customerAwsAccountId != null) {
+      contextData.put("customerAwsAccountId", customerAwsAccountId);
+    }
+
+    registerAwsUsageContextStub(awsAccountId, jsonResponse(200, contextData));
+  }
+
+  private void setupAwsBatchMeterUsageResultStatus(String status) {
+    Map<String, Object> result = new HashMap<>();
+    result.put("Status", status);
+    if ("Success".equals(status)) {
+      result.put("MeteringRecordId", "test-record-id");
+    }
     given()
         .contentType("application/json")
         .body(
@@ -249,11 +384,40 @@ public class AwsWiremockService extends WiremockService {
                     "headers",
                     Map.of("Content-Type", "application/x-amz-json-1.1"),
                     "jsonBody",
+                    Map.of("Results", List.of(result), "UnprocessedRecords", List.of())),
+                "priority",
+                9,
+                "metadata",
+                getMetadataTags()))
+        .when()
+        .post("/__admin/mappings")
+        .then()
+        .statusCode(201);
+  }
+
+  private void setupAwsBatchMeterUsageThrottling() {
+    given()
+        .contentType("application/json")
+        .body(
+            Map.of(
+                "request",
+                Map.of(
+                    "method",
+                    "POST",
+                    "urlPathPattern",
+                    AWS_USAGE_EVENT_PATH + ".*",
+                    "headers",
+                    Map.of("X-Amz-Target", Map.of("equalTo", BATCH_METER_USAGE_TARGET))),
+                "response",
+                Map.of(
+                    "status",
+                    429,
+                    "headers",
+                    Map.of("Content-Type", "application/x-amz-json-1.1"),
+                    "jsonBody",
                     Map.of(
-                        "Results",
-                        List.of(Map.of("MeteringRecordId", "test-record-id", "Status", "Success")),
-                        "UnprocessedRecords",
-                        List.of())),
+                        "__type", "ThrottlingException",
+                        "message", "Rate exceeded")),
                 "priority",
                 9,
                 "metadata",

@@ -16,9 +16,9 @@ This document outlines the test plan for swatch-producer-aws.
 **Assumptions:**
 
 * The swatch-producer-aws service is deployed in a stable and functional environment
-* **swatch-contracts** provides accurate `AwsUsageContext` for subscribed orgs (including `customerAwsAccountId` and, when applicable, license-scoped context per SWATCH-5297)
+* **swatch-contracts** provides accurate `AwsUsageContext` for subscribed orgs (including `customerAwsAccountId` and, when applicable, license-scoped context)
 * Kafka is available for billable-usage input and status output topics
-* Billable-usage hourly aggregates may carry `licenseId` on the aggregate body (SWATCH-5301)
+* Billable-usage hourly aggregates may carry `licenseId` on the aggregate body
 * AWS Marketplace and contracts APIs are stubbed via Wiremock in component tests
 
 **Constraints:**
@@ -48,7 +48,7 @@ Usage records always use `CustomerAWSAccountId` from `AwsUsageContext.customerAw
 
 - **Description**: Verify that usage records sent to AWS use `CustomerAWSAccountId` from `AwsUsageContext.customerAwsAccountId`.
 - **Setup**:
-  - Wiremock returns `awsUsageContext` with distinct `customerId` and `customerAwsAccountId`
+  - WireMock returns `awsUsageContext` with distinct `customerId` and `customerAwsAccountId`
   - Kafka topics for billable-usage hourly aggregate and status are available
 - **Action**:
   - Produce a valid AWS billable-usage aggregate to Kafka
@@ -60,7 +60,7 @@ Usage records always use `CustomerAWSAccountId` from `AwsUsageContext.customerAw
   - `CustomerIdentifier` is absent from the usage record
   - `ProductCode` is still sent on the request
 
-## LicenseArn on BatchMeterUsage (SWATCH-5050 / SWATCH-5303)
+## LicenseArn on BatchMeterUsage
 
 **producer-aws-license-TC001 - Omit LicenseArn when feature flag is off**
 
@@ -68,7 +68,7 @@ Usage records always use `CustomerAWSAccountId` from `AwsUsageContext.customerAw
 - **Setup**:
   - Unleash toggle `swatch.swatch-producer-aws.use-license` is off
   - Produce an AWS billable-usage aggregate **with** `licenseId` set on the aggregate body
-  - Wiremock returns a valid `awsUsageContext`
+  - WireMock returns a valid `awsUsageContext`
 - **Action**:
   - Produce the aggregate to Kafka
 - **Verification**:
@@ -77,6 +77,7 @@ Usage records always use `CustomerAWSAccountId` from `AwsUsageContext.customerAw
 - **Expected Result**:
   - `UsageRecords[0].LicenseArn` is absent / null
   - `ProductCode` is still present on the request
+  - Contracts `awsUsageContext` lookup does **not** include `licenseId`
   - Remittance status is `SUCCEEDED`
 
 **producer-aws-license-TC002 - Set LicenseArn when feature flag is on and licenseId is present**
@@ -85,7 +86,7 @@ Usage records always use `CustomerAWSAccountId` from `AwsUsageContext.customerAw
 - **Setup**:
   - Unleash toggle `swatch.swatch-producer-aws.use-license` is enabled
   - Aggregate body includes `licenseId` (e.g. `arn:aws:license-manager:...:license:swatch-test-license`)
-  - Wiremock stubs `getAwsUsageContext` successfully (with optional `licenseId` query param per SWATCH-5297 when implemented)
+  - WireMock stubs `getAwsUsageContext` successfully (with optional `licenseId` query param)
 - **Action**:
   - Produce the aggregate to Kafka
 - **Verification**:
@@ -103,7 +104,7 @@ Usage records always use `CustomerAWSAccountId` from `AwsUsageContext.customerAw
 - **Setup**:
   - Unleash toggle `swatch.swatch-producer-aws.use-license` is enabled
   - Aggregate has **no** `licenseId`
-  - Wiremock returns a valid `awsUsageContext`
+  - WireMock returns a valid `awsUsageContext`
 - **Action**:
   - Produce the aggregate to Kafka
 - **Verification**:
@@ -122,7 +123,7 @@ Usage records always use `CustomerAWSAccountId` from `AwsUsageContext.customerAw
 - **Setup**:
   - `use-license` enabled
   - Aggregate includes `licenseId`
-  - Wiremock `awsUsageContext` includes `customerAwsAccountId`
+  - WireMock `awsUsageContext` includes `customerAwsAccountId`
 - **Action**:
   - Produce the aggregate to Kafka
 - **Verification**:
@@ -140,11 +141,11 @@ Usage records always use `CustomerAWSAccountId` from `AwsUsageContext.customerAw
 - **Setup**:
   - `use-license` enabled
   - Aggregate includes `licenseId`
-  - Wiremock can match `getAwsUsageContext` with optional `licenseId` parameter
+  - WireMock can match `getAwsUsageContext` with optional `licenseId` parameter
 - **Action**:
   - Produce the aggregate to Kafka
 - **Verification**:
-  - Inspect contracts Wiremock recorded request for `awsUsageContext`
+  - Inspect contracts WireMock recorded request for `awsUsageContext`
 - **Expected Result**:
   - Contracts lookup includes the aggregate `licenseId` (when the API contract requires/accepts it)
   - Successful remittance uses that context
@@ -152,11 +153,11 @@ Usage records always use `CustomerAWSAccountId` from `AwsUsageContext.customerAw
 
 **producer-aws-license-TC006 - Status emission includes licenseId on success path**
 
-- **Description**: Verify remittance status messages carry the `licenseId` used for metering after a successful AWS remittance (`emitStatus` success path; remittance correlation per SWATCH-5303 / SWATCH-5335).
+- **Description**: Verify remittance status messages carry the `licenseId` used for metering after a successful AWS remittance (`emitStatus` success path).
 - **Setup**:
   - `use-license` enabled
   - Aggregate includes `licenseId`
-  - Wiremock stubs successful `getAwsUsageContext` and successful AWS `BatchMeterUsage`
+  - WireMock stubs successful `getAwsUsageContext` and successful AWS `BatchMeterUsage`
 - **Action**:
   - Produce the aggregate to Kafka
 - **Verification**:
@@ -166,11 +167,11 @@ Usage records always use `CustomerAWSAccountId` from `AwsUsageContext.customerAw
 
 **producer-aws-license-TC007 - Status emission includes licenseId on failure path**
 
-- **Description**: Verify remittance status messages still carry `licenseId` when remittance fails after `licenseId` was known (`emitStatus` failure path; remittance correlation per SWATCH-5303 / SWATCH-5335).
+- **Description**: Verify remittance status messages still carry `licenseId` when remittance fails after `licenseId` was known (`emitStatus` failure path).
 - **Setup**:
   - `use-license` enabled
   - Aggregate includes `licenseId`
-  - Wiremock stubs a contracts or AWS failure that still emits status (e.g. contracts `awsUsageContext` 404)
+  - WireMock stubs a contracts or AWS failure that still emits status (e.g. contracts `awsUsageContext` 404)
 - **Action**:
   - Produce the aggregate to Kafka
 - **Verification**:
@@ -187,7 +188,7 @@ Contracts `awsUsageContext` lookup failures and remittance error classification.
 
 - **Description**: Verify that when swatch-contracts returns 404 with `CONTRACTS1005`, remittance status is `SUBSCRIPTION_TERMINATED` (not `SUBSCRIPTION_NOT_FOUND`).
 - **Setup**:
-  - Wiremock returns `awsUsageContext` 404 with an `Error` body containing `CONTRACTS1005`
+  - WireMock returns `awsUsageContext` 404 with an `Error` body containing `CONTRACTS1005`
   - Kafka topics for billable-usage hourly aggregate and status are available
 - **Action**:
   - Produce a valid AWS billable-usage aggregate to Kafka
@@ -197,3 +198,67 @@ Contracts `awsUsageContext` lookup failures and remittance error classification.
 - **Expected Result**:
   - Remittance status is `FAILED` with `SUBSCRIPTION_TERMINATED`
   - AWS Marketplace is not called
+
+## BatchMeterUsage non-Success response handling
+
+**producer-aws-batch-meter-usage-TC001 - CustomerNotSubscribed emits FAILED**
+
+- **Description**: Verify that when AWS `BatchMeterUsage` returns `UsageRecordResult.Status=CustomerNotSubscribed`, remittance status is `FAILED` with `marketplace_customer_not_subscribed` (not `SUCCEEDED`).
+- **Setup**:
+  - WireMock returns a valid `awsUsageContext`
+  - WireMock `BatchMeterUsage` stub returns `Status=CustomerNotSubscribed`
+  - Kafka topics for billable-usage hourly aggregate and status are available
+- **Action**:
+  - Produce a valid AWS billable-usage aggregate to Kafka
+- **Verification**:
+  - Wait for `FAILED` on `billable-usage.status` with error code `marketplace_customer_not_subscribed`
+  - Inspect captured `BatchMeterUsage` request in WireMock
+- **Expected Result**:
+  - Remittance status is `FAILED` with `marketplace_customer_not_subscribed`
+  - AWS Marketplace was called
+
+**producer-aws-batch-meter-usage-TC002 - DuplicateRecord emits FAILED**
+
+- **Description**: Verify that when AWS `BatchMeterUsage` returns `UsageRecordResult.Status=DuplicateRecord`, remittance status is `FAILED` with `marketplace_duplicate_record` (not `SUCCEEDED`).
+- **Setup**:
+  - WireMock returns a valid `awsUsageContext`
+  - WireMock `BatchMeterUsage` stub returns `Status=DuplicateRecord`
+  - Kafka topics for billable-usage hourly aggregate and status are available
+- **Action**:
+  - Produce a valid AWS billable-usage aggregate to Kafka
+- **Verification**:
+  - Wait for `FAILED` on `billable-usage.status` with error code `marketplace_duplicate_record`
+  - Inspect captured `BatchMeterUsage` request in WireMock
+- **Expected Result**:
+  - Remittance status is `FAILED` with `marketplace_duplicate_record`
+  - AWS Marketplace was called
+
+**producer-aws-batch-meter-usage-TC003 - Unrecognized status emits FAILED with unknown**
+
+- **Description**: Verify that when AWS `BatchMeterUsage` returns a `UsageRecordResult.Status` the SDK does not recognize (`UnknownToSdkVersion`), remittance status is `FAILED` with `unknown`.
+- **Setup**:
+  - WireMock returns a valid `awsUsageContext`
+  - WireMock `BatchMeterUsage` stub returns a `Status` that is not `Success`, `CustomerNotSubscribed`, or `DuplicateRecord`
+  - Kafka topics for billable-usage hourly aggregate and status are available
+- **Action**:
+  - Produce a valid AWS billable-usage aggregate to Kafka
+- **Verification**:
+  - Wait for `FAILED` on `billable-usage.status` with error code `unknown`
+- **Expected Result**:
+  - Remittance status is `FAILED` with `unknown`
+  - AWS Marketplace was called
+
+**producer-aws-batch-meter-usage-TC004 - ThrottlingException emits FAILED**
+
+- **Description**: Verify that when AWS `BatchMeterUsage` returns HTTP 429 / `ThrottlingException`, remittance status is `FAILED` with `marketplace_rate_limit` (not `SUCCEEDED`).
+- **Setup**:
+  - WireMock returns a valid `awsUsageContext`
+  - WireMock `BatchMeterUsage` stub returns HTTP 429 with `ThrottlingException`
+  - Kafka topics for billable-usage hourly aggregate and status are available
+- **Action**:
+  - Produce a valid AWS billable-usage aggregate to Kafka
+- **Verification**:
+  - Wait for `FAILED` on `billable-usage.status` with error code `marketplace_rate_limit`
+- **Expected Result**:
+  - Remittance status is `FAILED` with `marketplace_rate_limit`
+  - AWS Marketplace was called

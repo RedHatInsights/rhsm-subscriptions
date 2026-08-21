@@ -66,4 +66,12 @@ public class WiremockService extends RestService {
   public Map<String, String> getMetadataTags() {
     return Map.of(METADATA_TAG, "true");
   }
+
+  public RbacAccessControlStubs forRbacAccessControl() {
+    return new RbacAccessControlStubs(this);
+  }
+
+  public KesselAccessControlStubs forKesselAccessControl() {
+    return new KesselAccessControlStubs(this);
+  }
 }

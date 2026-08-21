@@ -64,6 +64,53 @@ public final class SwatchUtils {
     return Map.of(ORIGIN_HEADER, ORIGIN_HEADER_VALUE, X_RH_IDENTITY_HEADER, rhId);
   }
 
+  /** Returns headers for a User identity with org and user identifiers (RBAC component tests). */
+  public static Map<String, String> securityHeadersWithUserRole(String orgId, String userId) {
+    String json =
+        "{\"identity\":{\"type\":\"User\",\"org_id\":\""
+            + orgId
+            + "\",\"internal\":{\"org_id\":\""
+            + orgId
+            + "\"},\"user\":{\"username\":\""
+            + userId
+            + "\",\"user_id\":\""
+            + userId
+            + "\"}}}";
+    String rhId = Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
+    return Map.of(ORIGIN_HEADER, ORIGIN_HEADER_VALUE, X_RH_IDENTITY_HEADER, rhId);
+  }
+
+  /**
+   * Returns headers for a ServiceAccount identity with org and client identifiers (RBAC component
+   * tests).
+   */
+  public static Map<String, String> securityHeadersWithServiceAccount(
+      String orgId, String clientId) {
+    String json =
+        "{\"identity\":{\"type\":\"ServiceAccount\",\"org_id\":\""
+            + orgId
+            + "\",\"service_account\":{\"client_id\":\""
+            + clientId
+            + "\"}}}";
+    String rhId = Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
+    return Map.of(ORIGIN_HEADER, ORIGIN_HEADER_VALUE, X_RH_IDENTITY_HEADER, rhId);
+  }
+
+  /**
+   * Returns headers for an Associate identity with org and email identifiers (RBAC component
+   * tests).
+   */
+  public static Map<String, String> securityHeadersWithAssociate(String orgId, String email) {
+    String json =
+        "{\"identity\":{\"type\":\"Associate\",\"org_id\":\""
+            + orgId
+            + "\",\"associate\":{\"email\":\""
+            + email
+            + "\"}}}";
+    String rhId = Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
+    return Map.of(ORIGIN_HEADER, ORIGIN_HEADER_VALUE, X_RH_IDENTITY_HEADER, rhId);
+  }
+
   /**
    * This is used to create a User type identity header that includes org_id for Springboot services
    * in DEV_MODE

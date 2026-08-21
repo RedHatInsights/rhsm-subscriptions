@@ -39,6 +39,8 @@ public enum RemittanceErrorCode {
   UNKNOWN("unknown"),
   UNSUPPORTED_METRIC("unsupported_metric"),
   MARKETPLACE_RATE_LIMIT("marketplace_rate_limit"),
+  MARKETPLACE_CUSTOMER_NOT_SUBSCRIBED("marketplace_customer_not_subscribed"),
+  MARKETPLACE_DUPLICATE_RECORD("marketplace_duplicate_record"),
   SENDING_TO_AGGREGATE_TOPIC("error_sending_to_aggregate_topic");
 
   private static final Map<String, RemittanceErrorCode> VALUE_ENUM_MAP =

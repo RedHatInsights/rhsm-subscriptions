@@ -29,14 +29,21 @@ import jakarta.enterprise.context.ApplicationScoped;
 @ApplicationScoped
 public class FeatureFlags implements InfoFeatureFlagContributor {
 
+  public static final String USE_LICENSE = "swatch.swatch-producer-aws.use-license";
+
   private final Unleash unleash;
 
   public FeatureFlags(Unleash unleash) {
     this.unleash = unleash;
   }
 
+  /** Whether BatchMeterUsage UsageRecords should include LicenseArn. */
+  public boolean useLicense() {
+    return unleash.isEnabled(USE_LICENSE);
+  }
+
   @Override
   public InfoFeatureFlags getFeatureFlags() {
-    return UnleashInfoFeatureFlags.snapshot(unleash);
+    return UnleashInfoFeatureFlags.snapshot(unleash, USE_LICENSE);
   }
 }

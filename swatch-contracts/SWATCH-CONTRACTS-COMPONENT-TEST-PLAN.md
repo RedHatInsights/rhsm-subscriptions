@@ -350,6 +350,15 @@ Test cases should be testable locally and in an ephemeral environment.
 - **Verification:** Both contracts returned; `license_id` is set only on the licensed contract.  
 - **Expected Result:** HTTP 200 with both contracts and correct `license_id` values.
 
+**contracts-retrieval-TC008** - **Get contracts by `billing_account_id`**  
+- **Description:** Verify filtering by billing account ID returns only the matching contract.  
+- **Setup:** Create two AWS ROSA contracts for the same org with different `billing_account_id` values.  
+- **Action:** GET `/api/swatch-contracts/internal/contracts?org_id={org_id}&billing_account_id={billing_account_id}` for each billing account.  
+- **Verification:** Check the returned contract list.  
+- **Expected Result:**  
+  - Only the contract with the matching `billing_account_id` is returned  
+  - Response includes the correct contract `uuid` and `billing_account_id`
+
 ## AWS Usage Context
 
 Component tests for GET `/api/swatch-contracts/internal/subscriptions/awsUsageContext`. Test class: `AwsUsageContextComponentTest`.
@@ -1329,13 +1338,19 @@ This section verifies the automatic contract termination behavior when contracts
 
 **subscriptions-termination-TC001** - **Terminate subscription with timestamp**  
 - **Description:** Verify manual subscription termination.  
-- **Setup:** Create an active subscription.  
-- **Action:** POST `/api/swatch-contracts/internal/subscriptions/terminate/{subscription_id}?timestamp=2024-01-01T00:00:00Z`.  
-- **Verification:** Check subscription end date.  
+- **Setup:**
+  - Create an active subscription
+  - Confirm it appears in the active subscription search (SKU capacity report)
+- **Action:** POST `/api/swatch-contracts/internal/subscriptions/terminate/{subscription_id}?timestamp=<past>`.  
+- **Verification:**
+  - Check subscription `end_date` via internal GET subscriptions
+  - Re-query the v2 SKU capacity report (active subscription search) for the org/product
+  - Confirm the report shows zero active capacity (`meta.count` is 0)
 - **Expected Result:**  
   - TerminationRequest with message  
   - Subscription `end_date` set to timestamp  
-  - Subscription effectively terminated
+  - Subscription no longer appears in the active subscription search for the org/product/SKU  
+  - v2 SKU capacity report returns zero active capacity (`meta.count` is 0)
 
 ## Offering Synchronization
 
@@ -1418,6 +1433,15 @@ This section verifies the automatic contract termination behavior when contracts
   - Operation completes without causing system errors.
   - API response properly handles non-existent SKU (appropriate error code or message).
 
+**offering-tags-TC004: Retrieve tag metrics for product tag**
+- **Description:** Verify that tag metrics can be retrieved for a configured product tag such as `rosa`.
+- **Setup:** None (reads from product configuration registry).
+- **Action:** Call internal GET `/api/swatch-contracts/internal/tags/{tag}/metrics` for `rosa`.
+- **Verification:** Assert HTTP 200 and each returned entry has non-null `metric_id` and `aws_dimension` matching the product configuration.
+- **Expected Result:**
+  - API returns all metrics configured for the tag.
+  - Each metric includes `metric_id` and `aws_dimension` values from product configuration.
+
 ## Capacity Management
 
 **offering-capacity-TC001: Verify capacity calculation for metered offerings**
@@ -1439,6 +1463,40 @@ This section verifies the automatic contract termination behavior when contracts
   - API response shows unlimited capacity flag set.
   - Capacity values indicate unlimited status appropriately.
   - Subscription correctly linked to unlimited offering in response.
+
+## Subscription Type (SKU capacity report meta)
+
+**subscription-type-TC001: Report On-demand subscription type on V1 for PAYG products**
+- **Description:** Verify that the v1 SKU capacity report returns On-demand subscription type for PAYG products.
+- **Setup:** Create a PAYG ROSA contract for the organization.
+- **Action:** Query the v1 SKU capacity report for the PAYG product.
+- **Verification:** Inspect the subscription type in the report metadata.
+- **Expected Result:**
+  - Report metadata indicates On-demand subscription type.
+
+**subscription-type-TC002: Report On-demand subscription type on V2 for PAYG products**
+- **Description:** Verify that the v2 SKU capacity report returns On-demand subscription type for PAYG products.
+- **Setup:** Create a PAYG ROSA contract for the organization.
+- **Action:** Query the v2 SKU capacity report for the PAYG product.
+- **Verification:** Inspect the subscription type in the report metadata.
+- **Expected Result:**
+  - Report metadata indicates On-demand subscription type.
+
+**subscription-type-TC003: Report Annual subscription type on V1 for non-PAYG products**
+- **Description:** Verify that the v1 SKU capacity report returns Annual subscription type for non-PAYG products.
+- **Setup:** Create a non-PAYG (annual) RHEL subscription for the organization.
+- **Action:** Query the v1 SKU capacity report for the non-PAYG product.
+- **Verification:** Inspect the subscription type in the report metadata.
+- **Expected Result:**
+  - Report metadata indicates Annual subscription type.
+
+**subscription-type-TC004: Report Annual subscription type on V2 for non-PAYG products**
+- **Description:** Verify that the v2 SKU capacity report returns Annual subscription type for non-PAYG products.
+- **Setup:** Create a non-PAYG (annual) RHEL subscription for the organization.
+- **Action:** Query the v2 SKU capacity report for the non-PAYG product.
+- **Verification:** Inspect the subscription type in the report metadata.
+- **Expected Result:**
+  - Report metadata indicates Annual subscription type.
 
 ## Offering Update
 
@@ -1846,6 +1904,39 @@ This section verifies the automatic contract termination behavior when contracts
 - **Test Steps**:
   1. Create a subscription with capacity
   2. GET capacity for unsupported granularity with granularity=HOURLLY
+- **Expected Results**:
+  - HTTP 400 Bad Request
+
+**capacity-report-granularity-TC008 - Unknown Product**
+- **Description**: Verify error when requesting capacity for an unsupported product
+- **Setup**:
+  - User authenticated with a valid org_id
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}`
+- **Test Steps**:
+  1. GET capacity for a product_id that is not present in product configuration, with metric=Cores
+  2. Include a valid time range and granularity
+- **Expected Results**:
+  - HTTP 404 Not Found
+
+**capacity-report-granularity-TC009 - Invalid SLA**
+- **Description**: Verify error when requesting capacity with an invalid SLA query parameter
+- **Setup**:
+  - User authenticated with a valid org_id
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}?sla={sla}&usage={usage}&granularity={granularity}`
+- **Test Steps**:
+  1. GET capacity for product=RHEL for x86 with metric=Cores
+  2. Use an invalid sla value (for example sla=Home) with otherwise valid usage and granularity
+- **Expected Results**:
+  - HTTP 400 Bad Request
+
+**capacity-report-granularity-TC010 - Invalid Usage**
+- **Description**: Verify error when requesting capacity with an invalid usage query parameter
+- **Setup**:
+  - User authenticated with a valid org_id
+- **Action**: `GET /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}?sla={sla}&usage={usage}&granularity={granularity}`
+- **Test Steps**:
+  1. GET capacity for product=RHEL for x86 with metric=Cores
+  2. Use an invalid usage value (for example usage=backup) with otherwise valid sla and granularity
 - **Expected Results**:
   - HTTP 400 Bad Request
 
@@ -2506,201 +2597,57 @@ This section validates the tally-to-utilization pipeline, where `swatch-contract
   - Utilization summary is produced but with `capacity=null` for the Sockets measurement (no subscription matches that SLA/Usage combination)  
   - This snapshot should not be eligible to trigger an over-usage notification
 
-## RBAC Parity (RBACv1 / Kessel)
+## Customer API access control
 
-**contracts-rbac-parity-TC001 - User with admin permission is granted access to reporting endpoints**
-- **Description**: Verify that a User identity with `subscriptions:*:*` receives HTTP 200 from capacity and subscription reporting endpoints under both RBACv1 and Kessel.
+**Endpoint:** `GET /api/rhsm-subscriptions/v2/subscriptions/products/{product_id}`  
+**Required role:** `customer` or `service` only (the `test`
+role must not be accepted so `SWATCH_TEST_APIS_ENABLED` cannot bypass RBAC on this path)
+
+**Authorization models (parameterized):** each case below runs for `RBAC` and `KESSEL`.
+- **RBAC**: Unleash `swatch.common-security.use-kessel-rbac` off; stub `GET /api/rbac/v1/access/`
+- **KESSEL**: Unleash flag on; stub gRPC
+  `POST /kessel.inventory.v1beta2.KesselInventoryService/Check` for relation
+  `subscriptions_report_view` (Wiremock gRPC + Kessel descriptor)
+
+**auth-access-TC001 - Customer with subscriptions access can read V2 subscription report**
+- **Description**: Verify that a User identity granted subscriptions access receives HTTP 200 from
+  the V2 subscription capacity report API (RBAC and Kessel).
 - **Setup**:
-  - Prepare a User `x-rh-identity` header for the test org (with resolvable `user_id`)
   - **RBAC**: stub RBAC to grant `subscriptions:*:*` for the test identity
   - **KESSEL**: stub Kessel Check to return `ALLOWED_TRUE` for the test principal / relation
+  - Prepare a User `x-rh-identity` header for the test org (with resolvable `user_id`)
 - **Action**:
-  - GET `/api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}` with the identity header
-  - GET `/api/rhsm-subscriptions/v1/subscriptions/products/{product_id}` with the identity header
   - GET `/api/rhsm-subscriptions/v2/subscriptions/products/{product_id}` with the identity header
 - **Verification**:
-  - HTTP 200 for each request under both RBAC modes
+  - HTTP 200
 - **Expected Result**:
-  - Requests are authorized. Outcomes match under RBACv1 and Kessel.
+  - Request is authorized and the API responds successfully
 
-**contracts-rbac-parity-TC002 - User with admin permission is granted access to billing account IDs**
-- **Description**: Verify that a User identity with `subscriptions:*:*` receives HTTP 200 from the billing account IDs endpoint under both RBACv1 and Kessel.
+**auth-access-TC003 - Customer with reader-level subscriptions access can read V2 subscription report**
+- **Description**: Verify that a User identity granted only `subscriptions:reports:read` (reader)
+  access receives HTTP 200 from the V2 subscription capacity report API (RBAC and Kessel).
 - **Setup**:
-  - Prepare a User `x-rh-identity` header for the test org (with resolvable `user_id`)
-  - **RBAC**: stub RBAC to grant `subscriptions:*:*` for the test identity
-  - **KESSEL**: stub Kessel Check to return `ALLOWED_TRUE` for the test principal / relation
-- **Action**:
-  - GET `/api/swatch-contracts/v1/subscriptions/billing_account_ids` with the identity header
-- **Verification**:
-  - HTTP 200 under both RBAC modes
-- **Expected Result**:
-  - Request is authorized. Outcomes match under RBACv1 and Kessel.
-
-**contracts-rbac-parity-TC003 - User with reader permission is granted access to reporting endpoints**
-- **Description**: Verify that a User identity with only `subscriptions:reports:read` receives HTTP 200 from capacity and subscription reporting endpoints under both RBACv1 and Kessel.
-- **Setup**:
-  - Prepare a User `x-rh-identity` header for the test org (with resolvable `user_id`)
   - **RBAC**: stub RBAC to grant `subscriptions:reports:read` for the test identity
   - **KESSEL**: stub Kessel Check to return `ALLOWED_TRUE` for the test principal / relation
+  - Prepare a User `x-rh-identity` header for the test org (with resolvable `user_id`)
 - **Action**:
-  - GET `/api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}` with the identity header
-  - GET `/api/rhsm-subscriptions/v1/subscriptions/products/{product_id}` with the identity header
   - GET `/api/rhsm-subscriptions/v2/subscriptions/products/{product_id}` with the identity header
 - **Verification**:
-  - HTTP 200 for each request under both RBAC modes
+  - HTTP 200
 - **Expected Result**:
-  - Requests are authorized (reader permission is sufficient). Outcomes match under RBACv1 and Kessel.
+  - Request is authorized and the API responds successfully (reader permission is sufficient)
 
-**contracts-rbac-parity-TC004 - User with reader permission is granted access to billing account IDs**
-- **Description**: Verify that a User identity with only `subscriptions:reports:read` receives HTTP 200 from the billing account IDs endpoint under both RBACv1 and Kessel.
+**auth-access-TC002 - Customer without subscriptions access is denied V2 subscription report**
+- **Description**: Verify that a User identity with no subscriptions permissions receives HTTP 403
+  from the V2 subscription capacity report API (RBAC and Kessel).
 - **Setup**:
-  - Prepare a User `x-rh-identity` header for the test org (with resolvable `user_id`)
-  - **RBAC**: stub RBAC to grant `subscriptions:reports:read` for the test identity
-  - **KESSEL**: stub Kessel Check to return `ALLOWED_TRUE` for the test principal / relation
-- **Action**:
-  - GET `/api/swatch-contracts/v1/subscriptions/billing_account_ids` with the identity header
-- **Verification**:
-  - HTTP 200 under both RBAC modes
-- **Expected Result**:
-  - Request is authorized (reader permission is sufficient). Outcomes match under RBACv1 and Kessel.
-
-**contracts-rbac-parity-TC005 - User with no permissions is denied access to reporting endpoints**
-- **Description**: Verify that a User identity with no subscriptions permissions receives HTTP 403 from capacity and subscription reporting endpoints under both RBACv1 and Kessel.
-- **Setup**:
-  - Prepare a User `x-rh-identity` header for the test org (with resolvable `user_id`)
   - **RBAC**: stub RBAC to return no subscriptions permissions for the test identity
   - **KESSEL**: stub Kessel Check to return `ALLOWED_FALSE` for the test principal / relation
-- **Action**:
-  - GET `/api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}` with the identity header
-  - GET `/api/rhsm-subscriptions/v1/subscriptions/products/{product_id}` with the identity header
-  - GET `/api/rhsm-subscriptions/v2/subscriptions/products/{product_id}` with the identity header
-- **Verification**:
-  - HTTP 403 for each request under both RBAC modes
-- **Expected Result**:
-  - Requests are denied (Quarkus returns 403 with an empty body on `@RolesAllowed` failure).
-    Outcomes match under RBACv1 and Kessel.
-
-**contracts-rbac-parity-TC006 - User with no permissions is denied access to billing account IDs**
-- **Description**: Verify that a User identity with no subscriptions permissions receives HTTP 403 from the billing account IDs endpoint under both RBACv1 and Kessel.
-- **Setup**:
   - Prepare a User `x-rh-identity` header for the test org (with resolvable `user_id`)
-  - **RBAC**: stub RBAC to return no subscriptions permissions for the test identity
-  - **KESSEL**: stub Kessel Check to return `ALLOWED_FALSE` for the test principal / relation
 - **Action**:
-  - GET `/api/swatch-contracts/v1/subscriptions/billing_account_ids` with the identity header
-- **Verification**:
-  - HTTP 403 under both RBAC modes
-- **Expected Result**:
-  - Request is denied. Outcomes match under RBACv1 and Kessel.
-
-**contracts-rbac-parity-TC007 - ServiceAccount with admin permission is granted access**
-- **Description**: Verify that a ServiceAccount identity with `subscriptions:*:*` receives HTTP 200 from all customer-facing endpoints under both RBACv1 and Kessel.
-- **Setup**:
-  - Prepare a ServiceAccount `x-rh-identity` header with `client_id`
-  - **RBAC**: stub RBAC to grant `subscriptions:*:*` for the test identity
-  - **KESSEL**: stub Kessel Check to return `ALLOWED_TRUE` for the test principal / relation
-- **Action**:
-  - GET `/api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}` with the identity header
-  - GET `/api/rhsm-subscriptions/v1/subscriptions/products/{product_id}` with the identity header
   - GET `/api/rhsm-subscriptions/v2/subscriptions/products/{product_id}` with the identity header
-  - GET `/api/swatch-contracts/v1/subscriptions/billing_account_ids` with the identity header
-- **Verification**:
-  - HTTP 200 for each request under both RBAC modes
-- **Expected Result**:
-  - Requests are authorized. Outcomes match under RBACv1 and Kessel.
-
-**contracts-rbac-parity-TC008 - ServiceAccount with no permissions is denied access**
-- **Description**: Verify that a ServiceAccount identity with no subscriptions permissions receives HTTP 403 from all customer-facing endpoints under both RBACv1 and Kessel.
-- **Setup**:
-  - Prepare a ServiceAccount `x-rh-identity` header with `client_id`
-  - **RBAC**: stub RBAC to return no subscriptions permissions for the test identity
-  - **KESSEL**: stub Kessel Check to return `ALLOWED_FALSE` for the test principal / relation
-- **Action**:
-  - GET `/api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}` with the identity header
-  - GET `/api/rhsm-subscriptions/v1/subscriptions/products/{product_id}` with the identity header
-  - GET `/api/rhsm-subscriptions/v2/subscriptions/products/{product_id}` with the identity header
-  - GET `/api/swatch-contracts/v1/subscriptions/billing_account_ids` with the identity header
-- **Verification**:
-  - HTTP 403 for each request under both RBAC modes
-- **Expected Result**:
-  - Requests are denied. Outcomes match under RBACv1 and Kessel.
-
-**contracts-rbac-parity-TC009 - Associate identity is granted access to billing account IDs**
-- **Description**: Verify that an Associate identity (Red Hat employee) receives HTTP 200 from the billing account IDs endpoint under both modes. Associates bypass RBAC and receive the `support` role directly. That endpoint allows `support`.
-- **Setup**:
-  - Prepare an Associate `x-rh-identity` header with `associate.email`
-- **Action**:
-  - GET `/api/swatch-contracts/v1/subscriptions/billing_account_ids` with the identity header
-- **Verification**:
-  - HTTP 200 under both RBAC modes
-  - Zero invocations of the RBAC stub (`GET /api/rbac/v1/access/`) for the request in RBAC mode
-  - Zero invocations of the Kessel Check stub for the request in Kessel mode
-- **Expected Result**:
-  - Request is authorized. Associate requests bypass both authorization backends. Outcomes match under both flag settings.
-
-**contracts-rbac-parity-TC010 - Associate identity is denied access to reporting endpoints**
-- **Description**: Verify that an Associate identity receives HTTP 403 from capacity and subscription reporting endpoints under both modes. Those endpoints require the `customer` role. Associates do not receive it.
-- **Setup**:
-  - Prepare an Associate `x-rh-identity` header with `associate.email`
-- **Action**:
-  - GET `/api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}` with the identity header
-  - GET `/api/rhsm-subscriptions/v1/subscriptions/products/{product_id}` with the identity header
-  - GET `/api/rhsm-subscriptions/v2/subscriptions/products/{product_id}` with the identity header
-- **Verification**:
-  - HTTP 403 for each request under both RBAC modes
-  - Zero invocations of the RBAC stub (`GET /api/rbac/v1/access/`) for each of the three requests in RBAC mode
-  - Zero invocations of the Kessel Check stub for each of the three requests in Kessel mode
-- **Expected Result**:
-  - Requests are denied. Associate requests bypass both authorization backends. Outcomes match under both flag settings.
-
-**contracts-rbac-parity-TC011 - Kessel unavailable falls back to denial**
-- **Description**: Verify that when Kessel is unreachable and the Unleash flag is on, the user is denied access (fail-closed).
-- **Setup**:
-  - Prepare a User `x-rh-identity` header for the test org (with resolvable `user_id`)
-  - Enable Unleash `swatch.common-security.use-kessel-rbac`
-  - Kessel endpoint is unreachable or returns an error
-- **Action**:
-  - GET `/api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}` with the identity header
 - **Verification**:
   - HTTP 403
 - **Expected Result**:
-  - Access is denied when Kessel is unavailable (fail-closed)
-
-**contracts-rbac-parity-TC012 - RBAC unavailable falls back to denial**
-- **Description**: Verify that when the RBAC service is unreachable and the Unleash flag is off, the user is denied access (fail-closed). `RbacRolesAugmentor` catches the error and returns the identity without the `customer` role.
-- **Setup**:
-  - Prepare a User `x-rh-identity` header for the test org (with resolvable `user_id`)
-  - Disable Unleash `swatch.common-security.use-kessel-rbac`
-  - RBAC access endpoint is unreachable or returns an error
-- **Action**:
-  - GET `/api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}` with the identity header
-- **Verification**:
-  - HTTP 403
-- **Expected Result**:
-  - Access is denied when RBAC is unavailable (fail-closed). Symmetric to Kessel fail-closed while both backends are in use.
-
-**contracts-rbac-parity-TC013 - Export request with admin permission succeeds under both modes**
-- **Description**: Verify that the subscription data export pipeline grants access when the user has `subscriptions:*:*` under both RBACv1 and Kessel.
-- **Setup**:
-  - Prepare an export request event with a User `x-rh-identity` for the test org (with resolvable `user_id`)
-  - **RBAC**: stub RBAC to grant `subscriptions:*:*` for the test identity
-  - **KESSEL**: stub Kessel Check to return `ALLOWED_TRUE` for the test principal / relation
-- **Action**:
-  - Publish the export request to the export Kafka topic under both RBAC modes
-- **Verification**:
-  - Export completes successfully under both RBAC modes
-- **Expected Result**:
-  - Export behavior matches under RBACv1 and Kessel
-
-**contracts-rbac-parity-TC014 - Export request with no permissions is denied under both modes**
-- **Description**: Verify that the subscription data export pipeline denies access when the user has no subscriptions permissions under both RBACv1 and Kessel.
-- **Setup**:
-  - Prepare an export request event with a User `x-rh-identity` for the test org (with resolvable `user_id`)
-  - **RBAC**: stub RBAC to return no subscriptions permissions for the test identity
-  - **KESSEL**: stub Kessel Check to return `ALLOWED_FALSE` for the test principal / relation
-- **Action**:
-  - Publish the export request to the export Kafka topic under both RBAC modes
-- **Verification**:
-  - Export is denied under both RBAC modes
-- **Expected Result**:
-  - Denial behavior matches under RBACv1 and Kessel
+  - Request is denied (Quarkus returns 403 with an empty body on `@RolesAllowed` failure; IQE
+    against Spring rhsm may include `Access Denied` in the JSON error title)

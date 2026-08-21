@@ -20,6 +20,8 @@
  */
 package com.redhat.swatch.utilization.configuration;
 
+import static com.redhat.swatch.common.security.KesselRolesAugmentor.KESSEL_FLAG;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.info.InfoFeatureFlagContributor;
@@ -113,7 +115,7 @@ public class FeatureFlags implements InfoFeatureFlagContributor {
   @Override
   public InfoFeatureFlags getFeatureFlags() {
     return UnleashInfoFeatureFlags.snapshot(
-        unleash, SEND_NOTIFICATIONS, SEND_NOTIFICATIONS_ORGS_ALLOWLIST);
+        unleash, SEND_NOTIFICATIONS, SEND_NOTIFICATIONS_ORGS_ALLOWLIST, KESSEL_FLAG);
   }
 
   private Optional<SendNotificationVariantPayload> mapToSendNotificationPayload(Variant variant) {

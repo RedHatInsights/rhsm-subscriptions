@@ -20,10 +20,13 @@
  */
 package com.redhat.swatch.contract.config;
 
+import static com.redhat.swatch.common.security.KesselRolesAugmentor.KESSEL_FLAG;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.contract.model.ItSubscriptionServiceFeatureFlagVariantPayload;
 import com.redhat.swatch.contract.model.PartnerGatewayContractsFeatureFlagVariantPayload;
+import com.redhat.swatch.contract.model.ProductServiceConsumerFeatureFlagVariantPayload;
 import com.redhat.swatch.info.InfoFeatureFlagContributor;
 import com.redhat.swatch.info.UnleashInfoFeatureFlags;
 import com.redhat.swatch.info.model.InfoFeatureFlags;
@@ -43,6 +46,8 @@ public class FeatureFlags implements InfoFeatureFlagContributor {
       "swatch.swatch-contracts.enable-partner-gateway-contracts";
   public static final String IT_SUBSCRIPTION_SERVICE =
       "swatch.swatch-contracts.enable-it-subscription-service";
+  public static final String PRODUCT_SERVICE_CONSUMER =
+      "swatch.swatch-contracts.enable-product-service-consumer";
   public static final String CONFIG_VARIANT = "config";
 
   protected static final boolean DEFAULT_IS_ENABLED = true;
@@ -80,6 +85,22 @@ public class FeatureFlags implements InfoFeatureFlagContributor {
         IT_SUBSCRIPTION_SERVICE,
         this::mapToItSubscriptionServicePayload,
         ItSubscriptionServiceFeatureFlagVariantPayload::getUmbConsumerEnabled);
+  }
+
+  /** Whether the Kafka consumer for Product Service is allowed. */
+  public boolean isProductServiceKafkaConsumerEnabled() {
+    return isFeatureFlagEnabled(
+        PRODUCT_SERVICE_CONSUMER,
+        this::mapToProductServiceConsumerPayload,
+        ProductServiceConsumerFeatureFlagVariantPayload::getKafkaConsumerEnabled);
+  }
+
+  /** Whether the UMB consumer for Product Service is allowed. */
+  public boolean isProductServiceUmbConsumerEnabled() {
+    return isFeatureFlagEnabled(
+        PRODUCT_SERVICE_CONSUMER,
+        this::mapToProductServiceConsumerPayload,
+        ProductServiceConsumerFeatureFlagVariantPayload::getUmbConsumerEnabled);
   }
 
   /**
@@ -130,6 +151,12 @@ public class FeatureFlags implements InfoFeatureFlagContributor {
         variant, ItSubscriptionServiceFeatureFlagVariantPayload.class, IT_SUBSCRIPTION_SERVICE);
   }
 
+  private Optional<ProductServiceConsumerFeatureFlagVariantPayload>
+      mapToProductServiceConsumerPayload(Variant variant) {
+    return mapToPayload(
+        variant, ProductServiceConsumerFeatureFlagVariantPayload.class, PRODUCT_SERVICE_CONSUMER);
+  }
+
   private <T> Optional<T> mapToPayload(
       Variant variant, Class<T> payloadClass, String featureFlagName) {
     var payload = variant.getPayload();
@@ -153,6 +180,11 @@ public class FeatureFlags implements InfoFeatureFlagContributor {
   @Override
   public InfoFeatureFlags getFeatureFlags() {
     return UnleashInfoFeatureFlags.snapshot(
-        unleash, DEFAULT_IS_ENABLED, PARTNER_GATEWAY_CONTRACTS, IT_SUBSCRIPTION_SERVICE);
+        unleash,
+        DEFAULT_IS_ENABLED,
+        PARTNER_GATEWAY_CONTRACTS,
+        IT_SUBSCRIPTION_SERVICE,
+        KESSEL_FLAG,
+        PRODUCT_SERVICE_CONSUMER);
   }
 }

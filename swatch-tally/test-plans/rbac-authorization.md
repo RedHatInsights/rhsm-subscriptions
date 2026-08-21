@@ -215,116 +215,6 @@ This test plan validates authorization parity between RBACv1 and RBACv2/Kessel f
   - No export data is produced
 - **Expected Result**: No permissions results in export denial
 
-#### Opt-in
-
-**rbac-v1-optin-TC001 - User with admin permission accesses all opt-in endpoints**
-
-- **Description**: Verify that a User granted `subscriptions:*:*` permission can access all opt-in endpoints (E5, E6, E7) under RBACv1.
-- **Setup**:
-  - Kessel Unleash flag is OFF
-  - Prepare `x-rh-identity` header with `type=User`, `org_id`, `user_id`
-  - Stub RBACv1 endpoint to return `subscriptions:*:*` for this identity
-- **Action**:
-  - `GET /api/rhsm-subscriptions/v1/opt-in` with the identity header
-  - `PUT /api/rhsm-subscriptions/v1/opt-in` with the identity header
-  - `DELETE /api/rhsm-subscriptions/v1/opt-in` with the identity header
-- **Verification**: HTTP 200 for all three endpoints
-- **Expected Result**: Admin permission grants access to all opt-in endpoints
-
-**rbac-v1-optin-TC002 - User with reader permission accesses opt-in endpoints**
-
-- **Description**: Verify that a User granted `subscriptions:reports:read` permission can access opt-in endpoints (E5, E6, E7) under RBACv1. Despite the annotation name `@SubscriptionWatchAdminOnly`, both admin and reader roles are accepted.
-- **Setup**:
-  - Kessel Unleash flag is OFF
-  - Prepare `x-rh-identity` header with `type=User`, `org_id`, `user_id`
-  - Stub RBACv1 endpoint to return `subscriptions:reports:read` for this identity
-- **Action**:
-  - `GET /api/rhsm-subscriptions/v1/opt-in` with the identity header
-  - `PUT /api/rhsm-subscriptions/v1/opt-in` with the identity header
-  - `DELETE /api/rhsm-subscriptions/v1/opt-in` with the identity header
-- **Verification**: HTTP 200 for all three endpoints
-- **Expected Result**: Reader permission grants access to all opt-in endpoints
-
-**rbac-v1-optin-TC003 - User with no permissions denied all opt-in endpoints**
-
-- **Description**: Verify that a User with no subscriptions permissions is denied access to all opt-in endpoints (E5, E6, E7) under RBACv1.
-- **Setup**:
-  - Kessel Unleash flag is OFF
-  - Prepare `x-rh-identity` header with `type=User`, `org_id`, `user_id`
-  - Stub RBACv1 endpoint to return no subscriptions permissions (`{"data": [], "meta": {"count": 0}}`)
-- **Action**:
-  - `GET /api/rhsm-subscriptions/v1/opt-in` with the identity header
-  - `PUT /api/rhsm-subscriptions/v1/opt-in` with the identity header
-  - `DELETE /api/rhsm-subscriptions/v1/opt-in` with the identity header
-- **Verification**: HTTP 403 for all three endpoints
-- **Expected Result**: No permissions results in denial for all opt-in endpoints
-
-**rbac-v1-optin-TC004 - ServiceAccount with admin permission accesses all opt-in endpoints**
-
-- **Description**: Verify that a ServiceAccount granted `subscriptions:*:*` permission can access all opt-in endpoints (E5, E6, E7) under RBACv1.
-- **Setup**:
-  - Kessel Unleash flag is OFF
-  - Prepare `x-rh-identity` header with `type=ServiceAccount`, `org_id`, `client_id`
-  - Stub RBACv1 endpoint to return `subscriptions:*:*` for this identity
-- **Action**:
-  - `GET /api/rhsm-subscriptions/v1/opt-in` with the identity header
-  - `PUT /api/rhsm-subscriptions/v1/opt-in` with the identity header
-  - `DELETE /api/rhsm-subscriptions/v1/opt-in` with the identity header
-- **Verification**: HTTP 200 for all three endpoints
-- **Expected Result**: ServiceAccount with admin permission accesses all opt-in endpoints
-
-**rbac-v1-optin-TC005 - ServiceAccount with reader permission accesses all opt-in endpoints**
-
-- **Description**: Verify that a ServiceAccount granted `subscriptions:reports:read` permission can access all opt-in endpoints (E5, E6, E7) under RBACv1.
-- **Setup**:
-  - Kessel Unleash flag is OFF
-  - Prepare `x-rh-identity` header with `type=ServiceAccount`, `org_id`, `client_id`
-  - Stub RBACv1 endpoint to return `subscriptions:reports:read` for this identity
-- **Action**:
-  - `GET /api/rhsm-subscriptions/v1/opt-in` with the identity header
-  - `PUT /api/rhsm-subscriptions/v1/opt-in` with the identity header
-  - `DELETE /api/rhsm-subscriptions/v1/opt-in` with the identity header
-- **Verification**: HTTP 200 for all three endpoints
-- **Expected Result**: ServiceAccount with reader permission accesses all opt-in endpoints
-
-**rbac-v1-optin-TC006 - ServiceAccount with no permissions denied all opt-in endpoints**
-
-- **Description**: Verify that a ServiceAccount with no subscriptions permissions is denied access to all opt-in endpoints (E5, E6, E7) under RBACv1.
-- **Setup**:
-  - Kessel Unleash flag is OFF
-  - Prepare `x-rh-identity` header with `type=ServiceAccount`, `org_id`, `client_id`
-  - Stub RBACv1 endpoint to return no subscriptions permissions (`{"data": [], "meta": {"count": 0}}`)
-- **Action**:
-  - `GET /api/rhsm-subscriptions/v1/opt-in` with the identity header
-  - `PUT /api/rhsm-subscriptions/v1/opt-in` with the identity header
-  - `DELETE /api/rhsm-subscriptions/v1/opt-in` with the identity header
-- **Verification**: HTTP 403 for all three endpoints
-- **Expected Result**: ServiceAccount with no permissions is denied from all opt-in endpoints
-
-**rbac-v1-optin-TC007 - Associate identity denied opt-in endpoint**
-
-- **Description**: Verify that an Associate identity is denied access to opt-in endpoint (E5). `ROLE_INTERNAL` is not accepted by @SubscriptionWatchAdminOnly.
-- **Setup**:
-  - Kessel Unleash flag is OFF
-  - Prepare `x-rh-identity` header with `type=Associate`, `associate.email`
-  - No RBAC stub needed (Associate bypasses RBAC, gets `ROLE_INTERNAL`)
-- **Action**:
-  - `GET /api/rhsm-subscriptions/v1/opt-in` with the identity header
-- **Verification**: HTTP 403 for opt-in endpoint
-- **Expected Result**: Associate identity denied opt-in endpoint (INTERNAL role not accepted)
-
-**rbac-v1-optin-TC008 - X509 identity denied opt-in endpoint**
-
-- **Description**: Verify that an X509/Turnpike identity is denied access to opt-in endpoint (E5). `ROLE_INTERNAL` is not accepted by @SubscriptionWatchAdminOnly.
-- **Setup**:
-  - Kessel Unleash flag is OFF
-  - Prepare `x-rh-identity` header with `type=X509`
-  - No RBAC stub needed (X509 bypasses RBAC, gets `ROLE_INTERNAL`)
-- **Action**:
-  - `GET /api/rhsm-subscriptions/v1/opt-in` with the identity header
-- **Verification**: HTTP 403 for opt-in endpoint
-- **Expected Result**: X509 identity denied opt-in endpoint (INTERNAL role not accepted)
-
 ### RBACv2 / Kessel (Flag ON)
 
 **rbac-v2-TC001 - User with Kessel permission accesses all reporting endpoints**
@@ -471,90 +361,153 @@ This test plan validates authorization parity between RBACv1 and RBACv2/Kessel f
 
 ### Opt-in
 
-**rbac-v2-optin-TC001 - User with Kessel permission accesses all opt-in endpoints**
+**rbac-optin-TC001 - User with admin permission accesses all opt-in endpoints**
 
-- **Description**: Verify that a User granted Kessel `subscriptions_report_view` relation can access all opt-in endpoints (E5, E6, E7) under RBACv2.
+- **Description**: Verify that a User with admin permissions can access all opt-in endpoints (E5, E6, E7) under both RBACv1 and RBACv2.
 - **Setup**:
-  - Kessel Unleash flag is ON
-  - Prepare `x-rh-identity` header with `type=User`, `org_id`, `user_id`
-  - Stub Kessel workspace endpoint to return default workspace
-  - Stub Kessel check endpoint to return `ALLOWED_TRUE` for `relation=subscriptions_report_view`, `subject.resource.resourceId=user_id`
+  - RBAC V1:
+    - Kessel Unleash flag is OFF
+    - Prepare `x-rh-identity` header with `type=User`, `org_id`, `user_id`
+    - Stub RBACv1 endpoint to return `subscriptions:*:*` for this identity
+  - RBAC V2:
+    - Kessel Unleash flag is ON
+    - Prepare `x-rh-identity` header with `type=User`, `org_id`, `user_id`
+    - Stub Kessel workspace endpoint to return default workspace
+    - Stub Kessel check endpoint to return `ALLOWED_TRUE` for `relation=subscriptions_report_view`, `subject.resource.resourceId=user_id`
 - **Action**:
   - `GET /api/rhsm-subscriptions/v1/opt-in` with the identity header
   - `PUT /api/rhsm-subscriptions/v1/opt-in` with the identity header
   - `DELETE /api/rhsm-subscriptions/v1/opt-in` with the identity header
-- **Verification**: HTTP 200 for all three endpoints
-- **Expected Result**: Kessel permission grants access to all opt-in endpoints
+- **Verification**: HTTP 200 for GET and PUT, HTTP 204 for DELETE
+- **Expected Result**: Admin permission grants access to all opt-in endpoints
 
-**rbac-v2-optin-TC002 - User with no permissions denied all opt-in endpoints**
+**rbac-optin-TC002 - User with reader permission accesses opt-in endpoints**
 
-- **Description**: Verify that a User with no Kessel permissions is denied access to all opt-in endpoints (E5, E6, E7) under RBACv2.
+- **Description**: Verify that a User with reader permissions can access opt-in endpoints (E5, E6, E7) under both RBACv1 and RBACv2. Despite the annotation name `@SubscriptionWatchAdminOnly`, both admin and reader roles are accepted.
 - **Setup**:
-  - Kessel Unleash flag is ON
-  - Prepare `x-rh-identity` header with `type=User`, `org_id`, `user_id`
-  - Stub Kessel workspace endpoint to return default workspace
-  - Stub Kessel check endpoint to return `ALLOWED_FALSE` for `relation=subscriptions_report_view`, `subject.resource.resourceId=user_id`
+  - RBAC V1:
+    - Kessel Unleash flag is OFF
+    - Prepare `x-rh-identity` header with `type=User`, `org_id`, `user_id`
+    - Stub RBACv1 endpoint to return `subscriptions:reports:read` for this identity
+  - RBAC V2:
+    - Kessel Unleash flag is  ON
+    - Prepare `x-rh-identity` header with `type=User`, `org_id`, `user_id`
+    - Stub Kessel workspace endpoint to return default workspace
+    - Stub Kessel check endpoint to return `ALLOWED_TRUE` for `relation=subscriptions_report_view`, `subject.resource.resourceId=user_id`
+- **Action**:
+  - `GET /api/rhsm-subscriptions/v1/opt-in` with the identity header
+  - `PUT /api/rhsm-subscriptions/v1/opt-in` with the identity header
+  - `DELETE /api/rhsm-subscriptions/v1/opt-in` with the identity header
+- **Verification**: HTTP 200 for GET and PUT, HTTP 204 for DELETE
+- **Expected Result**: Reader permission grants access to all opt-in endpoints
+
+**rbac-optin-TC003 - User with no permissions denied all opt-in endpoints**
+
+- **Description**: Verify that a User with no permissions is denied access to all opt-in endpoints (E5, E6, E7) under both RBACv1 and RBACv2.
+- **Setup**:
+  - RBAC V1:
+    - Kessel Unleash flag is OFF
+    - Prepare `x-rh-identity` header with `type=User`, `org_id`, `user_id`
+    - Stub RBACv1 endpoint to return no subscriptions permissions (`{"data": [], "meta": {"count": 0}}`)
+  - RBAC V2:
+    - Kessel Unleash flag is ON
+    - Prepare `x-rh-identity` header with `type=User`, `org_id`, `user_id`
+    - Stub Kessel workspace endpoint to return default workspace
+    - Stub Kessel check endpoint to return `ALLOWED_FALSE` for `relation=subscriptions_report_view`, `subject.resource.resourceId=user_id`
 - **Action**:
   - `GET /api/rhsm-subscriptions/v1/opt-in` with the identity header
   - `PUT /api/rhsm-subscriptions/v1/opt-in` with the identity header
   - `DELETE /api/rhsm-subscriptions/v1/opt-in` with the identity header
 - **Verification**: HTTP 403 for all three endpoints
-- **Expected Result**: No Kessel permissions results in denial for all opt-in endpoints
+- **Expected Result**: No permissions results in denial for all opt-in endpoints
 
-**rbac-v2-optin-TC003 - ServiceAccount with admin permission accesses all opt-in endpoints**
+**rbac-optin-TC004 - ServiceAccount with admin permission accesses all opt-in endpoints**
 
-- **Description**: Verify that a ServiceAccount granted Kessel `subscriptions_report_view` relation can access all opt-in endpoints (E5, E6, E7) under RBACv2.
+- **Description**: Verify that a ServiceAccount with admin permissions can access all opt-in endpoints (E5, E6, E7) under both RBACv1 and RBACv2.
 - **Setup**:
-  - Kessel Unleash flag is ON
-  - Prepare `x-rh-identity` header with `type=ServiceAccount`, `org_id`, `client_id`
-  - Stub Kessel workspace endpoint to return default workspace
-  - Stub Kessel check endpoint to return `ALLOWED_TRUE` for `relation=subscriptions_report_view`, `subject.resource.resourceId=client_id`
+  - RBAC V1:
+    - Kessel Unleash flag is OFF
+    - Prepare `x-rh-identity` header with `type=ServiceAccount`, `org_id`, `client_id`
+    - Stub RBACv1 endpoint to return `subscriptions:*:*` for this identity
+  - RBAC V2:
+    - Kessel Unleash flag is ON
+    - Prepare `x-rh-identity` header with `type=ServiceAccount`, `org_id`, `client_id`
+    - Stub Kessel workspace endpoint to return default workspace
+    - Stub Kessel check endpoint to return `ALLOWED_TRUE` for `relation=subscriptions_report_view`, `subject.resource.resourceId=client_id`
 - **Action**:
   - `GET /api/rhsm-subscriptions/v1/opt-in` with the identity header
   - `PUT /api/rhsm-subscriptions/v1/opt-in` with the identity header
   - `DELETE /api/rhsm-subscriptions/v1/opt-in` with the identity header
-- **Verification**: HTTP 200 for all three endpoints
-- **Expected Result**: ServiceAccount with Kessel permission accesses all opt-in endpoints
+- **Verification**: HTTP 200 for GET and PUT, HTTP 204 for DELETE
+- **Expected Result**: ServiceAccount with admin permission accesses all opt-in endpoints
 
-**rbac-v2-optin-TC004 - ServiceAccount with no permissions denied all opt-in endpoints**
+**rbac-optin-TC005 - ServiceAccount with reader permission accesses all opt-in endpoints**
 
-- **Description**: Verify that a ServiceAccount with no Kessel permissions is denied access to all opt-in endpoints (E5, E6, E7) under RBACv2.
+- **Description**: Verify that a ServiceAccount with reader permissions can access all opt-in endpoints (E5, E6, E7) under both RBACv1 and RBACv2.
 - **Setup**:
-  - Kessel Unleash flag is ON
-  - Prepare `x-rh-identity` header with `type=ServiceAccount`, `org_id`, `client_id`
-  - Stub Kessel workspace endpoint to return default workspace
-  - Stub Kessel check endpoint to return `ALLOWED_FALSE` for `relation=subscriptions_report_view`, `subject.resource.resourceId=client_id`
+  - RBAC V1:
+    - Kessel Unleash flag is OFF
+    - Prepare `x-rh-identity` header with `type=ServiceAccount`, `org_id`, `client_id`
+    - Stub RBACv1 endpoint to return `subscriptions:reports:read` for this identity
+  - RBAC V2:
+    - Kessel Unleash flag is ON
+    - Prepare `x-rh-identity` header with `type=ServiceAccount`, `org_id`, `client_id`
+    - Stub Kessel workspace endpoint to return default workspace
+    - Stub Kessel check endpoint to return `ALLOWED_TRUE` for `relation=subscriptions_report_view`, `subject.resource.resourceId=client_id`
+- **Action**:
+  - `GET /api/rhsm-subscriptions/v1/opt-in` with the identity header
+  - `PUT /api/rhsm-subscriptions/v1/opt-in` with the identity header
+  - `DELETE /api/rhsm-subscriptions/v1/opt-in` with the identity header
+- **Verification**: HTTP 200 for GET and PUT, HTTP 204 for DELETE
+- **Expected Result**: ServiceAccount with reader permission accesses all opt-in endpoints
+
+**rbac-optin-TC006 - ServiceAccount with no permissions denied all opt-in endpoints**
+
+- **Description**: Verify that a ServiceAccount with no permissions is denied access to all opt-in endpoints (E5, E6, E7) under both RBACv1 and RBACv2.
+- **Setup**:
+  - RBAC V1:
+    - Kessel Unleash flag is OFF
+    - Prepare `x-rh-identity` header with `type=ServiceAccount`, `org_id`, `client_id`
+    - Stub RBACv1 endpoint to return no subscriptions permissions (`{"data": [], "meta": {"count": 0}}`)
+  - RBAC V2:
+    - Kessel Unleash flag is ON
+    - Prepare `x-rh-identity` header with `type=ServiceAccount`, `org_id`, `client_id`
+    - Stub Kessel workspace endpoint to return default workspace
+    - Stub Kessel check endpoint to return `ALLOWED_FALSE` for `relation=subscriptions_report_view`, `subject.resource.resourceId=client_id`
 - **Action**:
   - `GET /api/rhsm-subscriptions/v1/opt-in` with the identity header
   - `PUT /api/rhsm-subscriptions/v1/opt-in` with the identity header
   - `DELETE /api/rhsm-subscriptions/v1/opt-in` with the identity header
 - **Verification**: HTTP 403 for all three endpoints
-- **Expected Result**: ServiceAccount with no Kessel permissions is denied access to all opt-in endpoints
+- **Expected Result**: ServiceAccount with no permissions is denied all opt-in endpoints
 
-**rbac-v2-optin-TC005 - Associate identity denied opt-in endpoint**
+**rbac-optin-TC007 - Associate identity denied opt-in endpoints**
 
-- **Description**: Verify that an Associate identity is denied access to opt-in endpoint (E5) under RBACv2.
+- **Description**: Verify that an Associate identity is denied access to opt-in endpoints (E5, E6, E7) under both RBACv1 and RBACv2. `ROLE_INTERNAL` is not accepted by @SubscriptionWatchAdminOnly.
 - **Setup**:
-  - Kessel Unleash flag is ON
+  - Test with Kessel Unleash flag both OFF and ON
   - Prepare `x-rh-identity` header with `type=Associate`, `associate.email`
-  - No Kessel stub needed (Associate bypasses RBAC, gets `ROLE_INTERNAL`)
+  - No RBAC/Kessel stub needed (Associate bypasses RBAC, receives `ROLE_INTERNAL`)
 - **Action**:
   - `GET /api/rhsm-subscriptions/v1/opt-in` with the identity header
-- **Verification**: HTTP 403 for opt-in endpoint
-- **Expected Result**: Associate identity denied opt-in endpoint
+  - `PUT /api/rhsm-subscriptions/v1/opt-in` with the identity header
+  - `DELETE /api/rhsm-subscriptions/v1/opt-in` with the identity header
+- **Verification**: HTTP 403 for all three endpoints
+- **Expected Result**: Associate identity denied opt-in endpoints (INTERNAL role not accepted)
 
-**rbac-v2-optin-TC006 - X509 identity denied opt-in endpoint**
+**rbac-optin-TC008 - X509 identity denied opt-in endpoints**
 
-- **Description**: Verify that an X509/Turnpike identity is denied access to opt-in endpoint (E5) under RBACv2.
+- **Description**: Verify that an X509/Turnpike identity is denied access to opt-in endpoints (E5, E6, E7) under both RBACv1 and RBACv2. `ROLE_INTERNAL` is not accepted by @SubscriptionWatchAdminOnly.
 - **Setup**:
-  - Kessel Unleash flag is ON
+  - Test with Kessel Unleash flag both OFF and ON
   - Prepare `x-rh-identity` header with `type=X509`
-  - No Kessel stub needed (X509 bypasses RBAC, gets `ROLE_INTERNAL`)
+  - No RBAC/Kessel stub needed (X509 bypasses RBAC, receives `ROLE_INTERNAL`)
 - **Action**:
   - `GET /api/rhsm-subscriptions/v1/opt-in` with the identity header
-- **Verification**: HTTP 403 for opt-in endpoint
-- **Expected Result**: X509 identity denied opt-in endpoint
-
+  - `PUT /api/rhsm-subscriptions/v1/opt-in` with the identity header
+  - `DELETE /api/rhsm-subscriptions/v1/opt-in` with the identity header
+- **Verification**: HTTP 403 for all three endpoints
+- **Expected Result**: X509 identity denied opt-in endpoints (INTERNAL role not accepted)
 
 ### Resilience
 

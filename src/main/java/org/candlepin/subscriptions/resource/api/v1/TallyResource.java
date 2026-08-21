@@ -168,8 +168,10 @@ public class TallyResource implements TallyApi {
             : Collections.emptyMap();
 
     // Execute query based on feature flag - each path returns unified result
+    // Note that ReportCategory.HYPERVISOR is not supported by the primary row search
     TallyQueryResult queryResult =
         featureFlags.isEnabled(FeatureFlags.ENABLE_PRIMARY_ROW_SEARCHES)
+                && !ReportCategory.HYPERVISOR.equals(category)
             ? executeAggregateQuery(reportCriteria, metricId, category)
             : executeSnapshotBasedQuery(reportCriteria, metricId, category);
     List<UnroundedTallyReportDataPoint> snaps = queryResult.dataPoints();
@@ -408,7 +410,7 @@ public class TallyResource implements TallyApi {
   private TallyQueryResult executeAggregateQuery(
       ReportCriteria reportCriteria, MetricId metricId, ReportCategory category) {
 
-    log.info("Using primary row searches for tally report");
+    log.debug("Using primary row searches for tally report");
 
     Set<HardwareMeasurementType> measurementTypes = determineMeasurementTypes(category);
 

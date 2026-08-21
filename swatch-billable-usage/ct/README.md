@@ -15,7 +15,7 @@ podman compose up -d kafka kafka-bridge kafka-setup wiremock db
 Execute tests for a specific service. For example, to run tests for `swatch-billable-usage`:
 
 ```bash
- ./mvnw clean install -Pcomponent-tests -pl swatch-billable-usage/ct -am
+./mvnw clean install -Pcomponent-tests -pl swatch-billable-usage/ct -am
 ```
 
 ## Running Tests Against OpenShift (Bonfire)

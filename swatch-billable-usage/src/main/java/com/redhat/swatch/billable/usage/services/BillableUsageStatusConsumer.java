@@ -85,6 +85,10 @@ public class BillableUsageStatusConsumer {
     }
 
     remittanceRepository.updateStatusByIdIn(
-        remittanceUuidsToUpdate, status, billableUsageAggregate.getBilledOn(), errorCode);
+        remittanceUuidsToUpdate,
+        status,
+        billableUsageAggregate.getBilledOn(),
+        errorCode,
+        billableUsageAggregate.getLicenseId());
   }
 }
