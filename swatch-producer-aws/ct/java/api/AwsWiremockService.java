@@ -65,18 +65,42 @@ public class AwsWiremockService extends WiremockService {
       String customerId,
       String productCode,
       String customerAwsAccountId) {
-    var contextData = new HashMap<String, Object>();
-    contextData.put("rhSubscriptionId", rhSubscriptionId);
-    contextData.put("customerId", customerId);
-    contextData.put("productCode", productCode);
-    contextData.put("awsSellerAccountId", awsSellerAccountId);
-    contextData.put("subscriptionStartDate", "2020-01-01T00:00:00Z");
-    if (customerAwsAccountId != null) {
-      contextData.put("customerAwsAccountId", customerAwsAccountId);
-    }
+    setupAwsUsageContextWithBatchMeterResultStatus(
+        awsAccountId,
+        awsSellerAccountId,
+        rhSubscriptionId,
+        customerId,
+        productCode,
+        customerAwsAccountId,
+        "Success");
+  }
 
-    registerAwsUsageContextStub(awsAccountId, jsonResponse(200, contextData));
-    setupAwsBatchMeterUsage();
+  public void setupAwsUsageContextWithBatchMeterResultStatus(
+      String awsAccountId,
+      String awsSellerAccountId,
+      String rhSubscriptionId,
+      String customerId,
+      String productCode,
+      String batchMeterResultStatus) {
+    setupAwsUsageContextWithBatchMeterResultStatus(
+        awsAccountId,
+        awsSellerAccountId,
+        rhSubscriptionId,
+        customerId,
+        productCode,
+        null,
+        batchMeterResultStatus);
+  }
+
+  public void setupAwsUsageContextWithBatchMeterThrottling(
+      String awsAccountId,
+      String awsSellerAccountId,
+      String rhSubscriptionId,
+      String customerId,
+      String productCode) {
+    registerAwsUsageContextForBatchMeterUsage(
+        awsAccountId, awsSellerAccountId, rhSubscriptionId, customerId, productCode, null);
+    setupAwsBatchMeterUsageThrottling();
   }
 
   public void setupAwsUsageContextToReturnSubscriptionRecentlyTerminated(String awsAccountId) {
@@ -297,9 +321,50 @@ public class AwsWiremockService extends WiremockService {
     }
   }
 
-  private void setupAwsBatchMeterUsage() {
-    // The AWS SDK v2 sends JSON (application/x-amz-json-1.1) with the X-Amz-Target header
-    // to identify the operation. We return a minimal valid BatchMeterUsage JSON response.
+  private void setupAwsUsageContextWithBatchMeterResultStatus(
+      String awsAccountId,
+      String awsSellerAccountId,
+      String rhSubscriptionId,
+      String customerId,
+      String productCode,
+      String customerAwsAccountId,
+      String batchMeterResultStatus) {
+    registerAwsUsageContextForBatchMeterUsage(
+        awsAccountId,
+        awsSellerAccountId,
+        rhSubscriptionId,
+        customerId,
+        productCode,
+        customerAwsAccountId);
+    setupAwsBatchMeterUsageResultStatus(batchMeterResultStatus);
+  }
+
+  private void registerAwsUsageContextForBatchMeterUsage(
+      String awsAccountId,
+      String awsSellerAccountId,
+      String rhSubscriptionId,
+      String customerId,
+      String productCode,
+      String customerAwsAccountId) {
+    var contextData = new HashMap<String, Object>();
+    contextData.put("rhSubscriptionId", rhSubscriptionId);
+    contextData.put("customerId", customerId);
+    contextData.put("productCode", productCode);
+    contextData.put("awsSellerAccountId", awsSellerAccountId);
+    contextData.put("subscriptionStartDate", "2020-01-01T00:00:00Z");
+    if (customerAwsAccountId != null) {
+      contextData.put("customerAwsAccountId", customerAwsAccountId);
+    }
+
+    registerAwsUsageContextStub(awsAccountId, jsonResponse(200, contextData));
+  }
+
+  private void setupAwsBatchMeterUsageResultStatus(String status) {
+    Map<String, Object> result = new HashMap<>();
+    result.put("Status", status);
+    if ("Success".equals(status)) {
+      result.put("MeteringRecordId", "test-record-id");
+    }
     given()
         .contentType("application/json")
         .body(
@@ -319,11 +384,40 @@ public class AwsWiremockService extends WiremockService {
                     "headers",
                     Map.of("Content-Type", "application/x-amz-json-1.1"),
                     "jsonBody",
+                    Map.of("Results", List.of(result), "UnprocessedRecords", List.of())),
+                "priority",
+                9,
+                "metadata",
+                getMetadataTags()))
+        .when()
+        .post("/__admin/mappings")
+        .then()
+        .statusCode(201);
+  }
+
+  private void setupAwsBatchMeterUsageThrottling() {
+    given()
+        .contentType("application/json")
+        .body(
+            Map.of(
+                "request",
+                Map.of(
+                    "method",
+                    "POST",
+                    "urlPathPattern",
+                    AWS_USAGE_EVENT_PATH + ".*",
+                    "headers",
+                    Map.of("X-Amz-Target", Map.of("equalTo", BATCH_METER_USAGE_TARGET))),
+                "response",
+                Map.of(
+                    "status",
+                    429,
+                    "headers",
+                    Map.of("Content-Type", "application/x-amz-json-1.1"),
+                    "jsonBody",
                     Map.of(
-                        "Results",
-                        List.of(Map.of("MeteringRecordId", "test-record-id", "Status", "Success")),
-                        "UnprocessedRecords",
-                        List.of())),
+                        "__type", "ThrottlingException",
+                        "message", "Rate exceeded")),
                 "priority",
                 9,
                 "metadata",

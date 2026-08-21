@@ -128,6 +128,30 @@ class BillableUsageStatusConsumerTest {
   }
 
   @Test
+  void testWhenUsageThatFailedWithMarketplaceCustomerNotSubscribedThenUsageSetFailed() {
+    var existingRemittance = givenExistingRemittance();
+    var message =
+        createBillableUsageAggregate(
+            Status.FAILED, ErrorCode.MARKETPLACE_CUSTOMER_NOT_SUBSCRIBED, null, existingRemittance);
+    whenSendResponse(message);
+    Awaitility.await()
+        .untilAsserted(
+            () -> verifyUpdateForFailure(RemittanceErrorCode.MARKETPLACE_CUSTOMER_NOT_SUBSCRIBED));
+  }
+
+  @Test
+  void testWhenUsageThatFailedWithMarketplaceDuplicateRecordThenUsageSetFailed() {
+    var existingRemittance = givenExistingRemittance();
+    var message =
+        createBillableUsageAggregate(
+            Status.FAILED, ErrorCode.MARKETPLACE_DUPLICATE_RECORD, null, existingRemittance);
+    whenSendResponse(message);
+    Awaitility.await()
+        .untilAsserted(
+            () -> verifyUpdateForFailure(RemittanceErrorCode.MARKETPLACE_DUPLICATE_RECORD));
+  }
+
+  @Test
   void testWhenConsumeSuccessStatusThenExistingFailedRemittanceNotUpdated() {
     var existingRemittance = givenExistingRemittance();
     var failedMessage =
