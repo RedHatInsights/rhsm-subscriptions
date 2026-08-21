@@ -20,8 +20,6 @@
  */
 package org.candlepin.subscriptions.export;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.redhat.cloud.event.parser.ConsoleCloudEventParser;
 import com.redhat.swatch.export.CsvExportFileWriter;
 import com.redhat.swatch.export.DataExporterService;
@@ -44,6 +42,9 @@ import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.util.backoff.FixedBackOff;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.dataformat.csv.CsvMapper;
 
 @Configuration
 @Import({ExportClientConfiguration.class})
@@ -104,13 +105,23 @@ public class ExportConfiguration {
       ExportDelegate exportDelegate,
       RbacDelegate rbacDelegate,
       List<DataExporterService<?>> exporterServices,
-      ObjectMapper objectMapper,
-      CsvMapper csvMapper) {
+      ObjectMapper objectMapper) {
+    // ConsoleCloudEventParser requires Jackson 2 (from event-schemas library)
+    com.fasterxml.jackson.databind.ObjectMapper jackson2Mapper =
+        new com.fasterxml.jackson.databind.ObjectMapper();
+    jackson2Mapper.disable(
+        com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+    jackson2Mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+    jackson2Mapper.disable(
+        com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+    CsvMapper csvMapper =
+        CsvMapper.builder().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES).build();
     return new ExportRequestHandler(
         exportDelegate,
         rbacDelegate,
         exporterServices,
-        new ConsoleCloudEventParser(objectMapper),
+        new ConsoleCloudEventParser(jackson2Mapper),
         new JsonExportFileWriter(objectMapper),
         new CsvExportFileWriter(csvMapper));
   }

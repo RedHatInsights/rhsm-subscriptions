@@ -21,6 +21,11 @@
 
   <dependencyManagement>
       <dependencies>
+    <dependency>
+      <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-test-framework-quarkus</artifactId>
+      <version>${project.version}</version>
+    </dependency>
           <dependency>
               <groupId>com.redhat.swatch</groupId>
               <artifactId>swatch-spring-parent</artifactId>
@@ -32,6 +37,11 @@
   </dependencyManagement>
 
   <dependencies>
+    <dependency>
+      <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-test-framework-quarkus</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>

@@ -20,9 +20,6 @@
  */
 package org.candlepin.subscriptions.tally.admin;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
@@ -41,6 +38,9 @@ import org.candlepin.subscriptions.tally.TallySnapshotController;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
 import org.candlepin.subscriptions.utilization.api.v1.model.OptInConfig;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 @Component
 @Slf4j
@@ -109,7 +109,7 @@ public class InternalTallyDataController {
     try {
       log.info("Events saved: {}", objectMapper.writeValueAsString(saved));
       return "Events saved";
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       log.error("Error serializing saved event data!", e);
       return "Error serializing saved event data";
     }
@@ -117,7 +117,7 @@ public class InternalTallyDataController {
 
   @Transactional
   public String fetchEventsForOrgIdInTimeRange(
-      String orgId, OffsetDateTime begin, OffsetDateTime end) throws JsonProcessingException {
+      String orgId, OffsetDateTime begin, OffsetDateTime end) throws JacksonException {
     List<Event> events = eventController.fetchEventsInTimeRange(orgId, begin, end).toList();
     return objectMapper.writeValueAsString(events);
   }

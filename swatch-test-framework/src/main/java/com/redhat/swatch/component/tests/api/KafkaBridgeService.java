@@ -20,15 +20,12 @@
  */
 package com.redhat.swatch.component.tests.api;
 
-import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.redhat.swatch.component.tests.api.dto.KafkaMessage;
 import com.redhat.swatch.component.tests.logging.Log;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.component.tests.utils.JsonUtils;
 import io.restassured.config.EncoderConfig;
-import io.restassured.config.ObjectMapperConfig;
 import io.restassured.config.RestAssuredConfig;
 import io.restassured.response.Response;
 import java.util.ArrayList;
@@ -41,6 +38,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import tools.jackson.databind.JavaType;
+import tools.jackson.databind.type.TypeFactory;
 
 public class KafkaBridgeService extends RestService {
 
@@ -106,12 +105,11 @@ public class KafkaBridgeService extends RestService {
     Log.debug(this, "Sending kafka message to topic '%s': %s", topic, value);
     var data = Map.of("records", List.of(buildMessage(key, value)));
 
+    // Note: RestAssured 6.0.0 uses Jackson 2, so we use default ObjectMapper instead of our Jackson
+    // 3 instance
     given()
         .config(
             RestAssuredConfig.config()
-                .objectMapperConfig(
-                    ObjectMapperConfig.objectMapperConfig()
-                        .jackson2ObjectMapperFactory((cls, charset) -> JsonUtils.getObjectMapper()))
                 .encoderConfig(
                     EncoderConfig.encoderConfig()
                         .appendDefaultContentCharsetToContentTypeIfUndefined(false)))
