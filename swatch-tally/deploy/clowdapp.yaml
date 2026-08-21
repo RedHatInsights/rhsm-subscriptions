@@ -305,12 +305,14 @@ parameters:
       s.id,
       s.org_id,
       s.snapshot_date,
-      s.product_id
+      s.product_id,
+      s.sla,
+      s.usage,
+      s.billing_provider,
+      s.billing_account_id,
+      s.granularity
       from tally_snapshots s
-      where s.sla = '_ANY'
-      and s.usage = '_ANY'
-      and s.billing_provider = '_ANY'
-      and s.billing_account_id = '_ANY'
+      where s.is_primary = true
       and s.granularity = 'DAILY'
       and s.last_modified >= date_trunc('day', now() at time zone 'utc' - interval '2 day')
     chunksize: 50000
@@ -385,9 +387,22 @@ parameters:
     chunksize: 50000
   - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/host_tally_buckets
     query: >-
-      SELECT *
-      FROM host_tally_buckets
-      WHERE last_modified >= date_trunc('day', now() at time zone 'utc' - interval '2 day')
+      select
+        b.host_id,
+        b.product_id,
+        b.sla,
+        b.usage,
+        b.billing_provider,
+        b.billing_account_id,
+        b.as_hypervisor,
+        b.cores,
+        b.sockets,
+        b.measurement_type,
+        b.version,
+        b.last_modified
+      from host_tally_buckets b
+      where b.is_primary = true
+        and b.last_modified >= date_trunc('day', now() at time zone 'utc' - interval '2 day')
     chunksize: 50000
   - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/instance_measurements
     query: >-
