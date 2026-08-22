@@ -57,7 +57,7 @@ public class KesselAuthorizationService {
         new KesselConfig() {
           @Override
           public String endpoint() {
-            return properties.endpoint();
+            return properties.resolvedEndpoint();
           }
 
           @Override
