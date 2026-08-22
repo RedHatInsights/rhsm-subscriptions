@@ -97,6 +97,7 @@ public class BaseTallyComponentTest {
   // --- Instance fields ---
 
   protected final TallyDbHostSeeder seeder = new TallyDbHostSeeder(swatchDatabase);
+
   protected String orgId;
   protected RbacAccessTestHelper rbacHelper;
 
