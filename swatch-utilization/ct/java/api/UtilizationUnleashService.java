@@ -26,6 +26,7 @@ import com.redhat.swatch.utilization.model.SendNotificationVariantPayload;
 import java.util.List;
 
 public class UtilizationUnleashService extends UnleashService {
+  private static final String USE_KESSEL_RBAC = "swatch.common-security.use-kessel-rbac";
   private static final String SEND_NOTIFICATIONS = "swatch.swatch-notifications.send-notifications";
   private static final String SEND_NOTIFICATIONS_CONFIG_VARIANT = "send-notifications-config";
   private static final String SEND_NOTIFICATIONS_ORGS_ALLOWLIST =
@@ -60,6 +61,14 @@ public class UtilizationUnleashService extends UnleashService {
 
   public void clearSendNotificationsVariants() {
     clearVariants(SEND_NOTIFICATIONS);
+  }
+
+  public void enableKesselRbac() {
+    enableFlag(USE_KESSEL_RBAC);
+  }
+
+  public void disableKesselRbac() {
+    disableFlag(USE_KESSEL_RBAC);
   }
 
   private static String buildEventTypesDenylistJson(String... eventTypes) {
