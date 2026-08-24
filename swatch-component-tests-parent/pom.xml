@@ -58,7 +58,7 @@
             <configuration>
               <sources>
                 <source>${project.basedir}/java</source>
-                <source>${project.basedir}/target/generated-sources/src/main/java</source>
+                <source>${project.basedir}/target/generated-sources</source>
               </sources>
             </configuration>
           </execution>
