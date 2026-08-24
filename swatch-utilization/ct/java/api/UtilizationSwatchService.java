@@ -29,6 +29,7 @@ import com.redhat.swatch.utilization.openapi.model.OrgPreferencesRequest;
 import com.redhat.swatch.utilization.openapi.model.OrgPreferencesResponse;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
+import java.util.Map;
 import java.util.Objects;
 
 public class UtilizationSwatchService extends SwatchService {
@@ -43,6 +44,25 @@ public class UtilizationSwatchService extends SwatchService {
         .headers(securityHeadersWithServiceRole(orgId))
         .when()
         .get(ORG_PREFERENCES_ENDPOINT);
+  }
+
+  public Response getOrgPreferences(Map<String, String> requestHeaders) {
+    Objects.requireNonNull(requestHeaders, "requestHeaders must not be null");
+
+    return given().headers(requestHeaders).when().get(ORG_PREFERENCES_ENDPOINT);
+  }
+
+  public Response updateOrgPreferences(
+      Map<String, String> requestHeaders, OrgPreferencesRequest request) {
+    Objects.requireNonNull(requestHeaders, "requestHeaders must not be null");
+    Objects.requireNonNull(request, "request must not be null");
+
+    return given()
+        .headers(requestHeaders)
+        .contentType(ContentType.JSON)
+        .body(request)
+        .when()
+        .post(ORG_PREFERENCES_ENDPOINT);
   }
 
   public OrgPreferencesResponse getOrgPreferencesExpectSuccess(String orgId) {
