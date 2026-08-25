@@ -55,25 +55,61 @@ def find_clowdapps():
     clowdapps = []
     for template_path in find_clowdapp_templates():
         template = yaml.safe_load(open(template_path).read())
+        params = {
+            parameter["name"]: parameter.get("value", "")
+            for parameter in template.get("parameters", [])
+        }
         template_clowdapps = [
             obj for obj in template["objects"] if obj["kind"] == "ClowdApp"
         ]
         for clowdapp in template_clowdapps:
             clowdapp["_template"] = template_path
-            clowdapp["_profiles"] = extract_clowdapp_profiles(clowdapp)
+            clowdapp["_profiles"] = extract_clowdapp_profiles(clowdapp, params)
             clowdapp["_topics"] = extract_clowdapp_topics(clowdapp)
         clowdapps.extend(template_clowdapps)
     return clowdapps
 
 
-def extract_clowdapp_profiles(clowdapp):
+def resolve_template_value(value, params):
+    """Resolve OpenShift template ${PARAM} references using parameter defaults."""
+    if not isinstance(value, str):
+        return value
+
+    def replacer(match):
+        return str(params.get(match.group(1), match.group(0)))
+
+    return re.sub(r"\$\{([^}]+)\}", replacer, value)
+
+
+def extract_spring_profiles_from_env(env_list, params):
     profiles = set()
-    for resource in clowdapp["spec"].get("deployments", []) + clowdapp["spec"].get(
-        "jobs", []
-    ):
-        for env in resource["podSpec"]["env"]:
-            if env["name"] == "SPRING_PROFILES_ACTIVE":
-                profiles.update(env["value"].split(","))
+    for env in env_list or []:
+        if env.get("name") != "SPRING_PROFILES_ACTIVE" or "value" not in env:
+            continue
+        resolved = resolve_template_value(env["value"], params)
+        profiles.update(
+            profile.strip() for profile in resolved.split(",") if profile.strip()
+        )
+    return profiles
+
+
+def extract_clowdapp_profiles(clowdapp, params=None):
+    """Collect Spring profiles from deployments that run the Spring app.
+
+    Curl-based ClowdApp jobs intentionally omit SPRING_PROFILES_ACTIVE; they only
+    need PSK env vars to call internal RPC endpoints on the always-running service.
+    Template parameter defaults (e.g. ${SPRING_PROFILES_ACTIVE_SERVICE}) are resolved
+    so profile-scoped application-*.yaml files still associate to the ClowdApp.
+    """
+    params = params or {}
+    profiles = set()
+    for resource in clowdapp["spec"].get("deployments", []):
+        pod_spec = resource.get("podSpec") or {}
+        profiles.update(extract_spring_profiles_from_env(pod_spec.get("env"), params))
+        for container in pod_spec.get("initContainers") or []:
+            profiles.update(
+                extract_spring_profiles_from_env(container.get("env"), params)
+            )
     return sorted(profiles)
 
 
