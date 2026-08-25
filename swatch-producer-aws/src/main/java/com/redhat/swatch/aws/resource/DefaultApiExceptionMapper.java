@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.aws.resource;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.aws.exception.DefaultApiException;
 import com.redhat.swatch.clients.contracts.api.model.Error;
 import jakarta.annotation.Priority;
@@ -34,6 +35,8 @@ import org.eclipse.microprofile.rest.client.ext.ResponseExceptionMapper;
 @Priority(-1)
 public class DefaultApiExceptionMapper implements ResponseExceptionMapper<DefaultApiException> {
 
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
   @Override
   public boolean handles(int status, MultivaluedMap<String, Object> headers) {
     return status >= 400;
@@ -45,10 +48,20 @@ public class DefaultApiExceptionMapper implements ResponseExceptionMapper<Defaul
   }
 
   private Error parseError(Response response) {
+    if (!response.hasEntity()) {
+      return null;
+    }
     try {
-      return response.readEntity(Error.class);
+      String body = response.readEntity(String.class);
+      if (body == null || body.isBlank()) {
+        return null;
+      }
+      return OBJECT_MAPPER.readValue(body, Error.class);
     } catch (Exception e) {
-      log.debug("Failed to create Error from response.", e);
+      log.debug(
+          "Failed to parse contracts API error response (status={}): {}",
+          response.getStatus(),
+          e.getMessage());
       return null;
     }
   }
