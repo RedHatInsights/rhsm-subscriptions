@@ -42,4 +42,4 @@ The key difference is the addition of the `-Dswatch.component-tests.global.targe
 
 ## Test plan
 
-Component test cases (TC IDs, setup, and expected results) are documented in [`../TEST_PLAN.md`](../TEST_PLAN.md).
+Component test cases (TC IDs, setup, and expected results) are documented in [`../COMPONENT_TEST_PLAN.md`](../COMPONENT_TEST_PLAN.md).
