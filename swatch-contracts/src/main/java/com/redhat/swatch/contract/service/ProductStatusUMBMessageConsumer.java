@@ -79,7 +79,7 @@ public class ProductStatusUMBMessageConsumer {
           productEvent.getProductCategory(),
           isChildSku(productEvent.getProductCode()));
 
-      service.syncUmbProductFromEvent(productEvent);
+      service.syncProductFromEvent(productEvent);
     } catch (Exception e) {
       log.error("Unable to read UMB product message for JSON: {}", message, e);
     }
