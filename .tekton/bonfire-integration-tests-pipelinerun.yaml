@@ -60,6 +60,7 @@ spec:
         -p host-inventory/REPLICAS_WORKSPACES=0
         -p host-inventory/REPLICAS_WORKSPACES_BULK=0
         -p host-inventory/REPLICAS_HOST_APP_DATA=0
+        --set-image-tag quay.io/redhat-services-prod/project-kessel-tenant/kessel-inventory/inventory-api=6917808
     - name: DEPLOY_OPTIONAL_DEPS_METHOD
       value: "none"
     - name: DEPLOY_FRONTENDS

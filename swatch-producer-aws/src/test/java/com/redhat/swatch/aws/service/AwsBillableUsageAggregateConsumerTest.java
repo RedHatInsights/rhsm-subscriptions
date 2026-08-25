@@ -235,9 +235,11 @@ class AwsBillableUsageAggregateConsumerTest {
     BillableUsageAggregate aggregateWithLicense =
         createAggregateWithLicense("arn:aws:license:test");
 
-    UsageRecord record = processUsageAndCaptureRecord(MOCK_AWS_USAGE_CONTEXT, aggregateWithLicense);
+    BatchMeterUsageRequest request =
+        processUsageAndCaptureRequest(MOCK_AWS_USAGE_CONTEXT, aggregateWithLicense);
 
-    assertNull(record.licenseArn());
+    assertNull(request.usageRecords().getFirst().licenseArn());
+    assertEquals(MOCK_AWS_USAGE_CONTEXT.getProductCode(), request.productCode());
     verify(contractsApi).getAwsUsageContext(any(), any(), any(), any(), any(), any(), isNull());
   }
 
@@ -247,19 +249,22 @@ class AwsBillableUsageAggregateConsumerTest {
     String licenseId = "arn:aws:license-manager:us-east-1:123:license:swatch-test";
     BillableUsageAggregate aggregateWithLicense = createAggregateWithLicense(licenseId);
 
-    UsageRecord record = processUsageAndCaptureRecord(MOCK_AWS_USAGE_CONTEXT, aggregateWithLicense);
+    BatchMeterUsageRequest request =
+        processUsageAndCaptureRequest(MOCK_AWS_USAGE_CONTEXT, aggregateWithLicense);
 
-    assertEquals(licenseId, record.licenseArn());
+    assertEquals(licenseId, request.usageRecords().getFirst().licenseArn());
+    assertNull(request.productCode());
   }
 
   @Test
-  void shouldOmitLicenseArnWhenFlagOnButLicenseIdMissing() throws ApiException {
+  void shouldIncludeProductCodeWhenFlagOnButLicenseIdMissing() throws ApiException {
     when(featureFlags.useLicense()).thenReturn(true);
 
-    UsageRecord record =
-        processUsageAndCaptureRecord(MOCK_AWS_USAGE_CONTEXT, ROSA_INSTANCE_HOURS_RECORD);
+    BatchMeterUsageRequest request =
+        processUsageAndCaptureRequest(MOCK_AWS_USAGE_CONTEXT, ROSA_INSTANCE_HOURS_RECORD);
 
-    assertNull(record.licenseArn());
+    assertNull(request.usageRecords().getFirst().licenseArn());
+    assertEquals(MOCK_AWS_USAGE_CONTEXT.getProductCode(), request.productCode());
   }
 
   @Test
@@ -661,6 +666,11 @@ class AwsBillableUsageAggregateConsumerTest {
 
   private UsageRecord processUsageAndCaptureRecord(
       AwsUsageContext context, BillableUsageAggregate aggregate) throws ApiException {
+    return processUsageAndCaptureRequest(context, aggregate).usageRecords().getFirst();
+  }
+
+  private BatchMeterUsageRequest processUsageAndCaptureRequest(
+      AwsUsageContext context, BillableUsageAggregate aggregate) throws ApiException {
     when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(context);
     when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
@@ -671,8 +681,7 @@ class AwsBillableUsageAggregateConsumerTest {
         ArgumentCaptor.forClass(BatchMeterUsageRequest.class);
     consumer.process(aggregate);
     verify(meteringClient).batchMeterUsage(requestCaptor.capture());
-    var captured = requestCaptor.getValue();
-    return captured.usageRecords().getFirst();
+    return requestCaptor.getValue();
   }
 
   private static BillableUsageAggregate createAggregateWithLicense(String licenseId) {

@@ -193,6 +193,11 @@ public class AwsWiremockService extends WiremockService {
     assertEquals(expectedProductCode, batchRequest.productCode(), "productCode mismatch");
   }
 
+  public void verifyBatchMeterUsageProductCodeAbsent() {
+    BatchMeterUsageRequest batchRequest = findLatestBatchMeterUsageRequest();
+    assertFieldAbsent("productCode", batchRequest.productCode());
+  }
+
   public void verifyAwsUsageContextLicenseId(String expectedLicenseId) {
     String requestUrl = findLatestAwsUsageContextRequestUrl();
     String decodedUrl = URLDecoder.decode(requestUrl, StandardCharsets.UTF_8);

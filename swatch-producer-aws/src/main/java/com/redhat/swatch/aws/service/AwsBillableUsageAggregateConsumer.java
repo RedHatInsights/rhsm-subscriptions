@@ -255,10 +255,7 @@ public class AwsBillableUsageAggregateConsumer {
           AwsUsageNotAcceptedException,
           UsageTimestampOutOfBoundsException {
     BatchMeterUsageRequest request =
-        BatchMeterUsageRequest.builder()
-            .productCode(context.getProductCode())
-            .usageRecords(transformToAwsUsage(context, billableUsageAggregate, metric))
-            .build();
+        buildBatchMeterUsageRequest(context, billableUsageAggregate, metric);
 
     if (isDryRun.isPresent() && Boolean.TRUE.equals(isDryRun.get())) {
       log.info(
@@ -343,25 +340,46 @@ public class AwsBillableUsageAggregateConsumer {
     return usageRecord.build();
   }
 
+  private BatchMeterUsageRequest buildBatchMeterUsageRequest(
+      AwsUsageContext context, BillableUsageAggregate billableUsageAggregate, Metric metric)
+      throws UsageTimestampOutOfBoundsException {
+    BatchMeterUsageRequest.Builder requestBuilder =
+        BatchMeterUsageRequest.builder()
+            .usageRecords(transformToAwsUsage(context, billableUsageAggregate, metric));
+
+    if (!usesLicenseArnMetering(billableUsageAggregate)) {
+      requestBuilder.productCode(context.getProductCode());
+    }
+
+    return requestBuilder.build();
+  }
+
   private void applyLicenseArnIfEnabled(
       UsageRecord.Builder usageRecord, BillableUsageAggregate billableUsageAggregate) {
-    if (!featureFlags.useLicense()) {
-      log.debug(
-          "use-license flag off; omitting LicenseArn for aggregateId={}",
-          billableUsageAggregate.getAggregateId());
+    if (usesLicenseArnMetering(billableUsageAggregate)) {
+      usageRecord.licenseArn(billableUsageAggregate.getLicenseId());
       return;
     }
 
-    String licenseId = billableUsageAggregate.getLicenseId();
-    if (licenseId == null || licenseId.isBlank()) {
+    if (featureFlags.useLicense()) {
       log.warn(
           "use-license is enabled but licenseId is missing; omitting LicenseArn"
               + " for aggregateId={}",
           billableUsageAggregate.getAggregateId());
-      return;
+    } else {
+      log.debug(
+          "use-license flag off; omitting LicenseArn for aggregateId={}",
+          billableUsageAggregate.getAggregateId());
     }
+  }
 
-    usageRecord.licenseArn(licenseId);
+  /** True when the aggregate should be metered with {@code LicenseArn} (no {@code ProductCode}). */
+  private boolean usesLicenseArnMetering(BillableUsageAggregate billableUsageAggregate) {
+    if (!featureFlags.useLicense()) {
+      return false;
+    }
+    String licenseId = billableUsageAggregate.getLicenseId();
+    return licenseId != null && !licenseId.isBlank();
   }
 
   private boolean isForAws(BillableUsageAggregateKey aggregationKey) {
