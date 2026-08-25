@@ -94,7 +94,7 @@ Usage records always use `CustomerAWSAccountId` from `AwsUsageContext.customerAw
   - Inspect captured `BatchMeterUsage` request and status payload
 - **Expected Result**:
   - `UsageRecords[0].LicenseArn` equals the aggregate `licenseId`
-  - `ProductCode` is still present
+  - `ProductCode` is absent from the request (license-based metering)
   - Status message / aggregate on `billable-usage.status` carries the same `licenseId`
   - Remittance status is `SUCCEEDED`
 
@@ -133,7 +133,7 @@ Usage records always use `CustomerAWSAccountId` from `AwsUsageContext.customerAw
   - `UsageRecords[0].CustomerAWSAccountId` matches context
   - `UsageRecords[0].LicenseArn` matches aggregate `licenseId`
   - `CustomerIdentifier` absent
-  - `ProductCode` still present
+  - `ProductCode` is absent from the request
 
 **producer-aws-license-TC005 - Pass licenseId to getAwsUsageContext when looking up context**
 
