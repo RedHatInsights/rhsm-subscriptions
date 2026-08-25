@@ -68,7 +68,7 @@ public class LicenseArnComponentTest extends BaseAwsComponentTest {
 
     thenRemittanceSucceedsWithLicense();
     thenLicenseArnMatchesAggregate();
-    thenProductCodeIsPresent();
+    thenProductCodeIsAbsent();
   }
 
   @TestPlanName("producer-aws-license-TC003")
@@ -95,7 +95,7 @@ public class LicenseArnComponentTest extends BaseAwsComponentTest {
     thenRemittanceSucceedsWithLicense();
     wiremock.verifyBatchMeterUsageCustomerAwsAccountId(CUSTOMER_AWS_ACCOUNT_ID);
     thenLicenseArnMatchesAggregate();
-    thenProductCodeIsPresent();
+    thenProductCodeIsAbsent();
   }
 
   @TestPlanName("producer-aws-license-TC005")
@@ -207,6 +207,10 @@ public class LicenseArnComponentTest extends BaseAwsComponentTest {
 
   private void thenProductCodeIsPresent() {
     wiremock.verifyBatchMeterUsageProductCode(productCode);
+  }
+
+  private void thenProductCodeIsAbsent() {
+    wiremock.verifyBatchMeterUsageProductCodeAbsent();
   }
 
   private void thenNoAwsUsageIsSent() {
