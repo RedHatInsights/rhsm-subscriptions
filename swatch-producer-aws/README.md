@@ -25,6 +25,14 @@ In short, swatch-producer-aws is responsible for translating SWATCH billable usa
 AWS-specific metering records and ensuring they are successfully submitted to AWS Marketplace,
 while providing status feedback to swatch-billable-usage for tracking and reconciliation.
 
+## Architecture decisions
+
+Service-specific ADRs live under [`docs/adr/`](docs/adr/).
+
+| ADR | Title | Status |
+|-----|-------|--------|
+| [0001](docs/adr/0001-zero-quantity-aws-batch-meter-usage.md) | Zero-quantity AWS BatchMeterUsage | Accepted |
+
 ## Component/Flow Diagram
 ![Container diagram for Billing](../docs/container-billing.svg)
 
