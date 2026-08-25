@@ -22,6 +22,8 @@ package tests;
 
 import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static utils.TallyTestProducts.ANSIBLE_AAP_MANAGED;
+import static utils.TallyTestProducts.OPENSHIFT_DEDICATED;
 import static utils.TallyTestProducts.RHACM;
 import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
 import static utils.TallyTestProducts.ROSA;
@@ -192,6 +194,99 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
     }
   }
 
+  @Test
+  @TestPlanName("tally-conflicts-TC005")
+  public void testCounterBackfillAmendsHourlyTotals() {
+    // Given: 5 events spanning consecutive hours for OpenShift-dedicated-metrics
+    String billingAccountId = UUID.randomUUID().toString();
+    OffsetDateTime ending = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.HOURS);
+    OffsetDateTime beginning = ending.minusHours(7);
+    int eventCount = 5;
+    float firstValue = 15.0f;
+    float secondValue = 150.0f;
+
+    for (String metricId : OPENSHIFT_DEDICATED.metricIds()) {
+      double initialSum =
+          getHourlyTallySum(
+              setup.orgId, OPENSHIFT_DEDICATED.productTag(), metricId, beginning, ending);
+
+      for (int i = 0; i < eventCount; i++) {
+        createEventForProductWithBilling(
+            beginning.plusHours(i), OPENSHIFT_DEDICATED, metricId, firstValue, billingAccountId);
+      }
+      service.performHourlyTallyForOrg(setup.orgId);
+
+      double afterFirstBatch =
+          awaitHourlyTallySum(
+              setup.orgId,
+              OPENSHIFT_DEDICATED.productTag(),
+              metricId,
+              beginning,
+              ending,
+              initialSum + (firstValue * eventCount));
+
+      // When: Two backfill events amend two distinct hours within the original range
+      createEventForProductWithBilling(
+          beginning.plusHours(1), OPENSHIFT_DEDICATED, metricId, secondValue, billingAccountId);
+      createEventForProductWithBilling(
+          beginning.plusHours(3), OPENSHIFT_DEDICATED, metricId, secondValue, billingAccountId);
+      service.performHourlyTallyForOrg(setup.orgId);
+
+      // Then: Total increases by the two backfill values
+      awaitHourlyTallySum(
+          setup.orgId,
+          OPENSHIFT_DEDICATED.productTag(),
+          metricId,
+          beginning,
+          ending,
+          afterFirstBatch + (secondValue * 2));
+    }
+  }
+
+  @Test
+  @TestPlanName("tally-conflicts-TC006")
+  public void testAnsibleDualEventCounterBackfill() {
+    // Given: An initial Ansible event for each metric
+    String billingAccountId = UUID.randomUUID().toString();
+    OffsetDateTime ending = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.HOURS);
+    OffsetDateTime beginning = ending.minusHours(7);
+
+    for (String metricId : ANSIBLE_AAP_MANAGED.metricIds()) {
+      double initialSum =
+          getHourlyTallySum(
+              setup.orgId, ANSIBLE_AAP_MANAGED.productTag(), metricId, beginning, ending);
+
+      float firstValue = 15.0f;
+      createAnsibleEvent(beginning, metricId, firstValue, billingAccountId);
+      service.performHourlyTallyForOrg(setup.orgId);
+
+      double afterFirst =
+          awaitHourlyTallySum(
+              setup.orgId,
+              ANSIBLE_AAP_MANAGED.productTag(),
+              metricId,
+              beginning,
+              ending,
+              initialSum + firstValue);
+
+      // When: Two backfill events at different hours
+      float secondValue = 3.0f;
+      OffsetDateTime pastDate = beginning.plusHours(2);
+      createAnsibleEvent(pastDate, metricId, secondValue, billingAccountId);
+      createAnsibleEvent(ending.minusHours(1), metricId, secondValue, billingAccountId);
+      service.performHourlyTallyForOrg(setup.orgId);
+
+      // Then: Total increases by secondValue for each of the two backfill events
+      awaitHourlyTallySum(
+          setup.orgId,
+          ANSIBLE_AAP_MANAGED.productTag(),
+          metricId,
+          beginning,
+          ending,
+          afterFirst + (secondValue * 2));
+    }
+  }
+
   // --- Given helper methods ---
 
   private TestSetup setupTest() {
@@ -220,6 +315,54 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
 
     event.setDisplayName(Optional.of(setup.instanceId));
 
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event);
+  }
+
+  private void createEventForProductWithBilling(
+      OffsetDateTime timestamp,
+      TallyTestProducts product,
+      String metricId,
+      float value,
+      String billingAccountId) {
+    Event event =
+        helpers.createPaygEventWithTimestamp(
+            setup.orgId,
+            UUID.randomUUID().toString(),
+            timestamp.toString(),
+            UUID.randomUUID().toString(),
+            metricId,
+            value,
+            Event.Sla.PREMIUM,
+            Event.Usage.PRODUCTION,
+            Event.BillingProvider.AWS,
+            billingAccountId,
+            Event.HardwareType.CLOUD,
+            product.productId(),
+            product.productTag());
+    event.setServiceType(product.serviceType());
+    event.setRole(Event.Role.OSD);
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event);
+  }
+
+  private void createAnsibleEvent(
+      OffsetDateTime timestamp, String metricId, float value, String billingAccountId) {
+    Event event =
+        helpers.createPaygEventWithTimestamp(
+            setup.orgId,
+            UUID.randomUUID().toString(),
+            timestamp.toString(),
+            UUID.randomUUID().toString(),
+            metricId,
+            value,
+            Event.Sla.PREMIUM,
+            Event.Usage.PRODUCTION,
+            Event.BillingProvider.AWS,
+            billingAccountId,
+            Event.HardwareType.CLOUD,
+            ANSIBLE_AAP_MANAGED.productId(),
+            ANSIBLE_AAP_MANAGED.productTag());
+    event.setServiceType(ANSIBLE_AAP_MANAGED.serviceType());
+    event.setRole(null);
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event);
   }
 

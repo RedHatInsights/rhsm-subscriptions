@@ -342,27 +342,23 @@
 
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>default-compile</id>
-            <goals>
-              <goal>compile</goal>
-            </goals>
-            <configuration>
-              <parameters>true</parameters>
-              <annotationProcessorPaths>
-                <path>
-                  <groupId>org.projectlombok</groupId>
-                  <artifactId>lombok</artifactId>
-                </path>
-                <path>
-                  <groupId>org.mapstruct</groupId>
-                  <artifactId>mapstruct-processor</artifactId>
-                </path>
-              </annotationProcessorPaths>
-            </configuration>
-          </execution>
-        </executions>
+        <configuration>
+          <parameters>true</parameters>
+          <annotationProcessorPaths>
+            <path>
+              <groupId>org.projectlombok</groupId>
+              <artifactId>lombok</artifactId>
+            </path>
+            <path>
+              <groupId>org.projectlombok</groupId>
+              <artifactId>lombok-mapstruct-binding</artifactId>
+            </path>
+            <path>
+              <groupId>org.mapstruct</groupId>
+              <artifactId>mapstruct-processor</artifactId>
+            </path>
+          </annotationProcessorPaths>
+        </configuration>
       </plugin>
 
       <plugin>

@@ -118,6 +118,7 @@ class ClowderJsonPropertySourceTest {
         "clowder.kafka.brokers.cacert|Dummy value",
         "clowder.kafka.brokers.cacert.type|PEM",
         "clowder.endpoints.rhsm-clowdapp-service.url|http://rhsm-clowdapp-service.rhsm.svc:8000",
+        "clowder.endpoints.rhsm-clowdapp-service.hostname|rhsm-clowdapp-service.rhsm.svc",
         "clowder.endpoints.index-service.url|https://index.rhsm.svc:8800",
         "clowder.endpoints.index-service.trust-store-path|file:/.*/truststore.*.trust",
         "clowder.endpoints.index-service.trust-store-password|.+",

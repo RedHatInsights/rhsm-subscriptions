@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static utils.TallyTestProducts.ANSIBLE_AAP_MANAGED;
 import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
@@ -49,6 +50,7 @@ import org.apache.http.HttpStatus;
 import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -136,6 +138,11 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
   private CrossMonthPair crossMonth;
 
   private static final int EXPECTED_CURRENT_MONTH_INSTANCE_ROWS = 16;
+
+  @BeforeEach
+  void setUpRbacForTestOrg() {
+    stubRbacAccessForOrg(testOrgId);
+  }
 
   @BeforeAll
   void setupSharedFixture() {
@@ -861,6 +868,113 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
       assertTrue(
           sumMeteredValues(response) > 0.0,
           "Metered total should be positive for the SLA filter fixture rows in the current month");
+    }
+
+    @Test
+    @TestPlanName("tally-instances-payg-TC013")
+    public void testAnsibleClusterProducesTwoInstanceRows() {
+      // Given: Ansible events are published and tallied
+      String ansibleOrgId = RandomUtils.generateRandom();
+      String ansibleClusterUuid = UUID.randomUUID().toString();
+      String billingAccountId = UUID.randomUUID().toString();
+      OffsetDateTime eventTime =
+          OffsetDateTime.now(ZoneOffset.UTC).minusHours(2).truncatedTo(ChronoUnit.HOURS);
+      OffsetDateTime ansibleBeginning = eventTime;
+      OffsetDateTime ansibleEnding = eventTime.plusHours(3);
+
+      stubRbacAccessForOrg(ansibleOrgId);
+
+      Event controlNodeEvent =
+          helpers.createPaygEventWithTimestamp(
+              ansibleOrgId,
+              ansibleClusterUuid + "/control-host",
+              eventTime.toString(),
+              UUID.randomUUID().toString(),
+              "Managed-nodes",
+              1.0f,
+              Event.Sla.PREMIUM,
+              Event.Usage.PRODUCTION,
+              Event.BillingProvider.AWS,
+              billingAccountId,
+              Event.HardwareType.CLOUD,
+              ANSIBLE_AAP_MANAGED.productId(),
+              ANSIBLE_AAP_MANAGED.productTag());
+      controlNodeEvent.setServiceType("Ansible Managed Node");
+      controlNodeEvent.setRole(null);
+
+      Event managedNodeEvent =
+          helpers.createPaygEventWithTimestamp(
+              ansibleOrgId,
+              ansibleClusterUuid + "/managed-host",
+              eventTime.toString(),
+              UUID.randomUUID().toString(),
+              "Instance-hours",
+              1.0f,
+              Event.Sla.PREMIUM,
+              Event.Usage.PRODUCTION,
+              Event.BillingProvider.AWS,
+              billingAccountId,
+              Event.HardwareType.CLOUD,
+              ANSIBLE_AAP_MANAGED.productId(),
+              ANSIBLE_AAP_MANAGED.productTag());
+      managedNodeEvent.setServiceType("Ansible Managed Node");
+      managedNodeEvent.setRole(null);
+
+      helpers.ingestPaygEventsAndSyncOnceForOrg(
+          service,
+          kafkaBridge,
+          ansibleOrgId,
+          () -> {
+            InstanceResponse r =
+                service.getInstancesByProduct(
+                    ansibleOrgId,
+                    ANSIBLE_AAP_MANAGED.productTag(),
+                    ansibleBeginning,
+                    ansibleEnding);
+            return r.getData() != null && r.getData().size() >= 2;
+          },
+          controlNodeEvent,
+          managedNodeEvent);
+
+      // Then: Instances report should contain 2 rows (control node + managed node)
+      InstanceResponse response =
+          service.getInstancesByProduct(
+              ansibleOrgId, ANSIBLE_AAP_MANAGED.productTag(), ansibleBeginning, ansibleEnding);
+      assertNotNull(response.getData(), "Instance data should not be null");
+      assertEquals(
+          2,
+          response.getData().size(),
+          "Ansible cluster should produce 2 instance rows (control + managed)");
+
+      List<String> metricIds = response.getMeta().getMeasurements();
+      Map<String, Map<String, Double>> byId = new HashMap<>();
+      for (InstanceData instance : response.getData()) {
+        assertNotNull(instance.getMeasurements(), "Instance measurements should not be null");
+        Map<String, Double> measurements = new HashMap<>();
+        for (int i = 0; i < metricIds.size(); i++) {
+          measurements.put(metricIds.get(i), instance.getMeasurements().get(i));
+        }
+        byId.put(instance.getInstanceId(), measurements);
+      }
+
+      String controlId = ansibleClusterUuid + "/control-host";
+      String managedId = ansibleClusterUuid + "/managed-host";
+      assertEquals(
+          Set.of(controlId, managedId),
+          byId.keySet(),
+          "Expected exactly the control-host and managed-host instance IDs");
+      assertEquals(
+          1.0,
+          byId.get(controlId).get("Managed-nodes"),
+          0.0001,
+          "Control host should have Managed-nodes=1.0");
+      assertEquals(0.0, byId.get(controlId).get("Instance-hours"), 0.0001);
+      assertEquals(
+          1.0,
+          byId.get(managedId).get("Instance-hours"),
+          0.0001,
+          "Managed host should have Instance-hours=1.0");
+      assertEquals(0.0, byId.get(managedId).get("Managed-nodes"), 0.0001);
     }
   }
 

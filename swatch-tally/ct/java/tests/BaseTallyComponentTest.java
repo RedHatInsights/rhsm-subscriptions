@@ -32,6 +32,7 @@ import com.redhat.swatch.component.tests.api.HbiDatabase;
 import com.redhat.swatch.component.tests.api.KafkaBridge;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.api.SpringBoot;
+import com.redhat.swatch.component.tests.api.SubscriptionsAccessLevel;
 import com.redhat.swatch.component.tests.api.SwatchDatabase;
 import com.redhat.swatch.component.tests.api.Unleash;
 import com.redhat.swatch.component.tests.api.Wiremock;
@@ -39,6 +40,7 @@ import com.redhat.swatch.component.tests.api.db.DatabaseService;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
+import com.redhat.swatch.component.tests.utils.SwatchUtils;
 import com.redhat.swatch.tally.test.model.InstanceData;
 import com.redhat.swatch.tally.test.model.InstanceResponse;
 import com.redhat.swatch.tally.test.model.TallyReportData;
@@ -51,6 +53,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
+import utils.RbacAccessTestHelper;
 import utils.TallyDbHostSeeder;
 import utils.TallyTestHelpers;
 
@@ -95,10 +98,29 @@ public class BaseTallyComponentTest {
 
   protected final TallyDbHostSeeder seeder = new TallyDbHostSeeder(swatchDatabase);
   protected String orgId;
+  protected RbacAccessTestHelper rbacHelper;
 
   @BeforeEach
   void setUp() {
     orgId = RandomUtils.generateRandom();
+    rbacHelper = new RbacAccessTestHelper(unleash, wiremock, orgId);
+    String identityHeader = SwatchUtils.createUserIdentityHeader(orgId);
+    wiremock
+        .forRbacAccessControl()
+        .stubSubscriptionsAccess(identityHeader, SubscriptionsAccessLevel.GRANTED_ADMIN);
+  }
+
+  /**
+   * Helper method to stub RBAC access for a custom org ID (for tests that don't use the instance
+   * orgId).
+   *
+   * @param customOrgId the organization ID to stub access for
+   */
+  protected void stubRbacAccessForOrg(String customOrgId) {
+    String identityHeader = SwatchUtils.createUserIdentityHeader(customOrgId);
+    wiremock
+        .forRbacAccessControl()
+        .stubSubscriptionsAccess(identityHeader, SubscriptionsAccessLevel.GRANTED_ADMIN);
   }
 
   // --- Protected helper methods ---

@@ -22,11 +22,15 @@ package tests;
 
 import static com.redhat.swatch.component.tests.utils.Topics.SWATCH_SERVICE_INSTANCE_INGRESS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static utils.TallyTestProducts.RHEL_FOR_X86_ELS_PAYG;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
+import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
+import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.tally.test.model.BillingProviderType;
 import com.redhat.swatch.tally.test.model.GranularityType;
 import com.redhat.swatch.tally.test.model.ServiceLevelType;
@@ -35,6 +39,7 @@ import com.redhat.swatch.tally.test.model.TallyReportDataMeta;
 import com.redhat.swatch.tally.test.model.TallyReportDataPoint;
 import com.redhat.swatch.tally.test.model.UsageType;
 import io.restassured.response.Response;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
@@ -45,6 +50,7 @@ import java.util.UUID;
 import org.apache.http.HttpStatus;
 import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -63,6 +69,12 @@ import org.junit.jupiter.params.provider.ValueSource;
  */
 public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
   private static String testOrgId;
+
+  @BeforeEach
+  void setUpRbacForTestOrg() {
+    stubRbacAccessForOrg(testOrgId);
+  }
+
   private static final String PRODUCT_ID = RHEL_FOR_X86_ELS_PAYG.productId();
   private static final String PRODUCT_TAG = RHEL_FOR_X86_ELS_PAYG.productTag();
   private static final String METRIC_ID = RHEL_FOR_X86_ELS_PAYG.metricIds().get(0); // vCPUs
@@ -764,5 +776,123 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
         HttpStatus.SC_BAD_REQUEST,
         response.getStatusCode(),
         "Invalid granularity should return 400 Bad Request");
+  }
+
+  @TestPlanName("tally-report-filters-payg-TC025")
+  @Test
+  void shouldMatchDailyTotalToSumOfHourlyValues() {
+    // Given: ROSA events are published and tallied
+    String rosaOrgId = String.valueOf(10000 + (int) (Math.random() * 90000));
+    service.createOptInConfig(rosaOrgId);
+    stubRbacAccessForOrg(rosaOrgId);
+
+    String rosaProductTag = "rosa";
+    String rosaProductId = "rosa";
+    String rosaBillingAccountId = UUID.randomUUID().toString();
+
+    OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+    OffsetDateTime yesterday = now.minusDays(1);
+    OffsetDateTime yesterdayHour7 = yesterday.withHour(7).withMinute(0).withSecond(0).withNano(0);
+    OffsetDateTime yesterdayHour10 = yesterday.withHour(10).withMinute(0).withSecond(0).withNano(0);
+    OffsetDateTime todayHour = now.truncatedTo(ChronoUnit.HOURS);
+
+    OffsetDateTime rosaYesterdayBeginning = yesterday.truncatedTo(ChronoUnit.DAYS);
+    OffsetDateTime rosaYesterdayEnding = rosaYesterdayBeginning.plusDays(1).minusNanos(1);
+
+    float rosaCoresValue1 = 42.0f;
+    float rosaCoresValue2 = 58.0f;
+    float rosaCoresValue3 = 33.0f;
+    float rosaInstanceHoursValue1 = 100.0f;
+    float rosaInstanceHoursValue2 = 200.0f;
+    float rosaInstanceHoursValue3 = 150.0f;
+
+    for (Object[] eventData :
+        new Object[][] {
+          {yesterdayHour7, "Cores", rosaCoresValue1, "fake_cluster_7"},
+          {yesterdayHour7, "Instance-hours", rosaInstanceHoursValue1, "fake_cluster_7"},
+          {yesterdayHour10, "Cores", rosaCoresValue2, "fake_cluster_10"},
+          {yesterdayHour10, "Instance-hours", rosaInstanceHoursValue2, "fake_cluster_10"},
+          {todayHour, "Cores", rosaCoresValue3, "fake_cluster_now"},
+          {todayHour, "Instance-hours", rosaInstanceHoursValue3, "fake_cluster_now"},
+        }) {
+      Event event =
+          helpers.createPaygEventWithTimestamp(
+              rosaOrgId,
+              (String) eventData[3],
+              ((OffsetDateTime) eventData[0]).toString(),
+              UUID.randomUUID().toString(),
+              (String) eventData[1],
+              (float) eventData[2],
+              Event.Sla.PREMIUM,
+              Event.Usage.PRODUCTION,
+              Event.BillingProvider.AWS,
+              rosaBillingAccountId,
+              Event.HardwareType.CLOUD,
+              rosaProductId,
+              rosaProductTag);
+      kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event);
+    }
+    // Then: For each ROSA metric, daily total for yesterday == sum of hourly hasData points
+    AwaitilitySettings settings =
+        AwaitilitySettings.using(Duration.ofSeconds(1), Duration.ofSeconds(30))
+            .withService(service)
+            .timeoutMessage(
+                "Timed out waiting for ROSA daily total to match hourly sum for org %s", rosaOrgId);
+
+    AwaitilityUtils.untilAsserted(
+        () -> {
+          service.performHourlyTallyForOrg(rosaOrgId);
+
+          for (String metricId : List.of("Cores", "Instance-hours")) {
+            TallyReportData hourlyReport =
+                service.getTallyReportData(
+                    rosaOrgId,
+                    rosaProductTag,
+                    metricId,
+                    Map.of(
+                        "granularity", "Hourly",
+                        "beginning", rosaYesterdayBeginning.toString(),
+                        "ending", rosaYesterdayEnding.toString()));
+
+            assertNotNull(
+                hourlyReport.getData(), "Hourly report data should not be null for " + metricId);
+            assertFalse(
+                hourlyReport.getData().isEmpty(),
+                "Hourly report should contain data for " + metricId);
+
+            double hourlySum =
+                hourlyReport.getData().stream()
+                    .filter(dp -> Boolean.TRUE.equals(dp.getHasData()))
+                    .mapToInt(TallyReportDataPoint::getValue)
+                    .sum();
+            assertTrue(hourlySum > 0, "Hourly sum should be positive for " + metricId);
+
+            TallyReportData dailyReport =
+                service.getTallyReportData(
+                    rosaOrgId,
+                    rosaProductTag,
+                    metricId,
+                    Map.of(
+                        "granularity", "Daily",
+                        "beginning", rosaYesterdayBeginning.toString(),
+                        "ending", rosaYesterdayEnding.toString()));
+
+            assertNotNull(
+                dailyReport.getData(), "Daily report data should not be null for " + metricId);
+            assertFalse(
+                dailyReport.getData().isEmpty(),
+                "Daily report should contain data for " + metricId);
+
+            double dailyTotal = dailyReport.getData().get(0).getValue();
+
+            assertEquals(
+                hourlySum,
+                dailyTotal,
+                0.0001,
+                String.format(
+                    "Daily total for %s should equal the sum of hourly hasData values", metricId));
+          }
+        },
+        settings);
   }
 }

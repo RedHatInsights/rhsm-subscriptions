@@ -53,8 +53,9 @@ import org.springframework.web.context.support.StandardServletEnvironment;
  *   <li>clowder.kafka.brokers
  *   <li>clowder.kafka.brokers.(sasl.securityProtocol|sasl.mechanism|sasl.jaas.config|cacert|cacert.type)
  *   <li>clowder.kafka.topics.&lt;topics[?].requestedName(*)&gt;.name
- *   <li>clowder.endpoints.&lt;endpoints[?].app&gt;-&lt;endpoints[?].name&gt;.url For example:
- *       "clowder.endpoints.index-service.url"
+ *   <li>clowder.endpoints.&lt;endpoints[?].app&gt;-&lt;endpoints[?].name&gt;.(url|hostname) For
+ *       example: "clowder.endpoints.index-service.url" or
+ *       "clowder.endpoints.kessel-inventory-api.hostname"
  *   <li>clowder.endpoints.&lt;endpoints[?].app&gt;-&lt;endpoints[?].name&gt;.(trust-store-path|trust-store-password|trust-store-type)
  *       are special synthetic properties that are generated based on the clowder.tlsCAPath
  *   <li>clowder.privateEndpoints.&lt;privateEndpoints[?].app(*)&gt;-&lt;privateEndpoints[?].name(*)&gt;(url|trust-store-path|trust-store-password|trust-store-type).
@@ -114,6 +115,7 @@ public class ClowderJsonPropertySource extends PropertySource<ClowderJson>
   private static final Map<String, EndpointConfigMapper> ENDPOINTS_PROPERTIES =
       Map.of(
           ".url", ClowderJsonPropertySource::endpointToUrl,
+          ".hostname", ClowderJsonPropertySource::endpointToHostname,
           ".trust-store-path", ClowderJsonPropertySource::endpointToTrustStorePath,
           ".trust-store-password", ClowderJsonPropertySource::endpointToTrustStorePassword,
           ".trust-store-type", ClowderJsonPropertySource::endpointToTrustStoreType);
@@ -375,6 +377,11 @@ public class ClowderJsonPropertySource extends PropertySource<ClowderJson>
     String url = String.format("%s://%s:%s", protocol, hostName, port);
     log.info("Endpoint '{}' using '{}'", getEndpointName(endpointConfig), url);
     return url;
+  }
+
+  public static Object endpointToHostname(
+      ClowderJsonPropertySource root, Map<String, Object> endpointConfig) {
+    return endpointConfig.get("hostname");
   }
 
   public static Object endpointToTrustStorePath(

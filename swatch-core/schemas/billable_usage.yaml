@@ -64,6 +64,8 @@ properties:
       - unsupported_metric
       - unknown
       - marketplace_rate_limit
+      - marketplace_customer_not_subscribed
+      - marketplace_duplicate_record
   billed_on:
     type: string
     format: date-time

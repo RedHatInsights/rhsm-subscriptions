@@ -445,6 +445,71 @@ public class TallyFilterProductConfigTest extends BaseTallyComponentTest {
         "RHEL instance should NOT be created - role=moa should only map to rosa, not RHEL");
   }
 
+  @Test
+  @TestPlanName("tally-product-filter-TC008")
+  public void testMetricsFilteringDropsUnknownMetrics() {
+    // Given: A ROSA PAYG event with valid metrics plus an invalid metric
+    String validMetricCores = "Cores";
+    String validMetricInstanceHours = "Instance-hours";
+    String invalidMetric = "INVALID_METRIC_NOT_IN_CONFIG";
+    float validValue = 10.0f;
+    float invalidValue = 99.0f;
+
+    Event event =
+        helpers.createPaygEventWithTimestamp(
+            setup.orgId,
+            setup.instanceId,
+            setup.start.toString(),
+            UUID.randomUUID().toString(),
+            validMetricCores,
+            validValue,
+            ROSA.productId(),
+            ROSA.productTag());
+
+    List<Measurement> measurements = new ArrayList<>();
+    Measurement cores = new Measurement();
+    cores.setMetricId(validMetricCores);
+    cores.setValue((double) validValue);
+    measurements.add(cores);
+
+    Measurement instanceHours = new Measurement();
+    instanceHours.setMetricId(validMetricInstanceHours);
+    instanceHours.setValue((double) validValue);
+    measurements.add(instanceHours);
+
+    Measurement invalid = new Measurement();
+    invalid.setMetricId(invalidMetric);
+    invalid.setValue((double) invalidValue);
+    measurements.add(invalid);
+
+    event.setMeasurements(measurements);
+    event.setDisplayName(Optional.of(setup.instanceId));
+    event.setProductTag(Set.of(ROSA.productTag()));
+
+    kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event);
+
+    // When: Performing hourly tally
+    service.performHourlyTallyForOrg(setup.orgId);
+
+    // Then: Valid metrics should be tallied
+    awaitHourlyTallySum(
+        setup.orgId,
+        ROSA.productTag(),
+        validMetricCores,
+        setup.start,
+        setup.start.plusHours(1),
+        validValue);
+
+    // And: Instance should contain only valid metrics, not the invalid one
+    assertInstanceMeasurements(
+        setup.orgId,
+        setup.instanceId,
+        ROSA.productTag(),
+        setup.start,
+        setup.start.plusHours(1),
+        Map.of("Cores", (double) validValue, "Instance-hours", (double) validValue));
+  }
+
   // --- Given helper methods ---
 
   private TestSetup setupTest() {

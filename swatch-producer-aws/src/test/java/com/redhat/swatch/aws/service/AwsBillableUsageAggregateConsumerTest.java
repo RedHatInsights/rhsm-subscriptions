@@ -597,6 +597,45 @@ class AwsBillableUsageAggregateConsumerTest {
                             usage.getErrorCode())));
   }
 
+  static Stream<Arguments> nonSuccessUsageRecordResults() {
+    return Stream.of(
+        Arguments.of(
+            UsageRecordResultStatus.CUSTOMER_NOT_SUBSCRIBED,
+            BillableUsage.ErrorCode.MARKETPLACE_CUSTOMER_NOT_SUBSCRIBED),
+        Arguments.of(
+            UsageRecordResultStatus.DUPLICATE_RECORD,
+            BillableUsage.ErrorCode.MARKETPLACE_DUPLICATE_RECORD),
+        Arguments.of(
+            UsageRecordResultStatus.UNKNOWN_TO_SDK_VERSION, BillableUsage.ErrorCode.UNKNOWN));
+  }
+
+  @ParameterizedTest
+  @MethodSource("nonSuccessUsageRecordResults")
+  void shouldEmitFailedAndIncrementRejectedCounterOnNonSuccessResult(
+      UsageRecordResultStatus resultStatus, BillableUsage.ErrorCode errorCode) throws ApiException {
+    double currentRejected = rejectedCounter.count();
+    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any(), isNull()))
+        .thenReturn(MOCK_AWS_USAGE_CONTEXT);
+    when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
+    when(meteringClient.batchMeterUsage(any(BatchMeterUsageRequest.class)))
+        .thenReturn(
+            BatchMeterUsageResponse.builder()
+                .results(
+                    UsageRecordResult.builder()
+                        .usageRecord(UsageRecord.builder().build())
+                        .status(resultStatus)
+                        .build())
+                .build());
+    consumer.process(ROSA_INSTANCE_HOURS_RECORD);
+    assertEquals(currentRejected + 1, rejectedCounter.count());
+    verify(billableUsageStatusProducer)
+        .emitStatus(
+            argThat(
+                usage ->
+                    BillableUsage.Status.FAILED.equals(usage.getStatus())
+                        && errorCode.equals(usage.getErrorCode())));
+  }
+
   static Stream<Arguments> usageWindowTestArgs() {
     OffsetDateTime now = OffsetDateTime.now(clock);
     OffsetDateTime startOfCurrentHour = now.minusMinutes(30);
