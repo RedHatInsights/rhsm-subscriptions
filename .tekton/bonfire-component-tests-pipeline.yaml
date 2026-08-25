@@ -904,6 +904,12 @@ spec:
           value: "false"
         - name: GITHUB_TOKEN_SECRET
           value: "$(params.GITHUB_TOKEN_SECRET)"
+        - name: NAMESPACE
+          value: "$(tasks.reserve-namespace.results.NS)"
+        - name: APP_NAME
+          value: "$(params.APP_NAME)"
+        - name: EXTRA_DEPLOY_ARGS
+          value: "$(tasks.update-extra-deploy-args.results.UPDATED_EXTRA_DEPLOY_ARGS)"
       taskRef:
         resolver: git
         params:

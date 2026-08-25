@@ -897,6 +897,12 @@ spec:
           value: "$(params.GITHUB_TOKEN_SECRET)"
         - name: IQE_IMAGE
           value: "$(params.IQE_IMAGE_REPOSITORY):$(tasks.extract-metadata.results.IQE_IMAGE_TAG)"
+        - name: NAMESPACE
+          value: "$(tasks.reserve-namespace.results.NS)"
+        - name: APP_NAME
+          value: "$(params.APP_NAME)"
+        - name: EXTRA_DEPLOY_ARGS
+          value: "$(tasks.build-extra-deploy-args.results.UPDATED_EXTRA_DEPLOY_ARGS)"
       taskRef:
         resolver: git
         params:
