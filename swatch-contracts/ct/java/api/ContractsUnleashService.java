@@ -48,9 +48,12 @@ public class ContractsUnleashService extends UnleashService {
         "{\"kafka_consumer_enabled\":true,\"umb_consumer_enabled\":false}");
   }
 
-  public void disableItSubscriptionServiceKafkaConsumer() {
+  public void enableItSubscriptionServiceUmbOnly() {
     enableFlag(IT_SUBSCRIPTION_SERVICE);
-    setVariant(IT_SUBSCRIPTION_SERVICE, "config", "{\"kafka_consumer_enabled\":false}");
+    setVariant(
+        IT_SUBSCRIPTION_SERVICE,
+        "config",
+        "{\"kafka_consumer_enabled\":false,\"umb_consumer_enabled\":true}");
   }
 
   public void enableItSubscriptionServiceBothConsumers() {

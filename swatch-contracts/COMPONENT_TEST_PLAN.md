@@ -1073,11 +1073,11 @@ This section verifies the automatic contract termination behavior when contracts
 - **Verification**: Check service logs and subscription table
 - **Expected Result**:
   - Subscription is created with core fields (`subscription_number`, `quantity`, `sku`)
-  - Invalid billing provider value is either:
-    - Stored as-is for audit purposes, OR
-    - Filtered/nullified with a warning log
+  - Unknown billing provider is nullified
+  - `billing_provider` field is null in the persisted subscription
   - Consumer does not crash or reject the entire message
-  - Warn log indicates invalid billing provider value encountered
+  - Info log indicates subscription was consumed: "IT Subscription message consumed: source=umb"
+  - No `NullPointerException` or validation errors logged
 
 **subscriptions-creation-umb-TC008 - Ignore UMB message when IT subscription service flag is disabled**
 - **Description**: Verify that when the Unleash flag
@@ -1134,19 +1134,22 @@ This section verifies the automatic contract termination behavior when contracts
 **subscriptions-creation-kafka-TC002 - Reject malformed JSON from Kafka**
 - **Description**: Verify that unparseable JSON causes a warn log and does not crash the
   Kafka consumer or leave a partial subscription in the database (Kafka-specific error handling).
-- **Setup**: IT subscription service flag enabled; no WireMock setup needed
-- **Action**: Publish a non-JSON string to the `subscription.subscriptions.private` topic
+- **Setup**: IT subscription service flag enabled; WireMock stubs in place for valid message
+- **Action**: 
+  - Publish a non-JSON string to the `subscription.subscriptions.private` topic
+  - Publish a valid event after the malformed message and verify that the consumer processes it
 - **Verification**: Check service logs and subscription table
 - **Expected Result**:
   - Warn log: `Unable to read IT Subscription Kafka message from JSON.`
-  - No subscription created for the test org
+  - No subscription created for the test org from the malformed message
   - Consumer continues to accept subsequent messages (`failure-strategy=ignore`)
+  - Valid event after the malformed message is successfully processed and creates a subscription
 
 **subscriptions-creation-kafka-TC003 - Reject Kafka message with missing required fields**
 - **Description**: Verify Kafka consumer validation for incomplete subscription data.
 - **Setup**: IT subscription service flag enabled; WireMock stubs in place
 - **Action**: Publish a `SubscriptionOutboxEvent` JSON with `entityType: "Subscription"` but
-  missing required payload fields (e.g., missing `subscriptionNumber` or `customerId`/`webCustomerId`)
+  missing required payload fields (e.g., missing `subscriptionNumber` or `customerId`)
   to the `subscription.subscriptions.private` topic
 - **Verification**: Check service logs and subscription table
 - **Expected Result**:
