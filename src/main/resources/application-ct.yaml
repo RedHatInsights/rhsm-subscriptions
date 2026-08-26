@@ -1,6 +1,0 @@
-DEV_MODE: false
-RHSM_RBAC_URL: http://localhost:8006
-KESSEL_ENDPOINT: localhost:8006
-rhsm-subscriptions:
-  rbac-service:
-    use-stub: false
