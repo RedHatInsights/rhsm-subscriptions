@@ -23,10 +23,22 @@ metrics:
   - id: vCPUs
     type: counter
     awsDimension: acm_vcpu_hours
+    azureDimension: acm_vcpu_hours_mng
     prometheus:
       queryKey: rosa
       queryParams:
         instanceKey: _id
         productLabelRegex: (moa-hostedcontrolplane|moa)
-        metric: acm_capacity_effective_cpu_cores:sum
+        metric: acm:managed_cluster_worker_cores:managed:sum
+        metadataMetric: ocm_subscription
+  - id: vCPUs_self_managed
+    type: counter
+    awsDimension: acm_vcpu_hours_slfmng
+    azureDimension: acm_vcpu_hours_slfmng
+    prometheus:
+      queryKey: rosa
+      queryParams:
+        instanceKey: _id
+        productLabelRegex: (moa-hostedcontrolplane|moa)
+        metric: acm:managed_cluster_worker_cores:self_managed:sum
         metadataMetric: ocm_subscription
