@@ -54,6 +54,7 @@ spec:
         -p rbac/NOTIFICATIONS_RH_ENABLED=False
         -p rbac/KAFKA_ENABLED=False
         -p rbac/RBAC_KAFKA_CONSUMER_REPLICAS=0
+        -p rbac/V2_EDIT_API_ENABLED=True
         -p host-inventory/GUNICORN_WORKERS=1
         -p host-inventory/GUNICORN_THREADS=1
         -p host-inventory/REPLICAS_EXPORT_SVC=0
