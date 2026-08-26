@@ -86,6 +86,8 @@ spec:
         print(f"POST_ON_SUCCESS: {POST_ON_SUCCESS}")
         print(f"JUNIT_DIR: {JUNIT_DIR}")
         print(f"NAMESPACE: {NAMESPACE}")
+        print(f"APP_NAME: {APP_NAME}")
+        print(f"EXTRA_DEPLOY_ARGS length: {len(EXTRA_DEPLOY_ARGS)}")
         print(f"Token length: {len(GITHUB_TOKEN)}")
         print()
 

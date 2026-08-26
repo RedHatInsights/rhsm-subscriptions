@@ -151,7 +151,7 @@ spec:
     - name: PROJECT_TASKS_REVISION
       type: string
       description: Git revision used to resolve rhsm-subscriptions task definitions
-      default: "main"
+      default: "tmcknigh/add_bonfire_deploy_cmd_to_comment"
 
   workspaces:
     - name: artifacts
