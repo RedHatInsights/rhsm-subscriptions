@@ -1,0 +1,545 @@
+#!/usr/bin/env python3
+import argparse
+import json
+import sys
+import uuid
+from dataclasses import dataclass, field, fields, is_dataclass
+from datetime import datetime, timedelta, timezone
+from typing import Optional, List, Dict, Any
+
+HBI_TOPIC = "platform.inventory.events"
+
+
+@dataclass
+class InstalledProduct:
+    id: str
+
+
+@dataclass
+class Conversions:
+    activity: bool
+
+
+@dataclass
+class SystemProfile:
+    arch: str
+    owner_id: str
+    is_marketplace: bool
+    installed_products: List[InstalledProduct]
+    cores_per_socket: int
+    number_of_sockets: int
+    threads_per_core: int
+    number_of_cpus: int
+    infrastructure_type: str
+    virtual_host_uuid: Optional[str]
+    system_memory_bytes: int
+    cloud_provider: Optional[str]
+    bios_version: Optional[str]
+    host_type: Optional[str] = None
+    conversions: Optional[Conversions] = None
+
+
+@dataclass
+class RhsmFacts:
+    orgId: str
+    MEMORY: int
+    RH_PROD: List[str]
+    IS_VIRTUAL: bool
+    ARCHITECTURE: str
+    SYNC_TIMESTAMP: str
+    SYSPURPOSE_SLA: Optional[str] = None
+    SYSPURPOSE_USAGE: Optional[str] = None
+    BILLING_PROVIDER: Optional[str] = None
+    BILLING_ACCOUNT_ID: Optional[str] = None
+    METRIC_ID: Optional[str] = None
+
+
+@dataclass
+class FactsNamespace:
+    namespace: str
+    facts: RhsmFacts
+
+
+@dataclass
+class Host:
+    id: str
+    display_name: str
+    ansible_host: Optional[str]
+    account: Optional[str]
+    org_id: str
+    insights_id: str
+    subscription_manager_id: str
+    satellite_id: Optional[str]
+    fqdn: str
+    ip_addresses: Optional[List[str]]
+    mac_addresses: Optional[List[str]]
+    facts: List[FactsNamespace]
+    provider_id: Optional[str]
+    provider_type: Optional[str]
+    created: str
+    updated: str
+    stale_timestamp: str
+    stale_warning_timestamp: str
+    culled_timestamp: Optional[str]
+    reporter: str
+    tags: List[Any]
+    system_profile: SystemProfile
+
+
+@dataclass
+class PlatformMetadata:
+    request_id: str
+
+
+@dataclass
+class Metadata:
+    request_id: str
+
+
+@dataclass
+class HbiHostEvent:
+    type: str
+    host: Host
+    timestamp: str
+    platform_metadata: PlatformMetadata
+    metadata: Metadata
+
+
+def build_host_event(
+    event_type="created",
+    org_id="org123",
+    account_number=None,
+    cores=4,
+    sockets=1,
+    is_virtual=False,
+    hypervisor_uuid=None,
+    cloud_provider=None,
+    product_ids=None,
+    sla=None,
+    usage=None,
+    arch="x86_64",
+    display_name=None,
+    inventory_id=None,
+    subscription_manager_id=None,
+    is_marketplace=False,
+    conversions_activity=None,
+    host_type=None,
+    billing_provider=None,
+    billing_account_id=None,
+    metric_id=None,
+    last_seen=None,
+):
+    if last_seen:
+        try:
+            normalized = last_seen[:-1] + "+00:00" if last_seen.endswith("Z") else last_seen
+            base = datetime.fromisoformat(normalized)
+        except ValueError:
+            print(
+                f"Invalid --last-seen value: {last_seen!r} (expected ISO 8601)",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        if base.tzinfo is None:
+            base = base.replace(tzinfo=timezone.utc)
+    else:
+        base = datetime.now(timezone.utc)
+    timestamp = base.isoformat()
+    stale_timestamp = (base + timedelta(days=4)).isoformat()
+    stale_warning_timestamp = (base + timedelta(days=7)).isoformat()
+
+    inventory_id = inventory_id or str(uuid.uuid4())
+    insights_id = str(uuid.uuid4())
+    subscription_manager_id = subscription_manager_id or str(uuid.uuid4())
+    request_id = str(uuid.uuid4())
+
+    if product_ids is None:
+        product_ids = ["69"]
+
+    infrastructure_type = "virtual" if is_virtual else "physical"
+    installed_products = [InstalledProduct(id=pid) for pid in product_ids]
+
+    conversions = Conversions(activity=conversions_activity) if conversions_activity is not None else None
+
+    system_profile = SystemProfile(
+        arch=arch,
+        owner_id=str(uuid.uuid4()),
+        is_marketplace=is_marketplace,
+        installed_products=installed_products,
+        cores_per_socket=cores // sockets if sockets > 0 else cores,
+        number_of_sockets=sockets,
+        threads_per_core=1,
+        number_of_cpus=cores,
+        infrastructure_type=infrastructure_type,
+        virtual_host_uuid=hypervisor_uuid,
+        system_memory_bytes=5120,
+        cloud_provider=cloud_provider,
+        bios_version="4.2.amazon" if cloud_provider == "aws" else None,
+        host_type=host_type,
+        conversions=conversions,
+    )
+
+    provider_id = str(uuid.uuid4()) if cloud_provider else None
+    provider_type = cloud_provider if cloud_provider else None
+
+    rhsm_facts = RhsmFacts(
+        orgId=org_id,
+        MEMORY=1,
+        RH_PROD=product_ids,
+        IS_VIRTUAL=is_virtual,
+        ARCHITECTURE=arch,
+        SYNC_TIMESTAMP=timestamp,
+        SYSPURPOSE_SLA=sla,
+        SYSPURPOSE_USAGE=usage,
+        BILLING_PROVIDER=billing_provider,
+        BILLING_ACCOUNT_ID=billing_account_id,
+        METRIC_ID=metric_id,
+    )
+
+    facts_namespace = FactsNamespace(namespace="rhsm", facts=rhsm_facts)
+
+    host = Host(
+        id=inventory_id,
+        display_name=display_name or "testhost.example.com",
+        ansible_host=None,
+        account=account_number,
+        org_id=org_id,
+        insights_id=insights_id,
+        subscription_manager_id=subscription_manager_id,
+        satellite_id=None,
+        fqdn="testhost.example.com",
+        ip_addresses=None,
+        mac_addresses=None,
+        facts=[facts_namespace],
+        provider_id=provider_id,
+        provider_type=provider_type,
+        created=timestamp,
+        updated=timestamp,
+        stale_timestamp=stale_timestamp,
+        stale_warning_timestamp=stale_warning_timestamp,
+        culled_timestamp=None,
+        reporter="rhsm-conduit",
+        tags=[],
+        system_profile=system_profile,
+    )
+
+    platform_metadata = PlatformMetadata(request_id=request_id)
+    metadata = Metadata(request_id=request_id)
+
+    event = HbiHostEvent(
+        type=event_type,
+        host=host,
+        timestamp=timestamp,
+        platform_metadata=platform_metadata,
+        metadata=metadata,
+    )
+
+    return event, subscription_manager_id
+
+
+def dataclass_to_dict(obj):
+    """Convert dataclass to dictionary, excluding None values for JSON serialization."""
+    if isinstance(obj, list):
+        return [dataclass_to_dict(item) for item in obj if item is not None]
+
+    elif is_dataclass(obj):
+        result = {}
+        for field in fields(obj):
+            value = getattr(obj, field.name)
+            if value is not None:
+                # Recursively process the value and assign if the result isn't None
+                processed_value = dataclass_to_dict(value)
+                if processed_value is not None:
+                    result[field.name] = processed_value
+        return result
+
+    else:
+        return obj
+
+
+def send_events(producer, events, dry_run=False):
+    for event in events:
+        event_dict = dataclass_to_dict(event)
+        payload = json.dumps(event_dict).encode("utf-8")
+        if dry_run:
+            print(json.dumps(event_dict, indent=2))
+        else:
+            future = producer.send(HBI_TOPIC, key=event.host.org_id, value=payload)
+            future.get(timeout=30)
+            print(
+                f"Sent {event.type} event to {HBI_TOPIC}: "
+                f"inventory_id={event.host.id} "
+                f"org_id={event.host.org_id}"
+            )
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Send HBI host events to Kafka for swatch processing"
+    )
+    parser.add_argument(
+        "--bootstrap-server",
+        default="localhost:9092",
+        help="Kafka bootstrap server (default: localhost:9092)",
+    )
+    parser.add_argument("--org", default="org123", help="Organization ID")
+    parser.add_argument(
+        "--account", default=None, help="Account number for the inserted records"
+    )
+    parser.add_argument(
+        "--num-accounts",
+        type=int,
+        default=1,
+        help='Treat "--account" and "--org" as prefixes and generate this many accounts',
+    )
+    parser.add_argument(
+        "--cores", type=int, default=4, help="Number of cores (default: 4)"
+    )
+    parser.add_argument(
+        "--sockets", type=int, default=1, help="Number of sockets (default: 1)"
+    )
+    parser.add_argument(
+        "--product",
+        default="69",
+        help="Comma-separated engineering product IDs (default: 69)",
+    )
+    parser.add_argument("--sla", default=None, help="SLA (e.g. Premium)")
+    parser.add_argument("--usage", default=None, help="Usage (e.g. Production)")
+    parser.add_argument("--arch", default="x86_64", help="Architecture (default: x86_64)")
+    parser.add_argument(
+        "--num-physical",
+        type=int,
+        default=0,
+        help="Number of physical host events to send",
+    )
+    parser.add_argument(
+        "--num-hypervisors",
+        type=int,
+        default=0,
+        help="Number of hypervisor events to send",
+    )
+    parser.add_argument(
+        "--num-guests",
+        type=int,
+        default=0,
+        help="Number of guest events to send (attached to a single hypervisor)",
+    )
+    parser.add_argument(
+        "--num-aws", type=int, default=0, help="Number of AWS instance events to send"
+    )
+    parser.add_argument(
+        "--num-gcp", type=int, default=0, help="Number of GCP instance events to send"
+    )
+    parser.add_argument(
+        "--num-azure",
+        type=int,
+        default=0,
+        help="Number of Azure instance events to send",
+    )
+    parser.add_argument(
+        "--unmapped-guests",
+        action="store_true",
+        default=False,
+        help="Are the guests to be created unmapped?",
+    )
+    parser.add_argument(
+        "--event-type",
+        default="created",
+        choices=["created", "updated"],
+        help="HBI event type (default: created)",
+    )
+    parser.add_argument(
+        "--marketplace",
+        action="store_true",
+        help="Mark hosts as marketplace instances",
+    )
+    parser.add_argument(
+        "--conversions-activity",
+        nargs="?",
+        const=True,
+        default=None,
+        type=lambda x: str(x).lower() == "true",
+        help="Indicate a system was third-party converted",
+    )
+    parser.add_argument(
+        "--host-type",
+        default=None,
+        help="Set host type of the system",
+    )
+    parser.add_argument(
+        "--billing-provider",
+        default=None,
+        help="Set the billing provider for the inserted records",
+    )
+    parser.add_argument(
+        "--billing-account-id",
+        default=None,
+        help="Set the billing account ID for the inserted records",
+    )
+    parser.add_argument(
+        "--metric-id",
+        default=None,
+        help="Set the metric ID for the inserted records",
+    )
+    parser.add_argument(
+        "--hypervisor-id",
+        default=None,
+        help="Subscription manager ID of the hypervisor for guest events",
+    )
+    parser.add_argument(
+        "--inventory-id",
+        default=None,
+        help="Set a specific inventory ID (only for single-host sends)",
+    )
+    parser.add_argument(
+        "--display-name", default=None, help="Display name for the host"
+    )
+    parser.add_argument(
+        "--last-seen",
+        default=None,
+        help="Set the timestamp for inserted hosts (ISO 8601 format). Defaults to current time.",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print event JSON to stdout instead of sending to Kafka",
+    )
+
+    args = parser.parse_args()
+
+    product_ids = [p.strip() for p in args.product.split(",")]
+
+    events_per_account = (
+        args.num_physical
+        + args.num_hypervisors
+        + args.num_guests
+        + args.num_aws
+        + args.num_gcp
+        + args.num_azure
+    )
+
+    if events_per_account == 0:
+        parser.print_help()
+        sys.exit(1)
+
+    if args.inventory_id:
+        if args.num_accounts * events_per_account != 1:
+            parser.error(
+                "--inventory-id can only be used when exactly one event is generated"
+            )
+
+    producer = None
+    if not args.dry_run:
+        try:
+            from kafka import KafkaProducer
+        except ImportError:
+            print(
+                "kafka-python is required. Install it with: pip install kafka-python",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        producer = KafkaProducer(
+            bootstrap_servers=args.bootstrap_server,
+            key_serializer=lambda k: k.encode("utf-8") if k else None,
+        )
+
+    try:
+        for acct_index in range(args.num_accounts):
+            if args.num_accounts > 1:
+                account = f"{args.account}{acct_index}" if args.account else None
+                org_id = f"{args.org}{acct_index}"
+            else:
+                account = args.account
+                org_id = args.org
+
+            events = []
+            common_kwargs = dict(
+                event_type=args.event_type,
+                org_id=org_id,
+                account_number=account,
+                cores=args.cores,
+                sockets=args.sockets,
+                product_ids=product_ids,
+                sla=args.sla,
+                usage=args.usage,
+                arch=args.arch,
+                display_name=args.display_name,
+                is_marketplace=args.marketplace,
+                conversions_activity=args.conversions_activity,
+                host_type=args.host_type,
+                billing_provider=args.billing_provider,
+                billing_account_id=args.billing_account_id,
+                metric_id=args.metric_id,
+                last_seen=args.last_seen,
+            )
+
+            for _ in range(args.num_physical):
+                event, _ = build_host_event(
+                    inventory_id=args.inventory_id,
+                    **common_kwargs,
+                )
+                events.append(event)
+
+            for _ in range(args.num_aws):
+                event, _ = build_host_event(
+                    inventory_id=args.inventory_id,
+                    is_virtual=True,
+                    cloud_provider="aws",
+                    **common_kwargs,
+                )
+                events.append(event)
+
+            for _ in range(args.num_gcp):
+                event, _ = build_host_event(
+                    inventory_id=args.inventory_id,
+                    is_virtual=True,
+                    cloud_provider="gcp",
+                    **common_kwargs,
+                )
+                events.append(event)
+
+            for _ in range(args.num_azure):
+                event, _ = build_host_event(
+                    inventory_id=args.inventory_id,
+                    is_virtual=True,
+                    cloud_provider="azure",
+                    **common_kwargs,
+                )
+                events.append(event)
+
+            hypervisor_sub_mgr_id = args.hypervisor_id
+            for _ in range(args.num_hypervisors):
+                event, sub_mgr_id = build_host_event(
+                    inventory_id=args.inventory_id,
+                    **common_kwargs,
+                )
+                events.append(event)
+                hypervisor_sub_mgr_id = sub_mgr_id
+
+            for _ in range(args.num_guests):
+                if args.unmapped_guests:
+                    hyp_uuid = str(uuid.uuid4())
+                elif args.hypervisor_id:
+                    hyp_uuid = args.hypervisor_id
+                elif hypervisor_sub_mgr_id:
+                    hyp_uuid = hypervisor_sub_mgr_id
+                else:
+                    hyp_uuid = None
+
+                event, _ = build_host_event(
+                    inventory_id=args.inventory_id,
+                    is_virtual=True,
+                    hypervisor_uuid=hyp_uuid,
+                    **common_kwargs,
+                )
+                events.append(event)
+
+            send_events(producer, events, dry_run=args.dry_run)
+            action = "Generated" if args.dry_run else "Sent"
+            print(f"{action} {len(events)} events for org={org_id}")
+    finally:
+        if producer:
+            producer.close()
+
+
+if __name__ == "__main__":
+    main()
