@@ -86,8 +86,7 @@ class ProductStatusUMBMessageConsumerTest {
             () -> {
               verify(consumer).consumeProduct(VALID_JSON_MESSAGE);
               LoggerCaptor.thenInfoLogWithMessage("IT Product message consumed: source=umb");
-              verify(offeringSyncService)
-                  .syncUmbProductFromEvent(any(OperationalProductEvent.class));
+              verify(offeringSyncService).syncProductFromEvent(any(OperationalProductEvent.class));
             });
   }
 
@@ -96,8 +95,7 @@ class ProductStatusUMBMessageConsumerTest {
     when(featureFlags.isProductServiceUmbConsumerEnabled()).thenReturn(false);
     consumer.consumeMessage(VALID_JSON_MESSAGE);
     verify(consumer, never()).consumeProduct(VALID_JSON_MESSAGE);
-    verify(offeringSyncService, never())
-        .syncUmbProductFromEvent(any(OperationalProductEvent.class));
+    verify(offeringSyncService, never()).syncProductFromEvent(any(OperationalProductEvent.class));
   }
 
   private void whenSendMessage(String message) {

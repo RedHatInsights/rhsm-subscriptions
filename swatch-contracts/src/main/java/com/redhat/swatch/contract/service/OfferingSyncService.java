@@ -273,17 +273,17 @@ public class OfferingSyncService {
   }
 
   /**
-   * Sync offering state based on a Json UMB event.
+   * Sync offering state based on a Json product event.
    *
    * <p>See syncRootSku and syncChildSku for more details.
    *
-   * @param productEvent UMB event for product
+   * @param productEvent product event for a SKU
    * @return result describing results of sync (for testing purposes)
    */
   @Transactional
-  public SyncResult syncUmbProductFromEvent(OperationalProductEvent productEvent) {
+  public SyncResult syncProductFromEvent(OperationalProductEvent productEvent) {
 
-    // The event from the Product Service UMB topic only has the SKU and no attributes
+    // The event from the Product Service topic only has the SKU and no attributes
     UmbOperationalProduct product =
         UmbOperationalProduct.builder()
             .sku(productEvent.getProductCode())
@@ -294,7 +294,7 @@ public class OfferingSyncService {
   }
 
   private SyncResult syncUmbProduct(UmbOperationalProduct umbOperationalProduct) {
-    log.info("Received UMB message for productSku={}", umbOperationalProduct.getSku());
+    log.info("Received product message for productSku={}", umbOperationalProduct.getSku());
     if (umbOperationalProduct.getSku().startsWith("SVC")) {
       syncChildSku(umbOperationalProduct.getSku());
       return SyncResult.FETCHED_AND_SYNCED;
@@ -328,7 +328,7 @@ public class OfferingSyncService {
       return syncOffering(newState.get(), existing);
     } else {
       log.warn(
-          "Unable to sync offering from UMB message for sku={}, because product service has no records for it",
+          "Unable to sync offering from product message for sku={}, because product service has no records for it",
           umbOperationalProduct.getSku());
       return SyncResult.SKIPPED_NOT_FOUND;
     }
