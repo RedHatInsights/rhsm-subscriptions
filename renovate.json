@@ -5,5 +5,16 @@
     "enabled": true,
     "automerge": true,
     "schedule": ["* * * * *"]
-  }
+  },
+  "packageRules": [
+    {
+      "matchPackageNames": ["io.quarkus:quarkus-bom"],
+      "postUpgradeTasks": {
+        "commands": [
+          "./mvnw validate -N -q -pl swatch-quarkus-parent"
+        ],
+        "executionMode": "branch"
+      }
+    }
+  ]
 }
