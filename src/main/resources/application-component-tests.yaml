@@ -1,6 +1,0 @@
-DEV_MODE: false
-RHSM_RBAC_URL: http://wiremock-service:8000
-KESSEL_ENDPOINT: wiremock-service:8000
-rhsm-subscriptions:
-  rbac-service:
-    use-stub: false

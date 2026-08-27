@@ -295,22 +295,78 @@ SERVER_PORT=9090 ./mvnw spring-boot:run
 
 ### Profiles
 
-We have a number of profiles. Each profile activates a subset of components in the codebase.
+We have a number of Spring Boot profiles. Each profile activates a subset of components in the codebase and configures environment-specific settings.
 
-- `api`: Run the user-facing API
-- `kafka-queue`: Run with a kafka queue (instead of the default in-memory queue)
-- `purge-snapshots`: Run the retention job and exit
-- `worker`: Process jobs off the job queue
+#### Runtime Profiles (Production/Development)
 
-These can be specified most easily via the `SPRING_PROFILES_ACTIVE` environment variable. For example:
+These profiles control which components run:
 
+- **`api`**: Run the user-facing API
+- **`worker`**: Process jobs off the job queue
+- **`kafka-queue`**: Run with a Kafka queue (instead of the default in-memory queue)
+- **`purge-snapshots`**: Run the retention job and exit
+
+#### Environment Profiles
+
+- **`dev`**: Development mode
+  - Sets `DEV_MODE=true` (disables RBAC/CSRF checks)
+  - Stub mode for external services
+  - Simplified logging
+  - **⚠️ Never use in production or component tests!**
+  
+- **`local-ct`**: Local component tests (runs via `LocalSpringBootManagedResource`)
+  - Profile composition: `api,worker,kafka-queue,local-ct`
+  - Self-contained configuration (no dependency on `dev` profile)
+  - Sets `DEV_MODE=false` (RBAC enabled, tests actually run!)
+  - Wiremock RBAC/Kessel stubs on `localhost:8006`
+  - `KESSEL_INSECURE=true` for gRPC without TLS
+  - Location: `src/main/resources/application-local-ct.yaml`
+  
+- **`ephemeral-ct`**: Ephemeral namespace component tests (Bonfire/Konflux CI/CD)
+  - Profile composition: `api,worker,kafka-queue,ephemeral-ct`
+  - Wiremock stubs on `wiremock-service:8000`
+  - `KESSEL_INSECURE` provided by ClowdApp deployment parameter
+  - Contracts service URL: `http://wiremock-service:8000`
+  - Location: `src/main/resources/application-ephemeral-ct.yaml`
+
+- **`stage`**: Stage environment
+- **`prod`**: Production environment
+
+#### Profile Usage
+
+Profiles can be specified via the `SPRING_PROFILES_ACTIVE` environment variable:
+
+```bash
+# Production-like
+SPRING_PROFILES_ACTIVE=api,worker,kafka-queue ./mvnw spring-boot:run
+
+# Local development (with dev mode disabled)
+SPRING_PROFILES_ACTIVE=api,worker,kafka-queue ./mvnw spring-boot:run
+
+# Local development (with dev mode enabled - for quick testing only)
+SPRING_PROFILES_ACTIVE=api,worker,kafka-queue,dev ./mvnw spring-boot:run
 ```
-SPRING_PROFILES_ACTIVE=api,kafka-queue ./mvnw spring-boot:run
-```
 
-Each profile has a `@Configuration` class that controls which components get activated, See ApplicationConfiguration for more details.
+Component tests automatically apply the correct profile:
+- Local: `api,worker,kafka-queue,local-ct` (via `LocalSpringBootManagedResource`)
+- Ephemeral: `api,worker,kafka-queue,ephemeral-ct` (via bonfire deploy args)
+
+Each profile has a `@Configuration` class that controls which components get activated. See `ApplicationConfiguration` for more details.
 
 If no profiles are specified, the default profiles list in `application.yaml` is applied.
+
+#### Profile Configuration Files
+
+| Profile | File | Purpose |
+|---------|------|---------|
+| (default) | `application.yaml` | Base configuration for all environments |
+| `dev` | `application-dev.yaml` | Development shortcuts (RBAC bypass, stubs) |
+| `local-ct` | `application-local-ct.yaml` | Local component test configuration |
+| `ephemeral-ct` | `application-ephemeral-ct.yaml` | Ephemeral namespace CT configuration |
+| `stage` | `application-stage.yaml` | Stage environment overrides |
+| `prod` | `application-prod.yaml` | Production environment overrides |
+
+**Note**: The `local-ct` and `ephemeral-ct` profiles were consolidated in August 2026 to be self-contained and no longer depend on the `dev` profile. This ensures component tests actually validate RBAC/Kessel authorization instead of bypassing it.
 
 ### Deployment Notes
 
