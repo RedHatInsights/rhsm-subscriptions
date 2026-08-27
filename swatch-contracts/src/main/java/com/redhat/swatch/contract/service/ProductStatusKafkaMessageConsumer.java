@@ -38,6 +38,7 @@ public class ProductStatusKafkaMessageConsumer {
 
   @Inject FeatureFlags featureFlags;
   @Inject ObjectMapper mapper;
+  @Inject OfferingSyncService service;
 
   @Blocking
   @Incoming(IT_OFFERING_SYNC)
@@ -69,6 +70,9 @@ public class ProductStatusKafkaMessageConsumer {
         productEvent.getEventType(),
         productEvent.getProductCategory(),
         isChildSku(productEvent.getProductCode()));
+
+    var response = service.syncProductFromEvent(productEvent);
+    log.debug("kafka response: {}", response);
   }
 
   private static boolean isChildSku(String productCode) {

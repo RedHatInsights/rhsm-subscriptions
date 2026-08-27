@@ -271,7 +271,7 @@ class OfferingSyncServiceTest {
     when(repo.findByIdOptional(any())).thenReturn(Optional.of(testOffering));
     ObjectMapper mapper = new ObjectMapper();
     OperationalProductEvent event = mapper.readValue(read(), OperationalProductEvent.class);
-    subject.syncUmbProductFromEvent(event);
+    subject.syncProductFromEvent(event);
     var actual = ArgumentCaptor.forClass(OfferingEntity.class);
     verify(repo).merge(actual.capture());
     // this shows that the eng ids were derived from the product service's definition of the SVC sku
