@@ -23,6 +23,7 @@ package tests;
 import static api.CanonicalMessageArtemisSender.SUBSCRIPTION_CHANNEL;
 import static api.PartnerApiStubs.PartnerSubscriptionsStubRequest.forContract;
 import static com.redhat.swatch.component.tests.utils.DateUtils.assertDatesAreEqual;
+import static com.redhat.swatch.component.tests.utils.Topics.IT_SUBSCRIPTION_SYNC;
 import static com.redhat.swatch.contract.product.umb.UmbSubscription.convertToUtc;
 import static domain.Contract.buildRosaContract;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -50,6 +51,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.http.HttpStatus;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -64,13 +66,19 @@ public class SubscriptionsCreationComponentTest extends BaseContractComponentTes
 
   @BeforeAll
   static void enableItSubscriptionServiceFeatureFlag() {
-    unleash.enableItSubscriptionService();
+    // Enable both Kafka and UMB consumers for IT Subscription Service
+    unleash.enableItSubscriptionServiceBothConsumers();
   }
 
   @BeforeEach
   void setUp() {
     super.setUp();
     this.sku = RandomUtils.generateRandom();
+  }
+
+  @AfterEach
+  void restoreItSubscriptionServiceFlag() {
+    unleash.enableItSubscriptionServiceBothConsumers();
   }
 
   @TestPlanName("subscriptions-creation-TC001")
@@ -305,6 +313,173 @@ public class SubscriptionsCreationComponentTest extends BaseContractComponentTes
     assertSubscription(secondSubscription, actualSecondSubscription.get());
   }
 
+  @TestPlanName("subscriptions-creation-TC008")
+  @Test
+  void shouldHandleNullEmptyOptionalFields() {
+    Subscription subscription = givenSubscription();
+    // Create subscription with null billing fields (optional)
+    Subscription subscriptionWithNulls =
+        subscription.toBuilder()
+            .billingProvider(null)
+            .billingAccountId(null)
+            .billingProviderId(null)
+            .build();
+
+    artemis.forSubscriptions().send(subscriptionWithNulls);
+
+    var actual = thenSubscriptionIsCreated(subscriptionWithNulls);
+    assertEquals(subscriptionWithNulls.getQuantity(), actual.getQuantity());
+    assertEquals(subscriptionWithNulls.getOffering().getSku(), actual.getSku());
+    assertNull(actual.getBillingProvider());
+    assertNull(actual.getBillingAccountId());
+    // Successful creation of subscription with null optional fields proves they're handled
+    // correctly
+    // (NPE would have prevented subscription creation)
+  }
+
+  @TestPlanName("subscriptions-creation-TC011")
+  @Test
+  void shouldHandleInvalidBillingProviderValue() {
+    Subscription subscription = givenSubscriptionWithUnknownBillingProvider();
+
+    artemis.forSubscriptions().send(subscription);
+
+    var actual = thenSubscriptionIsCreated(subscription);
+    assertEquals(subscription.getQuantity(), actual.getQuantity());
+    assertEquals(subscription.getOffering().getSku(), actual.getSku());
+    assertNull(
+        actual.getBillingProvider(), "Unknown billing provider should be filtered, not stored");
+    service.logs().assertContains("IT Subscription message consumed: source=umb");
+    // Successful creation proves invalid billing provider was handled gracefully (no NPE)
+  }
+
+  @TestPlanName("subscriptions-creation-umb-TC008")
+  @Test
+  void shouldIgnoreUmbMessageWhenItSubscriptionServiceFlagDisabled() {
+    unleash.disableItSubscriptionService();
+
+    Subscription subscription = givenSubscription();
+    artemis.forSubscriptions().send(subscription);
+
+    service.logs().assertContains("IT Subscription UMB consumer is disabled by feature flag.");
+    thenNoSubscriptionIsCreated();
+  }
+
+  @TestPlanName("subscriptions-creation-umb-TC009")
+  @Test
+  void shouldIgnoreUmbMessageWhenUmbConsumerDisabledViaVariant() {
+    unleash.enableItSubscriptionServiceKafkaOnly();
+
+    Subscription subscription = givenSubscription();
+    artemis.forSubscriptions().send(subscription);
+
+    service.logs().assertContains("IT Subscription UMB consumer is disabled by feature flag.");
+    thenNoSubscriptionIsCreated();
+  }
+
+  @TestPlanName("subscriptions-creation-umb-TC010")
+  @Test
+  void shouldProcessUmbMessageWhenUmbEnabledAndKafkaDisabledViaVariant() {
+    unleash.enableItSubscriptionServiceUmbOnly();
+
+    Subscription subscription = givenSubscription();
+    artemis.forSubscriptions().send(subscription);
+
+    var actual = thenSubscriptionIsCreated(subscription);
+    assertEquals(subscription.getQuantity(), actual.getQuantity());
+    assertEquals(subscription.getOffering().getSku(), actual.getSku());
+  }
+
+  @TestPlanName("subscriptions-creation-kafka-TC001")
+  @Test
+  void shouldProcessValidKafkaMessage() {
+    Subscription subscription = givenSubscription();
+
+    kafkaBridge.produceKafkaMessage(IT_SUBSCRIPTION_SYNC, buildKafkaMessage(subscription));
+
+    var actual = thenSubscriptionIsCreated(subscription);
+    thenSubscriptionMatchesKafkaEvent(subscription, actual);
+  }
+
+  @TestPlanName("subscriptions-creation-kafka-TC002")
+  @Test
+  void shouldRejectMalformedJsonFromKafka() {
+    String malformedJson = "{invalid json}";
+
+    kafkaBridge.produceKafkaMessage(IT_SUBSCRIPTION_SYNC, malformedJson);
+
+    // Wait for error log to appear
+    service.logs().assertContains("Unable to read IT Subscription Kafka message from JSON");
+
+    // Verify consumer continues processing valid messages after error
+    thenKafkaConsumerAcceptsSubsequentMessages();
+  }
+
+  @TestPlanName("subscriptions-creation-kafka-TC003")
+  @Test
+  void shouldRejectKafkaMessageWithMissingRequiredFields() {
+    kafkaBridge.produceKafkaMessage(
+        IT_SUBSCRIPTION_SYNC,
+        Map.of("entityType", "Subscription", "payload", Map.of("quantity", 5)));
+
+    service.logs().assertContains("IT Subscription Kafka payload is missing subscriptionNumber");
+
+    // Verify consumer continues processing valid messages after error
+    thenKafkaConsumerAcceptsSubsequentMessages();
+  }
+
+  @TestPlanName("subscriptions-creation-kafka-TC004")
+  @Test
+  void shouldIgnoreKafkaMessageWhenItSubscriptionServiceFlagDisabled() {
+    unleash.disableItSubscriptionService();
+
+    Subscription subscription = givenSubscription();
+
+    kafkaBridge.produceKafkaMessage(IT_SUBSCRIPTION_SYNC, buildKafkaMessage(subscription));
+
+    service.logs().assertContains("IT Subscription Kafka consumer is disabled by feature flag.");
+    thenNoSubscriptionIsCreated();
+  }
+
+  @TestPlanName("subscriptions-creation-kafka-TC005")
+  @Test
+  void shouldIgnoreKafkaMessageWhenKafkaConsumerDisabledViaVariant() {
+    unleash.enableItSubscriptionServiceUmbOnly();
+
+    Subscription subscription = givenSubscription();
+
+    kafkaBridge.produceKafkaMessage(IT_SUBSCRIPTION_SYNC, buildKafkaMessage(subscription));
+
+    service.logs().assertContains("IT Subscription Kafka consumer is disabled by feature flag.");
+    thenNoSubscriptionIsCreated();
+  }
+
+  @TestPlanName("subscriptions-creation-kafka-TC006")
+  @Test
+  void shouldProcessKafkaMessageWhenKafkaEnabledAndUmbDisabledViaVariant() {
+    unleash.enableItSubscriptionServiceKafkaOnly();
+
+    Subscription subscription = givenSubscription();
+
+    kafkaBridge.produceKafkaMessage(IT_SUBSCRIPTION_SYNC, buildKafkaMessage(subscription));
+
+    var actual = thenSubscriptionIsCreated(subscription);
+    thenSubscriptionMatchesKafkaEvent(subscription, actual);
+  }
+
+  @TestPlanName("subscriptions-creation-kafka-TC007")
+  @Test
+  void shouldProcessKafkaMessageWhenBothConsumersEnabled() {
+    unleash.enableItSubscriptionServiceBothConsumers();
+
+    Subscription subscription = givenSubscription();
+
+    kafkaBridge.produceKafkaMessage(IT_SUBSCRIPTION_SYNC, buildKafkaMessage(subscription));
+
+    var actual = thenSubscriptionIsCreated(subscription);
+    thenSubscriptionMatchesKafkaEvent(subscription, actual);
+  }
+
   private Subscription givenSubscription() {
     var subscription =
         Subscription.buildRhelSubscription(orgId, Map.of(SOCKETS, RHEL_SOCKETS_CAPACITY), sku);
@@ -330,6 +505,14 @@ public class SubscriptionsCreationComponentTest extends BaseContractComponentTes
     return subscription;
   }
 
+  private Subscription givenSubscriptionWithUnknownBillingProvider() {
+    var subscription =
+        Subscription.buildRhelSubscription(orgId, Map.of(SOCKETS, RHEL_SOCKETS_CAPACITY), sku);
+    wiremock.forSearchApi().stubGetSubscriptionWithUnknownBillingProvider(subscription);
+    wiremock.forProductAPI().stubOfferingData(subscription.getOffering());
+    return subscription;
+  }
+
   private com.redhat.swatch.contract.test.model.Subscription thenSubscriptionIsCreated(
       Subscription expected) {
     return AwaitilityUtils.until(
@@ -342,6 +525,30 @@ public class SubscriptionsCreationComponentTest extends BaseContractComponentTes
         .get(0);
   }
 
+  private void thenNoSubscriptionIsCreated() {
+    AwaitilityUtils.untilAsserted(
+        () ->
+            assertEquals(
+                0,
+                service.getSubscriptionsByOrgId(orgId).size(),
+                "No subscription should be created"));
+  }
+
+  private void thenKafkaConsumerAcceptsSubsequentMessages() {
+    Subscription subscription = givenSubscription();
+    kafkaBridge.produceKafkaMessage(IT_SUBSCRIPTION_SYNC, buildKafkaMessage(subscription));
+    var actual = thenSubscriptionIsCreated(subscription);
+    thenSubscriptionMatchesKafkaEvent(subscription, actual);
+  }
+
+  private void thenSubscriptionMatchesKafkaEvent(
+      Subscription expected, com.redhat.swatch.contract.test.model.Subscription actual) {
+    assertEquals(expected.getQuantity(), actual.getQuantity());
+    assertEquals(expected.getOffering().getSku(), actual.getSku());
+    assertDatesAreEqual(expected.getStartDate(), actual.getStartDate());
+    assertDatesAreEqual(expected.getEndDate(), actual.getEndDate());
+  }
+
   private void assertSubscription(
       Contract expected, com.redhat.swatch.contract.test.model.Subscription actual) {
     assertEquals(expected.getSubscriptionNumber(), actual.getSubscriptionNumber());
@@ -350,5 +557,33 @@ public class SubscriptionsCreationComponentTest extends BaseContractComponentTes
     assertDatesAreEqual(expected.getEndDate(), actual.getEndDate());
     assertEquals(expected.getOrgId(), actual.getOrgId());
     assertEquals(expected.getBillingProvider().toString(), actual.getBillingProvider());
+  }
+
+  private Map<String, Object> buildKafkaMessage(Subscription subscription) {
+    return Map.of(
+        "eventId",
+        RandomUtils.generateRandom(),
+        "entityType",
+        "Subscription",
+        "eventType",
+        "CREATE",
+        "eventVersion",
+        "v1.0",
+        "createdAt",
+        System.currentTimeMillis(),
+        "payload",
+        Map.of(
+            "subscriptionNumber",
+            subscription.getSubscriptionNumber(),
+            "customerId",
+            subscription.getOrgId(),
+            "quantity",
+            subscription.getQuantity(),
+            "effectiveStartDate",
+            subscription.getStartDate().toInstant().toEpochMilli(),
+            "effectiveEndDate",
+            subscription.getEndDate().toInstant().toEpochMilli(),
+            "product",
+            Map.of("sku", subscription.getOffering().getSku())));
   }
 }

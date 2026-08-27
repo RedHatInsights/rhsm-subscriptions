@@ -30,6 +30,9 @@ import com.redhat.swatch.contract.exception.ServiceException;
 import com.redhat.swatch.contract.exception.SubscriptionNotFoundException;
 import com.redhat.swatch.contract.model.PartnerEntitlementsRequest;
 import com.redhat.swatch.contract.model.SyncResult;
+import com.redhat.swatch.contract.openapi.model.SubscriptionOutboxChildProduct;
+import com.redhat.swatch.contract.openapi.model.SubscriptionOutboxPayload;
+import com.redhat.swatch.contract.openapi.model.SubscriptionOutboxProduct;
 import com.redhat.swatch.contract.product.umb.SubscriptionProductStatus;
 import com.redhat.swatch.contract.product.umb.UmbSubscription;
 import com.redhat.swatch.contract.repository.BillingProvider;
@@ -426,6 +429,64 @@ public class SubscriptionSyncService {
     return Optional.empty();
   }
 
+  private SubscriptionEntity convertDto(SubscriptionOutboxPayload payload) {
+    if (payload.getSubscriptionNumber() == null || payload.getSubscriptionNumber().isBlank()) {
+      throw new IllegalArgumentException(
+          "IT Subscription Kafka payload is missing subscriptionNumber");
+    }
+    String orgId = payload.getCustomerId();
+    if (orgId == null || orgId.isBlank()) {
+      throw new IllegalArgumentException("IT Subscription Kafka payload is missing customerId");
+    }
+    Integer quantity = payload.getQuantity();
+    OffsetDateTime endDate = toOffsetDateTime(payload.getEffectiveEndDate());
+
+    // Child products expose status (including Terminated) but no termination-date field.
+    // Use payload.effectiveEndDate as the subscription end. The guide marks that field
+    // required; if it is missing on a terminated child, fall back to now.
+    Optional<SubscriptionOutboxChildProduct> terminatedChild = findTerminatedChildProduct(payload);
+    if (terminatedChild.isPresent()) {
+      if (endDate == null) {
+        endDate = clock.now();
+        log.warn(
+            "Terminated child product with null effectiveEndDate; falling back to now for subscriptionNumber={}",
+            payload.getSubscriptionNumber());
+      } else {
+        log.debug(
+            "Terminated child product detected for subscriptionNumber={}, endDate={}",
+            payload.getSubscriptionNumber(),
+            endDate);
+      }
+    }
+
+    return SubscriptionEntity.builder()
+        .subscriptionNumber(payload.getSubscriptionNumber())
+        .orgId(orgId)
+        .quantity(quantity == null ? 0L : quantity.longValue())
+        .startDate(toOffsetDateTime(payload.getEffectiveStartDate()))
+        .endDate(endDate)
+        .build();
+  }
+
+  private static Optional<SubscriptionOutboxChildProduct> findTerminatedChildProduct(
+      SubscriptionOutboxPayload payload) {
+    SubscriptionOutboxProduct product = payload.getProduct();
+    if (product == null || product.getChildProducts() == null) {
+      return Optional.empty();
+    }
+    return product.getChildProducts().stream()
+        .filter(Objects::nonNull)
+        .filter(child -> "Terminated".equalsIgnoreCase(child.getStatus()))
+        .findFirst();
+  }
+
+  private OffsetDateTime toOffsetDateTime(Long epochMs) {
+    if (epochMs == null) {
+      return null;
+    }
+    return clock.dateFromMilliseconds(epochMs);
+  }
+
   private SubscriptionEntity convertDto(UmbSubscription subscription) {
 
     var endDate = subscription.getEffectiveEndDateInUtc();
@@ -534,6 +595,33 @@ public class SubscriptionSyncService {
     } else {
       syncSubscription(getSku(umbSubscription), subscription, subscriptions.stream().findFirst());
     }
+  }
+
+  @Transactional
+  public void saveSubscription(SubscriptionOutboxPayload payload) {
+    SubscriptionEntity subscription = convertDto(payload);
+    String sku = extractSku(payload);
+    if (sku == null) {
+      throw new IllegalStateException(
+          "Could not find top level SKU for subscription " + payload.getSubscriptionNumber());
+    }
+    var subscriptions =
+        subscriptionService.findBySubscriptionNumber(subscription.getSubscriptionNumber());
+    if (subscriptions.size() > 1) {
+      log.warn(
+          "Skipping message because multiple subscriptions were found for subscriptionNumber={}",
+          subscription.getSubscriptionNumber());
+    } else {
+      syncSubscription(sku, subscription, subscriptions.stream().findFirst());
+    }
+  }
+
+  private static String extractSku(SubscriptionOutboxPayload payload) {
+    SubscriptionOutboxProduct product = payload.getProduct();
+    if (product != null && product.getSku() != null && !product.getSku().isBlank()) {
+      return product.getSku();
+    }
+    return null;
   }
 
   @Asynchronous

@@ -54,6 +54,13 @@ public class SearchApiStubs {
         subscription.getSubscriptionNumber(), List.of(responseBody));
   }
 
+  public void stubGetSubscriptionWithUnknownBillingProvider(Subscription subscription) {
+    var responseBody = mapToApiModel(subscription);
+    responseBody.put("externalReferences", Map.of("UNKNOWN", Map.of()));
+    stubSubscriptionBySubscriptionNumber(
+        subscription.getSubscriptionNumber(), List.of(responseBody));
+  }
+
   /**
    * Stub the getSubscriptionBySubscriptionNumber endpoint to return an empty array (not found).
    * This simulates the scenario where a subscription is not found in the search API.

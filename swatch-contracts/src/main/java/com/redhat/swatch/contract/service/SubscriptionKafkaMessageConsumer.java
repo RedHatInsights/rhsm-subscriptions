@@ -23,10 +23,9 @@ package com.redhat.swatch.contract.service;
 import static com.redhat.swatch.contract.config.Channels.IT_SUBSCRIPTION_SYNC;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.contract.config.FeatureFlags;
-import com.redhat.swatch.contract.product.umb.CanonicalMessage;
-import com.redhat.swatch.contract.product.umb.UmbSubscription;
+import com.redhat.swatch.contract.openapi.model.SubscriptionOutboxEvent;
 import io.smallrye.common.annotation.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -39,48 +38,55 @@ public class SubscriptionKafkaMessageConsumer {
 
   @Inject FeatureFlags featureFlags;
   @Inject SubscriptionSyncService service;
-
-  private final XmlMapper xmlMapper = CanonicalMessage.createMapper();
+  @Inject ObjectMapper mapper;
 
   @Blocking
   @Incoming(IT_SUBSCRIPTION_SYNC)
-  public void consumeFromKafka(String subscriptionMessageXml) throws JsonProcessingException {
+  public void consumeMessage(String message) throws JsonProcessingException {
     log.debug("IT Subscription Kafka consumer was called");
-    if (subscriptionMessageXml == null) {
+    if (message == null) {
       return;
     }
     if (!featureFlags.isItSubscriptionServiceKafkaConsumerEnabled()) {
       log.debug("IT Subscription Kafka consumer is disabled by feature flag.");
       return;
     }
-    consumeSubscription(subscriptionMessageXml);
+    consumeSubscription(message);
   }
 
-  public void consumeSubscription(String subscriptionMessageXml) throws JsonProcessingException {
-    CanonicalMessage subscriptionMessage;
+  public void consumeSubscription(String message) throws JsonProcessingException {
+    SubscriptionOutboxEvent event;
     try {
-      subscriptionMessage = xmlMapper.readValue(subscriptionMessageXml, CanonicalMessage.class);
+      event = mapper.readValue(message, SubscriptionOutboxEvent.class);
     } catch (JsonProcessingException e) {
-      log.warn(
-          "Unable to process IT Subscription Kafka message: messagePreview={}",
-          subscriptionMessageXml != null && subscriptionMessageXml.length() > 100
-              ? subscriptionMessageXml.substring(0, 100) + "..."
-              : subscriptionMessageXml,
-          e);
+      log.warn("Unable to read IT Subscription Kafka message from JSON.", e);
       throw e;
     }
-    UmbSubscription subscription = subscriptionMessage.getPayload().getSync().getSubscription();
+    if (event == null) {
+      log.warn("IT Subscription Kafka message deserialized to null, skipping");
+      return;
+    }
+    if (!"Subscription".equalsIgnoreCase(event.getEntityType())) {
+      log.debug("Ignoring IT Subscription Kafka message with entityType={}", event.getEntityType());
+      return;
+    }
+    var payload = event.getPayload();
+    if (payload == null) {
+      log.warn(
+          "Ignoring IT Subscription Kafka message with null payload: eventId={}, entityType={}",
+          event.getEventId(),
+          event.getEntityType());
+      return;
+    }
     log.info(
         "IT Subscription message consumed: source=kafka, "
-            + "subscriptionNumber={}, webCustomerId={}, sku={}, quantity={}, "
-            + "effectiveStartDate={}, effectiveEndDate={}, terminated={}",
-        subscription.getSubscriptionNumber(),
-        subscription.getWebCustomerId(),
-        subscription.findSku().orElse(null),
-        subscription.getQuantity(),
-        subscription.getEffectiveStartDate(),
-        subscription.getEffectiveEndDate(),
-        subscription.findTerminatedStatus().isPresent());
-    service.saveUmbSubscription(subscription);
+            + "subscriptionNumber={}, customerId={}, quantity={}, "
+            + "effectiveStartDate={}, effectiveEndDate={}",
+        payload.getSubscriptionNumber(),
+        payload.getCustomerId(),
+        payload.getQuantity(),
+        payload.getEffectiveStartDate(),
+        payload.getEffectiveEndDate());
+    service.saveSubscription(payload);
   }
 }
