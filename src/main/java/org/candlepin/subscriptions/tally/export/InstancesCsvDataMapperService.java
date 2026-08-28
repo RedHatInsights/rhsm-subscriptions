@@ -54,16 +54,24 @@ public class InstancesCsvDataMapperService implements DataMapperService<TallyIns
   private final HostRepository hostRepository;
 
   public static final Map<MetricId, ObjDoubleConsumer<InstancesExportCsvItem>> METRIC_MAPPER =
-      Map.of(
-          MetricIdUtils.getCores(), InstancesExportCsvItem::setMeasurementCores,
-          MetricIdUtils.getInstanceHours(), InstancesExportCsvItem::setMeasurementInstanceHours,
-          MetricIdUtils.getSockets(), InstancesExportCsvItem::setMeasurementSockets,
-          MetricIdUtils.getStorageGibibyteMonths(),
-              InstancesExportCsvItem::setMeasurementStorageGibibyteMonths,
-          MetricIdUtils.getTransferGibibytes(),
-              InstancesExportCsvItem::setMeasurementTransferGibibytes,
-          MetricIdUtils.getVCpus(), InstancesExportCsvItem::setMeasurementVcpus,
-          MetricIdUtils.getManagedNodes(), InstancesExportCsvItem::setMeasurementManagedNodes);
+      Map.ofEntries(
+          Map.entry(MetricIdUtils.getCores(), InstancesExportCsvItem::setMeasurementCores),
+          Map.entry(
+              MetricIdUtils.getInstanceHours(),
+              InstancesExportCsvItem::setMeasurementInstanceHours),
+          Map.entry(MetricIdUtils.getSockets(), InstancesExportCsvItem::setMeasurementSockets),
+          Map.entry(
+              MetricIdUtils.getStorageGibibyteMonths(),
+              InstancesExportCsvItem::setMeasurementStorageGibibyteMonths),
+          Map.entry(
+              MetricIdUtils.getTransferGibibytes(),
+              InstancesExportCsvItem::setMeasurementTransferGibibytes),
+          Map.entry(MetricIdUtils.getVCpus(), InstancesExportCsvItem::setMeasurementVcpus),
+          Map.entry(
+              MetricIdUtils.getManagedNodes(), InstancesExportCsvItem::setMeasurementManagedNodes),
+          Map.entry(
+              MetricIdUtils.getVCpusSelfManaged(),
+              InstancesExportCsvItem::setMeasurementVcpusSelfManaged));
 
   @Override
   public List<Object> mapDataItem(TallyInstanceView item, ExportServiceRequest request) {
