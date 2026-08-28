@@ -62,6 +62,10 @@ public class MetricIdUtils {
     return MetricId.fromString("Managed-nodes");
   }
 
+  public static MetricId getVCpusSelfManaged() {
+    return MetricId.fromString("vCPUs-self-managed");
+  }
+
   public static Stream<MetricId> getMetricIdsFromConfigForTag(String tag) {
     return getMetricIdsFromConfigForVariant(Variant.findByTag(tag).orElse(null));
   }
