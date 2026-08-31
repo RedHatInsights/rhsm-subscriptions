@@ -85,8 +85,8 @@ public abstract class OpenShiftContainerManagedResource extends ManagedResource 
 
   @Override
   public int getMappedPort(int port) {
-    return client.port(
-        serviceName(), portsMapping.getOrDefault(port, port), context.getOwner(), podLabels());
+    int mapped = portsMapping.getOrDefault(port, port);
+    return client.port(serviceName(), mapped, context.getOwner());
   }
 
   @Override

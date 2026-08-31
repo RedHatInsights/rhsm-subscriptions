@@ -156,11 +156,35 @@ public class OpenShiftExtensionBootstrap implements ExtensionBootstrap {
   private static OpenshiftClient suiteClient() {
     synchronized (SUITE_CLIENT_LOCK) {
       if (suiteClient == null) {
-        suiteClient = new OpenshiftClient();
-        suiteClient.initializeClientUsingNamespace(currentNamespace());
+        String namespace = currentNamespace();
+        OpenshiftClient initializedClient = new OpenshiftClient();
+        try {
+          initializedClient.initializeClientUsingNamespace(namespace);
+          suiteClient = initializedClient;
+        } catch (RuntimeException | Error e) {
+          initializedClient.close();
+          throw e;
+        }
+        registerSuiteClientShutdownHook();
       }
       return suiteClient;
     }
+  }
+
+  private static void registerSuiteClientShutdownHook() {
+    Runtime.getRuntime()
+        .addShutdownHook(
+            new Thread(
+                () -> {
+                  synchronized (SUITE_CLIENT_LOCK) {
+                    if (suiteClient != null) {
+                      Log.debug("Closing suite-level OpenShift client");
+                      suiteClient.close();
+                      suiteClient = null;
+                    }
+                  }
+                },
+                "openshift-client-cleanup"));
   }
 
   private static String currentNamespace() {
