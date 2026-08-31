@@ -22,6 +22,7 @@ package api;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Stubs for mocking Prometheus API endpoints using WireMock.
@@ -35,6 +36,16 @@ public class PrometheusStubs {
 
   public PrometheusStubs(PrometheusWiremockService wiremock) {
     this.wiremock = wiremock;
+  }
+
+  /**
+   * Start building a Prometheus metric stub with a fluent API.
+   *
+   * @param metricName the Prometheus metric name (e.g., "system_cpu_logical_count")
+   * @return a builder for configuring labels and value
+   */
+  public PrometheusMetricStubBuilder metric(String metricName) {
+    return new PrometheusMetricStubBuilder(metricName);
   }
 
   /**
@@ -150,5 +161,70 @@ public class PrometheusStubs {
         .post("/__admin/mappings")
         .then()
         .statusCode(201);
+  }
+
+  /**
+   * Fluent builder for Prometheus metric stubs. Hides Prometheus label keys behind semantic method
+   * names and provides a clean API for test setup.
+   */
+  public class PrometheusMetricStubBuilder {
+    private final String metricName;
+    private final Map<String, String> labels = new LinkedHashMap<>();
+    private double metricValue;
+
+    PrometheusMetricStubBuilder(String metricName) {
+      this.metricName = Objects.requireNonNull(metricName, "metricName must not be null");
+      // billing_model is the only universal default
+      labels.put("billing_model", "marketplace");
+    }
+
+    public PrometheusMetricStubBuilder orgId(String orgId) {
+      labels.put("external_organization", orgId);
+      return this;
+    }
+
+    public PrometheusMetricStubBuilder displayName(String displayName) {
+      labels.put("display_name", displayName);
+      return this;
+    }
+
+    public PrometheusMetricStubBuilder instanceId(String instanceId) {
+      labels.put("billing_marketplace_instance_id", instanceId);
+      return this;
+    }
+
+    public PrometheusMetricStubBuilder product(String product) {
+      labels.put("product", product);
+      return this;
+    }
+
+    public PrometheusMetricStubBuilder billingProvider(String billingProvider) {
+      labels.put("billing_marketplace", billingProvider);
+      return this;
+    }
+
+    public PrometheusMetricStubBuilder billingAccountId(String billingAccountId) {
+      labels.put("billing_marketplace_account", billingAccountId);
+      return this;
+    }
+
+    public PrometheusMetricStubBuilder billingModel(String billingModel) {
+      labels.put("billing_model", billingModel);
+      return this;
+    }
+
+    public PrometheusMetricStubBuilder label(String key, String value) {
+      labels.put(key, value);
+      return this;
+    }
+
+    public PrometheusMetricStubBuilder value(double value) {
+      this.metricValue = value;
+      return this;
+    }
+
+    public void stub() {
+      stubQueryRangeWithMetricData(metricName, labels, metricValue);
+    }
   }
 }

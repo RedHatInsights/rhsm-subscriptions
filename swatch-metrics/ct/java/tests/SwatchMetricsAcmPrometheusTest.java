@@ -29,7 +29,6 @@ import com.redhat.swatch.component.tests.utils.RandomUtils;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
-import java.util.Map;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Measurement;
 import org.junit.jupiter.api.Test;
@@ -50,8 +49,17 @@ class SwatchMetricsAcmPrometheusTest extends BaseMetricsComponentTest {
     double expectedCores = 8.0;
     OffsetDateTime meteringEnd = currentUtcHourStart();
 
-    givenPrometheusReturnsAcmManagedMetrics(
-        clusterId, billingProvider, billingAccountId, expectedCores);
+    wiremock
+        .forPrometheus()
+        .metric("acm:managed_cluster_worker_cores:managed:sum")
+        .label("_id", clusterId)
+        .displayName(clusterId)
+        .orgId(orgId)
+        .product("moa")
+        .billingProvider(billingProvider)
+        .billingAccountId(billingAccountId)
+        .value(expectedCores)
+        .stub();
 
     // When: Internal metering is triggered
     service.triggerInternalMetering(
@@ -77,8 +85,17 @@ class SwatchMetricsAcmPrometheusTest extends BaseMetricsComponentTest {
     double expectedCores = 16.0;
     OffsetDateTime meteringEnd = currentUtcHourStart();
 
-    givenPrometheusReturnsAcmManagedMetrics(
-        clusterId, billingProvider, billingAccountId, expectedCores);
+    wiremock
+        .forPrometheus()
+        .metric("acm:managed_cluster_worker_cores:managed:sum")
+        .label("_id", clusterId)
+        .displayName(clusterId)
+        .orgId(orgId)
+        .product("moa")
+        .billingProvider(billingProvider)
+        .billingAccountId(billingAccountId)
+        .value(expectedCores)
+        .stub();
 
     // When: Internal metering is triggered
     service.triggerInternalMetering(
@@ -104,8 +121,17 @@ class SwatchMetricsAcmPrometheusTest extends BaseMetricsComponentTest {
     double expectedCores = 12.0;
     OffsetDateTime meteringEnd = currentUtcHourStart();
 
-    givenPrometheusReturnsAcmSelfManagedMetrics(
-        clusterId, billingProvider, billingAccountId, expectedCores);
+    wiremock
+        .forPrometheus()
+        .metric("acm:managed_cluster_worker_cores:self_managed:sum")
+        .label("_id", clusterId)
+        .displayName(clusterId)
+        .orgId(orgId)
+        .product("moa")
+        .billingProvider(billingProvider)
+        .billingAccountId(billingAccountId)
+        .value(expectedCores)
+        .stub();
 
     // When: Internal metering is triggered
     service.triggerInternalMetering(
@@ -131,8 +157,17 @@ class SwatchMetricsAcmPrometheusTest extends BaseMetricsComponentTest {
     double expectedCores = 20.0;
     OffsetDateTime meteringEnd = currentUtcHourStart();
 
-    givenPrometheusReturnsAcmSelfManagedMetrics(
-        clusterId, billingProvider, billingAccountId, expectedCores);
+    wiremock
+        .forPrometheus()
+        .metric("acm:managed_cluster_worker_cores:self_managed:sum")
+        .label("_id", clusterId)
+        .displayName(clusterId)
+        .orgId(orgId)
+        .product("moa")
+        .billingProvider(billingProvider)
+        .billingAccountId(billingAccountId)
+        .value(expectedCores)
+        .stub();
 
     // When: Internal metering is triggered
     service.triggerInternalMetering(
@@ -151,37 +186,6 @@ class SwatchMetricsAcmPrometheusTest extends BaseMetricsComponentTest {
 
   private static OffsetDateTime currentUtcHourStart() {
     return OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.HOURS);
-  }
-
-  private void givenPrometheusReturnsAcmManagedMetrics(
-      String clusterId, String billingProvider, String billingAccountId, double coresValue) {
-    Map<String, String> labels = buildAcmLabels(clusterId, billingProvider, billingAccountId);
-    wiremock
-        .forPrometheus()
-        .stubQueryRangeWithMetricData(
-            "acm:managed_cluster_worker_cores:managed:sum", labels, coresValue);
-  }
-
-  private void givenPrometheusReturnsAcmSelfManagedMetrics(
-      String clusterId, String billingProvider, String billingAccountId, double coresValue) {
-    Map<String, String> labels = buildAcmLabels(clusterId, billingProvider, billingAccountId);
-    wiremock
-        .forPrometheus()
-        .stubQueryRangeWithMetricData(
-            "acm:managed_cluster_worker_cores:self_managed:sum", labels, coresValue);
-  }
-
-  private Map<String, String> buildAcmLabels(
-      String clusterId, String billingProvider, String billingAccountId) {
-    Map<String, String> labels = new java.util.HashMap<>();
-    labels.put("_id", clusterId);
-    labels.put("billing_marketplace", billingProvider);
-    labels.put("billing_marketplace_account", billingAccountId);
-    labels.put("billing_model", "marketplace");
-    labels.put("display_name", clusterId);
-    labels.put("external_organization", orgId);
-    labels.put("product", "moa");
-    return labels;
   }
 
   private void thenEventHasCorrectMetadata(Event event, String clusterId) {
