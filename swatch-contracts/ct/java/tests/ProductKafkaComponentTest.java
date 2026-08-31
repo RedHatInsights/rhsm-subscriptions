@@ -20,6 +20,7 @@
  */
 package tests;
 
+import static com.redhat.swatch.component.tests.utils.Topics.IT_PRODUCT_SYNC;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
@@ -28,16 +29,20 @@ import com.redhat.swatch.contract.test.model.OperationalProductEvent;
 import com.redhat.swatch.contract.test.model.OperationalProductEvent.EventTypeEnum;
 import com.redhat.swatch.contract.test.model.OperationalProductEvent.ProductCategoryEnum;
 import java.time.OffsetDateTime;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 public class ProductKafkaComponentTest extends BaseContractComponentTest {
 
-  private static final String IT_PRODUCT_TOPIC = "product-service.operationalproduct.protected";
-
   @BeforeAll
   static void enableProductServiceConsumer() {
-    unleash.enableProductServiceConsumer();
+    unleash.enableProductServiceConsumerBothConsumers();
+  }
+
+  @AfterEach
+  void restoreProductServiceConsumerFlag() {
+    unleash.enableProductServiceConsumerBothConsumers();
   }
 
   @TestPlanName("product-kafka-TC001")
@@ -50,7 +55,7 @@ public class ProductKafkaComponentTest extends BaseContractComponentTest {
     whenKafkaMessageIsPublished(event);
 
     // Then: Message is consumed successfully
-    thenMessageIsConsumedWithChildSkuFlag(event, false);
+    thenMessageIsConsumedWithChildSkuFlag(event, false, "kafka");
   }
 
   @TestPlanName("product-kafka-TC002")
@@ -63,7 +68,7 @@ public class ProductKafkaComponentTest extends BaseContractComponentTest {
     whenKafkaMessageIsPublished(event);
 
     // Then: Message is consumed with childSku flag as true
-    thenMessageIsConsumedWithChildSkuFlag(event, true);
+    thenMessageIsConsumedWithChildSkuFlag(event, true, "kafka");
   }
 
   @TestPlanName("product-kafka-TC003")
@@ -74,7 +79,7 @@ public class ProductKafkaComponentTest extends BaseContractComponentTest {
     int consumeLogsBefore = countLogsContaining("IT Product message consumed: source=kafka");
 
     // When: Publishing malformed message to Kafka
-    kafkaBridge.produceKafkaMessage(IT_PRODUCT_TOPIC, malformedJson);
+    kafkaBridge.produceKafkaMessage(IT_PRODUCT_SYNC, malformedJson);
 
     // Then: Warning is logged, the bad payload is not consumed, and the consumer continues
     service.logs().assertContains("Unable to read IT Product Kafka message from JSON");
@@ -94,7 +99,7 @@ public class ProductKafkaComponentTest extends BaseContractComponentTest {
         countLogsContaining("Unable to read IT Product Kafka message from JSON");
 
     // When: Publishing a null message to Kafka
-    kafkaBridge.produceKafkaMessage(IT_PRODUCT_TOPIC, null);
+    kafkaBridge.produceKafkaMessage(IT_PRODUCT_SYNC, null);
 
     // Then: Null is ignored; the consumer continues processing
     thenKafkaConsumerAcceptsSubsequentMessages();
@@ -106,6 +111,64 @@ public class ProductKafkaComponentTest extends BaseContractComponentTest {
         parseErrorLogsBefore,
         countLogsContaining("Unable to read IT Product Kafka message from JSON"),
         "Null message must not be treated as malformed JSON");
+  }
+
+  @TestPlanName("product-kafka-TC005")
+  @Test
+  void shouldIgnoreMessageWhenFeatureFlagDisabled() {
+    // Given: Feature flag is disabled and a valid parent SKU event
+    unleash.disableProductServiceConsumer();
+    OperationalProductEvent event = givenParentSkuEvent("RH" + RandomUtils.generateRandom());
+
+    // When: Publishing message to Kafka
+    whenKafkaMessageIsPublished(event);
+
+    // Then: Consumer is disabled and the message is not processed
+    thenKafkaConsumerReportsDisabled();
+    thenMessageIsNotConsumed(event, "kafka");
+  }
+
+  @TestPlanName("product-kafka-TC006")
+  @Test
+  void shouldIgnoreMessageWhenKafkaDisabledViaVariant() {
+    // Given: Flag enabled with Kafka disabled and UMB enabled via variant
+    unleash.enableProductServiceConsumerUmbOnly();
+    OperationalProductEvent event = givenParentSkuEvent("RH" + RandomUtils.generateRandom());
+
+    // When: Publishing message to Kafka
+    whenKafkaMessageIsPublished(event);
+
+    // Then: Kafka is independently disabled
+    thenKafkaConsumerReportsDisabled();
+    thenMessageIsNotConsumed(event, "kafka");
+  }
+
+  @TestPlanName("product-kafka-TC007")
+  @Test
+  void shouldProcessWhenKafkaEnabledAndUmbDisabled() {
+    // Given: Flag enabled with Kafka enabled and UMB disabled via variant
+    unleash.enableProductServiceConsumerKafkaOnly();
+    OperationalProductEvent event = givenParentSkuEvent("RH" + RandomUtils.generateRandom());
+
+    // When: Publishing message to Kafka
+    whenKafkaMessageIsPublished(event);
+
+    // Then: Kafka consumes independently
+    thenMessageIsConsumedWithChildSkuFlag(event, false, "kafka");
+  }
+
+  @TestPlanName("product-kafka-TC008")
+  @Test
+  void shouldProcessMessageWhenBothConsumersEnabled() {
+    // Given: Flag enabled with both Kafka and UMB consumers enabled via variant
+    unleash.enableProductServiceConsumerBothConsumers();
+    OperationalProductEvent event = givenParentSkuEvent("RH" + RandomUtils.generateRandom());
+
+    // When: Publishing message to Kafka
+    whenKafkaMessageIsPublished(event);
+
+    // Then: Kafka consumes
+    thenMessageIsConsumedWithChildSkuFlag(event, false, "kafka");
   }
 
   private OperationalProductEvent givenParentSkuEvent(String productCode) {
@@ -127,23 +190,34 @@ public class ProductKafkaComponentTest extends BaseContractComponentTest {
   }
 
   private void whenKafkaMessageIsPublished(OperationalProductEvent event) {
-    kafkaBridge.produceKafkaMessage(IT_PRODUCT_TOPIC, event);
+    kafkaBridge.produceKafkaMessage(IT_PRODUCT_SYNC, event);
   }
 
   private void thenKafkaConsumerAcceptsSubsequentMessages() {
     OperationalProductEvent probe = givenParentSkuEvent("RH" + RandomUtils.generateRandom());
     whenKafkaMessageIsPublished(probe);
-    thenMessageIsConsumedWithChildSkuFlag(probe, false);
+    thenMessageIsConsumedWithChildSkuFlag(probe, false, "kafka");
+  }
+
+  private void thenKafkaConsumerReportsDisabled() {
+    service.logs().assertContains("IT Product Kafka consumer is disabled by feature flag.");
+  }
+
+  private void thenMessageIsNotConsumed(OperationalProductEvent event, String source) {
+    service
+        .logs()
+        .assertDoesNotContain("source=" + source + ", productCode=" + event.getProductCode());
   }
 
   private void thenMessageIsConsumedWithChildSkuFlag(
-      OperationalProductEvent event, boolean isChildSku) {
+      OperationalProductEvent event, boolean isChildSku, String source) {
     service
         .logs()
         .assertContains(
             String.format(
-                "IT Product message consumed: source=kafka, productCode=%s, eventType=%s, "
+                "IT Product message consumed: source=%s, productCode=%s, eventType=%s, "
                     + "productCategory=%s, childSku=%s",
+                source,
                 event.getProductCode(),
                 event.getEventType(),
                 event.getProductCategory(),

@@ -39,6 +39,7 @@ public final class Topics {
   public static final String CAPACITY_RECONCILE = SUFFIX + "capacity-reconcile";
   public static final String IT_SUBSCRIPTION_SYNC = "subscription.subscriptions.private";
   public static final String EXPORT_REQUESTS = "platform.export.requests";
+  public static final String IT_PRODUCT_SYNC = "product-service.operationalproduct.protected";
 
   private Topics() {}
 }
