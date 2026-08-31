@@ -48,7 +48,7 @@ import org.junit.jupiter.api.Test;
 @TestProfile(EnableUmbResource.class)
 class ProductStatusUMBMessageConsumerTest {
 
-  private static final String VALID_JSON_MESSAGE =
+  static final String VALID_JSON_MESSAGE =
       """
         {
           "occurredOn": "2023-05-29T16:00:54.279Z",
