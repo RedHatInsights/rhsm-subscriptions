@@ -59,7 +59,6 @@ public abstract class OpenShiftContainerManagedResource extends ManagedResource 
 
     if (loggingHandler == null) {
       loggingHandler = new OpenShiftLoggingHandler(podLabels(), containerName(), context);
-      loggingHandler.startWatching();
     }
 
     running = true;

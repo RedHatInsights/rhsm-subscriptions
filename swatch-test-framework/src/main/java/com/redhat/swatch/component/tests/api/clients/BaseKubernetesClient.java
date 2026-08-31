@@ -242,6 +242,15 @@ public abstract class BaseKubernetesClient<
     client = (T) initializeClient(config);
   }
 
+  public void close() {
+    portForwardsByService.values().forEach(this::closePortForward);
+    portForwardsByService.clear();
+    if (client != null) {
+      client.close();
+      client = null;
+    }
+  }
+
   class LocalPortForwardWrapper {
     int localPort;
     LocalPortForward process;

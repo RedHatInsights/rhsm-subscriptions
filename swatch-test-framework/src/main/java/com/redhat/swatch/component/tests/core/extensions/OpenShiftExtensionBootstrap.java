@@ -34,7 +34,7 @@ import com.redhat.swatch.component.tests.utils.FileUtils;
 import com.redhat.swatch.component.tests.utils.InjectUtils;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
-import io.fabric8.kubernetes.client.DefaultKubernetesClient;
+import io.fabric8.kubernetes.client.Config;
 import io.fabric8.openshift.api.model.Route;
 import io.fabric8.openshift.client.OpenShiftClient;
 import java.nio.file.Path;
@@ -48,6 +48,15 @@ public class OpenShiftExtensionBootstrap implements ExtensionBootstrap {
   public static final String CLIENT = "oc-client";
   public static final String TARGET_OPENSHIFT = "openshift";
 
+  /**
+   * One Fabric8/OkHttp client for the JVM. JUnit constructs a new bootstrap per test class;
+   * creating a client each time leaks OkHttp dispatcher threads and exhausts the ephemeral runner's
+   * native-thread limit.
+   */
+  private static final Object SUITE_CLIENT_LOCK = new Object();
+
+  private static OpenshiftClient suiteClient;
+
   private OpenshiftClient client;
 
   @Override
@@ -60,8 +69,7 @@ public class OpenShiftExtensionBootstrap implements ExtensionBootstrap {
     OpenShiftConfiguration configuration =
         context.loadCustomConfiguration(TARGET_OPENSHIFT, new OpenShiftConfigurationBuilder());
 
-    client = new OpenshiftClient();
-    client.initializeClientUsingNamespace(new DefaultKubernetesClient().getNamespace());
+    client = suiteClient();
 
     if (configuration.getAdditionalResources() != null) {
       for (String additionalResource : configuration.getAdditionalResources()) {
@@ -143,6 +151,24 @@ public class OpenShiftExtensionBootstrap implements ExtensionBootstrap {
 
   private Path logsTestFolder(ComponentTestContext context) {
     return context.getLogFolder().resolve(context.getRunningTestClassName());
+  }
+
+  private static OpenshiftClient suiteClient() {
+    synchronized (SUITE_CLIENT_LOCK) {
+      if (suiteClient == null) {
+        suiteClient = new OpenshiftClient();
+        suiteClient.initializeClientUsingNamespace(currentNamespace());
+      }
+      return suiteClient;
+    }
+  }
+
+  private static String currentNamespace() {
+    String namespace = Config.autoConfigure(null).getNamespace();
+    if (namespace == null || namespace.isBlank()) {
+      throw new IllegalStateException("Unable to resolve OpenShift namespace");
+    }
+    return namespace;
   }
 
   public static boolean isEnabled(ComponentTestContext context) {
