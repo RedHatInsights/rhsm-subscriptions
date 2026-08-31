@@ -949,6 +949,18 @@ This section verifies the automatic contract termination behavior when contracts
 - **Verification**: One contract for the org; sync status SUCCESS
 - **Expected Result**: HTTP 200; sync succeeds with no failure when `partnerIdentities.licenseArn` is absent
 
+**contracts-sync-TC022 - Entitlement end date when contract segment omits endDate**
+- **Description**: Partner Gateway may return a purchase contract segment with `startDate` only. When `entitlementDates.endDate` is in the past, sync must persist that termination date on the contract and subscription.
+- **Setup**:
+  - Stub one marketplace entitlement with `purchase.contracts[]` containing `startDate` only (no segment `endDate`)
+  - Set `entitlementDates.endDate` to a timestamp in the past
+  - Stub Search API and sync offering
+- **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/{org_id}`
+- **Verification**:
+  - Contract `end_date` matches `entitlementDates.endDate`
+  - Contract is terminated (`end_date` before now)
+- **Expected Result**: HTTP 200; sync status SUCCESS; termination date applied from entitlement dates
+
 ## Subscription Management via IT Subscription
 
 **subscriptions-creation-TC001 - Process a valid UMB subscription XML message from UMB**  
