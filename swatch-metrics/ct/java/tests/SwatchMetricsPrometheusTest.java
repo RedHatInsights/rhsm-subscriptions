@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -49,6 +50,7 @@ class SwatchMetricsPrometheusTest extends BaseMetricsComponentTest {
    * Exercises rhelemeter PromQL against mocked Prometheus responses, internal metering, and
    * Kafka-bound events. Flow: stub query_range results → POST metering → assert event payload.
    */
+  @TestPlanName("swatch-metrics-prometheus-TC001")
   @Test
   void shouldCreateMeteringEventsForRhelPaygAddonFromPrometheus() {
     // Given: RHEL PAYG addon metrics will be returned from mock Prometheus

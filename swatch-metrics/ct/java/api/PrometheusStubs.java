@@ -82,6 +82,22 @@ public class PrometheusStubs {
     responseBody.put("status", "success");
     responseBody.put("data", data);
 
+    // Match the query on both the metric name and the series' product label. This mirrors how
+    // Prometheus itself filters: the generated PromQL embeds a product=~"(...)" selector, so a
+    // series is only returned when the query's product filter includes that series' product. Two
+    // metrics that share a cluster but differ in productLabelRegex (e.g. ACM managed vs
+    // self-managed) therefore behave exactly as they would against a real Prometheus.
+    Object queryMatcher;
+    String product = labels != null ? labels.get("product") : null;
+    if (product != null && !product.isBlank()) {
+      queryMatcher =
+          Map.of(
+              "and",
+              java.util.List.of(Map.of("contains", metricName), Map.of("contains", product)));
+    } else {
+      queryMatcher = Map.of("contains", metricName);
+    }
+
     Map<String, Object> mapping = new LinkedHashMap<>();
     mapping.put(
         "request",
@@ -91,7 +107,7 @@ public class PrometheusStubs {
             "urlPathPattern",
             "/api/v1/query_range",
             "queryParameters",
-            Map.of("query", Map.of("contains", metricName))));
+            Map.of("query", queryMatcher)));
     Map<String, Object> response = new LinkedHashMap<>();
     response.put("status", 200);
     response.put("headers", Map.of("Content-Type", "application/json"));
