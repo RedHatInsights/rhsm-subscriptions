@@ -25,11 +25,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
-import java.util.Map;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Measurement;
 import org.junit.jupiter.api.Test;
@@ -50,6 +50,7 @@ class SwatchMetricsPrometheusTest extends BaseMetricsComponentTest {
    * Exercises rhelemeter PromQL against mocked Prometheus responses, internal metering, and
    * Kafka-bound events. Flow: stub query_range results → POST metering → assert event payload.
    */
+  @TestPlanName("swatch-metrics-prometheus-TC001")
   @Test
   void shouldCreateMeteringEventsForRhelPaygAddonFromPrometheus() {
     // Given: RHEL PAYG addon metrics will be returned from mock Prometheus
@@ -63,18 +64,18 @@ class SwatchMetricsPrometheusTest extends BaseMetricsComponentTest {
 
     // Stub the query_range endpoint to return metric data
     // The metering service will query Prometheus for VCPU metrics
-    Map<String, String> labels = new java.util.HashMap<>();
-    labels.put("billing_marketplace_instance_id", instanceId);
-    labels.put("external_organization", orgId);
-    labels.put("billing_marketplace", billingProvider);
-    labels.put("billing_marketplace_account", billingAccountId);
-    labels.put("product", "204");
-    labels.put("billing_model", "marketplace");
-    labels.put("support", "Premium");
-    labels.put("usage", "Production");
     wiremock
         .forPrometheus()
-        .stubQueryRangeWithMetricData("system_cpu_logical_count", labels, expectedVcpu);
+        .metric("system_cpu_logical_count")
+        .instanceId(instanceId)
+        .orgId(orgId)
+        .billingProvider(billingProvider)
+        .billingAccountId(billingAccountId)
+        .product("204")
+        .label("support", "Premium")
+        .label("usage", "Production")
+        .value(expectedVcpu)
+        .stub();
 
     // When: Internal metering is triggered
     service.triggerInternalMetering(

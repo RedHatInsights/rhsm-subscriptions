@@ -68,4 +68,18 @@ public class BaseMetricsComponentTest {
         MessageValidators.isEventForInstance(instanceId, metricId),
         1);
   }
+
+  /**
+   * Returns matching events already present on the topic without blocking for new ones. Used to
+   * assert the <em>absence</em> of events: an expected count of 0 makes the underlying consumer
+   * return immediately with whatever currently matches instead of blocking until timeout. Only
+   * reliable after a synchronization point (e.g. a later event in the same metering run has already
+   * been observed), so any earlier event would already be cached.
+   */
+  protected List<Event> thenEventsAlreadyProduced(String instanceId, String metricId) {
+    return kafkaBridge.waitForKafkaMessage(
+        SWATCH_SERVICE_INSTANCE_INGRESS,
+        MessageValidators.isEventForInstance(instanceId, metricId),
+        0);
+  }
 }
