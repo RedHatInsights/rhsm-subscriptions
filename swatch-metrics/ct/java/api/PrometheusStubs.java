@@ -22,7 +22,6 @@ package api;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * Stubs for mocking Prometheus API endpoints using WireMock.
@@ -36,16 +35,6 @@ public class PrometheusStubs {
 
   public PrometheusStubs(PrometheusWiremockService wiremock) {
     this.wiremock = wiremock;
-  }
-
-  /**
-   * Start building a Prometheus metric stub with a fluent API.
-   *
-   * @param metricName the Prometheus metric name (e.g., "system_cpu_logical_count")
-   * @return a builder for configuring labels and value
-   */
-  public PrometheusMetricStubBuilder metric(String metricName) {
-    return new PrometheusMetricStubBuilder(metricName);
   }
 
   /**
@@ -82,22 +71,6 @@ public class PrometheusStubs {
     responseBody.put("status", "success");
     responseBody.put("data", data);
 
-    // Match the query on both the metric name and the series' product label. This mirrors how
-    // Prometheus itself filters: the generated PromQL embeds a product=~"(...)" selector, so a
-    // series is only returned when the query's product filter includes that series' product. Two
-    // metrics that share a cluster but differ in productLabelRegex (e.g. ACM managed vs
-    // self-managed) therefore behave exactly as they would against a real Prometheus.
-    Object queryMatcher;
-    String product = labels != null ? labels.get("product") : null;
-    if (product != null && !product.isBlank()) {
-      queryMatcher =
-          Map.of(
-              "and",
-              java.util.List.of(Map.of("contains", metricName), Map.of("contains", product)));
-    } else {
-      queryMatcher = Map.of("contains", metricName);
-    }
-
     Map<String, Object> mapping = new LinkedHashMap<>();
     mapping.put(
         "request",
@@ -107,7 +80,7 @@ public class PrometheusStubs {
             "urlPathPattern",
             "/api/v1/query_range",
             "queryParameters",
-            Map.of("query", queryMatcher)));
+            Map.of("query", Map.of("contains", metricName))));
     Map<String, Object> response = new LinkedHashMap<>();
     response.put("status", 200);
     response.put("headers", Map.of("Content-Type", "application/json"));
@@ -177,70 +150,5 @@ public class PrometheusStubs {
         .post("/__admin/mappings")
         .then()
         .statusCode(201);
-  }
-
-  /**
-   * Fluent builder for Prometheus metric stubs. Hides Prometheus label keys behind semantic method
-   * names and provides a clean API for test setup.
-   */
-  public class PrometheusMetricStubBuilder {
-    private final String metricName;
-    private final Map<String, String> labels = new LinkedHashMap<>();
-    private double metricValue;
-
-    PrometheusMetricStubBuilder(String metricName) {
-      this.metricName = Objects.requireNonNull(metricName, "metricName must not be null");
-      // billing_model is the only universal default
-      labels.put("billing_model", "marketplace");
-    }
-
-    public PrometheusMetricStubBuilder orgId(String orgId) {
-      labels.put("external_organization", orgId);
-      return this;
-    }
-
-    public PrometheusMetricStubBuilder displayName(String displayName) {
-      labels.put("display_name", displayName);
-      return this;
-    }
-
-    public PrometheusMetricStubBuilder instanceId(String instanceId) {
-      labels.put("billing_marketplace_instance_id", instanceId);
-      return this;
-    }
-
-    public PrometheusMetricStubBuilder product(String product) {
-      labels.put("product", product);
-      return this;
-    }
-
-    public PrometheusMetricStubBuilder billingProvider(String billingProvider) {
-      labels.put("billing_marketplace", billingProvider);
-      return this;
-    }
-
-    public PrometheusMetricStubBuilder billingAccountId(String billingAccountId) {
-      labels.put("billing_marketplace_account", billingAccountId);
-      return this;
-    }
-
-    public PrometheusMetricStubBuilder billingModel(String billingModel) {
-      labels.put("billing_model", billingModel);
-      return this;
-    }
-
-    public PrometheusMetricStubBuilder label(String key, String value) {
-      labels.put(key, value);
-      return this;
-    }
-
-    public PrometheusMetricStubBuilder value(double value) {
-      this.metricValue = value;
-      return this;
-    }
-
-    public void stub() {
-      stubQueryRangeWithMetricData(metricName, labels, metricValue);
-    }
   }
 }
