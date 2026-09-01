@@ -883,6 +883,30 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
     assertEquals(beforeB.getUuid(), afterB.getUuid(), "Contract B UUID must not change");
   }
 
+  @TestPlanName("contracts-sync-TC022")
+  @Test
+  void shouldApplyEntitlementEndDateWhenContractSegmentOmitsEndDate() {
+    String sku = RandomUtils.generateRandom();
+    OffsetDateTime terminationDate = OffsetDateTime.now().minusDays(7);
+    Contract contract =
+        Contract.buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, 10.0), sku).toBuilder()
+            .endDate(terminationDate)
+            .build();
+    stubContractsForOrgSync(contract);
+
+    Response syncResponse = service.syncContractsByOrg(orgId);
+
+    assertEquals(HttpStatus.SC_OK, syncResponse.statusCode(), "Sync should succeed");
+    syncResponse.then().body("status", equalTo(STATUS_SUCCESS));
+    var persisted = getPersistedContract(contract);
+    assertDatesAreEqual(terminationDate, persisted.getEndDate());
+    var subscription = getPersistedSubscription(contract);
+    assertDatesAreEqual(terminationDate, subscription.getEndDate());
+    assertTrue(
+        persisted.getEndDate().isBefore(OffsetDateTime.now()),
+        "Contract should be terminated from entitlementDates.endDate");
+  }
+
   @TestPlanName("contracts-sync-TC021")
   @Test
   void shouldSyncAwsEntitlementWhenLicenseArnIsAbsent() {
@@ -1143,6 +1167,17 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
             () ->
                 new AssertionError(
                     "No contract for subscriptionNumber=" + expected.getSubscriptionNumber()));
+  }
+
+  private com.redhat.swatch.contract.test.model.Subscription getPersistedSubscription(
+      Contract expected) {
+    return service.getSubscriptionsByOrgId(orgId).stream()
+        .filter(s -> expected.getSubscriptionNumber().equals(s.getSubscriptionNumber()))
+        .findFirst()
+        .orElseThrow(
+            () ->
+                new AssertionError(
+                    "No subscription for subscriptionNumber=" + expected.getSubscriptionNumber()));
   }
 
   private static String awsDimensionFor(MetricId metricId) {

@@ -183,11 +183,11 @@ public interface ContractEntityMapper {
 
   @Named("endDate")
   default OffsetDateTime extractEndDate(PartnerEntitlementV1 entitlement, SaasContractV1 contract) {
-    // If the start_date is populated then take end_date from the contract
-    if (contract != null && contract.getStartDate() != null) {
+    if (contract != null && contract.getEndDate() != null) {
       return truncateToMicroPrecision(contract.getEndDate());
     }
-    if (entitlement.getEntitlementDates() != null) {
+    if (entitlement.getEntitlementDates() != null
+        && entitlement.getEntitlementDates().getEndDate() != null) {
       return truncateToMicroPrecision(entitlement.getEntitlementDates().getEndDate());
     }
     return null;
