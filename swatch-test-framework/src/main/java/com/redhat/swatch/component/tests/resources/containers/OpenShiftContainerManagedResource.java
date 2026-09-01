@@ -59,7 +59,6 @@ public abstract class OpenShiftContainerManagedResource extends ManagedResource 
 
     if (loggingHandler == null) {
       loggingHandler = new OpenShiftLoggingHandler(podLabels(), containerName(), context);
-      loggingHandler.startWatching();
     }
 
     running = true;
@@ -86,8 +85,8 @@ public abstract class OpenShiftContainerManagedResource extends ManagedResource 
 
   @Override
   public int getMappedPort(int port) {
-    return client.port(
-        serviceName(), portsMapping.getOrDefault(port, port), context.getOwner(), podLabels());
+    int mapped = portsMapping.getOrDefault(port, port);
+    return client.port(serviceName(), mapped, context.getOwner());
   }
 
   @Override

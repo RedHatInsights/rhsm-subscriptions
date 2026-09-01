@@ -57,6 +57,7 @@ import org.apache.http.HttpStatus;
 import org.candlepin.clock.ApplicationClock;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import utils.RbacAccessTestHelper;
 
 @ComponentTest(name = "swatch-contracts")
 public class BaseContractComponentTest {
@@ -80,11 +81,13 @@ public class BaseContractComponentTest {
   protected static final ApplicationClock clock = new ApplicationClock();
 
   protected String orgId;
+  protected RbacAccessTestHelper rbacHelper;
   private List<String> orgIds = new ArrayList<>();
 
   @BeforeEach
   void setUp() {
     orgId = givenOrgId();
+    rbacHelper = new RbacAccessTestHelper(unleash, wiremock, orgId);
   }
 
   @AfterEach
