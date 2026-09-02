@@ -274,7 +274,7 @@ public abstract class BaseKubernetesClient<
      * Konflux nproc via Fabric8's unbounded OkHttp dispatcher.
      */
     boolean needsToRecreate() {
-      return !process.isAlive();
+      return !process.isAlive() || process.errorOccurred();
     }
   }
 }
