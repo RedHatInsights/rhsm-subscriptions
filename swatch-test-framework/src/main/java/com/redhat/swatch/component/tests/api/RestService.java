@@ -24,6 +24,7 @@ import static com.redhat.swatch.component.tests.utils.Ports.DEFAULT_HTTP_PORT;
 
 import com.redhat.swatch.component.tests.core.BaseService;
 import com.redhat.swatch.component.tests.logging.Log;
+import com.redhat.swatch.component.tests.utils.PooledRestAssured;
 import io.restassured.RestAssured;
 import io.restassured.specification.RequestSpecification;
 
@@ -45,6 +46,7 @@ public class RestService extends BaseService<RestService> {
   }
 
   public RequestSpecification given() {
+    PooledRestAssured.install();
     return RestAssured.given()
         .baseUri(HTTP + getHost())
         .basePath(basePath)
@@ -66,5 +68,6 @@ public class RestService extends BaseService<RestService> {
   public void stop() {
     super.stop();
     RestAssured.reset();
+    PooledRestAssured.install();
   }
 }
