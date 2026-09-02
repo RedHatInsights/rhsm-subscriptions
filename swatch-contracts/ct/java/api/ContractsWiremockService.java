@@ -49,13 +49,4 @@ public class ContractsWiremockService extends WiremockService {
   public SearchApiStubs forSearchApi() {
     return new SearchApiStubs(this);
   }
-
-  /**
-   * Get facade for stubbing Export API endpoints.
-   *
-   * @return ExportApiStubs facade
-   */
-  public ExportApiStubs forExportAPI() {
-    return new ExportApiStubs(this);
-  }
 }

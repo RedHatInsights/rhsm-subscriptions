@@ -42,6 +42,8 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public abstract class BaseKubernetesClient<
     T extends io.fabric8.kubernetes.client.KubernetesClient> {
@@ -160,7 +162,7 @@ public abstract class BaseKubernetesClient<
   }
 
   /** Resolve the port by the service. */
-  public int port(String serviceName, int port, Service service) {
+  public int port(String serviceName, int port, Service service, Map<String, String> podLabels) {
     String svcPortForwardKey = serviceName + "-" + port;
     KeyValueEntry<Service, LocalPortForwardWrapper> portForwardByService =
         portForwardsByService.get(svcPortForwardKey);
@@ -173,7 +175,8 @@ public abstract class BaseKubernetesClient<
               .portForward(port, SocketUtils.findAvailablePort(service));
       Log.trace(service, "Opening port forward from local port " + process.getLocalPort());
 
-      portForwardByService = new KeyValueEntry<>(service, new LocalPortForwardWrapper(process));
+      portForwardByService =
+          new KeyValueEntry<>(service, new LocalPortForwardWrapper(process, podLabels));
       portForwardsByService.put(svcPortForwardKey, portForwardByService);
     }
 
@@ -239,42 +242,33 @@ public abstract class BaseKubernetesClient<
     client = (T) initializeClient(config);
   }
 
-  public void close() {
-    try {
-      portForwardsByService
-          .values()
-          .forEach(
-              portForward -> {
-                try {
-                  closePortForward(portForward);
-                } catch (Exception ex) {
-                  Log.warn("Failed to close port forward", ex);
-                }
-              });
-    } finally {
-      portForwardsByService.clear();
-      if (client != null) {
-        client.close();
-        client = null;
-      }
-    }
-  }
-
   class LocalPortForwardWrapper {
     int localPort;
     LocalPortForward process;
+    Map<String, String> podLabels;
+    Set<String> podIds;
 
-    LocalPortForwardWrapper(LocalPortForward process) {
+    LocalPortForwardWrapper(LocalPortForward process, Map<String, String> podLabels) {
       this.localPort = process.getLocalPort();
       this.process = process;
+      this.podLabels = podLabels;
+      this.podIds = resolvePodIds();
     }
 
-    /**
-     * Recreate only when the tunnel itself died. Listing pods on every RestAssured call exhausts
-     * Konflux nproc via Fabric8's unbounded OkHttp dispatcher.
-     */
+    /** Needs to recreate the port forward if the pods have changed or the process was stopped. */
     boolean needsToRecreate() {
-      return !process.isAlive() || process.errorOccurred();
+      if (!process.isAlive()) {
+        return true;
+      }
+
+      Set<String> newPodIds = resolvePodIds();
+      return !podIds.containsAll(newPodIds);
+    }
+
+    private Set<String> resolvePodIds() {
+      return podsInService(podLabels).stream()
+          .map(p -> p.getMetadata().getName())
+          .collect(Collectors.toSet());
     }
   }
 }
