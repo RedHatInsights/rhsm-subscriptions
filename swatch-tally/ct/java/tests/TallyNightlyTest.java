@@ -31,6 +31,8 @@ import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.api.hbi.HbiDbConnector;
 import com.redhat.swatch.component.tests.api.hbi.HostConnector.SeededHost;
 import com.redhat.swatch.component.tests.api.hbi.HostStateManager;
+import com.redhat.swatch.component.tests.api.hbi.RhsmFacts;
+import com.redhat.swatch.component.tests.api.hbi.SystemProfileFacts;
 import com.redhat.swatch.component.tests.logging.Log;
 import com.redhat.swatch.tally.test.model.InstanceData;
 import java.time.OffsetDateTime;
@@ -119,12 +121,14 @@ public class TallyNightlyTest extends BaseTallyComponentTest {
 
     SeededHost host =
         hostManager
-            .createRhsmHost(orgId)
+            .createHost(orgId)
             .displayName(displayName)
-            .rhsmFact("RH_PROD", List.of("69"))
-            .rhsmFact("ARCHITECTURE", "x86_64")
-            .cores(cores)
-            .sockets(startingSockets)
+            .rhsmFacts(RhsmFacts.builder().defaultFacts().products(List.of("69")).build())
+            .setSystemProfileFacts(
+                SystemProfileFacts.builder()
+                    .numberOfCpus(cores)
+                    .numberOfSockets(startingSockets)
+                    .build())
             .insert();
 
     Log.info("Inserted host %s: %d cores, %d sockets", host.hostId(), cores, startingSockets);

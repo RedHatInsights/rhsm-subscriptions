@@ -79,7 +79,10 @@ public class HbiDbConnector implements HostConnector {
     String subscriptionManagerId = host.getSubscriptionManagerId(); // Can be null
 
     // Validate sockets before INSERT
-    if (host.getSockets() != null && host.getSockets() == 0) {
+    SystemProfileFacts profile = host.getSystemProfileFacts();
+    if (profile != null
+        && profile.getNumberOfSockets() != null
+        && profile.getNumberOfSockets() == 0) {
       throw new IllegalArgumentException(
           "Sockets cannot be 0 (would cause division by zero when calculating cores_per_socket)");
     }
@@ -238,50 +241,30 @@ public class HbiDbConnector implements HostConnector {
            ?::uuid, ?)
         """;
 
+    SystemProfileFacts profile = host.getSystemProfileFacts();
+
     try (PreparedStatement ps = conn.prepareStatement(sql)) {
       ps.setString(1, host.getOrgId());
       ps.setObject(2, hostId);
 
-      // Calculate cores_per_socket if not explicitly set
-      Integer coresPerSocket = host.getCoresPerSocket();
+      setNullableInt(ps, 3, profile == null ? null : profile.getCoresPerSocket());
+      setNullableInt(ps, 4, profile == null ? null : profile.getNumberOfSockets());
+      setNullableInt(ps, 5, profile == null ? null : profile.getNumberOfCpus());
+      setNullableInt(ps, 6, profile == null ? null : profile.getThreadsPerCore());
 
-      // Set nullable integers
-      if (coresPerSocket != null) {
-        ps.setInt(3, coresPerSocket);
-      } else {
-        ps.setNull(3, java.sql.Types.INTEGER);
-      }
+      ps.setString(7, profile == null ? null : profile.getInfrastructureType());
+      ps.setString(8, profile == null ? null : profile.getCloudProvider());
+      ps.setString(9, profile == null ? null : profile.getArch());
 
-      if (host.getSockets() != null) {
-        ps.setInt(4, host.getSockets());
-      } else {
-        ps.setNull(4, java.sql.Types.INTEGER);
-      }
-
-      if (host.getCores() != null) {
-        ps.setInt(5, host.getCores());
-      } else {
-        ps.setNull(5, java.sql.Types.INTEGER);
-      }
-
-      if (host.getThreadsPerCore() != null) {
-        ps.setInt(6, host.getThreadsPerCore());
-      } else {
-        ps.setNull(6, java.sql.Types.INTEGER);
-      }
-
-      ps.setString(7, host.getInfrastructureType());
-      ps.setString(8, host.getCloudProvider());
-      ps.setString(9, host.getArch());
-
-      if (host.getIsMarketplace() != null) {
-        ps.setBoolean(10, host.getIsMarketplace());
+      Boolean isMarketplace = profile == null ? null : profile.getIsMarketplace();
+      if (isMarketplace != null) {
+        ps.setBoolean(10, isMarketplace);
       } else {
         ps.setNull(10, java.sql.Types.BOOLEAN);
       }
 
-      ps.setString(11, host.getVirtualHostUuid());
-      ps.setString(12, host.getHostType());
+      ps.setString(11, profile == null ? null : profile.getHypervisorUuid());
+      ps.setString(12, profile == null ? null : profile.getHostType());
 
       ps.executeUpdate();
     } catch (SQLException e) {
@@ -315,23 +298,32 @@ public class HbiDbConnector implements HostConnector {
   private String buildFactsJson(Host host) {
     Map<String, Object> facts = new HashMap<>();
 
-    // Add fact groups if they have content
-    if (!host.getRhsmFacts().isEmpty()) {
-      facts.put("rhsm", host.getRhsmFacts());
+    // Add fact groups if they are present
+    if (host.getRhsmFacts() != null) {
+      facts.put("rhsm", host.getRhsmFacts().toMap());
     }
-    if (!host.getQpcFacts().isEmpty()) {
-      facts.put("qpc", host.getQpcFacts());
-      facts.put("yupana", host.getYupanaFacts());
+    if (host.getQpcFacts() != null) {
+      facts.put("qpc", host.getQpcFacts().toMap());
     }
-    if (!host.getSatelliteFacts().isEmpty()) {
-      facts.put("satellite", host.getSatelliteFacts());
-      facts.put("yupana", host.getYupanaFacts());
+    if (host.getSatelliteFacts() != null) {
+      facts.put("satellite", host.getSatelliteFacts().toMap());
+    }
+    if (host.getYupanaFacts() != null) {
+      facts.put("yupana", host.getYupanaFacts().toMap());
     }
 
     try {
       return objectMapper.writeValueAsString(facts);
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Failed to serialize facts to JSON", e);
+    }
+  }
+
+  private void setNullableInt(PreparedStatement ps, int index, Integer value) throws SQLException {
+    if (value != null) {
+      ps.setInt(index, value);
+    } else {
+      ps.setNull(index, java.sql.Types.INTEGER);
     }
   }
 }

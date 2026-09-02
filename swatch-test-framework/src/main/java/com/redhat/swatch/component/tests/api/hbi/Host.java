@@ -21,29 +21,24 @@
 package com.redhat.swatch.component.tests.api.hbi;
 
 import java.time.OffsetDateTime;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
 /**
  * Host data container with fluent setters.
  *
- * <p>Represents host data that will be seeded into the HBI database. Fields align with the
- * InventoryHost query to support different tally normalization scenarios.
+ * <p>Represents host data that will be seeded into the HBI database. There is a single kind of HBI
+ * host; what varies is which reporters contributed facts to it. Reporter facts are modeled by
+ * {@link RhsmFacts}, {@link SatelliteFacts}, and {@link QpcFacts}; system-profile fields by {@link
+ * SystemProfileFacts}.
  *
  * <p>Usage:
  *
  * <pre>
  * Host baseHost = new Host(orgId)
  *     .inventoryId("inv-123")
- *     .cores(4)
- *     .sockets(2);
- *
- * SeededHost seeded = hostManager.qpc(baseHost)
- *     .awsRhelLarge()
- *     .displayName("Custom")
- *     .insert();
+ *     .rhsmFacts(RhsmFacts.builder().defaultFacts().build())
+ *     .systemProfileFacts(SystemProfileFacts.builder().numberOfSockets(2).build());
  * </pre>
  */
 public class Host {
@@ -54,26 +49,17 @@ public class Host {
   private String subscriptionManagerId;
   private String insightsId;
   private String displayName;
-
-  // ===== System Profile Fields =====
-  private String infrastructureType; // "physical" or "virtual"
-  private Integer coresPerSocket;
-  private Integer numberOfSockets;
-  private Integer numberOfCpus;
-  private Integer threadsPerCore;
-  private String arch; // e.g., "x86_64"
-  private String cloudProvider; // e.g., "aws", "azure", null for physical
   private String providerId; // Cloud provider instance ID
-  private Boolean isMarketplace;
-  private String virtualHostUuid; // Hypervisor UUID (from system_profiles_static)
-  private String hostType; // e.g., "edge" (filtered by query line 153)
   private String account; // Deprecated, but included for completeness
 
-  // ===== Facts (stored as JSONB in HBI) =====
-  private Map<String, Object> rhsmFacts = new HashMap<>();
-  private Map<String, Object> qpcFacts = new HashMap<>();
-  private Map<String, Object> satelliteFacts = new HashMap<>();
-  private Map<String, Object> yupanaFacts = new HashMap<>();
+  // ===== System Profile =====
+  private SystemProfileFacts systemProfileFacts;
+
+  // ===== Reporter Facts (stored as JSONB in HBI) =====
+  private RhsmFacts rhsmFacts;
+  private QpcFacts qpcFacts;
+  private SatelliteFacts satelliteFacts;
+  private YupanaFacts yupanaFacts;
 
   // ===== Reporter Info =====
   private String reporter = "component-test";
@@ -105,27 +91,17 @@ public class Host {
     this.subscriptionManagerId = source.getSubscriptionManagerId();
     this.insightsId = source.getInsightsId();
     this.displayName = source.getDisplayName();
-
-    // ===== System Profile Fields =====
-    this.infrastructureType = source.getInfrastructureType(); // "physical" or "virtual"
-    this.coresPerSocket = source.getCoresPerSocket();
-    this.numberOfSockets = source.getSockets();
-    this.numberOfCpus = source.getCores();
-    this.threadsPerCore = source.getThreadsPerCore();
-    this.arch = source.getArch(); // e.g., "x86_64"
-    this.cloudProvider = source.getCloudProvider(); // e.g., "aws", "azure", null for physical
-    this.providerId = source.getProviderId(); // Cloud provider instance ID
-    this.isMarketplace = source.getIsMarketplace();
-    this.virtualHostUuid =
-        source.getVirtualHostUuid(); // Hypervisor UUID (from system_profiles_static)
-    this.hostType = source.getHostType(); // e.g., "edge" (filtered by query line 153)
+    this.providerId = source.getProviderId();
     this.account = source.getAccount(); // Deprecated, but included for completeness
 
-    // ====== Facts (stored as JSONB in HBI) ======
-    this.rhsmFacts = new HashMap<>(source.getRhsmFacts());
-    this.qpcFacts = new HashMap<>(source.getQpcFacts());
-    this.satelliteFacts = new HashMap<>(source.getSatelliteFacts());
-    this.yupanaFacts = new HashMap<>(source.getYupanaFacts());
+    // ===== System Profile =====
+    this.systemProfileFacts = source.getSystemProfileFacts();
+
+    // ====== Reporter Facts (stored as JSONB in HBI) ======
+    this.rhsmFacts = source.getRhsmFacts();
+    this.qpcFacts = source.getQpcFacts();
+    this.satelliteFacts = source.getSatelliteFacts();
+    this.yupanaFacts = source.getYupanaFacts();
 
     // ===== Reporter Info =====
     // This made need to be appended to the existing reporters array, not replaced.
@@ -164,60 +140,8 @@ public class Host {
     return this;
   }
 
-  // ===== System Profile Setters =====
-
-  public Host infrastructureType(String infrastructureType) {
-    this.infrastructureType = infrastructureType;
-    return this;
-  }
-
-  public Host coresPerSocket(Integer coresPerSocket) {
-    this.coresPerSocket = coresPerSocket;
-    return this;
-  }
-
-  public Host sockets(Integer numberOfSockets) {
-    this.numberOfSockets = numberOfSockets;
-    return this;
-  }
-
-  public Host cores(Integer numberOfCpus) {
-    this.numberOfCpus = numberOfCpus;
-    return this;
-  }
-
-  public Host threadsPerCore(Integer threadsPerCore) {
-    this.threadsPerCore = threadsPerCore;
-    return this;
-  }
-
-  public Host arch(String arch) {
-    this.arch = arch;
-    return this;
-  }
-
-  public Host cloudProvider(String cloudProvider) {
-    this.cloudProvider = cloudProvider;
-    return this;
-  }
-
   public Host providerId(String providerId) {
     this.providerId = providerId;
-    return this;
-  }
-
-  public Host isMarketplace(Boolean isMarketplace) {
-    this.isMarketplace = isMarketplace;
-    return this;
-  }
-
-  public Host virtualHostUuid(String virtualHostUuid) {
-    this.virtualHostUuid = virtualHostUuid;
-    return this;
-  }
-
-  public Host hostType(String hostType) {
-    this.hostType = hostType;
     return this;
   }
 
@@ -226,89 +150,32 @@ public class Host {
     return this;
   }
 
-  // ===== Facts Setters =====
+  // ===== System Profile Setter =====
 
-  /**
-   * Add a RHSM fact (stored in h.facts->'rhsm' in HBI).
-   *
-   * <p>Common RHSM facts: IS_VIRTUAL, RH_PROD, ARCHITECTURE, CORES, SOCKETS, BILLING_MODEL,
-   * SYSPURPOSE_ROLE, SYSPURPOSE_SLA, SYSPURPOSE_USAGE
-   */
-  public Host rhsmFact(String key, Object value) {
-    this.rhsmFacts.put(key, value);
+  public Host systemProfileFacts(SystemProfileFacts systemProfileFacts) {
+    this.systemProfileFacts = systemProfileFacts;
     return this;
   }
 
-  /**
-   * Add multiple RHSM facts (stored in h.facts->'rhsm' in HBI).
-   *
-   * <p>Common RHSM facts: IS_VIRTUAL, RH_PROD, ARCHITECTURE, CORES, SOCKETS, BILLING_MODEL,
-   * SYSPURPOSE_ROLE, SYSPURPOSE_SLA, SYSPURPOSE_USAGE
-   */
-  public Host rhsmFacts(Map<String, Object> rhsmFacts) {
-    this.rhsmFacts.putAll(rhsmFacts);
+  // ===== Reporter Facts Setters =====
+
+  public Host rhsmFacts(RhsmFacts rhsmFacts) {
+    this.rhsmFacts = rhsmFacts;
     return this;
   }
 
-  /**
-   * Add a QPC fact (stored in h.facts->'qpc' in HBI).
-   *
-   * <p>Common QPC facts: rh_products_installed, IS_RHEL
-   */
-  public Host qpcFact(String key, Object value) {
-    this.qpcFacts.put(key, value);
+  public Host qpcFacts(QpcFacts qpcFacts) {
+    this.qpcFacts = qpcFacts;
     return this;
   }
 
-  /**
-   * Add multiple QPC facts (stored in h.facts->'qpc' in HBI).
-   *
-   * <p>Common QPC facts: rh_products_installed, IS_RHEL
-   */
-  public Host qpcFacts(Map<String, Object> qpcFacts) {
-    this.qpcFacts.putAll(qpcFacts);
+  public Host satelliteFacts(SatelliteFacts satelliteFacts) {
+    this.satelliteFacts = satelliteFacts;
     return this;
   }
 
-  /**
-   * Add a Satellite fact (stored in h.facts->'satellite' in HBI).
-   *
-   * <p>Common Satellite facts: virtual_host_uuid, system_purpose_role, system_purpose_sla,
-   * system_purpose_usage
-   */
-  public Host satelliteFact(String key, Object value) {
-    this.satelliteFacts.put(key, value);
-    return this;
-  }
-
-  /**
-   * Add multiple Satellite facts (stored in h.facts->'satellite' in HBI).
-   *
-   * <p>Common Satellite facts: virtual_host_uuid, system_purpose_role, system_purpose_sla,
-   * system_purpose_usage
-   */
-  public Host satelliteFacts(Map<String, Object> satelliteFacts) {
-    this.satelliteFacts.putAll(satelliteFacts);
-    return this;
-  }
-
-  /**
-   * Add a Yapana fact (stored in h.facts->'yapana' in HBI).
-   *
-   * <p>Common Yapana facts: org_id, account, yupana_host_id, report_slice_id, report_platform_id
-   */
-  public Host yupanaFacts(String key, Object value) {
-    this.yupanaFacts.put(key, value);
-    return this;
-  }
-
-  /**
-   * Add multiple Yapana facts (stored in h.facts->'yapana' in HBI).
-   *
-   * <p>Common Yapana facts: org_id, account, yupana_host_id, report_slice_id, report_platform_id
-   */
-  public Host yupanaFacts(Map<String, Object> yupanaFacts) {
-    this.yupanaFacts.putAll(yupanaFacts);
+  public Host yupanaFacts(YupanaFacts yupanaFacts) {
+    this.yupanaFacts = yupanaFacts;
     return this;
   }
 
@@ -375,67 +242,31 @@ public class Host {
     return displayName;
   }
 
-  public String getInfrastructureType() {
-    return infrastructureType;
-  }
-
-  public Integer getCoresPerSocket() {
-    return coresPerSocket;
-  }
-
-  public Integer getSockets() {
-    return numberOfSockets;
-  }
-
-  public Integer getCores() {
-    return numberOfCpus;
-  }
-
-  public Integer getThreadsPerCore() {
-    return threadsPerCore;
-  }
-
-  public String getArch() {
-    return arch;
-  }
-
-  public String getCloudProvider() {
-    return cloudProvider;
-  }
-
   public String getProviderId() {
     return providerId;
-  }
-
-  public Boolean getIsMarketplace() {
-    return isMarketplace;
-  }
-
-  public String getVirtualHostUuid() {
-    return virtualHostUuid;
-  }
-
-  public String getHostType() {
-    return hostType;
   }
 
   public String getAccount() {
     return account;
   }
 
-  public Map<String, Object> getRhsmFacts() {
+  public SystemProfileFacts getSystemProfileFacts() {
+    return systemProfileFacts;
+  }
+
+  public RhsmFacts getRhsmFacts() {
     return rhsmFacts;
   }
 
-  public Map<String, Object> getQpcFacts() {
+  public QpcFacts getQpcFacts() {
     return qpcFacts;
   }
 
-  public Map<String, Object> getSatelliteFacts() {
+  public SatelliteFacts getSatelliteFacts() {
     return satelliteFacts;
   }
 
-  public Map<String, Object> getYupanaFacts() {
+  public YupanaFacts getYupanaFacts() {
     return yupanaFacts;
   }
 

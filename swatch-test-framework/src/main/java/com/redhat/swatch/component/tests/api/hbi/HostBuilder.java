@@ -21,23 +21,21 @@
 package com.redhat.swatch.component.tests.api.hbi;
 
 import com.redhat.swatch.component.tests.api.hbi.HostConnector.SeededHost;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * Builder for applying templates and customizations before inserting.
+ * Builder for applying reporter facts and customizations before inserting a {@link Host}.
  *
- * <p>Provides template methods for common infrastructure configurations and override methods for
- * specific fields.
+ * <p>Provides template methods for common infrastructure configurations and setters for attaching
+ * typed reporter facts ({@link RhsmFacts}, {@link SatelliteFacts}, {@link QpcFacts}) and {@link
+ * SystemProfileFacts}. Attaching a reporter's facts also registers that reporter on the host.
  */
 public class HostBuilder {
   private final HostStateManager manager;
   private final Host host;
-  private static final String RHEL_PRODUCT_ID = "69";
 
   HostBuilder(HostStateManager manager, Host host) {
     this.manager = manager;
@@ -48,121 +46,99 @@ public class HostBuilder {
 
   /** Apply physical RHEL defaults (infrastructure=physical, IS_VIRTUAL=false, RHEL product). */
   public HostBuilder physicalRhelDefaults() {
-    host.infrastructureType("physical");
-    host.arch("x86_64");
-    host.rhsmFact("IS_VIRTUAL", "false");
-    host.rhsmFact("RH_PROD", List.of(RHEL_PRODUCT_ID));
-    host.rhsmFact("ARCHITECTURE", "x86_64");
+    rhsmFacts(RhsmFacts.builder().defaultFacts().build());
+    setSystemProfileFacts(
+        SystemProfileFacts.builder().infrastructureType("physical").arch("x86_64").build());
+    return this;
+  }
+
+  /** Physical RHEL host with the given socket/core counts. */
+  public HostBuilder physicalRhel(int sockets, int cores) {
+    physicalRhelDefaults();
+    setSystemProfileFacts(
+        host.getSystemProfileFacts().toBuilder()
+            .numberOfSockets(sockets)
+            .numberOfCpus(cores)
+            .build());
+    displayName(
+        getOrDefault(host.getDisplayName(), generateName("physical", "RHEL", sockets, cores)));
     return this;
   }
 
   /** Physical RHEL host with 1 socket, 0 cores. */
   public HostBuilder physicalRhel1Socket0Cores() {
-    physicalRhelDefaults();
-    host.sockets(1);
-    host.cores(0);
-    host.displayName(getOrDefault(host.getDisplayName(), generateName("physical", "RHEL", 1, 0)));
-    return this;
+    return physicalRhel(1, 0);
   }
 
   /** Physical RHEL host with 2 sockets, 2 cores. */
   public HostBuilder physicalRhel2Socket2Cores() {
-    physicalRhelDefaults();
-    host.sockets(2);
-    host.cores(2);
-    host.displayName(getOrDefault(host.getDisplayName(), generateName("physical", "RHEL", 2, 2)));
-    return this;
+    return physicalRhel(2, 2);
   }
 
   /** Physical RHEL host with 8 sockets, 8 cores. */
   public HostBuilder physicalRhel8Sockets8Cores() {
-    physicalRhelDefaults();
-    host.sockets(8);
-    host.cores(8);
-    host.displayName(getOrDefault(host.getDisplayName(), generateName("physical", "RHEL", 8, 8)));
-    return this;
+    return physicalRhel(8, 8);
   }
 
   // ===== AWS RHEL Templates =====
 
   /** Apply AWS RHEL defaults (infrastructure=virtual, cloudProvider=aws, RHEL product). */
   public HostBuilder awsRhelDefaults() {
-    host.infrastructureType("virtual");
-    host.cloudProvider("aws");
-    host.arch("x86_64");
-    host.providerId("i-test-" + getUUIDOfLength(12));
-    host.rhsmFact("IS_VIRTUAL", "true");
-    host.rhsmFact("RH_PROD", List.of(RHEL_PRODUCT_ID));
-    host.rhsmFact("ARCHITECTURE", "x86_64");
+    rhsmFacts(RhsmFacts.builder().defaultFacts().isVirtual(true).build());
+    setSystemProfileFacts(
+        SystemProfileFacts.builder()
+            .infrastructureType("virtual")
+            .cloudProvider("aws")
+            .arch("x86_64")
+            .build());
+    providerId("i-test-" + getUUIDOfLength(12));
+    return this;
+  }
+
+  /** AWS RHEL host with the given socket/core counts. */
+  public HostBuilder awsRhel(int sockets, int cores) {
+    awsRhelDefaults();
+    setSystemProfileFacts(
+        host.getSystemProfileFacts().toBuilder()
+            .numberOfSockets(sockets)
+            .numberOfCpus(cores)
+            .build());
+    displayName(
+        getOrDefault(host.getDisplayName(), generateName("virtual", "RHEL", sockets, cores)));
     return this;
   }
 
   /** AWS RHEL host - small instance (t3.medium equivalent). */
   public HostBuilder awsRhelSockets1Cores1() {
-    awsRhelDefaults();
-    host.sockets(1);
-    host.cores(1);
-    host.displayName(getOrDefault(host.getDisplayName(), generateName("virtual", "RHEL", 1, 1)));
+    return awsRhel(1, 1);
+  }
+
+  // ===== Reporter Facts =====
+
+  /** Attach RHSM Conduit facts and register {@code rhsm-conduit} as a reporter. */
+  public HostBuilder rhsmFacts(RhsmFacts rhsmFacts) {
+    host.rhsmFacts(rhsmFacts);
+    setPrimaryReporter("rhsm-conduit");
     return this;
   }
 
-  // ===== Add additional Reporters =====
-
-  public HostBuilder addRhsmReporter() {
-    // clear out any existing rhsm facts
-    host.getRhsmFacts().clear();
-    // copies the default rhsm facts from the rhsm host
-    host.rhsmFacts(new RhsmHost(host.getOrgId()).getRhsmFacts());
-    // add the rhsm reporter
-    host.reporter("rhsm-conduit");
-    host.reporters(
-        Stream.concat(Stream.of("rhsm-conduit"), Arrays.stream(host.getReporters()))
-            .toArray(String[]::new));
-
+  /** Attach Satellite facts and register {@code satellite} as a reporter. */
+  public HostBuilder satelliteFacts(SatelliteFacts satelliteFacts) {
+    host.satelliteFacts(satelliteFacts);
+    setPrimaryReporter("satellite");
     return this;
   }
 
-  public HostBuilder addSatelliteReporter() {
-    // clear out any existing satellite facts
-    host.getSatelliteFacts().clear();
-    // copies the default rhsm satellite from the satellite host
-    host.satelliteFacts(new SatelliteHost("").getSatelliteFacts());
-    // add the satellite reporter
-    host.reporter("satellite");
-    host.reporters(
-        Stream.concat(Stream.of("satellite"), Arrays.stream(host.getReporters()))
-            .toArray(String[]::new));
-
+  /** Attach QPC/discovery facts and register {@code discovery} as a reporter. */
+  public HostBuilder qpcFacts(QpcFacts qpcFacts) {
+    host.qpcFacts(qpcFacts);
+    setPrimaryReporter("discovery");
     return this;
   }
 
-  public HostBuilder addQpcReporter() {
-    // clear out any existing qpc facts
-    host.getQpcFacts().clear();
-    // copies the default qpc facts from the qpc host
-    host.qpcFacts(new QpcHost("").getQpcFacts());
-    // add the qpc reporter
-    host.reporter("discovery");
-    host.reporters(
-        Stream.concat(Stream.of("satellite"), Arrays.stream(host.getReporters()))
-            .toArray(String[]::new));
-
-    return this;
-  }
-
-  public HostBuilder addReporters(ArrayList<String> reporters) {
-    if (reporters != null) {
-      if (reporters.contains("rhsm-conduit")) {
-        addRhsmReporter();
-      }
-      if (reporters.contains("satellite")) {
-        addSatelliteReporter();
-      }
-      if (reporters.contains("qpc")) {
-        addQpcReporter();
-      }
-    }
-
+  /** Set the system-profile fields (persisted to {@code hbi.system_profiles_static}). */
+  public HostBuilder setSystemProfileFacts(SystemProfileFacts systemProfileFacts) {
+    host.systemProfileFacts(systemProfileFacts);
     return this;
   }
 
@@ -183,120 +159,8 @@ public class HostBuilder {
     return this;
   }
 
-  public HostBuilder cores(Integer cores) {
-    host.cores(cores);
-    return this;
-  }
-
-  public HostBuilder sockets(Integer sockets) {
-    host.sockets(sockets);
-    return this;
-  }
-
-  public HostBuilder arch(String arch) {
-    host.arch(arch);
-    return this;
-  }
-
-  public HostBuilder infrastructureType(String infrastructureType) {
-    host.infrastructureType(infrastructureType);
-    return this;
-  }
-
-  public HostBuilder cloudProvider(String cloudProvider) {
-    host.cloudProvider(cloudProvider);
-    return this;
-  }
-
   public HostBuilder providerId(String providerId) {
     host.providerId(providerId);
-    return this;
-  }
-
-  public HostBuilder rhsmFact(String key, Object value) {
-    host.rhsmFact(key, value);
-    return this;
-  }
-
-  public HostBuilder qpcFact(String key, Object value) {
-    host.qpcFact(key, value);
-    return this;
-  }
-
-  public HostBuilder satelliteFact(String key, Object value) {
-    host.satelliteFact(key, value);
-    return this;
-  }
-
-  // ===== QPC Fact Convenience Methods =====
-
-  /**
-   * Set the list of Red Hat products installed (detected by QPC scan).
-   *
-   * <p>Maps to h.facts->'qpc'->>'rh_products_installed' in the InventoryHost query.
-   *
-   * <p>Common product IDs: "69" (RHEL), "479" (RHEL for SAP), etc.
-   */
-  public HostBuilder qpcProductsInstalled(List<Object> productIds) {
-    host.qpcFact("rh_products_installed", productIds);
-    return this;
-  }
-
-  /**
-   * Set whether QPC detected this host as RHEL.
-   *
-   * <p>Maps to h.facts->'qpc'->>'IS_RHEL' in the InventoryHost query.
-   */
-  public HostBuilder isRhel(boolean isRhel) {
-    host.qpcFact("IS_RHEL", String.valueOf(isRhel));
-    return this;
-  }
-
-  // ===== Satellite Fact Convenience Methods =====
-
-  /**
-   * Set the virtual host UUID (hypervisor UUID) in Satellite facts.
-   *
-   * <p>Maps to h.facts->'satellite'->>'virtual_host_uuid' in the InventoryHost query.
-   */
-  public HostBuilder hypervisorUuid(String uuid) {
-    host.satelliteFact("virtual_host_uuid", uuid);
-    return this;
-  }
-
-  /**
-   * Set the system purpose role in Satellite facts.
-   *
-   * <p>Maps to h.facts->'satellite'->>'system_purpose_role' in the InventoryHost query.
-   *
-   * <p>Common values: "Red Hat Enterprise Linux Server", "Red Hat Enterprise Linux Workstation"
-   */
-  public HostBuilder systemPurposeRole(String role) {
-    host.satelliteFact("system_purpose_role", role);
-    return this;
-  }
-
-  /**
-   * Set the system purpose SLA in Satellite facts.
-   *
-   * <p>Maps to h.facts->'satellite'->>'system_purpose_sla' in the InventoryHost query.
-   *
-   * <p>Common values: "Premium", "Standard", "Self-Support"
-   */
-  public HostBuilder systemPurposeSla(String sla) {
-    host.satelliteFact("system_purpose_sla", sla);
-    return this;
-  }
-
-  /**
-   * Set the system purpose usage in Satellite facts.
-   *
-   * <p>Maps to h.facts->'satellite'->>'system_purpose_usage' in the InventoryHost query.
-   *
-   * <p>Common values: "Production", "Development/Test", "Disaster Recovery"
-   */
-  public HostBuilder systemPurposeUsage(String usage) {
-    host.satelliteFact("system_purpose_usage", usage);
     return this;
   }
 
@@ -305,25 +169,36 @@ public class HostBuilder {
   /**
    * Finalize and insert the host into HBI.
    *
-   * <p>Calculates derived fields (cores_per_socket) and seeds via connector.
+   * <p>Calculates derived fields (cores_per_socket), synthesizes Yupana facts when a Satellite or
+   * QPC reporter is present, and seeds via connector.
    *
    * @return information about the seeded host
    */
   public SeededHost insert() {
-    // if Salellite or QPC host set Yupana facts
-    if (host instanceof SatelliteHost || host instanceof QpcHost) {
-      setYupanaFacts();
+    if (host.getSatelliteFacts() != null || host.getQpcFacts() != null) {
+      setYupanaFactsIfMissing();
     }
 
-    // Calculate derived fields
-    if (host.getCores() != null && host.getSockets() != null && host.getSockets() > 0) {
-      if (host.getCoresPerSocket() == null) {
-        host.coresPerSocket(host.getCores() / host.getSockets());
-      }
+    SystemProfileFacts profile = host.getSystemProfileFacts();
+    if (profile != null
+        && profile.getNumberOfCpus() != null
+        && profile.getNumberOfSockets() != null
+        && profile.getNumberOfSockets() > 0) {
+      int computedCoresPerSocket = profile.getNumberOfCpus() / profile.getNumberOfSockets();
+      host.systemProfileFacts(profile.withComputedCoresPerSocket(computedCoresPerSocket));
     }
 
     // Seed via manager (which tracks the host)
     return manager.seed(host);
+  }
+
+  private void setPrimaryReporter(String reporterName) {
+    if (Arrays.stream(host.getReporters()).noneMatch(reporterName::equals)) {
+      host.reporters(
+          Stream.concat(Stream.of(reporterName), Arrays.stream(host.getReporters()))
+              .toArray(String[]::new));
+    }
+    host.reporter(reporterName);
   }
 
   private String getOrDefault(String value, String defaultValue) {
@@ -343,38 +218,28 @@ public class HostBuilder {
         prefix, instanceType, socketCount, coreCount, getUUIDOfLength(5));
   }
 
-  private void setYupanaFacts() {
-    // Apply Yupana fact defaults (only if not already set)
-
-    if (!host.getYupanaFacts().containsKey("org_id")) {
-      host.yupanaFacts("org_id", host.getOrgId());
+  private void setYupanaFactsIfMissing() {
+    if (host.getYupanaFacts() != null) {
+      return;
     }
 
-    if (!host.getYupanaFacts().containsKey("source")) {
-      if (host instanceof SatelliteHost) {
-        host.yupanaFacts("source", "satellite");
-      } else if (host instanceof QpcHost) {
-        host.yupanaFacts("source", "discovery");
-      } else {
-        host.yupanaFacts("source", "");
-      }
+    String source;
+    if (host.getSatelliteFacts() != null) {
+      source = "satellite";
+    } else if (host.getQpcFacts() != null) {
+      source = "discovery";
+    } else {
+      source = "";
     }
 
-    if (!host.getYupanaFacts().containsKey("account")) {
-      if (host.getAccount() == null) {
-        host.yupanaFacts("account", UUID.randomUUID().toString());
-      } else {
-        host.yupanaFacts("account", host.getAccount());
-      }
-    }
-    if (!host.getYupanaFacts().containsKey("yupana_host_id")) {
-      host.yupanaFacts("yupana_host_id", UUID.randomUUID().toString());
-    }
-    if (!host.getYupanaFacts().containsKey("report_slice_id")) {
-      host.yupanaFacts("report_slice_id", UUID.randomUUID().toString());
-    }
-    if (!host.getYupanaFacts().containsKey("report_platform_id")) {
-      host.yupanaFacts("report_platform_id", UUID.randomUUID().toString());
-    }
+    host.yupanaFacts(
+        YupanaFacts.builder()
+            .orgId(host.getOrgId())
+            .source(source)
+            .account(host.getAccount() != null ? host.getAccount() : UUID.randomUUID().toString())
+            .yupanaHostId(UUID.randomUUID().toString())
+            .reportSliceId(UUID.randomUUID().toString())
+            .reportPlatformId(UUID.randomUUID().toString())
+            .build());
   }
 }

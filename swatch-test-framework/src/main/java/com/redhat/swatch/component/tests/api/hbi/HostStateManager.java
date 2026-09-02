@@ -28,25 +28,21 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Host state manager - orchestrates host seeding with templates and lifecycle tracking.
+ * Host state manager - orchestrates host seeding and lifecycle tracking.
  *
- * <p>Provides entry points for different reporter types (QPC, RHSM, Satellite), applies templates,
- * tracks seeded hosts, and handles cleanup.
+ * <p>There is a single kind of HBI host; a {@link HostBuilder} always builds one {@link Host}. What
+ * varies is which reporters contributed facts to it - attach those via {@link
+ * HostBuilder#rhsmFacts}, {@link HostBuilder#satelliteFacts}, and {@link HostBuilder#qpcFacts}.
  *
  * <p>Usage:
  *
  * <pre>
  * HostStateManager hostManager = new HostStateManager(connector);
  *
- * // Create base host
- * QpcHost qpcHost = new QpcHost(orgId)
- *     .cores(4)
- *     .sockets(2);
- *
- * // Apply template and insert
- * SeededHost seeded = hostManager.qpc(qpcHost)
- *     .awsRhelLarge()
+ * SeededHost seeded = hostManager.createHost(orgId)
  *     .displayName("Custom")
+ *     .rhsmFacts(RhsmFacts.builder().defaultFacts().build())
+ *     .setSystemProfileFacts(SystemProfileFacts.builder().numberOfSockets(2).build())
  *     .insert();
  *
  * // Cleanup (or automatic in @AfterEach)
@@ -62,7 +58,7 @@ public class HostStateManager {
     this.connector = Objects.requireNonNull(connector, "connector is required");
   }
 
-  // ===== Entry Points for Different Reporter Types =====
+  // ===== Entry Points =====
 
   /**
    * Start building a host with pre-configured host.
@@ -86,138 +82,6 @@ public class HostStateManager {
    */
   public HostBuilder createHost(String orgId) {
     return new HostBuilder(this, new Host(orgId));
-  }
-
-  // ===== QPC Reporter =====
-
-  /**
-   * Start building a QPC-reported host with pre-configured host.
-   *
-   * <p>Takes an existing Host and copies it, then applies QPC defaults for any unset fields.
-   *
-   * <p>QPC defaults applied (only if not already set):
-   *
-   * <ul>
-   *   <li>reporter: "qpc"
-   *   <li>reporters: ["qpc"]
-   *   <li>arch: "x86_64"
-   * </ul>
-   *
-   * @param host the pre-configured host with fields already set
-   * @return builder for applying templates and additional overrides
-   */
-  public HostBuilder createQpcHost(Host host) {
-    return new HostBuilder(this, new QpcHost(host));
-  }
-
-  /**
-   * Start building a QPC-reported host from scratch.
-   *
-   * <p>Creates a new Host with orgId and applies all QPC defaults.
-   *
-   * <p>Defaults applied:
-   *
-   * <ul>
-   *   <li>reporter: "qpc"
-   *   <li>reporters: ["qpc"]
-   *   <li>arch: "x86_64"
-   * </ul>
-   *
-   * @param orgId the organization ID
-   * @return builder for applying templates
-   */
-  public HostBuilder createQpcHost(String orgId) {
-    return new HostBuilder(this, new QpcHost(orgId));
-  }
-
-  // ===== Satellite Reporter =====
-
-  /**
-   * Start building a Satellite-reported host with pre-configured host.
-   *
-   * <p>Takes an existing Host and copies it, then applies Satellite defaults for any unset fields.
-   *
-   * <p>Use this when you want to pre-configure fields that will be preserved through template
-   * application:
-   *
-   * <pre>
-   * Host preConfigured = new Host(orgId)
-   *     .inventoryId("inv-123")
-   *     .subscriptionManagerId("subman-456")
-   *     .satelliteFact("virtual_host_uuid", "hypervisor-123");
-   *
-   * hostManager.satellite(preConfigured)
-   *     .awsRhelLarge()
-   *     .insert();
-   * </pre>
-   *
-   * <p>Satellite defaults applied (only if not already set):
-   *
-   * <ul>
-   *   <li>reporter: "satellite"
-   *   <li>reporters: ["satellite"]
-   *   <li>arch: "x86_64"
-   *   <li>system_purpose_role: "Red Hat Enterprise Linux Server"
-   *   <li>system_purpose_sla: "Premium"
-   *   <li>system_purpose_usage: "Production"
-   * </ul>
-   *
-   * <p>Satellite-specific facts from InventoryHost query:
-   *
-   * <ul>
-   *   <li>h.facts->'satellite'->>'virtual_host_uuid' (hypervisor UUID)
-   *   <li>h.facts->'satellite'->>'system_purpose_role'
-   *   <li>h.facts->'satellite'->>'system_purpose_sla'
-   *   <li>h.facts->'satellite'->>'system_purpose_usage'
-   * </ul>
-   *
-   * @param host the pre-configured host with fields already set
-   * @return builder for applying templates and additional overrides
-   */
-  public HostBuilder createSatelliteHost(Host host) {
-    return new HostBuilder(this, new SatelliteHost(host));
-  }
-
-  /**
-   * Start building a Satellite-reported host from scratch.
-   *
-   * <p>Creates a new Host with orgId and applies all Satellite defaults.
-   *
-   * <p>Use this for simple tests where you don't need to pre-configure fields:
-   *
-   * <pre>
-   * hostManager.satellite(orgId)
-   *     .physicalRhel4Socket()
-   *     .displayName("Custom Name")
-   *     .insert();
-   * </pre>
-   *
-   * <p>Defaults applied:
-   *
-   * <ul>
-   *   <li>reporter: "satellite"
-   *   <li>reporters: ["satellite"]
-   *   <li>arch: "x86_64"
-   *   <li>system_purpose_role: "Red Hat Enterprise Linux Server"
-   *   <li>system_purpose_sla: "Premium"
-   *   <li>system_purpose_usage: "Production"
-   * </ul>
-   *
-   * @param orgId the organization ID
-   * @return builder for applying templates
-   */
-  public HostBuilder createSatelliteHost(String orgId) {
-    return new HostBuilder(this, new SatelliteHost(orgId));
-  }
-
-  // ===== RHSM CONDUIT Reporter =====
-
-  public HostBuilder createRhsmHost(Host host) {
-    return new HostBuilder(this, new RhsmHost(host));
-  }
-
-  public HostBuilder createRhsmHost(String orgId) {
-    return new HostBuilder(this, new RhsmHost(orgId));
   }
 
   // ===== Internal Seed Method (called by HostBuilder.insert()) =====

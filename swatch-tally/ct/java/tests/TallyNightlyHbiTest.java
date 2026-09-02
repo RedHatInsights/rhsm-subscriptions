@@ -29,6 +29,9 @@ import static utils.TallyTestProducts.RHEL_FOR_X86;
 import com.redhat.swatch.component.tests.api.hbi.HbiDbConnector;
 import com.redhat.swatch.component.tests.api.hbi.HostConnector.SeededHost;
 import com.redhat.swatch.component.tests.api.hbi.HostStateManager;
+import com.redhat.swatch.component.tests.api.hbi.RhsmFacts;
+import com.redhat.swatch.component.tests.api.hbi.SatelliteFacts;
+import com.redhat.swatch.component.tests.api.hbi.SystemProfileFacts;
 import com.redhat.swatch.tally.test.model.ServiceLevelType;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -79,7 +82,7 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
     // Given: No specific setup needed beyond @BeforeEach
 
     // When: Inserting a RHEL host into HBI database
-    SeededHost host = hostManager.createRhsmHost(orgId).physicalRhel1Socket0Cores().insert();
+    SeededHost host = hostManager.createHost(orgId).physicalRhel1Socket0Cores().insert();
 
     // Then: Host is tracked with expected metadata
     assertNotNull(host.hostId(), "Host ID should be generated");
@@ -104,19 +107,20 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
     // Given: No specific setup needed beyond @BeforeEach
 
     // When: Inserting multiple hosts into HBI database
-    SeededHost host1 = hostManager.createRhsmHost(orgId).physicalRhel1Socket0Cores().insert();
+    SeededHost host1 = hostManager.createHost(orgId).physicalRhel1Socket0Cores().insert();
 
     SeededHost host2 =
         hostManager
-            .createRhsmHost(orgId)
-            .infrastructureType("physical")
-            .arch("x86_64")
-            .rhsmFact("IS_VIRTUAL", "false")
-            .rhsmFact("RH_PROD", List.of(RHEL_PRODUCT_ID))
-            .rhsmFact("ARCHITECTURE", "x86_64")
-            .sockets(1)
-            .cores(0)
+            .createHost(orgId)
             .displayName("Test Host - 1")
+            .rhsmFacts(RhsmFacts.builder().isVirtual(false).products(List.of(RHEL_PRODUCT_ID)).build())
+            .setSystemProfileFacts(
+                SystemProfileFacts.builder()
+                    .infrastructureType("physical")
+                    .arch("x86_64")
+                    .numberOfSockets(1)
+                    .numberOfCpus(0)
+                    .build())
             .insert();
 
     // Then: Hosts are tracked with expected metadata
@@ -141,32 +145,34 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
     // When: Inserting multiple hosts into HBI database
     SeededHost host =
         hostManager
-            .createSatelliteHost(orgId)
-            // Satellite Facts replicated from prod data
-            .satelliteFact("satellite_version", "6.17.6.2")
-            .satelliteFact("virtual_host_name", "virt-name-for-testing.com")
-            .satelliteFact("virtual_host_uuid", UUID.randomUUID().toString())
-            .satelliteFact("system_purpose_sla", "Standard")
-            .satelliteFact("system_purpose_role", "Red Hat Enterprise Linux Server")
-            .satelliteFact("system_purpose_usage", "Component Testing")
-            .addRhsmReporter()
-            // RHEL Facts replicated from prod data
-            .infrastructureType("physical")
-            .cloudProvider("aws")
-            .arch("x86_64")
+            .createHost(orgId)
+            // Satellite facts replicated from prod data
+            .satelliteFacts(
+                SatelliteFacts.builder()
+                    .hypervisorUuid(UUID.randomUUID().toString())
+                    .sla("Standard")
+                    .role("Red Hat Enterprise Linux Server")
+                    .usage("Component Testing")
+                    .build())
+            // RHEL facts replicated from prod data. Setting these after the satellite facts
+            // invokes the normalization logic that overwrites the satellite SLA/role/usage.
+            .rhsmFacts(
+                RhsmFacts.builder()
+                    .isVirtual(false)
+                    .products(List.of("69"))
+                    .sla("Premium")
+                    .systemPurposeRole("Red Hat Enterprise Linux Server")
+                    .usage("Component Testing")
+                    .build())
+            .setSystemProfileFacts(
+                SystemProfileFacts.builder()
+                    .infrastructureType("physical")
+                    .cloudProvider("aws")
+                    .arch("x86_64")
+                    .numberOfSockets(1)
+                    .numberOfCpus(8)
+                    .build())
             .providerId(UUID.randomUUID().toString())
-            .rhsmFact("IS_VIRTUAL", "false")
-            .rhsmFact("RH_PROD", List.of("69"))
-            .rhsmFact("ARCHITECTURE", "x86_64")
-            .rhsmFact("Memory", 63)
-            // Set to envoke the nomalization logic that will overwrite the normalize from satellite
-            // facts with the
-            .rhsmFact("SYSPURPOSE_SLA", "Premium")
-            .rhsmFact("SYSPURPOSE_ROLE", "Red Hat Enterprise Linux Server")
-            .rhsmFact("SYSPURPOSE_USAGE", "Component Testing")
-            .sockets(1)
-            .cores(8)
-            .arch("x86_64")
             .insert();
 
     assertNotNull(host.hostId(), "Host ID should be generated");
@@ -204,32 +210,35 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
     // When: Inserting multiple hosts into HBI database
     SeededHost host =
         hostManager
-            .createSatelliteHost(orgId)
-            // Satellite Facts replicated from prod data
-            .satelliteFact("satellite_version", "6.17.6.2")
-            .satelliteFact("virtual_host_name", "virt-name-for-testing.com")
-            .satelliteFact("virtual_host_uuid", UUID.randomUUID().toString())
-            .satelliteFact("system_purpose_sla", "Standard")
-            .satelliteFact("system_purpose_role", "Red Hat Enterprise Linux Server")
-            .satelliteFact("system_purpose_usage", "Component Testing")
-            .addRhsmReporter()
-            // RHEL Facts replicated from prod data
-            .infrastructureType("physical")
-            .cloudProvider("aws")
-            .arch("x86_64")
+            .createHost(orgId)
+            // Satellite facts replicated from prod data
+            .satelliteFacts(
+                SatelliteFacts.builder()
+                    .hypervisorUuid(UUID.randomUUID().toString())
+                    .sla("Standard")
+                    .role("Red Hat Enterprise Linux Server")
+                    .usage("Component Testing")
+                    .build())
+            // RHEL facts replicated from prod data. Setting SYNC_TIMESTAMP invokes the
+            // skip-rhsm normalization logic, so the satellite facts win instead.
+            .rhsmFacts(
+                RhsmFacts.builder()
+                    .isVirtual(false)
+                    .products(List.of("69"))
+                    .syncTimestamp("2026-08-24T00:32:05.179356374Z")
+                    .sla("Premium")
+                    .systemPurposeRole("Red Hat Enterprise Linux Server")
+                    .usage("Component Testing")
+                    .build())
+            .setSystemProfileFacts(
+                SystemProfileFacts.builder()
+                    .infrastructureType("physical")
+                    .cloudProvider("aws")
+                    .arch("x86_64")
+                    .numberOfSockets(1)
+                    .numberOfCpus(8)
+                    .build())
             .providerId(UUID.randomUUID().toString())
-            .rhsmFact("IS_VIRTUAL", "false")
-            .rhsmFact("RH_PROD", List.of("69"))
-            .rhsmFact("ARCHITECTURE", "x86_64")
-            .rhsmFact("Memory", 63)
-            // Set to envoke the skiprshm logic that will use the satellite facts with the
-            .rhsmFact("SYNC_TIMESTAMP", "2026-08-24T00:32:05.179356374Z")
-            .rhsmFact("SYSPURPOSE_SLA", "Premium")
-            .rhsmFact("SYSPURPOSE_ROLE", "Red Hat Enterprise Linux Server")
-            .rhsmFact("SYSPURPOSE_USAGE", "Component Testing")
-            .sockets(1)
-            .cores(8)
-            .arch("x86_64")
             .insert();
 
     assertNotNull(host.hostId(), "Host ID should be generated");
@@ -260,7 +269,7 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
   @Test
   void testHbiSeederCanDelete() {
     // Given: A host is inserted into HBI database
-    SeededHost host = hostManager.createRhsmHost(orgId).physicalRhel1Socket0Cores().insert();
+    SeededHost host = hostManager.createHost(orgId).physicalRhel1Socket0Cores().insert();
     assertNotNull(host.hostId(), "Host ID should be generated");
 
     // When: Deleting the host
@@ -281,8 +290,10 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
   @Test
   void testHbiSeederRollbackDeletesAllHosts() {
     // Given: Multiple hosts are inserted (mix of RHEL and cloud)
-    SeededHost host1 = hostManager.createRhsmHost(orgId).insert();
-    SeededHost host2 = hostManager.createRhsmHost(orgId).insert();
+    SeededHost host1 =
+        hostManager.createHost(orgId).rhsmFacts(RhsmFacts.builder().defaultFacts().build()).insert();
+    SeededHost host2 =
+        hostManager.createHost(orgId).rhsmFacts(RhsmFacts.builder().defaultFacts().build()).insert();
     assertEquals(2, hostManager.getTrackedCount(), "Seeder should track two hosts");
     assertTrue(hostManager.hostExists(host1.hostId()), "Host 1 should exist in HBI database");
     assertTrue(hostManager.hostExists(host2.hostId()), "Host 2 should exist in HBI database");
@@ -331,8 +342,7 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
             : 0.0;
 
     // And: RHEL host with 2 sockets and 8 cores is created
-    SeededHost host =
-        hostManager.createRhsmHost(orgId).physicalRhel2Socket2Cores().cores(8).insert();
+    SeededHost host = hostManager.createHost(orgId).physicalRhel(2, 8).insert();
     assertNotNull(host.hostId(), "Host should be created");
 
     // And: Nightly tally runs
@@ -374,7 +384,7 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
   void testNightlyTallyCloudProduct() {
     // Given: Org is opted in and cloud host with RHEL product exists in HBI database
     service.createOptInConfig(orgId);
-    SeededHost host = hostManager.createRhsmHost(orgId).awsRhelSockets1Cores1().insert();
+    SeededHost host = hostManager.createHost(orgId).awsRhelSockets1Cores1().insert();
     assertNotNull(host.hostId(), "Cloud host should be created");
     assertTrue(hostManager.hostExists(host.hostId()), "Cloud host should exist in HBI database");
 
