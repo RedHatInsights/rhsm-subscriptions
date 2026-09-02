@@ -22,28 +22,12 @@ package tests;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import api.ContractsArtemisService;
-import com.redhat.swatch.component.tests.api.Artemis;
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.contract.test.model.OperationalProductEvent;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-public class ProductUmbComponentTest extends BaseProductConsumerComponentTest {
-
-  @Artemis static ContractsArtemisService artemis = new ContractsArtemisService();
-
-  @BeforeAll
-  static void enableProductServiceConsumer() {
-    unleash.enableProductServiceConsumerBothConsumers();
-  }
-
-  @AfterEach
-  void restoreProductServiceConsumerFlag() {
-    unleash.enableProductServiceConsumerBothConsumers();
-  }
+public class ProductUmbComponentTest extends BaseProductUmbComponentTest {
 
   @TestPlanName("product-umb-TC001")
   @Test
@@ -55,8 +39,7 @@ public class ProductUmbComponentTest extends BaseProductConsumerComponentTest {
     whenUmbMessageIsPublished(event);
 
     // Then: Message is consumed and the offering sync service is invoked
-    thenMessageIsConsumedWithChildSkuFlag(event, false, "umb");
-    thenSyncServiceWasInvoked(event);
+    thenMessageIsConsumedAndSynced(event, "umb");
   }
 
   @TestPlanName("product-umb-TC002")
@@ -69,8 +52,7 @@ public class ProductUmbComponentTest extends BaseProductConsumerComponentTest {
     whenUmbMessageIsPublished(event);
 
     // Then: Message is consumed with childSku flag as true and sync is invoked
-    thenMessageIsConsumedWithChildSkuFlag(event, true, "umb");
-    thenSyncServiceWasInvoked(event);
+    thenMessageIsConsumedAndSynced(event, "umb");
   }
 
   @TestPlanName("product-umb-TC003")
@@ -81,15 +63,19 @@ public class ProductUmbComponentTest extends BaseProductConsumerComponentTest {
     int consumeLogsBefore = countLogsContaining("IT Product message consumed: source=umb");
 
     // When: Publishing malformed message to UMB
-    artemis.forOfferings().sendMalformed(malformedJson);
+    whenMalformedUmbMessageIsPublished(malformedJson);
 
-    // Then: Error is logged, the bad payload is not consumed, and the consumer continues
+    // Then: Error is logged and the bad payload is not consumed
     service.logs().assertContains("Unable to read UMB product message for JSON");
     assertEquals(
         consumeLogsBefore,
         countLogsContaining("IT Product message consumed: source=umb"),
         "Malformed JSON must not produce a consume log");
-    thenUmbConsumerAcceptsSubsequentMessages();
+
+    // And: a subsequent valid message is still consumed
+    OperationalProductEvent probe = givenParentSkuEvent("RH" + RandomUtils.generateRandom());
+    whenUmbMessageIsPublished(probe);
+    thenMessageIsConsumedAndSynced(probe, "umb");
   }
 
   @TestPlanName("product-umb-TC005")
@@ -135,8 +121,7 @@ public class ProductUmbComponentTest extends BaseProductConsumerComponentTest {
     whenUmbMessageIsPublished(event);
 
     // Then: UMB consumes independently and the sync service is invoked
-    thenMessageIsConsumedWithChildSkuFlag(event, false, "umb");
-    thenSyncServiceWasInvoked(event);
+    thenMessageIsConsumedAndSynced(event, "umb");
   }
 
   @TestPlanName("product-umb-TC008")
@@ -150,33 +135,10 @@ public class ProductUmbComponentTest extends BaseProductConsumerComponentTest {
     whenUmbMessageIsPublished(event);
 
     // Then: UMB consumes and the sync service is invoked
-    thenMessageIsConsumedWithChildSkuFlag(event, false, "umb");
-    thenSyncServiceWasInvoked(event);
-  }
-
-  private void whenUmbMessageIsPublished(OperationalProductEvent event) {
-    artemis.forOfferings().send(event);
+    thenMessageIsConsumedAndSynced(event, "umb");
   }
 
   private void thenUmbConsumerReportsDisabled() {
     service.logs().assertContains("IT Product UMB consumer is disabled by feature flag.");
-  }
-
-  private void thenUmbConsumerAcceptsSubsequentMessages() {
-    OperationalProductEvent probe = givenParentSkuEvent("RH" + RandomUtils.generateRandom());
-    whenUmbMessageIsPublished(probe);
-    thenMessageIsConsumedWithChildSkuFlag(probe, false, "umb");
-  }
-
-  private void thenSyncServiceWasInvoked(OperationalProductEvent event) {
-    service
-        .logs()
-        .assertContains("Received product message for productSku=" + event.getProductCode());
-  }
-
-  private void thenSyncServiceWasNotInvoked(OperationalProductEvent event) {
-    service
-        .logs()
-        .assertDoesNotContain("Received product message for productSku=" + event.getProductCode());
   }
 }

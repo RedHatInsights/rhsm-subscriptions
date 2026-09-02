@@ -20,15 +20,38 @@
  */
 package tests;
 
+import static com.redhat.swatch.component.tests.utils.Topics.IT_PRODUCT_SYNC;
+
 import com.redhat.swatch.contract.test.model.OperationalProductEvent;
 import com.redhat.swatch.contract.test.model.OperationalProductEvent.EventTypeEnum;
 import com.redhat.swatch.contract.test.model.OperationalProductEvent.ProductCategoryEnum;
 import java.time.OffsetDateTime;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 
 public abstract class BaseProductConsumerComponentTest extends BaseContractComponentTest {
 
+  @BeforeAll
+  static void enableProductServiceConsumer() {
+    unleash.enableProductServiceConsumerBothConsumers();
+  }
+
+  private static boolean isChildSku(String productCode) {
+    return productCode != null && productCode.startsWith("SVC");
+  }
+
+  @AfterEach
+  void restoreProductServiceConsumerFlag() {
+    unleash.enableProductServiceConsumerBothConsumers();
+  }
+
   protected OperationalProductEvent givenParentSkuEvent(String productCode) {
-    return givenProductEvent(productCode, ProductCategoryEnum.PARENT_SKU);
+    return givenParentSkuEvent(productCode, EventTypeEnum.UPDATE);
+  }
+
+  protected OperationalProductEvent givenParentSkuEvent(
+      String productCode, EventTypeEnum eventType) {
+    return givenProductEvent(productCode, ProductCategoryEnum.PARENT_SKU, eventType);
   }
 
   protected OperationalProductEvent givenChildSkuEvent(String productCode) {
@@ -37,12 +60,21 @@ public abstract class BaseProductConsumerComponentTest extends BaseContractCompo
 
   protected OperationalProductEvent givenProductEvent(
       String productCode, ProductCategoryEnum category) {
+    return givenProductEvent(productCode, category, EventTypeEnum.UPDATE);
+  }
+
+  protected OperationalProductEvent givenProductEvent(
+      String productCode, ProductCategoryEnum category, EventTypeEnum eventType) {
     OperationalProductEvent event = new OperationalProductEvent();
     event.setProductCode(productCode);
     event.setProductCategory(category);
-    event.setEventType(EventTypeEnum.UPDATE);
+    event.setEventType(eventType);
     event.setOccurredOn(OffsetDateTime.now().toString());
     return event;
+  }
+
+  protected void whenKafkaMessageIsPublished(OperationalProductEvent event) {
+    kafkaBridge.produceKafkaMessage(IT_PRODUCT_SYNC, event);
   }
 
   protected void thenMessageIsNotConsumed(OperationalProductEvent event, String source) {
@@ -51,8 +83,7 @@ public abstract class BaseProductConsumerComponentTest extends BaseContractCompo
         .assertDoesNotContain("source=" + source + ", productCode=" + event.getProductCode());
   }
 
-  protected void thenMessageIsConsumedWithChildSkuFlag(
-      OperationalProductEvent event, boolean isChildSku, String source) {
+  protected void thenMessageIsConsumed(OperationalProductEvent event, String source) {
     service
         .logs()
         .assertContains(
@@ -63,7 +94,24 @@ public abstract class BaseProductConsumerComponentTest extends BaseContractCompo
                 event.getProductCode(),
                 event.getEventType(),
                 event.getProductCategory(),
-                isChildSku));
+                isChildSku(event.getProductCode())));
+  }
+
+  protected void thenMessageIsConsumedAndSynced(OperationalProductEvent event, String source) {
+    thenMessageIsConsumed(event, source);
+    thenSyncServiceWasInvoked(event);
+  }
+
+  protected void thenSyncServiceWasInvoked(OperationalProductEvent event) {
+    service
+        .logs()
+        .assertContains("Received product message for productSku=" + event.getProductCode());
+  }
+
+  protected void thenSyncServiceWasNotInvoked(OperationalProductEvent event) {
+    service
+        .logs()
+        .assertDoesNotContain("Received product message for productSku=" + event.getProductCode());
   }
 
   protected int countLogsContaining(String text) {

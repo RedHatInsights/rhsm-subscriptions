@@ -26,21 +26,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.contract.test.model.OperationalProductEvent;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 public class ProductKafkaComponentTest extends BaseProductConsumerComponentTest {
-
-  @BeforeAll
-  static void enableProductServiceConsumer() {
-    unleash.enableProductServiceConsumerBothConsumers();
-  }
-
-  @AfterEach
-  void restoreProductServiceConsumerFlag() {
-    unleash.enableProductServiceConsumerBothConsumers();
-  }
 
   @TestPlanName("product-kafka-TC001")
   @Test
@@ -51,8 +39,8 @@ public class ProductKafkaComponentTest extends BaseProductConsumerComponentTest 
     // When: Publishing message to Kafka
     whenKafkaMessageIsPublished(event);
 
-    // Then: Message is consumed successfully
-    thenMessageIsConsumedWithChildSkuFlag(event, false, "kafka");
+    // Then: Message is consumed and the offering sync service is invoked
+    thenMessageIsConsumedAndSynced(event, "kafka");
   }
 
   @TestPlanName("product-kafka-TC002")
@@ -64,8 +52,8 @@ public class ProductKafkaComponentTest extends BaseProductConsumerComponentTest 
     // When: Publishing message to Kafka
     whenKafkaMessageIsPublished(event);
 
-    // Then: Message is consumed with childSku flag as true
-    thenMessageIsConsumedWithChildSkuFlag(event, true, "kafka");
+    // Then: Message is consumed with childSku flag as true and sync is invoked
+    thenMessageIsConsumedAndSynced(event, "kafka");
   }
 
   @TestPlanName("product-kafka-TC003")
@@ -76,15 +64,19 @@ public class ProductKafkaComponentTest extends BaseProductConsumerComponentTest 
     int consumeLogsBefore = countLogsContaining("IT Product message consumed: source=kafka");
 
     // When: Publishing malformed message to Kafka
-    kafkaBridge.produceKafkaMessage(IT_PRODUCT_SYNC, malformedJson);
+    whenMalformedKafkaMessageIsPublished(malformedJson);
 
-    // Then: Warning is logged, the bad payload is not consumed, and the consumer continues
+    // Then: Warning is logged and the bad payload is not consumed
     service.logs().assertContains("Unable to read IT Product Kafka message from JSON");
     assertEquals(
         consumeLogsBefore,
         countLogsContaining("IT Product message consumed: source=kafka"),
         "Malformed JSON must not produce a consume log");
-    thenKafkaConsumerAcceptsSubsequentMessages();
+
+    // And: a subsequent valid message is still consumed
+    OperationalProductEvent probe = givenParentSkuEvent("RH" + RandomUtils.generateRandom());
+    whenKafkaMessageIsPublished(probe);
+    thenMessageIsConsumedAndSynced(probe, "kafka");
   }
 
   @TestPlanName("product-kafka-TC004")
@@ -96,10 +88,12 @@ public class ProductKafkaComponentTest extends BaseProductConsumerComponentTest 
         countLogsContaining("Unable to read IT Product Kafka message from JSON");
 
     // When: Publishing a null message to Kafka
-    kafkaBridge.produceKafkaMessage(IT_PRODUCT_SYNC, null);
+    whenNullKafkaMessageIsPublished();
 
-    // Then: Null is ignored; the consumer continues processing
-    thenKafkaConsumerAcceptsSubsequentMessages();
+    // Then: Null is ignored and a subsequent valid message is still consumed
+    OperationalProductEvent probe = givenParentSkuEvent("RH" + RandomUtils.generateRandom());
+    whenKafkaMessageIsPublished(probe);
+    thenMessageIsConsumedAndSynced(probe, "kafka");
     assertEquals(
         consumeLogsBefore + 1,
         countLogsContaining("IT Product message consumed: source=kafka"),
@@ -123,6 +117,7 @@ public class ProductKafkaComponentTest extends BaseProductConsumerComponentTest 
     // Then: Consumer is disabled and the message is not processed
     thenKafkaConsumerReportsDisabled();
     thenMessageIsNotConsumed(event, "kafka");
+    thenSyncServiceWasNotInvoked(event);
   }
 
   @TestPlanName("product-kafka-TC006")
@@ -138,6 +133,7 @@ public class ProductKafkaComponentTest extends BaseProductConsumerComponentTest 
     // Then: Kafka is independently disabled
     thenKafkaConsumerReportsDisabled();
     thenMessageIsNotConsumed(event, "kafka");
+    thenSyncServiceWasNotInvoked(event);
   }
 
   @TestPlanName("product-kafka-TC007")
@@ -150,8 +146,8 @@ public class ProductKafkaComponentTest extends BaseProductConsumerComponentTest 
     // When: Publishing message to Kafka
     whenKafkaMessageIsPublished(event);
 
-    // Then: Kafka consumes independently
-    thenMessageIsConsumedWithChildSkuFlag(event, false, "kafka");
+    // Then: Kafka consumes independently and the sync service is invoked
+    thenMessageIsConsumedAndSynced(event, "kafka");
   }
 
   @TestPlanName("product-kafka-TC008")
@@ -164,18 +160,16 @@ public class ProductKafkaComponentTest extends BaseProductConsumerComponentTest 
     // When: Publishing message to Kafka
     whenKafkaMessageIsPublished(event);
 
-    // Then: Kafka consumes
-    thenMessageIsConsumedWithChildSkuFlag(event, false, "kafka");
+    // Then: Kafka consumes and the sync service is invoked
+    thenMessageIsConsumedAndSynced(event, "kafka");
   }
 
-  private void whenKafkaMessageIsPublished(OperationalProductEvent event) {
-    kafkaBridge.produceKafkaMessage(IT_PRODUCT_SYNC, event);
+  private void whenMalformedKafkaMessageIsPublished(String malformedJson) {
+    kafkaBridge.produceKafkaMessage(IT_PRODUCT_SYNC, malformedJson);
   }
 
-  private void thenKafkaConsumerAcceptsSubsequentMessages() {
-    OperationalProductEvent probe = givenParentSkuEvent("RH" + RandomUtils.generateRandom());
-    whenKafkaMessageIsPublished(probe);
-    thenMessageIsConsumedWithChildSkuFlag(probe, false, "kafka");
+  private void whenNullKafkaMessageIsPublished() {
+    kafkaBridge.produceKafkaMessage(IT_PRODUCT_SYNC, null);
   }
 
   private void thenKafkaConsumerReportsDisabled() {
