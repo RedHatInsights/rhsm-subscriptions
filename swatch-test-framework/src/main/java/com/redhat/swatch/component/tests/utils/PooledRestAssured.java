@@ -28,10 +28,15 @@ import io.restassured.filter.FilterContext;
 import io.restassured.response.Response;
 import io.restassured.specification.FilterableRequestSpecification;
 import io.restassured.specification.FilterableResponseSpecification;
+import java.util.concurrent.TimeUnit;
+import org.apache.http.HttpEntity;
 import org.apache.http.client.params.ClientPNames;
+import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
 import org.apache.http.impl.conn.PoolingClientConnectionManager;
 import org.apache.http.params.CoreConnectionPNames;
+import org.apache.http.util.EntityUtils;
 
 /**
  * Shared Apache HttpClient for RestAssured so HTTP keep-alive reuses localhost sockets. Fabric8
@@ -41,6 +46,14 @@ import org.apache.http.params.CoreConnectionPNames;
  * <p>RestAssured 6 still requires {@code AbstractHttpClient} ({@code DefaultHttpClient}). That
  * client synchronizes {@code execute}, so Kafka Bridge keep-alive polling uses a second instance
  * and does not block test traffic.
+ *
+ * <p>RestAssured buffers the body without consuming the Apache {@code HttpEntity}, so pooled
+ * connections stay leased and later calls fail with {@code ConnectionPoolTimeoutException}. A
+ * response interceptor copies the entity to a {@code ByteArrayEntity} so the lease is released.
+ *
+ * <p>Kubernetes port-forwards close idle streams without Apache noticing. Infinite keep-alive then
+ * reuses a dead socket and tests fail with {@code NoHttpResponseException}. Keep-alive is capped,
+ * stale connections are checked, and {@code NoHttpResponseException} is retried on a new socket.
  */
 public final class PooledRestAssured {
 
@@ -51,6 +64,8 @@ public final class PooledRestAssured {
   private static final int SO_TIMEOUT_MS = 30_000;
   private static final int CONNECT_TIMEOUT_MS = 10_000;
   private static final long CONN_MANAGER_TIMEOUT_MS = 10_000L;
+  private static final int KEEP_ALIVE_MS = 3_000;
+  private static final int RETRY_COUNT = 3;
   private static final RestAssuredConfig CONFIG = buildConfig(MAX_TOTAL, MAX_PER_ROUTE);
   private static final RestAssuredConfig KEEP_ALIVE_CONFIG =
       buildConfig(KEEP_ALIVE_MAX_TOTAL, KEEP_ALIVE_MAX_PER_ROUTE);
@@ -90,6 +105,34 @@ public final class PooledRestAssured {
     httpClient
         .getParams()
         .setLongParameter(ClientPNames.CONN_MANAGER_TIMEOUT, CONN_MANAGER_TIMEOUT_MS);
+    httpClient.getParams().setBooleanParameter(CoreConnectionPNames.STALE_CONNECTION_CHECK, true);
+    httpClient.setKeepAliveStrategy((response, context) -> KEEP_ALIVE_MS);
+    httpClient.setHttpRequestRetryHandler(new DefaultHttpRequestRetryHandler(RETRY_COUNT, true));
+    httpClient.addResponseInterceptor(
+        (response, context) -> {
+          HttpEntity entity = response.getEntity();
+          if (entity == null) {
+            connections.closeExpiredConnections();
+            connections.closeIdleConnections(KEEP_ALIVE_MS, TimeUnit.MILLISECONDS);
+            return;
+          }
+          byte[] data;
+          try {
+            data = EntityUtils.toByteArray(entity);
+          } finally {
+            EntityUtils.consumeQuietly(entity);
+            connections.closeExpiredConnections();
+            connections.closeIdleConnections(KEEP_ALIVE_MS, TimeUnit.MILLISECONDS);
+          }
+          ByteArrayEntity copy = new ByteArrayEntity(data);
+          if (entity.getContentType() != null) {
+            copy.setContentType(entity.getContentType());
+          }
+          if (entity.getContentEncoding() != null) {
+            copy.setContentEncoding(entity.getContentEncoding());
+          }
+          response.setEntity(copy);
+        });
     return RestAssuredConfig.config()
         .httpClient(
             HttpClientConfig.httpClientConfig()
