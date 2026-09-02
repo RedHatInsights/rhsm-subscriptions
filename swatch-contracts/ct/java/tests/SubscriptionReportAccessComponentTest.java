@@ -51,7 +51,7 @@ public class SubscriptionReportAccessComponentTest extends BaseContractComponent
     String userId = RandomUtils.generateRandom();
     var requestHeaders = SwatchUtils.securityHeadersWithUserRole(orgId, userId);
     String identityHeader = requestHeaders.get(X_RH_IDENTITY_HEADER);
-    rbacHelper.givenUserHasSubscriptionsAccess(
+    givenSubscriptionsAccess(
         authorizationModel, userId, identityHeader, SubscriptionsAccessLevel.GRANTED_ADMIN);
 
     // When
@@ -69,7 +69,7 @@ public class SubscriptionReportAccessComponentTest extends BaseContractComponent
     String userId = RandomUtils.generateRandom();
     var requestHeaders = SwatchUtils.securityHeadersWithUserRole(orgId, userId);
     String identityHeader = requestHeaders.get(X_RH_IDENTITY_HEADER);
-    rbacHelper.givenUserHasSubscriptionsAccess(
+    givenSubscriptionsAccess(
         authorizationModel, userId, identityHeader, SubscriptionsAccessLevel.GRANTED_READER);
 
     // When
@@ -87,7 +87,7 @@ public class SubscriptionReportAccessComponentTest extends BaseContractComponent
     String userId = RandomUtils.generateRandom();
     var requestHeaders = SwatchUtils.securityHeadersWithUserRole(orgId, userId);
     String identityHeader = requestHeaders.get(X_RH_IDENTITY_HEADER);
-    rbacHelper.givenUserHasSubscriptionsAccess(
+    givenSubscriptionsAccess(
         authorizationModel, userId, identityHeader, SubscriptionsAccessLevel.DENIED);
 
     // When
@@ -97,8 +97,23 @@ public class SubscriptionReportAccessComponentTest extends BaseContractComponent
     thenResponseStatusIs(response, HttpStatus.SC_FORBIDDEN);
   }
 
+  private void givenSubscriptionsAccess(
+      AuthorizationModel authorizationModel,
+      String userId,
+      String identityHeader,
+      SubscriptionsAccessLevel accessLevel) {
+    if (authorizationModel == AuthorizationModel.KESSEL) {
+      unleash.enableKesselRbac();
+      wiremock.forKesselAccessControl().stubDefaultWorkspace(orgId);
+      wiremock.forKesselAccessControl().stubSubscriptionsAccess(userId, accessLevel);
+    } else {
+      unleash.disableKesselRbac();
+      wiremock.forRbacAccessControl().stubSubscriptionsAccess(identityHeader, accessLevel);
+    }
+  }
+
   private Response whenGetV2SkuCapacityReport(Map<String, String> requestHeaders) {
-    return service.getSkuCapacityReportV2(Product.OPENSHIFT, requestHeaders);
+    return service.getSkuCapacityByProductId(Product.OPENSHIFT, requestHeaders);
   }
 
   private void thenResponseStatusIs(Response response, int expectedStatus) {

@@ -26,7 +26,6 @@ import com.redhat.swatch.component.tests.core.extensions.OpenShiftExtensionBoots
 import java.time.Instant;
 import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
@@ -84,16 +83,6 @@ public class OpenShiftLoggingHandler extends ServiceLoggingHandler {
     this.logsSince = null;
   }
 
-  @Override
-  public synchronized List<String> logs() {
-    handle();
-    return super.logs();
-  }
-
-  /**
-   * Fetch when tests read logs. Do not poll {@code getLog()} from a background thread; that creates
-   * unbounded OkHttp dispatcher threads on the Konflux CT runner.
-   */
   @Override
   protected synchronized void handle() {
     if (!isTestActive() || logsSince == null || !isLogEnabled()) {

@@ -72,8 +72,6 @@ public class ContractsSwatchService extends SwatchService {
       "/api/rhsm-subscriptions/v2/subscriptions/products/{product_id}";
   private static final String CAPACITY_REPORT_ENDPOINT =
       "/api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id}";
-  private static final String BILLING_ACCOUNT_IDS_ENDPOINT =
-      "/api/swatch-contracts/v1/subscriptions/billing_account_ids";
   private static final String TERMINATE_SUBSCRIPTION_ENDPOINT =
       ENDPOINT_PREFIX + "/subscriptions/terminate/{subscription_id}";
   private static final String SYNC_CONTRACTS_BY_ORG_ENDPOINT =
@@ -281,19 +279,7 @@ public class ContractsSwatchService extends SwatchService {
         .as(SkuCapacityReportV2.class);
   }
 
-  public Response getSkuCapacityReportV1(Product product, Map<String, String> requestHeaders) {
-    Objects.requireNonNull(product, "product must not be null");
-    Objects.requireNonNull(requestHeaders, "requestHeaders must not be null");
-
-    return given()
-        .headers(requestHeaders)
-        .accept("application/vnd.api+json")
-        .pathParam("product_id", product.getName())
-        .when()
-        .get(GET_SKU_CAPACITY_REPORT_V1_ENDPOINT);
-  }
-
-  public Response getSkuCapacityReportV2(Product product, Map<String, String> requestHeaders) {
+  public Response getSkuCapacityByProductId(Product product, Map<String, String> requestHeaders) {
     Objects.requireNonNull(product, "product must not be null");
     Objects.requireNonNull(requestHeaders, "requestHeaders must not be null");
 
@@ -303,38 +289,6 @@ public class ContractsSwatchService extends SwatchService {
         .pathParam("product_id", product.getName())
         .when()
         .get(GET_SKU_CAPACITY_REPORT_V2_ENDPOINT);
-  }
-
-  public Response getCapacityReportByMetricId(
-      Product product, String metricId, Map<String, String> requestHeaders) {
-    Objects.requireNonNull(product, "product must not be null");
-    Objects.requireNonNull(metricId, "metricId must not be null");
-    Objects.requireNonNull(requestHeaders, "requestHeaders must not be null");
-
-    OffsetDateTime ending = OffsetDateTime.now();
-    OffsetDateTime beginning = ending.minusDays(1);
-    return given()
-        .headers(requestHeaders)
-        .accept("application/vnd.api+json")
-        .pathParam("product_id", product.getName())
-        .pathParam("metric_id", metricId)
-        .queryParam("beginning", beginning.toString())
-        .queryParam("ending", ending.toString())
-        .queryParam("granularity", GranularityType.DAILY)
-        .when()
-        .get(CAPACITY_REPORT_ENDPOINT);
-  }
-
-  public Response fetchBillingAccountIdsForOrg(String orgId, Map<String, String> requestHeaders) {
-    Objects.requireNonNull(orgId, "orgId must not be null");
-    Objects.requireNonNull(requestHeaders, "requestHeaders must not be null");
-
-    return given()
-        .headers(requestHeaders)
-        .accept("application/json")
-        .queryParam("org_id", orgId)
-        .when()
-        .get(BILLING_ACCOUNT_IDS_ENDPOINT);
   }
 
   public CapacityReportByMetricId getCapacityReportByMetricId(
