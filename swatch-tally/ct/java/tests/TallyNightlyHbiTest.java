@@ -27,12 +27,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static utils.TallyTestProducts.RHEL_FOR_X86;
 
 import com.redhat.swatch.component.tests.api.hbi.HbiDbConnector;
+import com.redhat.swatch.component.tests.api.hbi.HostBuilder;
 import com.redhat.swatch.component.tests.api.hbi.HostConnector.SeededHost;
 import com.redhat.swatch.component.tests.api.hbi.HostStateManager;
 import com.redhat.swatch.component.tests.api.hbi.RhsmFacts;
 import com.redhat.swatch.component.tests.api.hbi.SatelliteFacts;
 import com.redhat.swatch.component.tests.api.hbi.SystemProfileFacts;
 import com.redhat.swatch.tally.test.model.ServiceLevelType;
+import com.redhat.swatch.tally.test.model.TallyReportData;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -371,6 +373,100 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
         initialSockets + 2.0,
         currentSockets,
         "Socket count should increase by 2 after adding host with 2 sockets");
+  }
+
+  /**
+   * - **Description**: Verify that updating a previously-seeded host and re-running tally reflects
+   * the new facts, rather than treating it as a second host - **Setup**: Component test
+   * environment with swatch-tally is running, an instance of insights db is up - **Action**: Insert
+   * a RHEL host with 2 sockets, tally, then update the same host to 6 sockets using the same
+   * HostBuilder, and tally again - **Verification**: - the update targets the same host id - the
+   * socket count after the update reflects only the updated host (6 sockets), not both the original
+   * and updated values - **Expected Result**: The tally reflects the host's current state after the
+   * update
+   *
+   * <p>Note: socket counts are chosen to be even, since FactNormalizer.normalizeSocketCount rounds
+   * odd physical socket counts up to the next even number (socket-pair licensing), so the
+   * assertions below are a plain identity mapping.
+   */
+  @Test
+  void testNightlyTallyReflectsHostUpdate() {
+    // Given: Org is opted in
+    service.createOptInConfig(orgId);
+
+    OffsetDateTime beginning = OffsetDateTime.now().minusDays(1);
+    OffsetDateTime ending = OffsetDateTime.now().plusDays(1);
+
+    double initialSockets =
+        sumSockets(service.getTallyReportData(
+            orgId,
+            RHEL_FOR_X86.productTag(),
+            "Sockets",
+            Map.of(
+                "granularity", "Daily",
+                "beginning", beginning.toString(),
+                "ending", ending.toString())));
+
+    // And: RHEL host with 2 sockets, 2 cores is created and tallied
+    HostBuilder hostBuilder = hostManager.createHost(orgId).physicalRhel(2, 2);
+    SeededHost seeded = hostBuilder.insert();
+    assertNotNull(seeded.hostId(), "Host should be created");
+
+    service.tallyOrg(orgId);
+
+    double socketsAfterInsert =
+        sumSockets(service.getTallyReportData(
+            orgId,
+            RHEL_FOR_X86.productTag(),
+            "Sockets",
+            Map.of(
+                "granularity", "Daily",
+                "beginning", beginning.toString(),
+                "ending", ending.toString())));
+    assertEquals(
+        initialSockets + 2.0,
+        socketsAfterInsert,
+        "Socket count should increase by 2 after inserting host with 2 sockets");
+
+    // When: The same host is updated to 6 sockets, 6 cores using the same builder, and re-tallied
+    SeededHost updated =
+        hostBuilder
+            .setSystemProfileFacts(
+                SystemProfileFacts.builder()
+                    .infrastructureType("physical")
+                    .arch("x86_64")
+                    .numberOfSockets(6)
+                    .numberOfCpus(6)
+                    .build())
+            .update();
+    assertEquals(seeded.hostId(), updated.hostId(), "Update should target the same host row");
+
+    service.tallyOrg(orgId);
+
+    // Then: Socket count reflects the updated host (6 sockets), not the original + updated values
+    double socketsAfterUpdate =
+        sumSockets(service.getTallyReportData(
+            orgId,
+            RHEL_FOR_X86.productTag(),
+            "Sockets",
+            Map.of(
+                "granularity", "Daily",
+                "beginning", beginning.toString(),
+                "ending", ending.toString())));
+    assertEquals(
+        initialSockets + 6.0,
+        socketsAfterUpdate,
+        "Socket count should reflect the updated host's 6 sockets, not the original 2 plus the"
+            + " update");
+  }
+
+  private double sumSockets(TallyReportData reportData) {
+    var data = reportData.getData();
+    return data != null
+        ? data.stream()
+            .mapToDouble(point -> point.getValue() != null ? point.getValue() : 0.0)
+            .sum()
+        : 0.0;
   }
 
   /**

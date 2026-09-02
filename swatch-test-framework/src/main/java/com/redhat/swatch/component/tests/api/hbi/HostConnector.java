@@ -44,6 +44,17 @@ public interface HostConnector {
   SeededHost seed(Host host);
 
   /**
+   * Update a previously-seeded host in place, replacing its facts and system-profile columns with
+   * whatever is currently set on {@code host}. Fact groups not set on {@code host} are cleared -
+   * callers that want to preserve a previously-set fact group (e.g. Satellite facts while only
+   * updating RHSM facts) must reuse the same {@link Host} instance that was originally seeded.
+   *
+   * @param host the full current host data to write; {@link Host#getId()} identifies the row
+   * @return information about the updated host
+   */
+  SeededHost update(Host host);
+
+  /**
    * Seed multiple hosts in batch.
    *
    * <p>Implementations may optimize batch operations (e.g., bulk INSERT, batch Kafka send).

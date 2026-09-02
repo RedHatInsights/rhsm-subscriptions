@@ -84,7 +84,7 @@ public class HostStateManager {
     return new HostBuilder(this, new Host(orgId));
   }
 
-  // ===== Internal Seed Method (called by HostBuilder.insert()) =====
+  // ===== Internal Methods (called by HostBuilder.insert()/update()) =====
 
   SeededHost seed(Host host) {
     SeededHost seeded = connector.seed(host);
@@ -93,6 +93,18 @@ public class HostStateManager {
         "Seeded host: %s (inventoryId=%s, orgId=%s)",
         seeded.hostId(), seeded.inventoryId(), seeded.orgId());
     return seeded;
+  }
+
+  /**
+   * Update a previously-seeded host. Unlike {@link #seed}, does not add to {@link #trackedHostIds}
+   * - the host is already tracked from its original {@code insert()}.
+   */
+  SeededHost update(Host host) {
+    SeededHost updated = connector.update(host);
+    Log.info(
+        "Updated host: %s (inventoryId=%s, orgId=%s)",
+        updated.hostId(), updated.inventoryId(), updated.orgId());
+    return updated;
   }
 
   // ===== Cleanup Methods =====

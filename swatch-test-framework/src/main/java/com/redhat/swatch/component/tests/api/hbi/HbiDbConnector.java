@@ -78,14 +78,7 @@ public class HbiDbConnector implements HostConnector {
 
     String subscriptionManagerId = host.getSubscriptionManagerId(); // Can be null
 
-    // Validate sockets before INSERT
-    SystemProfileFacts profile = host.getSystemProfileFacts();
-    if (profile != null
-        && profile.getNumberOfSockets() != null
-        && profile.getNumberOfSockets() == 0) {
-      throw new IllegalArgumentException(
-          "Sockets cannot be 0 (would cause division by zero when calculating cores_per_socket)");
-    }
+    validateSystemProfile(host);
 
     UUID hostId = null;
     try (Connection conn = hbiDatabase.getConnection()) {
@@ -109,6 +102,31 @@ public class HbiDbConnector implements HostConnector {
     String inventoryId = hostId.toString();
 
     return new SeededHost(hostId, inventoryId, subscriptionManagerId, host.getOrgId());
+  }
+
+  @Override
+  public SeededHost update(Host host) {
+    UUID hostId =
+        Objects.requireNonNull(
+            host.getId(), "host.getId() is required to update - was this host ever seed()-ed?");
+
+    verifySchema();
+    validateSystemProfile(host);
+
+    OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+    OffsetDateTime modifiedOn = host.getModifiedOn() != null ? host.getModifiedOn() : now;
+    OffsetDateTime lastCheckIn = host.getLastCheckIn() != null ? host.getLastCheckIn() : now;
+
+    try (Connection conn = hbiDatabase.getConnection()) {
+      updateHost(conn, hostId, host, modifiedOn, lastCheckIn);
+      deleteSystemProfile(conn, hostId);
+      insertSystemProfile(conn, hostId, host);
+    } catch (SQLException e) {
+      throw new RuntimeException("Failed to update host in HBI database: " + hostId, e);
+    }
+
+    return new SeededHost(
+        hostId, hostId.toString(), host.getSubscriptionManagerId(), host.getOrgId());
   }
 
   @Override
@@ -141,6 +159,16 @@ public class HbiDbConnector implements HostConnector {
   }
 
   // ===== Private Helper Methods =====
+
+  private void validateSystemProfile(Host host) {
+    SystemProfileFacts profile = host.getSystemProfileFacts();
+    if (profile != null
+        && profile.getNumberOfSockets() != null
+        && profile.getNumberOfSockets() == 0) {
+      throw new IllegalArgumentException(
+          "Sockets cannot be 0 (would cause division by zero when calculating cores_per_socket)");
+    }
+  }
 
   private void verifySchema() {
     if (schemaVerified) {
@@ -222,6 +250,50 @@ public class HbiDbConnector implements HostConnector {
                 + "\n  3. Wrong database selected (verify you're connecting to 'insights'"
                 + " database)"
                 + "\n\nOriginal error: "
+                + e.getMessage();
+      }
+      throw new SQLException(errorMessage, e);
+    }
+  }
+
+  private void updateHost(
+      Connection conn,
+      UUID hostId,
+      Host host,
+      OffsetDateTime modifiedOn,
+      OffsetDateTime lastCheckIn)
+      throws SQLException {
+
+    String sql =
+        """
+        UPDATE hbi.hosts
+        SET display_name = ?, subscription_manager_id = ?, provider_id = ?,
+            modified_on = ?, last_check_in = ?, facts = ?::jsonb, reporter = ?, reporters = ?
+        WHERE id = ?
+        """;
+
+    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+      ps.setString(
+          1, host.getDisplayName() != null ? host.getDisplayName() : "Test Host (auto-generated)");
+      ps.setString(2, host.getSubscriptionManagerId());
+      ps.setString(3, host.getProviderId());
+      ps.setObject(4, modifiedOn);
+      ps.setObject(5, lastCheckIn);
+      ps.setString(6, buildFactsJson(host));
+      ps.setString(7, host.getReporter());
+      ps.setArray(8, conn.createArrayOf("varchar", host.getReporters()));
+      ps.setObject(9, hostId);
+
+      int updated = ps.executeUpdate();
+      if (updated == 0) {
+        throw new SQLException("No host found in hbi.hosts with id " + hostId + " to update");
+      }
+    } catch (SQLException e) {
+      String errorMessage = "Failed to update host in hbi.hosts: " + hostId;
+      if (e.getMessage() != null && e.getMessage().contains("does not exist")) {
+        errorMessage +=
+            "\n\nSCHEMA ERROR: Required HBI table or column is missing."
+                + "\nOriginal error: "
                 + e.getMessage();
       }
       throw new SQLException(errorMessage, e);

@@ -32,6 +32,10 @@ import org.apache.commons.lang3.StringUtils;
  * <p>Provides template methods for common infrastructure configurations and setters for attaching
  * typed reporter facts ({@link RhsmFacts}, {@link SatelliteFacts}, {@link QpcFacts}) and {@link
  * SystemProfileFacts}. Attaching a reporter's facts also registers that reporter on the host.
+ *
+ * <p>Call {@link #insert()} to seed a new host, then keep the same builder instance and call {@link
+ * #update()} to persist further changes to the same row - useful for tests that seed a host, tally,
+ * change a fact, tally again.
  */
 public class HostBuilder {
   private final HostStateManager manager;
@@ -175,6 +179,35 @@ public class HostBuilder {
    * @return information about the seeded host
    */
   public SeededHost insert() {
+    applyDerivedFacts();
+
+    // Seed via manager (which tracks the host)
+    SeededHost seeded = manager.seed(host);
+    host.id(seeded.hostId());
+    return seeded;
+  }
+
+  /**
+   * Update the previously-{@link #insert()}-ed host in place, using whatever is currently set on
+   * this builder. Reuse the same {@link HostBuilder} instance across {@code insert()} and {@code
+   * update()} calls - fact groups you don't re-set (e.g. Satellite facts, when only updating
+   * system-profile facts) are preserved as-is, since they're still held on this builder's {@link
+   * Host}.
+   *
+   * @return information about the updated host
+   * @throws IllegalStateException if this builder's host has not been {@link #insert()}-ed yet
+   */
+  public SeededHost update() {
+    if (host.getId() == null) {
+      throw new IllegalStateException("Host must be insert()-ed before it can be update()-d");
+    }
+
+    applyDerivedFacts();
+
+    return manager.update(host);
+  }
+
+  private void applyDerivedFacts() {
     if (host.getSatelliteFacts() != null || host.getQpcFacts() != null) {
       setYupanaFactsIfMissing();
     }
@@ -187,9 +220,6 @@ public class HostBuilder {
       int computedCoresPerSocket = profile.getNumberOfCpus() / profile.getNumberOfSockets();
       host.systemProfileFacts(profile.withComputedCoresPerSocket(computedCoresPerSocket));
     }
-
-    // Seed via manager (which tracks the host)
-    return manager.seed(host);
   }
 
   private void setPrimaryReporter(String reporterName) {

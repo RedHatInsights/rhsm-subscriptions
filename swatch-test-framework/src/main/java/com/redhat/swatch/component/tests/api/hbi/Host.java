@@ -36,7 +36,6 @@ import java.util.UUID;
  *
  * <pre>
  * Host baseHost = new Host(orgId)
- *     .inventoryId("inv-123")
  *     .rhsmFacts(RhsmFacts.builder().defaultFacts().build())
  *     .systemProfileFacts(SystemProfileFacts.builder().numberOfSockets(2).build());
  * </pre>
@@ -45,7 +44,7 @@ public class Host {
 
   // ===== Core Identity =====
   private String orgId;
-  private UUID inventoryId;
+  private UUID id; // hbi.hosts.id, known only after insert()
   private String subscriptionManagerId;
   private String insightsId;
   private String displayName;
@@ -87,7 +86,7 @@ public class Host {
 
     // ===== Core Identity =====
     this.orgId = source.getOrgId();
-    this.inventoryId = source.getInventoryId();
+    this.id = source.getId();
     this.subscriptionManagerId = source.getSubscriptionManagerId();
     this.insightsId = source.getInsightsId();
     this.displayName = source.getDisplayName();
@@ -132,6 +131,15 @@ public class Host {
 
   public Host displayName(String displayName) {
     this.displayName = displayName;
+    return this;
+  }
+
+  /**
+   * Remember the {@code hbi.hosts.id} row id for this host, so a {@link HostBuilder} can later
+   * {@code update()} the same row it {@code insert()}-ed.
+   */
+  Host id(UUID id) {
+    this.id = id;
     return this;
   }
 
@@ -226,8 +234,8 @@ public class Host {
     return orgId;
   }
 
-  public UUID getInventoryId() {
-    return inventoryId;
+  public UUID getId() {
+    return id;
   }
 
   public String getSubscriptionManagerId() {
