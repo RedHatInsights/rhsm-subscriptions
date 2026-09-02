@@ -24,6 +24,11 @@ import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.kubernetes.client.okhttp.OkHttpClientFactory;
 import io.fabric8.openshift.client.OpenShiftClient;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import okhttp3.Dispatcher;
 
 public final class OpenshiftClient extends BaseKubernetesClient<OpenShiftClient> {
 
@@ -31,8 +36,38 @@ public final class OpenshiftClient extends BaseKubernetesClient<OpenShiftClient>
   public OpenShiftClient initializeClient(Config config) {
     return new KubernetesClientBuilder()
         .withConfig(config)
-        .withHttpClientFactory(new OkHttpClientFactory())
+        .withHttpClientFactory(new BoundedOkHttpClientFactory())
         .build()
         .adapt(OpenShiftClient.class);
+  }
+
+  static final class BoundedOkHttpClientFactory extends OkHttpClientFactory {
+    static final int MAX_REQUESTS = 32;
+    static final int MAX_REQUESTS_PER_HOST = 16;
+    static final int MAX_DISPATCHER_THREADS = 32;
+
+    @Override
+    protected Dispatcher initDispatcher() {
+      AtomicInteger threadIndex = new AtomicInteger();
+      ThreadPoolExecutor executor =
+          new ThreadPoolExecutor(
+              0,
+              MAX_DISPATCHER_THREADS,
+              60L,
+              TimeUnit.SECONDS,
+              new SynchronousQueue<>(),
+              runnable -> newDispatcherThread(runnable, threadIndex),
+              new ThreadPoolExecutor.CallerRunsPolicy());
+      Dispatcher dispatcher = new Dispatcher(executor);
+      dispatcher.setMaxRequests(MAX_REQUESTS);
+      dispatcher.setMaxRequestsPerHost(MAX_REQUESTS_PER_HOST);
+      return dispatcher;
+    }
+
+    private static Thread newDispatcherThread(Runnable runnable, AtomicInteger threadIndex) {
+      Thread thread = new Thread(runnable, "okhttp-ct-dispatcher-" + threadIndex.incrementAndGet());
+      thread.setDaemon(true);
+      return thread;
+    }
   }
 }
