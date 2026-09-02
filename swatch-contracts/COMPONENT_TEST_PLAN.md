@@ -1539,6 +1539,8 @@ This section verifies the automatic contract termination behavior when contracts
 
 ### UMB Consumer - Message Processing
 
+`product-umb-TC001` through `product-umb-TC003` are component tests. `product-umb-TC004` is a unit test because `UMB_ENABLED` is a startup property and also gates the AMQP incoming channel; the disabled branch cannot be reached in the shared `quarkus:dev` process. `product-umb-TC005` through `product-umb-TC008` stay as component tests with those IDs.
+
 **product-umb-TC001 - Process valid parent SKU message from UMB**
 - **Description**: Verify that a valid parent SKU operational product event from UMB is processed and the sync service is invoked.
 - **Setup**:
@@ -1593,21 +1595,19 @@ This section verifies the automatic contract termination behavior when contracts
   - Consumer does not crash
   - Consumer ready for next message
 
-**product-umb-TC004 - Ignore message when UMB_ENABLED is false**
-- **Description**: Verify that UMB messages are not processed when UMB integration is globally disabled.
+**product-umb-TC004 - Ignore message when UMB_ENABLED is false** (unit test)
+- **Description**: Verify that `ProductStatusUMBMessageConsumer` does not process messages when `UMB_ENABLED` is false. Covered by `ProductStatusUMBMessageConsumerWhenUmbDisabledTest`, not a component test.
 - **Setup**:
-  - Ensure `UMB_ENABLED=false`
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-product-service-consumer` is enabled (IT Product Service UMB consumer)
-  - OfferingSyncService is mocked/stubbed
-- **Action**: Publish valid `OperationalProductEvent` JSON to `VirtualTopic.eng.product-service.offering.sync`
+  - Quarkus test profile `DisableUmbResource` (`UMB_ENABLED=false`)
+  - Unleash toggle `swatch.swatch-contracts.enable-product-service-consumer` enabled (UMB consumer)
+  - Mock `OfferingSyncService`
+- **Action**: Call `consumeMessage` with valid `OperationalProductEvent` JSON
 - **Verification**:
-  - Verify message is not processed
-  - Check debug log contains “UMB processing is not enabled”
-  - Verify `OfferingSyncService.syncUmbProductFromEvent()` was never called
+  - Verify `OfferingSyncService.consumeProduct` is never invoked
+  - Verify `OfferingSyncService.syncProductFromEvent` is never invoked
 - **Expected Result**:
-  - Message not consumed or processed
-  - No product data logged
-  - Sync service not invoked
+  - Message is ignored because `umbEnabled` is false
+  - `consumeProduct` is not called. This is distinct from the Unleash flag case in `product-umb-TC005`.
 
 **product-umb-TC005 - Ignore message when feature flag is disabled**
 - **Description**: Verify that when the parent feature flag is disabled, UMB messages are not processed.
@@ -1639,7 +1639,6 @@ This section verifies the automatic contract termination behavior when contracts
   - Verify `OfferingSyncService.syncUmbProductFromEvent()` was never called
 - **Expected Result**:
   - UMB consumer does not process message
-  - Kafka consumer remains operational
   - Sync service not invoked
 
 **product-umb-TC007 - Process message when UMB enabled and Kafka disabled via variant**
@@ -1658,7 +1657,6 @@ This section verifies the automatic contract termination behavior when contracts
   - UMB consumer processes message successfully
   - Info log emitted with product details
   - Sync service invoked with the product event
-  - Kafka consumer is independently disabled
 
 **product-umb-TC008 - Process message when both consumers enabled via variant**
 - **Description**: Verify that both consumers can operate simultaneously when explicitly enabled via variant.
@@ -1675,7 +1673,6 @@ This section verifies the automatic contract termination behavior when contracts
 - **Expected Result**:
   - UMB consumer processes message successfully
   - Sync service invoked with the product event
-  - Both Kafka and UMB consumers are operational
 
 ### Duplicate SKU Processing Scenarios
 

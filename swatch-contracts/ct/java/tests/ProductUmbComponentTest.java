@@ -27,14 +27,11 @@ import com.redhat.swatch.component.tests.api.Artemis;
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.contract.test.model.OperationalProductEvent;
-import com.redhat.swatch.contract.test.model.OperationalProductEvent.EventTypeEnum;
-import com.redhat.swatch.contract.test.model.OperationalProductEvent.ProductCategoryEnum;
-import java.time.OffsetDateTime;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-public class ProductUmbComponentTest extends BaseContractComponentTest {
+public class ProductUmbComponentTest extends BaseProductConsumerComponentTest {
 
   @Artemis static ContractsArtemisService artemis = new ContractsArtemisService();
 
@@ -58,7 +55,7 @@ public class ProductUmbComponentTest extends BaseContractComponentTest {
     whenUmbMessageIsPublished(event);
 
     // Then: Message is consumed and the offering sync service is invoked
-    thenMessageIsConsumedWithChildSkuFlag(event, false);
+    thenMessageIsConsumedWithChildSkuFlag(event, false, "umb");
     thenSyncServiceWasInvoked(event);
   }
 
@@ -72,7 +69,7 @@ public class ProductUmbComponentTest extends BaseContractComponentTest {
     whenUmbMessageIsPublished(event);
 
     // Then: Message is consumed with childSku flag as true and sync is invoked
-    thenMessageIsConsumedWithChildSkuFlag(event, true);
+    thenMessageIsConsumedWithChildSkuFlag(event, true, "umb");
     thenSyncServiceWasInvoked(event);
   }
 
@@ -95,46 +92,80 @@ public class ProductUmbComponentTest extends BaseContractComponentTest {
     thenUmbConsumerAcceptsSubsequentMessages();
   }
 
-  private OperationalProductEvent givenParentSkuEvent(String productCode) {
-    return givenProductEvent(productCode, ProductCategoryEnum.PARENT_SKU);
+  @TestPlanName("product-umb-TC005")
+  @Test
+  void shouldIgnoreMessageWhenFeatureFlagDisabled() {
+    // Given: Feature flag is disabled and a valid parent SKU event
+    unleash.disableProductServiceConsumer();
+    OperationalProductEvent event = givenParentSkuEvent("RH" + RandomUtils.generateRandom());
+
+    // When: Publishing message to UMB
+    whenUmbMessageIsPublished(event);
+
+    // Then: Consumer is disabled and the message is not processed
+    thenUmbConsumerReportsDisabled();
+    thenMessageIsNotConsumed(event, "umb");
+    thenSyncServiceWasNotInvoked(event);
   }
 
-  private OperationalProductEvent givenChildSkuEvent(String productCode) {
-    return givenProductEvent(productCode, ProductCategoryEnum.CHILD_SKU);
+  @TestPlanName("product-umb-TC006")
+  @Test
+  void shouldIgnoreMessageWhenUmbDisabledViaVariant() {
+    // Given: Flag enabled with Kafka enabled and UMB disabled via variant
+    unleash.enableProductServiceConsumerKafkaOnly();
+    OperationalProductEvent event = givenParentSkuEvent("RH" + RandomUtils.generateRandom());
+
+    // When: Publishing message to UMB
+    whenUmbMessageIsPublished(event);
+
+    // Then: UMB is independently disabled
+    thenUmbConsumerReportsDisabled();
+    thenMessageIsNotConsumed(event, "umb");
+    thenSyncServiceWasNotInvoked(event);
   }
 
-  private OperationalProductEvent givenProductEvent(
-      String productCode, ProductCategoryEnum category) {
-    OperationalProductEvent event = new OperationalProductEvent();
-    event.setProductCode(productCode);
-    event.setProductCategory(category);
-    event.setEventType(EventTypeEnum.UPDATE);
-    event.setOccurredOn(OffsetDateTime.now().toString());
-    return event;
+  @TestPlanName("product-umb-TC007")
+  @Test
+  void shouldProcessWhenUmbEnabledAndKafkaDisabled() {
+    // Given: Flag enabled with UMB enabled and Kafka disabled via variant
+    unleash.enableProductServiceConsumerUmbOnly();
+    OperationalProductEvent event = givenParentSkuEvent("RH" + RandomUtils.generateRandom());
+
+    // When: Publishing message to UMB
+    whenUmbMessageIsPublished(event);
+
+    // Then: UMB consumes independently and the sync service is invoked
+    thenMessageIsConsumedWithChildSkuFlag(event, false, "umb");
+    thenSyncServiceWasInvoked(event);
+  }
+
+  @TestPlanName("product-umb-TC008")
+  @Test
+  void shouldProcessMessageWhenBothConsumersEnabled() {
+    // Given: Flag enabled with both Kafka and UMB consumers enabled via variant
+    unleash.enableProductServiceConsumerBothConsumers();
+    OperationalProductEvent event = givenParentSkuEvent("RH" + RandomUtils.generateRandom());
+
+    // When: Publishing message to UMB
+    whenUmbMessageIsPublished(event);
+
+    // Then: UMB consumes and the sync service is invoked
+    thenMessageIsConsumedWithChildSkuFlag(event, false, "umb");
+    thenSyncServiceWasInvoked(event);
   }
 
   private void whenUmbMessageIsPublished(OperationalProductEvent event) {
     artemis.forOfferings().send(event);
   }
 
+  private void thenUmbConsumerReportsDisabled() {
+    service.logs().assertContains("IT Product UMB consumer is disabled by feature flag.");
+  }
+
   private void thenUmbConsumerAcceptsSubsequentMessages() {
     OperationalProductEvent probe = givenParentSkuEvent("RH" + RandomUtils.generateRandom());
     whenUmbMessageIsPublished(probe);
-    thenMessageIsConsumedWithChildSkuFlag(probe, false);
-  }
-
-  private void thenMessageIsConsumedWithChildSkuFlag(
-      OperationalProductEvent event, boolean isChildSku) {
-    service
-        .logs()
-        .assertContains(
-            String.format(
-                "IT Product message consumed: source=umb, productCode=%s, eventType=%s, "
-                    + "productCategory=%s, childSku=%s",
-                event.getProductCode(),
-                event.getEventType(),
-                event.getProductCategory(),
-                isChildSku));
+    thenMessageIsConsumedWithChildSkuFlag(probe, false, "umb");
   }
 
   private void thenSyncServiceWasInvoked(OperationalProductEvent event) {
@@ -143,7 +174,9 @@ public class ProductUmbComponentTest extends BaseContractComponentTest {
         .assertContains("Received product message for productSku=" + event.getProductCode());
   }
 
-  private int countLogsContaining(String text) {
-    return (int) service.getLogs().stream().filter(line -> line.contains(text)).count();
+  private void thenSyncServiceWasNotInvoked(OperationalProductEvent event) {
+    service
+        .logs()
+        .assertDoesNotContain("Received product message for productSku=" + event.getProductCode());
   }
 }
