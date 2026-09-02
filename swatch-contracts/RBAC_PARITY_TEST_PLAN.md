@@ -33,9 +33,7 @@ Each test case exercises the same endpoint under both RBAC modes (flag OFF = v1,
 | E1 | GET | /api/rhsm-subscriptions/v1/capacity/products/{product_id}/{metric_id} | customer, service |
 | E2 | GET | /api/rhsm-subscriptions/v1/subscriptions/products/{product_id} | customer, service |
 | E3 | GET | /api/rhsm-subscriptions/v2/subscriptions/products/{product_id} | customer, service |
-| E4 | GET | /api/swatch-contracts/v1/subscriptions/billing_account_ids | customer, support |
-
-E4 allows `customer` and `support` only. The `test` role is omitted so `SWATCH_TEST_APIS_ENABLED` cannot bypass RBAC on this path (same approach as the V2 subscription report).
+| E4 | GET | /api/swatch-contracts/v1/subscriptions/billing_account_ids | customer, support, test |
 
 # Test Cases
 
