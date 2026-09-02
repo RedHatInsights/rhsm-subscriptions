@@ -26,14 +26,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.contract.test.model.OperationalProductEvent;
-import com.redhat.swatch.contract.test.model.OperationalProductEvent.EventTypeEnum;
-import com.redhat.swatch.contract.test.model.OperationalProductEvent.ProductCategoryEnum;
-import java.time.OffsetDateTime;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-public class ProductKafkaComponentTest extends BaseContractComponentTest {
+public class ProductKafkaComponentTest extends BaseProductConsumerComponentTest {
 
   @BeforeAll
   static void enableProductServiceConsumer() {
@@ -171,24 +168,6 @@ public class ProductKafkaComponentTest extends BaseContractComponentTest {
     thenMessageIsConsumedWithChildSkuFlag(event, false, "kafka");
   }
 
-  private OperationalProductEvent givenParentSkuEvent(String productCode) {
-    return givenProductEvent(productCode, ProductCategoryEnum.PARENT_SKU);
-  }
-
-  private OperationalProductEvent givenChildSkuEvent(String productCode) {
-    return givenProductEvent(productCode, ProductCategoryEnum.CHILD_SKU);
-  }
-
-  private OperationalProductEvent givenProductEvent(
-      String productCode, ProductCategoryEnum category) {
-    OperationalProductEvent event = new OperationalProductEvent();
-    event.setProductCode(productCode);
-    event.setProductCategory(category);
-    event.setEventType(EventTypeEnum.UPDATE);
-    event.setOccurredOn(OffsetDateTime.now().toString());
-    return event;
-  }
-
   private void whenKafkaMessageIsPublished(OperationalProductEvent event) {
     kafkaBridge.produceKafkaMessage(IT_PRODUCT_SYNC, event);
   }
@@ -201,30 +180,5 @@ public class ProductKafkaComponentTest extends BaseContractComponentTest {
 
   private void thenKafkaConsumerReportsDisabled() {
     service.logs().assertContains("IT Product Kafka consumer is disabled by feature flag.");
-  }
-
-  private void thenMessageIsNotConsumed(OperationalProductEvent event, String source) {
-    service
-        .logs()
-        .assertDoesNotContain("source=" + source + ", productCode=" + event.getProductCode());
-  }
-
-  private void thenMessageIsConsumedWithChildSkuFlag(
-      OperationalProductEvent event, boolean isChildSku, String source) {
-    service
-        .logs()
-        .assertContains(
-            String.format(
-                "IT Product message consumed: source=%s, productCode=%s, eventType=%s, "
-                    + "productCategory=%s, childSku=%s",
-                source,
-                event.getProductCode(),
-                event.getEventType(),
-                event.getProductCategory(),
-                isChildSku));
-  }
-
-  private int countLogsContaining(String text) {
-    return (int) service.getLogs().stream().filter(line -> line.contains(text)).count();
   }
 }
