@@ -173,6 +173,9 @@ public class OfferingEntity extends ModificationTrackedEntity {
   @Column(name = "special_pricing_flag")
   private String specialPricingFlag;
 
+  @Column(name = "entitlement_quantity", length = 100)
+  private String entitlementQuantity;
+
   public boolean isHasUnlimitedUsage() {
     return hasUnlimitedUsage != null && hasUnlimitedUsage;
   }
@@ -211,7 +214,8 @@ public class OfferingEntity extends ModificationTrackedEntity {
         && Objects.equals(productTags, offering.productTags)
         && Objects.equals(specialPricingFlag, offering.specialPricingFlag)
         && Objects.equals(level1, offering.level1)
-        && Objects.equals(level2, offering.level2);
+        && Objects.equals(level2, offering.level2)
+        && Objects.equals(entitlementQuantity, offering.entitlementQuantity);
   }
 
   @Override
@@ -234,6 +238,7 @@ public class OfferingEntity extends ModificationTrackedEntity {
         productTags,
         specialPricingFlag,
         level1,
-        level2);
+        level2,
+        entitlementQuantity);
   }
 }

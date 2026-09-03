@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+  <changeSet id="202609030810-01" author="jcarvaja">
+    <comment>Add ENTITLEMENT_QTY column to the OFFERING table</comment>
+    <addColumn tableName="offering">
+      <column name="entitlement_quantity" type="VARCHAR(100)"/>
+    </addColumn>
+    <rollback>
+      <dropColumn tableName="offering" columnName="entitlement_quantity"/>
+    </rollback>
+  </changeSet>
+</databaseChangeLog>
+

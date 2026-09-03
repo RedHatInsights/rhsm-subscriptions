@@ -1848,6 +1848,24 @@ This section verifies the automatic contract termination behavior when contracts
   - Capacity values indicate unlimited status appropriately.
   - Subscription correctly linked to unlimited offering in response.
 
+**offering-capacity-TC003: Synchronize entitlement quantity attribute offering**
+- **Description:** Verify that entitlement quantity attribute in offerings are synchronized correctly with proper sockets capacity.
+- **Setup:** Create test product data with the ENTITLEMENT_QTY attribute set to 25 in external product service.
+- **Action:** Send Kafka message to trigger offering synchronization.
+- **Verification:** Use internal GET API to verify offering synchronization succeeded for the expected sockets capacity SKU.
+- **Expected Result:**
+  - API returns HTTP 200 response indicating successful synchronization.
+  - Capacity matches expected sockets values for the offering.
+
+**offering-capacity-TC004: Synchronize entitlement quantity attribute offering with unlimited**
+- **Description:** Verify that entitlement quantity attribute in offerings are synchronized correctly with unlimited sockets capacity.
+- **Setup:** Create test product data with the ENTITLEMENT_QTY attribute set to "Unlimited" in external product service.
+- **Action:** Send Kafka message to trigger offering synchronization.
+- **Verification:** Use internal GET API to verify offering synchronization succeeded for the expected unlimited sockets capacity SKU.
+- **Expected Result:**
+  - API returns HTTP 200 response indicating successful synchronization.
+  - Capacity values indicate unlimited status appropriately.
+
 ## Subscription Type (SKU capacity report meta)
 
 **subscription-type-TC001: Report On-demand subscription type on V1 for PAYG products**

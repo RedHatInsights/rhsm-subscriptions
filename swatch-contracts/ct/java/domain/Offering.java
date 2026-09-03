@@ -72,6 +72,7 @@ public class Offering {
   private final Usage usage;
   private final String role;
   private final List<Integer> engProducts;
+  private final String entitlementQuantity;
 
   public static Offering buildRhelOffering(String sku, Double cores, Double sockets) {
     Objects.requireNonNull(sku, "sku cannot be null");

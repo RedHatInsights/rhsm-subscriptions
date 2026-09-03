@@ -86,7 +86,8 @@ public class UpstreamProductData {
     X_DESCRIPTION,
     /** Role originates from opProd roles field, not an attribute. */
     SPECIAL_PRICING_FLAG,
-    X_ROLE;
+    X_ROLE,
+    ENTITLEMENT_QTY
   }
 
   /** Maps opProd attribute codes to UpstreamProductData.Attrs of the same name. */
@@ -306,6 +307,9 @@ public class UpstreamProductData {
     if (offering.getUsage() != null && offering.getUsage() != Usage.EMPTY) {
       data.attrs.put(Attr.USAGE, offering.getUsage().getValue());
     }
+    if (offering.getEntitlementQuantity() != null) {
+      data.attrs.put(Attr.ENTITLEMENT_QTY, offering.getEntitlementQuantity());
+    }
     return data;
   }
 
@@ -329,6 +333,7 @@ public class UpstreamProductData {
     offering.setLevel1(attrs.get(Attr.LEVEL_1));
     offering.setLevel2(attrs.get(Attr.LEVEL_2));
     offering.setDerivedSku(attrs.get(Attr.DERIVED_SKU));
+    offering.setEntitlementQuantity(attrs.get(Attr.ENTITLEMENT_QTY));
 
     calcCapacityForOffering(offering);
 
@@ -456,14 +461,37 @@ public class UpstreamProductData {
   }
 
   private void calcCapacityForOffering(OfferingEntity offering) {
+    /*
+     * The ENTITLEMENT_QTY attribute defines the per-unit entitlement allowance embedded
+     * within a specific subscription SKU.
+     *
+     * Rather than treating each subscription unit as a 1:1, ENTITLEMENT_QTY acts as a scaling
+     * factor to determine the overall subscription threshold line (total capacity).
+     *
+     * Note that ENTITLEMENT_QTY can contain also "Unlimited" to state that the capacity
+     * is unlimited.
+     */
+    var hasUnlimitedEntitlementQuantity =
+        Optional.ofNullable(attrs.get(Attr.ENTITLEMENT_QTY))
+            .map(UpstreamProductData::hasUnlimitedUsage)
+            .orElse(false);
+    int entitlementQuantity =
+        Optional.ofNullable(nullOrInteger(attrs, Attr.ENTITLEMENT_QTY, sku)).orElse(1);
+
     // If IFL attr is defined, use it...
     Integer cores =
         Optional.ofNullable(attrs.get(Attr.IFL))
             .map(ifl -> Integer.parseInt(ifl) * CONVERSION_RATIO_IFL_TO_CORES)
             // ... but if IFL is not defined, then use the CORES attr.
             .orElseGet(() -> nullOrInteger(attrs, Attr.CORES, sku));
+    if (cores != null) {
+      cores = cores * entitlementQuantity;
+    }
 
     Integer sockets = nullOrInteger(attrs, Attr.SOCKET_LIMIT, sku);
+    if (sockets != null) {
+      sockets = sockets * entitlementQuantity;
+    }
 
     /*
     There are no SKUs today (2021-10-27) that provide both standard capacity and hypervisor capacity
@@ -491,7 +519,8 @@ public class UpstreamProductData {
         Optional.ofNullable(attrs.get(Attr.SOCKET_LIMIT))
             .map(UpstreamProductData::hasUnlimitedUsage)
             .orElse(false);
-    offering.setHasUnlimitedUsage(hasUnlimitedCores || hasUnlimitedSockets);
+    offering.setHasUnlimitedUsage(
+        hasUnlimitedCores || hasUnlimitedSockets || hasUnlimitedEntitlementQuantity);
   }
 
   private static Integer nullOrInteger(Map<Attr, String> attrs, Attr key, String sku) {

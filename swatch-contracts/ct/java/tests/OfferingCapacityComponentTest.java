@@ -25,6 +25,8 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
@@ -46,8 +48,8 @@ import org.junit.jupiter.api.Test;
 
 public class OfferingCapacityComponentTest extends BaseContractComponentTest {
 
-  private static final double OPENSHIFT_CORES_CAPACITY = 8.0;
-  private static final double OPENSHIFT_SOCKETS_CAPACITY = 2.0;
+  private static final double CORES_CAPACITY = 8.0;
+  private static final double SOCKETS_CAPACITY = 2.0;
   private static final int SUBSCRIPTION_QUANTITY = 3;
 
   @TestPlanName("offering-capacity-TC001")
@@ -56,8 +58,7 @@ public class OfferingCapacityComponentTest extends BaseContractComponentTest {
     // Given: A metered offering with multiple metrics (Cores and Sockets) and subscription with
     // quantity
     final String sku = RandomUtils.generateRandom();
-    Offering offering =
-        Offering.buildOpenShiftOffering(sku, OPENSHIFT_CORES_CAPACITY, OPENSHIFT_SOCKETS_CAPACITY);
+    Offering offering = Offering.buildOpenShiftOffering(sku, CORES_CAPACITY, SOCKETS_CAPACITY);
     Subscription createdSubscription =
         givenSubscriptionIsCreated(sku, offering, Product.OPENSHIFT, SUBSCRIPTION_QUANTITY);
 
@@ -82,39 +83,27 @@ public class OfferingCapacityComponentTest extends BaseContractComponentTest {
         "Should have measurements for Cores and Sockets", capacity.getMeasurements(), hasSize(2));
 
     // And: Verify measurements match expected values at correct indices (defined by meta)
-    assertThat("Report meta should not be null", report.getMeta(), notNullValue());
-    List<String> metricOrder = report.getMeta().getMeasurements();
-    List<Double> measurements = capacity.getMeasurements();
+    double expectedCoresCapacity = SUBSCRIPTION_QUANTITY * CORES_CAPACITY;
+    Double actualCoresCapacity = getMetricCapacityFromReport(CORES, capacity, report);
+    double expectedSocketsCapacity = SUBSCRIPTION_QUANTITY * SOCKETS_CAPACITY;
+    Double actualSocketsCapacity = getMetricCapacityFromReport(SOCKETS, capacity, report);
 
-    int coresIndex = metricOrder.indexOf("Cores");
-    int socketsIndex = metricOrder.indexOf("Sockets");
-
-    double expectedCoresCapacity = SUBSCRIPTION_QUANTITY * OPENSHIFT_CORES_CAPACITY;
-    double expectedSocketsCapacity = SUBSCRIPTION_QUANTITY * OPENSHIFT_SOCKETS_CAPACITY;
-
-    assertTrue(
-        coresIndex >= 0,
-        String.format("Cores metric not found in meta.measurements: %s", metricOrder));
-    assertTrue(
-        socketsIndex >= 0,
-        String.format("Sockets metric not found in meta.measurements: %s", metricOrder));
-
-    assertThat(
+    assertEquals(
+        expectedCoresCapacity,
+        actualCoresCapacity,
         String.format(
-            "Cores capacity at index %d should be %d × %.1f = %.1f",
-            coresIndex, SUBSCRIPTION_QUANTITY, OPENSHIFT_CORES_CAPACITY, expectedCoresCapacity),
-        measurements.get(coresIndex),
-        equalTo(expectedCoresCapacity));
+            "Cores capacity %s should be %d × %.1f = %.1f",
+            actualCoresCapacity, SUBSCRIPTION_QUANTITY, CORES_CAPACITY, expectedCoresCapacity));
 
-    assertThat(
+    assertEquals(
+        expectedSocketsCapacity,
+        actualSocketsCapacity,
         String.format(
-            "Sockets capacity at index %d should be %d × %.1f = %.1f",
-            socketsIndex,
+            "Sockets capacity %s should be %d × %.1f = %.1f",
+            actualSocketsCapacity,
             SUBSCRIPTION_QUANTITY,
-            OPENSHIFT_SOCKETS_CAPACITY,
-            expectedSocketsCapacity),
-        measurements.get(socketsIndex),
-        equalTo(expectedSocketsCapacity));
+            SOCKETS_CAPACITY,
+            expectedSocketsCapacity));
 
     // And: API response should contain exactly one subscription (the one we created)
     assertThat("Subscriptions should not be null", capacity.getSubscriptions(), notNullValue());
@@ -184,6 +173,71 @@ public class OfferingCapacityComponentTest extends BaseContractComponentTest {
         equalTo("Test offering with unlimited usage"));
   }
 
+  @TestPlanName("offering-capacity-TC003")
+  @Test
+  void shouldSynchronizeEntitlementQuantityAttributeOffering() {
+    // Given: An offering with entitlement quantity attribute set to 25
+    String sku = RandomUtils.generateRandom();
+    int entitlementQuantity = 25;
+    Offering offering =
+        Offering.buildRhelOffering(sku, CORES_CAPACITY, SOCKETS_CAPACITY).toBuilder()
+            .entitlementQuantity(String.valueOf(entitlementQuantity))
+            .build();
+    givenSubscriptionIsCreated(sku, offering, Product.RHEL, SUBSCRIPTION_QUANTITY);
+
+    // When: Querying capacity report for the SKU
+    SkuCapacityReportV2 report = service.getSkuCapacityByProductIdForOrg(Product.RHEL, orgId);
+    assertNotNull(report, "SKU capacity should be present in the report for SKU");
+    assertNotNull(report.getData(), "SKU capacity data should be present in the report for SKU");
+    assertNotNull(report.getMeta(), "SKU capacity meta should be present in the report for SKU");
+    Optional<SkuCapacityV2> skuCapacity =
+        report.getData().stream().filter(d -> sku.equals(d.getSku())).findFirst();
+    assertTrue(skuCapacity.isPresent(), "SKU capacity should be present in the report");
+    SkuCapacityV2 capacity = skuCapacity.get();
+    assertNotNull(capacity.getMeasurements(), "Measurements should not be null");
+
+    // Then: Capacity should reflect subscription quantity multiplied by offering metrics
+    double expectedSocketsCapacity = SUBSCRIPTION_QUANTITY * SOCKETS_CAPACITY * entitlementQuantity;
+    Double actualSocketsCapacity = getMetricCapacityFromReport(SOCKETS, capacity, report);
+
+    assertEquals(
+        expectedSocketsCapacity,
+        actualSocketsCapacity,
+        String.format(
+            "Sockets capacity %s should be %d × %.1f = %.1f",
+            actualSocketsCapacity,
+            SUBSCRIPTION_QUANTITY,
+            SOCKETS_CAPACITY,
+            expectedSocketsCapacity));
+  }
+
+  @TestPlanName("offering-capacity-TC004")
+  @Test
+  void shouldSynchronizeEntitlementQuantityAttributeOfferingWithUnlimited() {
+    // Given: An offering with entitlement quantity attribute set to Unlimited
+    String sku = RandomUtils.generateRandom();
+    Offering offering =
+        Offering.buildRhelOffering(sku, CORES_CAPACITY, SOCKETS_CAPACITY).toBuilder()
+            .entitlementQuantity("Unlimited")
+            .build();
+    givenSubscriptionIsCreated(sku, offering, Product.RHEL, SUBSCRIPTION_QUANTITY);
+
+    // When: Querying capacity report for the SKU
+    SkuCapacityReportV2 report = service.getSkuCapacityByProductIdForOrg(Product.RHEL, orgId);
+    assertNotNull(report, "SKU capacity should be present in the report for SKU");
+    assertNotNull(report.getData(), "SKU capacity data should be present in the report for SKU");
+    Optional<SkuCapacityV2> skuCapacity =
+        report.getData().stream().filter(d -> sku.equals(d.getSku())).findFirst();
+    assertTrue(skuCapacity.isPresent(), "SKU capacity should be present in the report");
+    SkuCapacityV2 capacity = skuCapacity.get();
+
+    // Then: Capacity should be infinite
+    assertNotNull(capacity.getHasInfiniteQuantity(), "hasInfiniteQuantity should not be null");
+    assertTrue(
+        capacity.getHasInfiniteQuantity(),
+        "hasInfiniteQuantity flag should be true for unlimited offering");
+  }
+
   /**
    * Helper method to create an offering with subscription for capacity testing.
    *
@@ -232,5 +286,22 @@ public class OfferingCapacityComponentTest extends BaseContractComponentTest {
         is(HttpStatus.SC_OK));
 
     return subscription;
+  }
+
+  private Double getMetricCapacityFromReport(
+      MetricId metric, SkuCapacityV2 capacity, SkuCapacityReportV2 report) {
+    assertNotNull(report);
+    assertNotNull(report.getMeta());
+    List<String> metricOrder = report.getMeta().getMeasurements();
+    assertNotNull(metricOrder);
+    List<Double> measurements = capacity.getMeasurements();
+    assertNotNull(measurements);
+    int index = metricOrder.indexOf(metric.getValue());
+    assertTrue(
+        index >= 0,
+        String.format(
+            "%s metric not found in meta.measurements: %s", metric.getValue(), metricOrder));
+    assertTrue(index < measurements.size());
+    return measurements.get(index);
   }
 }
