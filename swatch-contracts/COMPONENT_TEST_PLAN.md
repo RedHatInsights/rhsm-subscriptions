@@ -2054,8 +2054,7 @@ This section verifies the automatic contract termination behavior when contracts
 - **Verification**: Poll internal contracts API until 1 contract appears for the org
 - **Expected Result**:
   - Contract created with correct `org_id`, `sku`, and `billing_provider`
-  - Optional fields with null values stored as null (not rejected)
-  - No `NullPointerException` or validation errors logged
+  - `billing_provider_id` contains `null` literal for the absent `sellerAccountId` field (e.g. `{vendorProductCode};{awsCustomerId};null`), proving null was handled via string formatting rather than rejected or NPE-d
 
 **partner-gateway-kafka-TC014 - Invalid/unknown source value in Kafka message**
 - **Description**: Verify that a Kafka message with an invalid or unknown `source` value (e.g., `"GCP"`) is handled gracefully — no contract persisted, service stays healthy.
@@ -2084,6 +2083,17 @@ This section verifies the automatic contract termination behavior when contracts
 - **Action**: Publish a valid `PartnerEntitlementContract` JSON message to the `VirtualTopic.services.partner-entitlement-gateway` UMB channel
 - **Verification**: Poll contracts after 3 second delay via internal API
 - **Expected Result**: Zero contracts created for the test org
+
+**partner-gateway-umb-TC004 - Cross-consumer duplicate message is idempotent**
+- **Description**: Verify that receiving the same partner entitlement message via both the Kafka consumer and the UMB consumer (both enabled) results in exactly one contract — the second delivery is treated as an idempotent update regardless of channel.
+- **Setup**:
+  - Ensure `UMB_ENABLED=true`
+  - Unleash toggle enabled; `config` variant set with `{"kafka_consumer_enabled":true,"umb_consumer_enabled":true}`; stubs in place and offering synced
+- **Action**:
+  1. Produce the contract message via Kafka Bridge; wait until 1 contract appears
+  2. Publish the same contract message via UMB
+- **Verification**: Poll internal contracts API
+- **Expected Result**: Still exactly 1 contract for the org
 
 **partner-gateway-umb-TC003 - Process UMB message when Kafka consumer disabled via config variant**
 - **Description**: Verify that disabling the Kafka consumer via variant (`kafka_consumer_enabled=false`) does not prevent the UMB consumer from working.

@@ -68,6 +68,42 @@ public class ContractsUnleashService extends UnleashService {
     clearVariants(IT_SUBSCRIPTION_SERVICE);
   }
 
+  public void enablePartnerGatewayContractsKafkaOnly() {
+    enableFlag(PARTNER_GATEWAY_CONTRACTS);
+    setVariant(
+        PARTNER_GATEWAY_CONTRACTS,
+        "config",
+        "{\"kafka_consumer_enabled\":true,\"umb_consumer_enabled\":false}");
+  }
+
+  public void enablePartnerGatewayContractsUmbOnly() {
+    enableFlag(PARTNER_GATEWAY_CONTRACTS);
+    setVariant(
+        PARTNER_GATEWAY_CONTRACTS,
+        "config",
+        "{\"kafka_consumer_enabled\":false,\"umb_consumer_enabled\":true}");
+  }
+
+  public void enablePartnerGatewayContractsBothConsumers() {
+    enableFlag(PARTNER_GATEWAY_CONTRACTS);
+    setVariant(
+        PARTNER_GATEWAY_CONTRACTS,
+        "config",
+        "{\"kafka_consumer_enabled\":true,\"umb_consumer_enabled\":true}");
+  }
+
+  public void disablePartnerGatewayContractsKafkaConsumer() {
+    enableFlag(PARTNER_GATEWAY_CONTRACTS);
+    setVariant(
+        PARTNER_GATEWAY_CONTRACTS,
+        "config",
+        "{\"kafka_consumer_enabled\":false,\"umb_consumer_enabled\":true}");
+  }
+
+  public void clearPartnerGatewayContractsVariants() {
+    clearVariants(PARTNER_GATEWAY_CONTRACTS);
+  }
+
   public void disablePartnerGatewayContracts() {
     disableFlag(PARTNER_GATEWAY_CONTRACTS);
   }
