@@ -30,6 +30,7 @@ import com.redhat.swatch.common.model.ServiceLevel;
 import com.redhat.swatch.common.model.Usage;
 import com.redhat.swatch.contract.exception.ErrorCode;
 import com.redhat.swatch.contract.exception.ServiceException;
+import com.redhat.swatch.contract.product.umb.ProductAttribute;
 import com.redhat.swatch.contract.product.umb.UmbOperationalProduct;
 import com.redhat.swatch.contract.repository.OfferingEntity;
 import jakarta.ws.rs.core.Response;
@@ -46,6 +47,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
@@ -160,7 +162,12 @@ public class UpstreamProductData {
       String role = parent.getRoles().stream().findFirst().orElse(null);
       offer.attrs.put(Attr.X_ROLE, role);
     }
-    offer.mapAttributes(parent);
+    if (parent.getAttributes() != null) {
+      offer.mapAttributes(
+          parent.getAttributes().stream()
+              .filter(attr -> attributeIsAllowed(attr.getValue()))
+              .collect(Collectors.toMap(AttributeValue::getCode, AttributeValue::getValue)));
+    }
 
     // For each child, merge its unconflicting information into the parent.
     children.stream().map(UpstreamProductData::createFromProduct).forEach(offer::merge);
@@ -249,9 +256,13 @@ public class UpstreamProductData {
     if (product.getChildSkus() != null) {
       data.children.addAll(product.getChildSkus());
     }
-    Arrays.stream(product.getAttributes())
-        .filter(attr -> CODE_TO_ENUM.containsKey(attr.getCode()))
-        .forEach(attr -> data.attrs.put(CODE_TO_ENUM.get(attr.getCode()), attr.getValue()));
+    if (product.getAttributes() != null) {
+      data.mapAttributes(
+          Stream.of(product.getAttributes())
+              .filter(attr -> attributeIsAllowed(attr.getValue()))
+              .collect(Collectors.toMap(ProductAttribute::getCode, ProductAttribute::getValue)));
+    }
+
     data.attrs.put(Attr.X_DESCRIPTION, product.getSkuDescription());
     data.attrs.put(Attr.X_ROLE, product.getRole());
     return data;
@@ -543,7 +554,12 @@ public class UpstreamProductData {
 
   private static UpstreamProductData createFromProduct(OperationalProduct product) {
     var mid = new UpstreamProductData(product.getSku());
-    mid.mapAttributes(product);
+    if (product.getAttributes() != null) {
+      mid.mapAttributes(
+          product.getAttributes().stream()
+              .filter(attr -> attributeIsAllowed(attr.getValue()))
+              .collect(Collectors.toMap(AttributeValue::getCode, AttributeValue::getValue)));
+    }
 
     return mid;
   }
@@ -585,14 +601,10 @@ public class UpstreamProductData {
     }
   }
 
-  private void mapAttributes(OperationalProduct opProd) {
-    var prodAttrs = opProd.getAttributes();
-    if (prodAttrs == null || prodAttrs.isEmpty()) {
-      return;
-    }
-    for (AttributeValue sourceAttr : prodAttrs) {
-      Attr destAttr = CODE_TO_ENUM.get(sourceAttr.getCode());
-      String value = sourceAttr.getValue();
+  private void mapAttributes(Map<String, String> attributes) {
+    for (Map.Entry<String, String> source : attributes.entrySet()) {
+      Attr destAttr = CODE_TO_ENUM.get(source.getKey());
+      String value = source.getValue();
       if (destAttr != null && attributeIsAllowed(value)) {
         putIfNoConflict(destAttr, value);
       }
