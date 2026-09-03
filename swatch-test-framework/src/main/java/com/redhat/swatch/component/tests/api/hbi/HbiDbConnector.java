@@ -96,12 +96,7 @@ public class HbiDbConnector implements HostConnector {
       throw new RuntimeException("Failed to seed host into HBI database", e);
     }
 
-    // Use the host ID as the inventory ID
-    // In HBI, the hosts.id column serves as the inventory identifier.
-    // There is no separate inventory_id column in the schema.
-    String inventoryId = hostId.toString();
-
-    return new SeededHost(hostId, inventoryId, subscriptionManagerId, host.getOrgId());
+    return new SeededHost(hostId, subscriptionManagerId, host.getOrgId());
   }
 
   @Override
@@ -125,8 +120,7 @@ public class HbiDbConnector implements HostConnector {
       throw new RuntimeException("Failed to update host in HBI database: " + hostId, e);
     }
 
-    return new SeededHost(
-        hostId, hostId.toString(), host.getSubscriptionManagerId(), host.getOrgId());
+    return new SeededHost(hostId, host.getSubscriptionManagerId(), host.getOrgId());
   }
 
   @Override

@@ -89,9 +89,7 @@ public class HostStateManager {
   SeededHost seed(Host host) {
     SeededHost seeded = connector.seed(host);
     trackedHostIds.add(seeded.hostId());
-    Log.info(
-        "Seeded host: %s (inventoryId=%s, orgId=%s)",
-        seeded.hostId(), seeded.inventoryId(), seeded.orgId());
+    Log.info("Seeded host: %s (orgId=%s)", seeded.hostId(), seeded.orgId());
     return seeded;
   }
 
@@ -101,9 +99,7 @@ public class HostStateManager {
    */
   SeededHost update(Host host) {
     SeededHost updated = connector.update(host);
-    Log.info(
-        "Updated host: %s (inventoryId=%s, orgId=%s)",
-        updated.hostId(), updated.inventoryId(), updated.orgId());
+    Log.info("Updated host: %s (orgId=%s)", updated.hostId(), updated.orgId());
     return updated;
   }
 

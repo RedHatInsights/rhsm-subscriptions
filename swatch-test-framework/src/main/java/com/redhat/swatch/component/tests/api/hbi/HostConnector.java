@@ -82,10 +82,10 @@ public interface HostConnector {
   /**
    * Record of a seeded host for test assertions.
    *
-   * @param hostId the UUID assigned to the host in HBI
-   * @param inventoryId the inventory ID
+   * @param hostId the UUID assigned to the host in HBI (also its inventory id - HBI's {@code
+   *     hosts.id} column serves both purposes)
    * @param subscriptionManagerId the subscription manager ID
    * @param orgId the organization ID
    */
-  record SeededHost(UUID hostId, String inventoryId, String subscriptionManagerId, String orgId) {}
+  record SeededHost(UUID hostId, String subscriptionManagerId, String orgId) {}
 }
