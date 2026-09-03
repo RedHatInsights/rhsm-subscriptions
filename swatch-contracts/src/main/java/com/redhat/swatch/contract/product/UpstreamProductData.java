@@ -143,14 +143,6 @@ public class UpstreamProductData {
     }
   }
 
-  public static String findSku(RESTProductTree skuTree) {
-    List<OperationalProduct> products = skuTree.getProducts();
-    if (products == null || products.isEmpty()) {
-      throw new IllegalArgumentException("SKU data doesn't have any products!");
-    }
-    return products.get(0).getSku();
-  }
-
   public static UpstreamProductData createFromTree(RESTProductTree skuTree) {
     var products = skuTree.getProducts();
 
