@@ -1236,6 +1236,60 @@ class MetricUsageCollectorTest {
             .getMeasurement(MetricIdUtils.getStorageGibibyteMonths()));
   }
 
+  @Test
+  void testEmptySlaNdUsageDefaultsToPremiumProduction() {
+    Measurement measurement =
+        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);
+    Event event =
+        createEvent()
+            .withEventId(UUID.randomUUID())
+            .withRole(Event.Role.OSD)
+            .withProductTag(Set.of(OSD_PRODUCT_TAG))
+            .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
+            .withServiceType(SERVICE_TYPE)
+            .withMeasurements(Collections.singletonList(measurement))
+            .withSla(Event.Sla.__EMPTY__) // Should be treated as absent
+            .withUsage(Event.Usage.__EMPTY__) // Should be treated as absent
+            .withBillingProvider(Event.BillingProvider.RED_HAT)
+            .withBillingAccountId(Optional.of("sellerAcct"));
+
+    AccountUsageCalculationCache cache = new AccountUsageCalculationCache();
+    metricUsageCollector.calculateUsage(List.of(event), cache);
+
+    assertEquals(1, cache.getCalculations().size());
+    assertTrue(cache.contains(event));
+
+    AccountUsageCalculation accountUsageCalculation = cache.get(event);
+
+    // Should default to PREMIUM/PRODUCTION, not EMPTY
+    UsageCalculation.Key usageCalculationKey =
+        new UsageCalculation.Key(
+            OSD_PRODUCT_TAG,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider.RED_HAT,
+            "sellerAcct");
+    assertTrue(accountUsageCalculation.containsCalculation(usageCalculationKey));
+    assertEquals(
+        Double.valueOf(42.0),
+        accountUsageCalculation
+            .getCalculation(usageCalculationKey)
+            .getTotals(HardwareMeasurementType.PHYSICAL)
+            .getMeasurement(MetricIdUtils.getCores()));
+
+    // Verify EMPTY values are NOT used
+    UsageCalculation.Key emptyKey =
+        new UsageCalculation.Key(
+            OSD_PRODUCT_TAG,
+            ServiceLevel.EMPTY,
+            Usage.EMPTY,
+            BillingProvider.RED_HAT,
+            "sellerAcct");
+    assertFalse(
+        accountUsageCalculation.containsCalculation(emptyKey),
+        "Should not create buckets with EMPTY sla/usage when __EMPTY__ is provided");
+  }
+
   private static Event createEvent() {
     return createEvent(UUID.randomUUID().toString());
   }

@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions.tally.facts;
 
+import com.redhat.swatch.configuration.registry.Defaults;
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Optional;
@@ -97,7 +99,82 @@ public class FactNormalizer {
     normalizeMarketplace(normalizedFacts, hostFacts);
     normalizeNullSocketsAndCores(normalizedFacts, hostFacts);
     normalizeUnits(normalizedFacts, hostFacts);
+    applyDefaultSlaAndUsage(normalizedFacts);
     return normalizedFacts;
+  }
+
+  private void applyDefaultSlaAndUsage(NormalizedFacts normalizedFacts) {
+    // Default to product-specific defaults first, then global PREMIUM/PRODUCTION
+    if (ServiceLevel.EMPTY.equals(normalizedFacts.getSla())) {
+      ServiceLevel defaultSla = getProductDefaultSla(normalizedFacts.getProducts());
+      normalizedFacts.setSla(defaultSla != null ? defaultSla : ServiceLevel.PREMIUM);
+    }
+    if (Usage.EMPTY.equals(normalizedFacts.getUsage())) {
+      Usage defaultUsage = getProductDefaultUsage(normalizedFacts.getProducts());
+      normalizedFacts.setUsage(defaultUsage != null ? defaultUsage : Usage.PRODUCTION);
+    }
+  }
+
+  private ServiceLevel getProductDefaultSla(Set<String> products) {
+    if (products == null || products.isEmpty()) {
+      return null;
+    }
+    // Check each product for a default SLA, return the first one found
+    for (String productId : products) {
+      ServiceLevel defaultSla =
+          SubscriptionDefinition.lookupSubscriptionByTag(productId)
+              .map(SubscriptionDefinition::getDefaults)
+              .map(Defaults::getSla)
+              .map(
+                  sla -> {
+                    switch (sla) {
+                      case PREMIUM:
+                        return ServiceLevel.PREMIUM;
+                      case STANDARD:
+                        return ServiceLevel.STANDARD;
+                      case SELF_SUPPORT:
+                        return ServiceLevel.SELF_SUPPORT;
+                      default:
+                        return null;
+                    }
+                  })
+              .orElse(null);
+      if (defaultSla != null) {
+        return defaultSla;
+      }
+    }
+    return null;
+  }
+
+  private Usage getProductDefaultUsage(Set<String> products) {
+    if (products == null || products.isEmpty()) {
+      return null;
+    }
+    // Check each product for a default Usage, return the first one found
+    for (String productId : products) {
+      Usage defaultUsage =
+          SubscriptionDefinition.lookupSubscriptionByTag(productId)
+              .map(SubscriptionDefinition::getDefaults)
+              .map(Defaults::getUsage)
+              .map(
+                  usage -> {
+                    switch (usage) {
+                      case PRODUCTION:
+                        return Usage.PRODUCTION;
+                      case DEVELOPMENT_TEST:
+                        return Usage.DEVELOPMENT_TEST;
+                      case DISASTER_RECOVERY:
+                        return Usage.DISASTER_RECOVERY;
+                      default:
+                        return null;
+                    }
+                  })
+              .orElse(null);
+      if (defaultUsage != null) {
+        return defaultUsage;
+      }
+    }
+    return null;
   }
 
   private void normalizeSatelliteFacts(

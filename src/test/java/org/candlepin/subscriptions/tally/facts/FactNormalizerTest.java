@@ -797,6 +797,83 @@ class FactNormalizerTest {
     assertEquals(0, normalizedFacts.getSockets());
   }
 
+  @Test
+  void testUsageDefaultsToProductionWhenNotDetermined() {
+    InventoryHostFacts facts = createBaseHost("O1");
+    // Don't set any usage facts
+    NormalizedFacts normalized = normalizer.normalize(facts, hypervisorData());
+    assertEquals(Usage.PRODUCTION, normalized.getUsage());
+  }
+
+  @Test
+  void testSlaDefaultsToPremiumWhenNotDetermined() {
+    InventoryHostFacts facts = createBaseHost("O1");
+    // Don't set any SLA facts
+    NormalizedFacts normalized = normalizer.normalize(facts, hypervisorData());
+    assertEquals(ServiceLevel.PREMIUM, normalized.getSla());
+  }
+
+  @Test
+  void testProductDefaultSlaAndUsageUsedBeforeGlobalDefaults() {
+    // Mock a product to have STANDARD/DEVELOPMENT_TEST defaults (different from global
+    // PREMIUM/PRODUCTION)
+    var mockSubscription = Mockito.mock(SubscriptionDefinition.class);
+    var mockDefaults = Mockito.mock(com.redhat.swatch.configuration.registry.Defaults.class);
+
+    Mockito.when(mockDefaults.getSla())
+        .thenReturn(com.redhat.swatch.configuration.registry.Sla.STANDARD);
+    Mockito.when(mockDefaults.getUsage())
+        .thenReturn(com.redhat.swatch.configuration.registry.Usage.DEVELOPMENT_TEST);
+    Mockito.when(mockSubscription.getDefaults()).thenReturn(mockDefaults);
+
+    // Mock the lookup to return our custom defaults for "RHEL for x86"
+    subscriptionDefinitionMockedStatic
+        .when(() -> SubscriptionDefinition.lookupSubscriptionByTag("RHEL for x86"))
+        .thenReturn(java.util.Optional.of(mockSubscription));
+
+    // Create a host with RHEL product (product ID 69 -> "RHEL for x86")
+    InventoryHostFacts facts = createRhsmHost(List.of(69), null, clock.now());
+    // Don't set any explicit SLA/Usage values
+    facts.setSyspurposeSla(null);
+    facts.setSyspurposeUsage(null);
+
+    NormalizedFacts normalized = normalizer.normalize(facts, hypervisorData());
+
+    // Should use product defaults (STANDARD/DEVELOPMENT_TEST), not global defaults
+    // (PREMIUM/PRODUCTION)
+    assertEquals(ServiceLevel.STANDARD, normalized.getSla());
+    assertEquals(Usage.DEVELOPMENT_TEST, normalized.getUsage());
+
+    // Verify the product was normalized
+    assertThat(normalized.getProducts(), Matchers.hasItem("RHEL for x86"));
+  }
+
+  @Test
+  void testGlobalDefaultsUsedWhenProductHasNoSlaUsageDefaults() {
+    // Mock a product with no SLA/Usage defaults (returns null)
+    var mockSubscription = Mockito.mock(SubscriptionDefinition.class);
+    var mockDefaults = Mockito.mock(com.redhat.swatch.configuration.registry.Defaults.class);
+
+    Mockito.when(mockDefaults.getSla()).thenReturn(null);
+    Mockito.when(mockDefaults.getUsage()).thenReturn(null);
+    Mockito.when(mockSubscription.getDefaults()).thenReturn(mockDefaults);
+
+    subscriptionDefinitionMockedStatic
+        .when(() -> SubscriptionDefinition.lookupSubscriptionByTag("RHEL for x86"))
+        .thenReturn(java.util.Optional.of(mockSubscription));
+
+    // Create a host with RHEL product
+    InventoryHostFacts facts = createRhsmHost(List.of(69), null, clock.now());
+    facts.setSyspurposeSla(null);
+    facts.setSyspurposeUsage(null);
+
+    NormalizedFacts normalized = normalizer.normalize(facts, hypervisorData());
+
+    // Should fall back to global defaults
+    assertEquals(ServiceLevel.PREMIUM, normalized.getSla());
+    assertEquals(Usage.PRODUCTION, normalized.getUsage());
+  }
+
   private InventoryHostFacts givenInventoryHostFactsForX86AndVirtual() {
     InventoryHostFacts facts = createBaseHost("01");
     facts.setSystemProfileArch("x86_64");
