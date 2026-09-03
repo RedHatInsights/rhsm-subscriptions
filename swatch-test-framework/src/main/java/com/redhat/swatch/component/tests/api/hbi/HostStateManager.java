@@ -42,7 +42,7 @@ import java.util.UUID;
  * SeededHost seeded = hostManager.createHost(orgId)
  *     .displayName("Custom")
  *     .rhsmFacts(RhsmFacts.builder().defaultFacts().build())
- *     .setSystemProfileFacts(SystemProfileFacts.builder().numberOfSockets(2).build())
+ *     .systemProfileFacts(SystemProfileFacts.builder().numberOfSockets(2).build())
  *     .insert();
  *
  * // Cleanup (or automatic in @AfterEach)

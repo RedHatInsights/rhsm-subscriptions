@@ -124,7 +124,7 @@ public class TallyNightlyTest extends BaseTallyComponentTest {
             .createHost(orgId)
             .displayName(displayName)
             .rhsmFacts(RhsmFacts.builder().defaultFacts().products(List.of("69")).build())
-            .setSystemProfileFacts(
+            .systemProfileFacts(
                 SystemProfileFacts.builder()
                     .numberOfCpus(cores)
                     .numberOfSockets(startingSockets)

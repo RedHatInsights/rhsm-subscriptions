@@ -23,15 +23,17 @@ package com.redhat.swatch.component.tests.api.hbi;
 import com.redhat.swatch.component.tests.api.hbi.HostConnector.SeededHost;
 import java.util.Arrays;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Stream;
-import org.apache.commons.lang3.StringUtils;
 
 /**
  * Builder for applying reporter facts and customizations before inserting a {@link Host}.
  *
- * <p>Provides template methods for common infrastructure configurations and setters for attaching
- * typed reporter facts ({@link RhsmFacts}, {@link SatelliteFacts}, {@link QpcFacts}) and {@link
- * SystemProfileFacts}. Attaching a reporter's facts also registers that reporter on the host.
+ * <p>Exposes only orthogonal, composable setters for attaching typed reporter facts ({@link
+ * RhsmFacts}, {@link SatelliteFacts}, {@link QpcFacts}) and {@link SystemProfileFacts}. Attaching a
+ * reporter's facts also registers that reporter on the host. Host-level templates that shape
+ * several of these at once (e.g. "physical RHEL host") live in {@link HostTemplates} and are
+ * applied via {@link #apply}.
  *
  * <p>Call {@link #insert()} to seed a new host, then keep the same builder instance and call {@link
  * #update()} to persist further changes to the same row - useful for tests that seed a host, tally,
@@ -46,75 +48,14 @@ public class HostBuilder {
     this.host = host;
   }
 
-  // ===== Physical RHEL Templates =====
+  // ===== Templates =====
 
-  /** Apply physical RHEL defaults (infrastructure=physical, IS_VIRTUAL=false, RHEL product). */
-  public HostBuilder physicalRhelDefaults() {
-    rhsmFacts(RhsmFacts.builder().defaultFacts().build());
-    setSystemProfileFacts(
-        SystemProfileFacts.builder().infrastructureType("physical").arch("x86_64").build());
-    return this;
-  }
-
-  /** Physical RHEL host with the given socket/core counts. */
-  public HostBuilder physicalRhel(int sockets, int cores) {
-    physicalRhelDefaults();
-    setSystemProfileFacts(
-        host.getSystemProfileFacts().toBuilder()
-            .numberOfSockets(sockets)
-            .numberOfCpus(cores)
-            .build());
-    displayName(
-        getOrDefault(host.getDisplayName(), generateName("physical", "RHEL", sockets, cores)));
-    return this;
-  }
-
-  /** Physical RHEL host with 1 socket, 0 cores. */
-  public HostBuilder physicalRhel1Socket0Cores() {
-    return physicalRhel(1, 0);
-  }
-
-  /** Physical RHEL host with 2 sockets, 2 cores. */
-  public HostBuilder physicalRhel2Socket2Cores() {
-    return physicalRhel(2, 2);
-  }
-
-  /** Physical RHEL host with 8 sockets, 8 cores. */
-  public HostBuilder physicalRhel8Sockets8Cores() {
-    return physicalRhel(8, 8);
-  }
-
-  // ===== AWS RHEL Templates =====
-
-  /** Apply AWS RHEL defaults (infrastructure=virtual, cloudProvider=aws, RHEL product). */
-  public HostBuilder awsRhelDefaults() {
-    rhsmFacts(RhsmFacts.builder().defaultFacts().isVirtual(true).build());
-    setSystemProfileFacts(
-        SystemProfileFacts.builder()
-            .infrastructureType("virtual")
-            .cloudProvider("aws")
-            .arch("x86_64")
-            .build());
-    providerId("i-test-" + getUUIDOfLength(12));
-    return this;
-  }
-
-  /** AWS RHEL host with the given socket/core counts. */
-  public HostBuilder awsRhel(int sockets, int cores) {
-    awsRhelDefaults();
-    setSystemProfileFacts(
-        host.getSystemProfileFacts().toBuilder()
-            .numberOfSockets(sockets)
-            .numberOfCpus(cores)
-            .build());
-    displayName(
-        getOrDefault(host.getDisplayName(), generateName("virtual", "RHEL", sockets, cores)));
-    return this;
-  }
-
-  /** AWS RHEL host - small instance (t3.medium equivalent). */
-  public HostBuilder awsRhelSockets1Cores1() {
-    return awsRhel(1, 1);
+  /**
+   * Apply a host-level template (see {@link HostTemplates}), e.g. {@code
+   * HostTemplates.physicalRhel(2, 4)}.
+   */
+  public HostBuilder apply(Function<HostBuilder, HostBuilder> template) {
+    return template.apply(this);
   }
 
   // ===== Reporter Facts =====
@@ -141,7 +82,7 @@ public class HostBuilder {
   }
 
   /** Set the system-profile fields (persisted to {@code hbi.system_profiles_static}). */
-  public HostBuilder setSystemProfileFacts(SystemProfileFacts systemProfileFacts) {
+  public HostBuilder systemProfileFacts(SystemProfileFacts systemProfileFacts) {
     host.systemProfileFacts(systemProfileFacts);
     return this;
   }
@@ -168,7 +109,7 @@ public class HostBuilder {
     return this;
   }
 
-  // ===== Insert (Final Action) =====
+  // ===== Insert / Update (Final Actions) =====
 
   /**
    * Finalize and insert the host into HBI.
@@ -222,6 +163,8 @@ public class HostBuilder {
     }
   }
 
+  // ===== Reporter bookkeeping =====
+
   private void setPrimaryReporter(String reporterName) {
     if (Arrays.stream(host.getReporters()).noneMatch(reporterName::equals)) {
       host.reporters(
@@ -229,23 +172,6 @@ public class HostBuilder {
               .toArray(String[]::new));
     }
     host.reporter(reporterName);
-  }
-
-  private String getOrDefault(String value, String defaultValue) {
-    return value != null ? value : defaultValue;
-  }
-
-  private String getUUIDOfLength(int length) {
-    return UUID.randomUUID().toString().substring(0, length);
-  }
-
-  private String generateName(
-      String infrastType, String instanceType, int socketCount, int coreCount) {
-    String prefix =
-        StringUtils.capitalize(infrastType.substring(0, Math.min(3, infrastType.length())));
-    return String.format(
-        "%s-%s-sockets%d-cores%d-%s",
-        prefix, instanceType, socketCount, coreCount, getUUIDOfLength(5));
   }
 
   private void setYupanaFactsIfMissing() {

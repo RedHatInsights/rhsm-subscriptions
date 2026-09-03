@@ -30,6 +30,7 @@ import com.redhat.swatch.component.tests.api.hbi.HbiDbConnector;
 import com.redhat.swatch.component.tests.api.hbi.HostBuilder;
 import com.redhat.swatch.component.tests.api.hbi.HostConnector.SeededHost;
 import com.redhat.swatch.component.tests.api.hbi.HostStateManager;
+import com.redhat.swatch.component.tests.api.hbi.HostTemplates;
 import com.redhat.swatch.component.tests.api.hbi.RhsmFacts;
 import com.redhat.swatch.component.tests.api.hbi.SatelliteFacts;
 import com.redhat.swatch.component.tests.api.hbi.SystemProfileFacts;
@@ -84,7 +85,8 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
     // Given: No specific setup needed beyond @BeforeEach
 
     // When: Inserting a RHEL host into HBI database
-    SeededHost host = hostManager.createHost(orgId).physicalRhel1Socket0Cores().insert();
+    SeededHost host =
+        hostManager.createHost(orgId).apply(HostTemplates.physicalRhel(1, 0)).insert();
 
     // Then: Host is tracked with expected metadata
     assertNotNull(host.hostId(), "Host ID should be generated");
@@ -96,8 +98,8 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
   /**
    * Demonstrates both approaches to creating HBI hosts.
    *
-   * <p>**Preset Template Approach** (host1): Uses `.physicalRhel1Socket0Cores()` which applies all
-   * RHEL physical defaults automatically (infrastructure, arch, RHEL product facts).
+   * <p>**Preset Template Approach** (host1): Uses `.apply(HostTemplates.physicalRhel(1, 0))` which
+   * applies all RHEL physical defaults automatically (infrastructure, arch, RHEL product facts).
    *
    * <p>**Manual Builder Approach** (host2): Sets each property explicitly using the fluent builder
    * pattern. Useful when you need fine-grained control or custom configurations.
@@ -109,14 +111,16 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
     // Given: No specific setup needed beyond @BeforeEach
 
     // When: Inserting multiple hosts into HBI database
-    SeededHost host1 = hostManager.createHost(orgId).physicalRhel1Socket0Cores().insert();
+    SeededHost host1 =
+        hostManager.createHost(orgId).apply(HostTemplates.physicalRhel(1, 0)).insert();
 
     SeededHost host2 =
         hostManager
             .createHost(orgId)
             .displayName("Test Host - 1")
-            .rhsmFacts(RhsmFacts.builder().isVirtual(false).products(List.of(RHEL_PRODUCT_ID)).build())
-            .setSystemProfileFacts(
+            .rhsmFacts(
+                RhsmFacts.builder().isVirtual(false).products(List.of(RHEL_PRODUCT_ID)).build())
+            .systemProfileFacts(
                 SystemProfileFacts.builder()
                     .infrastructureType("physical")
                     .arch("x86_64")
@@ -166,7 +170,7 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
                     .systemPurposeRole("Red Hat Enterprise Linux Server")
                     .usage("Component Testing")
                     .build())
-            .setSystemProfileFacts(
+            .systemProfileFacts(
                 SystemProfileFacts.builder()
                     .infrastructureType("physical")
                     .cloudProvider("aws")
@@ -232,7 +236,7 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
                     .systemPurposeRole("Red Hat Enterprise Linux Server")
                     .usage("Component Testing")
                     .build())
-            .setSystemProfileFacts(
+            .systemProfileFacts(
                 SystemProfileFacts.builder()
                     .infrastructureType("physical")
                     .cloudProvider("aws")
@@ -271,7 +275,8 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
   @Test
   void testHbiSeederCanDelete() {
     // Given: A host is inserted into HBI database
-    SeededHost host = hostManager.createHost(orgId).physicalRhel1Socket0Cores().insert();
+    SeededHost host =
+        hostManager.createHost(orgId).apply(HostTemplates.physicalRhel(1, 0)).insert();
     assertNotNull(host.hostId(), "Host ID should be generated");
 
     // When: Deleting the host
@@ -293,9 +298,15 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
   void testHbiSeederRollbackDeletesAllHosts() {
     // Given: Multiple hosts are inserted (mix of RHEL and cloud)
     SeededHost host1 =
-        hostManager.createHost(orgId).rhsmFacts(RhsmFacts.builder().defaultFacts().build()).insert();
+        hostManager
+            .createHost(orgId)
+            .rhsmFacts(RhsmFacts.builder().defaultFacts().build())
+            .insert();
     SeededHost host2 =
-        hostManager.createHost(orgId).rhsmFacts(RhsmFacts.builder().defaultFacts().build()).insert();
+        hostManager
+            .createHost(orgId)
+            .rhsmFacts(RhsmFacts.builder().defaultFacts().build())
+            .insert();
     assertEquals(2, hostManager.getTrackedCount(), "Seeder should track two hosts");
     assertTrue(hostManager.hostExists(host1.hostId()), "Host 1 should exist in HBI database");
     assertTrue(hostManager.hostExists(host2.hostId()), "Host 2 should exist in HBI database");
@@ -344,7 +355,8 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
             : 0.0;
 
     // And: RHEL host with 2 sockets and 8 cores is created
-    SeededHost host = hostManager.createHost(orgId).physicalRhel(2, 8).insert();
+    SeededHost host =
+        hostManager.createHost(orgId).apply(HostTemplates.physicalRhel(2, 8)).insert();
     assertNotNull(host.hostId(), "Host should be created");
 
     // And: Nightly tally runs
@@ -377,13 +389,12 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
 
   /**
    * - **Description**: Verify that updating a previously-seeded host and re-running tally reflects
-   * the new facts, rather than treating it as a second host - **Setup**: Component test
-   * environment with swatch-tally is running, an instance of insights db is up - **Action**: Insert
-   * a RHEL host with 2 sockets, tally, then update the same host to 6 sockets using the same
-   * HostBuilder, and tally again - **Verification**: - the update targets the same host id - the
-   * socket count after the update reflects only the updated host (6 sockets), not both the original
-   * and updated values - **Expected Result**: The tally reflects the host's current state after the
-   * update
+   * the new facts, rather than treating it as a second host - **Setup**: Component test environment
+   * with swatch-tally is running, an instance of insights db is up - **Action**: Insert a RHEL host
+   * with 2 sockets, tally, then update the same host to 6 sockets using the same HostBuilder, and
+   * tally again - **Verification**: - the update targets the same host id - the socket count after
+   * the update reflects only the updated host (6 sockets), not both the original and updated values
+   * - **Expected Result**: The tally reflects the host's current state after the update
    *
    * <p>Note: socket counts are chosen to be even, since FactNormalizer.normalizeSocketCount rounds
    * odd physical socket counts up to the next even number (socket-pair licensing), so the
@@ -398,31 +409,33 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
     OffsetDateTime ending = OffsetDateTime.now().plusDays(1);
 
     double initialSockets =
-        sumSockets(service.getTallyReportData(
-            orgId,
-            RHEL_FOR_X86.productTag(),
-            "Sockets",
-            Map.of(
-                "granularity", "Daily",
-                "beginning", beginning.toString(),
-                "ending", ending.toString())));
+        sumSockets(
+            service.getTallyReportData(
+                orgId,
+                RHEL_FOR_X86.productTag(),
+                "Sockets",
+                Map.of(
+                    "granularity", "Daily",
+                    "beginning", beginning.toString(),
+                    "ending", ending.toString())));
 
     // And: RHEL host with 2 sockets, 2 cores is created and tallied
-    HostBuilder hostBuilder = hostManager.createHost(orgId).physicalRhel(2, 2);
+    HostBuilder hostBuilder = hostManager.createHost(orgId).apply(HostTemplates.physicalRhel(2, 2));
     SeededHost seeded = hostBuilder.insert();
     assertNotNull(seeded.hostId(), "Host should be created");
 
     service.tallyOrg(orgId);
 
     double socketsAfterInsert =
-        sumSockets(service.getTallyReportData(
-            orgId,
-            RHEL_FOR_X86.productTag(),
-            "Sockets",
-            Map.of(
-                "granularity", "Daily",
-                "beginning", beginning.toString(),
-                "ending", ending.toString())));
+        sumSockets(
+            service.getTallyReportData(
+                orgId,
+                RHEL_FOR_X86.productTag(),
+                "Sockets",
+                Map.of(
+                    "granularity", "Daily",
+                    "beginning", beginning.toString(),
+                    "ending", ending.toString())));
     assertEquals(
         initialSockets + 2.0,
         socketsAfterInsert,
@@ -431,7 +444,7 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
     // When: The same host is updated to 6 sockets, 6 cores using the same builder, and re-tallied
     SeededHost updated =
         hostBuilder
-            .setSystemProfileFacts(
+            .systemProfileFacts(
                 SystemProfileFacts.builder()
                     .infrastructureType("physical")
                     .arch("x86_64")
@@ -445,14 +458,15 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
 
     // Then: Socket count reflects the updated host (6 sockets), not the original + updated values
     double socketsAfterUpdate =
-        sumSockets(service.getTallyReportData(
-            orgId,
-            RHEL_FOR_X86.productTag(),
-            "Sockets",
-            Map.of(
-                "granularity", "Daily",
-                "beginning", beginning.toString(),
-                "ending", ending.toString())));
+        sumSockets(
+            service.getTallyReportData(
+                orgId,
+                RHEL_FOR_X86.productTag(),
+                "Sockets",
+                Map.of(
+                    "granularity", "Daily",
+                    "beginning", beginning.toString(),
+                    "ending", ending.toString())));
     assertEquals(
         initialSockets + 6.0,
         socketsAfterUpdate,
@@ -480,7 +494,7 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
   void testNightlyTallyCloudProduct() {
     // Given: Org is opted in and cloud host with RHEL product exists in HBI database
     service.createOptInConfig(orgId);
-    SeededHost host = hostManager.createHost(orgId).awsRhelSockets1Cores1().insert();
+    SeededHost host = hostManager.createHost(orgId).apply(HostTemplates.awsRhel(1, 1)).insert();
     assertNotNull(host.hostId(), "Cloud host should be created");
     assertTrue(hostManager.hostExists(host.hostId()), "Cloud host should exist in HBI database");
 
