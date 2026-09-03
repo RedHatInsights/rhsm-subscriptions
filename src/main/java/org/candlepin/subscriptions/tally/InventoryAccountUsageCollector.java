@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.tally;
 
 import com.google.common.collect.Sets;
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import io.micrometer.core.annotation.Timed;
 import jakarta.persistence.EntityManager;
@@ -351,13 +352,40 @@ public class InventoryAccountUsageCollector {
     return host;
   }
 
-  private Set<Key> createHostUsageKeys(Set<String> products, NormalizedFacts facts) {
-    return createKeyCombinations(
-        products.stream().filter(facts.getProducts()::contains).collect(Collectors.toSet()),
-        Set.of(facts.getSla(), ServiceLevel._ANY),
-        Set.of(facts.getUsage(), Usage._ANY),
-        Set.of(BillingProvider._ANY),
-        Set.of("_ANY"));
+  public Set<Key> createHostUsageKeys(Set<String> products, NormalizedFacts facts) {
+    Set<String> applicableProducts =
+        products.stream().filter(facts.getProducts()::contains).collect(Collectors.toSet());
+    Set<Key> usageKeySet = new HashSet<>();
+    for (String product : applicableProducts) {
+      // Build SLA set: for each product, apply its default if host SLA is EMPTY
+      Set<ServiceLevel> slaSet = new HashSet<>();
+      if (!ServiceLevel.EMPTY.equals(facts.getSla())) {
+        slaSet.add(facts.getSla());
+      } else {
+        // Use product's default if available then global default
+        ServiceLevel productDefault =
+            ServiceLevel.fromRegistrySla(SubscriptionDefinition.getProductDefaultSla(product));
+        slaSet.add(productDefault != null ? productDefault : ServiceLevel.PREMIUM);
+      }
+      slaSet.add(ServiceLevel._ANY);
+
+      // Build Usage set: for each product, apply its default if host usage is EMPTY
+      Set<Usage> usageSet = new HashSet<>();
+      if (!Usage.EMPTY.equals(facts.getUsage())) {
+        usageSet.add(facts.getUsage());
+      } else {
+        // Use product's default if available then global default
+        Usage productDefault =
+            Usage.fromRegistryUsage(SubscriptionDefinition.getProductDefaultUsage(product));
+        usageSet.add(productDefault != null ? productDefault : Usage.PRODUCTION);
+      }
+      usageSet.add(Usage._ANY);
+
+      usageKeySet.addAll(
+          createKeyCombinations(
+              Set.of(product), slaSet, usageSet, Set.of(BillingProvider._ANY), Set.of("_ANY")));
+    }
+    return usageKeySet;
   }
 
   private void applyNonHypervisorBuckets(
