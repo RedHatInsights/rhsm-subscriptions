@@ -49,7 +49,7 @@ public class ContractsV1Resource implements ContractsV1Api {
   }
 
   @Override
-  @RolesAllowed({"customer", "support", "test"})
+  @RolesAllowed({"customer", "support"})
   public BillingAccountIdResponse fetchBillingAccountIdsForOrg(String orgId, String productTag)
       throws ProcessingException {
     validateOrgIdAccess(orgId);
