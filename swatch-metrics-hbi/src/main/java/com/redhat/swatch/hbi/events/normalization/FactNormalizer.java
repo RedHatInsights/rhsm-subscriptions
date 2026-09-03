@@ -23,6 +23,9 @@ package com.redhat.swatch.hbi.events.normalization;
 import com.redhat.swatch.common.model.HardwareMeasurementType;
 import com.redhat.swatch.common.model.ServiceLevel;
 import com.redhat.swatch.common.model.Usage;
+import com.redhat.swatch.configuration.registry.Defaults;
+import com.redhat.swatch.configuration.registry.Sla;
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
 import com.redhat.swatch.hbi.events.normalization.facts.QpcFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
@@ -36,6 +39,7 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -105,8 +109,21 @@ public class FactNormalizer {
         .displayName(host.getDisplayName())
         .is3rdPartyMigrated(systemProfileFacts.getIs3rdPartyMigrated())
         .usage(
-            determineUsage(orgId, subscriptionManagerId, satelliteFacts, rhsmFacts, skipRhsmFacts))
-        .sla(determineSla(orgId, subscriptionManagerId, satelliteFacts, rhsmFacts, skipRhsmFacts))
+            determineUsage(
+                orgId,
+                subscriptionManagerId,
+                satelliteFacts,
+                rhsmFacts,
+                skipRhsmFacts,
+                productNormalizer.getProductTags()))
+        .sla(
+            determineSla(
+                orgId,
+                subscriptionManagerId,
+                satelliteFacts,
+                rhsmFacts,
+                skipRhsmFacts,
+                productNormalizer.getProductTags()))
         .cloudProviderType(cloudProviderType)
         .cloudProvider(toEventCloudProvider(cloudProviderType))
         .syncTimestamp(syncTimestamp)
@@ -205,7 +222,8 @@ public class FactNormalizer {
       String subscriptionManagerId,
       Optional<SatelliteFacts> satelliteFacts,
       Optional<RhsmFacts> rhsmFacts,
-      boolean skipRhsmFacts) {
+      boolean skipRhsmFacts,
+      Set<String> productTags) {
     Optional<Usage> satelliteUsage =
         handleUsage(
             orgId,
@@ -220,7 +238,11 @@ public class FactNormalizer {
         return rhsmUsage.get().getValue();
       }
     }
-    return satelliteUsage.map(Usage::getValue).orElse(null);
+    // Default to product-specific default first, then global PRODUCTION
+    String productDefaultUsage = getProductDefaultUsage(productTags);
+    return satelliteUsage
+        .map(Usage::getValue)
+        .orElse(productDefaultUsage != null ? productDefaultUsage : Usage.PRODUCTION.getValue());
   }
 
   private String determineSla(
@@ -228,7 +250,8 @@ public class FactNormalizer {
       String subscriptionManagerId,
       Optional<SatelliteFacts> satelliteFacts,
       Optional<RhsmFacts> rhsmFacts,
-      boolean skipRhsmFacts) {
+      boolean skipRhsmFacts,
+      Set<String> productTags) {
     Optional<ServiceLevel> satelliteSla =
         handleSla(
             orgId, subscriptionManagerId, satelliteFacts.map(SatelliteFacts::getSla).orElse(null));
@@ -240,7 +263,11 @@ public class FactNormalizer {
         return rhsmSla.get().getValue();
       }
     }
-    return satelliteSla.map(ServiceLevel::getValue).orElse(null);
+    // Default to product-specific default first, then global PREMIUM
+    String productDefaultSla = getProductDefaultSla(productTags);
+    return satelliteSla
+        .map(ServiceLevel::getValue)
+        .orElse(productDefaultSla != null ? productDefaultSla : ServiceLevel.PREMIUM.getValue());
   }
 
   // NOTE: Modified from FactNormalizer
@@ -299,6 +326,44 @@ public class FactNormalizer {
       } catch (DateTimeParseException e) {
         log.warn(
             "Unable to determine lastSeenDate for {}; defaulting to null.", host.getUpdatedDate());
+      }
+    }
+    return null;
+  }
+
+  private String getProductDefaultSla(Set<String> productTags) {
+    if (productTags == null || productTags.isEmpty()) {
+      return null;
+    }
+    // Check each product for a default SLA, return the first one found
+    for (String productTag : productTags) {
+      String defaultSla =
+          SubscriptionDefinition.lookupSubscriptionByTag(productTag)
+              .map(SubscriptionDefinition::getDefaults)
+              .map(Defaults::getSla)
+              .map(Sla::getValue)
+              .orElse(null);
+      if (defaultSla != null) {
+        return defaultSla;
+      }
+    }
+    return null;
+  }
+
+  private String getProductDefaultUsage(Set<String> productTags) {
+    if (productTags == null || productTags.isEmpty()) {
+      return null;
+    }
+    // Check each product for a default Usage, return the first one found
+    for (String productTag : productTags) {
+      String defaultUsage =
+          SubscriptionDefinition.lookupSubscriptionByTag(productTag)
+              .map(SubscriptionDefinition::getDefaults)
+              .map(Defaults::getUsage)
+              .map(com.redhat.swatch.configuration.registry.Usage::getValue)
+              .orElse(null);
+      if (defaultUsage != null) {
+        return defaultUsage;
       }
     }
     return null;

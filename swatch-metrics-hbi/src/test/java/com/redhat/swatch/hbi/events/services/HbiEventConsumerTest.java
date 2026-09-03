@@ -179,8 +179,8 @@ class HbiEventConsumerTest {
                 buildMeasurements(2.0, 2.0))
             .withProductIds(List.of())
             .withProductTag(Set.of())
-            .withSla(null)
-            .withUsage(null);
+            .withSla(Sla.PREMIUM)
+            .withUsage(Usage.PRODUCTION);
 
     hbiEventsIn.send(hbiEvent);
     assertOutboxState(expected);
@@ -202,8 +202,8 @@ class HbiEventConsumerTest {
             hbiEvent.getHost(),
             NormalizedEventType.INSTANCE_CREATED,
             eventTimestamp,
-            null,
-            null,
+            Sla.PREMIUM,
+            Usage.PRODUCTION,
             HardwareType.VIRTUAL,
             true,
             false,

@@ -610,4 +610,257 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
         report.getMeta().getServiceLevel(),
         "Meta should show " + expectedSla + " SLA");
   }
+
+  /**
+   * - **Description**: Verify that hosts without SLA/Usage facts default to Premium/Production -
+   * **Setup**: Component test environment with swatch-tally is running - **Action**: Insert a host
+   * without SLA/Usage facts and run nightly tally - **Verification**: - Tally report with
+   * sla=Premium and usage=Production filters returns the host's data - Tally report with
+   * sla=Standard or usage=Development/Test filters returns no data - **Expected Result**: Host
+   * without SLA/Usage is tallied as Premium/Production
+   */
+  @Test
+  void testNightlyTallyDefaultsToPremiuProductionWhenSlaUsageNotSet() {
+    // Given: Primary row searches are enabled
+    givenFeatureFlagIsConfigured(true);
+
+    // Given: Org is opted in and host without SLA/Usage facts exists
+    service.createOptInConfig(orgId);
+    SeededHost host = hbiSeeder.rhelHost(orgId).cores(8).sockets(2).insert();
+    assertNotNull(host.hostId(), "Host should be created");
+
+    // When: Nightly tally runs
+    service.tallyOrg(orgId);
+
+    // Then: Host is tallied with Premium SLA and Production Usage (defaults)
+    OffsetDateTime beginning = OffsetDateTime.now().minusDays(1);
+    OffsetDateTime ending = OffsetDateTime.now().plusDays(1);
+
+    // Query with Premium SLA filter - should return data
+    var premiumReport =
+        service.getTallyReportData(
+            orgId,
+            RHEL_FOR_X86.productTag(),
+            "Sockets",
+            Map.of(
+                "granularity",
+                "Daily",
+                "beginning",
+                beginning.toString(),
+                "ending",
+                ending.toString(),
+                "sla",
+                "Premium"));
+
+    assertNotNull(premiumReport, "Tally report with Premium SLA should exist");
+    assertNotNull(premiumReport.getData(), "Premium report should have data points");
+    assertFalse(premiumReport.getData().isEmpty(), "Premium report should have data points");
+    // At least one data point should have hasData=true (actual data exists for Premium SLA)
+    assertTrue(
+        premiumReport.getData().stream().anyMatch(dp -> Boolean.TRUE.equals(dp.getHasData())),
+        "Premium report should have at least one data point with data");
+
+    // Query with Production Usage filter - should return data
+    var productionReport =
+        service.getTallyReportData(
+            orgId,
+            RHEL_FOR_X86.productTag(),
+            "Sockets",
+            Map.of(
+                "granularity",
+                "Daily",
+                "beginning",
+                beginning.toString(),
+                "ending",
+                ending.toString(),
+                "usage",
+                "Production"));
+
+    assertNotNull(productionReport, "Tally report with Production Usage should exist");
+    assertNotNull(productionReport.getData(), "Production report should have data points");
+    assertFalse(productionReport.getData().isEmpty(), "Production report should have data points");
+    // At least one data point should have hasData=true (actual data exists for Production)
+    assertTrue(
+        productionReport.getData().stream().anyMatch(dp -> Boolean.TRUE.equals(dp.getHasData())),
+        "Production report should have at least one data point with data");
+
+    // Query with Standard SLA filter - should return no data (host has Premium)
+    var standardReport =
+        service.getTallyReportData(
+            orgId,
+            RHEL_FOR_X86.productTag(),
+            "Sockets",
+            Map.of(
+                "granularity",
+                "Daily",
+                "beginning",
+                beginning.toString(),
+                "ending",
+                ending.toString(),
+                "sla",
+                "Standard"));
+
+    assertNotNull(standardReport, "Tally report with Standard SLA should exist");
+    assertNotNull(standardReport.getData(), "Standard report should have data points");
+    assertFalse(standardReport.getData().isEmpty(), "Standard report should have data points");
+    // All data points should have hasData=false (no actual data for Standard SLA)
+    assertTrue(
+        standardReport.getData().stream().noneMatch(dp -> Boolean.TRUE.equals(dp.getHasData())),
+        "Standard SLA report should have no data (host defaulted to Premium)");
+
+    // Query with Development/Test Usage filter - should return no data (host has Production)
+    var devTestReport =
+        service.getTallyReportData(
+            orgId,
+            RHEL_FOR_X86.productTag(),
+            "Sockets",
+            Map.of(
+                "granularity",
+                "Daily",
+                "beginning",
+                beginning.toString(),
+                "ending",
+                ending.toString(),
+                "usage",
+                "Development/Test"));
+
+    assertNotNull(devTestReport, "Tally report with Development/Test Usage should exist");
+    assertNotNull(devTestReport.getData(), "Development/Test report should have data points");
+    assertFalse(
+        devTestReport.getData().isEmpty(), "Development/Test report should have data points");
+    // All data points should have hasData=false (no actual data for Development/Test)
+    assertTrue(
+        devTestReport.getData().stream().noneMatch(dp -> Boolean.TRUE.equals(dp.getHasData())),
+        "Development/Test Usage report should have no data (host defaulted to Production)");
+  }
+
+  /**
+   * - **Description**: Verify that hosts with explicit SLA/Usage facts use those values (not
+   * defaults) - **Setup**: Component test environment with swatch-tally is running - **Action**:
+   * Insert a host with Standard SLA and Development/Test Usage and run nightly tally -
+   * **Verification**: - Tally report with sla=Standard and usage=Development/Test filters returns
+   * the host's data - Tally report with sla=Premium or usage=Production filters returns no data -
+   * **Expected Result**: Host with explicit SLA/Usage is tallied with those values, not defaults
+   */
+  @Test
+  void testNightlyTallyRespectsExplicitSlaUsage() {
+    // Given: Primary row searches are enabled
+    givenFeatureFlagIsConfigured(true);
+
+    // Given: Org is opted in and host with explicit SLA/Usage exists
+    service.createOptInConfig(orgId);
+    SeededHost host =
+        hbiSeeder
+            .rhelHost(orgId)
+            .cores(8)
+            .sockets(2)
+            .sla("Standard")
+            .usage("Development/Test")
+            .insert();
+    assertNotNull(host.hostId(), "Host should be created");
+
+    // When: Nightly tally runs
+    service.tallyOrg(orgId);
+
+    // Then: Host is tallied with Standard SLA and Development/Test Usage (explicit values)
+    OffsetDateTime beginning = OffsetDateTime.now().minusDays(1);
+    OffsetDateTime ending = OffsetDateTime.now().plusDays(1);
+
+    // Query with Standard SLA filter - should return data
+    var standardReport =
+        service.getTallyReportData(
+            orgId,
+            RHEL_FOR_X86.productTag(),
+            "Sockets",
+            Map.of(
+                "granularity",
+                "Daily",
+                "beginning",
+                beginning.toString(),
+                "ending",
+                ending.toString(),
+                "sla",
+                "Standard"));
+
+    assertNotNull(standardReport, "Tally report with Standard SLA should exist");
+    assertNotNull(standardReport.getData(), "Standard report should have data points");
+    assertFalse(standardReport.getData().isEmpty(), "Standard report should have data points");
+    // At least one data point should have hasData=true (actual data exists for Standard SLA)
+    assertTrue(
+        standardReport.getData().stream().anyMatch(dp -> Boolean.TRUE.equals(dp.getHasData())),
+        "Standard report should have at least one data point with data");
+
+    // Query with Development/Test Usage filter - should return data
+    var devTestReport =
+        service.getTallyReportData(
+            orgId,
+            RHEL_FOR_X86.productTag(),
+            "Sockets",
+            Map.of(
+                "granularity",
+                "Daily",
+                "beginning",
+                beginning.toString(),
+                "ending",
+                ending.toString(),
+                "usage",
+                "Development/Test"));
+
+    assertNotNull(devTestReport, "Tally report with Development/Test Usage should exist");
+    assertNotNull(devTestReport.getData(), "Development/Test report should have data points");
+    assertFalse(
+        devTestReport.getData().isEmpty(), "Development/Test report should have data points");
+    // At least one data point should have hasData=true (actual data exists for Development/Test)
+    assertTrue(
+        devTestReport.getData().stream().anyMatch(dp -> Boolean.TRUE.equals(dp.getHasData())),
+        "Development/Test report should have at least one data point with data");
+
+    // Query with Premium SLA filter - should return no data (host has Standard)
+    var premiumReport =
+        service.getTallyReportData(
+            orgId,
+            RHEL_FOR_X86.productTag(),
+            "Sockets",
+            Map.of(
+                "granularity",
+                "Daily",
+                "beginning",
+                beginning.toString(),
+                "ending",
+                ending.toString(),
+                "sla",
+                "Premium"));
+
+    assertNotNull(premiumReport, "Tally report with Premium SLA should exist");
+    assertNotNull(premiumReport.getData(), "Premium report should have data points");
+    assertFalse(premiumReport.getData().isEmpty(), "Premium report should have data points");
+    // All data points should have hasData=false (no actual data for Premium SLA)
+    assertTrue(
+        premiumReport.getData().stream().noneMatch(dp -> Boolean.TRUE.equals(dp.getHasData())),
+        "Premium SLA report should have no data (host has Standard)");
+
+    // Query with Production Usage filter - should return no data (host has Development/Test)
+    var productionReport =
+        service.getTallyReportData(
+            orgId,
+            RHEL_FOR_X86.productTag(),
+            "Sockets",
+            Map.of(
+                "granularity",
+                "Daily",
+                "beginning",
+                beginning.toString(),
+                "ending",
+                ending.toString(),
+                "usage",
+                "Production"));
+
+    assertNotNull(productionReport, "Tally report with Production Usage should exist");
+    assertNotNull(productionReport.getData(), "Production report should have data points");
+    assertFalse(productionReport.getData().isEmpty(), "Production report should have data points");
+    // All data points should have hasData=false (no actual data for Production Usage)
+    assertTrue(
+        productionReport.getData().stream().noneMatch(dp -> Boolean.TRUE.equals(dp.getHasData())),
+        "Production Usage report should have no data (host has Development/Test)");
+  }
 }

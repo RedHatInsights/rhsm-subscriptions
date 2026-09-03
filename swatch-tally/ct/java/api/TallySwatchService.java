@@ -23,6 +23,7 @@ package api;
 import static com.redhat.swatch.component.tests.utils.SwatchUtils.SECURITY_HEADERS;
 import static com.redhat.swatch.component.tests.utils.SwatchUtils.X_RH_IDENTITY_HEADER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.component.tests.api.SwatchService;
 import com.redhat.swatch.component.tests.logging.Log;
@@ -187,6 +188,42 @@ public class TallySwatchService extends SwatchService {
             + response.getBody().asString());
 
     Log.info(this, "Sync nightly tally endpoint called successfully for org: %s", orgId);
+  }
+
+  /**
+   * Updates isPrimary flags for snapshots of a specific product and org.
+   *
+   * @param orgId the organization ID
+   * @param productId the product ID (e.g. "rhel-for-x86")
+   */
+  public void updateIsPrimaryForProduct(String orgId, String productId) {
+    java.time.OffsetDateTime now = java.time.OffsetDateTime.now();
+    java.time.OffsetDateTime startDate = now.minusDays(7);
+    java.time.OffsetDateTime endDate = now.plusDays(7);
+
+    Response response =
+        given()
+            .headers(SECURITY_HEADERS)
+            .header("x-rh-swatch-synchronous-request", "true")
+            .queryParam("org_id", orgId)
+            .queryParam("product_id", productId)
+            .queryParam("start_date", startDate.toString())
+            .queryParam("end_date", endDate.toString())
+            .post(INTERNAL_API_PATH + "/rpc/tally/is-primary")
+            .then()
+            .extract()
+            .response();
+
+    // Accept both 200 (synchronous) and 202 (async) as success
+    int statusCode = response.getStatusCode();
+    assertTrue(
+        statusCode == HttpStatus.SC_OK || statusCode == HttpStatus.SC_ACCEPTED,
+        "Update isPrimary failed with status code: "
+            + statusCode
+            + ", response body: "
+            + response.getBody().asString());
+
+    Log.info(this, "isPrimary flags updated for org: %s, product: %s", orgId, productId);
   }
 
   // --- Report retrieval methods ---
