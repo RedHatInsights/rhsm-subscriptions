@@ -27,7 +27,7 @@ data:
       "editable": true,
       "fiscalYearStartMonth": 0,
       "graphTooltip": 1,
-      "id": 1122808,
+      "id": 1123305,
       "links": [],
       "panels": [
         {
@@ -8605,7 +8605,7 @@ data:
             "y": 37
           },
           "id": 5003,
-          "interval": "1d",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [],
@@ -8744,7 +8744,7 @@ data:
             "y": 37
           },
           "id": 5004,
-          "interval": "1d",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [],
@@ -8883,7 +8883,7 @@ data:
             "y": 45
           },
           "id": 5049,
-          "interval": "1d",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [],
@@ -9022,7 +9022,7 @@ data:
             "y": 45
           },
           "id": 5050,
-          "interval": "1d",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [],
@@ -9161,7 +9161,7 @@ data:
             "y": 53
           },
           "id": 9057,
-          "interval": "1d",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [],
@@ -9300,7 +9300,7 @@ data:
             "y": 53
           },
           "id": 9058,
-          "interval": "1d",
+          "interval": "1m",
           "options": {
             "legend": {
               "calcs": [],
@@ -13083,8 +13083,8 @@ data:
         "list": [
           {
             "current": {
-              "text": "crcs02ue1-prometheus",
-              "value": "PDD8BE47D10408F45"
+              "text": "crcp01ue1-prometheus",
+              "value": "PC1EAC84DCBBF0697"
             },
             "includeAll": false,
             "name": "datasource",
@@ -13096,8 +13096,8 @@ data:
           },
           {
             "current": {
-              "text": "AWS insights-stage",
-              "value": "PB2EEA3F591968575"
+              "text": "AWS insights-prod",
+              "value": "PD4288CE6A02EB473"
             },
             "includeAll": false,
             "name": "rdsdatasource",
@@ -13109,8 +13109,8 @@ data:
           },
           {
             "current": {
-              "text": "appsres11ue1-prometheus",
-              "value": "PC52EF5F0B75AF530"
+              "text": "appsrep11ue1-prometheus",
+              "value": "P677746A44F299DAF"
             },
             "name": "aws_kafka_datasource",
             "options": [],
