@@ -70,7 +70,7 @@ public class KesselConfiguration {
   }
 
   private OAuth2AuthRequest initializeRbacAuth(KesselProperties props) {
-    var issuerUrl = props.getAuthDiscoveryIssuerUrl();
+    var issuerUrl = props.getAuthOidcIssuer();
     var clientId = props.getAuthClientId();
     var clientSecret = props.getAuthClientSecret();
     if (issuerUrl == null

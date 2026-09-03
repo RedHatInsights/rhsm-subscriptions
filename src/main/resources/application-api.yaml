@@ -3,8 +3,6 @@
 RHSM_RBAC_URL: ${clowder.endpoints.rbac-service.url:http://localhost:8819}
 RHSM_CONTRACTS_URL: ${clowder.endpoints.swatch-contracts-service.url:http://localhost:8011}
 KESSEL_ENDPOINT: ${clowder.endpoints.kessel-inventory-api.hostname:localhost}:9000
-KESSEL_INSECURE: false
-KESSEL_TIMEOUT_MS: 5000
 
 rhsm-subscriptions:
   pretty-print-json: ${PRETTY_PRINT_JSON:false}
@@ -17,10 +15,10 @@ rhsm-subscriptions:
     max-connections: ${RHSM_RBAC_MAX_CONNECTIONS:100}
   kessel:
     endpoint: ${KESSEL_ENDPOINT}
-    insecure: ${KESSEL_INSECURE}
-    timeout-ms: ${KESSEL_TIMEOUT_MS}
+    insecure: ${KESSEL_INSECURE:true}
+    timeout-ms: ${KESSEL_TIMEOUT_MS:5000}
     rbac-base-endpoint: ${RBAC_BASE_ENDPOINT:${RHSM_RBAC_URL}}
-    auth-discovery-issuer-url: ${AUTH_DISCOVERY_ISSUER_URL:}
+    auth-oidc-issuer: ${KESSEL_AUTH_OIDC_ISSUER:}
     auth-client-id: ${KESSEL_AUTH_CLIENT_ID:}
     auth-client-secret: ${KESSEL_AUTH_CLIENT_SECRET:}
   contracts:
