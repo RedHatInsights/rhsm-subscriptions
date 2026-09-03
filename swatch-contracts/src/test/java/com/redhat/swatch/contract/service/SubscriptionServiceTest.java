@@ -240,6 +240,21 @@ class SubscriptionServiceTest {
     assertEquals(SUBSCRIPTION_ID, result.getFirst().getSubscriptionId());
   }
 
+  @Test
+  @TestTransaction
+  void findLatestBySubscriptionNumberReturnsNewestStartDate() {
+    subscriptionRepository.persistAndFlush(newSubscription("acct", 4L));
+    var newer = newSubscription("acct", 8L);
+    newer.setStartDate(startDate.plusDays(1));
+    subscriptionRepository.persistAndFlush(newer);
+
+    var latest = subscriptionService.findLatestBySubscriptionNumber(SUBSCRIPTION_NUMBER);
+
+    assertTrue(latest.isPresent());
+    assertEquals(startDate.plusDays(1), latest.get().getStartDate());
+    assertEquals(8L, latest.get().getQuantity());
+  }
+
   private OfferingEntity createOffering() {
     return OfferingEntity.builder()
         .sku(SKU)

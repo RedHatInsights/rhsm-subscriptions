@@ -30,6 +30,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
@@ -57,6 +58,7 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.BadRequestException;
+import java.sql.SQLException;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
@@ -68,6 +70,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
+import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatcher;
@@ -105,9 +108,13 @@ class SubscriptionSyncServiceTest {
 
     when(denylist.productIdMatches(any())).thenReturn(false);
     subscriptionSyncService.syncSubscription(dto, Optional.of(subscription));
-    // for existing subscription:
-    verify(subscriptionService).terminate(any(SubscriptionEntity.class));
-    verify(subscriptionService).save(any(SubscriptionEntity.class));
+    var expectedStart = subscription.getStartDate().plusSeconds(1);
+    verify(subscriptionService).terminate(argThat(s -> expectedStart.equals(s.getEndDate())));
+    verify(subscriptionService)
+        .save(
+            argThat(
+                (ArgumentMatcher<SubscriptionEntity>)
+                    s -> expectedStart.equals(s.getStartDate()) && s.getQuantity() == 10L));
     verify(capacityReconciliationService, Mockito.times(2))
         .reconcileCapacityForSubscription(Mockito.any(SubscriptionEntity.class));
   }
@@ -202,7 +209,8 @@ class SubscriptionSyncServiceTest {
     // We don't want to modify the original subscription that has already been ended.  We want to
     // end the current operative subscription and create a new segment.
     verify(initialSubSpy, never()).endSubscription();
-    verify(firstQuantityChangedSubSpy, times(1)).endSubscription();
+    verify(firstQuantityChangedSubSpy, times(1))
+        .endSubscription(firstContinuationStartTime.plusSeconds(1));
   }
 
   @Test
@@ -462,6 +470,68 @@ class SubscriptionSyncServiceTest {
     subscriptionSyncService.saveSubscription(payload);
 
     verify(subscriptionService).findBySubscriptionNumber("1234");
+  }
+
+  @Test
+  void shouldUpdateLatestSegmentWhenMultipleRowsExist() {
+    OfferingEntity offering = OfferingEntity.builder().sku(SKU).build();
+    when(offeringRepository.findByIdOptional(SKU)).thenReturn(Optional.of(offering));
+    when(offeringRepository.findById(SKU)).thenReturn(offering);
+    when(denylist.productIdMatches(any())).thenReturn(false);
+
+    var older = createSubscription();
+    older.setQuantity(4L);
+    var latest = createSubscription();
+    latest.setStartDate(older.getStartDate().plusSeconds(1));
+    latest.setQuantity(10L);
+    when(subscriptionService.findBySubscriptionNumber("890")).thenReturn(List.of(older, latest));
+
+    var payload =
+        new SubscriptionOutboxPayload()
+            .subscriptionNumber("890")
+            .customerId("123")
+            .quantity(10)
+            .effectiveStartDate(toEpochMillis(NOW))
+            .effectiveEndDate(toEpochMillis(NOW.plusDays(30)))
+            .product(new SubscriptionOutboxProduct().sku(SKU));
+
+    subscriptionSyncService.saveSubscription(payload);
+
+    verify(subscriptionService, never()).terminate(any());
+    verify(subscriptionService)
+        .save(
+            argThat(
+                (ArgumentMatcher<SubscriptionEntity>)
+                    s -> latest.getStartDate().equals(s.getStartDate())));
+  }
+
+  @Test
+  void shouldRetrySaveWhenUniqueConstraintIsViolated() {
+    OfferingEntity offering = OfferingEntity.builder().sku(SKU).build();
+    when(offeringRepository.findByIdOptional(SKU)).thenReturn(Optional.of(offering));
+    when(offeringRepository.findById(SKU)).thenReturn(offering);
+    when(denylist.productIdMatches(any())).thenReturn(false);
+    when(subscriptionService.findBySubscriptionNumber("1234")).thenReturn(List.of());
+    when(subscriptionSearchService.getSubscriptionBySubscriptionNumber("1234"))
+        .thenReturn(createDto(123, "100", "1234", 10));
+
+    var sql = new SQLException("duplicate key", "23505");
+    var violation =
+        new ConstraintViolationException("could not execute statement", sql, "subscription_pkey");
+    doThrow(violation).doNothing().when(subscriptionService).save(any());
+
+    var payload =
+        new SubscriptionOutboxPayload()
+            .subscriptionNumber("1234")
+            .customerId("org123")
+            .quantity(10)
+            .effectiveStartDate(1704067200000L)
+            .effectiveEndDate(1735689600000L)
+            .product(new SubscriptionOutboxProduct().sku(SKU));
+
+    subscriptionSyncService.saveSubscription(payload);
+
+    verify(subscriptionService, times(2)).save(any(SubscriptionEntity.class));
   }
 
   @Test

@@ -51,11 +51,13 @@ import com.redhat.swatch.contract.repository.ContractMetricRepository;
 import com.redhat.swatch.contract.repository.ContractRepository;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.utils.ContractMessageProcessingResult;
+import com.redhat.swatch.contract.utils.UniqueConstraintViolations;
 import com.redhat.swatch.panache.Specification;
 import io.micrometer.core.annotation.Timed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import jakarta.transaction.Transactional.TxType;
 import jakarta.validation.Validator;
 import jakarta.ws.rs.ProcessingException;
 import java.time.Instant;
@@ -99,6 +101,9 @@ public class ContractService {
   @Inject protected Validator validator;
   private final List<BasePartnerEntitlementsProvider> partnerEntitlementsProviders;
 
+  // Client proxy so unique-constraint retry runs in a new transaction.
+  @Inject private ContractService self;
+
   ContractService(
       ContractRepository contractRepository,
       ContractMetricRepository contractMetricRepository,
@@ -114,7 +119,6 @@ public class ContractService {
         List.of(awsPartnerEntitlementsProvider, azurePartnerEntitlementsProvider);
   }
 
-  @Transactional
   public ContractResponse createContract(ContractRequest request) {
     ContractResponse response = new ContractResponse();
     if (findPartnerEntitlementsProvider(PartnerEntitlementsRequest.from(request)) == null) {
@@ -125,7 +129,8 @@ public class ContractService {
 
     try {
       var result =
-          upsertPartnerContracts(request.getPartnerEntitlement(), request.getSubscriptionId());
+          upsertPartnerContractsRetrying(
+              request.getPartnerEntitlement(), request.getSubscriptionId());
       response.setStatus(result.toStatus());
       if (result.isValid() && result.getEntity() != null) {
         response.setContract(contractDtoMapper.contractEntityToDto(result.getEntity()));
@@ -193,7 +198,6 @@ public class ContractService {
     deleteContract(contract);
   }
 
-  @Transactional
   public StatusResponse createPartnerContract(PartnerEntitlementsRequest request) {
     var partnerEntitlementsProvider = findPartnerEntitlementsProvider(request);
     if (partnerEntitlementsProvider == null) {
@@ -227,9 +231,24 @@ public class ContractService {
           lookupSubscriptionId(
               Optional.ofNullable(findSubscriptionNumber(entitlement))
                   .orElse(request.getRedHatSubscriptionNumber()));
-      return upsertPartnerContracts(entitlement, subscriptionId).toStatus();
+      return upsertPartnerContractsRetrying(entitlement, subscriptionId).toStatus();
     } catch (ContractNotAssociatedToOrgException e) {
       return ContractMessageProcessingResult.RH_ORG_NOT_ASSOCIATED.toStatus();
+    }
+  }
+
+  private ContractMessageProcessingResult upsertPartnerContractsRetrying(
+      PartnerEntitlementV1 entitlement, String subscriptionId)
+      throws ContractNotAssociatedToOrgException, ContractValidationFailedException {
+    try {
+      return UniqueConstraintViolations.callWithRetry(
+          () -> self.upsertPartnerContracts(entitlement, subscriptionId));
+    } catch (ContractNotAssociatedToOrgException | ContractValidationFailedException e) {
+      throw e;
+    } catch (RuntimeException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new IllegalStateException(e);
     }
   }
 
@@ -239,7 +258,7 @@ public class ContractService {
    * otherwise a new record will be created. If no matching PartnerEntitlement Contract is found
    * then the existing record is deleted.
    */
-  @Transactional
+  @Transactional(TxType.REQUIRES_NEW)
   public ContractMessageProcessingResult upsertPartnerContracts(
       PartnerEntitlementV1 entitlement, String subscriptionId)
       throws ContractNotAssociatedToOrgException, ContractValidationFailedException {
@@ -353,6 +372,7 @@ public class ContractService {
    */
   private boolean mergeWithExistingSubscriptionRecords(
       List<ContractEntity> contractEntities, String subscriptionId) {
+    String subscriptionNumber = contractEntities.get(0).getSubscriptionNumber();
 
     List<SubscriptionEntity> updatedSubscriptions =
         contractEntities.stream()
@@ -374,8 +394,7 @@ public class ContractService {
                     }));
 
     var existingSubscriptionRecords =
-        subscriptionService.findBySubscriptionNumber(
-            contractEntities.get(0).getSubscriptionNumber());
+        subscriptionService.findBySubscriptionNumber(subscriptionNumber);
 
     boolean hasDeletedSubscriptions = false;
     for (SubscriptionEntity existingSubscription : existingSubscriptionRecords) {
@@ -595,7 +614,7 @@ public class ContractService {
   private void tryUpsertPartnerContract(PartnerEntitlementV1 entitlement) {
     var subscriptionId = lookupSubscriptionId(findSubscriptionNumber(entitlement));
     try {
-      upsertPartnerContracts(entitlement, subscriptionId);
+      upsertPartnerContractsRetrying(entitlement, subscriptionId);
     } catch (ContractNotAssociatedToOrgException | ContractValidationFailedException e) {
       log.error(
           "Error synchronising the contract {}. Caused by: {}", entitlement, e.getMessage(), e);

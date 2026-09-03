@@ -193,7 +193,11 @@ public class SubscriptionEntity extends ModificationTrackedEntity {
   }
 
   public void endSubscription() {
-    endDate = OffsetDateTime.now();
+    endSubscription(OffsetDateTime.now());
+  }
+
+  public void endSubscription(OffsetDateTime when) {
+    endDate = when;
   }
 
   public static Specification<SubscriptionEntity> forContract(ContractEntity contract) {

@@ -26,8 +26,10 @@ import com.redhat.swatch.contract.repository.SubscriptionRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import jakarta.transaction.Transactional.TxType;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,6 +47,13 @@ public class SubscriptionService {
 
   public List<SubscriptionEntity> findBySubscriptionNumber(String subscriptionNumber) {
     return subscriptionRepository.findBySubscriptionNumber(subscriptionNumber);
+  }
+
+  public Optional<SubscriptionEntity> findLatestBySubscriptionNumber(String subscriptionNumber) {
+    return findBySubscriptionNumber(subscriptionNumber).stream()
+        .max(
+            Comparator.comparing(
+                SubscriptionEntity::getStartDate, Comparator.nullsLast(Comparator.naturalOrder())));
   }
 
   public List<SubscriptionEntity> findActiveSubscription(String subscriptionId) {

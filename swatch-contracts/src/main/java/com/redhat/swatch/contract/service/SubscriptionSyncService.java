@@ -41,17 +41,21 @@ import com.redhat.swatch.contract.repository.OfferingRepository;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.utils.CustomBatchIterator;
 import com.redhat.swatch.contract.utils.SubscriptionDtoUtil;
+import com.redhat.swatch.contract.utils.UniqueConstraintViolations;
 import io.micrometer.common.util.StringUtils;
 import io.micrometer.core.annotation.Timed;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
+import jakarta.transaction.Transactional.TxType;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.core.Response;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -62,14 +66,14 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Stream;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
 import org.eclipse.microprofile.faulttolerance.Asynchronous;
 
 @ApplicationScoped
 @Slf4j
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class SubscriptionSyncService {
 
   private final SubscriptionService subscriptionService;
@@ -82,6 +86,9 @@ public class SubscriptionSyncService {
   private final ApplicationConfiguration properties;
   private final ObjectMapper objectMapper;
   private final ProductDenylist productDenylist;
+
+  // Client proxy so unique-constraint retry runs in a new transaction.
+  @Inject private SubscriptionSyncService self;
 
   public void syncSubscription(
       Subscription subscription, Optional<SubscriptionEntity> subscriptionOptional) {
@@ -183,16 +190,21 @@ public class SubscriptionSyncService {
         return; // we have nothing to do as the DB and the subs service have the same info
       }
 
-      /* If the quantity on a subscription has changed, we need to terminate that subscription
-       * and create a new subscription with the updated quantity that begins now and ends when
-       * the previous subscription used to end.  In the case that the quantity changes multiple
-       * times (which should be very rare), we always need to build the new subscription segment
-       * off of the current segment.  E.g. If we have A -> A' and the quantity changes again, we
-       * need to update A' not A.  We do this via the DESC sort on subscription start date for
-       * findByOrgId
+      /* If the quantity on a subscription has changed, terminate that segment
+       * and create a new one. The new start date is derived from the existing
+       * segment so concurrent consumers compute the same primary key. Sequential
+       * quantity changes always extend the latest segment.
        */
       if (existingSubscription.quantityHasChanged(newOrUpdated.getQuantity())) {
-        existingSubscription.endSubscription();
+        OffsetDateTime newStart = existingSubscription.getStartDate().plusSeconds(1);
+        log.info(
+            "Quantity changed for subscriptionNumber={} from {} to {},"
+                + " creating new subscription row starting at {}",
+            existingSubscription.getSubscriptionNumber(),
+            existingSubscription.getQuantity(),
+            newOrUpdated.getQuantity(),
+            newStart);
+        existingSubscription.endSubscription(newStart);
         subscriptionService.terminate(existingSubscription);
         final SubscriptionEntity newSub =
             SubscriptionEntity.builder()
@@ -200,7 +212,7 @@ public class SubscriptionSyncService {
                 .offering(existingSubscription.getOffering())
                 .orgId(existingSubscription.getOrgId())
                 .quantity(newOrUpdated.getQuantity())
-                .startDate(OffsetDateTime.now())
+                .startDate(newStart)
                 .endDate(newOrUpdated.getEndDate())
                 .billingProviderId(newOrUpdated.getBillingProviderId())
                 .billingAccountId(newOrUpdated.getBillingAccountId())
@@ -583,37 +595,40 @@ public class SubscriptionSyncService {
     }
   }
 
-  @Transactional
   public void saveUmbSubscription(UmbSubscription umbSubscription) {
-    SubscriptionEntity subscription = convertDto(umbSubscription);
-    var subscriptions =
-        subscriptionService.findBySubscriptionNumber(subscription.getSubscriptionNumber());
-    if (subscriptions.size() > 1) {
-      log.warn(
-          "Skipping UMB message because multiple subscriptions were found for subscriptionNumber={}",
-          subscription.getSubscriptionNumber());
-    } else {
-      syncSubscription(getSku(umbSubscription), subscription, subscriptions.stream().findFirst());
-    }
+    UniqueConstraintViolations.runWithRetry(() -> self.persistUmbSubscription(umbSubscription));
   }
 
-  @Transactional
+  @Transactional(TxType.REQUIRES_NEW)
+  public void persistUmbSubscription(UmbSubscription umbSubscription) {
+    SubscriptionEntity subscription = convertDto(umbSubscription);
+    syncSubscription(
+        getSku(umbSubscription),
+        subscription,
+        latestBySubscriptionNumber(subscription.getSubscriptionNumber()));
+  }
+
   public void saveSubscription(SubscriptionOutboxPayload payload) {
+    UniqueConstraintViolations.runWithRetry(() -> self.persistSubscription(payload));
+  }
+
+  @Transactional(TxType.REQUIRES_NEW)
+  public void persistSubscription(SubscriptionOutboxPayload payload) {
     SubscriptionEntity subscription = convertDto(payload);
     String sku = extractSku(payload);
     if (sku == null) {
       throw new IllegalStateException(
           "Could not find top level SKU for subscription " + payload.getSubscriptionNumber());
     }
-    var subscriptions =
-        subscriptionService.findBySubscriptionNumber(subscription.getSubscriptionNumber());
-    if (subscriptions.size() > 1) {
-      log.warn(
-          "Skipping message because multiple subscriptions were found for subscriptionNumber={}",
-          subscription.getSubscriptionNumber());
-    } else {
-      syncSubscription(sku, subscription, subscriptions.stream().findFirst());
-    }
+    syncSubscription(
+        sku, subscription, latestBySubscriptionNumber(subscription.getSubscriptionNumber()));
+  }
+
+  private Optional<SubscriptionEntity> latestBySubscriptionNumber(String subscriptionNumber) {
+    return subscriptionService.findBySubscriptionNumber(subscriptionNumber).stream()
+        .max(
+            Comparator.comparing(
+                SubscriptionEntity::getStartDate, Comparator.nullsLast(Comparator.naturalOrder())));
   }
 
   private static String extractSku(SubscriptionOutboxPayload payload) {
