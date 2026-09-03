@@ -23,6 +23,7 @@ package com.redhat.swatch.component.tests.api.hbi;
 import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.UUID;
+import lombok.Getter;
 
 /**
  * Host data container with fluent setters.
@@ -40,6 +41,7 @@ import java.util.UUID;
  *     .systemProfileFacts(SystemProfileFacts.builder().numberOfSockets(2).build());
  * </pre>
  */
+@Getter
 public class Host {
 
   // ===== Core Identity =====
@@ -80,41 +82,6 @@ public class Host {
    */
   public Host(String orgId) {
     this.orgId = Objects.requireNonNull(orgId, "orgId is required");
-  }
-
-  public Host(Host source) {
-
-    // ===== Core Identity =====
-    this.orgId = source.getOrgId();
-    this.id = source.getId();
-    this.subscriptionManagerId = source.getSubscriptionManagerId();
-    this.insightsId = source.getInsightsId();
-    this.displayName = source.getDisplayName();
-    this.providerId = source.getProviderId();
-    this.account = source.getAccount(); // Deprecated, but included for completeness
-
-    // ===== System Profile =====
-    this.systemProfileFacts = source.getSystemProfileFacts();
-
-    // ====== Reporter Facts (stored as JSONB in HBI) ======
-    this.rhsmFacts = source.getRhsmFacts();
-    this.qpcFacts = source.getQpcFacts();
-    this.satelliteFacts = source.getSatelliteFacts();
-    this.yupanaFacts = source.getYupanaFacts();
-
-    // ===== Reporter Info =====
-    // This made need to be appended to the existing reporters array, not replaced.
-    this.reporter = source.getReporter();
-    this.reporters = source.getReporters().clone();
-
-    // ===== Timestamps =====
-    this.createdOn = source.getCreatedOn();
-    this.modifiedOn = source.getModifiedOn();
-    this.lastCheckIn = source.getLastCheckIn();
-
-    // ===== Additional Fields =====
-    this.conversionsActivity = source.getConversionsActivity();
-    this.billingModel = source.getBillingModel();
   }
 
   // ===== Core Identity Setters =====
@@ -226,83 +193,5 @@ public class Host {
   public Host billingModel(String billingModel) {
     this.billingModel = billingModel;
     return this;
-  }
-
-  // ===== Getters =====
-
-  public String getOrgId() {
-    return orgId;
-  }
-
-  public UUID getId() {
-    return id;
-  }
-
-  public String getSubscriptionManagerId() {
-    return subscriptionManagerId;
-  }
-
-  public String getInsightsId() {
-    return insightsId;
-  }
-
-  public String getDisplayName() {
-    return displayName;
-  }
-
-  public String getProviderId() {
-    return providerId;
-  }
-
-  public String getAccount() {
-    return account;
-  }
-
-  public SystemProfileFacts getSystemProfileFacts() {
-    return systemProfileFacts;
-  }
-
-  public RhsmFacts getRhsmFacts() {
-    return rhsmFacts;
-  }
-
-  public QpcFacts getQpcFacts() {
-    return qpcFacts;
-  }
-
-  public SatelliteFacts getSatelliteFacts() {
-    return satelliteFacts;
-  }
-
-  public YupanaFacts getYupanaFacts() {
-    return yupanaFacts;
-  }
-
-  public String getReporter() {
-    return reporter;
-  }
-
-  public String[] getReporters() {
-    return reporters;
-  }
-
-  public OffsetDateTime getCreatedOn() {
-    return createdOn;
-  }
-
-  public OffsetDateTime getModifiedOn() {
-    return modifiedOn;
-  }
-
-  public OffsetDateTime getLastCheckIn() {
-    return lastCheckIn;
-  }
-
-  public String getConversionsActivity() {
-    return conversionsActivity;
-  }
-
-  public String getBillingModel() {
-    return billingModel;
   }
 }
