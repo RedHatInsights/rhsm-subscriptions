@@ -427,7 +427,7 @@ public class ContractsResource implements DefaultApi {
                 Response.status(apiExceptionStatus).entity(apiException.getMessage()).build());
         }
       }
-      throw new InternalServerErrorException(e.getMessage());
+      throw new InternalServerErrorException(e);
     }
     if (SyncResult.SKIPPED_NOT_FOUND.equals(result)) {
       throw new NotFoundException(result.description());
