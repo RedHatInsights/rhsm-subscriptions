@@ -21,8 +21,6 @@
 package tests;
 
 import static api.PartnerApiStubs.PartnerSubscriptionsStubRequest.forContract;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import api.ContractsSwatchService;
@@ -121,7 +119,7 @@ public class BaseContractComponentTest {
   void givenContractIsCreated(Contract contract) {
     givenOfferingIsSynced(contract);
     Response create = service.createContract(contract);
-    assertThat("Creating contract should succeed", create.statusCode(), is(HttpStatus.SC_OK));
+    assertEquals(HttpStatus.SC_OK, create.statusCode(), "Creating contract should succeed");
   }
 
   protected void givenOfferingIsSynced(Contract contract) {

@@ -1720,8 +1720,8 @@ This section verifies the automatic contract termination behavior when contracts
   - Prepare `OperationalProductEvent` JSON with null `productCode`
 - **Action**: Publish message to `product-service.operationalproduct.protected` topic
 - **Verification**:
-  - Verify message is processed without crash
-  - Check info log contains "productCode=null"
+  - Check info log contains “IT Product message consumed: source=kafka” with `productCode=null` and `childSku=false`
+  - Publish a subsequent valid message and verify it is consumed (consumer continues)
 - **Expected Result**:
   - `OperationalProductEvent` deserialized successfully
   - Null `productCode` logged
@@ -1751,8 +1751,8 @@ This section verifies the automatic contract termination behavior when contracts
   - Ensure Unleash toggle `swatch.swatch-contracts.enable-product-service-consumer` is enabled (IT Product Service Kafka consumer)
 - **Action**: Publish empty JSON object `{}` to `product-service.operationalproduct.protected` topic
 - **Verification**:
-  - Verify message is processed without crash
-  - Check info log shows null values for all fields
+  - Check info log contains “IT Product message consumed: source=kafka” with null `productCode`, `eventType`, and `productCategory`
+  - Publish a subsequent valid message and verify it is consumed (consumer continues)
 - **Expected Result**:
   - `OperationalProductEvent` deserialized with all fields as null
   - Null values logged for `productCode`, `eventType`, `productCategory`
@@ -1766,8 +1766,9 @@ This section verifies the automatic contract termination behavior when contracts
   - Prepare `OperationalProductEvent` JSON with valid required fields plus unexpected additional fields
 - **Action**: Publish message to `product-service.operationalproduct.protected` topic
 - **Verification**:
-  - Verify message is processed successfully
-  - Check info log contains expected fields
+  - Check info log contains “IT Product message consumed: source=kafka” with the expected fields
+  - Verify `OfferingSyncService.syncProductFromEvent` via log “Received product message for productSku=”
+  - Verify logs do not contain “Unrecognized field”
 - **Expected Result**:
   - `OperationalProductEvent` deserialized successfully (extra fields ignored)
   - Expected fields logged correctly
