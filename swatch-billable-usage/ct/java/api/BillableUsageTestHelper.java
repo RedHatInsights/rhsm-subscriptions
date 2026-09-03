@@ -131,6 +131,58 @@ public final class BillableUsageTestHelper {
     return tallySummary;
   }
 
+  public static TallyMeasurement createPhysicalMeasurement(String metricId, double currentTotal) {
+    var measurement = new TallyMeasurement();
+    measurement.setHardwareMeasurementType("PHYSICAL");
+    measurement.setMetricId(metricId);
+    measurement.setValue(currentTotal);
+    measurement.setCurrentTotal(currentTotal);
+    return measurement;
+  }
+
+  /**
+   * Create a tally summary with multiple PHYSICAL measurements on one snapshot. Use for products
+   * with more than one billable metric (for example ACM managed and self-managed).
+   */
+  public static TallySummary createTallySummaryWithMeasurements(
+      String orgId,
+      String productId,
+      BillingProvider billingProvider,
+      String billingAccountId,
+      TallyMeasurement... measurements) {
+    return createTallySummaryWithMeasurements(
+        orgId,
+        productId,
+        billingProvider,
+        billingAccountId,
+        OffsetDateTime.now().minusHours(1).withOffsetSameInstant(ZoneOffset.UTC),
+        measurements);
+  }
+
+  public static TallySummary createTallySummaryWithMeasurements(
+      String orgId,
+      String productId,
+      BillingProvider billingProvider,
+      String billingAccountId,
+      OffsetDateTime snapshotDate,
+      TallyMeasurement... measurements) {
+    var snapshot = new TallySnapshot();
+    snapshot.setId(UUID.randomUUID());
+    snapshot.setProductId(productId);
+    snapshot.setBillingProvider(billingProvider.toTallyApiModel());
+    snapshot.setBillingAccountId(billingAccountId);
+    snapshot.setSnapshotDate(snapshotDate);
+    snapshot.setSla(TallySnapshot.Sla.PREMIUM);
+    snapshot.setUsage(TallySnapshot.Usage.PRODUCTION);
+    snapshot.setGranularity(TallySnapshot.Granularity.HOURLY);
+    snapshot.setTallyMeasurements(List.of(measurements));
+
+    var tallySummary = new TallySummary();
+    tallySummary.setOrgId(orgId);
+    tallySummary.setTallySnapshots(List.of(snapshot));
+    return tallySummary;
+  }
+
   public static TallySummary createTallySummaryWithGranularity(
       String orgId,
       String productId,

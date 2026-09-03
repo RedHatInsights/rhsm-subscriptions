@@ -52,6 +52,13 @@ public class BillableUsageSwatchService extends SwatchService {
         .as(new TypeRef<List<TallyRemittance>>() {});
   }
 
+  public void getRemittancesByTallyExpectBadRequest(String tallyId) {
+    given()
+        .get(REMITTANCE_ENDPOINT_BY_TALLY_ID, tallyId)
+        .then()
+        .statusCode(HttpStatus.SC_BAD_REQUEST);
+  }
+
   /**
    * Get monthly remittances for an account (product, org, metric, billing provider, billing
    * account). Use to verify remittances per accumulation period (e.g. last month vs current month).
