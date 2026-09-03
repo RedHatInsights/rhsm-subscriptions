@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.tally;
 
 import com.google.common.collect.Sets;
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import io.micrometer.core.annotation.Timed;
 import jakarta.persistence.EntityManager;
@@ -351,13 +352,19 @@ public class InventoryAccountUsageCollector {
     return host;
   }
 
-  private Set<Key> createHostUsageKeys(Set<String> products, NormalizedFacts facts) {
-    return createKeyCombinations(
-        products.stream().filter(facts.getProducts()::contains).collect(Collectors.toSet()),
-        Set.of(facts.getSla(), ServiceLevel._ANY),
-        Set.of(facts.getUsage(), Usage._ANY),
-        Set.of(BillingProvider._ANY),
-        Set.of("_ANY"));
+  public Set<Key> createHostUsageKeys(Set<String> products, NormalizedFacts facts) {
+    Set<String> applicableProducts =
+        products.stream().filter(facts.getProducts()::contains).collect(Collectors.toSet());
+    Set<Key> usageKeySet = new HashSet<>();
+    for (String product : applicableProducts) {
+      Set<ServiceLevel> slaSet = determineSlaSet(facts, product);
+      Set<Usage> usageSet = determineUsageSet(facts, product);
+
+      usageKeySet.addAll(
+          createKeyCombinations(
+              Set.of(product), slaSet, usageSet, Set.of(BillingProvider._ANY), Set.of("_ANY")));
+    }
+    return usageKeySet;
   }
 
   private void applyNonHypervisorBuckets(
@@ -404,5 +411,42 @@ public class InventoryAccountUsageCollector {
     populateHostFieldsFromHbi(host, inventoryHostFacts, normalizedFacts);
     applyNonHypervisorBuckets(host, normalizedFacts, usageKeys, applicableProducts);
     return entityManager.merge(host);
+  }
+
+  private Set<ServiceLevel> determineSlaSet(NormalizedFacts facts, String product) {
+    Set<ServiceLevel> slaSet = new HashSet<>();
+    if (!ServiceLevel.EMPTY.equals(facts.getSla())) {
+      slaSet.add(facts.getSla());
+    } else {
+      // Use product's default if available then global default
+      slaSet.add(
+          Optional.ofNullable(SubscriptionDefinition.getProductDefaultSla(product))
+              // If a default is found in the product config, get the model instance
+              // based on the config's sla value.
+              .map(sla -> ServiceLevel.fromString(sla.getValue()))
+              // If not found in config, default to PREMIUM.
+              .orElse(ServiceLevel.PREMIUM));
+    }
+    slaSet.add(ServiceLevel._ANY);
+    return slaSet;
+  }
+
+  private Set<Usage> determineUsageSet(NormalizedFacts facts, String product) {
+    // Build Usage set: for each product, apply its default if host usage is EMPTY
+    Set<Usage> usageSet = new HashSet<>();
+    if (!Usage.EMPTY.equals(facts.getUsage())) {
+      usageSet.add(facts.getUsage());
+    } else {
+      // Use product's default if available then global default
+      usageSet.add(
+          Optional.ofNullable(SubscriptionDefinition.getProductDefaultUsage(product))
+              // If a default is found in the product config, get the model instance
+              // based on the config's usage value.
+              .map(usage -> Usage.fromString(usage.getValue()))
+              // If not found in config, default to PRODUCTION.
+              .orElse(Usage.PRODUCTION));
+    }
+    usageSet.add(Usage._ANY);
+    return usageSet;
   }
 }

@@ -166,21 +166,45 @@ class InventoryAccountUsageCollectorReconcileTest {
     orgHostsData.addHypervisorFacts("123e4567-e89b-12d3-a456-426614174000", new NormalizedFacts());
     collector.reconcileHbiSystemWithSwatchSystem(
         hbiSystem, swatchSystem, orgHostsData, Set.of("RHEL for x86"), new ArrayList<>());
-    HostTallyBucket expectedEmptyBucket =
+    HostTallyBucket expectedPremiumProductionBucket =
         new HostTallyBucket(
-            swatchSystem,
+            hypervisorRecord,
             "RHEL for x86",
-            ServiceLevel.EMPTY,
-            Usage.EMPTY,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
             BillingProvider._ANY,
             "_ANY",
             true,
             0,
             0,
             HardwareMeasurementType.HYPERVISOR);
-    HostTallyBucket expectedAnyBucket =
+    HostTallyBucket expectedPremiumAnyBucket =
         new HostTallyBucket(
-            swatchSystem,
+            hypervisorRecord,
+            "RHEL for x86",
+            ServiceLevel.PREMIUM,
+            Usage._ANY,
+            BillingProvider._ANY,
+            "_ANY",
+            true,
+            0,
+            0,
+            HardwareMeasurementType.HYPERVISOR);
+    HostTallyBucket expectedAnyProductionBucket =
+        new HostTallyBucket(
+            hypervisorRecord,
+            "RHEL for x86",
+            ServiceLevel._ANY,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            "_ANY",
+            true,
+            0,
+            0,
+            HardwareMeasurementType.HYPERVISOR);
+    HostTallyBucket expectedAnyAnyBucket =
+        new HostTallyBucket(
+            hypervisorRecord,
             "RHEL for x86",
             ServiceLevel._ANY,
             Usage._ANY,
@@ -190,8 +214,10 @@ class InventoryAccountUsageCollectorReconcileTest {
             0,
             0,
             HardwareMeasurementType.HYPERVISOR);
-    assertThat(expectedEmptyBucket, in(hypervisorRecord.getBuckets()));
-    assertThat(expectedAnyBucket, in(hypervisorRecord.getBuckets()));
+    assertThat(expectedPremiumProductionBucket, in(hypervisorRecord.getBuckets()));
+    assertThat(expectedPremiumAnyBucket, in(hypervisorRecord.getBuckets()));
+    assertThat(expectedAnyProductionBucket, in(hypervisorRecord.getBuckets()));
+    assertThat(expectedAnyAnyBucket, in(hypervisorRecord.getBuckets()));
     assertTrue(swatchSystem.getBuckets().isEmpty());
   }
 
@@ -288,19 +314,43 @@ class InventoryAccountUsageCollectorReconcileTest {
     OrgHostsData orgHostsData = new OrgHostsData("org123");
     collector.reconcileHbiSystemWithSwatchSystem(
         hbiSystem, swatchSystem, orgHostsData, Set.of("RHEL for x86"), new ArrayList<>());
-    HostTallyBucket expectedEmptyBucket =
+    HostTallyBucket expectedPremiumProductionBucket =
         new HostTallyBucket(
             swatchSystem,
             "RHEL for x86",
-            ServiceLevel.EMPTY,
-            Usage.EMPTY,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
             BillingProvider._ANY,
             "_ANY",
             false,
             null,
             null,
             HardwareMeasurementType.PHYSICAL);
-    HostTallyBucket expectedAnyBucket =
+    HostTallyBucket expectedPremiumAnyBucket =
+        new HostTallyBucket(
+            swatchSystem,
+            "RHEL for x86",
+            ServiceLevel.PREMIUM,
+            Usage._ANY,
+            BillingProvider._ANY,
+            "_ANY",
+            false,
+            null,
+            null,
+            HardwareMeasurementType.PHYSICAL);
+    HostTallyBucket expectedAnyProductionBucket =
+        new HostTallyBucket(
+            swatchSystem,
+            "RHEL for x86",
+            ServiceLevel._ANY,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            "_ANY",
+            false,
+            null,
+            null,
+            HardwareMeasurementType.PHYSICAL);
+    HostTallyBucket expectedAnyAnyBucket =
         new HostTallyBucket(
             swatchSystem,
             "RHEL for x86",
@@ -312,8 +362,10 @@ class InventoryAccountUsageCollectorReconcileTest {
             null,
             null,
             HardwareMeasurementType.PHYSICAL);
-    assertThat(expectedEmptyBucket, in(swatchSystem.getBuckets()));
-    assertThat(expectedAnyBucket, in(swatchSystem.getBuckets()));
+    assertThat(expectedPremiumProductionBucket, in(swatchSystem.getBuckets()));
+    assertThat(expectedPremiumAnyBucket, in(swatchSystem.getBuckets()));
+    assertThat(expectedAnyProductionBucket, in(swatchSystem.getBuckets()));
+    assertThat(expectedAnyAnyBucket, in(swatchSystem.getBuckets()));
   }
 
   @Test

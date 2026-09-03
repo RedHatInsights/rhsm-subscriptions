@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.tally;
 
 import static org.candlepin.subscriptions.tally.InventoryAccountUsageCollector.HBI_INSTANCE_TYPE;
-import static org.candlepin.subscriptions.tally.InventoryAccountUsageCollector.createKeyCombinations;
 import static org.candlepin.subscriptions.tally.InventoryAccountUsageCollector.populateHostFieldsFromHbi;
 import static org.candlepin.subscriptions.tally.InventoryHostFactTestHelper.createGuest;
 import static org.candlepin.subscriptions.tally.InventoryHostFactTestHelper.createHypervisor;
@@ -345,7 +344,7 @@ class InventoryAccountUsageCollectorTallyTest {
         a1Calc,
         ORG_ID,
         TEST_PRODUCT,
-        ServiceLevel.EMPTY,
+        ServiceLevel.PREMIUM,
         Usage._ANY,
         BillingProvider._ANY,
         BILLING_ACCOUNT_ID_ANY,
@@ -356,7 +355,7 @@ class InventoryAccountUsageCollectorTallyTest {
         a1Calc,
         ORG_ID,
         TEST_PRODUCT,
-        ServiceLevel.EMPTY,
+        ServiceLevel.PREMIUM,
         Usage.DEVELOPMENT_TEST,
         BillingProvider._ANY,
         BILLING_ACCOUNT_ID_ANY,
@@ -367,7 +366,7 @@ class InventoryAccountUsageCollectorTallyTest {
         a1Calc,
         ORG_ID,
         TEST_PRODUCT,
-        ServiceLevel.EMPTY,
+        ServiceLevel.PREMIUM,
         Usage.PRODUCTION,
         BillingProvider._ANY,
         BILLING_ACCOUNT_ID_ANY,
@@ -917,13 +916,7 @@ class InventoryAccountUsageCollectorTallyTest {
             orgHostsData.incrementGuestCount(host.getHypervisorUuid());
           }
 
-          Set<UsageCalculation.Key> usageKeys =
-              createKeyCombinations(
-                  products,
-                  Set.of(facts.getSla(), ServiceLevel._ANY),
-                  Set.of(facts.getUsage(), Usage._ANY),
-                  Set.of(BillingProvider._ANY),
-                  Set.of("_ANY"));
+          Set<UsageCalculation.Key> usageKeys = collector.createHostUsageKeys(products, facts);
 
           // Calculate for each UsageKey
           // review current implementation of default values, and determine if fact normalizer needs

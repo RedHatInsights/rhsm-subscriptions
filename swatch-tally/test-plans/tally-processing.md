@@ -803,3 +803,63 @@ This test plan covers the core tally processing pipeline:
     - Hourly tally produces separate snapshot measurements for each billing provider attribute value
     - Per-billing-provider measurement values sum to the overall total
 
+## Tally SLA and Usage Defaults
+
+**tally-sla-and-usage-defaults-TC001 - Verify that hosts without SLA/Usage facts default to Premium/Production**
+
+- **Description**: Verify that hosts without SLA/Usage facts default to Premium/Production
+- **Setup**:
+    - Component test environment with swatch-tally is running
+- **Action**:
+    - Insert a host without SLA/Usage facts and run a nightly tally
+- **Verification**:
+    - Tally report with sla=Premium and usage=Production filters returns the host's data
+    - Tally report with sla=Standard or usage=Development/Test filters returns no data
+- **Expected Result**:
+    - Host without SLA/Usage is tallied as Premium/Production
+
+**tally-sla-and-usage-defaults-TC002 - Verify that hosts with explicit SLA/Usage facts use those values (not defaults)**
+
+- **Description**: Verify that hosts with explicit SLA/Usage facts use those values (not defaults)
+- **Setup**:
+    - Component test environment with swatch-tally is running
+- **Action**:
+    - Insert a host with Standard SLA and Development/Test Usage and run a nightly tally
+- **Verification**:
+    - Tally report with sla=Standard and usage=Development/Test filters returns the host's data
+    - Tally report with sla=Premium or usage=Production filters returns no data
+- **Expected Result**:
+    - Host with explicit SLA/Usage is tallied with those values, not defaults
+
+**tally-hourly-sla-usage-defaults-TC001 - Hourly tally defaults to Premium/Production when SLA/Usage not set**
+
+- **Description**: Verify that PAYG events without explicit SLA/Usage default to Premium SLA and Production Usage during hourly tally
+- **Setup**:
+    - Organization is opted in and feature flag is enabled
+    - PAYG event for RHEL for x86 ELS PAYG with metric value 2.0 and NO SLA/Usage specified
+- **Action**:
+    - Ingest the PAYG event to service instance ingress topic
+    - Perform hourly tally for the organization
+- **Verification**:
+    - Tally report filtered by sla=Premium returns data points with hasData=true
+    - Tally report filtered by usage=Production returns data points with hasData=true
+    - Tally report filtered by sla=Standard returns no data points with hasData=true
+- **Expected Result**:
+    - Event without SLA/Usage is tallied as Premium/Production defaults
+
+**tally-hourly-sla-usage-defaults-TC002 - Hourly tally respects explicit SLA/Usage values**
+
+- **Description**: Verify that PAYG events with explicit SLA and Usage values use those values instead of defaults during hourly tally
+- **Setup**:
+    - Organization is opted in and feature flag is enabled
+    - PAYG event for RHEL for x86 ELS PAYG with Standard SLA, Development/Test Usage, and metric value 2.0
+- **Action**:
+    - Ingest the PAYG event with explicit SLA=Standard and Usage=Development/Test to service instance ingress topic
+    - Perform hourly tally for the organization
+- **Verification**:
+    - Tally report filtered by sla=Standard returns data points with hasData=true
+    - Tally report filtered by usage=Development/Test returns data points with hasData=true
+    - Tally report filtered by sla=Premium returns no data points with hasData=true
+    - Tally report filtered by usage=Production returns no data points with hasData=true
+- **Expected Result**:
+    - Event with explicit SLA/Usage is tallied with those values, not defaults
