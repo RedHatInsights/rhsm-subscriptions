@@ -52,6 +52,7 @@ import com.redhat.swatch.contract.repository.ContractRepository;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.utils.ContractMessageProcessingResult;
 import com.redhat.swatch.panache.Specification;
+import com.redhat.swatch.panache.TransactionalLock;
 import io.micrometer.core.annotation.Timed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -194,6 +195,7 @@ public class ContractService {
   }
 
   @Transactional
+  @TransactionalLock(prefix = "contract", keyFrom = "getRedHatSubscriptionNumber")
   public StatusResponse createPartnerContract(PartnerEntitlementsRequest request) {
     var partnerEntitlementsProvider = findPartnerEntitlementsProvider(request);
     if (partnerEntitlementsProvider == null) {
