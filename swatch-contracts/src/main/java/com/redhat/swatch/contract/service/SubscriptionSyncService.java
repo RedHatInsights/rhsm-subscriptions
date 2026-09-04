@@ -41,6 +41,7 @@ import com.redhat.swatch.contract.repository.OfferingRepository;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.utils.CustomBatchIterator;
 import com.redhat.swatch.contract.utils.SubscriptionDtoUtil;
+import com.redhat.swatch.panache.TransactionalLock;
 import io.micrometer.common.util.StringUtils;
 import io.micrometer.core.annotation.Timed;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -584,6 +585,7 @@ public class SubscriptionSyncService {
   }
 
   @Transactional
+  @TransactionalLock(prefix = "subscription", keyFrom = "getSubscriptionNumber")
   public void saveUmbSubscription(UmbSubscription umbSubscription) {
     SubscriptionEntity subscription = convertDto(umbSubscription);
     var subscriptions =
@@ -598,6 +600,7 @@ public class SubscriptionSyncService {
   }
 
   @Transactional
+  @TransactionalLock(prefix = "subscription", keyFrom = "getSubscriptionNumber")
   public void saveSubscription(SubscriptionOutboxPayload payload) {
     SubscriptionEntity subscription = convertDto(payload);
     String sku = extractSku(payload);
