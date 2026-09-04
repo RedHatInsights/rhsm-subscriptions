@@ -38,6 +38,9 @@ import java.util.function.Function;
  */
 public final class HostTemplates {
 
+  private static final String INFRA_PHYSICAL = "physical";
+  private static final String INFRA_VIRTUAL = "virtual";
+
   private HostTemplates() {}
 
   /** Physical RHEL host with the given socket/core counts. */
@@ -45,10 +48,11 @@ public final class HostTemplates {
       int sockets, int cores) {
     return builder ->
         builder
+            .subscriptionManagerId(UUID.randomUUID().toString())
             .rhsmFacts(RhsmFacts.builder().defaultFacts().build())
             .systemProfileFacts(
                 SystemProfileFacts.builder()
-                    .infrastructureType("physical")
+                    .infrastructureType(INFRA_PHYSICAL)
                     .arch("x86_64")
                     .numberOfSockets(sockets)
                     .numberOfCpus(cores)
@@ -60,15 +64,33 @@ public final class HostTemplates {
       int sockets, int cores) {
     return builder ->
         builder
+            .subscriptionManagerId(UUID.randomUUID().toString())
             .rhsmFacts(RhsmFacts.builder().defaultFacts().isVirtual(true).build())
             .systemProfileFacts(
                 SystemProfileFacts.builder()
-                    .infrastructureType("virtual")
+                    .infrastructureType(INFRA_VIRTUAL)
                     .cloudProvider("aws")
                     .arch("x86_64")
                     .numberOfSockets(sockets)
                     .numberOfCpus(cores)
                     .build())
             .providerId("i-test-" + UUID.randomUUID().toString().substring(0, 12));
+  }
+
+  /** Conduit reported virtual RHEL guest */
+  public static Function<HostBuilder, HostBuilder> conduitReportedVirtualRhelGuest(
+      String hypervisorSubManUuid, String sla, String usage, int sockets, int cores) {
+    return builder ->
+        builder
+            .subscriptionManagerId(UUID.randomUUID().toString())
+            .rhsmFacts(RhsmFacts.builder().defaultFacts().sla(sla).usage(usage).build())
+            .systemProfileFacts(
+                SystemProfileFacts.builder()
+                    .hypervisorUuid(hypervisorSubManUuid)
+                    .infrastructureType(INFRA_VIRTUAL)
+                    .arch("x86_64")
+                    .numberOfSockets(sockets)
+                    .numberOfCpus(cores)
+                    .build());
   }
 }

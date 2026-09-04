@@ -27,14 +27,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static utils.TallyTestProducts.RHEL_FOR_X86;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
+import com.redhat.swatch.component.tests.api.hbi.HbiDbConnector;
+import com.redhat.swatch.component.tests.api.hbi.HostBuilder;
+import com.redhat.swatch.component.tests.api.hbi.HostConnector.SeededHost;
+import com.redhat.swatch.component.tests.api.hbi.HostStateManager;
+import com.redhat.swatch.component.tests.api.hbi.HostTemplates;
 import com.redhat.swatch.tally.test.model.TallyReportDataPoint;
 import java.time.OffsetDateTime;
 import java.util.Map;
-import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import utils.TallyHbiDbSeeder;
 
 /**
  * SWATCH-5161: Verify hypervisor socket counts are not inflated.
@@ -45,17 +48,17 @@ import utils.TallyHbiDbSeeder;
  */
 public class TallyReportHypervisorSocketsTest extends BaseTallyComponentTest {
 
-  private TallyHbiDbSeeder hbiSeeder;
+  private HostStateManager hostManager;
 
   @BeforeEach
-  void setupHbiSeeder() {
-    hbiSeeder = new TallyHbiDbSeeder(hbiDatabase);
+  void setupHostManager() {
+    hostManager = new HostStateManager(new HbiDbConnector(hbiDatabase));
   }
 
   @AfterEach
-  void cleanupHbiHosts() {
-    if (hbiSeeder != null) {
-      hbiSeeder.deleteAllInsertedHosts();
+  void cleanupHosts() {
+    if (hostManager != null) {
+      hostManager.cleanupAll();
     }
   }
 
@@ -74,70 +77,59 @@ public class TallyReportHypervisorSocketsTest extends BaseTallyComponentTest {
     givenFeatureFlagIsConfigured(true);
     service.createOptInConfig(orgId);
 
-    String hypSubmanId1 = helpers.generateUUIDOfSize(false, 36);
-    String hypSubmanId2 = helpers.generateUUIDOfSize(false, 36);
-    String hypSubmanId3 = helpers.generateUUIDOfSize(false, 36);
+    SeededHost hypervisor1 =
+        hostManager
+            .createHost(orgId)
+            .displayName("ESX-Host-1")
+            .apply(HostTemplates.conduitReportedPhysicalRhel(4, 16))
+            .insert();
 
-    hbiSeeder
-        .rhelHost(orgId)
-        .subscriptionManagerId(hypSubmanId1)
-        .displayName("ESX-Host-1")
-        .sockets(4)
-        .cores(16)
-        .insert();
+    SeededHost hypervisor2 =
+        hostManager
+            .createHost(orgId)
+            .displayName("ESX-Host-2")
+            .apply(HostTemplates.conduitReportedPhysicalRhel(4, 16))
+            .insert();
 
-    hbiSeeder
-        .rhelHost(orgId)
-        .subscriptionManagerId(hypSubmanId2)
-        .displayName("ESX-Host-2")
-        .sockets(4)
-        .cores(16)
-        .insert();
-
-    hbiSeeder
-        .rhelHost(orgId)
-        .subscriptionManagerId(hypSubmanId3)
-        .displayName("ESX-Host-3")
-        .sockets(2)
-        .cores(8)
-        .insert();
+    SeededHost hypervisor3 =
+        hostManager
+            .createHost(orgId)
+            .displayName("ESX-Host-3")
+            .apply(HostTemplates.conduitReportedPhysicalRhel(2, 8))
+            .insert();
 
     // 4 virtual guests linked to the hypervisors via virtualHostUuid
     // 3 hypervisors: 4 + 4 + 2 = 10 total sockets
-    hbiSeeder
-        .rhelHost(orgId)
-        .subscriptionManagerId(helpers.generateUUIDOfSize(false, 36))
+    hostManager
+        .createHost(orgId)
+        .apply(
+            HostTemplates.conduitReportedVirtualRhelGuest(
+                hypervisor1.subscriptionManagerId(), "Premium", "Production", 2, 4))
         .displayName("VM-Guest-1")
-        .sockets(2)
-        .cores(4)
-        .hypervisorUuid(hypSubmanId1)
         .insert();
 
-    hbiSeeder
-        .rhelHost(orgId)
-        .subscriptionManagerId(helpers.generateUUIDOfSize(false, 36))
+    hostManager
+        .createHost(orgId)
+        .apply(
+            HostTemplates.conduitReportedVirtualRhelGuest(
+                hypervisor1.subscriptionManagerId(), "Premium", "Production", 2, 4))
         .displayName("VM-Guest-2")
-        .sockets(2)
-        .cores(4)
-        .hypervisorUuid(hypSubmanId1)
         .insert();
 
-    hbiSeeder
-        .rhelHost(orgId)
-        .subscriptionManagerId(helpers.generateUUIDOfSize(false, 36))
+    hostManager
+        .createHost(orgId)
+        .apply(
+            HostTemplates.conduitReportedVirtualRhelGuest(
+                hypervisor2.subscriptionManagerId(), "Premium", "Production", 4, 8))
         .displayName("VM-Guest-3")
-        .sockets(4)
-        .cores(8)
-        .hypervisorUuid(hypSubmanId2)
         .insert();
 
-    hbiSeeder
-        .rhelHost(orgId)
-        .subscriptionManagerId(helpers.generateUUIDOfSize(false, 36))
+    hostManager
+        .createHost(orgId)
+        .apply(
+            HostTemplates.conduitReportedVirtualRhelGuest(
+                hypervisor3.subscriptionManagerId(), "Premium", "Production", 2, 2))
         .displayName("VM-Guest-4")
-        .sockets(2)
-        .cores(2)
-        .hypervisorUuid(hypSubmanId3)
         .insert();
 
     service.tallyOrg(orgId);
@@ -171,9 +163,7 @@ public class TallyReportHypervisorSocketsTest extends BaseTallyComponentTest {
         hasExpectedSockets,
         "Hypervisor socket count should be 10 (sum of hypervisor host sockets 4+4+2),"
             + " not inflated by guest VM socket counts. Actual data points: "
-            + reportData.getData().stream()
-                .map(TallyReportDataPoint::getValue)
-                .collect(Collectors.toList()));
+            + reportData.getData().stream().map(TallyReportDataPoint::getValue).toList());
   }
 
   /**
@@ -189,34 +179,29 @@ public class TallyReportHypervisorSocketsTest extends BaseTallyComponentTest {
     givenFeatureFlagIsConfigured(true);
     service.createOptInConfig(orgId);
 
-    String hypSubmanId = helpers.generateUUIDOfSize(false, 36);
-
     // 1 hypervisor with 4 sockets
-    hbiSeeder
-        .rhelHost(orgId)
-        .subscriptionManagerId(hypSubmanId)
-        .displayName("ESX-Hypervisor")
-        .sockets(4)
-        .cores(16)
-        .insert();
+    SeededHost hypervisor =
+        hostManager
+            .createHost(orgId)
+            .displayName("ESX-Hypervisor")
+            .apply(HostTemplates.conduitReportedPhysicalRhel(4, 16))
+            .insert();
 
     // 2 guests mapped to the hypervisor
-    hbiSeeder
-        .rhelHost(orgId)
-        .subscriptionManagerId(helpers.generateUUIDOfSize(false, 36))
+    hostManager
+        .createHost(orgId)
+        .apply(
+            HostTemplates.conduitReportedVirtualRhelGuest(
+                hypervisor.subscriptionManagerId(), "Premium", "Production", 2, 4))
         .displayName("Mapped-Guest-1")
-        .sockets(2)
-        .cores(4)
-        .hypervisorUuid(hypSubmanId)
         .insert();
 
-    hbiSeeder
-        .rhelHost(orgId)
-        .subscriptionManagerId(helpers.generateUUIDOfSize(false, 36))
+    hostManager
+        .createHost(orgId)
+        .apply(
+            HostTemplates.conduitReportedVirtualRhelGuest(
+                hypervisor.subscriptionManagerId(), "Premium", "Production", 2, 4))
         .displayName("Mapped-Guest-2")
-        .sockets(2)
-        .cores(4)
-        .hypervisorUuid(hypSubmanId)
         .insert();
 
     service.tallyOrg(orgId);
@@ -266,89 +251,69 @@ public class TallyReportHypervisorSocketsTest extends BaseTallyComponentTest {
     givenFeatureFlagIsConfigured(true);
     service.createOptInConfig(orgId);
 
-    String hypSubmanId1 = helpers.generateUUIDOfSize(false, 36);
-    String hypSubmanId2 = helpers.generateUUIDOfSize(false, 36);
-
     // Hypervisor 1 with 8 sockets
-    hbiSeeder
-        .rhelHost(orgId)
-        .subscriptionManagerId(hypSubmanId1)
-        .displayName("ESX-Mixed-SLA-Host-1")
-        .sockets(8)
-        .cores(16)
-        .sla("")
-        .usage("")
-        .insert();
+    HostBuilder hypervisorBuilder =
+        hostManager
+            .createHost(orgId)
+            .displayName("ESX-Mixed-SLA-Host-1")
+            .apply(HostTemplates.conduitReportedPhysicalRhel(8, 16));
+    hypervisorBuilder.rhsmFacts(
+        hypervisorBuilder.rhsmFacts().toBuilder().sla("").usage("").build());
+    SeededHost hypervisor1 = hypervisorBuilder.insert();
 
     // Hypervisor 2 with 4 sockets
-    hbiSeeder
-        .rhelHost(orgId)
-        .subscriptionManagerId(hypSubmanId2)
-        .displayName("ESX-Mixed-SLA-Host-2")
-        .sockets(4)
-        .cores(16)
-        .sla("")
-        .usage("")
-        .insert();
+    HostBuilder hypervisor2Builder =
+        hostManager
+            .createHost(orgId)
+            .displayName("ESX-Mixed-SLA-Host-1")
+            .apply(HostTemplates.conduitReportedPhysicalRhel(4, 16));
+    hypervisor2Builder.rhsmFacts(
+        hypervisor2Builder.rhsmFacts().toBuilder().sla("").usage("").build());
+    SeededHost hypervisor2 = hypervisor2Builder.insert();
 
     // Guest on Hyp1 with SLA=Premium, Usage=Production
-    hbiSeeder
-        .rhelHost(orgId)
-        .subscriptionManagerId(helpers.generateUUIDOfSize(false, 36))
+    hostManager
+        .createHost(orgId)
+        .apply(
+            HostTemplates.conduitReportedVirtualRhelGuest(
+                hypervisor1.subscriptionManagerId(), "Premium", "Production", 2, 4))
         .displayName("Guest-Hyp1-Premium")
-        .sockets(2)
-        .cores(4)
-        .sla("Premium")
-        .usage("Production")
-        .hypervisorUuid(hypSubmanId1)
         .insert();
 
     // Guest on Hyp1 with SLA=Standard, Usage=Development/Test
-    hbiSeeder
-        .rhelHost(orgId)
-        .subscriptionManagerId(helpers.generateUUIDOfSize(false, 36))
+    hostManager
+        .createHost(orgId)
+        .apply(
+            HostTemplates.conduitReportedVirtualRhelGuest(
+                hypervisor1.subscriptionManagerId(), "Standard", "Development/Test", 2, 4))
         .displayName("Guest-Hyp1-Standard-Dev")
-        .sockets(2)
-        .cores(4)
-        .sla("Standard")
-        .usage("Development/Test")
-        .hypervisorUuid(hypSubmanId1)
         .insert();
 
     // Guest on Hyp2 with SLA=Standard, Usage=Development/Test
-    hbiSeeder
-        .rhelHost(orgId)
-        .subscriptionManagerId(helpers.generateUUIDOfSize(false, 36))
+    hostManager
+        .createHost(orgId)
+        .apply(
+            HostTemplates.conduitReportedVirtualRhelGuest(
+                hypervisor2.subscriptionManagerId(), "Standard", "Development/Test", 2, 4))
         .displayName("Guest-Hyp2-Standard-Dev")
-        .sockets(2)
-        .cores(4)
-        .sla("Standard")
-        .usage("Development/Test")
-        .hypervisorUuid(hypSubmanId2)
         .insert();
 
     // Guest on Hyp1 with SLA=Standard, Usage=Production
-    hbiSeeder
-        .rhelHost(orgId)
-        .subscriptionManagerId(helpers.generateUUIDOfSize(false, 36))
-        .displayName("Guest-Hyp1-Standard-Prod")
-        .sockets(2)
-        .cores(4)
-        .sla("Standard")
-        .usage("Production")
-        .hypervisorUuid(hypSubmanId1)
+    hostManager
+        .createHost(orgId)
+        .apply(
+            HostTemplates.conduitReportedVirtualRhelGuest(
+                hypervisor1.subscriptionManagerId(), "Standard", "Production", 2, 4))
+        .displayName("Guest-Hyp1-Standard-Production")
         .insert();
 
     // Guest on Hyp2 with SLA=Standard, Usage=""
-    hbiSeeder
-        .rhelHost(orgId)
-        .subscriptionManagerId(helpers.generateUUIDOfSize(false, 36))
+    hostManager
+        .createHost(orgId)
+        .apply(
+            HostTemplates.conduitReportedVirtualRhelGuest(
+                hypervisor2.subscriptionManagerId(), "Standard", "", 2, 4))
         .displayName("Guest-Hyp2-Standard-Empty")
-        .sockets(2)
-        .cores(4)
-        .sla("Standard")
-        .usage("")
-        .hypervisorUuid(hypSubmanId2)
         .insert();
 
     service.tallyOrg(orgId);

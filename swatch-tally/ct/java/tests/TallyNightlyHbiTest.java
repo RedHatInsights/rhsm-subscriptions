@@ -124,8 +124,15 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
     SeededHost host2 =
         hostManager
             .createHost(orgId)
-            .apply(HostTemplates.conduitReportedPhysicalRhel(1, 0))
             .displayName("Test Host - 2")
+            .rhsmFacts(RhsmFacts.builder().isVirtual(false).products(List.of("69")).build())
+            .systemProfileFacts(
+                SystemProfileFacts.builder()
+                    .infrastructureType("physical")
+                    .arch("x86_64")
+                    .numberOfSockets(1)
+                    .numberOfCpus(0)
+                    .build())
             .insert();
 
     // Then: Hosts are tracked with expected metadata
