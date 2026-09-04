@@ -60,6 +60,10 @@ import java.util.UUID;
  */
 public final class TallyHbiDbSeeder {
 
+  // Separate functionality of the Seeding, DB connection, and HBI  into different classes
+  // Need to be specific about what kind of RHEL host we are creating, so we can use the correct one
+  // Need to specify what facts per RHEL host ( factory for the RHEL host )
+
   private final DatabaseService hbiDatabase;
 
   // Default values for test hosts
@@ -192,6 +196,7 @@ public final class TallyHbiDbSeeder {
    * Builder for RHEL hosts. Defaults to physical infrastructure; call {@link #cloudProvider} to
    * create a "RHEL on cloud" host (virtual infrastructure with cloud provider metadata).
    */
+  // the host
   public class RhelHostBuilder {
     private final String orgId;
     private String inventoryId;

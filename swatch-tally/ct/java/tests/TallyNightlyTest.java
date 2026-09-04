@@ -28,19 +28,23 @@ import static utils.TallyTestHelpers.getSocketCount;
 import static utils.TallyTestProducts.RHEL_FOR_X86;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
+import com.redhat.swatch.component.tests.api.hbi.HbiDbConnector;
+import com.redhat.swatch.component.tests.api.hbi.HostConnector.SeededHost;
+import com.redhat.swatch.component.tests.api.hbi.HostStateManager;
+import com.redhat.swatch.component.tests.api.hbi.RhsmFacts;
+import com.redhat.swatch.component.tests.api.hbi.SystemProfileFacts;
 import com.redhat.swatch.component.tests.logging.Log;
 import com.redhat.swatch.tally.test.model.InstanceData;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import utils.TallyHbiDbSeeder;
-import utils.TallyHbiDbSeeder.SeededHost;
 
 /**
  * Component tests for RHEL physical host tally with socket increase mapping.
@@ -50,30 +54,35 @@ import utils.TallyHbiDbSeeder.SeededHost;
  *
  * <p>Matches IQE test: test_validate_tally_on_physical_rhel_sockets
  */
-public class TallyRhelTest extends BaseTallyComponentTest {
+public class TallyNightlyTest extends BaseTallyComponentTest {
 
-  private TallyHbiDbSeeder hbiSeeder;
+  private HostStateManager hostManager;
+
+  /**
+   * Socket increase mapping for RHEL physical hosts. Maps actual socket count -> reported socket
+   * count for tally.
+   */
+  private static final Map<Integer, Integer> RHEL_PER_SOCKET_INCREASE =
+      Map.of(1, 2, 2, 2, 4, 4, 7, 8);
 
   /**
    * Provider for socket increase mapping test parameters. Matches
    * IQE's @pytest.mark.parametrize("sockets", rhel_per_socket_increase.keys())
    */
   static Stream<Arguments> socketMappingProvider() {
-    return TallyHbiDbSeeder.getRhelPerSocketIncreaseMap().entrySet().stream()
+    return RHEL_PER_SOCKET_INCREASE.entrySet().stream()
         .map(entry -> Arguments.of(entry.getKey(), entry.getValue()));
   }
 
   @BeforeEach
-  void setupHbiSeeder() {
-    // Initialize HBI seeder with database service (auto-configured for local/OpenShift)
-    hbiSeeder = new TallyHbiDbSeeder(hbiDatabase);
+  void setupHostManager() {
+    hostManager = new HostStateManager(new HbiDbConnector(hbiDatabase));
   }
 
   @AfterEach
-  void cleanupHbiHosts() {
-    // Rollback: delete all HBI hosts inserted during test
-    if (hbiSeeder != null) {
-      hbiSeeder.deleteAllInsertedHosts();
+  void cleanupHosts() {
+    if (hostManager != null) {
+      hostManager.cleanupAll();
     }
   }
 
@@ -88,14 +97,11 @@ public class TallyRhelTest extends BaseTallyComponentTest {
    * correct display_name, category, and labeled_measurements
    */
   @TestPlanName("nightly-tally-TC001")
-  @ParameterizedTest(name = "Physical RHEL: {0} actual sockets -> {1} reported sockets")
+  @ParameterizedTest(name = "Physical RHEL: {0} starting sockets -> {1} reported sockets")
   @MethodSource("socketMappingProvider")
   void test_validate_tally_on_physical_rhel_sockets(
-      int actualSockets, int expectedReportedSockets) {
-    String inventoryId = helpers.generateUUIDOfSize(false, 5) + "-" + actualSockets;
-    String subscriptionManagerId = helpers.generateUUIDOfSize(false, 5) + "-" + actualSockets;
-    String displayName =
-        "RHEL Host " + helpers.generateUUIDOfSize(false, 5) + actualSockets + " sockets";
+      int startingSockets, int expectedReportedSockets) {
+
     // Given: Org is opted in
     service.createOptInConfig(orgId);
 
@@ -110,19 +116,22 @@ public class TallyRhelTest extends BaseTallyComponentTest {
     Log.info("Initial sockets: %.0f", initialSockets);
 
     // And: Create RHEL host
-    int cores = actualSockets; // 1 core per socket (matches IQE)
+    int cores = startingSockets; // 1 core per socket (matches IQE)
+    String displayName = String.format("RHEL-Physical-%dsockets-%dcores", startingSockets, cores);
 
     SeededHost host =
-        hbiSeeder
-            .rhelHost(orgId)
-            .inventoryId("inventory-" + actualSockets)
-            .subscriptionManagerId("subman-" + actualSockets)
+        hostManager
+            .createHost(orgId)
             .displayName(displayName)
-            .cores(cores)
-            .sockets(actualSockets)
+            .rhsmFacts(RhsmFacts.builder().defaultFacts().products(List.of("69")).build())
+            .systemProfileFacts(
+                SystemProfileFacts.builder()
+                    .numberOfCpus(cores)
+                    .numberOfSockets(startingSockets)
+                    .build())
             .insert();
 
-    Log.info("Inserted host %s: %d cores, %d sockets", host.hostId(), cores, actualSockets);
+    Log.info("Inserted host %s: %d cores, %d sockets", host.hostId(), cores, startingSockets);
 
     // And: Run tally
     service.tallyOrg(orgId);
@@ -169,6 +178,6 @@ public class TallyRhelTest extends BaseTallyComponentTest {
         instance.getMeasurements().get(socketsIndex),
         String.format(
             "Labeled measurement should show %d sockets (increased from %d)",
-            expectedReportedSockets, actualSockets));
+            expectedReportedSockets, startingSockets));
   }
 }
