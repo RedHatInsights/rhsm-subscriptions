@@ -30,6 +30,7 @@ import com.redhat.swatch.common.model.ServiceLevel;
 import com.redhat.swatch.common.model.Usage;
 import com.redhat.swatch.contract.exception.ErrorCode;
 import com.redhat.swatch.contract.exception.ServiceException;
+import com.redhat.swatch.contract.product.umb.ProductAttribute;
 import com.redhat.swatch.contract.product.umb.UmbOperationalProduct;
 import com.redhat.swatch.contract.repository.OfferingEntity;
 import jakarta.ws.rs.core.Response;
@@ -46,6 +47,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
@@ -86,7 +88,8 @@ public class UpstreamProductData {
     X_DESCRIPTION,
     /** Role originates from opProd roles field, not an attribute. */
     SPECIAL_PRICING_FLAG,
-    X_ROLE;
+    X_ROLE,
+    ENTITLEMENT_QTY
   }
 
   /** Maps opProd attribute codes to UpstreamProductData.Attrs of the same name. */
@@ -143,14 +146,6 @@ public class UpstreamProductData {
     }
   }
 
-  public static String findSku(RESTProductTree skuTree) {
-    List<OperationalProduct> products = skuTree.getProducts();
-    if (products == null || products.isEmpty()) {
-      throw new IllegalArgumentException("SKU data doesn't have any products!");
-    }
-    return products.get(0).getSku();
-  }
-
   public static UpstreamProductData createFromTree(RESTProductTree skuTree) {
     var products = skuTree.getProducts();
 
@@ -167,7 +162,12 @@ public class UpstreamProductData {
       String role = parent.getRoles().stream().findFirst().orElse(null);
       offer.attrs.put(Attr.X_ROLE, role);
     }
-    offer.mapAttributes(parent);
+    if (parent.getAttributes() != null) {
+      offer.mapAttributes(
+          parent.getAttributes().stream()
+              .filter(attr -> attributeIsAllowed(attr.getValue()))
+              .collect(Collectors.toMap(AttributeValue::getCode, AttributeValue::getValue)));
+    }
 
     // For each child, merge its unconflicting information into the parent.
     children.stream().map(UpstreamProductData::createFromProduct).forEach(offer::merge);
@@ -256,9 +256,13 @@ public class UpstreamProductData {
     if (product.getChildSkus() != null) {
       data.children.addAll(product.getChildSkus());
     }
-    Arrays.stream(product.getAttributes())
-        .filter(attr -> CODE_TO_ENUM.containsKey(attr.getCode()))
-        .forEach(attr -> data.attrs.put(CODE_TO_ENUM.get(attr.getCode()), attr.getValue()));
+    if (product.getAttributes() != null) {
+      data.mapAttributes(
+          Stream.of(product.getAttributes())
+              .filter(attr -> attributeIsAllowed(attr.getValue()))
+              .collect(Collectors.toMap(ProductAttribute::getCode, ProductAttribute::getValue)));
+    }
+
     data.attrs.put(Attr.X_DESCRIPTION, product.getSkuDescription());
     data.attrs.put(Attr.X_ROLE, product.getRole());
     return data;
@@ -314,6 +318,9 @@ public class UpstreamProductData {
     if (offering.getUsage() != null && offering.getUsage() != Usage.EMPTY) {
       data.attrs.put(Attr.USAGE, offering.getUsage().getValue());
     }
+    if (offering.getEntitlementQuantity() != null) {
+      data.attrs.put(Attr.ENTITLEMENT_QTY, offering.getEntitlementQuantity());
+    }
     return data;
   }
 
@@ -337,6 +344,7 @@ public class UpstreamProductData {
     offering.setLevel1(attrs.get(Attr.LEVEL_1));
     offering.setLevel2(attrs.get(Attr.LEVEL_2));
     offering.setDerivedSku(attrs.get(Attr.DERIVED_SKU));
+    offering.setEntitlementQuantity(attrs.get(Attr.ENTITLEMENT_QTY));
 
     calcCapacityForOffering(offering);
 
@@ -464,14 +472,37 @@ public class UpstreamProductData {
   }
 
   private void calcCapacityForOffering(OfferingEntity offering) {
+    /*
+     * The ENTITLEMENT_QTY attribute defines the per-unit entitlement allowance embedded
+     * within a specific subscription SKU.
+     *
+     * Rather than treating each subscription unit as a 1:1, ENTITLEMENT_QTY acts as a scaling
+     * factor to determine the overall subscription threshold line (total capacity).
+     *
+     * Note that ENTITLEMENT_QTY can contain also "Unlimited" to state that the capacity
+     * is unlimited.
+     */
+    var hasUnlimitedEntitlementQuantity =
+        Optional.ofNullable(attrs.get(Attr.ENTITLEMENT_QTY))
+            .map(UpstreamProductData::hasUnlimitedUsage)
+            .orElse(false);
+    int entitlementQuantity =
+        Optional.ofNullable(nullOrInteger(attrs, Attr.ENTITLEMENT_QTY, sku)).orElse(1);
+
     // If IFL attr is defined, use it...
     Integer cores =
         Optional.ofNullable(attrs.get(Attr.IFL))
             .map(ifl -> Integer.parseInt(ifl) * CONVERSION_RATIO_IFL_TO_CORES)
             // ... but if IFL is not defined, then use the CORES attr.
             .orElseGet(() -> nullOrInteger(attrs, Attr.CORES, sku));
+    if (cores != null) {
+      cores = cores * entitlementQuantity;
+    }
 
     Integer sockets = nullOrInteger(attrs, Attr.SOCKET_LIMIT, sku);
+    if (sockets != null) {
+      sockets = sockets * entitlementQuantity;
+    }
 
     /*
     There are no SKUs today (2021-10-27) that provide both standard capacity and hypervisor capacity
@@ -499,7 +530,8 @@ public class UpstreamProductData {
         Optional.ofNullable(attrs.get(Attr.SOCKET_LIMIT))
             .map(UpstreamProductData::hasUnlimitedUsage)
             .orElse(false);
-    offering.setHasUnlimitedUsage(hasUnlimitedCores || hasUnlimitedSockets);
+    offering.setHasUnlimitedUsage(
+        hasUnlimitedCores || hasUnlimitedSockets || hasUnlimitedEntitlementQuantity);
   }
 
   private static Integer nullOrInteger(Map<Attr, String> attrs, Attr key, String sku) {
@@ -522,7 +554,12 @@ public class UpstreamProductData {
 
   private static UpstreamProductData createFromProduct(OperationalProduct product) {
     var mid = new UpstreamProductData(product.getSku());
-    mid.mapAttributes(product);
+    if (product.getAttributes() != null) {
+      mid.mapAttributes(
+          product.getAttributes().stream()
+              .filter(attr -> attributeIsAllowed(attr.getValue()))
+              .collect(Collectors.toMap(AttributeValue::getCode, AttributeValue::getValue)));
+    }
 
     return mid;
   }
@@ -564,14 +601,10 @@ public class UpstreamProductData {
     }
   }
 
-  private void mapAttributes(OperationalProduct opProd) {
-    var prodAttrs = opProd.getAttributes();
-    if (prodAttrs == null || prodAttrs.isEmpty()) {
-      return;
-    }
-    for (AttributeValue sourceAttr : prodAttrs) {
-      Attr destAttr = CODE_TO_ENUM.get(sourceAttr.getCode());
-      String value = sourceAttr.getValue();
+  private void mapAttributes(Map<String, String> attributes) {
+    for (Map.Entry<String, String> source : attributes.entrySet()) {
+      Attr destAttr = CODE_TO_ENUM.get(source.getKey());
+      String value = source.getValue();
       if (destAttr != null && attributeIsAllowed(value)) {
         putIfNoConflict(destAttr, value);
       }

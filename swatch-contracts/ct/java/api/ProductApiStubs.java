@@ -115,6 +115,9 @@ public class ProductApiStubs {
     if (offering.getRole() != null) {
       attributes.add(Map.of("code", "X_ROLE", "value", offering.getRole()));
     }
+    if (offering.getEntitlementQuantity() != null) {
+      attributes.add(Map.of("code", "ENTITLEMENT_QTY", "value", offering.getEntitlementQuantity()));
+    }
 
     var product =
         Map.of(
