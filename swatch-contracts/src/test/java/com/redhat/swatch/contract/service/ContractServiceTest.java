@@ -1020,7 +1020,7 @@ class ContractServiceTest extends BaseUnitTest {
 
   private ContractRequest givenContractRequest(String subscriptionNumber) {
     return givenContractRequestWithDates(
-        "2023-03-17T12:29:48.569Z", "2024-03-17T12:29:48.569Z", subscriptionNumber);
+        "2023-03-17T12:29:48.569Z", DEFAULT_END_DATE.toString(), subscriptionNumber);
   }
 
   private ContractRequest givenContractRequestWithDates(String startDate, String endDate) {

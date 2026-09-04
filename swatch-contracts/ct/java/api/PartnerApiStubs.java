@@ -24,7 +24,6 @@ import com.redhat.swatch.component.tests.utils.JsonUtils;
 import domain.BillingProvider;
 import domain.Contract;
 import io.restassured.http.ContentType;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -234,7 +233,7 @@ public class PartnerApiStubs {
     var body = new HashMap<String, Object>();
     body.put("rhAccountId", contract.getOrgId());
     body.put("sourcePartner", "aws_marketplace");
-    body.put("entitlementDates", buildEntitlementDates(contract));
+    body.put("entitlementDates", PartnerEntitlementStubPayloads.buildEntitlementDates(contract));
     var partnerIdentities = new HashMap<String, Object>();
     partnerIdentities.put("awsCustomerId", contract.getCustomerId());
     partnerIdentities.put("customerAwsAccountId", contract.getBillingAccountId());
@@ -249,8 +248,8 @@ public class PartnerApiStubs {
             "vendorProductCode",
             contract.getProductCode(),
             "contracts",
-            List.of(buildContractDetails(contract))));
-    body.put("rhEntitlements", buildRhEntitlements(contract));
+            List.of(PartnerEntitlementStubPayloads.buildCurrentContractSegment(contract))));
+    body.put("rhEntitlements", PartnerEntitlementStubPayloads.buildRhEntitlements(contract));
     return body;
   }
 
@@ -262,13 +261,14 @@ public class PartnerApiStubs {
    * @return Azure contract response body map
    */
   private Map<String, Object> buildAzureContractBody(Contract contract) {
-    var contractDetails = new HashMap<>(buildContractDetails(contract));
+    var contractDetails =
+        new HashMap<>(PartnerEntitlementStubPayloads.buildCurrentContractSegment(contract));
     contractDetails.put("planId", contract.getPlanId());
 
     var body = new HashMap<String, Object>();
     body.put("rhAccountId", contract.getOrgId());
     body.put("sourcePartner", "azure_marketplace");
-    body.put("entitlementDates", buildEntitlementDates(contract));
+    body.put("entitlementDates", PartnerEntitlementStubPayloads.buildEntitlementDates(contract));
     body.put(
         "partnerIdentities",
         Map.of(
@@ -289,39 +289,7 @@ public class PartnerApiStubs {
             contract.getResourceId(),
             "contracts",
             List.of(contractDetails)));
-    body.put("rhEntitlements", buildRhEntitlements(contract));
+    body.put("rhEntitlements", PartnerEntitlementStubPayloads.buildRhEntitlements(contract));
     return body;
-  }
-
-  /** Build common entitlement dates map. */
-  private Map<String, String> buildEntitlementDates(Contract contract) {
-    return Map.of(
-        "startDate",
-        contract.getStartDate().format(DateTimeFormatter.ISO_INSTANT),
-        "endDate",
-        contract.getEndDate().format(DateTimeFormatter.ISO_INSTANT));
-  }
-
-  /** Build common RH entitlements list. */
-  private List<Map<String, String>> buildRhEntitlements(Contract contract) {
-    return List.of(
-        Map.of(
-            "sku",
-            contract.getOffering().getSku(),
-            "subscriptionNumber",
-            contract.getSubscriptionNumber()));
-  }
-
-  /** Build common contract details (dates and dimensions). */
-  private Map<String, Object> buildContractDetails(Contract contract) {
-    return Map.of(
-        "startDate",
-        contract.getStartDate().format(DateTimeFormatter.ISO_INSTANT),
-        "endDate",
-        contract.getEndDate().format(DateTimeFormatter.ISO_INSTANT),
-        "dimensions",
-        contract.getContractMetrics().entrySet().stream()
-            .map(e -> Map.of("name", e.getKey(), "value", e.getValue()))
-            .toList());
   }
 }

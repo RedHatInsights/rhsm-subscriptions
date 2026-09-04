@@ -18,6 +18,20 @@
     <maven.compiler.release>${java.version}</maven.compiler.release>
   </properties>
 
+  <dependencyManagement>
+    <dependencies>
+      <!-- Adding the grpc-bom dependency here, so kessel-sdk, grpc-testing and
+      grpc-netty-shaded dependencies use the same grpc dependency -->
+      <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-bom</artifactId>
+        <version>${grpc.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
   <build>
     <plugins>
       <plugin>
@@ -37,7 +51,6 @@
     <dependency>
       <groupId>io.grpc</groupId>
       <artifactId>grpc-netty-shaded</artifactId>
-      <version>${grpc.version}</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
@@ -52,7 +65,6 @@
     <dependency>
       <groupId>io.grpc</groupId>
       <artifactId>grpc-testing</artifactId>
-      <version>${grpc.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>

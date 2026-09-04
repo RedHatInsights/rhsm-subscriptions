@@ -23,7 +23,6 @@ package com.redhat.swatch.billable.usage.services;
 import com.redhat.swatch.billable.usage.exceptions.ContractMissingException;
 import com.redhat.swatch.billable.usage.services.model.ContractCoverage;
 import com.redhat.swatch.clients.contracts.api.model.Contract;
-import com.redhat.swatch.clients.contracts.api.model.Metric;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -38,10 +37,15 @@ import org.candlepin.subscriptions.billable.usage.BillableUsage;
 public class ContractCoverageService {
 
   private final ContractsController contractsController;
+  private final ContractAllocationAuditService contractAllocationAuditService;
   private final ApplicationClock clock;
 
-  public ContractCoverageService(ContractsController contractsController, ApplicationClock clock) {
+  public ContractCoverageService(
+      ContractsController contractsController,
+      ContractAllocationAuditService contractAllocationAuditService,
+      ApplicationClock clock) {
     this.contractsController = contractsController;
+    this.contractAllocationAuditService = contractAllocationAuditService;
     this.clock = clock;
   }
 
@@ -62,6 +66,10 @@ public class ContractCoverageService {
       }
     }
 
+    if (BillableUsage.BillingProvider.AWS.equals(usage.getBillingProvider())) {
+      contractAllocationAuditService.logAllocation(usage, contracts, contractMetricId);
+    }
+
     ContractCoverage coverage =
         ContractCoverage.builder()
             .metricId(contractMetricId)
@@ -79,10 +87,7 @@ public class ContractCoverageService {
   }
 
   private static double getValueByContractMetricId(Contract contract, String contractMetricId) {
-    return contract.getMetrics().stream()
-        .filter(metric -> metric.getMetricId().equals(contractMetricId))
-        .map(Metric::getValue)
-        .reduce(0, Integer::sum);
+    return ContractMetricCapacity.sumForMetric(contract, contractMetricId);
   }
 
   private static String getContractMetricId(BillableUsage usage) {

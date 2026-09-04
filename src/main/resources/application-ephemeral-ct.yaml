@@ -1,5 +1,7 @@
 DEV_MODE: false
+UNLEASH_FETCH_TOGGLES_INTERVAL: 1S
 RHSM_RBAC_URL: http://wiremock-service:8000
+RHSM_CONTRACTS_URL: http://wiremock-service:8000
 KESSEL_ENDPOINT: wiremock-service:8000
 rhsm-subscriptions:
   rbac-service:

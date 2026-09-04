@@ -22,6 +22,7 @@ package com.redhat.swatch.contract.service;
 
 import static com.redhat.swatch.contract.config.Channels.IT_SUBSCRIPTION_SYNC;
 import static org.awaitility.Awaitility.await;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.after;
 import static org.mockito.Mockito.never;
@@ -29,7 +30,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.contract.config.FeatureFlags;
-import com.redhat.swatch.contract.product.umb.UmbSubscription;
+import com.redhat.swatch.contract.openapi.model.SubscriptionOutboxPayload;
 import com.redhat.swatch.contract.test.LoggerCaptor;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -42,32 +43,45 @@ import java.time.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 @QuarkusTest
 class SubscriptionKafkaMessageConsumerTest {
 
-  private static final String SUBSCRIPTION_XML =
+  private static final String SUBSCRIPTION_JSON =
+      """
+      {
+        "eventId": "evt-1",
+        "createdAt": 1704067200000,
+        "entityType": "Subscription",
+        "eventType": "CREATE",
+        "eventVersion": "v1.0",
+        "payload": {
+          "subscriptionNumber": "1234",
+          "customerId": "org123",
+          "quantity": 10,
+          "effectiveStartDate": 1704067200000,
+          "effectiveEndDate": 1735689600000,
+          "product": {
+            "sku": "RH00001",
+            "childProducts": [
+              {"sku": "RH00002", "status": "Active"}
+            ]
+          }
+        }
+      }
+      """;
+
+  private static final String CANONICAL_MESSAGE_XML =
       """
       <CanonicalMessage>
         <Payload>
           <Sync>
             <Subscription>
               <Identifiers>
-                <Reference system="EBS" entity-name="Account" qualifier="number">account123</Reference>
-                <Reference system="WEB" entity-name="Customer" qualifier="id">org123_ICUST</Reference>
                 <Identifier system="SUBSCRIPTION" entity-name="Subscription" qualifier="number">1234</Identifier>
               </Identifiers>
               <Quantity>10</Quantity>
-              <effectiveStartDate>2024-01-01T00:00:00</effectiveStartDate>
-              <effectiveEndDate>2025-01-01T00:00:00</effectiveEndDate>
-              <Product>
-                <Sku>RH00001</Sku>
-                <Product>
-                  <Status>
-                    <State>Active</State>
-                  </Status>
-                </Product>
-              </Product>
             </Subscription>
           </Sync>
         </Payload>
@@ -94,41 +108,85 @@ class SubscriptionKafkaMessageConsumerTest {
   }
 
   @Test
-  void shouldProcessMessage() {
-    whenSendMessage(SUBSCRIPTION_XML);
+  void shouldProcessOutboxJsonMessage() {
+    whenSendMessage(SUBSCRIPTION_JSON);
 
     await()
         .atMost(Duration.ofMillis(500))
-        .untilAsserted(() -> verify(consumer).consumeSubscription(SUBSCRIPTION_XML));
+        .untilAsserted(() -> verify(consumer).consumeSubscription(SUBSCRIPTION_JSON));
     thenKafkaSubscriptionDeserializedSuccessfully();
-    verify(service).saveUmbSubscription(any(UmbSubscription.class));
+    ArgumentCaptor<SubscriptionOutboxPayload> captor =
+        ArgumentCaptor.forClass(SubscriptionOutboxPayload.class);
+    verify(service).saveSubscription(captor.capture());
+    SubscriptionOutboxPayload saved = captor.getValue();
+    assertEquals("1234", saved.getSubscriptionNumber());
+    assertEquals("org123", saved.getCustomerId());
+    assertEquals("RH00001", saved.getProduct().getSku());
+    assertEquals(10, saved.getQuantity());
+    assertEquals(1704067200000L, saved.getEffectiveStartDate());
+    assertEquals(1735689600000L, saved.getEffectiveEndDate());
   }
 
   @Test
-  void shouldNotLogSuccessWhenMalformedXml() {
-    whenSendMessage("this is not xml");
+  void shouldNotTreatCanonicalMessageXmlAsValid() {
+    whenSendMessage(CANONICAL_MESSAGE_XML);
 
     await()
         .atMost(Duration.ofMillis(500))
-        .untilAsserted(() -> verify(consumer).consumeSubscription("this is not xml"));
-    LoggerCaptor.thenWarnLogWithMessage("Unable to process IT Subscription Kafka message");
-    verify(service, never()).saveUmbSubscription(any(UmbSubscription.class));
+        .untilAsserted(() -> verify(consumer).consumeSubscription(CANONICAL_MESSAGE_XML));
+    LoggerCaptor.thenWarnLogWithMessage("Unable to read IT Subscription Kafka message from JSON.");
+    verify(service, never()).saveSubscription(any());
+  }
+
+  @Test
+  void shouldNotLogSuccessWhenMalformedJson() {
+    whenSendMessage("this is not json");
+
+    await()
+        .atMost(Duration.ofMillis(500))
+        .untilAsserted(() -> verify(consumer).consumeSubscription("this is not json"));
+    LoggerCaptor.thenWarnLogWithMessage("Unable to read IT Subscription Kafka message from JSON.");
+    verify(service, never()).saveSubscription(any());
   }
 
   @Test
   void shouldIgnoreNullMessage() throws Exception {
-    consumer.consumeFromKafka(null);
+    consumer.consumeMessage(null);
 
     LoggerCaptor.thenLogNothing();
-    verify(service, never()).saveUmbSubscription(any(UmbSubscription.class));
+    verify(service, never()).saveSubscription(any());
   }
 
   @Test
   void shouldIgnoreMessagesWhenFeatureFlagIsDisabled() throws Exception {
     when(featureFlags.isItSubscriptionServiceKafkaConsumerEnabled()).thenReturn(false);
-    whenSendMessage(SUBSCRIPTION_XML);
+    whenSendMessage(SUBSCRIPTION_JSON);
     assertMessageIsNotProcessed();
-    verify(service, after(500).never()).saveUmbSubscription(any(UmbSubscription.class));
+    verify(service, after(500).never()).saveSubscription(any());
+  }
+
+  @Test
+  void shouldIgnoreNonSubscriptionEntityType() {
+    String otherEntity =
+        """
+        {"eventId":"evt-1","entityType":"Offering","payload":{}}
+        """;
+    whenSendMessage(otherEntity);
+
+    await()
+        .atMost(Duration.ofMillis(500))
+        .untilAsserted(() -> verify(consumer).consumeSubscription(otherEntity));
+    verify(service, never()).saveSubscription(any());
+  }
+
+  @Test
+  void shouldIgnoreNullEventEnvelope() {
+    whenSendMessage("null");
+
+    await()
+        .atMost(Duration.ofMillis(500))
+        .untilAsserted(() -> verify(consumer).consumeSubscription("null"));
+    verify(service, never()).saveSubscription(any());
   }
 
   private void whenSendMessage(String message) {
@@ -136,11 +194,12 @@ class SubscriptionKafkaMessageConsumerTest {
   }
 
   private void assertMessageIsNotProcessed() throws Exception {
-    verify(consumer, after(500).never()).consumeSubscription(SUBSCRIPTION_XML);
+    verify(consumer, after(500).never()).consumeSubscription(SUBSCRIPTION_JSON);
   }
 
   private void thenKafkaSubscriptionDeserializedSuccessfully() {
     LoggerCaptor.thenInfoLogWithMessage("IT Subscription message consumed: source=kafka");
-    LoggerCaptor.thenNoErrorLogWithMessage("Unable to process IT Subscription Kafka message");
+    LoggerCaptor.thenNoErrorLogWithMessage(
+        "Unable to read IT Subscription Kafka message from JSON.");
   }
 }

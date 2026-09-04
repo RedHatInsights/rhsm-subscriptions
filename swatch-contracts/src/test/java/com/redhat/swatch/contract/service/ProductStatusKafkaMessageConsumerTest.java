@@ -22,6 +22,7 @@ package com.redhat.swatch.contract.service;
 
 import static com.redhat.swatch.contract.config.Channels.IT_OFFERING_SYNC;
 import static org.awaitility.Awaitility.await;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.after;
 import static org.mockito.Mockito.never;
@@ -29,6 +30,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.contract.config.FeatureFlags;
+import com.redhat.swatch.contract.model.SyncResult;
+import com.redhat.swatch.contract.openapi.model.OperationalProductEvent;
 import com.redhat.swatch.contract.test.LoggerCaptor;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -41,6 +44,7 @@ import java.time.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 @QuarkusTest
 class ProductStatusKafkaMessageConsumerTest {
@@ -66,6 +70,7 @@ class ProductStatusKafkaMessageConsumerTest {
         """;
 
   @InjectMock FeatureFlags featureFlags;
+  @InjectMock OfferingSyncService offeringSyncService;
   @Inject @Any InMemoryConnector connector;
   @InjectSpy ProductStatusKafkaMessageConsumer consumer;
 
@@ -80,7 +85,10 @@ class ProductStatusKafkaMessageConsumerTest {
   void setUp() {
     productKafkaChannel = connector.source(IT_OFFERING_SYNC);
     LoggerCaptor.clearRecords();
+    Mockito.reset(offeringSyncService, featureFlags);
     when(featureFlags.isProductServiceKafkaConsumerEnabled()).thenReturn(true);
+    when(offeringSyncService.syncProductFromEvent(any(OperationalProductEvent.class)))
+        .thenReturn(SyncResult.FETCHED_AND_SYNCED);
   }
 
   @Test
@@ -92,6 +100,7 @@ class ProductStatusKafkaMessageConsumerTest {
             () -> {
               verify(consumer).consumeProduct(VALID_JSON_MESSAGE);
               LoggerCaptor.thenInfoLogWithMessage("IT Product message consumed: source=kafka");
+              verify(offeringSyncService).syncProductFromEvent(any(OperationalProductEvent.class));
             });
   }
 
@@ -104,6 +113,7 @@ class ProductStatusKafkaMessageConsumerTest {
             () -> {
               verify(consumer).consumeProduct(CHILD_SKU_JSON_MESSAGE);
               LoggerCaptor.thenInfoLogWithMessage("IT Product message consumed: source=kafka");
+              verify(offeringSyncService).syncProductFromEvent(any(OperationalProductEvent.class));
             });
   }
 
@@ -116,6 +126,8 @@ class ProductStatusKafkaMessageConsumerTest {
             () -> {
               verify(consumer).consumeProduct("not-valid-json");
               LoggerCaptor.thenWarnLogWithMessage("Unable to read IT Product Kafka message");
+              verify(offeringSyncService, never())
+                  .syncProductFromEvent(any(OperationalProductEvent.class));
             });
   }
 
@@ -125,6 +137,7 @@ class ProductStatusKafkaMessageConsumerTest {
 
     LoggerCaptor.thenLogNothing();
     verify(consumer, never()).consumeProduct(anyString());
+    verify(offeringSyncService, never()).syncProductFromEvent(any(OperationalProductEvent.class));
   }
 
   @Test
@@ -132,6 +145,8 @@ class ProductStatusKafkaMessageConsumerTest {
     when(featureFlags.isProductServiceKafkaConsumerEnabled()).thenReturn(false);
     whenSendMessage(VALID_JSON_MESSAGE);
     verify(consumer, after(500).never()).consumeProduct(VALID_JSON_MESSAGE);
+    verify(offeringSyncService, after(500).never())
+        .syncProductFromEvent(any(OperationalProductEvent.class));
   }
 
   private void whenSendMessage(String message) {

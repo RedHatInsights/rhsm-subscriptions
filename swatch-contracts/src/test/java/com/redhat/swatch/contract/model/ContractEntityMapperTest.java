@@ -192,6 +192,35 @@ class ContractEntityMapperTest {
     assertNull(entity.getLicenseId());
   }
 
+  @Test
+  void testExtractEndDateFallsBackToEntitlementDatesWhenContractSegmentHasNoEndDate() {
+    givenAwsEntitlement();
+    givenEntitlementDates("2022-01-01T00:00Z", "2023-01-01T00:00Z");
+    saasContract =
+        new SaasContractV1()
+            .startDate(OffsetDateTime.parse("2022-01-01T00:00Z"))
+            .planId(V_CPU_HOURS_PLAN);
+
+    var entity = whenMapEntitlementToContractEntity();
+
+    assertEquals(entitlement.getEntitlementDates().getEndDate(), entity.getEndDate());
+  }
+
+  @Test
+  void testExtractEndDatePrefersContractSegmentEndDateWhenPresent() {
+    givenAzureEntitlement();
+    givenEntitlementDates("2022-01-01T00:00Z", "2023-01-01T00:00Z");
+    saasContract =
+        new SaasContractV1()
+            .startDate(OffsetDateTime.parse("2022-01-01T00:00Z"))
+            .endDate(OffsetDateTime.parse("2022-06-01T00:00Z"))
+            .planId(V_CPU_HOURS_PLAN);
+
+    var entity = whenMapEntitlementToContractEntity();
+
+    assertEquals(OffsetDateTime.parse("2022-06-01T00:00Z"), entity.getEndDate());
+  }
+
   private void givenContractWithPlanId(String planId) {
     var contract = givenContract(0, null, null);
     contract.setPlanId(planId);

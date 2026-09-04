@@ -1249,7 +1249,6 @@ paths:
       security:
         - support: [ ]
         - customer: [ ]
-        - test: [ ]
 
 components:
   schemas:
@@ -1452,6 +1451,89 @@ components:
           type: array
           items:
             type: string
+    SubscriptionOutboxEvent:
+      description: IT Subscription Service Kafka outbox envelope (v1.0)
+      properties:
+        eventId:
+          type: string
+        createdAt:
+          type: integer
+          format: int64
+        entityType:
+          type: string
+        eventType:
+          type: string
+        eventVersion:
+          type: string
+        expireAt:
+          type: integer
+          format: int64
+        payload:
+          $ref: '#/components/schemas/SubscriptionOutboxPayload'
+    SubscriptionOutboxPayload:
+      description: Kafka outbox payload from subscription-event v1.0
+      properties:
+        subscriptionNumber:
+          type: string
+        customerId:
+          type: string
+        quantity:
+          type: integer
+          format: int32
+        effectiveStartDate:
+          type: integer
+          format: int64
+        effectiveEndDate:
+          type: integer
+          format: int64
+        identifiers:
+          $ref: '#/components/schemas/SubscriptionOutboxIdentifiers'
+        product:
+          $ref: '#/components/schemas/SubscriptionOutboxProduct'
+    SubscriptionOutboxIdentifiers:
+      properties:
+        ebsAccountNumber:
+          type: string
+        priorEbsAccountNumber:
+          type: string
+        registrationNumber:
+          type: string
+        ebsInstallBaseNumber:
+          type: string
+    SubscriptionOutboxProduct:
+      properties:
+        sku:
+          type: string
+        childProducts:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubscriptionOutboxChildProduct'
+    SubscriptionOutboxChildProduct:
+      properties:
+        sku:
+          type: string
+        status:
+          type: string
+        contract:
+          $ref: '#/components/schemas/SubscriptionOutboxContract'
+        order:
+          $ref: '#/components/schemas/SubscriptionOutboxOrder'
+    SubscriptionOutboxContract:
+      properties:
+        contractNumber:
+          type: string
+        contractId:
+          type: string
+    SubscriptionOutboxOrder:
+      properties:
+        orderNumber:
+          type: string
+        orderLineItemId:
+          type: string
+        externalOrderNumber:
+          type: string
+        externalOrderSystem:
+          type: string
     OperationalProductEvent:
       properties:
         occurredOn:

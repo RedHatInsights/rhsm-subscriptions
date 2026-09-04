@@ -28,6 +28,7 @@ import com.redhat.swatch.component.tests.logging.Log;
 import com.redhat.swatch.component.tests.model.InfoFeatureFlag;
 import com.redhat.swatch.component.tests.model.InfoFeatureFlags;
 import com.redhat.swatch.component.tests.utils.JsonUtils;
+import com.redhat.swatch.component.tests.utils.PooledRestAssured;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
@@ -44,6 +45,7 @@ public class SwatchService extends RestService {
   private static final String FEATURE_FLAGS_SECTION = "feature-flags";
 
   public RequestSpecification managementServer() {
+    PooledRestAssured.install();
     return RestAssured.given()
         .baseUri(HTTP + getHost())
         .basePath(BASE_PATH)

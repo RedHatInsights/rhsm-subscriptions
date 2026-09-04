@@ -27,9 +27,9 @@ import com.redhat.swatch.component.tests.logging.Log;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.component.tests.utils.JsonUtils;
+import com.redhat.swatch.component.tests.utils.PooledRestAssured;
 import io.restassured.config.EncoderConfig;
 import io.restassured.config.ObjectMapperConfig;
-import io.restassured.config.RestAssuredConfig;
 import io.restassured.response.Response;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -108,7 +108,7 @@ public class KafkaBridgeService extends RestService {
 
     given()
         .config(
-            RestAssuredConfig.config()
+            PooledRestAssured.config()
                 .objectMapperConfig(
                     ObjectMapperConfig.objectMapperConfig()
                         .jackson2ObjectMapperFactory((cls, charset) -> JsonUtils.getObjectMapper()))
@@ -277,9 +277,9 @@ public class KafkaBridgeService extends RestService {
   }
 
   /**
-   * Starts a background process that polls consumers every 2 seconds to keep them alive. This
-   * prevents Kafka Bridge from automatically deleting inactive consumers. Also caches all received
-   * messages in memory for later retrieval.
+   * Starts a background process that polls consumers every 500 milliseconds to keep them alive.
+   * This prevents Kafka Bridge from automatically deleting inactive consumers. Also caches all
+   * received messages in memory for later retrieval.
    */
   private void startConsumerKeepAlive() {
     if (keepAliveScheduler != null) {
@@ -310,6 +310,7 @@ public class KafkaBridgeService extends RestService {
                 // Poll for messages to keep consumer alive AND cache messages
                 Response response =
                     given()
+                        .config(PooledRestAssured.keepAliveConfig())
                         .accept(CONTENT_TYPE)
                         .queryParam("timeout", 1000) // Slightly longer timeout to get messages
                         .when()
