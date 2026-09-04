@@ -52,6 +52,7 @@ import com.redhat.swatch.contract.repository.ContractRepository;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.utils.ContractMessageProcessingResult;
 import com.redhat.swatch.panache.Specification;
+import com.redhat.swatch.panache.TransactionalLocks;
 import io.micrometer.core.annotation.Timed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -97,6 +98,7 @@ public class ContractService {
   @Inject protected SubscriptionSearchService subscriptionSearchService;
   @Inject @RestClient protected PartnerApi partnerApi;
   @Inject protected Validator validator;
+  @Inject TransactionalLocks transactionalLocks;
   private final List<BasePartnerEntitlementsProvider> partnerEntitlementsProviders;
 
   ContractService(
@@ -243,6 +245,8 @@ public class ContractService {
   public ContractMessageProcessingResult upsertPartnerContracts(
       PartnerEntitlementV1 entitlement, String subscriptionId)
       throws ContractNotAssociatedToOrgException, ContractValidationFailedException {
+    transactionalLocks.acquireLockBy("subscription", findSubscriptionNumber(entitlement));
+
     List<ContractEntity> entities;
 
     try {

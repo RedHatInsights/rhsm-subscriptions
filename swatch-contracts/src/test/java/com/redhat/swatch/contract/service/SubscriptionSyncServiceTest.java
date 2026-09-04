@@ -104,7 +104,9 @@ class SubscriptionSyncServiceTest {
     var subscription = createSubscription();
 
     when(denylist.productIdMatches(any())).thenReturn(false);
-    subscriptionSyncService.syncSubscription(dto, Optional.of(subscription));
+    when(subscriptionService.findBySubscriptionNumber(dto.getSubscriptionNumber()))
+        .thenReturn(List.of(subscription));
+    subscriptionSyncService.syncSubscription(dto);
     // for existing subscription:
     verify(subscriptionService).terminate(any(SubscriptionEntity.class));
     verify(subscriptionService).save(any(SubscriptionEntity.class));
@@ -151,6 +153,8 @@ class SubscriptionSyncServiceTest {
     when(denylist.productIdMatches(any())).thenReturn(false);
     when(subscriptionSearchService.getSubscriptionsByOrgId("123")).thenReturn(List.of(dto));
     when(subscriptionService.streamByOrgId("123")).thenReturn(subscriptions.stream());
+    when(subscriptionService.findBySubscriptionNumber(dto.getSubscriptionNumber()))
+        .thenReturn(subscriptions);
     subscriptionSyncService.reconcileSubscriptionsWithSubscriptionService("123", false);
 
     verify(initialSubSpy, never()).endSubscription();
@@ -197,6 +201,8 @@ class SubscriptionSyncServiceTest {
     when(denylist.productIdMatches(any())).thenReturn(false);
     when(subscriptionSearchService.getSubscriptionsByOrgId("123")).thenReturn(List.of(dto));
     when(subscriptionService.streamByOrgId("123")).thenReturn(subscriptions.stream());
+    when(subscriptionService.findBySubscriptionNumber(dto.getSubscriptionNumber()))
+        .thenReturn(subscriptions);
     subscriptionSyncService.reconcileSubscriptionsWithSubscriptionService("123", false);
 
     // We don't want to modify the original subscription that has already been ended.  We want to
@@ -212,7 +218,9 @@ class SubscriptionSyncServiceTest {
     when(offeringRepository.findById(SKU)).thenReturn(offering);
     when(denylist.productIdMatches(any())).thenReturn(false);
     var dto = createDto("456", 4);
-    subscriptionSyncService.syncSubscription(dto, Optional.of(createSubscription()));
+    when(subscriptionService.findBySubscriptionNumber(dto.getSubscriptionNumber()))
+        .thenReturn(List.of(createSubscription()));
+    subscriptionSyncService.syncSubscription(dto);
     verify(subscriptionService).save(any(SubscriptionEntity.class));
     verify(capacityReconciliationService, Mockito.times(2))
         .reconcileCapacityForSubscription(any(SubscriptionEntity.class));
@@ -225,7 +233,9 @@ class SubscriptionSyncServiceTest {
     when(offeringRepository.findById(SKU)).thenReturn(offering);
     when(denylist.productIdMatches(any())).thenReturn(false);
     var dto = createDto("456", 10);
-    subscriptionSyncService.syncSubscription(dto, Optional.empty());
+    when(subscriptionService.findBySubscriptionNumber(dto.getSubscriptionNumber()))
+        .thenReturn(List.of());
+    subscriptionSyncService.syncSubscription(dto);
     verify(subscriptionService, Mockito.times(1)).save(any(SubscriptionEntity.class));
     verify(capacityReconciliationService)
         .reconcileCapacityForSubscription(any(SubscriptionEntity.class));
@@ -262,7 +272,9 @@ class SubscriptionSyncServiceTest {
     existingSubscription.setQuantity(10);
     existingSubscription.setOffering(offering);
     var dto = createDto("456", 10);
-    subscriptionSyncService.syncSubscription(dto, Optional.of(existingSubscription));
+    when(subscriptionService.findBySubscriptionNumber(dto.getSubscriptionNumber()))
+        .thenReturn(List.of(existingSubscription));
+    subscriptionSyncService.syncSubscription(dto);
     verify(contractService).createPartnerContract(any());
   }
 
@@ -281,7 +293,9 @@ class SubscriptionSyncServiceTest {
                 .productCode("p")
                 .customerID("c")
                 .sellerAccount("s")));
-    subscriptionSyncService.syncSubscription(dto, Optional.empty());
+    when(subscriptionService.findBySubscriptionNumber(dto.getSubscriptionNumber()))
+        .thenReturn(List.of());
+    subscriptionSyncService.syncSubscription(dto);
     verify(contractService).createPartnerContract(any());
   }
 
@@ -292,7 +306,9 @@ class SubscriptionSyncServiceTest {
     when(offeringRepository.findById(SKU)).thenReturn(offering);
     when(denylist.productIdMatches(any())).thenReturn(false);
     var dto = createDto("456", 10);
-    subscriptionSyncService.syncSubscription(dto, Optional.empty());
+    when(subscriptionService.findBySubscriptionNumber(dto.getSubscriptionNumber()))
+        .thenReturn(List.of());
+    subscriptionSyncService.syncSubscription(dto);
     verifyNoInteractions(contractService);
   }
 
@@ -300,7 +316,9 @@ class SubscriptionSyncServiceTest {
   void shouldUpdateSubscriptionWhenUpdateProductIds() {
     var dto = createDto(123, "456", "890", 4);
     givenOfferingWithProductIds(290);
-    subscriptionSyncService.syncSubscription(dto, Optional.empty());
+    when(subscriptionService.findBySubscriptionNumber(dto.getSubscriptionNumber()))
+        .thenReturn(List.of());
+    subscriptionSyncService.syncSubscription(dto);
     verify(subscriptionService).save(any(SubscriptionEntity.class));
     verify(capacityReconciliationService).reconcileCapacityForSubscription(any());
 
@@ -308,7 +326,9 @@ class SubscriptionSyncServiceTest {
     givenOfferingWithProductIds(290, 69);
     reset(capacityReconciliationService, subscriptionService);
     defaultSubscriptionServiceStubs();
-    subscriptionSyncService.syncSubscription(dto, Optional.empty());
+    when(subscriptionService.findBySubscriptionNumber(dto.getSubscriptionNumber()))
+        .thenReturn(List.of());
+    subscriptionSyncService.syncSubscription(dto);
     verify(subscriptionService).save(any(SubscriptionEntity.class));
     verify(capacityReconciliationService).reconcileCapacityForSubscription(any());
   }
@@ -865,7 +885,9 @@ class SubscriptionSyncServiceTest {
     existingSubscription.setBillingAccountId("testAccountId");
     existingSubscription.setQuantity(10);
     var dto = createDto("456", 10);
-    subscriptionSyncService.syncSubscription(dto, Optional.of(existingSubscription));
+    when(subscriptionService.findBySubscriptionNumber(dto.getSubscriptionNumber()))
+        .thenReturn(List.of(existingSubscription));
+    subscriptionSyncService.syncSubscription(dto);
     verify(subscriptionService)
         .save(
             argThat(
