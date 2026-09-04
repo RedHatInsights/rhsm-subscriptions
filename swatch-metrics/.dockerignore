@@ -1,8 +1,33 @@
-# allow the build libs for spring-boot based contexts
-!build/libs
-# allow the quarkus-app build folder for quarkus based builds
+# Build outputs (except what we need)
+**/target
+**/build
 !build/quarkus-app
-# ignore bonfire CI working files
+
+# IDE and editor files
+**/.idea
+**/.vscode
+**/.eclipse
+**/.settings
+**/.project
+**/.classpath
+
+# Test outputs
+**/test-output
+**/allure-results
+**/surefire-reports
+
+# OS files
+**/.DS_Store
+**/Thumbs.db
+
+# Version control
+**/.git
+**/.gitignore
+**/.gitattributes
+
+# CI/CD (not needed in build)
+**/.tekton
+**/.github
 .bonfire
 .bonfire_venv
 .cicd_bootstrap.sh
@@ -10,3 +35,21 @@
 .kube
 .docker
 artifacts
+
+# Documentation (not needed in image)
+**/*.md
+!README.md
+
+# Large static assets
+**/docs
+**/examples
+
+# Component tests
+**/ct
+
+# Gradle (if any)
+.gradle
+!.gradle/wrapper
+
+# Maven local repo
+**/.m2
