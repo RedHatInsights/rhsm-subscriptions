@@ -28,6 +28,7 @@ import static org.mockito.Mockito.when;
 import com.redhat.swatch.common.model.HardwareMeasurementType;
 import com.redhat.swatch.common.model.ServiceLevel;
 import com.redhat.swatch.common.model.Usage;
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostFacts;
@@ -50,6 +51,8 @@ import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.json.Event.CloudProvider;
 import org.candlepin.subscriptions.json.Event.HardwareType;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -57,14 +60,32 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class FactNormalizerTest {
 
+  static MockedStatic<SubscriptionDefinition> subscriptionDefinitionMockedStatic;
+
   private ApplicationClock clock;
   private FactNormalizer normalizer;
   @Mock private HbiHostRelationshipService hbiHostRelationshipService;
+
+  @BeforeAll
+  static void beforeAll() {
+    // functions as a spy
+    subscriptionDefinitionMockedStatic =
+        Mockito.mockStatic(
+            SubscriptionDefinition.class,
+            Mockito.withSettings().defaultAnswer(Mockito.CALLS_REAL_METHODS));
+  }
+
+  @AfterAll
+  static void afterAll() {
+    subscriptionDefinitionMockedStatic.close();
+  }
 
   @BeforeEach
   void setUp() {
@@ -322,7 +343,8 @@ class FactNormalizerTest {
 
   static Stream<Arguments> usageParams() {
     return Stream.of(
-        Arguments.of(OffsetDateTime.now().toString(), null, null, null),
+        // When no usage can be determined, default to PRODUCTION
+        Arguments.of(OffsetDateTime.now().toString(), null, null, Usage.PRODUCTION),
         Arguments.of(OffsetDateTime.now().toString(), Usage.PRODUCTION, null, Usage.PRODUCTION),
         // Registered host -- use satellite usage fact if RHSM fact does not exist.
         Arguments.of(OffsetDateTime.now().toString(), null, Usage.PRODUCTION, Usage.PRODUCTION),
@@ -367,7 +389,8 @@ class FactNormalizerTest {
 
   static Stream<Arguments> slaParams() {
     return Stream.of(
-        Arguments.of(OffsetDateTime.now().toString(), null, null, null),
+        // When no SLA can be determined, default to PREMIUM
+        Arguments.of(OffsetDateTime.now().toString(), null, null, ServiceLevel.PREMIUM),
         Arguments.of(
             OffsetDateTime.now().toString(), ServiceLevel.PREMIUM, null, ServiceLevel.PREMIUM),
         // Registered host -- use satellite sla fact if RHSM fact does not exist.
@@ -469,6 +492,75 @@ class FactNormalizerTest {
     HbiHost hbiHost = hbiHost();
     hbiHost.updated = Objects.nonNull(hostUpdatedDate) ? hostUpdatedDate : null;
     assertEquals(expectedLastSeen, normalizer.normalize(new Host(hbiHost)).getLastSeen());
+  }
+
+  @Test
+  void testProductDefaultSlaAndUsageUsedBeforeGlobalDefaults() {
+    // Mock a product to have STANDARD/DISASTER_RECOVERY defaults (different from global
+    // PREMIUM/PRODUCTION)
+    var mockSubscription = Mockito.mock(SubscriptionDefinition.class);
+    var mockDefaults = Mockito.mock(com.redhat.swatch.configuration.registry.Defaults.class);
+
+    Mockito.when(mockDefaults.getSla())
+        .thenReturn(com.redhat.swatch.configuration.registry.Sla.STANDARD);
+    Mockito.when(mockDefaults.getUsage())
+        .thenReturn(com.redhat.swatch.configuration.registry.Usage.DISASTER_RECOVERY);
+    Mockito.when(mockSubscription.getDefaults()).thenReturn(mockDefaults);
+
+    // Mock the lookup to return our custom defaults for "RHEL for x86"
+    subscriptionDefinitionMockedStatic
+        .when(() -> SubscriptionDefinition.lookupSubscriptionByTag("RHEL for x86"))
+        .thenReturn(java.util.Optional.of(mockSubscription));
+
+    // Create a host with RHEL product (product ID 69 -> "RHEL for x86")
+    List<HbiHostFacts> hbiHostFacts = new ArrayList<>();
+    HbiHostFacts rhsmFacts = rhsmHbiFacts();
+    rhsmFacts.getFacts().put(RhsmFacts.PRODUCT_IDS_FACT, List.of("69"));
+    // Don't set any explicit SLA/Usage values
+    hbiHostFacts.add(rhsmFacts);
+
+    HbiHost hbiHost = hbiHost();
+    hbiHost.setFacts(hbiHostFacts);
+
+    NormalizedFacts normalized = normalizer.normalize(new Host(hbiHost));
+
+    // Should use product defaults (STANDARD/DISASTER_RECOVERY), not global defaults
+    // (PREMIUM/PRODUCTION)
+    assertEquals(ServiceLevel.STANDARD.getValue(), normalized.getSla());
+    assertEquals(Usage.DISASTER_RECOVERY.getValue(), normalized.getUsage());
+
+    // Verify the product was normalized
+    assertTrue(normalized.getProductTags().contains("RHEL for x86"));
+  }
+
+  @Test
+  void testGlobalDefaultsUsedWhenProductHasNoSlaUsageDefaults() {
+    // Mock a product with no SLA/Usage defaults (returns null)
+    var mockSubscription = Mockito.mock(SubscriptionDefinition.class);
+    var mockDefaults = Mockito.mock(com.redhat.swatch.configuration.registry.Defaults.class);
+
+    Mockito.when(mockDefaults.getSla()).thenReturn(null);
+    Mockito.when(mockDefaults.getUsage()).thenReturn(null);
+    Mockito.when(mockSubscription.getDefaults()).thenReturn(mockDefaults);
+
+    subscriptionDefinitionMockedStatic
+        .when(() -> SubscriptionDefinition.lookupSubscriptionByTag("RHEL for x86"))
+        .thenReturn(java.util.Optional.of(mockSubscription));
+
+    // Create a host with RHEL product
+    List<HbiHostFacts> hbiHostFacts = new ArrayList<>();
+    HbiHostFacts rhsmFacts = rhsmHbiFacts();
+    rhsmFacts.getFacts().put(RhsmFacts.PRODUCT_IDS_FACT, List.of("69"));
+    hbiHostFacts.add(rhsmFacts);
+
+    HbiHost hbiHost = hbiHost();
+    hbiHost.setFacts(hbiHostFacts);
+
+    NormalizedFacts normalized = normalizer.normalize(new Host(hbiHost));
+
+    // Should fall back to global defaults
+    assertEquals(ServiceLevel.PREMIUM.getValue(), normalized.getSla());
+    assertEquals(Usage.PRODUCTION.getValue(), normalized.getUsage());
   }
 
   private HbiHost hbiHost() {
