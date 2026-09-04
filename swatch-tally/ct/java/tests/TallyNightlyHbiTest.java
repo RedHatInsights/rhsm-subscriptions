@@ -86,7 +86,10 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
 
     // When: Inserting a RHEL host into HBI database
     SeededHost host =
-        hostManager.createHost(orgId).apply(HostTemplates.physicalRhel(1, 0)).insert();
+        hostManager
+            .createHost(orgId)
+            .apply(HostTemplates.conduitReportedPhysicalRhel(1, 0))
+            .insert();
 
     // Then: Host is tracked with expected metadata
     assertNotNull(host.hostId(), "Host ID should be generated");
@@ -112,7 +115,10 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
 
     // When: Inserting multiple hosts into HBI database
     SeededHost host1 =
-        hostManager.createHost(orgId).apply(HostTemplates.physicalRhel(1, 0)).insert();
+        hostManager
+            .createHost(orgId)
+            .apply(HostTemplates.conduitReportedPhysicalRhel(1, 0))
+            .insert();
 
     SeededHost host2 =
         hostManager
@@ -276,7 +282,10 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
   void testHbiSeederCanDelete() {
     // Given: A host is inserted into HBI database
     SeededHost host =
-        hostManager.createHost(orgId).apply(HostTemplates.physicalRhel(1, 0)).insert();
+        hostManager
+            .createHost(orgId)
+            .apply(HostTemplates.conduitReportedPhysicalRhel(1, 0))
+            .insert();
     assertNotNull(host.hostId(), "Host ID should be generated");
 
     // When: Deleting the host
@@ -356,7 +365,10 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
 
     // And: RHEL host with 2 sockets and 8 cores is created
     SeededHost host =
-        hostManager.createHost(orgId).apply(HostTemplates.physicalRhel(2, 8)).insert();
+        hostManager
+            .createHost(orgId)
+            .apply(HostTemplates.conduitReportedPhysicalRhel(2, 8))
+            .insert();
     assertNotNull(host.hostId(), "Host should be created");
 
     // And: Nightly tally runs
@@ -420,7 +432,8 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
                     "ending", ending.toString())));
 
     // And: RHEL host with 2 sockets, 2 cores is created and tallied
-    HostBuilder hostBuilder = hostManager.createHost(orgId).apply(HostTemplates.physicalRhel(2, 2));
+    HostBuilder hostBuilder =
+        hostManager.createHost(orgId).apply(HostTemplates.conduitReportedPhysicalRhel(2, 2));
     SeededHost seeded = hostBuilder.insert();
     assertNotNull(seeded.hostId(), "Host should be created");
 
@@ -494,7 +507,11 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
   void testNightlyTallyCloudProduct() {
     // Given: Org is opted in and cloud host with RHEL product exists in HBI database
     service.createOptInConfig(orgId);
-    SeededHost host = hostManager.createHost(orgId).apply(HostTemplates.awsRhel(1, 1)).insert();
+    SeededHost host =
+        hostManager
+            .createHost(orgId)
+            .apply(HostTemplates.conduitReportedAwsVirtualRhel(1, 1))
+            .insert();
     assertNotNull(host.hostId(), "Cloud host should be created");
     assertTrue(hostManager.hostExists(host.hostId()), "Cloud host should exist in HBI database");
 

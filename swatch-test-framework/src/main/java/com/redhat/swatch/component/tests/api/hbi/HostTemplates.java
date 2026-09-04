@@ -41,7 +41,8 @@ public final class HostTemplates {
   private HostTemplates() {}
 
   /** Physical RHEL host with the given socket/core counts. */
-  public static Function<HostBuilder, HostBuilder> physicalRhel(int sockets, int cores) {
+  public static Function<HostBuilder, HostBuilder> conduitReportedPhysicalRhel(
+      int sockets, int cores) {
     return builder ->
         builder
             .rhsmFacts(RhsmFacts.builder().defaultFacts().build())
@@ -55,7 +56,8 @@ public final class HostTemplates {
   }
 
   /** AWS RHEL host with the given socket/core counts. */
-  public static Function<HostBuilder, HostBuilder> awsRhel(int sockets, int cores) {
+  public static Function<HostBuilder, HostBuilder> conduitReportedAwsVirtualRhel(
+      int sockets, int cores) {
     return builder ->
         builder
             .rhsmFacts(RhsmFacts.builder().defaultFacts().isVirtual(true).build())
