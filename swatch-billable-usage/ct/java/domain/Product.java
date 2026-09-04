@@ -35,7 +35,8 @@ import lombok.Getter;
 public enum Product {
   ROSA("rosa", MetricIdUtils.getCores(), MetricIdUtils.getInstanceHours()),
   RHEL_PAYG_ADDON("rhel-for-x86-els-payg-addon", MetricIdUtils.getVCpus()),
-  ANSIBLE_AAP_MANAGED("ansible-aap-managed", MetricIdUtils.getManagedNodes());
+  ANSIBLE_AAP_MANAGED("ansible-aap-managed", MetricIdUtils.getManagedNodes()),
+  RHACM("rhacm", MetricIdUtils.getVCpus(), MetricIdUtils.getVCpusSelfManaged());
 
   private final ProductId id;
   private final Map<MetricId, Metric> metrics;
