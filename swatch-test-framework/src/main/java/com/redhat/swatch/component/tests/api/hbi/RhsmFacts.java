@@ -21,9 +21,10 @@
 package com.redhat.swatch.component.tests.api.hbi;
 
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import lombok.Getter;
+import lombok.Singular;
 
 /**
  * Facts reported by the RHSM Conduit reporter (HBI namespace {@code rhsm}).
@@ -60,11 +61,12 @@ public final class RhsmFacts {
   private final String systemPurposeUnits;
   private final String billingModel;
   private final String guestId;
-  private final List<String> products;
+  private final Set<String> products;
 
   // Fully-qualified: a bare `@Builder` here would resolve to the nested Builder class below
   // instead of lombok.Builder, since a member type shadows a same-named import in its own body.
-  @lombok.Builder(builderClassName = "Builder")
+  // Instruct Lombok to deep copy the list when toBuilder() is called by using @Singular
+  @lombok.Builder(builderClassName = "Builder", toBuilder = true)
   private RhsmFacts(
       String sla,
       String usage,
@@ -74,7 +76,7 @@ public final class RhsmFacts {
       String systemPurposeUnits,
       String billingModel,
       String guestId,
-      List<String> products) {
+      @Singular Set<String> products) {
     this.sla = sla;
     this.usage = usage;
     this.syncTimestamp = syncTimestamp;
@@ -118,7 +120,7 @@ public final class RhsmFacts {
     /** Seed physical, non-virtual RHEL defaults. Call first, then override as needed. */
     public Builder defaultFacts() {
       this.isVirtual = false;
-      this.products = List.of("69");
+      this.product("69");
       return this;
     }
   }

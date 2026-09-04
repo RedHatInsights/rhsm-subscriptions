@@ -47,7 +47,7 @@ public final class SatelliteFacts {
 
   // Fully-qualified: a bare `@Builder` here would resolve to the nested Builder class below
   // instead of lombok.Builder, since a member type shadows a same-named import in its own body.
-  @lombok.Builder(builderClassName = "Builder")
+  @lombok.Builder(builderClassName = "Builder", toBuilder = true)
   private SatelliteFacts(String sla, String usage, String role, String hypervisorUuid) {
     this.sla = sla;
     this.usage = usage;
