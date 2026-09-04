@@ -87,10 +87,8 @@ parameters:
   - name: KESSEL_INSECURE
     value: 'true'
   - name: KESSEL_AUTH_ENABLED
-    value: 'false'
 #    Environment provides this
   - name: KESSEL_AUTH_OIDC_ISSUER
-  - name: AUTH_DISCOVERY_ISSUER_URL
   - name: RBAC_BASE_ENDPOINT
 
 objects:

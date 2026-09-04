@@ -42,7 +42,7 @@ public interface KesselProperties {
   @WithDefault("http://localhost:8080")
   String rbacBaseEndpoint();
 
-  Optional<String> authDiscoveryIssuerUrl();
+  Optional<String> authOidcIssuer();
 
   Optional<String> authClientId();
 

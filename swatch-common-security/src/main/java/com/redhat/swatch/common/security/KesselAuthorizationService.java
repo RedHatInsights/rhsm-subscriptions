@@ -83,7 +83,7 @@ public class KesselAuthorizationService {
   }
 
   private void initializeRbacAuth() throws Exception {
-    var issuerUrl = properties.authDiscoveryIssuerUrl().filter(s -> !s.isBlank());
+    var issuerUrl = properties.authOidcIssuer().filter(s -> !s.isBlank());
     var clientId = properties.authClientId().filter(s -> !s.isBlank());
     var clientSecret = properties.authClientSecret().filter(s -> !s.isBlank());
     if (issuerUrl.isEmpty() || clientId.isEmpty() || clientSecret.isEmpty()) {

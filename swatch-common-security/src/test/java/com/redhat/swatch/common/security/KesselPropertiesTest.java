@@ -85,7 +85,7 @@ class KesselPropertiesTest {
       }
 
       @Override
-      public Optional<String> authDiscoveryIssuerUrl() {
+      public Optional<String> authOidcIssuer() {
         return Optional.empty();
       }
 
