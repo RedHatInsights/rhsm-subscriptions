@@ -60,18 +60,9 @@ import java.util.UUID;
  */
 public final class TallyHbiDbSeeder {
 
-  // separate functionality of the Seeding, DB connection, and HBI  into different classes
+  // Separate functionality of the Seeding, DB connection, and HBI  into different classes
   // Need to be specific about what kind of RHEL host we are creating, so we can use the correct one
   // Need to specify what facts per RHEL host ( factory for the RHEL host )
-  /*example for Kartik
-  *  public HostBuilder rhelHost(String orgId) {
-      return new HostBuilder(orgId, true);
-    }
-
-    public HostBuilder cloudHost(String orgId) {
-      return new HostBuilder(orgId, false).cloudProvider("aws");
-    }
-  * */
 
   private final DatabaseService hbiDatabase;
 

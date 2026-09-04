@@ -36,6 +36,7 @@ import com.redhat.swatch.component.tests.api.hbi.SatelliteFacts;
 import com.redhat.swatch.component.tests.api.hbi.SystemProfileFacts;
 import com.redhat.swatch.tally.test.model.ServiceLevelType;
 import com.redhat.swatch.tally.test.model.TallyReportData;
+import com.redhat.swatch.tally.test.model.TallyReportDataPoint;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -202,7 +203,7 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
     assertNotNull(instanceResponse.getData(), "Instance response should have data");
     assertFalse(instanceResponse.getData().isEmpty(), "Instance response should not be empty");
 
-    assertThatExpectedReportPopulated(orgId, RHEL_FOR_X86.productTag(), beginning, ending, true);
+    assertPremiumReportPopulated(orgId, RHEL_FOR_X86.productTag(), beginning, ending);
   }
 
   /**
@@ -268,7 +269,7 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
     assertNotNull(instanceResponse.getData(), "Instance response should have data");
     assertFalse(instanceResponse.getData().isEmpty(), "Instance response should not be empty");
 
-    assertThatExpectedReportPopulated(orgId, RHEL_FOR_X86.productTag(), beginning, ending, false);
+    assertStandardReportPopulated(orgId, RHEL_FOR_X86.productTag(), beginning, ending);
   }
 
   /**
@@ -533,82 +534,80 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
         "Should have exactly one instance for this org and product");
   }
 
-  private void assertThatExpectedReportPopulated(
+  public void assertPremiumReportPopulated(
+      String orgId, String productTag, OffsetDateTime beginning, OffsetDateTime ending) {
+
+    var premiumData = fetchTallyData(orgId, productTag, beginning, ending, "Premium");
+    var standardData = fetchTallyData(orgId, productTag, beginning, ending, "Standard");
+
+    assertHasData(
+        premiumData,
+        ServiceLevelType.PREMIUM,
+        "Premium SLA should have at least one data point with hasData=true");
+
+    assertHasNoData(
+        standardData,
+        ServiceLevelType.STANDARD,
+        "Standard SLA should have NO actual data (Satellite SLA was overridden by RHSM Premium)");
+  }
+
+  public void assertStandardReportPopulated(
+      String orgId, String productTag, OffsetDateTime beginning, OffsetDateTime ending) {
+
+    var premiumData = fetchTallyData(orgId, productTag, beginning, ending, "Premium");
+    var standardData = fetchTallyData(orgId, productTag, beginning, ending, "Standard");
+
+    assertHasData(
+        standardData,
+        ServiceLevelType.STANDARD,
+        "Standard SLA should have at least one data point with hasData=true");
+
+    assertHasNoData(
+        premiumData, ServiceLevelType.PREMIUM, "Premium SLA should have NO actual data");
+  }
+
+  // --- Private Helper Methods ---
+
+  private TallyReportData fetchTallyData(
       String orgId,
       String productTag,
       OffsetDateTime beginning,
       OffsetDateTime ending,
-      Boolean isPremium) {
-    var premiumData =
-        service.getTallyReportData(
-            orgId,
-            productTag,
-            "Sockets",
-            Map.of(
-                "granularity",
-                "Daily",
-                "beginning",
-                beginning.toString(),
-                "ending",
-                ending.toString(),
-                "sla",
-                "Premium"));
+      String sla) {
+    return service.getTallyReportData(
+        orgId,
+        productTag,
+        "Sockets",
+        Map.of(
+            "granularity",
+            "Daily",
+            "beginning",
+            beginning.toString(),
+            "ending",
+            ending.toString(),
+            "sla",
+            sla));
+  }
 
-    var standardData =
-        service.getTallyReportData(
-            orgId,
-            productTag,
-            "Sockets",
-            Map.of(
-                "granularity",
-                "Daily",
-                "beginning",
-                beginning.toString(),
-                "ending",
-                ending.toString(),
-                "sla",
-                "Standard"));
+  private void assertHasData(
+      TallyReportData report, ServiceLevelType expectedSla, String failureMessage) {
+    assertNotNull(report.getData(), expectedSla + " SLA should have data structure");
+    assertTrue(
+        report.getData().stream().anyMatch(TallyReportDataPoint::getHasData), failureMessage);
+    assertEquals(
+        expectedSla,
+        report.getMeta().getServiceLevel(),
+        "Meta should show " + expectedSla + " SLA");
+  }
 
-    if (isPremium) {
-      // Verify Premium has data (RHSM facts won)
-      assertNotNull(premiumData.getData(), "Premium SLA should have data");
-      assertTrue(
-          premiumData.getData().stream().anyMatch(point -> point.getHasData()),
-          "Premium SLA should have at least one data point with hasData=true");
-      assertEquals(
-          ServiceLevelType.PREMIUM,
-          premiumData.getMeta().getServiceLevel(),
-          "Meta should show Premium SLA");
-
-      // Verify Standard has NO data (Satellite facts were overridden)
-      assertNotNull(standardData.getData(), "Standard SLA should return data structure");
-      assertTrue(
-          standardData.getData().stream().noneMatch(point -> point.getHasData()),
-          "Standard SLA should have NO actual data (Satellite SLA was overridden by RHSM Premium)");
-      assertEquals(
-          ServiceLevelType.STANDARD,
-          standardData.getMeta().getServiceLevel(),
-          "Meta should show Standard SLA");
-    } else {
-      // Verify Standard has data (Standard facts being used)
-      assertNotNull(standardData.getData(), "Standard SLA should have data");
-      assertTrue(
-          standardData.getData().stream().anyMatch(point -> point.getHasData()),
-          "Standard SLA should have at least one data point with hasData=true");
-      assertEquals(
-          ServiceLevelType.STANDARD,
-          standardData.getMeta().getServiceLevel(),
-          "Meta should show Standard SLA");
-
-      // Verify Premium has NO data
-      assertNotNull(premiumData.getData(), "Premium SLA should return data structure");
-      assertTrue(
-          premiumData.getData().stream().noneMatch(point -> point.getHasData()),
-          "Premium SLA should have NO actual data");
-      assertEquals(
-          ServiceLevelType.PREMIUM,
-          premiumData.getMeta().getServiceLevel(),
-          "Meta should show Premium SLA");
-    }
+  private void assertHasNoData(
+      TallyReportData report, ServiceLevelType expectedSla, String failureMessage) {
+    assertNotNull(report.getData(), expectedSla + " SLA should return data structure");
+    assertTrue(
+        report.getData().stream().noneMatch(TallyReportDataPoint::getHasData), failureMessage);
+    assertEquals(
+        expectedSla,
+        report.getMeta().getServiceLevel(),
+        "Meta should show " + expectedSla + " SLA");
   }
 }
