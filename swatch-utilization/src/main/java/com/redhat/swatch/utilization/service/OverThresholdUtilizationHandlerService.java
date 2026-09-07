@@ -49,31 +49,30 @@ public class OverThresholdUtilizationHandlerService extends BaseThresholdUtiliza
     }
 
     double overagePercent = utilizationPercent - FULL_CAPACITY_PERCENT;
+    double utilizationThresholdPercent = FULL_CAPACITY_PERCENT + overUsageThreshold;
 
     if (overagePercent > overUsageThreshold) {
       log.info(
-          "Over-usage detected: orgId={} productId={} metricId={} sla={} usage={} utilizationPercent={}% overagePercent={}% threshold={}%",
+          "Over-usage threshold exceeded: orgId={} productId={} metricId={} sla={} usage={} utilizationPercent={}% threshold={}%",
           payload.getOrgId(),
           payload.getProductId(),
           measurement.getMetricId(),
           payload.getSla(),
           payload.getUsage(),
           String.format(PERCENT_FORMAT, utilizationPercent),
-          String.format(PERCENT_FORMAT, overagePercent),
-          String.format(PERCENT_FORMAT, overUsageThreshold));
+          String.format(PERCENT_FORMAT, utilizationThresholdPercent));
       return Optional.of(buildEvent(utilizationPercent));
     }
 
     log.debug(
-        "Usage within threshold: orgId={} productId={} metricId={} sla={} usage={} utilizationPercent={}% overagePercent={}% threshold={}%",
+        "Over-usage threshold not exceeded: orgId={} productId={} metricId={} sla={} usage={} utilizationPercent={}% threshold={}%",
         payload.getOrgId(),
         payload.getProductId(),
         measurement.getMetricId(),
         payload.getSla(),
         payload.getUsage(),
         String.format(PERCENT_FORMAT, utilizationPercent),
-        String.format(PERCENT_FORMAT, overagePercent),
-        String.format(PERCENT_FORMAT, overUsageThreshold));
+        String.format(PERCENT_FORMAT, utilizationThresholdPercent));
     return Optional.empty();
   }
 
