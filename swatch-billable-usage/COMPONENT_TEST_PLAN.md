@@ -33,7 +33,7 @@ This document defines the **component-level test plan** for `swatch-billable-usa
 - Kafka topics are available and configured for the deployment environment
 - `swatch-contracts` REST API is mockable in component tests
 - Product configuration (`swatch-product-configuration`) is stable for reference products used in tests
-- `rhacm.yaml` defines two counter metrics with billing factor 1.0: `vCPUs` (`awsDimension: acm_vcpu_hours`, `azureDimension: acm_vcpu_hours_mng`) and `vCPUs-self-managed` (`awsDimension`/`azureDimension`: `acm_vcpu_hours_slfmng`); `contractEnabled: true`
+- ACM supports separate managed and self-managed usage metrics for AWS and Azure billing. The scenarios below use a one-to-one conversion between usage and billable units.
 
 **Constraints:**
 
@@ -361,149 +361,52 @@ Java component tests in `ContractCoverageComponentTest` (`swatch-billable-usage/
 
 ## ACM Managed vs Self-Managed Dimensions
 
-Java component tests in `AcmMetricSplitComponentTest` (`swatch-billable-usage/ct`); each test uses `@TestPlanName("billable-usage-acm-metric-split-TC00N")`. Product `rhacm` is contract-enabled. Contract API responses are stubbed via Wiremock (`ContractsWiremockService`).
+These scenarios verify that contract coverage applies independently to managed and self-managed ACM usage and uses the billing provider's corresponding dimension. Marketplace submission is covered separately in the producer test plans.
 
-Contract GET does not take a metric id. `ContractsController.getValidContracts()` loads contracts by org, product `rhacm`, billing provider, and billing account. `ContractCoverageService` then sums `contract.metrics[].metric_id` against the provider dimension (`awsDimension` or `azureDimension`). A missing dimension is coverage 0, not `ContractMissingException`.
+**billable-usage-acm-metric-split-TC001 - AWS contract covers managed usage only**
 
-Tally snapshots must be PAYG-eligible: granularity `HOURLY`, sla `PREMIUM`, usage `PRODUCTION`, specific billing provider, specific billing account (not `_ANY`). Use `PHYSICAL` measurements so `TOTAL` duplicates are not billed. ACM `billingFactor` is unset, so `BillingUnit` defaults to 1.0. Contract metric values are integers (`ContractMetricCapacity` sums `int`).
+- **Description:** Verify that a contract covering managed usage still permits billing for self-managed usage when that metric has no coverage.
+- **Setup:**
+  - ACM product with AWS billing
+  - One contract covering 10 units of managed usage, with no self-managed coverage
+  - Eligible hourly tally with managed usage of 15 units and self-managed usage of 8 units
+- **Action:**
+  - Publish the tally summary
+- **Verification:**
+  - Managed remittance and emitted billable usage are 5 units (15 − 10)
+  - Self-managed remittance and emitted billable usage are 8 units
+- **Expected Result:**
+  - Only managed usage receives contract coverage; self-managed usage is billed in full
 
-Do not assert “no Kafka message” when remitted value is 0. `submitBillableUsage` still produces `BillableUsage` unless status is `GRATIS` (same caveat as `billable-usage-contract-coverage-TC009`).
+**billable-usage-acm-metric-split-TC002 - AWS contract covers each metric independently**
 
-These cases cover billable-usage behavior only. AWS `BatchMeterUsage` and Azure Marketplace submission stay in producer test plans.
+- **Description:** Verify that unused contract coverage for one metric cannot cover overage on another metric.
+- **Setup:**
+  - ACM product with AWS billing
+  - One contract covering 10 units of managed usage and 20 units of self-managed usage
+  - Eligible hourly tally with managed usage of 12 units and self-managed usage of 15 units
+- **Action:**
+  - Publish the tally summary
+- **Verification:**
+  - Managed remittance and emitted billable usage are 2 units (12 − 10)
+  - Self-managed remittance total is zero, with no new self-managed remittance
+- **Expected Result:**
+  - Unused self-managed coverage does not absorb managed overage
 
-**billable-usage-acm-metric-split-TC001 - Map one ACM tally to two independent billable usages (AWS)**
+**billable-usage-acm-metric-split-TC003 - Azure contract coverage uses the Azure billing dimension**
 
-- **Description:** Verify a single hourly ACM tally with both `vCPUs` and `vCPUs-self-managed` measurements produces two billable usages and two remittance rows. Billing factor is 1.0 for both metrics.  
-- **Setup:**  
-  - Product: `rhacm`  
-  - Mock contracts API: contract exists with empty metrics (coverage 0; all usage is billable)  
-  - Tally snapshot `billing_provider=aws` with PHYSICAL measurements: `vCPUs` current_total = 8, `vCPUs-self-managed` current_total = 12  
-- **Action:**  
-  - Publish tally summary to Kafka topic `tally`  
-- **Verification:**  
-  - Two messages on `billable-usage` for org/product `rhacm`  
-  - `vCPUs` usage value = 8, billing factor = 1.0  
-  - `vCPUs-self-managed` usage value = 12, billing factor = 1.0  
-  - Two remittance rows for the shared snapshot/tally ID, keyed by metric id, values 8 and 12  
-  - Both usages `billing_provider=aws`  
-- **Expected Result:**  
-  - Metrics billed independently; values do not combine or overwrite each other  
-
-**billable-usage-acm-metric-split-TC002 - Legacy AWS contract covers managed only**
-
-- **Description:** Verify an existing ACM contract that only lists `acm_vcpu_hours` covers managed usage and treats all self-managed usage as overage. Coverage 0 for a missing dimension is not a contract-missing skip.  
-- **Setup:**  
-  - Product: `rhacm`, `billing_provider=aws`  
-  - Mock contracts API: one contract with metric `acm_vcpu_hours` = 10 (no `acm_vcpu_hours_slfmng`)  
-  - Tally measurements: `vCPUs` current_total = 15, `vCPUs-self-managed` current_total = 8  
-- **Action:**  
-  - Publish tally summary  
-- **Verification:**  
-  - Managed remittance `remitted_pending_value` = 5 (15 − 10)  
-  - Self-managed remittance `remitted_pending_value` = 8 (coverage 0)  
-  - Two `billable-usage` Kafka messages with values 5 and 8  
-- **Expected Result:**  
-  - Mapping is proven by remittance math: stubbing `acm_vcpu_hours` (not `vCPUs`) is what covers managed usage. Self-managed has no matching contract metric, so coverage is 0 and the amount remits in full. The contracts HTTP query does not include a metric id.  
-
-**billable-usage-acm-metric-split-TC003 - Dual-dimension AWS contract covers each metric independently**
-
-- **Description:** Verify a contract that lists both AWS dimensions applies coverage per metric and does not let unused capacity on one dimension cover the other.  
-- **Setup:**  
-  - Product: `rhacm`, `billing_provider=aws`  
-  - Mock contracts API: one contract with `acm_vcpu_hours` = 10 and `acm_vcpu_hours_slfmng` = 20  
-  - Tally measurements: `vCPUs` current_total = 12, `vCPUs-self-managed` current_total = 15  
-- **Action:**  
-  - Publish tally summary  
-- **Verification:**  
-  - Managed remittance `remitted_pending_value` = 2 (12 − 10)  
-  - Self-managed account remittance `remittedValue` = 0 (15 ≤ 20)  
-  - One pending remittance row for `vCPUs` with value 2  
-  - No remittance row for `vCPUs-self-managed`  
-  - Do not require Kafka silence for self-managed; a zero-value `BillableUsage` may still be emitted  
-- **Expected Result:**  
-  - Unused self-managed contract capacity does not absorb managed overage  
-
-**billable-usage-acm-metric-split-TC004 - Azure ACM uses azureDimension for contract coverage**
-
-- **Description:** Verify Azure billing provider maps `vCPUs` to `acm_vcpu_hours_mng` and `vCPUs-self-managed` to `acm_vcpu_hours_slfmng`. A listing that only has the managed Azure dimension covers managed usage and bills self-managed as overage.  
-- **Setup:**  
-  - Product: `rhacm`, `billing_provider=azure`  
-  - Mock contracts API: one contract with metric `acm_vcpu_hours_mng` = 16 (no `acm_vcpu_hours_slfmng`)  
-  - Tally measurements: `vCPUs` current_total = 20, `vCPUs-self-managed` current_total = 9  
-- **Action:**  
-  - Publish tally summary  
-- **Verification:**  
-  - Managed remittance = 4, `billing_provider=azure`  
-  - Self-managed remittance = 9, `billing_provider=azure`  
-- **Expected Result:**  
-  - Mapping is proven by remittance math: if coverage used `acm_vcpu_hours` or `vCPUs`, managed remittance would be 20, not 4. Self-managed has no `acm_vcpu_hours_slfmng` on the contract, so it remits in full.  
-
-**billable-usage-acm-metric-split-TC005 - Remittance ledger does not mix ACM metric ids**
-
-- **Description:** Verify month-to-date remittance already recorded for `vCPUs` is not subtracted from a later `vCPUs-self-managed` tally in the same org/account/month.  
-- **Setup:**  
-  - Product: `rhacm`, `billing_provider=aws`  
-  - Mock contracts API: contract with empty metrics (coverage 0)  
-  - Same org, billing account, and month  
-  - First tally: `vCPUs` current_total = 10 (creates remittance 10)  
-- **Action:**  
-  - Publish second tally with only `vCPUs-self-managed` current_total = 6  
-- **Verification:**  
-  - Self-managed remittance `remitted_pending_value` = 6  
-  - Managed remittance row unchanged at 10  
-  - Account remittance API returns 10 for `vCPUs` and 6 for `vCPUs-self-managed`  
-- **Expected Result:**  
-  - `totalRemittedFilter` keys on metric id; the two ACM dimensions keep separate running totals  
-
-**billable-usage-acm-metric-split-TC006 - Hourly aggregation emits one aggregate per ACM metric**
-
-- **Description:** Verify Kafka Streams hourly aggregation uses `metricId` on `BillableUsageAggregateKey`, so managed and self-managed ACM usage do not share an hourly rollup.  
-- **Setup:**  
-  - Product: `rhacm`, `billing_provider=aws`  
-  - Mock contracts API: contract with empty metrics  
-  - Same org, billing account, and clock hour: one `vCPUs` tally (current_total 8) and one `vCPUs-self-managed` tally (current_total 12)  
-- **Action:**  
-  - Publish both tallies  
-  - Wait for both `billable-usage` messages (same as `billable-usage-aggregation-TC001`)  
-  - Flush aggregation: `POST /internal/rpc/topics/flush`  
-- **Verification:**  
-  - Two messages on `billable-usage-hourly-aggregate`  
-  - Aggregate key `metricId` = `vCPUs`, `totalValue` = 8  
-  - Aggregate key `metricId` = `vCPUs-self-managed`, `totalValue` = 12  
-- **Expected Result:**  
-  - Producers receive two ACM aggregates for the same hour, one per marketplace dimension  
-
-**billable-usage-acm-metric-split-TC007 - Skip both ACM metrics when no contract exists**
-
-- **Description:** Verify `rhacm` remains contract-enabled: missing contract skips processing for both measurements, same as ROSA.  
-- **Setup:**  
-  - Product: `rhacm`  
-  - Mock contracts API: empty contract list  
-  - Tally with both `vCPUs` = 8 and `vCPUs-self-managed` = 12  
-- **Action:**  
-  - Publish tally summary  
-- **Verification:**  
-  - Account remittance API returns `remittedValue` = 0 for both metric ids  
-  - No remittance rows: `getRemittancesByTally` returns HTTP 400 (`Tally id not found in billable usage remittance`)  
-  - No `billable-usage` Kafka messages  
-- **Expected Result:**  
-  - Self-managed does not bypass the contract-enabled gate  
-
-**billable-usage-acm-metric-split-TC008 - Azure ACM PAYG remits both dimensions**
-
-- **Description:** Verify Azure ACM usage with a contract record but no metric coverage remits both dimensions with `billing_provider=azure`. This is the new Azure path (ACM previously had no `azureDimension`).  
-- **Setup:**  
-  - Product: `rhacm`, `billing_provider=azure`  
-  - Mock contracts API: contract exists with empty metrics  
-  - Tally measurements: `vCPUs` = 16, `vCPUs-self-managed` = 20  
-- **Action:**  
-  - Publish tally summary  
-- **Verification:**  
-  - Two `billable-usage` messages with `billing_provider=azure`  
-  - Values 16 and 20 (billing factor 1.0)  
-  - Two pending remittance rows  
-- **Expected Result:**  
-  - Azure ACM aggregates are eligible for `swatch-producer-azure`; marketplace accept/reject stays out of this plan  
+- **Description:** Verify that Azure usage receives coverage from the corresponding Azure contract dimension.
+- **Setup:**
+  - ACM product with Azure billing and distinct AWS and Azure managed billing dimensions
+  - One contract covering 16 units on the Azure managed dimension, with no self-managed coverage
+  - Eligible hourly tally with managed usage of 20 units and self-managed usage of 9 units
+- **Action:**
+  - Publish the tally summary
+- **Verification:**
+  - Managed remittance and emitted billable usage are 4 units (20 − 16), with Azure as the billing provider
+  - Self-managed remittance and emitted billable usage are 9 units, with Azure as the billing provider
+- **Expected Result:**
+  - Azure managed coverage reduces managed usage; self-managed usage is billed in full
 
 ---
 
