@@ -23,6 +23,10 @@ package tests;
 import static api.PartnerApiStubs.PartnerSubscriptionsStubRequest.forContract;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import api.ContractsArtemisService;
 import com.redhat.swatch.component.tests.api.Artemis;
@@ -38,7 +42,6 @@ import io.restassured.response.Response;
 import java.time.OffsetDateTime;
 import java.util.Map;
 import org.apache.http.HttpStatus;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 public class ContractsUpdateComponentTest extends BaseContractComponentTest {
@@ -65,9 +68,9 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
     // then: The existing contract should be updated with the new end date
     service.logs().assertContains("Existing contracts and subscriptions updated");
     var contracts = service.getContracts(initialContract);
-    Assertions.assertEquals(1, contracts.size());
-    Assertions.assertNotNull(contracts.get(0).getEndDate());
-    Assertions.assertTrue(contracts.get(0).getEndDate().isAfter(initialContract.getEndDate()));
+    assertEquals(1, contracts.size());
+    assertNotNull(contracts.getFirst().getEndDate());
+    assertTrue(contracts.getFirst().getEndDate().isAfter(initialContract.getEndDate()));
   }
 
   @TestPlanName("contracts-update-TC002")
@@ -84,7 +87,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
     // then message is ignored as redundant
     service.logs().assertContains("Redundant message ignored");
     var contracts = service.getContracts(contract);
-    Assertions.assertEquals(1, contracts.size());
+    assertEquals(1, contracts.size());
   }
 
   @TestPlanName("contracts-update-TC003")
@@ -98,7 +101,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
             BillingProvider.AWS, initialStartDate, initialEndDate, Map.of(CORES, CORES_CAPACITY));
 
     // Store the initial UUID for comparison
-    var createdContract = service.getContractsByOrgId(orgId).get(0);
+    var createdContract = service.getContractsByOrgId(orgId).getFirst();
     String initialUuid = createdContract.getUuid();
 
     // When: Update the contract's start and end dates
@@ -112,11 +115,10 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
 
     // Then: Old contract is deleted, new contract created with different UUID
     var contracts = service.getContractsByOrgId(orgId);
-    Assertions.assertEquals(
-        1, contracts.size(), "Should have one contract (old deleted, new created)");
+    assertEquals(1, contracts.size(), "Should have one contract (old deleted, new created)");
 
-    var newContract = contracts.get(0);
-    Assertions.assertNotEquals(
+    var newContract = contracts.getFirst();
+    assertNotEquals(
         initialUuid, newContract.getUuid(), "UUID should be different (new contract created)");
     thenContractDatesShouldBeUpdated(newContract, updatedStartDate, updatedEndDate);
     thenContractFieldsShouldRemainUnchanged(newContract, initialContract);
@@ -135,7 +137,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
             BillingProvider.AWS, startDate, initialEndDate, Map.of(CORES, CORES_CAPACITY));
 
     // Store the initial UUID for comparison
-    var createdContract = service.getContractsByOrgId(orgId).get(0);
+    var createdContract = service.getContractsByOrgId(orgId).getFirst();
     String initialUuid = createdContract.getUuid();
 
     // When: Update only the end_date (renewal scenario - keeping start_date the same)
@@ -147,18 +149,17 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
 
     // Then: The existing contract is updated (UUID remains the same)
     var contracts = service.getContractsByOrgId(orgId);
-    Assertions.assertEquals(1, contracts.size(), "Should still have exactly one contract");
+    assertEquals(1, contracts.size(), "Should still have exactly one contract");
 
-    var actual = contracts.get(0);
+    var actual = contracts.getFirst();
     // UUID should remain the same because only end_date changed (true update)
-    Assertions.assertEquals(
-        initialUuid, actual.getUuid(), "UUID should remain unchanged (contract updated)");
-    Assertions.assertNotNull(actual.getEndDate(), "end_date should not be null");
-    Assertions.assertTrue(
+    assertEquals(initialUuid, actual.getUuid(), "UUID should remain unchanged (contract updated)");
+    assertNotNull(actual.getEndDate(), "end_date should not be null");
+    assertTrue(
         actual.getEndDate().isEqual(renewalEndDate)
             || actual.getEndDate().isAfter(renewalEndDate.minusSeconds(1)),
         "end_date should be updated to renewal date");
-    Assertions.assertTrue(
+    assertTrue(
         actual.getEndDate().isAfter(initialEndDate),
         "end_date should be after the initial end date");
     thenContractFieldsShouldRemainUnchanged(actual, initialContract);
@@ -177,7 +178,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
             endDate,
             Map.of(CORES, CORES_CAPACITY, INSTANCE_HOURS, INSTANCE_HOURS_CAPACITY));
 
-    var initial = service.getContractsByOrgId(orgId).get(0);
+    var initial = service.getContractsByOrgId(orgId).getFirst();
     String initialUuid = initial.getUuid();
 
     // When: Submit updated entitlement with Cores: 16, Instance-hours: 200
@@ -190,11 +191,11 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
 
     // Then: Existing contract found and updated with new metric values
     var contracts = service.getContractsByOrgId(orgId);
-    Assertions.assertEquals(1, contracts.size(), "Should still have exactly one contract");
+    assertEquals(1, contracts.size(), "Should still have exactly one contract");
 
-    var actual = contracts.get(0);
-    Assertions.assertEquals(initialUuid, actual.getUuid(), "UUID should remain unchanged");
-    Assertions.assertEquals(2, actual.getMetrics().size(), "Should have 2 metrics");
+    var actual = contracts.getFirst();
+    assertEquals(initialUuid, actual.getUuid(), "UUID should remain unchanged");
+    assertEquals(2, actual.getMetrics().size(), "Should have 2 metrics");
     thenMetricShouldHaveValue(actual, CORES, CORES_CAPACITY * 2);
     thenMetricShouldHaveValue(actual, INSTANCE_HOURS, INSTANCE_HOURS_CAPACITY * 2);
   }
@@ -209,10 +210,9 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
         givenContractWithDatesAndMetrics(
             BillingProvider.AWS, startDate, endDate, Map.of(SOCKETS, 10.0));
 
-    var initial = service.getContractsByOrgId(orgId).get(0);
+    var initial = service.getContractsByOrgId(orgId).getFirst();
     String initialUuid = initial.getUuid();
-    Assertions.assertEquals(
-        0, initial.getMetrics().size(), "Should start with 0 metrics (pure PAYG)");
+    assertEquals(0, initial.getMetrics().size(), "Should start with 0 metrics (pure PAYG)");
 
     // When: Submit updated entitlement with valid metrics (Cores: 8, Instance-hours: 100)
     Contract upgradedContract =
@@ -224,11 +224,11 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
 
     // Then: Contract now has metrics (upgraded from pure PAYG to PAYG with prepaid)
     var contracts = service.getContractsByOrgId(orgId);
-    Assertions.assertEquals(1, contracts.size(), "Should still have exactly one contract");
+    assertEquals(1, contracts.size(), "Should still have exactly one contract");
 
-    var actual = contracts.get(0);
-    Assertions.assertEquals(initialUuid, actual.getUuid(), "UUID should remain unchanged");
-    Assertions.assertEquals(2, actual.getMetrics().size(), "Should now have 2 metrics");
+    var actual = contracts.getFirst();
+    assertEquals(initialUuid, actual.getUuid(), "UUID should remain unchanged");
+    assertEquals(2, actual.getMetrics().size(), "Should now have 2 metrics");
     thenMetricShouldHaveValue(actual, CORES, CORES_CAPACITY);
     thenMetricShouldHaveValue(actual, INSTANCE_HOURS, INSTANCE_HOURS_CAPACITY);
   }
@@ -243,7 +243,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
         givenContractWithDatesAndMetrics(
             BillingProvider.AWS, startDate, futureEndDate, Map.of(CORES, CORES_CAPACITY));
 
-    var initial = service.getContractsByOrgId(orgId).get(0);
+    var initial = service.getContractsByOrgId(orgId).getFirst();
     String initialUuid = initial.getUuid();
 
     // When: Submit entitlement with end_date set to current timestamp (termination)
@@ -253,16 +253,16 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
 
     // Then: Contract is terminated (end_date set to termination timestamp)
     var contracts = service.getContractsByOrgId(orgId);
-    Assertions.assertEquals(1, contracts.size(), "Should still have exactly one contract");
+    assertEquals(1, contracts.size(), "Should still have exactly one contract");
 
-    var actual = contracts.get(0);
-    Assertions.assertEquals(initialUuid, actual.getUuid(), "UUID should remain unchanged");
-    Assertions.assertNotNull(actual.getEndDate(), "end_date should not be null");
-    Assertions.assertTrue(
+    var actual = contracts.getFirst();
+    assertEquals(initialUuid, actual.getUuid(), "UUID should remain unchanged");
+    assertNotNull(actual.getEndDate(), "end_date should not be null");
+    assertTrue(
         actual.getEndDate().isBefore(futureEndDate),
         "end_date should be before the original future date");
     // Contract should be inactive (end_date is in the past or very close to now)
-    Assertions.assertTrue(
+    assertTrue(
         actual.getEndDate().isBefore(OffsetDateTime.now().plusMinutes(1)),
         "Contract should be terminated (end_date close to now)");
   }
@@ -277,9 +277,9 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
         givenContractWithDatesAndMetrics(
             BillingProvider.AWS, startDate, endDate, Map.of(CORES, CORES_CAPACITY));
 
-    var initial = service.getContractsByOrgId(orgId).get(0);
+    var initial = service.getContractsByOrgId(orgId).getFirst();
     String initialUuid = initial.getUuid();
-    Assertions.assertEquals(1, initial.getMetrics().size(), "Should start with 1 metric");
+    assertEquals(1, initial.getMetrics().size(), "Should start with 1 metric");
 
     // When: Update the contract with an additional metric (add Instance-hours: 100)
     Contract updatedContract =
@@ -291,11 +291,11 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
 
     // Then: Old metric remains, new metric added
     var contracts = service.getContractsByOrgId(orgId);
-    Assertions.assertEquals(1, contracts.size(), "Should still have exactly one contract");
+    assertEquals(1, contracts.size(), "Should still have exactly one contract");
 
-    var actual = contracts.get(0);
-    Assertions.assertEquals(initialUuid, actual.getUuid(), "UUID should remain unchanged");
-    Assertions.assertEquals(2, actual.getMetrics().size(), "Should now have 2 metrics");
+    var actual = contracts.getFirst();
+    assertEquals(initialUuid, actual.getUuid(), "UUID should remain unchanged");
+    assertEquals(2, actual.getMetrics().size(), "Should now have 2 metrics");
     thenMetricShouldHaveValue(actual, CORES, CORES_CAPACITY);
     thenMetricShouldHaveValue(actual, INSTANCE_HOURS, INSTANCE_HOURS_CAPACITY);
   }
@@ -313,9 +313,9 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
             endDate,
             Map.of(CORES, CORES_CAPACITY, INSTANCE_HOURS, INSTANCE_HOURS_CAPACITY));
 
-    var initial = service.getContractsByOrgId(orgId).get(0);
+    var initial = service.getContractsByOrgId(orgId).getFirst();
     String initialUuid = initial.getUuid();
-    Assertions.assertEquals(2, initial.getMetrics().size(), "Should start with 2 metrics");
+    assertEquals(2, initial.getMetrics().size(), "Should start with 2 metrics");
 
     // When: Remove one metric (keep only Cores: 8, remove Instance-hours)
     Contract updatedContract =
@@ -324,13 +324,45 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
 
     // Then: Specified metric removed, other metric remains
     var contracts = service.getContractsByOrgId(orgId);
-    Assertions.assertEquals(1, contracts.size(), "Should still have exactly one contract");
+    assertEquals(1, contracts.size(), "Should still have exactly one contract");
 
-    var actual = contracts.get(0);
-    Assertions.assertEquals(initialUuid, actual.getUuid(), "UUID should remain unchanged");
-    Assertions.assertEquals(1, actual.getMetrics().size(), "Should now have 1 metric");
+    var actual = contracts.getFirst();
+    assertEquals(initialUuid, actual.getUuid(), "UUID should remain unchanged");
+    assertEquals(1, actual.getMetrics().size(), "Should now have 1 metric");
     thenMetricShouldHaveValue(actual, CORES, CORES_CAPACITY);
     thenMetricShouldNotExist(actual, INSTANCE_HOURS);
+  }
+
+  @TestPlanName("contracts-update-TC010")
+  @Test
+  void shouldCreateContractAfterOfferingSync() {
+    unleash.enablePartnerGatewayContracts();
+
+    // Given: ROSA contract data with product stubbed
+    Contract contract =
+        Contract.buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, CORES_CAPACITY));
+    wiremock.forProductAPI().stubOfferingData(contract.getOffering());
+
+    // When: Offering is synced after receiving a message from UMB
+    artemis.forOfferings().send(contract.getOffering());
+    thenOfferingShouldExist(contract.getOffering().getSku());
+
+    // And: Partner entitlement message creates the contract
+    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContract(contract));
+    wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(contract);
+    artemis.forContracts().sendAsText(contract);
+
+    // Then: Contract is created end-to-end
+    service.logs().assertContains("Existing contracts and subscriptions updated");
+    var contracts = service.getContracts(contract);
+    assertEquals(1, contracts.size());
+    var actual = contracts.getFirst();
+    assertEquals(orgId, actual.getOrgId());
+    assertEquals(contract.getSubscriptionNumber(), actual.getSubscriptionNumber());
+    assertEquals(contract.getOffering().getSku(), actual.getSku());
+    assertNotNull(actual.getMetrics());
+    assertEquals(1, actual.getMetrics().size());
+    thenMetricShouldHaveValue(actual, CORES, CORES_CAPACITY);
   }
 
   private Contract givenContractCreatedViaMessageBroker() {
@@ -376,11 +408,11 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
     Response response = service.createContract(contract);
     assertThat("Updating contract should succeed", response.statusCode(), is(HttpStatus.SC_OK));
     var contractResponse = response.then().extract().as(ContractResponse.class);
-    Assertions.assertEquals(
+    assertEquals(
         SUCCESS_MESSAGE,
         contractResponse.getStatus().getStatus(),
         "Status should be SUCCESS for successful operations");
-    Assertions.assertEquals(
+    assertEquals(
         EXISTING_CONTRACTS_SYNCED_MESSAGE,
         contractResponse.getStatus().getMessage(),
         "Message should indicate existing contracts were synced");
@@ -390,13 +422,13 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
       com.redhat.swatch.contract.test.model.Contract actual,
       OffsetDateTime expectedStartDate,
       OffsetDateTime expectedEndDate) {
-    Assertions.assertNotNull(actual.getStartDate(), "start_date should not be null");
-    Assertions.assertNotNull(actual.getEndDate(), "end_date should not be null");
-    Assertions.assertTrue(
+    assertNotNull(actual.getStartDate(), "start_date should not be null");
+    assertNotNull(actual.getEndDate(), "end_date should not be null");
+    assertTrue(
         actual.getStartDate().isEqual(expectedStartDate)
             || actual.getStartDate().isAfter(expectedStartDate.minusSeconds(1)),
         "start_date should be updated");
-    Assertions.assertTrue(
+    assertTrue(
         actual.getEndDate().isEqual(expectedEndDate)
             || actual.getEndDate().isAfter(expectedEndDate.minusSeconds(1)),
         "end_date should be updated");
@@ -404,11 +436,9 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
 
   private void thenContractFieldsShouldRemainUnchanged(
       com.redhat.swatch.contract.test.model.Contract actual, Contract expected) {
-    Assertions.assertEquals(
-        expected.getOrgId(), actual.getOrgId(), "org_id should remain unchanged");
-    Assertions.assertEquals(
-        expected.getOffering().getSku(), actual.getSku(), "SKU should remain unchanged");
-    Assertions.assertNotNull(actual.getMetrics(), "Metrics should not be null");
+    assertEquals(expected.getOrgId(), actual.getOrgId(), "org_id should remain unchanged");
+    assertEquals(expected.getOffering().getSku(), actual.getSku(), "SKU should remain unchanged");
+    assertNotNull(actual.getMetrics(), "Metrics should not be null");
   }
 
   private void thenMetricShouldHaveValue(
@@ -417,7 +447,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
       double expectedValue) {
     // Get metric from Product domain object (ROSA product)
     var metric = Product.ROSA.getMetric(metricId);
-    Assertions.assertNotNull(metric, metricId.toString() + " metric should exist in ROSA product");
+    assertNotNull(metric, metricId.toString() + " metric should exist in ROSA product");
 
     String dimension =
         BillingProvider.AZURE.toApiModel().equals(contract.getBillingProvider())
@@ -429,17 +459,15 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
             .filter(m -> m.getMetricId().equals(dimension))
             .findFirst()
             .orElseThrow(
-                () ->
-                    new AssertionError(
-                        metricId.toString() + " metric not found in contract metrics"));
+                () -> new AssertionError(metricId + " metric not found in contract metrics"));
 
     // Note: metric values get converted by billing factor
     double billingFactor = metric.getBillingFactor() != null ? metric.getBillingFactor() : 1.0;
     double expectedValueWithFactor = expectedValue * billingFactor;
-    Assertions.assertEquals(
+    assertEquals(
         (int) expectedValueWithFactor,
         actualMetric.getValue().intValue(),
-        metricId.toString() + " value should be " + expectedValueWithFactor);
+        metricId + " value should be " + expectedValueWithFactor);
   }
 
   private void thenMetricShouldNotExist(
@@ -458,8 +486,19 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
     var actualMetric =
         contract.getMetrics().stream().filter(m -> m.getMetricId().equals(dimension)).findFirst();
 
-    Assertions.assertTrue(
+    assertTrue(
         actualMetric.isEmpty(),
         metricId.toString() + " metric should not exist in contract metrics");
+  }
+
+  private void thenOfferingShouldExist(String sku) {
+    AwaitilityUtils.untilAsserted(
+        () -> {
+          Response response = service.getSkuProductTags(sku);
+          assertEquals(
+              HttpStatus.SC_OK,
+              response.statusCode(),
+              "Offering should exist after product ingress event");
+        });
   }
 }
