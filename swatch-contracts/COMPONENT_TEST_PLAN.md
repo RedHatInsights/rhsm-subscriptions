@@ -589,6 +589,22 @@ Component tests for GET `/api/swatch-contracts/internal/subscriptions/azureUsage
   - contract.status.message == "Existing contracts and subscriptions updated"  
   - contract.status.status == "SUCCESS"
 
+**contracts-update-TC010 - Create contract after offering sync**
+- **Description**: Verify an offering update event syncs the offering and a subsequent partner entitlement event creates the contract, without using the offering sync HTTP API.
+- **Setup**:
+  - Stub Product API for the contract offering
+  - Do not sync offering via HTTP API
+- **Action**:
+  - Publish a product `OperationalProductEvent` to `VirtualTopic.services.productservice.Product`
+  - Stub Partner API and Search API for the contract
+  - Publish a `PartnerEntitlementContract` JSON message to `VirtualTopic.services.partner-entitlement-gateway`
+- **Verification**:
+  - Poll offering product tags API until HTTP 200
+  - Poll internal contracts API until 1 contract appears for the org
+- **Expected Result**:
+  - Offering exists after product ingress event
+  - Contract created with correct `org_id`, `sku`, `subscription_number`, and metrics
+
 ## Contract Termination
 
 **contracts-termination-TC001 - A contract remains active after receiving a message with a future end date.**
