@@ -31,7 +31,7 @@ import lombok.Getter;
  * these are only used to keep seeded facts realistic.
  */
 @Getter
-@Builder(builderClassName = "Builder")
+@Builder
 public final class YupanaFacts {
 
   private static final String ORG_ID_FACT = "org_id";
