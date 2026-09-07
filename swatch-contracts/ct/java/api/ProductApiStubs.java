@@ -20,6 +20,8 @@
  */
 package api;
 
+import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
+import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import domain.Offering;
 import java.util.ArrayList;
 import java.util.Map;
@@ -155,8 +157,36 @@ public class ProductApiStubs {
             "Service Unavailable"));
   }
 
+  public int countProductTreeRequests(String sku) {
+    return wiremockService.countRequests(productTreeUrlPath(sku));
+  }
+
+  public void awaitProductTreeNotRequested(String sku) {
+    AwaitilityUtils.untilAsserted(
+        () -> verifyProductTreeNotRequested(sku),
+        AwaitilitySettings.defaults()
+            .timeoutMessage("Product tree should not be requested for SKU %s", sku));
+  }
+
+  public void verifyProductTreeNotRequested(String sku) {
+    var path = productTreeUrlPath(sku);
+    var count = countProductTreeRequests(sku);
+    if (count > 0) {
+      throw new AssertionError(
+          "Unexpected "
+              + count
+              + " product tree request(s) found at "
+              + path
+              + " but none were expected");
+    }
+  }
+
+  private static String productTreeUrlPath(String sku) {
+    return String.format("/mock/product/products/%s/tree", sku);
+  }
+
   private static String productTreeUrlPattern(String sku) {
-    return String.format("/mock/product/products/%s/tree.*", sku);
+    return productTreeUrlPath(sku) + ".*";
   }
 
   private void registerProductTreeStub(String sku, int priority, Map<String, Object> response) {

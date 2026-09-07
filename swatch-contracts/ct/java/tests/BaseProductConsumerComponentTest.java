@@ -109,9 +109,7 @@ public abstract class BaseProductConsumerComponentTest extends BaseContractCompo
   }
 
   protected void thenSyncServiceWasNotInvoked(OperationalProductEvent event) {
-    service
-        .logs()
-        .assertDoesNotContain("Received product message for productSku=" + event.getProductCode());
+    wiremock.forProductAPI().awaitProductTreeNotRequested(event.getProductCode());
   }
 
   protected int countLogsContaining(String text) {
