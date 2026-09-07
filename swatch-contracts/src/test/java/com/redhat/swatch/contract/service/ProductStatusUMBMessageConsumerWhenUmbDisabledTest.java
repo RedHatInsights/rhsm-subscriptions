@@ -52,6 +52,7 @@ class ProductStatusUMBMessageConsumerWhenUmbDisabledTest {
     LoggerCaptor.clearRecords();
   }
 
+  // product-umb-TC004
   @Test
   void shouldIgnoreMessagesWhenUmbIsNotEnabled() {
     consumer.consumeMessage(ProductStatusUMBMessageConsumerTest.VALID_JSON_MESSAGE);
