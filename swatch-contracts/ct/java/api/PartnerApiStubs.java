@@ -188,6 +188,38 @@ public class PartnerApiStubs {
     registerPartnerSubscriptionsMapping(expectedQuery, responseBody);
   }
 
+  public void stubPartnerSubscriptionsServerError(Contract contract) {
+    var expectedQuery = buildPartnerSubscriptionsQueryByContract(contract);
+    registerPartnerSubscriptionsErrorMapping(expectedQuery, 503);
+  }
+
+  private void registerPartnerSubscriptionsErrorMapping(
+      Map<String, Object> expectedQuery, int httpStatus) {
+    wiremockService
+        .given()
+        .contentType(ContentType.JSON)
+        .body(
+            Map.of(
+                "request",
+                Map.of(
+                    "method",
+                    "POST",
+                    "urlPathPattern",
+                    "/mock/partnerApi/v1/partnerSubscriptions",
+                    "bodyPatterns",
+                    List.of(Map.of("equalToJson", JsonUtils.toJson(expectedQuery)))),
+                "response",
+                Map.of("status", httpStatus, "headers", Map.of("Content-Type", "application/json")),
+                "priority",
+                9,
+                "metadata",
+                wiremockService.getMetadataTags()))
+        .when()
+        .post("/__admin/mappings")
+        .then()
+        .statusCode(201);
+  }
+
   /** Build a raw entitlement body with null purchase for testing malformed data. */
   public static Map<String, Object> buildEntitlementWithNullPurchase(
       String orgId, String sourcePartner) {
