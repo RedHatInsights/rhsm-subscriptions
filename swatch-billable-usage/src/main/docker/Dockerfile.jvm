@@ -98,8 +98,6 @@ ARG BUILD_DATE
 ARG VCS_REF
 ARG MAVEN_BUILD_ARGS='-DskipTests'
 ARG MAVEN_TASKS='clean package'
-ARG BUILD_DATE
-ARG VCS_REF
 RUN mvn --no-transfer-progress -s /tmp/maven-settings.xml ${MAVEN_TASKS} -pl ${PROJECT_NAME} -am ${MAVEN_BUILD_ARGS}
 
 FROM registry.access.redhat.com/ubi10/openjdk-25-runtime:1784364635
