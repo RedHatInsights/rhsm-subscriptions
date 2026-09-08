@@ -22,7 +22,6 @@ package com.redhat.swatch.component.tests.api.hbi;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import lombok.Builder;
 import lombok.Getter;
 
 /**
@@ -31,7 +30,7 @@ import lombok.Getter;
  * these are only used to keep seeded facts realistic.
  */
 @Getter
-@Builder(builderClassName = "Builder")
+@lombok.Builder(builderClassName = "Builder")
 public final class YupanaFacts {
 
   private static final String ORG_ID_FACT = "org_id";
