@@ -33,10 +33,6 @@ spec:
       value: .
     - name: sast-target-dirs
       value: .
-    - name: hermetic
-      value: "true"
-    - name: prefetch-input
-      value: '{"type": "pip", "path": "."}'
     - name: build-image-index
       value: "true"
   pipelineSpec:
