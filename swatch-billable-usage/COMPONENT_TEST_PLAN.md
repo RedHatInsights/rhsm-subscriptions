@@ -10,6 +10,7 @@ This document defines the **component-level test plan** for `swatch-billable-usa
 
 - Tally summary ingestion and PAYG eligibility filtering
 - Billable usage calculation (contract coverage, billing factor, remittance delta)
+- ACM managed vs self-managed metric split (`vCPUs` / `vCPUs-self-managed`)
 - Contract coverage integration with `swatch-contracts` (mocked in component tests)
 - Remittance persistence and lifecycle (`billable_usage_remittance` table)
 - Kafka message production and consumption (`tally`, `billable-usage`, `billable-usage-hourly-aggregate`, `billable-usage.status`)
@@ -32,6 +33,7 @@ This document defines the **component-level test plan** for `swatch-billable-usa
 - Kafka topics are available and configured for the deployment environment
 - `swatch-contracts` REST API is mockable in component tests
 - Product configuration (`swatch-product-configuration`) is stable for reference products used in tests
+- ACM supports separate managed and self-managed usage metrics for AWS and Azure billing. The scenarios below use a one-to-one conversion between usage and billable units.
 
 **Constraints:**
 
@@ -354,6 +356,57 @@ Java component tests in `ContractCoverageComponentTest` (`swatch-billable-usage/
   - One Kafka BillableUsage with the same smaller `licenseId` and value 1
 - **Expected Result:**  
   - Deterministic overage allocation when start dates tie (lexicographically smaller wins)
+
+---
+
+## ACM Managed vs Self-Managed Dimensions
+
+These scenarios verify that contract coverage applies independently to managed and self-managed ACM usage and uses the billing provider's corresponding dimension. Marketplace submission is covered separately in the producer test plans.
+
+**billable-usage-acm-metric-split-TC001 - AWS contract covers managed usage only**
+
+- **Description:** Verify that a contract covering managed usage still permits billing for self-managed usage when that metric has no coverage.
+- **Setup:**
+  - ACM product with AWS billing
+  - One contract covering 10 units of managed usage, with no self-managed coverage
+  - Eligible hourly tally with managed usage of 15 units and self-managed usage of 8 units
+- **Action:**
+  - Publish the tally summary
+- **Verification:**
+  - Managed remittance and emitted billable usage are 5 units (15 − 10)
+  - Self-managed remittance and emitted billable usage are 8 units
+- **Expected Result:**
+  - Only managed usage receives contract coverage; self-managed usage is billed in full
+
+**billable-usage-acm-metric-split-TC002 - AWS contract covers each metric independently**
+
+- **Description:** Verify that unused contract coverage for one metric cannot cover overage on another metric.
+- **Setup:**
+  - ACM product with AWS billing
+  - One contract covering 10 units of managed usage and 20 units of self-managed usage
+  - Eligible hourly tally with managed usage of 12 units and self-managed usage of 15 units
+- **Action:**
+  - Publish the tally summary
+- **Verification:**
+  - Managed remittance and emitted billable usage are 2 units (12 − 10)
+  - Self-managed remittance total is zero, with no new self-managed remittance
+- **Expected Result:**
+  - Unused self-managed coverage does not absorb managed overage
+
+**billable-usage-acm-metric-split-TC003 - Azure contract coverage uses the Azure billing dimension**
+
+- **Description:** Verify that Azure usage receives coverage from the corresponding Azure contract dimension.
+- **Setup:**
+  - ACM product with Azure billing and distinct AWS and Azure managed billing dimensions
+  - One contract covering 16 units on the Azure managed dimension, with no self-managed coverage
+  - Eligible hourly tally with managed usage of 20 units and self-managed usage of 9 units
+- **Action:**
+  - Publish the tally summary
+- **Verification:**
+  - Managed remittance and emitted billable usage are 4 units (20 − 16), with Azure as the billing provider
+  - Self-managed remittance and emitted billable usage are 9 units, with Azure as the billing provider
+- **Expected Result:**
+  - Azure managed coverage reduces managed usage; self-managed usage is billed in full
 
 ---
 
