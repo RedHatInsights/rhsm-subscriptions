@@ -76,15 +76,7 @@
 FROM registry.access.redhat.com/ubi10/openjdk-25:1784351724
 
 USER root
-# Add git, so that the build can determine the git hash
-# Disable all repos except for ubi repos, as ubi repos don't require auth;
-# this makes the container buildable without needing RHEL repos.
-RUN microdnf \
-  --disablerepo=* \
-  --enablerepo=ubi-10-appstream-rpms \
-  --enablerepo=ubi-10-baseos-rpms \
-  install -y \
-  git
+# Note: Git not needed in hermetic builds - VCS_REF is provided via build args
 WORKDIR /stage
 
 COPY pom.xml ./
@@ -97,7 +89,8 @@ ARG MAVEN_BUILD_ARGS='-DskipTests'
 ARG MAVEN_TASKS='clean package'
 ARG BUILD_DATE
 ARG VCS_REF
-RUN mvn --no-transfer-progress -U -s /tmp/maven-settings.xml ${MAVEN_TASKS} -pl ${PROJECT_NAME} -am ${MAVEN_BUILD_ARGS}
+# Remove -U flag for hermetic builds - dependencies are pre-fetched by Cachi2
+RUN mvn --no-transfer-progress -s /tmp/maven-settings.xml ${MAVEN_TASKS} -pl ${PROJECT_NAME} -am ${MAVEN_BUILD_ARGS}
 
 FROM registry.access.redhat.com/ubi10/openjdk-25-runtime:1784364635
 
