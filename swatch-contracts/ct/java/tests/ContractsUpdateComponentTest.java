@@ -348,6 +348,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
     kafkaBridge.asOfPartnerGateway().send(contract);
 
     // Then: Contract is created end-to-end
+    service.logs().assertContains("New contract created");
     var actual = thenContractIsCreated(contract);
     assertEquals(orgId, actual.getOrgId());
     assertEquals(contract.getSubscriptionNumber(), actual.getSubscriptionNumber());
