@@ -24,21 +24,11 @@ import com.redhat.swatch.component.tests.api.UnleashService;
 
 public class ContractsUnleashService extends UnleashService {
 
-  public static final String PARTNER_GATEWAY_CONTRACTS =
-      "swatch.swatch-contracts.enable-partner-gateway-contracts";
   public static final String IT_SUBSCRIPTION_SERVICE =
       "swatch.swatch-contracts.enable-it-subscription-service";
 
   /** Matches {@code KesselRolesAugmentor.KESSEL_FLAG} in swatch-common-security. */
   public static final String USE_KESSEL_RBAC = "swatch.common-security.use-kessel-rbac";
-
-  public void enablePartnerGatewayContracts() {
-    enableFlag(PARTNER_GATEWAY_CONTRACTS);
-  }
-
-  public void enableItSubscriptionService() {
-    enableFlag(IT_SUBSCRIPTION_SERVICE);
-  }
 
   public void enableItSubscriptionServiceKafkaOnly() {
     enableFlag(IT_SUBSCRIPTION_SERVICE);
@@ -62,42 +52,6 @@ public class ContractsUnleashService extends UnleashService {
         IT_SUBSCRIPTION_SERVICE,
         "config",
         "{\"kafka_consumer_enabled\":true,\"umb_consumer_enabled\":true}");
-  }
-
-  public void clearItSubscriptionServiceVariants() {
-    clearVariants(IT_SUBSCRIPTION_SERVICE);
-  }
-
-  public void enablePartnerGatewayContractsKafkaOnly() {
-    enableFlag(PARTNER_GATEWAY_CONTRACTS);
-    setVariant(
-        PARTNER_GATEWAY_CONTRACTS,
-        "config",
-        "{\"kafka_consumer_enabled\":true,\"umb_consumer_enabled\":false}");
-  }
-
-  public void enablePartnerGatewayContractsUmbOnly() {
-    enableFlag(PARTNER_GATEWAY_CONTRACTS);
-    setVariant(
-        PARTNER_GATEWAY_CONTRACTS,
-        "config",
-        "{\"kafka_consumer_enabled\":false,\"umb_consumer_enabled\":true}");
-  }
-
-  public void enablePartnerGatewayContractsBothConsumers() {
-    enableFlag(PARTNER_GATEWAY_CONTRACTS);
-    setVariant(
-        PARTNER_GATEWAY_CONTRACTS,
-        "config",
-        "{\"kafka_consumer_enabled\":true,\"umb_consumer_enabled\":true}");
-  }
-
-  public void clearPartnerGatewayContractsVariants() {
-    clearVariants(PARTNER_GATEWAY_CONTRACTS);
-  }
-
-  public void disablePartnerGatewayContracts() {
-    disableFlag(PARTNER_GATEWAY_CONTRACTS);
   }
 
   public void disableItSubscriptionService() {

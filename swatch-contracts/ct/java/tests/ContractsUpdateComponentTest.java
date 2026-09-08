@@ -54,8 +54,6 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
   @TestPlanName("contracts-update-TC001")
   @Test
   void shouldUpdateExistingContractWhenReceivingAnUpdateEvent() {
-    unleash.enablePartnerGatewayContracts();
-
     // given: An initial contract is created via UMB message
     Contract initialContract = givenContractCreatedViaMessageBroker();
 
@@ -63,7 +61,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
     Contract updatedContract =
         initialContract.toBuilder().endDate(OffsetDateTime.now().plusDays(30)).build();
     wiremock.forPartnerAPI().stubPartnerSubscriptions(forContract(updatedContract));
-    artemis.forContracts().sendAsText(updatedContract);
+    kafkaBridge.asOfPartnerGateway().send(updatedContract);
 
     // then: The existing contract should be updated with the new end date
     service.logs().assertContains("Existing contracts and subscriptions updated");
@@ -76,13 +74,11 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
   @TestPlanName("contracts-update-TC002")
   @Test
   void shouldProcessRedundantContractMessage() {
-    unleash.enablePartnerGatewayContracts();
-
     // given: An initial contract is created via UMB message
     Contract contract = givenContractCreatedViaMessageBroker();
 
     // update send the same message again
-    artemis.forContracts().sendAsText(contract);
+    kafkaBridge.asOfPartnerGateway().send(contract);
 
     // then message is ignored as redundant
     service.logs().assertContains("Redundant message ignored");
@@ -336,8 +332,6 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
   @TestPlanName("contracts-update-TC010")
   @Test
   void shouldCreateContractAfterOfferingSync() {
-    unleash.enablePartnerGatewayContracts();
-
     // Given: ROSA contract data with product stubbed
     Contract contract =
         Contract.buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, CORES_CAPACITY));
@@ -350,7 +344,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
     // And: Partner entitlement message creates the contract
     wiremock.forPartnerAPI().stubPartnerSubscriptions(forContract(contract));
     wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(contract);
-    artemis.forContracts().sendAsText(contract);
+    kafkaBridge.asOfPartnerGateway().send(contract);
 
     // Then: Contract is created end-to-end
     service.logs().assertContains("Existing contracts and subscriptions updated");
@@ -374,8 +368,8 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
     Response sync = service.syncOffering(contract.getOffering().getSku());
     assertThat("Sync offering should succeed", sync.statusCode(), is(HttpStatus.SC_OK));
 
-    // Send the contract via Message Broker (Artemis)
-    artemis.forContracts().sendAsText(contract);
+    // Send the contract via Message Broker
+    kafkaBridge.asOfPartnerGateway().send(contract);
 
     // Wait for the contract to be processed
     AwaitilityUtils.until(() -> service.getContracts(contract).size(), is(1));
