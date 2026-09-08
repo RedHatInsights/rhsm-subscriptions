@@ -63,13 +63,37 @@ public final class BillableUsageTestHelper {
       BillingProvider billingProvider,
       String billingAccountId,
       OffsetDateTime snapshotDate) {
+    return createTallySummary(
+        orgId,
+        productId,
+        billingProvider,
+        billingAccountId,
+        snapshotDate,
+        createPhysicalMeasurement(metricId, value));
+  }
 
-    var measurement = new TallyMeasurement();
-    measurement.setHardwareMeasurementType("PHYSICAL");
-    measurement.setMetricId(metricId);
-    measurement.setValue(value);
-    measurement.setCurrentTotal(value);
+  public static TallySummary createTallySummary(
+      String orgId,
+      String productId,
+      BillingProvider billingProvider,
+      String billingAccountId,
+      TallyMeasurement... measurements) {
+    return createTallySummary(
+        orgId,
+        productId,
+        billingProvider,
+        billingAccountId,
+        OffsetDateTime.now().minusHours(1).withOffsetSameInstant(ZoneOffset.UTC),
+        measurements);
+  }
 
+  public static TallySummary createTallySummary(
+      String orgId,
+      String productId,
+      BillingProvider billingProvider,
+      String billingAccountId,
+      OffsetDateTime snapshotDate,
+      TallyMeasurement... measurements) {
     var snapshot = new TallySnapshot();
     snapshot.setId(UUID.randomUUID());
     snapshot.setProductId(productId);
@@ -79,12 +103,11 @@ public final class BillableUsageTestHelper {
     snapshot.setSla(TallySnapshot.Sla.PREMIUM);
     snapshot.setUsage(TallySnapshot.Usage.PRODUCTION);
     snapshot.setGranularity(TallySnapshot.Granularity.HOURLY);
-    snapshot.setTallyMeasurements(List.of(measurement));
+    snapshot.setTallyMeasurements(List.of(measurements));
 
     var tallySummary = new TallySummary();
     tallySummary.setOrgId(orgId);
     tallySummary.setTallySnapshots(List.of(snapshot));
-
     return tallySummary;
   }
 
@@ -107,80 +130,26 @@ public final class BillableUsageTestHelper {
       double currentTotal,
       BillingProvider billingProvider,
       String billingAccountId) {
+    return createTallySummary(
+        orgId,
+        productId,
+        billingProvider,
+        billingAccountId,
+        createPhysicalMeasurement(metricId, value, currentTotal));
+  }
+
+  public static TallyMeasurement createPhysicalMeasurement(String metricId, double value) {
+    return createPhysicalMeasurement(metricId, value, value);
+  }
+
+  public static TallyMeasurement createPhysicalMeasurement(
+      String metricId, double value, double currentTotal) {
     var measurement = new TallyMeasurement();
     measurement.setHardwareMeasurementType("PHYSICAL");
     measurement.setMetricId(metricId);
     measurement.setValue(value);
     measurement.setCurrentTotal(currentTotal);
-
-    var snapshot = new TallySnapshot();
-    snapshot.setId(UUID.randomUUID());
-    snapshot.setProductId(productId);
-    snapshot.setBillingProvider(billingProvider.toTallyApiModel());
-    snapshot.setBillingAccountId(billingAccountId);
-    snapshot.setSnapshotDate(
-        OffsetDateTime.now().minusHours(1).withOffsetSameInstant(ZoneOffset.UTC));
-    snapshot.setSla(TallySnapshot.Sla.PREMIUM);
-    snapshot.setUsage(TallySnapshot.Usage.PRODUCTION);
-    snapshot.setGranularity(TallySnapshot.Granularity.HOURLY);
-    snapshot.setTallyMeasurements(List.of(measurement));
-
-    var tallySummary = new TallySummary();
-    tallySummary.setOrgId(orgId);
-    tallySummary.setTallySnapshots(List.of(snapshot));
-    return tallySummary;
-  }
-
-  public static TallyMeasurement createPhysicalMeasurement(String metricId, double currentTotal) {
-    var measurement = new TallyMeasurement();
-    measurement.setHardwareMeasurementType("PHYSICAL");
-    measurement.setMetricId(metricId);
-    measurement.setValue(currentTotal);
-    measurement.setCurrentTotal(currentTotal);
     return measurement;
-  }
-
-  /**
-   * Create a tally summary with multiple PHYSICAL measurements on one snapshot. Use for products
-   * with more than one billable metric (for example ACM managed and self-managed).
-   */
-  public static TallySummary createTallySummaryWithMeasurements(
-      String orgId,
-      String productId,
-      BillingProvider billingProvider,
-      String billingAccountId,
-      TallyMeasurement... measurements) {
-    return createTallySummaryWithMeasurements(
-        orgId,
-        productId,
-        billingProvider,
-        billingAccountId,
-        OffsetDateTime.now().minusHours(1).withOffsetSameInstant(ZoneOffset.UTC),
-        measurements);
-  }
-
-  public static TallySummary createTallySummaryWithMeasurements(
-      String orgId,
-      String productId,
-      BillingProvider billingProvider,
-      String billingAccountId,
-      OffsetDateTime snapshotDate,
-      TallyMeasurement... measurements) {
-    var snapshot = new TallySnapshot();
-    snapshot.setId(UUID.randomUUID());
-    snapshot.setProductId(productId);
-    snapshot.setBillingProvider(billingProvider.toTallyApiModel());
-    snapshot.setBillingAccountId(billingAccountId);
-    snapshot.setSnapshotDate(snapshotDate);
-    snapshot.setSla(TallySnapshot.Sla.PREMIUM);
-    snapshot.setUsage(TallySnapshot.Usage.PRODUCTION);
-    snapshot.setGranularity(TallySnapshot.Granularity.HOURLY);
-    snapshot.setTallyMeasurements(List.of(measurements));
-
-    var tallySummary = new TallySummary();
-    tallySummary.setOrgId(orgId);
-    tallySummary.setTallySnapshots(List.of(snapshot));
-    return tallySummary;
   }
 
   public static TallySummary createTallySummaryWithGranularity(

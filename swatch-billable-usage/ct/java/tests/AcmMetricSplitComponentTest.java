@@ -21,7 +21,7 @@
 package tests;
 
 import static api.BillableUsageTestHelper.createPhysicalMeasurement;
-import static api.BillableUsageTestHelper.createTallySummaryWithMeasurements;
+import static api.BillableUsageTestHelper.createTallySummary;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -185,7 +185,7 @@ public class AcmMetricSplitComponentTest extends BaseBillableUsageComponentTest 
   private TallySummary whenAcmTallyWithBothMetricsIsPublished(
       BillingProvider billingProvider, double managedTotal, double selfManagedTotal) {
     TallySummary tallySummary =
-        createTallySummaryWithMeasurements(
+        createTallySummary(
             orgId,
             RHACM.getName(),
             billingProvider,
