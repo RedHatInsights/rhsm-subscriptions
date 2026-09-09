@@ -94,6 +94,8 @@ public class LocalQuarkusManagedResource extends DevProcessManagedResource {
         .map(e -> "-D" + e.getKey() + "=" + e.getValue())
         .forEach(command::add);
 
+    command.add("-Dquarkus.console.enabled=false");
+
     if (context.isDebug()) {
       assignedDebugPort = SocketUtils.findAvailablePort(context.getOwner());
       command.add("-Ddebug=" + assignedDebugPort);
@@ -105,7 +107,6 @@ public class LocalQuarkusManagedResource extends DevProcessManagedResource {
     assignedHttpPort = getOrAssignPortByProperty(SERVER_PORT_PROPERTY);
     propertiesToOverwrite.put(SERVER_PORT_PROPERTY, "" + assignedHttpPort);
     this.assignedCustomPorts = assignCustomPorts();
-    propertiesToOverwrite.put("quarkus.console.enabled", "false");
   }
 
   protected Map<Integer, Integer> assignCustomPorts() {
