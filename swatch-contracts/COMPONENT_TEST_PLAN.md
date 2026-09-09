@@ -48,9 +48,7 @@ Test cases should be testable locally and in an ephemeral environment.
 
 **contracts-creation-TC001 - Process a valid PAYG contract with one valid dimension for AWS Marketplace**  
 - **Description**: Verify that an AWS PAYG contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
-- **Setup**:  
-  - Ensure `UMB_ENABLED=true`
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-partner-gateway-contracts` is enabled (UMB contract consumer from IT Partner Gateway)
+- **Setup**:
   - Kafka topic `contracts` is available  
   - Prepare a valid AWS partner entitlement message  
 - **Action:**  
@@ -69,9 +67,7 @@ Test cases should be testable locally and in an ephemeral environment.
 
 **contracts-creation-TC002 - Process a valid PURE PAYG contract (without dimensions) for AWS Marketplace**  
 - **Description:** Verify that a contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
-- **Setup:**   
-  - Ensure `UMB_ENABLED=true`
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-partner-gateway-contracts` is enabled (UMB contract consumer from IT Partner Gateway)
+- **Setup:**
   - Kafka topic `contracts` is available  
   - Prepare a valid AWS partner entitlement message  
 - **Action:**     
@@ -86,9 +82,7 @@ Test cases should be testable locally and in an ephemeral environment.
 
 **contracts-creation-TC003 - Process a valid PAYG contract with one valid dimension for the Azure Marketplace**  
 - **Description**: Verify that a contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
-- **Setup**:  
-  - Ensure `UMB_ENABLED=true`
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-partner-gateway-contracts` is enabled (UMB contract consumer from IT Partner Gateway)
+- **Setup**:
   - Kafka topic available  
   - Prepare a valid Azure partner entitlement message  
 - **Action**:  
@@ -107,9 +101,7 @@ Test cases should be testable locally and in an ephemeral environment.
 
 **contracts-creation-TC004 -** **Process a valid PURE PAYG contract (without dimensions) for the Azure Marketplace**  
 - **Description**: Verify that a contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
-- **Setup**:  
-  - Ensure `UMB_ENABLED=true`
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-partner-gateway-contracts` is enabled (UMB contract consumer from IT Partner Gateway)
+- **Setup**:
   - Kafka topic available  
   - Prepare a valid Azure partner entitlement message  
 - **Action**:  
@@ -128,9 +120,7 @@ Test cases should be testable locally and in an ephemeral environment.
 
 **contracts-creation-TC005 - Process contract with multiple metrics/dimensions**  
 - **Description**: Verify contracts can store multiple metrics from partner entitlement dimensions.  
-- **Setup**:  
-  - Ensure `UMB_ENABLED=true`
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-partner-gateway-contracts` is enabled (UMB contract consumer from IT Partner Gateway)
+- **Setup**:
   - Kafka topic available  
   - Prepare a valid partner entitlement message with multiple metrics/dimensions  
 - **Action**:  
@@ -146,9 +136,7 @@ Test cases should be testable locally and in an ephemeral environment.
 
 **contracts-creation-TC006 - Process contract with multiple metrics/dimensions (WITH AN INVALID ONE)**  
 - **Description**:  Verify contracts with multiple metrics/dimensions where one of those metrics is an invalid metric, and generate a valid contract with the valid metric.  
-- **Setup**:  
-  - Ensure `UMB_ENABLED=true`
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-partner-gateway-contracts` is enabled (UMB contract consumer from IT Partner Gateway)
+- **Setup**:
   - Kafka topic available  
   - Prepare a valid partner entitlement message with multiple metrics/dimensions where one of those metrics is invalid.  
 - **Action**:  
@@ -164,9 +152,7 @@ Test cases should be testable locally and in an ephemeral environment.
 
 **contracts-creation-TC007 - Process contract message with missing required fields shouldn’t persist**  
 - **Description**: Verify validation errors are handled gracefully.  
-- **Setup**:   
-  - Ensure `UMB_ENABLED=true`
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-partner-gateway-contracts` is enabled (UMB contract consumer from IT Partner Gateway)
+- **Setup**:
   - Kafka topic available  
   - Prepare an invalid partner entitlement message with missing required fields.  
 - **Action**:  
@@ -178,22 +164,6 @@ Test cases should be testable locally and in an ephemeral environment.
 - **Expected Result**:  
   - HTTP 400 Bad Request  
   - Error message indicates a missing required field
-
-**contracts-creation-TC016 - Process a valid PAYG contract sent as an object instead of text via message broker (UMB)**
-- **Description**: Verify that an AWS PAYG contract can be successfully created when receiving the message as an object instead of text.
-- **Setup**:
-  - Ensure `UMB_ENABLED=true`
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-partner-gateway-contracts` is enabled (UMB contract consumer from IT Partner Gateway)
-  - Prepare a valid AWS partner entitlement message
-- **Action:**
-  - Publish message to UMB channel as an object instead of text
-- **Verification**:
-  - Query contract via internal API: GET /internal/contracts?org_id=org123
-  - Verify contract exists with correct fields
-  - Verify service is UP and running
-- **Expected Result**:
-  - HTTP 200 response
-  - Response contains the created contract
 
 ## Contract Creation via Internal API
 
@@ -608,43 +578,43 @@ Component tests for GET `/api/swatch-contracts/internal/subscriptions/azureUsage
 ## Contract Termination
 
 **contracts-termination-TC001 - A contract remains active after receiving a message with a future end date.**
-- **Description:** Verify that a UMB message with an end date in the future does not cause a contract to be terminated. The backend determines contract state solely based on start/end dates, not the status field.
+- **Description:** Verify that a message with an end date in the future does not cause a contract to be terminated. The backend determines contract state solely based on start/end dates, not the status field.
 - **Setup:** Ensure a contract exists and is currently in an active state (end date in the future).
-- **Action:** Simulate a UMB message from the IT partner gateway for the active contract, with an end date in the future.
+- **Action:** Simulate a message from the IT partner gateway for the active contract, with an end date in the future.
 - **Verification:** Check the contract using the GET API.
 - **Expected Result:**
   - The end date remains in the future (contract stays active).
 
 **contracts-termination-TC002 - Update the end date of an existing and active contract.**
-- **Description:** Verify that an active contract's end date is updated when a UMB message with a different end date is received. The backend uses the entitlement dates from the message, not the status field.
+- **Description:** Verify that an active contract's end date is updated when a message with a different end date is received. The backend uses the entitlement dates from the message, not the status field.
 - **Setup:** Ensure a contract exists and is currently in an active state.
-- **Action:** Simulate a UMB message from the IT partner gateway for the active contract, with a new end date.
+- **Action:** Simulate a message from the IT partner gateway for the active contract, with a new end date.
 - **Verification:** Check the contract using the GET API.
 - **Expected Result:**
-  - The end date should be the one contained in the UMB message.
+  - The end date should be the one contained in the message.
 
 **contracts-termination-TC003 - Update the end date for an already terminated contract.**
-- **Description:** Verify that receiving a UMB message for a contract that is already terminated (end date in the past) updates the end date without errors.
+- **Description:** Verify that receiving a message for a contract that is already terminated (end date in the past) updates the end date without errors.
 - **Setup:** Ensure a contract exists and is already terminated (end date in the past).
-- **Action:** Simulate a UMB message from the IT partner gateway for the terminated contract, with a new end date.
+- **Action:** Simulate a message from the IT partner gateway for the terminated contract, with a new end date.
 - **Verification:** Check the contract using the GET API.
 - **Expected Result:**
   - No errors should be logged.
   - The end date is updated to the value from the message.
 
 **contracts-termination-TC004 - Process a message for a non-existing contract.**
-- **Description:** Verify that a UMB message for a contract that does not yet exist in the database results in the contract being created.
+- **Description:** Verify that a message for a contract that does not yet exist in the database results in the contract being created.
 - **Setup:** Ensure a contract does not exist in the Contract table.
-- **Action:** Simulate a UMB message from the IT partner gateway for the non-existing contract.
+- **Action:** Simulate a message from the IT partner gateway for the non-existing contract.
 - **Verification:** Check the contract using the GET API.
 - **Expected result:**
   - The contract is created.
   - Its end date matches the value from the message.
 
 **contracts-termination-TC005 - Update a terminated contract with a future end date to reactivate it.**
-- **Description:** Verify that a terminated contract (end date in the past) becomes active again when a UMB message with a future end date is received for the same org, SKU, subscription, and billing account ID.
+- **Description:** Verify that a terminated contract (end date in the past) becomes active again when a message with a future end date is received for the same org, SKU, subscription, and billing account ID.
 - **Setup:** Ensure a contract exists and is currently in a terminated state (end date in the past).
-- **Action:** Simulate a UMB message from the IT partner gateway for the terminated contract, with a future end date.
+- **Action:** Simulate a message from the IT partner gateway for the terminated contract, with a future end date.
 - **Verification:** Check the contract using the GET API.
 - **Expected Result:**
   1. The contract is updated.
@@ -1943,7 +1913,6 @@ This section verifies the automatic contract termination behavior when contracts
 **partner-gateway-kafka-TC001 - Process a valid PAYG contract via Kafka for AWS Marketplace**
 - **Description**: Verify that a valid AWS partner entitlement message delivered via the IT Partner Gateway Kafka topic creates a contract with correct AWS billing fields.
 - **Setup**:
-  - Unleash toggle enabled
   - Stub Product API, Partner API, and Search API for the contract
   - Sync offering via HTTP API
 - **Action**: Produce a `PartnerEntitlementContract` JSON message to `partner-integration.entitlement-gateway.partner-entitlement.protected` via Kafka Bridge
@@ -1957,7 +1926,6 @@ This section verifies the automatic contract termination behavior when contracts
 **partner-gateway-kafka-TC002 - Process a valid PAYG contract via Kafka for Azure Marketplace**
 - **Description**: Verify that a valid Azure partner entitlement message delivered via Kafka creates a contract with correct Azure billing fields.
 - **Setup**:
-  - Unleash toggle enabled
   - Stub Product API, Partner API, and Search API for the contract
   - Sync offering via HTTP API
 - **Action**: Produce an Azure `PartnerEntitlementContract` JSON message to `partner-integration.entitlement-gateway.partner-entitlement.protected` via Kafka Bridge
@@ -1971,7 +1939,6 @@ This section verifies the automatic contract termination behavior when contracts
 **partner-gateway-kafka-TC003 - Process a pure PAYG AWS contract via Kafka when all dimensions are invalid**
 - **Description**: Verify that a Kafka message with only invalid dimensions (e.g. Sockets for ROSA) creates a contract with 0 metrics (pure PAYG).
 - **Setup**:
-  - Unleash toggle enabled
   - Stub Product API, Partner API, and Search API for the contract
   - Sync offering via HTTP API
   - The dimension in the message is `Sockets` (not valid for ROSA product)
@@ -1984,7 +1951,6 @@ This section verifies the automatic contract termination behavior when contracts
 **partner-gateway-kafka-TC004 - Process a contract with multiple valid metrics via Kafka**
 - **Description**: Verify that a Kafka message with multiple valid dimensions (Cores + Instance-hours) creates a contract with both metrics stored.
 - **Setup**:
-  - Unleash toggle enabled
   - Stub Product API, Partner API, and Search API for the contract
   - Sync offering via HTTP API
   - The message contains two valid dimensions: Cores and Instance-hours
@@ -1996,7 +1962,6 @@ This section verifies the automatic contract termination behavior when contracts
 
 **partner-gateway-kafka-TC005 - Malformed JSON in IT Partner Gateway Kafka message**
 - **Description**: Verify that a non-JSON-object value in the Kafka message is handled gracefully — warning logged, no contract persisted, service stays healthy.
-- **Setup**: Unleash toggle enabled; no additional stubs needed
 - **Action**: Publish a non-JSON string to the `partner-integration.entitlement-gateway.partner-entitlement.protected` topic via Kafka Bridge
 - **Verification**:
   - Wait for warn log: `Unable to read IT Partner Kafka message from JSON`
@@ -2010,7 +1975,6 @@ This section verifies the automatic contract termination behavior when contracts
 **partner-gateway-kafka-TC006 - No contract persisted when Search API returns no subscription**
 - **Description**: Verify that a Kafka message with missing subscription data (Search API returns no match) results in no contract persisted.
 - **Setup**:
-  - Unleash toggle enabled
   - Stub Partner API and Product API for the contract
   - Stub Search API to return no subscription for the subscription number
   - Sync offering
@@ -2021,7 +1985,6 @@ This section verifies the automatic contract termination behavior when contracts
 **partner-gateway-kafka-TC007 - Partner API unavailable (503) during Kafka contract enrichment**
 - **Description**: Verify that when the IT Partner Gateway REST API returns HTTP 503 during Kafka-triggered enrichment, no contract is persisted and the service remains healthy.
 - **Setup**:
-  - Unleash toggle enabled
   - Stub Product API and sync offering
   - Stub Partner API to return 503
 - **Action**: Produce a valid `PartnerEntitlementContract` JSON message to Kafka
@@ -2035,41 +1998,14 @@ This section verifies the automatic contract termination behavior when contracts
 **partner-gateway-kafka-TC008 - Duplicate IT Partner Gateway Kafka messages (idempotency)**
 - **Description**: Verify that receiving the same partner entitlement Kafka message twice results in exactly one contract — the second message is treated as an idempotent update.
 - **Setup**:
-  - Unleash toggle enabled
   - Stub Product API, Partner API, and Search API for the contract
   - Sync offering via HTTP API
 - **Action**: Produce the same valid `PartnerEntitlementContract` JSON message to Kafka twice
 - **Verification**: Poll contracts for the test org via internal API
 - **Expected Result**: Still exactly 1 contract for the org
 
-**partner-gateway-kafka-TC009 - Ignore Kafka message when Kafka consumer disabled via config variant**
-- **Description**: Verify that a `config` variant payload of `{"kafka_consumer_enabled":false}` blocks the Kafka consumer while the flag itself remains enabled.
-- **Setup**: Unleash toggle enabled; `config` variant set with `kafka_consumer_enabled=false`; stubs in place and offering synced
-- **Action**: Produce a valid `PartnerEntitlementContract` JSON message to Kafka
-- **Verification**: Poll contracts after 3 second delay via internal API
-- **Expected Result**: Zero contracts created for the test org
-
-**partner-gateway-kafka-TC010 - Process Kafka message when UMB consumer disabled via config variant**
-- **Description**: Verify that disabling the UMB consumer via variant (`umb_consumer_enabled=false`) does not prevent the Kafka consumer from working.
-- **Setup**: Unleash toggle enabled; `config` variant set with `{"kafka_consumer_enabled":true,"umb_consumer_enabled":false}`; stubs in place and offering synced
-- **Action**: Produce a valid `PartnerEntitlementContract` JSON message to Kafka
-- **Verification**: Poll internal contracts API until 1 contract appears
-- **Expected Result**:
-  - Contract created with correct `org_id`, `sku`, and `billing_provider`
-  - UMB consumer is independently disabled (not tested in this TC)
-
-**partner-gateway-kafka-TC011 - Process Kafka message when both consumers explicitly enabled via config variant**
-- **Description**: Verify that explicitly enabling both Kafka and UMB consumers via variant (`{"kafka_consumer_enabled":true,"umb_consumer_enabled":true}`) allows both to function correctly.
-- **Setup**: Unleash toggle enabled; `config` variant set with `{"kafka_consumer_enabled":true,"umb_consumer_enabled":true}`; stubs in place and offering synced
-- **Action**: Produce a valid `PartnerEntitlementContract` JSON message to Kafka
-- **Verification**: Poll internal contracts API until 1 contract appears
-- **Expected Result**:
-  - Contract created with correct `org_id`, `sku`, and `billing_provider`
-  - Both Kafka and UMB consumers are enabled and operational
-
-**partner-gateway-kafka-TC012 - Reject Kafka message with missing required fields**
+**partner-gateway-kafka-TC009 - Reject Kafka message with missing required fields**
 - **Description**: Verify that a Kafka message missing required fields causes a warn log and no contract is persisted; the consumer continues processing.
-- **Setup**: Unleash toggle enabled; no additional stubs needed
 - **Action**: Publish a `PartnerEntitlementContract` JSON missing required fields (e.g., no `rhSubscriptions`) to the `partner-integration.entitlement-gateway.partner-entitlement.protected` topic
 - **Verification**: Check service logs and contracts table
 - **Expected Result**:
@@ -2077,10 +2013,9 @@ This section verifies the automatic contract termination behavior when contracts
   - No contract created for the test org
   - Consumer continues to accept subsequent messages
 
-**partner-gateway-kafka-TC013 - Null/empty optional fields in Kafka message**
+**partner-gateway-kafka-TC010 - Null/empty optional fields in Kafka message**
 - **Description**: Verify that a Kafka message with null or empty optional fields (e.g., null `sellerAccountId`, empty `azureTenantId`) is processed successfully without errors.
 - **Setup**:
-  - Unleash toggle enabled
   - Stub Product API, Partner API, and Search API for the contract
   - Sync offering via HTTP API
   - The message contains null/empty values for optional billing fields (e.g., null `sellerAccountId`, empty `azureTenantId`)
@@ -2090,54 +2025,14 @@ This section verifies the automatic contract termination behavior when contracts
   - Contract created with correct `org_id`, `sku`, and `billing_provider`
   - `billing_provider_id` contains `null` literal for the absent `sellerAccountId` field (e.g. `{vendorProductCode};{awsCustomerId};null`), proving null was handled via string formatting rather than rejected or NPE-d
 
-**partner-gateway-kafka-TC014 - Invalid/unknown source value in Kafka message**
+**partner-gateway-kafka-TC011 - Invalid/unknown source value in Kafka message**
 - **Description**: Verify that a Kafka message with an invalid or unknown `source` value (e.g., `"GCP"`) is handled gracefully — no contract persisted, service stays healthy.
-- **Setup**: Unleash toggle enabled; no additional stubs needed
 - **Action**: Produce a `PartnerEntitlementContract` JSON message with an unknown `source` value to `partner-integration.entitlement-gateway.partner-entitlement.protected` via Kafka Bridge
 - **Verification**: Check service logs and contracts table
 - **Expected Result**:
   - No contract created for the test org
   - Warn log indicates unknown source value
   - Consumer continues to accept subsequent messages
-
-**partner-gateway-umb-TC001 - Ignore UMB message when feature flag is globally disabled**
-- **Description**: Verify that when the Unleash toggle is **disabled**, the UMB consumer exits early and no contract is persisted.
-- **Setup**:
-  - Ensure `UMB_ENABLED=true`
-  - Unleash toggle disabled; stubs in place and offering synced
-- **Action**: Publish a valid `PartnerEntitlementContract` JSON message to the `VirtualTopic.services.partner-entitlement-gateway` UMB channel
-- **Verification**: Poll contracts after 3 second delay via internal API
-- **Expected Result**: Zero contracts created for the test org
-
-**partner-gateway-umb-TC002 - Ignore UMB message when UMB consumer disabled via config variant**
-- **Description**: Verify that a `config` variant payload of `{"umb_consumer_enabled":false}` blocks the UMB consumer while the flag itself remains enabled.
-- **Setup**:
-  - Ensure `UMB_ENABLED=true`
-  - Unleash toggle enabled; `config` variant set with `umb_consumer_enabled=false`; stubs in place and offering synced
-- **Action**: Publish a valid `PartnerEntitlementContract` JSON message to the `VirtualTopic.services.partner-entitlement-gateway` UMB channel
-- **Verification**: Poll contracts after 3 second delay via internal API
-- **Expected Result**: Zero contracts created for the test org
-
-**partner-gateway-umb-TC004 - Cross-consumer duplicate message is idempotent**
-- **Description**: Verify that receiving the same partner entitlement message via both the Kafka consumer and the UMB consumer (both enabled) results in exactly one contract — the second delivery is treated as an idempotent update regardless of channel.
-- **Setup**:
-  - Ensure `UMB_ENABLED=true`
-  - Unleash toggle enabled; `config` variant set with `{"kafka_consumer_enabled":true,"umb_consumer_enabled":true}`; stubs in place and offering synced
-- **Action**:
-  1. Produce the contract message via Kafka Bridge; wait until 1 contract appears
-  2. Publish the same contract message via UMB
-- **Verification**: Poll internal contracts API
-- **Expected Result**: Still exactly 1 contract for the org
-
-**partner-gateway-umb-TC003 - Process UMB message when Kafka consumer disabled via config variant**
-- **Description**: Verify that disabling the Kafka consumer via variant (`kafka_consumer_enabled=false`) does not prevent the UMB consumer from working.
-- **Setup**:
-  - Ensure `UMB_ENABLED=true`
-  - Unleash toggle enabled; `config` variant set with `{"kafka_consumer_enabled":false,"umb_consumer_enabled":true}`; stubs in place and offering synced
-- **Action**: Publish a valid `PartnerEntitlementContract` JSON message to the `VirtualTopic.services.partner-entitlement-gateway` UMB channel
-- **Verification**: Poll internal contracts API until 1 contract appears
-- **Expected Result**:
-  - Contract created with correct `org_id`, `sku`, and `billing_provider`
 
 ## Contract Integration
 

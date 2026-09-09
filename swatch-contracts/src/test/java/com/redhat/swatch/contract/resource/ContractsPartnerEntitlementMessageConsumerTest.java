@@ -23,12 +23,10 @@ package com.redhat.swatch.contract.resource;
 import static com.redhat.swatch.contract.config.Channels.CONTRACTS_FROM_GATEWAY;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.redhat.swatch.contract.config.FeatureFlags;
 import com.redhat.swatch.contract.model.PartnerEntitlementsRequest;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.service.ContractService;
@@ -89,7 +87,6 @@ class ContractsPartnerEntitlementMessageConsumerTest {
 
   @Inject @Any InMemoryConnector connector;
 
-  @InjectMock FeatureFlags featureFlags;
   @InjectMock ContractService contractService;
   @InjectSpy ContractsPartnerEntitlementMessageConsumer consumer;
 
@@ -104,8 +101,7 @@ class ContractsPartnerEntitlementMessageConsumerTest {
   void setUp() {
     contractsKafkaChannel = connector.source(CONTRACTS_FROM_GATEWAY);
     LoggerCaptor.clearRecords();
-    Mockito.reset(contractService, featureFlags);
-    when(featureFlags.isPartnerGatewayContractsKafkaConsumerEnabled()).thenReturn(true);
+    Mockito.reset(contractService);
     StatusResponse mockResponse = new StatusResponse();
     mockResponse.setMessage("Contract created");
     when(contractService.createPartnerContract(any(PartnerEntitlementsRequest.class)))
@@ -134,20 +130,6 @@ class ContractsPartnerEntitlementMessageConsumerTest {
               verify(consumer).consumeContract(JSON_WITH_EXTRA_LICENSE_ARN_FIELD);
               thenKafkaContractDeserializedSuccessfully();
               verify(contractService).createPartnerContract(any(PartnerEntitlementsRequest.class));
-            });
-  }
-
-  @Test
-  void shouldIgnoreMessagesWhenFeatureFlagIsDisabled() {
-    when(featureFlags.isPartnerGatewayContractsKafkaConsumerEnabled()).thenReturn(false);
-    whenSendMessage(VALID_JSON_MESSAGE);
-    await()
-        .atMost(Duration.ofMillis(500))
-        .untilAsserted(
-            () -> {
-              verify(consumer, never()).consumeContract(anyString());
-              verify(contractService, never())
-                  .createPartnerContract(any(PartnerEntitlementsRequest.class));
             });
   }
 

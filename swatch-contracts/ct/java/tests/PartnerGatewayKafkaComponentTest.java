@@ -28,7 +28,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import api.PartnerContractKafkaSender;
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.configuration.registry.MetricId;
@@ -39,9 +38,6 @@ import domain.Contract;
 import io.restassured.response.Response;
 import java.util.Map;
 import org.apache.http.HttpStatus;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 public class PartnerGatewayKafkaComponentTest extends BaseContractComponentTest {
@@ -49,29 +45,13 @@ public class PartnerGatewayKafkaComponentTest extends BaseContractComponentTest 
   private static final double DEFAULT_CAPACITY = 10.0;
   private static final double INSTANCE_HOURS_CAPACITY = 18.0;
 
-  @BeforeAll
-  static void enablePartnerGatewayContractsFeatureFlag() {
-    unleash.enablePartnerGatewayContracts();
-  }
-
-  @AfterAll
-  static void disablePartnerGatewayContractsFeatureFlag() {
-    unleash.disablePartnerGatewayContracts();
-  }
-
-  @AfterEach
-  void restorePartnerGatewayContractsFlag() {
-    unleash.enablePartnerGatewayContracts();
-    unleash.clearPartnerGatewayContractsVariants();
-  }
-
   @TestPlanName("partner-gateway-kafka-TC001")
   @Test
   void shouldProcessValidAwsContractViaKafka() {
     Contract contract =
         givenContractCreatedViaKafka(BillingProvider.AWS, Map.of(CORES, DEFAULT_CAPACITY));
 
-    var actual = service.getContracts(contract).get(0);
+    var actual = service.getContracts(contract).getFirst();
     verifyCommonContractFields(contract, actual);
     verifyAwsBillingProviderId(contract, actual);
     assertEquals(
@@ -88,7 +68,7 @@ public class PartnerGatewayKafkaComponentTest extends BaseContractComponentTest 
     Contract contract =
         givenContractCreatedViaKafka(BillingProvider.AZURE, Map.of(CORES, DEFAULT_CAPACITY));
 
-    var actual = service.getContracts(contract).get(0);
+    var actual = service.getContracts(contract).getFirst();
     verifyCommonContractFields(contract, actual);
     verifyAzureBillingProviderId(contract, actual);
     assertEquals(
@@ -105,7 +85,7 @@ public class PartnerGatewayKafkaComponentTest extends BaseContractComponentTest 
     Contract contract =
         givenContractCreatedViaKafka(BillingProvider.AWS, Map.of(SOCKETS, DEFAULT_CAPACITY));
 
-    var actual = service.getContracts(contract).get(0);
+    var actual = service.getContracts(contract).getFirst();
     verifyCommonContractFields(contract, actual);
     verifyAwsBillingProviderId(contract, actual);
     assertEquals(0, actual.getMetrics().size(), "Pure PAYG contract should have 0 metrics");
@@ -119,7 +99,7 @@ public class PartnerGatewayKafkaComponentTest extends BaseContractComponentTest 
             BillingProvider.AWS,
             Map.of(CORES, DEFAULT_CAPACITY, INSTANCE_HOURS, INSTANCE_HOURS_CAPACITY));
 
-    var actual = service.getContracts(contract).get(0);
+    var actual = service.getContracts(contract).getFirst();
     verifyCommonContractFields(contract, actual);
     verifyAwsBillingProviderId(contract, actual);
     assertEquals(2, actual.getMetrics().size(), "Should have 2 metrics (Cores and Instance-hours)");
@@ -130,7 +110,7 @@ public class PartnerGatewayKafkaComponentTest extends BaseContractComponentTest 
   @TestPlanName("partner-gateway-kafka-TC005")
   @Test
   void shouldHandleMalformedJsonInKafkaMessage() {
-    kafkaSender().sendRaw("not-a-json-object");
+    kafkaBridge.asOfPartnerGateway().sendRaw("not-a-json-object");
 
     service.logs().assertContains("Unable to read IT Partner Kafka message from JSON");
     assertTrue(service.isRunning(), "Service health checks should all be UP");
@@ -150,7 +130,7 @@ public class PartnerGatewayKafkaComponentTest extends BaseContractComponentTest 
     Response sync = service.syncOffering(contract.getOffering().getSku());
     assertThat("Sync offering should succeed", sync.statusCode(), is(HttpStatus.SC_OK));
 
-    kafkaSender().send(contract);
+    kafkaBridge.asOfPartnerGateway().send(contract);
 
     thenNoContractCreated();
   }
@@ -166,7 +146,7 @@ public class PartnerGatewayKafkaComponentTest extends BaseContractComponentTest 
     Response sync = service.syncOffering(contract.getOffering().getSku());
     assertThat("Sync offering should succeed", sync.statusCode(), is(HttpStatus.SC_OK));
 
-    kafkaSender().send(contract);
+    kafkaBridge.asOfPartnerGateway().send(contract);
 
     thenNoContractCreated();
     assertTrue(service.isRunning(), "Service health checks should all be UP");
@@ -184,10 +164,10 @@ public class PartnerGatewayKafkaComponentTest extends BaseContractComponentTest 
     Response sync = service.syncOffering(contract.getOffering().getSku());
     assertThat("Sync offering should succeed", sync.statusCode(), is(HttpStatus.SC_OK));
 
-    kafkaSender().send(contract);
+    kafkaBridge.asOfPartnerGateway().send(contract);
     AwaitilityUtils.until(() -> service.getContracts(contract).size(), is(1));
 
-    kafkaSender().send(contract);
+    kafkaBridge.asOfPartnerGateway().send(contract);
 
     AwaitilityUtils.untilAsserted(
         () ->
@@ -199,57 +179,11 @@ public class PartnerGatewayKafkaComponentTest extends BaseContractComponentTest 
 
   @TestPlanName("partner-gateway-kafka-TC009")
   @Test
-  void shouldIgnoreKafkaMessageWhenKafkaConsumerDisabledViaVariant() {
-    unleash.enablePartnerGatewayContractsUmbOnly();
-
-    Contract contract =
-        buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, DEFAULT_CAPACITY));
-    wiremock.forProductAPI().stubOfferingData(contract.getOffering());
-    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContract(contract));
-    wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(contract);
-    service.syncOffering(contract.getOffering().getSku());
-
-    kafkaSender().send(contract);
-
-    service
-        .logs()
-        .assertContains("IT Partner Kafka consumer for contracts is disabled by feature flag.");
-    thenNoContractCreated();
-  }
-
-  @TestPlanName("partner-gateway-kafka-TC010")
-  @Test
-  void shouldProcessKafkaMessageWhenUmbConsumerDisabledViaVariant() {
-    unleash.enablePartnerGatewayContractsKafkaOnly();
-
-    Contract contract =
-        givenContractCreatedViaKafka(BillingProvider.AWS, Map.of(CORES, DEFAULT_CAPACITY));
-
-    var actual = service.getContracts(contract).get(0);
-    verifyCommonContractFields(contract, actual);
-    assertEquals("aws", actual.getBillingProvider());
-  }
-
-  @TestPlanName("partner-gateway-kafka-TC011")
-  @Test
-  void shouldProcessKafkaMessageWhenBothConsumersEnabledViaVariant() {
-    unleash.enablePartnerGatewayContractsBothConsumers();
-
-    Contract contract =
-        givenContractCreatedViaKafka(BillingProvider.AWS, Map.of(CORES, DEFAULT_CAPACITY));
-
-    var actual = service.getContracts(contract).get(0);
-    verifyCommonContractFields(contract, actual);
-    assertEquals("aws", actual.getBillingProvider());
-  }
-
-  @TestPlanName("partner-gateway-kafka-TC012")
-  @Test
   void shouldRejectKafkaMessageWithMissingRequiredFields() {
     PartnerEntitlementContract emptyMessage = new PartnerEntitlementContract();
     emptyMessage.setAction("contract-updated");
 
-    kafkaSender().sendRaw(emptyMessage);
+    kafkaBridge.asOfPartnerGateway().sendRaw(emptyMessage);
 
     service.logs().assertContains("Can't process the partner contract");
     thenNoContractCreated();
@@ -257,7 +191,7 @@ public class PartnerGatewayKafkaComponentTest extends BaseContractComponentTest 
     thenKafkaConsumerAcceptsSubsequentMessages();
   }
 
-  @TestPlanName("partner-gateway-kafka-TC013")
+  @TestPlanName("partner-gateway-kafka-TC010")
   @Test
   void shouldProcessKafkaMessageWithNullOptionalFields() {
     Contract contract =
@@ -272,16 +206,16 @@ public class PartnerGatewayKafkaComponentTest extends BaseContractComponentTest 
     Response sync = service.syncOffering(contract.getOffering().getSku());
     assertThat("Sync offering should succeed", sync.statusCode(), is(HttpStatus.SC_OK));
 
-    kafkaSender().send(contract);
+    kafkaBridge.asOfPartnerGateway().send(contract);
 
     AwaitilityUtils.until(() -> service.getContractsByOrgId(orgId).size(), is(1));
-    var actual = service.getContractsByOrgId(orgId).get(0);
+    var actual = service.getContractsByOrgId(orgId).getFirst();
     assertNotNull(actual.getUuid(), "Contract should be created");
     assertEquals(orgId, actual.getOrgId());
     verifyAwsBillingProviderId(contract, actual);
   }
 
-  @TestPlanName("partner-gateway-kafka-TC014")
+  @TestPlanName("partner-gateway-kafka-TC011")
   @Test
   void shouldHandleUnknownSourceValueInKafkaMessage() {
     PartnerEntitlementContract message = new PartnerEntitlementContract();
@@ -290,7 +224,7 @@ public class PartnerGatewayKafkaComponentTest extends BaseContractComponentTest 
     cloudIdentifiers.setPartner("gcp");
     message.setCloudIdentifiers(cloudIdentifiers);
 
-    kafkaSender().sendRaw(message);
+    kafkaBridge.asOfPartnerGateway().sendRaw(message);
 
     service.logs().assertContains("Can't process the partner contract");
     thenNoContractCreated();
@@ -309,7 +243,7 @@ public class PartnerGatewayKafkaComponentTest extends BaseContractComponentTest 
     Response sync = service.syncOffering(contract.getOffering().getSku());
     assertThat("Sync offering should succeed", sync.statusCode(), is(HttpStatus.SC_OK));
 
-    kafkaSender().send(contract);
+    kafkaBridge.asOfPartnerGateway().send(contract);
 
     AwaitilityUtils.until(() -> service.getContracts(contract).size(), is(1));
     return contract;
@@ -326,11 +260,7 @@ public class PartnerGatewayKafkaComponentTest extends BaseContractComponentTest 
     Contract contract =
         givenContractCreatedViaKafka(BillingProvider.AWS, Map.of(CORES, DEFAULT_CAPACITY));
     assertNotNull(
-        service.getContracts(contract).get(0).getUuid(),
+        service.getContracts(contract).getFirst().getUuid(),
         "Consumer should accept subsequent valid messages");
-  }
-
-  private PartnerContractKafkaSender kafkaSender() {
-    return new PartnerContractKafkaSender(kafkaBridge);
   }
 }

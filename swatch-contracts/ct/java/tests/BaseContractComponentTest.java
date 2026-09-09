@@ -26,12 +26,12 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import api.ContractsKafkaBridgeService;
 import api.ContractsSwatchService;
 import api.ContractsUnleashService;
 import api.ContractsWiremockService;
 import com.redhat.swatch.component.tests.api.ComponentTest;
 import com.redhat.swatch.component.tests.api.KafkaBridge;
-import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.api.Quarkus;
 import com.redhat.swatch.component.tests.api.Unleash;
 import com.redhat.swatch.component.tests.api.Wiremock;
@@ -71,7 +71,7 @@ public class BaseContractComponentTest {
   static final String EXISTING_CONTRACTS_SYNCED_MESSAGE =
       "Existing contracts and subscriptions updated";
 
-  @KafkaBridge static KafkaBridgeService kafkaBridge = new KafkaBridgeService();
+  @KafkaBridge static ContractsKafkaBridgeService kafkaBridge = new ContractsKafkaBridgeService();
 
   @Wiremock static ContractsWiremockService wiremock = new ContractsWiremockService();
 

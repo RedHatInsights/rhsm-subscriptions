@@ -49,10 +49,6 @@ public class ContractsPartnerEntitlementMessageConsumer {
     if (dtoContract == null) {
       return;
     }
-    if (!featureFlags.isPartnerGatewayContractsKafkaConsumerEnabled()) {
-      log.debug("IT Partner Kafka consumer for contracts is disabled by feature flag.");
-      return;
-    }
     consumeContract(dtoContract);
   }
 
