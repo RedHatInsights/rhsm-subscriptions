@@ -204,7 +204,7 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
   @TestPlanName("contracts-creation-TC007")
   @Test
   void shouldNotPersistContractWhenRequiredFieldsAreMissing() {
-    // Given: A valid contract that we'll send via Artemis with a missing subscription in search API
+    // Given: A valid contract that we'll send with a missing subscription in search API
     // This simulates a scenario where required subscription data is not found
     Contract contract =
         buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, DEFAULT_CAPACITY));
@@ -216,10 +216,13 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
     Response sync = service.syncOffering(contract.getOffering().getSku());
     assertThat("Sync offering should succeed", sync.statusCode(), is(HttpStatus.SC_OK));
 
-    // When: Publish message to Kafka topic (via Artemis) without subscription data
+    // When: Publish message to Kafka topic without subscription data
     kafkaBridge.asOfPartnerGateway().send(contract);
 
-    // Then: Verify the contract was NOT created due to missing required subscription data
+    // Then: wait for the service to consume the message
+    service.logs().assertContains("Error fetching subscription ID for contract");
+
+    // And: Verify the contract was NOT created due to missing required subscription data
     // Wait for message to be processed - contract should NOT be created
     // Note: Using getContractsByOrgId since we expect no contracts to match contract details
     AwaitilityUtils.untilAsserted(
