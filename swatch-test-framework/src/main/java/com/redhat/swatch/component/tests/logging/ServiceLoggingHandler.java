@@ -47,7 +47,7 @@ public abstract class ServiceLoggingHandler extends LoggingHandler {
 
   @Override
   protected void onLine(String line) {
-    if (!testActive) {
+    if (!testActive && !service.isDebug()) {
       return;
     }
 
