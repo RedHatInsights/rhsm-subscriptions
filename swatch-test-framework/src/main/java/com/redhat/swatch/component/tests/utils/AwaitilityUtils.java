@@ -183,6 +183,10 @@ public final class AwaitilityUtils {
       factory = factory.ignoreExceptions();
     }
 
+    if (settings.during != null) {
+      factory = factory.during(settings.during.toMillis(), TimeUnit.MILLISECONDS);
+    }
+
     return factory;
   }
 

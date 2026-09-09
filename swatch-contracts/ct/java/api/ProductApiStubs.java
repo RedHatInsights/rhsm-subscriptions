@@ -23,12 +23,15 @@ package api;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import domain.Offering;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Map;
 import org.apache.http.HttpStatus;
 
 /** Facade for stubbing Product API (Offering) endpoints. */
 public class ProductApiStubs {
+
+  private static final Duration PRODUCT_TREE_ABSENCE_OBSERVATION = Duration.ofSeconds(2);
 
   private final ContractsWiremockService wiremockService;
 
@@ -165,7 +168,10 @@ public class ProductApiStubs {
     AwaitilityUtils.untilAsserted(
         () -> verifyProductTreeNotRequested(sku),
         AwaitilitySettings.defaults()
-            .timeoutMessage("Product tree should not be requested for SKU %s", sku));
+            .during(PRODUCT_TREE_ABSENCE_OBSERVATION)
+            .timeoutMessage(
+                "Product tree should not be requested for SKU %s during async processing",
+                sku));
   }
 
   public void verifyProductTreeNotRequested(String sku) {
