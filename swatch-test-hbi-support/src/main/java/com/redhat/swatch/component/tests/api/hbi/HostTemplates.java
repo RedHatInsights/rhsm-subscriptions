@@ -83,7 +83,8 @@ public final class HostTemplates {
     return builder ->
         builder
             .subscriptionManagerId(UUID.randomUUID().toString())
-            .rhsmFacts(RhsmFacts.builder().defaultFacts().sla(sla).usage(usage).build())
+            .rhsmFacts(
+                RhsmFacts.builder().defaultFacts().sla(sla).usage(usage).isVirtual(true).build())
             .systemProfileFacts(
                 SystemProfileFacts.builder()
                     .hypervisorUuid(hypervisorSubManUuid)
