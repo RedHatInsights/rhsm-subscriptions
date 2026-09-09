@@ -41,6 +41,7 @@ import com.redhat.swatch.contract.repository.OfferingRepository;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.utils.CustomBatchIterator;
 import com.redhat.swatch.contract.utils.SubscriptionDtoUtil;
+import com.redhat.swatch.panache.TransactionalLocks;
 import io.micrometer.common.util.StringUtils;
 import io.micrometer.core.annotation.Timed;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -82,12 +83,17 @@ public class SubscriptionSyncService {
   private final ApplicationConfiguration properties;
   private final ObjectMapper objectMapper;
   private final ProductDenylist productDenylist;
+  private final TransactionalLocks transactionalLocks;
 
-  public void syncSubscription(
-      Subscription subscription, Optional<SubscriptionEntity> subscriptionOptional) {
+  public void syncSubscription(Subscription subscription) {
+    // Contract provided subscriptions will have a different start_date than what is
+    // stored in Subscription SearchAPI
+    var existingSubscription =
+        subscriptionService.findBySubscriptionNumber(subscription.getSubscriptionNumber()).stream()
+            .findFirst();
     final SubscriptionEntity newOrUpdated = convertDto(subscription);
     var dtoSku = SubscriptionDtoUtil.extractSku(subscription);
-    syncSubscription(dtoSku, newOrUpdated, subscriptionOptional);
+    syncSubscription(dtoSku, newOrUpdated, existingSubscription);
   }
 
   /**
@@ -327,6 +333,7 @@ public class SubscriptionSyncService {
             batch -> {
               batch.forEach(
                   subEntity -> {
+                    acquireSubscriptionLockBy(subEntity.getSubscriptionNumber());
                     var subId = subEntity.getSubscriptionId();
                     var dto = subIdsToSync.remove(subId);
 
@@ -353,7 +360,7 @@ public class SubscriptionSyncService {
                       return;
                     }
 
-                    syncSubscription(dto, Optional.of(subEntity));
+                    syncSubscription(dto);
                   });
               subscriptionService.flushAndClearPersistenceContext();
             });
@@ -366,14 +373,8 @@ public class SubscriptionSyncService {
             batch -> {
               batch.forEach(
                   dto -> {
-                    // Contract provided subscriptions will have a different start_date than what is
-                    // stored in Subscription SearchAPI
-                    var existingSubscription =
-                        subscriptionService
-                            .findBySubscriptionNumber(dto.getSubscriptionNumber())
-                            .stream()
-                            .findFirst();
-                    syncSubscription(dto, existingSubscription);
+                    acquireSubscriptionLockBy(dto.getSubscriptionNumber());
+                    syncSubscription(dto);
                   });
 
               subscriptionService.flushAndClearPersistenceContext();
@@ -585,6 +586,7 @@ public class SubscriptionSyncService {
 
   @Transactional
   public void saveUmbSubscription(UmbSubscription umbSubscription) {
+    acquireSubscriptionLockBy(umbSubscription.getSubscriptionNumber());
     SubscriptionEntity subscription = convertDto(umbSubscription);
     var subscriptions =
         subscriptionService.findBySubscriptionNumber(subscription.getSubscriptionNumber());
@@ -599,6 +601,7 @@ public class SubscriptionSyncService {
 
   @Transactional
   public void saveSubscription(SubscriptionOutboxPayload payload) {
+    acquireSubscriptionLockBy(payload.getSubscriptionNumber());
     SubscriptionEntity subscription = convertDto(payload);
     String sku = extractSku(payload);
     if (sku == null) {
@@ -679,6 +682,10 @@ public class SubscriptionSyncService {
       return msg;
     }
     return String.format("Subscription %s terminated at %s.", subscriptionId, terminationDate);
+  }
+
+  private void acquireSubscriptionLockBy(String subscriptionNumber) {
+    transactionalLocks.acquireLockBy("subscription", subscriptionNumber);
   }
 
   private static String getSku(UmbSubscription subscription) {

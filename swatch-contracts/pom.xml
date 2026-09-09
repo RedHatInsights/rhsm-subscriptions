@@ -210,6 +210,11 @@
       <artifactId>wiremock-standalone</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-common-testcontainers</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
