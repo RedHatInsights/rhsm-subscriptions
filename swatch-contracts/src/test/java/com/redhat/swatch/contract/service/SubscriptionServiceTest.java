@@ -113,6 +113,36 @@ class SubscriptionServiceTest {
 
   @Test
   @TestTransaction
+  void saveUpdatesExistingRowWhenDetachedEntityHasDriftedStartDate() {
+    subscriptionRepository.persistAndFlush(newSubscription("initial-acct", 4L));
+    subscriptionService.flushAndClearPersistenceContext();
+
+    var driftedStartDate = startDate.plusDays(1);
+    var detached =
+        SubscriptionEntity.builder()
+            .subscriptionId(SUBSCRIPTION_ID)
+            .subscriptionNumber(SUBSCRIPTION_NUMBER)
+            .orgId(ORG_ID)
+            .offering(offeringRepository.findById(SKU))
+            .quantity(16L)
+            .startDate(driftedStartDate)
+            .endDate(endDate)
+            .billingProvider(BillingProvider.RED_HAT)
+            .billingAccountId("drifted-update")
+            .build();
+
+    subscriptionService.save(detached);
+    subscriptionService.flushAndClearPersistenceContext();
+
+    var rows = subscriptionRepository.findBySubscriptionNumber(SUBSCRIPTION_NUMBER);
+    assertEquals(1, rows.size());
+    assertEquals(startDate, rows.getFirst().getStartDate());
+    assertEquals(16L, rows.getFirst().getQuantity());
+    assertEquals("drifted-update", rows.getFirst().getBillingAccountId());
+  }
+
+  @Test
+  @TestTransaction
   void saveMergesDetachedEntityUpdates() {
     subscriptionRepository.persistAndFlush(newSubscription("initial-acct", 4L));
     subscriptionService.flushAndClearPersistenceContext();

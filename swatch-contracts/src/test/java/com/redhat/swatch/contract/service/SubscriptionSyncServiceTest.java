@@ -30,6 +30,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
@@ -93,6 +94,22 @@ class SubscriptionSyncServiceTest {
   void defaultSubscriptionServiceStubs() {
     doNothing().when(subscriptionService).flushAndClearPersistenceContext();
     when(subscriptionService.streamByOrgId(any())).thenReturn(Stream.empty());
+    lenient()
+        .when(subscriptionService.resolveSubscriptionSegmentForSync(any()))
+        .thenAnswer(
+            invocation -> {
+              String subscriptionNumber = invocation.getArgument(0);
+              List<SubscriptionEntity> rows =
+                  subscriptionService.findBySubscriptionNumber(subscriptionNumber);
+              if (rows.isEmpty()) {
+                return Optional.empty();
+              }
+              return rows.stream()
+                  .filter(row -> !row.getStartDate().isAfter(NOW))
+                  .filter(row -> row.getEndDate() == null || row.getEndDate().isAfter(NOW))
+                  .findFirst()
+                  .or(() -> rows.stream().findFirst());
+            });
   }
 
   @Test
@@ -481,7 +498,8 @@ class SubscriptionSyncServiceTest {
 
     subscriptionSyncService.saveSubscription(payload);
 
-    verify(subscriptionService).findBySubscriptionNumber("1234");
+    verify(subscriptionService, atLeastOnce()).findBySubscriptionNumber("1234");
+    verify(subscriptionService).resolveSubscriptionSegmentForSync("1234");
   }
 
   @Test

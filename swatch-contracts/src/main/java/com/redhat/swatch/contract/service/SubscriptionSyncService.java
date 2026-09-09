@@ -89,8 +89,7 @@ public class SubscriptionSyncService {
     // Contract provided subscriptions will have a different start_date than what is
     // stored in Subscription SearchAPI
     var existingSubscription =
-        subscriptionService.findBySubscriptionNumber(subscription.getSubscriptionNumber()).stream()
-            .findFirst();
+        subscriptionService.resolveSubscriptionSegmentForSync(subscription.getSubscriptionNumber());
     final SubscriptionEntity newOrUpdated = convertDto(subscription);
     var dtoSku = SubscriptionDtoUtil.extractSku(subscription);
     syncSubscription(dtoSku, newOrUpdated, existingSubscription);
@@ -219,6 +218,7 @@ public class SubscriptionSyncService {
         updateExistingSubscription(newOrUpdated, existingSubscription);
         subscriptionService.save(existingSubscription);
       }
+      terminateFutureDatedActiveSegments(newOrUpdated.getSubscriptionNumber());
     } else {
       subscriptionService.save(newOrUpdated);
     }
@@ -595,7 +595,11 @@ public class SubscriptionSyncService {
           "Skipping UMB message because multiple subscriptions were found for subscriptionNumber={}",
           subscription.getSubscriptionNumber());
     } else {
-      syncSubscription(getSku(umbSubscription), subscription, subscriptions.stream().findFirst());
+      syncSubscription(
+          getSku(umbSubscription),
+          subscription,
+          subscriptionService.resolveSubscriptionSegmentForSync(
+              subscription.getSubscriptionNumber()));
     }
   }
 
@@ -615,7 +619,11 @@ public class SubscriptionSyncService {
           "Skipping message because multiple subscriptions were found for subscriptionNumber={}",
           subscription.getSubscriptionNumber());
     } else {
-      syncSubscription(sku, subscription, subscriptions.stream().findFirst());
+      syncSubscription(
+          sku,
+          subscription,
+          subscriptionService.resolveSubscriptionSegmentForSync(
+              subscription.getSubscriptionNumber()));
     }
   }
 
@@ -686,6 +694,21 @@ public class SubscriptionSyncService {
 
   private void acquireSubscriptionLockBy(String subscriptionNumber) {
     transactionalLocks.acquireLockBy("subscription", subscriptionNumber);
+  }
+
+  private void terminateFutureDatedActiveSegments(String subscriptionNumber) {
+    if (subscriptionNumber == null) {
+      return;
+    }
+    var now = clock.now();
+    subscriptionService.findBySubscriptionNumber(subscriptionNumber).stream()
+        .filter(row -> row.getStartDate().isAfter(now))
+        .filter(row -> row.getEndDate() == null || row.getEndDate().isAfter(now))
+        .forEach(
+            row -> {
+              row.endSubscription();
+              subscriptionService.terminate(row);
+            });
   }
 
   private static String getSku(UmbSubscription subscription) {

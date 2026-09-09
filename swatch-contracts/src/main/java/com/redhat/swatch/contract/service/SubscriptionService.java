@@ -26,8 +26,10 @@ import com.redhat.swatch.contract.repository.SubscriptionRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import jakarta.transaction.Transactional.TxType;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,6 +47,26 @@ public class SubscriptionService {
 
   public List<SubscriptionEntity> findBySubscriptionNumber(String subscriptionNumber) {
     return subscriptionRepository.findBySubscriptionNumber(subscriptionNumber);
+  }
+
+  /**
+   * Returns the subscription segment that is effective now for sync/update paths. Rows are ordered
+   * by {@code start_date} descending; when none have started yet, the latest segment is returned.
+   */
+  public Optional<SubscriptionEntity> resolveSubscriptionSegmentForSync(String subscriptionNumber) {
+    if (subscriptionNumber == null) {
+      return Optional.empty();
+    }
+    var rows = findBySubscriptionNumber(subscriptionNumber);
+    if (rows.isEmpty()) {
+      return Optional.empty();
+    }
+    var now = OffsetDateTime.now();
+    return rows.stream()
+        .filter(row -> !row.getStartDate().isAfter(now))
+        .filter(row -> row.getEndDate() == null || row.getEndDate().isAfter(now))
+        .findFirst()
+        .or(() -> rows.stream().findFirst());
   }
 
   public List<SubscriptionEntity> findActiveSubscription(String subscriptionId) {
@@ -110,9 +132,50 @@ public class SubscriptionService {
       return subscription;
     }
 
-    // merge is needed here because the existing subscription might not be found if we only use
-    // the subscription number (since primary keys are subscription ID and start date).
-    // To be fixed in SWATCH-2801.
+    var existing = resolveSubscriptionSegmentForSync(subscription.getSubscriptionNumber());
+    if (existing.isPresent()
+        && shouldUpdateExistingRowInsteadOfMerge(existing.get(), subscription)) {
+      applyDetachedSubscriptionState(existing.get(), subscription);
+      return existing.get();
+    }
+
     return em.merge(subscription);
+  }
+
+  private static boolean shouldUpdateExistingRowInsteadOfMerge(
+      SubscriptionEntity managed, SubscriptionEntity detached) {
+    if (!Objects.equals(managed.getSubscriptionId(), detached.getSubscriptionId())) {
+      return false;
+    }
+    if (Objects.equals(managed.getStartDate(), detached.getStartDate())) {
+      return true;
+    }
+    var now = OffsetDateTime.now();
+    boolean managedIsActive = managed.getEndDate() == null || managed.getEndDate().isAfter(now);
+    // Quantity-change segments are written after terminating the prior row.
+    return managedIsActive;
+  }
+
+  private static void applyDetachedSubscriptionState(
+      SubscriptionEntity managed, SubscriptionEntity detached) {
+    if (detached.getOrgId() != null) {
+      managed.setOrgId(detached.getOrgId());
+    }
+    managed.setQuantity(detached.getQuantity());
+    if (detached.getEndDate() != null) {
+      managed.setEndDate(detached.getEndDate());
+    }
+    if (detached.getBillingProviderId() != null) {
+      managed.setBillingProviderId(detached.getBillingProviderId());
+    }
+    if (detached.getBillingAccountId() != null) {
+      managed.setBillingAccountId(detached.getBillingAccountId());
+    }
+    if (detached.getBillingProvider() != null) {
+      managed.setBillingProvider(detached.getBillingProvider());
+    }
+    if (detached.getOffering() != null) {
+      managed.setOffering(detached.getOffering());
+    }
   }
 }
