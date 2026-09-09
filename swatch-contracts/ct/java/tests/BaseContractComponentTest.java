@@ -24,6 +24,7 @@ import static api.PartnerApiStubs.PartnerSubscriptionsStubRequest.forContract;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import api.ContractsSwatchService;
 import api.ContractsUnleashService;
@@ -36,6 +37,7 @@ import com.redhat.swatch.component.tests.api.Unleash;
 import com.redhat.swatch.component.tests.api.Wiremock;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
+import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import com.redhat.swatch.contract.test.model.CapacityReportByMetricId;
@@ -53,6 +55,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.http.HttpStatus;
 import org.candlepin.clock.ApplicationClock;
 import org.junit.jupiter.api.AfterEach;
@@ -304,5 +307,75 @@ public class BaseContractComponentTest {
         .logs()
         .assertContains(
             "Subscription deleted org_id=" + orgId, "delete_reason=" + deleteReason.name());
+  }
+
+  protected void verifyCommonContractFields(
+      Contract expected, com.redhat.swatch.contract.test.model.Contract actual) {
+    assertEquals(expected.getSubscriptionNumber(), actual.getSubscriptionNumber());
+    assertEquals(expected.getOffering().getSku(), actual.getSku());
+    assertEquals(orgId, actual.getOrgId());
+    assertNotNull(actual.getUuid());
+    assertNotNull(actual.getStartDate());
+    assertNotNull(actual.getEndDate());
+    assertNotNull(actual.getMetrics());
+  }
+
+  protected void verifyAwsBillingProviderId(
+      Contract expected, com.redhat.swatch.contract.test.model.Contract actual) {
+    assertEquals("aws", actual.getBillingProvider());
+    String expectedId =
+        expected.getProductCode()
+            + ";"
+            + expected.getCustomerId()
+            + ";"
+            + expected.getSellerAccountId();
+    assertEquals(
+        expectedId,
+        actual.getBillingProviderId(),
+        "billing_provider_id should follow AWS format:"
+            + " {vendorProductCode};{awsCustomerId};{sellerAccountId}");
+  }
+
+  protected void verifyAzureBillingProviderId(
+      Contract expected, com.redhat.swatch.contract.test.model.Contract actual) {
+    assertEquals("azure", actual.getBillingProvider());
+    String expectedId =
+        expected.getResourceId()
+            + ";"
+            + expected.getPlanId()
+            + ";"
+            + expected.getProductCode()
+            + ";"
+            + expected.getCustomerId()
+            + ";"
+            + expected.getClientId();
+    assertEquals(
+        expectedId,
+        actual.getBillingProviderId(),
+        "billing_provider_id should follow Azure format:"
+            + " {azureResourceId};{planId};{vendorProductCode};{customer};{clientId}");
+  }
+
+  protected void verifyMetric(
+      com.redhat.swatch.contract.test.model.Contract contract,
+      Metric metric,
+      double expectedMetricValue) {
+    String dimension =
+        BillingProvider.AZURE.toApiModel().equals(contract.getBillingProvider())
+            ? metric.getAzureDimension()
+            : metric.getAwsDimension();
+
+    var contractMetric =
+        contract.getMetrics().stream()
+            .filter(m -> m.getMetricId().equals(dimension))
+            .findFirst()
+            .orElseThrow(
+                () -> new AssertionError(metric.getId() + " metric not found in contract"));
+    double expectedValue =
+        expectedMetricValue * Optional.ofNullable(metric.getBillingFactor()).orElse(1.0);
+    assertEquals(
+        (int) expectedValue,
+        contractMetric.getValue().intValue(),
+        metric.getId() + " value should be " + expectedValue);
   }
 }

@@ -32,7 +32,6 @@ import api.ContractsArtemisService;
 import com.redhat.swatch.component.tests.api.Artemis;
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
-import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.contract.test.model.ContractRequest;
 import domain.BillingProvider;
@@ -40,7 +39,6 @@ import domain.Contract;
 import domain.Offering;
 import io.restassured.response.Response;
 import java.util.Map;
-import java.util.Optional;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -436,83 +434,5 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
     AwaitilityUtils.until(() -> service.getContracts(contract).size(), is(1));
 
     return contract;
-  }
-
-  private void verifyCommonContractFields(
-      Contract expected, com.redhat.swatch.contract.test.model.Contract actual) {
-    assertNotNull(actual.getUuid());
-    assertEquals(expected.getSubscriptionNumber(), actual.getSubscriptionNumber());
-    assertEquals(expected.getOffering().getSku(), actual.getSku());
-    assertNotNull(actual.getStartDate());
-    assertNotNull(actual.getEndDate());
-    assertEquals(orgId, actual.getOrgId());
-    assertNotNull(actual.getMetrics());
-  }
-
-  /**
-   * Verifies AWS billing_provider_id follows the format:
-   * {vendorProductCode};{awsCustomerId};{sellerAccountId}
-   */
-  private void verifyAwsBillingProviderId(
-      Contract expected, com.redhat.swatch.contract.test.model.Contract actual) {
-    assertEquals("aws", actual.getBillingProvider());
-    String expectedId =
-        expected.getProductCode()
-            + ";"
-            + expected.getCustomerId()
-            + ";"
-            + expected.getSellerAccountId();
-    assertEquals(
-        expectedId,
-        actual.getBillingProviderId(),
-        "billing_provider_id should follow AWS format: {vendorProductCode};{awsCustomerId};{sellerAccountId}");
-  }
-
-  /**
-   * Verifies Azure billing_provider_id follows the format:
-   * {azureResourceId};{planId};{vendorProductCode};{customer};{clientId}
-   */
-  private void verifyAzureBillingProviderId(
-      Contract expected, com.redhat.swatch.contract.test.model.Contract actual) {
-    assertEquals("azure", actual.getBillingProvider());
-    String expectedId =
-        expected.getResourceId()
-            + ";"
-            + expected.getPlanId()
-            + ";"
-            + expected.getProductCode()
-            + ";"
-            + expected.getCustomerId()
-            + ";"
-            + expected.getClientId();
-    assertEquals(
-        expectedId,
-        actual.getBillingProviderId(),
-        "billing_provider_id should follow Azure format: {azureResourceId};{planId};{vendorProductCode};{customer};{clientId}");
-  }
-
-  /** Verifies a specific metric exists in the contract with the expected value. */
-  private void verifyMetric(
-      com.redhat.swatch.contract.test.model.Contract contract,
-      Metric metricId,
-      double expectedMetricValue) {
-    String dimension =
-        BillingProvider.AZURE.toApiModel().equals(contract.getBillingProvider())
-            ? metricId.getAzureDimension()
-            : metricId.getAwsDimension();
-
-    var metric =
-        contract.getMetrics().stream()
-            .filter(m -> m.getMetricId().equals(dimension))
-            .findFirst()
-            .orElseThrow(
-                () -> new AssertionError(metricId.getId() + " metric not found in contract"));
-    // Note: metric values get converted by billing factor
-    double expectedValue =
-        expectedMetricValue * Optional.ofNullable(metricId.getBillingFactor()).orElse(1.0);
-    assertEquals(
-        (int) expectedValue,
-        metric.getValue().intValue(),
-        metricId.getId() + " value should be " + expectedValue);
   }
 }

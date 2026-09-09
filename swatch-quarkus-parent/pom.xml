@@ -14,6 +14,10 @@
   <name>SWATCH - Parent - Quarkus</name>
   <packaging>pom</packaging>
 
+  <properties>
+    <hibernate-jpamodelgen.version>7.4.7.Final</hibernate-jpamodelgen.version>
+  </properties>
+
   <dependencyManagement>
     <dependencies>
       <dependency>

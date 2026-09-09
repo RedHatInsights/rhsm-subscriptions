@@ -185,6 +185,7 @@
             <path>
               <groupId>org.hibernate.orm</groupId>
               <artifactId>hibernate-processor</artifactId>
+              <version>${hibernate-jpamodelgen.version}</version>
             </path>
           </annotationProcessorPaths>
         </configuration>
