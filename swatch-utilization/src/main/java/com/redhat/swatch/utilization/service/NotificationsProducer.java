@@ -62,10 +62,10 @@ public class NotificationsProducer {
     }
     if (!canSendNotification(action)) {
       log.info(
-          "Notification not sent for orgId={} content='{}' - feature flag '{}' is disabled and org is not allowlisted",
+          "Notification not sent for orgId={} content='{}' - event type '{}' is denylisted and org is not allowlisted",
           action.getOrgId(),
           action,
-          FeatureFlags.SEND_NOTIFICATIONS);
+          action.getEventType());
       return;
     }
 
