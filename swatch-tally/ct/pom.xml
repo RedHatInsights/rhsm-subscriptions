@@ -64,6 +64,11 @@
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-test-hbi-support</artifactId>
+      <version>${project.version}</version>
+    </dependency>
   </dependencies>
 
   <build>
