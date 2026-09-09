@@ -25,7 +25,6 @@ import static com.redhat.swatch.common.security.KesselRolesAugmentor.KESSEL_FLAG
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.contract.model.ItSubscriptionServiceFeatureFlagVariantPayload;
-import com.redhat.swatch.contract.model.PartnerGatewayContractsFeatureFlagVariantPayload;
 import com.redhat.swatch.contract.model.ProductServiceConsumerFeatureFlagVariantPayload;
 import com.redhat.swatch.info.InfoFeatureFlagContributor;
 import com.redhat.swatch.info.UnleashInfoFeatureFlags;
@@ -42,8 +41,6 @@ import lombok.extern.slf4j.Slf4j;
 @ApplicationScoped
 @AllArgsConstructor
 public class FeatureFlags implements InfoFeatureFlagContributor {
-  public static final String PARTNER_GATEWAY_CONTRACTS =
-      "swatch.swatch-contracts.enable-partner-gateway-contracts";
   public static final String IT_SUBSCRIPTION_SERVICE =
       "swatch.swatch-contracts.enable-it-subscription-service";
   public static final String PRODUCT_SERVICE_CONSUMER =
@@ -54,22 +51,6 @@ public class FeatureFlags implements InfoFeatureFlagContributor {
 
   private final Unleash unleash;
   private final ObjectMapper mapper;
-
-  /** Whether the Kafka consumer for partner-gateway contracts is allowed. */
-  public boolean isPartnerGatewayContractsKafkaConsumerEnabled() {
-    return isFeatureFlagEnabled(
-        PARTNER_GATEWAY_CONTRACTS,
-        this::mapToPartnerGatewayContractsPayload,
-        PartnerGatewayContractsFeatureFlagVariantPayload::getKafkaConsumerEnabled);
-  }
-
-  /** Whether the UMB consumer for partner-gateway contracts is allowed. */
-  public boolean isPartnerGatewayContractsUmbConsumerEnabled() {
-    return isFeatureFlagEnabled(
-        PARTNER_GATEWAY_CONTRACTS,
-        this::mapToPartnerGatewayContractsPayload,
-        PartnerGatewayContractsFeatureFlagVariantPayload::getUmbConsumerEnabled);
-  }
 
   /** Whether the Kafka consumer for IT Subscription Service is allowed. */
   public boolean isItSubscriptionServiceKafkaConsumerEnabled() {
@@ -139,12 +120,6 @@ public class FeatureFlags implements InfoFeatureFlagContributor {
     return payloadMapper.apply(variant).map(condition).orElse(true);
   }
 
-  private Optional<PartnerGatewayContractsFeatureFlagVariantPayload>
-      mapToPartnerGatewayContractsPayload(Variant variant) {
-    return mapToPayload(
-        variant, PartnerGatewayContractsFeatureFlagVariantPayload.class, PARTNER_GATEWAY_CONTRACTS);
-  }
-
   private Optional<ItSubscriptionServiceFeatureFlagVariantPayload>
       mapToItSubscriptionServicePayload(Variant variant) {
     return mapToPayload(
@@ -182,7 +157,6 @@ public class FeatureFlags implements InfoFeatureFlagContributor {
     return UnleashInfoFeatureFlags.snapshot(
         unleash,
         DEFAULT_IS_ENABLED,
-        PARTNER_GATEWAY_CONTRACTS,
         IT_SUBSCRIPTION_SERVICE,
         KESSEL_FLAG,
         PRODUCT_SERVICE_CONSUMER);

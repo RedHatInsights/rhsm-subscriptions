@@ -26,10 +26,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import api.ContractsArtemisService;
-import com.redhat.swatch.component.tests.api.Artemis;
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.configuration.registry.MetricId;
@@ -40,26 +37,12 @@ import domain.Offering;
 import io.restassured.response.Response;
 import java.util.Map;
 import org.apache.http.HttpStatus;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 public class ContractCreationComponentTest extends BaseContractComponentTest {
 
   private static final double DEFAULT_CAPACITY = 10.0;
   private static final double INSTANCE_HOURS_CAPACITY = 18.0;
-
-  @Artemis static ContractsArtemisService artemis = new ContractsArtemisService();
-
-  @BeforeAll
-  static void enablePartnerGatewayContractsFeatureFlag() {
-    unleash.enablePartnerGatewayContracts();
-  }
-
-  @AfterAll
-  static void disablePartnerGatewayContractsFeatureFlag() {
-    unleash.disablePartnerGatewayContracts();
-  }
 
   @Test
   void shouldCreatePrepaidRosaContract_whenAllDataIsValid() {
@@ -72,7 +55,7 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
     var getContractsResponse = service.getContracts(contractData);
 
     assertEquals(1, getContractsResponse.size());
-    var actualContract = getContractsResponse.get(0);
+    var actualContract = getContractsResponse.getFirst();
     assertEquals(orgId, actualContract.getOrgId());
     assertEquals(contractData.getSubscriptionNumber(), actualContract.getSubscriptionNumber());
     assertEquals(contractData.getBillingAccountId(), actualContract.getBillingAccountId());
@@ -95,7 +78,7 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
     // Having metrics size as zero is what is indicating that this is pure paygo because there are
     // no valid prepaid metric amounts
     assertEquals(1, getContractsResponse.size());
-    var actualContract = getContractsResponse.get(0);
+    var actualContract = getContractsResponse.getFirst();
     assertEquals(orgId, actualContract.getOrgId());
     assertEquals(contractData.getSubscriptionNumber(), actualContract.getSubscriptionNumber());
     assertEquals(contractData.getBillingAccountId(), actualContract.getBillingAccountId());
@@ -112,7 +95,7 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
         givenContractCreatedViaMessageBroker(BillingProvider.AWS, Map.of(CORES, DEFAULT_CAPACITY));
 
     // Then: Verify contract was created with all expected fields
-    var actual = service.getContracts(contract).get(0);
+    var actual = service.getContracts(contract).getFirst();
     verifyCommonContractFields(contract, actual);
     verifyAwsBillingProviderId(contract, actual);
 
@@ -130,7 +113,7 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
             BillingProvider.AWS, Map.of(SOCKETS, DEFAULT_CAPACITY));
 
     // Then: Verify contract was created with all expected fields
-    var actual = service.getContracts(contract).get(0);
+    var actual = service.getContracts(contract).getFirst();
     verifyCommonContractFields(contract, actual);
     verifyAwsBillingProviderId(contract, actual);
 
@@ -147,7 +130,7 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
             BillingProvider.AZURE, Map.of(CORES, DEFAULT_CAPACITY));
 
     // Then: Verify contract was created with all expected fields
-    var actual = service.getContracts(contract).get(0);
+    var actual = service.getContracts(contract).getFirst();
     verifyCommonContractFields(contract, actual);
     verifyAzureBillingProviderId(contract, actual);
 
@@ -165,7 +148,7 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
             BillingProvider.AZURE, Map.of(SOCKETS, DEFAULT_CAPACITY));
 
     // Then: Verify contract was created with all expected fields
-    var actual = service.getContracts(contract).get(0);
+    var actual = service.getContracts(contract).getFirst();
     verifyCommonContractFields(contract, actual);
     verifyAzureBillingProviderId(contract, actual);
 
@@ -183,7 +166,7 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
             Map.of(CORES, DEFAULT_CAPACITY, INSTANCE_HOURS, INSTANCE_HOURS_CAPACITY));
 
     // Then: Verify contract was created with all expected fields
-    var actual = service.getContracts(contract).get(0);
+    var actual = service.getContracts(contract).getFirst();
     verifyCommonContractFields(contract, actual);
     verifyAwsBillingProviderId(contract, actual);
 
@@ -205,7 +188,7 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
             BillingProvider.AWS, Map.of(CORES, DEFAULT_CAPACITY, SOCKETS, DEFAULT_CAPACITY));
 
     // Then: Verify contract was created with all expected fields
-    var actual = service.getContracts(contract).get(0);
+    var actual = service.getContracts(contract).getFirst();
     verifyCommonContractFields(contract, actual);
     verifyAwsBillingProviderId(contract, actual);
 
@@ -221,7 +204,7 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
   @TestPlanName("contracts-creation-TC007")
   @Test
   void shouldNotPersistContractWhenRequiredFieldsAreMissing() {
-    // Given: A valid contract that we'll send via Artemis with a missing subscription in search API
+    // Given: A valid contract that we'll send with a missing subscription in search API
     // This simulates a scenario where required subscription data is not found
     Contract contract =
         buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, DEFAULT_CAPACITY));
@@ -233,10 +216,13 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
     Response sync = service.syncOffering(contract.getOffering().getSku());
     assertThat("Sync offering should succeed", sync.statusCode(), is(HttpStatus.SC_OK));
 
-    // When: Publish message to Kafka topic (via Artemis) without subscription data
-    artemis.forContracts().sendAsText(contract);
+    // When: Publish message to Kafka topic without subscription data
+    kafkaBridge.asOfPartnerGateway().send(contract);
 
-    // Then: Verify the contract was NOT created due to missing required subscription data
+    // Then: wait for the service to consume the message
+    service.logs().assertContains("Error fetching subscription ID for contract");
+
+    // And: Verify the contract was NOT created due to missing required subscription data
     // Wait for message to be processed - contract should NOT be created
     // Note: Using getContractsByOrgId since we expect no contracts to match contract details
     AwaitilityUtils.untilAsserted(
@@ -256,7 +242,7 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
     // When: POST contract via internal API
     whenContractIsCreatedViaApi(contract);
     // Then: Contract is created with AWS billing provider and 1 metric (Cores)
-    var actual = service.getContracts(contract).get(0);
+    var actual = service.getContracts(contract).getFirst();
     verifyCommonContractFields(contract, actual);
     verifyAwsBillingProviderId(contract, actual);
     assertEquals(1, actual.getMetrics().size(), "Should have exactly 1 metric (Cores)");
@@ -271,7 +257,7 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
     // When: POST contract via internal API
     whenContractIsCreatedViaApi(contract);
     // Then: Contract is created as pure PAYG with 0 metrics (invalid dimensions filtered out)
-    var actual = service.getContracts(contract).get(0);
+    var actual = service.getContracts(contract).getFirst();
     verifyCommonContractFields(contract, actual);
     verifyAwsBillingProviderId(contract, actual);
     assertEquals(0, actual.getMetrics().size(), "Pure PAYG contract should have 0 metrics");
@@ -286,7 +272,7 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
     // When: POST contract via internal API
     whenContractIsCreatedViaApi(contract);
     // Then: Contract is created with Azure billing provider and 1 metric (Cores)
-    var actual = service.getContractsByOrgId(orgId).get(0);
+    var actual = service.getContractsByOrgId(orgId).getFirst();
     verifyAzureBillingProviderId(contract, actual);
     assertEquals(1, actual.getMetrics().size(), "Should have exactly 1 metric (Cores)");
     verifyMetric(actual, contract.getProduct().getMetric(CORES), DEFAULT_CAPACITY);
@@ -300,7 +286,7 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
     // When: POST contract via internal API
     whenContractIsCreatedViaApi(contract);
     // Then: Contract is created as pure PAYG with 0 metrics (invalid dimensions filtered out)
-    var actual = service.getContractsByOrgId(orgId).get(0);
+    var actual = service.getContractsByOrgId(orgId).getFirst();
     verifyAzureBillingProviderId(contract, actual);
     assertEquals(0, actual.getMetrics().size(), "Pure PAYG contract should have 0 metrics");
   }
@@ -316,7 +302,7 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
     // When: POST contract via internal API
     whenContractIsCreatedViaApi(contract);
     // Then: Contract is created with both metrics stored correctly
-    var actual = service.getContracts(contract).get(0);
+    var actual = service.getContracts(contract).getFirst();
     verifyCommonContractFields(contract, actual);
     assertEquals(2, actual.getMetrics().size(), "Should have 2 metrics (Cores and Instance-hours)");
     verifyMetric(actual, contract.getProduct().getMetric(CORES), DEFAULT_CAPACITY);
@@ -333,7 +319,7 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
     // When: POST contract via internal API
     whenContractIsCreatedViaApi(contract);
     // Then: Only the valid metric (Cores) is stored, invalid (Sockets) is filtered out
-    var actual = service.getContracts(contract).get(0);
+    var actual = service.getContracts(contract).getFirst();
     verifyCommonContractFields(contract, actual);
     assertEquals(
         1,
@@ -381,34 +367,8 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
     assertEquals(1, contracts.size(), "Contract should be created");
     assertEquals(
         0,
-        contracts.get(0).getMetrics().size(),
+        contracts.getFirst().getMetrics().size(),
         "All dimensions should be filtered out for unconfigured SKU");
-  }
-
-  @TestPlanName("contracts-creation-TC016")
-  @Test
-  void shouldProcessValidPaygContractWhenReceivingAnObjectMessage() {
-    Contract contract =
-        buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, DEFAULT_CAPACITY));
-    wiremock.forProductAPI().stubOfferingData(contract.getOffering());
-    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContract(contract));
-    wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(contract);
-
-    Response sync = service.syncOffering(contract.getOffering().getSku());
-    assertEquals(HttpStatus.SC_OK, sync.statusCode(), "Sync offering should succeed");
-
-    artemis.forContracts().sendAsSerializable(contract);
-
-    assertTrue(service.isRunning(), "All Health Checks should be UP");
-
-    // Wait for contract to be processed - getContracts() validates HTTP 200 internally
-    AwaitilityUtils.untilAsserted(
-        () -> {
-          var actualContracts = service.getContracts(contract);
-          assertEquals(1, actualContracts.size());
-          verifyCommonContractFields(contract, actualContracts.get(0));
-          assertTrue(service.isRunning(), "All Health Checks should be UP after contract creation");
-        });
   }
 
   private Contract givenRosaContractWithMetrics(
@@ -428,7 +388,7 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
     Response sync = service.syncOffering(contract.getOffering().getSku());
     assertThat("Sync offering should succeed", sync.statusCode(), is(HttpStatus.SC_OK));
 
-    artemis.forContracts().sendAsText(contract);
+    kafkaBridge.asOfPartnerGateway().send(contract);
 
     // Wait for contract to be processed - getContracts() validates HTTP 200 internally
     AwaitilityUtils.until(() -> service.getContracts(contract).size(), is(1));

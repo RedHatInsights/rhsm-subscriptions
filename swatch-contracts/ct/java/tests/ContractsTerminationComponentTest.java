@@ -33,8 +33,6 @@ import static org.hamcrest.Matchers.lessThan;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import api.ContractsArtemisService;
-import com.redhat.swatch.component.tests.api.Artemis;
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
@@ -49,9 +47,7 @@ import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.http.HttpStatus;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 public class ContractsTerminationComponentTest extends BaseContractComponentTest {
@@ -59,18 +55,6 @@ public class ContractsTerminationComponentTest extends BaseContractComponentTest
   private static final double ROSA_CORES_CAPACITY = 8.0;
   private static final double RHEL_CORES_CAPACITY = 4.0;
   private static final double RHEL_SOCKETS_CAPACITY = 1.0;
-
-  @Artemis static ContractsArtemisService artemis = new ContractsArtemisService();
-
-  @BeforeAll
-  static void enablePartnerGatewayContractsFeatureFlag() {
-    unleash.enablePartnerGatewayContracts();
-  }
-
-  @AfterAll
-  static void disablePartnerGatewayContractsFeatureFlag() {
-    unleash.disablePartnerGatewayContracts();
-  }
 
   @TestPlanName("contracts-termination-TC001")
   @Test
@@ -251,7 +235,7 @@ public class ContractsTerminationComponentTest extends BaseContractComponentTest
     Contract updatedContract =
         initialContract.toBuilder().endDate(OffsetDateTime.now().plusDays(30)).build();
     wiremock.forPartnerAPI().stubPartnerSubscriptions(forContract(updatedContract));
-    artemis.forContracts().sendAsText(updatedContract);
+    kafkaBridge.asOfPartnerGateway().send(updatedContract);
     return updatedContract;
   }
 
@@ -263,8 +247,8 @@ public class ContractsTerminationComponentTest extends BaseContractComponentTest
     Response sync = service.syncOffering(contract.getOffering().getSku());
     assertThat("Sync offering should succeed", sync.statusCode(), is(HttpStatus.SC_OK));
 
-    // Send the contract via Message Broker (Artemis)
-    artemis.forContracts().sendAsText(contract);
+    // Send the contract via Message Broker
+    kafkaBridge.asOfPartnerGateway().send(contract);
 
     // Wait for the contract to be processed
     AwaitilityUtils.until(() -> service.getContracts(contract).size(), is(1));
@@ -289,7 +273,7 @@ public class ContractsTerminationComponentTest extends BaseContractComponentTest
     service.logs().assertContains(expectedMessage);
     var contracts = service.getContracts(initialContract);
     Assertions.assertEquals(1, contracts.size());
-    return contracts.get(0);
+    return contracts.getFirst();
   }
 
   private void thenSubscriptionIsUpdatedWithNextEventData(

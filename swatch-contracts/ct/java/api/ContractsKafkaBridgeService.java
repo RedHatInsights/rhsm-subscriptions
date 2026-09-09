@@ -20,29 +20,16 @@
  */
 package api;
 
-import com.redhat.swatch.component.tests.api.ArtemisService;
+import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 
-/**
- * Service for sending messages via Artemis in component tests. Provides specialized builders for
- * different message types.
- */
-public class ContractsArtemisService extends ArtemisService {
+public class ContractsKafkaBridgeService extends KafkaBridgeService {
 
   /**
-   * Get facade for building and sending CanonicalMessage messages.
+   * Get facade for building and sending PartnerEntitlementContract messages.
    *
-   * @return CanonicalMessage instance
+   * @return PartnerContractKafkaSender instance
    */
-  public CanonicalMessageArtemisSender forSubscriptions() {
-    return new CanonicalMessageArtemisSender(this);
-  }
-
-  /**
-   * Get facade for building and sending OperationalProductEvent messages.
-   *
-   * @return OperationalProductEvent instance
-   */
-  public OperationalProductArtemisSender forOfferings() {
-    return new OperationalProductArtemisSender(this);
+  public PartnerContractKafkaSender asOfPartnerGateway() {
+    return new PartnerContractKafkaSender(this);
   }
 }
