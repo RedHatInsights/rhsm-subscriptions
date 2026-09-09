@@ -1,0 +1,32 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "/api/rbac/v2/workspaces",
+    "queryParameters": {
+      "orgId": {
+        "matches": ".*"
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "data": [
+        {
+          "id": "default-workspace-{{request.query.orgId}}",
+          "name": "Default Workspace",
+          "description": "Default workspace for org",
+          "parent": null,
+          "hierarchy": [],
+          "type_id": "workspace"
+        }
+      ],
+      "meta": {
+        "count": 1
+      }
+    }
+  }
+}
