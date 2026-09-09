@@ -25,12 +25,8 @@ import static com.redhat.swatch.component.tests.utils.SwatchUtils.securityHeader
 import static org.apache.http.HttpStatus.SC_OK;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.redhat.swatch.component.tests.api.SwatchService;
 import com.redhat.swatch.component.tests.utils.JsonUtils;
-import com.redhat.swatch.contract.product.umb.CanonicalMessage;
 import com.redhat.swatch.contract.test.model.CapacityReportByMetricId;
 import com.redhat.swatch.contract.test.model.ContractRequest;
 import com.redhat.swatch.contract.test.model.GranularityType;
@@ -39,7 +35,6 @@ import com.redhat.swatch.contract.test.model.ServiceLevelType;
 import com.redhat.swatch.contract.test.model.SkuCapacityReportV1;
 import com.redhat.swatch.contract.test.model.SkuCapacityReportV2;
 import com.redhat.swatch.contract.test.model.SkuCapacityV2;
-import com.redhat.swatch.contract.test.model.SubscriptionResponse;
 import com.redhat.swatch.contract.test.model.UsageType;
 import domain.BillingProvider;
 import domain.Contract;
@@ -55,7 +50,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 import org.apache.http.HttpStatus;
-import utils.CanonicalMessageMapper;
 import utils.ContractRequestMapper;
 import utils.SubscriptionRequestMapper;
 
@@ -81,7 +75,6 @@ public class ContractsSwatchService extends SwatchService {
   private static final String SYNC_ALL_CONTRACTS_ENDPOINT = ENDPOINT_PREFIX + "/rpc/contracts/sync";
   private static final String SYNC_ALL_SUBSCRIPTIONS_ENDPOINT =
       ENDPOINT_PREFIX + "/rpc/subscriptions/sync";
-  private static final String SUBSCRIPTIONS_UMB_ENDPOINT = ENDPOINT_PREFIX + "/subscriptions/umb";
   private static final String AWS_USAGE_CONTEXT_ENDPOINT =
       SUBSCRIPTIONS_ENDPOINT + "/awsUsageContext";
   private static final String AZURE_USAGE_CONTEXT_ENDPOINT =
@@ -562,26 +555,6 @@ public class ContractsSwatchService extends SwatchService {
 
   public Response syncAllSubscriptions() {
     return given().headers(SECURITY_HEADERS).when().post(SYNC_ALL_SUBSCRIPTIONS_ENDPOINT);
-  }
-
-  public SubscriptionResponse syncUmbSubscription(Subscription subscription) {
-    XmlMapper mapper = CanonicalMessage.createMapper();
-    mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-    try {
-      return given()
-          .headers(SECURITY_HEADERS)
-          .when()
-          .contentType(ContentType.XML)
-          .body(
-              mapper.writeValueAsString(CanonicalMessageMapper.mapActiveSubscription(subscription)))
-          .post(SUBSCRIPTIONS_UMB_ENDPOINT)
-          .then()
-          .statusCode(SC_OK)
-          .extract()
-          .as(SubscriptionResponse.class);
-    } catch (JsonProcessingException e) {
-      throw new RuntimeException(e);
-    }
   }
 
   public Response syncSubscriptionsForContractsByOrg(String orgId) {

@@ -16,7 +16,7 @@ Boundary(crc, console.redhat.com) {
       Container(contracts, "swatch-contracts", "Java, Container", "Syncs subscription data from backoffice services.")
       ContainerQueue(offering_sync_tasks, "platform.rhsm-subscriptions.offering-sync", "Kafka Topic")
       ContainerQueue(capacity_reconcile_tasks, "platform.rhsm-subscriptions.capacity-reconcile", "Kafka Topic")
-      ContainerQueue(subscription_sync_tasks, "platform.rhsm-subscriptions.subscription-sync", "Kafka Topic")
+      ContainerQueue(subscription_sync_tasks, "platform.rhsm-subscriptions.subscription-sync-task", "Kafka Topic")
     }
     ContainerDb(db, "Database", "Postgres Database", "Stores subscription and usage information.")
   }
@@ -26,7 +26,7 @@ Boundary(rhit, "Red Hat IT") {
   System_Ext(rhit_subscriptions, "RH IT Subscription Service", "The internal RH Subscription API.")
   System_Ext(rhit_product, "RH IT Product Service", "The internal RH Product API which contains Offering definitions.")
   System_Ext(partnergw, "IT Partner Services", "Handles Cloud Provider Listings and SaaS Subscription Lifecycle")
-  ContainerQueue_Ext(rhit_umb_subscription, "VirtualTopic.canonical.subscription", "ActiveMQ VirtualTopic")
+  ContainerQueue_Ext(rhit_kafka_subscription, "subscription.subscriptions.private", "Kafka Topic")
   ContainerQueue_Ext(rhit_umb_product, "VirtualTopic.services.productservice.Product", "ActiveMQ VirtualTopic")
   ContainerQueue_Ext(rhit_contracts, "VirtualTopic.services.partner-entitlement-gateway", "ActiveMQ VirtualTopic")
 }
@@ -41,12 +41,12 @@ Rel_Back(capacity_reconcile_tasks, contracts, "Consumes from")
 Rel_Back(offering_sync_tasks, contracts, "Consumes from")
 Rel(contracts, db, "Reads from and writes to", "JDBC")
 Rel(contracts, rhit_subscriptions, "Reads from", "JSON/HTTPS")
-Rel_Back(contracts, rhit_umb_subscription, "Notifies", "XML")
+Rel_Back(contracts, rhit_kafka_subscription, "Consumes from", "JSON")
 Rel_Back(contracts, rhit_umb_product, "Notifies", "XML")
 Rel_Back(contracts, rhit_contracts, "Notifies", "JSON")
 Rel(contracts, rhit_product, "Reads from", "JSON/HTTPS")
 Rel(contracts, partnergw, "Reads from", "JSON/HTTPS")
 Rel(rhit_product, rhit_umb_product, "Notifies", "XML")
-Rel(rhit_subscriptions, rhit_umb_subscription, "Notifies", "XML")
+Rel(rhit_subscriptions, rhit_kafka_subscription, "Publishes to", "JSON")
 Rel(partnergw, rhit_contracts, "Notifies", "JSON")
 @enduml

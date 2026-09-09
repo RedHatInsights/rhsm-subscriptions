@@ -62,7 +62,10 @@ public class SubscriptionsTerminationComponentTest extends BaseContractComponent
     var subscription = Subscription.buildRhelSubscription(orgId, Map.of(SOCKETS, 1.0));
     wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(subscription);
     wiremock.forProductAPI().stubOfferingData(subscription.getOffering());
-    service.syncUmbSubscription(subscription);
+    assertEquals(
+        HttpStatus.SC_OK,
+        service.saveSubscriptions(true, subscription).statusCode(),
+        "Creating subscription should succeed");
     return subscription;
   }
 }

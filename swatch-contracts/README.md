@@ -57,7 +57,7 @@ IT Subscription Service. A scheduled cron job triggers the sync process, which:
 - Links subscriptions to offering definitions (product configurations).
 - Triggers capacity reconciliation for affected organizations.
 
-This ensures that even if UMB events are missed, the system remains synchronized with the authoritative
+This ensures that even if real-time Kafka events are missed, the system remains synchronized with the authoritative
 subscription data in IT systems.
 
 ### Offering Synchronization
@@ -79,9 +79,10 @@ The service consumes product status events from the IT Product Service UMB topic
 product and offering definitions. When a product status event is received, the service triggers an
 offering sync for the affected product.
 
-### Subscription Status UMB Consumer
-The service consumes subscription status events from the IT Subscription Service UMB topic
-(VirtualTopic.canonical.subscription) to receive real-time notifications about subscription changes.
+### Subscription Status Kafka Consumer
+The service consumes subscription status events from the IT Subscription Service Kafka topic
+(`subscription.subscriptions.private`; stage: `stage.subscription.subscriptions.private`) to receive
+real-time notifications about subscription changes. Messages are `SubscriptionOutboxEvent` JSON payloads.
 When a subscription status event is received, the service processes the subscription update and
 triggers capacity reconciliation if needed.
 

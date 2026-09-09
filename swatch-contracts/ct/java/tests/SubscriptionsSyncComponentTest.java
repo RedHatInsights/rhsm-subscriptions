@@ -21,6 +21,7 @@
 package tests;
 
 import static com.redhat.swatch.component.tests.utils.Topics.ENABLED_ORGS;
+import static com.redhat.swatch.component.tests.utils.Topics.IT_SUBSCRIPTION_SYNC;
 import static com.redhat.swatch.component.tests.utils.Topics.SUBSCRIPTION_SYNC_TASK;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -81,10 +82,10 @@ public class SubscriptionsSyncComponentTest extends BaseContractComponentTest {
 
   @TestPlanName("subscriptions-sync-TC002")
   @Test
-  void shouldSyncUmbSubscriptionMessage() {
+  void shouldSyncSubscriptionMessage() {
     Subscription subscription = givenSubscription();
-    var response = service.syncUmbSubscription(subscription);
-    assertEquals("Success", response.getDetail());
+    kafkaBridge.produceKafkaMessage(IT_SUBSCRIPTION_SYNC, buildKafkaMessage(subscription));
+    thenSubscriptionIsPresent(subscription.getSubscriptionId());
   }
 
   @TestPlanName("subscriptions-sync-TC003")
@@ -396,5 +397,33 @@ public class SubscriptionsSyncComponentTest extends BaseContractComponentTest {
         .logs()
         .assertContains(
             "Subscription created/updated org_id=" + orgId + " subscription_id=" + subscriptionId);
+  }
+
+  private Map<String, Object> buildKafkaMessage(Subscription subscription) {
+    return Map.of(
+        "eventId",
+        RandomUtils.generateRandom(),
+        "entityType",
+        "Subscription",
+        "eventType",
+        "CREATE",
+        "eventVersion",
+        "v1.0",
+        "createdAt",
+        System.currentTimeMillis(),
+        "payload",
+        Map.of(
+            "subscriptionNumber",
+            subscription.getSubscriptionNumber(),
+            "customerId",
+            subscription.getOrgId(),
+            "quantity",
+            subscription.getQuantity(),
+            "effectiveStartDate",
+            subscription.getStartDate().toInstant().toEpochMilli(),
+            "effectiveEndDate",
+            subscription.getEndDate().toInstant().toEpochMilli(),
+            "product",
+            Map.of("sku", subscription.getOffering().getSku())));
   }
 }
