@@ -245,6 +245,10 @@ public class ContractService {
   public ContractMessageProcessingResult upsertPartnerContracts(
       PartnerEntitlementV1 entitlement, String subscriptionId)
       throws ContractNotAssociatedToOrgException, ContractValidationFailedException {
+    // lock by contract updates
+    transactionalLocks.acquireLockBy(
+        "contract", contractEntityMapper.extractBillingProviderId(entitlement));
+    // lock by subscription if it does exist
     transactionalLocks.acquireLockBy("subscription", findSubscriptionNumber(entitlement));
 
     List<ContractEntity> entities;
