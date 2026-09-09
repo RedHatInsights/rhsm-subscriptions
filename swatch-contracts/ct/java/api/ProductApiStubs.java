@@ -170,8 +170,7 @@ public class ProductApiStubs {
         AwaitilitySettings.defaults()
             .during(PRODUCT_TREE_ABSENCE_OBSERVATION)
             .timeoutMessage(
-                "Product tree should not be requested for SKU %s during async processing",
-                sku));
+                "Product tree should not be requested for SKU %s during async processing", sku));
   }
 
   public void verifyProductTreeNotRequested(String sku) {
