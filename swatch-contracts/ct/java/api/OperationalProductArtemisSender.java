@@ -53,6 +53,10 @@ public class OperationalProductArtemisSender {
     sendMessage(fromOffering(offering));
   }
 
+  public void send(OperationalProductEvent event) {
+    sendMessage(event);
+  }
+
   /**
    * Send a malformed JSON message that cannot be deserialized.
    *

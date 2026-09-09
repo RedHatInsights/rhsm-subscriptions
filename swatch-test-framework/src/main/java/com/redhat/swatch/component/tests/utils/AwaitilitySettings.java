@@ -30,6 +30,7 @@ public final class AwaitilitySettings {
 
   Duration interval = Duration.ofMillis(POLL_MILLISECONDS);
   Duration timeout = Duration.ofSeconds(TIMEOUT_SECONDS);
+  Duration during;
   Service service;
   String timeoutMessage = StringUtils.EMPTY;
   boolean doNotIgnoreExceptions = false;
@@ -69,6 +70,15 @@ public final class AwaitilitySettings {
 
   public AwaitilitySettings onConditionNotMet(Runnable runnable) {
     this.onConditionNotMet = runnable;
+    return this;
+  }
+
+  /**
+   * Require the awaited condition to remain satisfied for at least this duration. Use for absence
+   * checks where an initially passing state can flip once asynchronous processing completes.
+   */
+  public AwaitilitySettings during(Duration during) {
+    this.during = during;
     return this;
   }
 }

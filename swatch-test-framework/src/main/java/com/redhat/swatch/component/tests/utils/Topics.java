@@ -41,6 +41,7 @@ public final class Topics {
   public static final String PARTNER_ENTITLEMENT_GATEWAY =
       "partner-integration.entitlement-gateway.partner-entitlement.protected";
   public static final String EXPORT_REQUESTS = "platform.export.requests";
+  public static final String IT_PRODUCT_SYNC = "product-service.operationalproduct.protected";
 
   private Topics() {}
 }
