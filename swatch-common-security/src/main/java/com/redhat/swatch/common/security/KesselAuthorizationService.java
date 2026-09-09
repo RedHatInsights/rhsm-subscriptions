@@ -22,6 +22,8 @@ package com.redhat.swatch.common.security;
 
 import com.redhat.swatch.kessel.KesselAuthorizationClient;
 import com.redhat.swatch.kessel.KesselConfig;
+import com.redhat.swatch.kessel.KesselMetricsRecorder;
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -46,6 +48,7 @@ import org.project_kessel.api.rbac.v2.FetchWorkspace;
 public class KesselAuthorizationService {
 
   @Inject KesselProperties properties;
+  @Inject MeterRegistry meterRegistry;
 
   private KesselAuthorizationClient client;
   private volatile OAuth2AuthRequest rbacAuth;
@@ -71,7 +74,9 @@ public class KesselAuthorizationService {
           }
         };
 
-    client = new KesselAuthorizationClient(config, this::getDefaultWorkspaceId);
+    KesselMetricsRecorder metricsRecorder = new KesselMicrometerRecorder(meterRegistry);
+
+    client = new KesselAuthorizationClient(config, this::getDefaultWorkspaceId, metricsRecorder);
     client.init();
 
     try {
@@ -167,7 +172,9 @@ public class KesselAuthorizationService {
               return properties.timeoutMs();
             }
           };
-      client = new KesselAuthorizationClient(config, this::getDefaultWorkspaceId);
+      client =
+          new KesselAuthorizationClient(
+              config, this::getDefaultWorkspaceId, KesselMetricsRecorder.NOOP);
     }
     client.setStub(stub);
   }
