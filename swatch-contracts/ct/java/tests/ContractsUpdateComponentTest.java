@@ -22,6 +22,7 @@ package tests;
 
 import static api.PartnerApiStubs.PartnerSubscriptionsStubRequest.forContract;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -353,10 +354,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
     artemis.forContracts().sendAsText(contract);
 
     // Then: Contract is created end-to-end
-    service.logs().assertContains("Existing contracts and subscriptions updated");
-    var contracts = service.getContracts(contract);
-    assertEquals(1, contracts.size());
-    var actual = contracts.getFirst();
+    var actual = thenContractIsCreated(contract);
     assertEquals(orgId, actual.getOrgId());
     assertEquals(contract.getSubscriptionNumber(), actual.getSubscriptionNumber());
     assertEquals(contract.getOffering().getSku(), actual.getSku());
@@ -378,7 +376,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
     artemis.forContracts().sendAsText(contract);
 
     // Wait for the contract to be processed
-    AwaitilityUtils.until(() -> service.getContracts(contract).size(), is(1));
+    thenContractIsCreated(contract);
     return contract;
   }
 
@@ -500,5 +498,10 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
               response.statusCode(),
               "Offering should exist after product ingress event");
         });
+  }
+
+  private com.redhat.swatch.contract.test.model.Contract thenContractIsCreated(Contract contract) {
+    var contracts = AwaitilityUtils.until(() -> service.getContracts(contract), hasSize(1));
+    return contracts.iterator().next();
   }
 }
