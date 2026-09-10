@@ -8561,25 +8561,6 @@ data:
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "contracts"
-                },
-                "properties": [
-                  {
-                    "id": "displayName",
-                    "value": "from UMB"
-                  },
-                  {
-                    "id": "color",
-                    "value": {
-                      "fixedColor": "yellow",
-                      "mode": "fixed"
-                    }
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
                   "options": "contracts-from-gateway"
                 },
                 "properties": [
@@ -8628,7 +8609,7 @@ data:
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "sum by (channel) (\n  increase(quarkus_messaging_message_count_total{\n    channel=~\"contracts-from-gateway|contracts\"\n  }[$__rate_interval])\n)",
+              "expr": "sum by (channel) (\n  increase(quarkus_messaging_message_count_total{\n    channel=~\"contracts-from-gateway\"\n  }[$__rate_interval])\n)",
               "format": "time_series",
               "instant": false,
               "legendFormat": "__auto",
@@ -8700,25 +8681,6 @@ data:
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "contracts"
-                },
-                "properties": [
-                  {
-                    "id": "displayName",
-                    "value": "from UMB"
-                  },
-                  {
-                    "id": "color",
-                    "value": {
-                      "fixedColor": "yellow",
-                      "mode": "fixed"
-                    }
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
                   "options": "contracts-from-gateway"
                 },
                 "properties": [
@@ -8767,7 +8729,7 @@ data:
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "sum by (channel) (\n  increase(quarkus_messaging_message_failures_total{\n    channel=~\"contracts-from-gateway|contracts\"\n  }[$__rate_interval])\n)",
+              "expr": "sum by (channel) (\n  increase(quarkus_messaging_message_failures_total{\n    channel=~\"contracts-from-gateway\"\n  }[$__rate_interval])\n)",
               "format": "time_series",
               "instant": false,
               "legendFormat": "__auto",

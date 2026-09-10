@@ -24,7 +24,6 @@ import com.redhat.swatch.component.tests.api.UnleashService;
 
 public class ContractsUnleashService extends UnleashService {
 
-<<<<<<< HEAD
   public static final String IT_SUBSCRIPTION_SERVICE =
       "swatch.swatch-contracts.enable-it-subscription-service";
   public static final String PRODUCT_SERVICE_CONSUMER =
