@@ -64,6 +64,10 @@ public class SubscriptionsTerminationComponentTest extends BaseContractComponent
     wiremock.forProductAPI().stubOfferingData(subscription.getOffering());
     assertEquals(
         HttpStatus.SC_OK,
+        service.syncOffering(subscription.getOffering().getSku()).statusCode(),
+        "Sync offering should succeed");
+    assertEquals(
+        HttpStatus.SC_OK,
         service.saveSubscriptions(true, subscription).statusCode(),
         "Creating subscription should succeed");
     return subscription;
