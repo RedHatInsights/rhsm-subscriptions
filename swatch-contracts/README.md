@@ -6,7 +6,7 @@ Red Hat IT backoffice services, processes contract entitlements from cloud marke
 (AWS, Azure), and provides contract coverage information to other SWATCH services for billing
 calculations.
 
-The service receives contract entitlement events from Partner Gateway via UMB (Unified Message Bus),
+The service receives contract entitlement events from Partner Gateway via Kafka,
 enriches them with data from Partner API and Subscription API, and stores normalized contract and
 subscription data in the database. It also performs periodic synchronization of subscription data
 from IT Subscription Service and offering definitions from IT Product Service to keep the local
@@ -30,14 +30,14 @@ capacity tracking across the system.
 ## Component/Flow Diagram
 ![Container diagram for Subscription Sync](../docs/container-subscription-sync.svg)
 
-### Contract UMB Message Consumer
-The Contract UMB Message Consumer is the main entry point for partner entitlement events. It consumes
-messages from the Partner Gateway UMB topic (VirtualTopic.services.partner-entitlement-gateway) when
+### Contract Kafka Message Consumer
+The Contract Kafka Message Consumer is the main entry point for partner entitlement events. It consumes
+messages from the Partner Gateway Kafka topic (partner-integration.entitlement-gateway.partner-entitlement.protected) when
 customers purchase or modify subscriptions through cloud marketplace partners.
 
 #### Partner Entitlement Processing
 When a partner entitlement event is received:
-1. The service parses the PartnerEntitlementContract message from UMB.
+1. The service parses the PartnerEntitlementContract message from Kafka.
 2. It queries the Partner API to retrieve full entitlement details including contract dimensions,
    billing identifiers, and subscription numbers.
 3. It queries the Subscription API to find the corresponding subscription ID that matches the
@@ -73,9 +73,9 @@ scheduled cron job triggers the sync process, which:
 Offering definitions determine which products are tracked by SWATCH, what metrics are measured, and
 how usage data should be interpreted.
 
-### Product Status UMB Consumer
-The service consumes product status events from the IT Product Service UMB topic
-(VirtualTopic.services.productservice.Product) to receive real-time notifications about changes to
+### Product Status Kafka Consumer
+The service consumes product status events from the IT Product Service Kafka topic
+(product-service.operationalproduct.protected) to receive real-time notifications about changes to
 product and offering definitions. When a product status event is received, the service triggers an
 offering sync for the affected product.
 

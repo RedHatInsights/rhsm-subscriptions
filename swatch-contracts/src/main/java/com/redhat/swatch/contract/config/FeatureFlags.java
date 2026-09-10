@@ -22,17 +22,11 @@ package com.redhat.swatch.contract.config;
 
 import static com.redhat.swatch.common.security.KesselRolesAugmentor.KESSEL_FLAG;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.redhat.swatch.contract.model.ProductServiceConsumerFeatureFlagVariantPayload;
 import com.redhat.swatch.info.InfoFeatureFlagContributor;
 import com.redhat.swatch.info.UnleashInfoFeatureFlags;
 import com.redhat.swatch.info.model.InfoFeatureFlags;
 import io.getunleash.Unleash;
-import io.getunleash.variant.Variant;
 import jakarta.enterprise.context.ApplicationScoped;
-import java.util.Optional;
-import java.util.function.Function;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -40,96 +34,13 @@ import lombok.extern.slf4j.Slf4j;
 @ApplicationScoped
 @AllArgsConstructor
 public class FeatureFlags implements InfoFeatureFlagContributor {
-  public static final String PRODUCT_SERVICE_CONSUMER =
-      "swatch.swatch-contracts.enable-product-service-consumer";
-  public static final String CONFIG_VARIANT = "config";
 
   protected static final boolean DEFAULT_IS_ENABLED = true;
 
   private final Unleash unleash;
-  private final ObjectMapper mapper;
-
-  /** Whether the Kafka consumer for Product Service is allowed. */
-  public boolean isProductServiceKafkaConsumerEnabled() {
-    return isFeatureFlagEnabled(
-        PRODUCT_SERVICE_CONSUMER,
-        this::mapToProductServiceConsumerPayload,
-        ProductServiceConsumerFeatureFlagVariantPayload::getKafkaConsumerEnabled);
-  }
-
-  /** Whether the UMB consumer for Product Service is allowed. */
-  public boolean isProductServiceUmbConsumerEnabled() {
-    return isFeatureFlagEnabled(
-        PRODUCT_SERVICE_CONSUMER,
-        this::mapToProductServiceConsumerPayload,
-        ProductServiceConsumerFeatureFlagVariantPayload::getUmbConsumerEnabled);
-  }
-
-  /**
-   * Generic feature flag evaluation logic.
-   *
-   * <p>If the feature flag is disabled, returns {@code false}.
-   *
-   * <p>If the toggle is enabled and Unleash returns a variant whose name is not {@value
-   * #CONFIG_VARIANT}, returns {@code true} (no structured payload to interpret).
-   *
-   * <p>If the variant is named {@value #CONFIG_VARIANT} but {@link Variant#isEnabled()} is {@code
-   * false}, returns {@code true}.
-   *
-   * <p>If the variant is {@value #CONFIG_VARIANT} and enabled, the variant payload is parsed as
-   * JSON; this method returns the consumer_enabled flag from that object. Missing payload, invalid
-   * JSON, or a null/false flag yields {@code true}.
-   */
-  private <T> boolean isFeatureFlagEnabled(
-      String featureFlagName,
-      Function<Variant, Optional<T>> payloadMapper,
-      Function<T, Boolean> condition) {
-    if (!unleash.isEnabled(featureFlagName, DEFAULT_IS_ENABLED)) {
-      return false;
-    }
-
-    Variant variant = unleash.getVariant(featureFlagName);
-    if (!CONFIG_VARIANT.equals(variant.getName())) {
-      log.debug("Feature flag '{}' with no valid variant '{}'", featureFlagName, variant);
-      return true;
-    }
-
-    if (!variant.isEnabled()) {
-      return true;
-    }
-
-    return payloadMapper.apply(variant).map(condition).orElse(true);
-  }
-
-  private Optional<ProductServiceConsumerFeatureFlagVariantPayload>
-      mapToProductServiceConsumerPayload(Variant variant) {
-    return mapToPayload(
-        variant, ProductServiceConsumerFeatureFlagVariantPayload.class, PRODUCT_SERVICE_CONSUMER);
-  }
-
-  private <T> Optional<T> mapToPayload(
-      Variant variant, Class<T> payloadClass, String featureFlagName) {
-    var payload = variant.getPayload();
-    if (payload.isEmpty()) {
-      return Optional.empty();
-    }
-
-    String payloadValue = payload.get().getValue();
-    try {
-      return Optional.ofNullable(mapper.readValue(payloadValue, payloadClass));
-    } catch (JsonProcessingException e) {
-      log.warn(
-          "Failed to parse the payload '{}' for feature flag '{}'",
-          payloadValue,
-          featureFlagName,
-          e);
-      return Optional.empty();
-    }
-  }
 
   @Override
   public InfoFeatureFlags getFeatureFlags() {
-    return UnleashInfoFeatureFlags.snapshot(
-        unleash, DEFAULT_IS_ENABLED, KESSEL_FLAG, PRODUCT_SERVICE_CONSUMER);
+    return UnleashInfoFeatureFlags.snapshot(unleash, DEFAULT_IS_ENABLED, KESSEL_FLAG);
   }
 }

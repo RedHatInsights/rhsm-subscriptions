@@ -63,8 +63,6 @@ parameters:
     value: latest
   - name: QUARKUS_PROFILE
     value: prod
-  - name: UMB_KEYSTORE_PATH
-    value: /pinhead/keystore.jks
   - name: SUBSCRIPTION_SYNC_ENABLED
     value: 'true'
   - name: SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN
@@ -413,15 +411,7 @@ objects:
               - name: KEYSTORE_RESOURCE
                 # Note the parenthesis for a dependent variable reference!
                 value: "file:$(KEYSTORE_PATH)"
-              - name: UMB_KEYSTORE_PASSWORD
-                valueFrom:
-                  secretKeyRef:
-                    name: tls
-                    key: keystore_password
-              - name: UMB_KEYSTORE_PATH
-                value: ${UMB_KEYSTORE_PATH}
               - name: TRUSTSTORE_PATH
-                # Used by UMB which is unique in not using the system truststore
                 value: /pinhead/truststore.jks
               - name: TRUSTSTORE_RESOURCE
                 # Unset in production and stage so that the system truststore will be used
@@ -431,11 +421,6 @@ objects:
                   secretKeyRef:
                     name: tls
                     key: keystore_password
-              - name: UMB_NAMESPACE
-                valueFrom:
-                  fieldRef:
-                    apiVersion: v1
-                    fieldPath: metadata.namespace
               - name: PRODUCT_DENYLIST_RESOURCE_LOCATION
                 value: file:/denylist/product-denylist.txt
               - name: PRODUCT_KEYSTORE_RESOURCE

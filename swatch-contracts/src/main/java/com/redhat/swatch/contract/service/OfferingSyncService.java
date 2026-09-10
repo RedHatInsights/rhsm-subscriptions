@@ -21,7 +21,6 @@
 package com.redhat.swatch.contract.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.redhat.swatch.clients.product.JsonProductDataSource;
 import com.redhat.swatch.clients.product.ProductService;
 import com.redhat.swatch.contract.config.Channels;
@@ -31,7 +30,6 @@ import com.redhat.swatch.contract.model.OfferingSyncTask;
 import com.redhat.swatch.contract.model.SyncResult;
 import com.redhat.swatch.contract.openapi.model.OperationalProductEvent;
 import com.redhat.swatch.contract.product.UpstreamProductData;
-import com.redhat.swatch.contract.product.umb.CanonicalMessage;
 import com.redhat.swatch.contract.product.umb.ProductAttribute;
 import com.redhat.swatch.contract.product.umb.UmbOperationalProduct;
 import com.redhat.swatch.contract.repository.OfferingEntity;
@@ -70,7 +68,6 @@ public class OfferingSyncService {
   private final Timer enqueueAllTimer;
   private final MutinyEmitter<OfferingSyncTask> offeringSyncTaskEmitter;
   private final ObjectMapper objectMapper;
-  private final XmlMapper umbMessageMapper;
   private final OfferingProductTagLookupService offeringProductTagLookupService;
 
   @Inject
@@ -91,7 +88,6 @@ public class OfferingSyncService {
     this.enqueueAllTimer = meterRegistry.timer("swatch_offering_sync_enqueue_all");
     this.offeringSyncTaskEmitter = offeringSyncTaskEmitter;
     this.objectMapper = objectMapper;
-    this.umbMessageMapper = CanonicalMessage.createMapper();
     this.offeringProductTagLookupService = offeringProductTagLookupService;
   }
 
