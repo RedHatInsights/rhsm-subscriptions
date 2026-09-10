@@ -38,7 +38,6 @@ This test plan focuses on covering the test scenario for component-level tests, 
 
 Test cases should be testable locally and in an ephemeral environment.
 
-- UMB and Kafka messages can be injected for event-driven testing. 
 - The services' API can be mocked. 
 - System state can be verified through internal API calls.
 
@@ -1212,7 +1211,7 @@ This section verifies the automatic contract termination behavior when contracts
 **offering-sync-TC001** - **Synchronize offering from external product data**
 - **Description:** Verify that offerings can be synchronized using external product information and result in correct database state.
 - **Setup:** Create test product data with specific attributes (level_1, level_2, metered flag) in the external product service.
-- **Action:** Send UMB message to trigger offering synchronization from external product data.
+- **Action:** Send message to trigger offering synchronization from external product data.
 - **Verification:** Use internal GET API to verify offering synchronization and product tag mapping.
 - **Expected Result:**
   - API returns HTTP 200 response with correct product tag.
@@ -1222,7 +1221,7 @@ This section verifies the automatic contract termination behavior when contracts
 **offering-sync-TC002: Handle synchronization of non-existent offering**
 - **Description:** Verify that attempting to synchronize an invalid or non-existent SKU is handled appropriately.
 - **Setup:** Ensure no product data exists for test SKU "INVALID_SKU" in external product service.
-- **Action:** Send UMB message for non-existent SKU to test error handling.
+- **Action:** Send message for non-existent SKU to test error handling.
 - **Verification:** Check that no offering data is created.
 - **Expected Result:**
   - No offering record created for invalid SKU.
@@ -1232,7 +1231,7 @@ This section verifies the automatic contract termination behavior when contracts
 **offering-sync-TC003: Synchronize metered offering**
 - **Description:** Verify that metered offerings are synchronized correctly with proper metered flag.
 - **Setup:** Create test product data with metered="y" attribute in external product service.
-- **Action:** Send UMB message to trigger offering synchronization.
+- **Action:** Send message to trigger offering synchronization.
 - **Verification:** Use internal GET API to verify offering synchronization succeeded for metered SKU.
 - **Expected Result:**
   - API returns HTTP 200 response indicating successful synchronization.
@@ -1242,7 +1241,7 @@ This section verifies the automatic contract termination behavior when contracts
 **offering-sync-TC004: Synchronize unlimited capacity offering**
 - **Description:** Verify that unlimited capacity offerings are synchronized correctly with proper unlimited flag.
 - **Setup:** Create test product data with has_unlimited_usage=True attribute in external product service.
-- **Action:** Send UMB message to trigger offering synchronization.
+- **Action:** Send message to trigger offering synchronization.
 - **Verification:** Use internal GET API to verify offering synchronization succeeded for unlimited capacity SKU.
 - **Expected Result:**
   - API returns HTTP 200 response indicating successful synchronization.
@@ -1257,15 +1256,12 @@ This section verifies the automatic contract termination behavior when contracts
 - **Expected Result:**
   - Callers can distinguish upstream unavailability from “offering not found”; status code reflects the product API response.
 
-## IT Product Service Kafka and UMB Consumers
 
-### Kafka Consumer - Message Processing
+## IT Product Service Kafka consumer
 
 **product-kafka-TC001 - Process valid parent SKU message from Kafka**
 - **Description**: Verify that a valid parent SKU operational product event from Kafka is processed successfully.
 - **Setup**:
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-product-service-consumer` is enabled (IT Product Service Kafka consumer)
-  - Kafka consumer is enabled (no variant override disabling it)
   - Prepare a valid `OperationalProductEvent` JSON with parent SKU (productCode not starting with “SVC”)
 - **Action**: Publish message to `product-service.operationalproduct.protected` topic
 - **Verification**:
@@ -1280,8 +1276,6 @@ This section verifies the automatic contract termination behavior when contracts
 **product-kafka-TC002 - Process valid child SKU message from Kafka**
 - **Description**: Verify that a child SKU (productCode starting with “SVC”) is correctly identified and processed.
 - **Setup**:
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-product-service-consumer` is enabled (IT Product Service Kafka consumer)
-  - Kafka consumer is enabled
   - Prepare a valid `OperationalProductEvent` JSON with child SKU (productCode starts with “SVC”)
 - **Action**: Publish message to `product-service.operationalproduct.protected` topic
 - **Verification**:
@@ -1295,9 +1289,6 @@ This section verifies the automatic contract termination behavior when contracts
 
 **product-kafka-TC003 - Handle malformed JSON message from Kafka**
 - **Description**: Verify that malformed JSON messages are handled gracefully without disrupting the consumer.
-- **Setup**:
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-product-service-consumer` is enabled (IT Product Service Kafka consumer)
-  - Kafka consumer is enabled
 - **Action**: Publish invalid JSON string (e.g., “not-valid-json”) to `product-service.operationalproduct.protected` topic
 - **Verification**:
   - Check warn log contains “Unable to read IT Product Kafka message from JSON”
@@ -1310,9 +1301,6 @@ This section verifies the automatic contract termination behavior when contracts
 
 **product-kafka-TC004 - Ignore null message from Kafka**
 - **Description**: Verify that null messages are silently ignored without processing or logging.
-- **Setup**:
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-product-service-consumer` is enabled (IT Product Service Kafka consumer)
-  - Kafka consumer is enabled
 - **Action**: Send null message to Kafka consumer
 - **Verification**:
   - Publish a subsequent valid message and verify it is consumed (consumer continues)
@@ -1322,237 +1310,11 @@ This section verifies the automatic contract termination behavior when contracts
   - No consume or parse-error log for the null payload
   - Consumer ready for next message
 
-**product-kafka-TC005 - Ignore message when feature flag is disabled**
-- **Description**: Verify that when the parent feature flag is disabled, Kafka messages are not processed.
-- **Setup**:
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-product-service-consumer` is **disabled**
-- **Action**: Publish valid `OperationalProductEvent` JSON to `product-service.operationalproduct.protected` topic
-- **Verification**:
-  - Check debug log contains “IT Product Kafka consumer is disabled by feature flag”
-  - Verify message is not consumed
-  - Verify `OfferingSyncService.syncProductFromEvent` is not invoked for the SKU
-- **Expected Result**:
-  - Message not consumed or processed
-  - No product data logged
-  - Consumer indicates disabled state
-  - Sync service not invoked
-
-**product-kafka-TC006 - Ignore message when Kafka consumer disabled via variant**
-- **Description**: Verify that Kafka consumer can be independently disabled via variant configuration.
-- **Setup**:
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-product-service-consumer` is enabled (IT Product Service Kafka consumer)
-  - Variant `config` set with `{“kafka_consumer_enabled”: false, “umb_consumer_enabled”: true}`
-- **Action**: Publish valid `OperationalProductEvent` JSON to `product-service.operationalproduct.protected` topic
-- **Verification**:
-  - Check debug log contains “IT Product Kafka consumer is disabled by feature flag”
-  - Verify Kafka consumer does not process message
-  - Verify `OfferingSyncService.syncProductFromEvent` is not invoked for the SKU
-- **Expected Result**:
-  - Kafka consumer does not process message
-  - No product data logged from Kafka
-  - Sync service not invoked
-  - This case does not publish on UMB. Cross-channel coverage is `product-duplicate-*`.
-
-**product-kafka-TC007 - Process message when Kafka enabled and UMB disabled via variant**
-- **Description**: Verify that Kafka consumer operates independently when UMB consumer is disabled via variant.
-- **Setup**:
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-product-service-consumer` is enabled (IT Product Service Kafka consumer)
-  - Variant `config` set with `{“kafka_consumer_enabled”: true, “umb_consumer_enabled”: false}`
-- **Action**: Publish valid `OperationalProductEvent` JSON to `product-service.operationalproduct.protected` topic
-- **Verification**:
-  - Check info log contains “IT Product message consumed: source=kafka”
-  - Verify `OfferingSyncService.syncProductFromEvent` via log “Received product message for productSku=”
-- **Expected Result**:
-  - Kafka consumer processes message successfully
-  - Info log emitted with product details
-  - Sync service invoked with the product event
-  - This case does not publish on UMB. Cross-channel coverage is `product-duplicate-*`.
-
-**product-kafka-TC008 - Process message when both consumers enabled via variant**
-- **Description**: Verify that the Kafka consumer processes a message when both consumers are enabled via variant.
-- **Setup**:
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-product-service-consumer` is enabled (IT Product Service consumers)
-  - Variant `config` set with `{“kafka_consumer_enabled”: true, “umb_consumer_enabled”: true}`
-- **Action**: Publish valid `OperationalProductEvent` JSON to `product-service.operationalproduct.protected` topic
-- **Verification**:
-  - Check info log contains “IT Product message consumed: source=kafka”
-  - Verify `OfferingSyncService.syncProductFromEvent` via log “Received product message for productSku=”
-- **Expected Result**:
-  - Kafka consumer processes message successfully
-  - Sync service invoked with the product event
-  - This case does not publish on UMB. Cross-channel coverage is `product-duplicate-*`.
-
-### UMB Consumer - Message Processing
-
-`product-umb-TC001` through `product-umb-TC003` are component tests. `product-umb-TC004` is a unit test because `UMB_ENABLED` is a startup property and also gates the AMQP incoming channel; the disabled branch cannot be reached in the shared `quarkus:dev` process. `product-umb-TC005` through `product-umb-TC008` stay as component tests with those IDs.
-
-**product-umb-TC001 - Process valid parent SKU message from UMB**
-- **Description**: Verify that a valid parent SKU operational product event from UMB is processed and the sync service is invoked.
-- **Setup**:
-  - Ensure `UMB_ENABLED=true`
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-product-service-consumer` is enabled (IT Product Service UMB consumer)
-  - UMB consumer is enabled
-  - Prepare a valid `OperationalProductEvent` JSON with parent SKU (productCode not starting with “SVC”)
-- **Action**: Publish message to `VirtualTopic.services.productservice.Product`
-- **Verification**:
-  - Check info log contains “IT Product message consumed: source=umb”
-  - Verify `OfferingSyncService.syncProductFromEvent` via log “Received product message for productSku=”
-- **Expected Result**:
-  - `OperationalProductEvent` deserialized successfully
-  - Info log emitted with `productCode`, `eventType`, `productCategory`
-  - `childSku` field logged as `false`
-  - Offering sync service invoked with the product event
-
-**product-umb-TC002 - Process valid child SKU message from UMB**
-- **Description**: Verify that a child SKU is correctly identified and the sync service is invoked.
-- **Setup**:
-  - Ensure `UMB_ENABLED=true`
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-product-service-consumer` is enabled (IT Product Service UMB consumer)
-  - Prepare a valid `OperationalProductEvent` JSON with child SKU (productCode starts with “SVC”)
-- **Action**: Publish message to `VirtualTopic.services.productservice.Product`
-- **Verification**:
-  - Check info log contains “IT Product message consumed: source=umb”
-  - Verify `OfferingSyncService.syncProductFromEvent` via log “Received product message for productSku=”
-- **Expected Result**:
-  - `OperationalProductEvent` deserialized successfully
-  - Info log emitted with `productCode`, `eventType`, `productCategory`
-  - `childSku` field logged as `true`
-  - Offering sync service invoked with the product event
-
-**product-umb-TC003 - Handle malformed JSON message from UMB**
-- **Description**: Verify that malformed JSON messages from UMB are handled gracefully without disrupting the consumer.
-- **Setup**:
-  - Ensure `UMB_ENABLED=true`
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-product-service-consumer` is enabled (IT Product Service UMB consumer)
-- **Action**: Publish invalid JSON string to `VirtualTopic.services.productservice.Product`
-- **Verification**:
-  - Check error log contains “Unable to read UMB product message for JSON”
-  - Verify no consume log for the malformed payload. Sync runs only after consume, so this also covers sync not invoked. Malformed JSON has no SKU to match.
-  - Publish a subsequent valid message and verify it is consumed (consumer continues)
-- **Expected Result**:
-  - Exception caught and logged as error
-  - Sync service not invoked for the malformed payload
-  - Consumer does not crash
-  - Consumer ready for next message
-
-**product-umb-TC004 - Ignore message when UMB_ENABLED is false** (unit test)
-- **Description**: Verify that `ProductStatusUMBMessageConsumer` does not process messages when `UMB_ENABLED` is false. Covered by `ProductStatusUMBMessageConsumerWhenUmbDisabledTest`, not a component test.
-- **Setup**:
-  - Quarkus test profile `DisableUmbResource` (`UMB_ENABLED=false`)
-  - Unleash toggle `swatch.swatch-contracts.enable-product-service-consumer` enabled (UMB consumer)
-  - Mock `OfferingSyncService`
-- **Action**: Call `consumeMessage` with valid `OperationalProductEvent` JSON
-- **Verification**:
-  - Verify `OfferingSyncService.consumeProduct` is never invoked
-  - Verify `OfferingSyncService.syncProductFromEvent` is never invoked
-- **Expected Result**:
-  - Message is ignored because `umbEnabled` is false
-  - `consumeProduct` is not called. This is distinct from the Unleash flag case in `product-umb-TC005`.
-
-**product-umb-TC005 - Ignore message when feature flag is disabled**
-- **Description**: Verify that when the parent feature flag is disabled, UMB messages are not processed.
-- **Setup**:
-  - Ensure `UMB_ENABLED=true`
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-product-service-consumer` is **disabled**
-- **Action**: Publish valid `OperationalProductEvent` JSON to `VirtualTopic.services.productservice.Product`
-- **Verification**:
-  - Check debug log contains “IT Product UMB consumer is disabled by feature flag”
-  - Verify message is not consumed
-  - Verify `OfferingSyncService.syncProductFromEvent` is not invoked for the SKU
-- **Expected Result**:
-  - Message not consumed or processed
-  - Consumer indicates disabled state
-  - Sync service not invoked
-
-**product-umb-TC006 - Ignore message when UMB consumer disabled via variant**
-- **Description**: Verify that UMB consumer can be independently disabled via variant configuration.
-- **Setup**:
-  - Ensure `UMB_ENABLED=true`
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-product-service-consumer` is enabled (IT Product Service UMB consumer)
-  - Variant `config` set with `{“kafka_consumer_enabled”: true, “umb_consumer_enabled”: false}`
-- **Action**: Publish valid `OperationalProductEvent` JSON to `VirtualTopic.services.productservice.Product`
-- **Verification**:
-  - Check debug log contains “IT Product UMB consumer is disabled by feature flag”
-  - Verify UMB consumer does not process message
-  - Verify `OfferingSyncService.syncProductFromEvent` is not invoked for the SKU
-- **Expected Result**:
-  - UMB consumer does not process message
-  - Sync service not invoked
-  - This case does not publish on Kafka. Cross-channel coverage is `product-duplicate-*`.
-
-**product-umb-TC007 - Process message when UMB enabled and Kafka disabled via variant**
-- **Description**: Verify that UMB consumer operates independently when Kafka consumer is disabled via variant.
-- **Setup**:
-  - Ensure `UMB_ENABLED=true`
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-product-service-consumer` is enabled (IT Product Service UMB consumer)
-  - Variant `config` set with `{“kafka_consumer_enabled”: false, “umb_consumer_enabled”: true}`
-- **Action**: Publish valid `OperationalProductEvent` JSON to `VirtualTopic.services.productservice.Product`
-- **Verification**:
-  - Check info log contains “IT Product message consumed: source=umb”
-  - Verify `OfferingSyncService.syncProductFromEvent` via log “Received product message for productSku=”
-- **Expected Result**:
-  - UMB consumer processes message successfully
-  - Info log emitted with product details
-  - Sync service invoked with the product event
-  - This case does not publish on Kafka. Cross-channel coverage is `product-duplicate-*`.
-
-**product-umb-TC008 - Process message when both consumers enabled via variant**
-- **Description**: Verify that the UMB consumer processes a message when both consumers are enabled via variant.
-- **Setup**:
-  - Ensure `UMB_ENABLED=true`
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-product-service-consumer` is enabled (IT Product Service consumers)
-  - Variant `config` set with `{“kafka_consumer_enabled”: true, “umb_consumer_enabled”: true}`
-- **Action**: Publish valid `OperationalProductEvent` JSON to `VirtualTopic.services.productservice.Product`
-- **Verification**:
-  - Check info log contains “IT Product message consumed: source=umb”
-  - Verify `OfferingSyncService.syncProductFromEvent` via log “Received product message for productSku=”
-- **Expected Result**:
-  - UMB consumer processes message successfully
-  - Sync service invoked with the product event
-  - This case does not publish on Kafka. Cross-channel coverage is `product-duplicate-*`.
-
-### Duplicate SKU Processing Scenarios
-
-**product-duplicate-TC001 - Same SKU processed by both Kafka and UMB consumers**
-- **Description**: Verify that when the same product event is delivered via both Kafka and UMB, both consumers process independently without conflicts.
-- **Setup**:
-  - Ensure `UMB_ENABLED=true`
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-product-service-consumer` is enabled (IT Product Service consumers)
-  - Both Kafka and UMB consumers enabled
-  - Prepare identical `OperationalProductEvent` JSON for both channels
-- **Action**: Publish the same event to Kafka (`product-service.operationalproduct.protected`) and UMB (`VirtualTopic.services.productservice.Product`)
-- **Verification**:
-  - Check info logs contain both “source=kafka” and “source=umb” for the SKU
-  - Verify `OfferingSyncService.syncProductFromEvent` is invoked by both consumers
-- **Expected Result**:
-  - Kafka consumer logs product event with `source=kafka`
-  - UMB consumer logs product event with `source=umb`
-  - Both consumers invoke offering sync for the SKU
-  - Both messages processed successfully
-
-**product-duplicate-TC002 - Same SKU with different event types**
-- **Description**: Verify that different event types for the same SKU are processed correctly by different consumers.
-- **Setup**:
-  - Ensure `UMB_ENABLED=true`
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-product-service-consumer` is enabled (IT Product Service consumers)
-  - Both consumers enabled
-  - Prepare two `OperationalProductEvent` messages for same `productCode` with different `eventType` (Create and Update)
-- **Action**: Publish “Create” to Kafka and “Update” to UMB
-- **Verification**:
-  - Check logs show `eventType=Create` with `source=kafka` and `eventType=Update` with `source=umb`
-  - Verify `OfferingSyncService.syncProductFromEvent` is invoked by both consumers
-- **Expected Result**:
-  - Create event logged via Kafka with `eventType=Create`
-  - Update event logged via UMB with `eventType=Update`
-  - Both consumers invoke offering sync for the SKU
-  - Both event types processed independently
-
 ### Edge Cases and Error Scenarios
 
 **product-edge-TC001 - Handle message with missing productCode field**
 - **Description**: Verify graceful handling when productCode is null or missing in the message.
 - **Setup**:
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-product-service-consumer` is enabled (IT Product Service Kafka consumer)
   - Prepare `OperationalProductEvent` JSON with null `productCode`
 - **Action**: Publish message to `product-service.operationalproduct.protected` topic
 - **Verification**:
@@ -1567,8 +1329,6 @@ This section verifies the automatic contract termination behavior when contracts
 **product-edge-TC002 - Handle message with missing eventType field**
 - **Description**: Verify graceful handling when eventType is null or missing.
 - **Setup**:
-  - Ensure `UMB_ENABLED=true`
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-product-service-consumer` is enabled (IT Product Service UMB consumer)
   - Prepare `OperationalProductEvent` JSON with null `eventType`
 - **Action**: Publish message to `VirtualTopic.services.productservice.Product`
 - **Verification**:
@@ -1583,8 +1343,6 @@ This section verifies the automatic contract termination behavior when contracts
 
 **product-edge-TC003 - Handle empty JSON object message**
 - **Description**: Verify handling when message is valid JSON but an empty object.
-- **Setup**:
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-product-service-consumer` is enabled (IT Product Service Kafka consumer)
 - **Action**: Publish empty JSON object `{}` to `product-service.operationalproduct.protected` topic
 - **Verification**:
   - Check info log contains “IT Product message consumed: source=kafka” with null `productCode`, `eventType`, and `productCategory`
@@ -1598,7 +1356,6 @@ This section verifies the automatic contract termination behavior when contracts
 **product-edge-TC004 - Handle message with unexpected additional fields**
 - **Description**: Verify that messages with extra fields beyond the expected schema are processed without errors.
 - **Setup**:
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-product-service-consumer` is enabled (IT Product Service Kafka consumer)
   - Prepare `OperationalProductEvent` JSON with valid required fields plus unexpected additional fields
 - **Action**: Publish message to `product-service.operationalproduct.protected` topic
 - **Verification**:
@@ -1728,9 +1485,9 @@ This section verifies the automatic contract termination behavior when contracts
 ## Offering Update
 
 **offering-update-TC001: Process product update event**
-- **Description:** Verify that UMB update events correctly modify existing offering attributes without data loss.
-- **Setup:** Create existing offering through external product service, then prepare UMB update message with different attributes.
-- **Action:** Send UMB product update event through message broker.
+- **Description:** Verify that update events correctly modify existing offering attributes without data loss.
+- **Setup:** Create existing offering through external product service, then prepare an update message with different attributes.
+- **Action:** Send the product update event through message broker.
 - **Verification:** Use internal GET API to verify offering updates were applied correctly.
 - **Expected Result:**
   - API returns HTTP 200 response with updated product tag.
@@ -1738,13 +1495,13 @@ This section verifies the automatic contract termination behavior when contracts
   - Update operation completes without errors.
 
 **offering-update-TC002: Handle malformed event**
-- **Description:** Verify that the malformed UMB message is handled gracefully without affecting system stability.
-- **Setup:** Prepare one malformed UMB message (invalid JSON).
-- **Action:** Send the malformed UMB message through message broker.
+- **Description:** Verify that the malformed message is handled gracefully without affecting system stability.
+- **Setup:** Prepare one malformed message (invalid JSON).
+- **Action:** Send the malformed message through message broker.
 - **Verification:** Check system logs and verify no offering data corruption, system remains operational.
 - **Expected Result:**
   - System processes the malformed event without crashing or data corruption.
-  - Valid offerings remain unaffected by malformed UMB events.
+  - Valid offerings remain unaffected by malformed events.
   - Appropriate error handling and logging for debugging malformed events.
 
 ## Contract Management via IT Partner Gateway
