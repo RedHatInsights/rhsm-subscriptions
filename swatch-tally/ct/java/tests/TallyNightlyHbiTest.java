@@ -59,7 +59,6 @@ import org.junit.jupiter.api.Test;
 public class TallyNightlyHbiTest extends BaseTallyComponentTest {
 
   private HostStateManager hostManager;
-  private static final String RHEL_PRODUCT_ID = "69";
 
   @BeforeEach
   void setupHostManager() {
@@ -119,14 +118,14 @@ public class TallyNightlyHbiTest extends BaseTallyComponentTest {
         hostManager
             .createHost(orgId)
             .apply(HostTemplates.conduitReportedPhysicalRhel(1, 0))
+            .displayName("Test Host - 1")
             .insert();
 
     SeededHost host2 =
         hostManager
             .createHost(orgId)
-            .displayName("Test Host - 1")
-            .rhsmFacts(
-                RhsmFacts.builder().isVirtual(false).products(List.of(RHEL_PRODUCT_ID)).build())
+            .displayName("Test Host - 2")
+            .rhsmFacts(RhsmFacts.builder().isVirtual(false).products(List.of("69")).build())
             .systemProfileFacts(
                 SystemProfileFacts.builder()
                     .infrastructureType("physical")

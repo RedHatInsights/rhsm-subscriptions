@@ -440,6 +440,60 @@ This test plan covers the core tally processing pipeline:
     - Guest-derived overlapping SLA/usage buckets do not duplicate the hypervisor row when wildcard filters are used
     - Primary-row search behavior matches non-primary for hypervisor category queries
 
+**tally-hypervisor-TC008 - Hypervisor socket count not inflated by guest sockets**
+
+- **Description**: Verify hypervisor socket counts are not inflated. Tests the scenario where multiple ESX hypervisor hosts have virtual guests: the tally report filtered by category=hypervisor should reflect only the sum of the hypervisors' own socket counts, not be inflated by guest VM counts or double-counting
+- **Setup**:
+    - Organization is opted in
+    - 3 ESX hypervisor hosts seeded with sockets 4, 4, and 2 (10 total)
+    - 4 virtual guests seeded with their own socket counts, each linked to one of the hypervisors via `virtualHostUuid`
+- **Action**:
+    - Perform tally for organization
+    - Query tally report for RHEL for x86, Sockets metric, category=hypervisor
+- **Verification**:
+    - Report data is present and non-empty
+    - A data point with value 10 exists (sum of hypervisor sockets 4+4+2)
+- **Expected Result**:
+    - Hypervisor category tally reflects only the hypervisors' own socket counts
+    - Guest VM socket counts do not inflate the hypervisor total
+
+**tally-hypervisor-TC009 - Mapped guests do not contribute to virtual category**
+
+- **Description**: Verify virtual guests with known hypervisors do not contribute sockets to the virtual category. For RHEL VDC products, guests mapped to a known hypervisor should not produce their own tally buckets; only unmapped guests contribute to the virtual category
+- **Setup**:
+    - Organization is opted in
+    - 1 ESX hypervisor host seeded with 4 sockets
+    - 2 guest hosts seeded, each mapped to the hypervisor via `hypervisorUuid`
+- **Action**:
+    - Perform tally for organization
+    - Query tally report for RHEL for x86, Sockets metric, category=virtual
+- **Verification**:
+    - Report data is present
+    - Sum of virtual category socket values is 0
+- **Expected Result**:
+    - Guests mapped to a known hypervisor do not contribute sockets to the virtual category
+
+**tally-hypervisor-TC010 - Hypervisor socket count not inflated by mixed SLA/usage guests**
+
+- **Description**: Verify a hypervisor with guests of different SLAs/usages produces multiple tally buckets, each carrying the hypervisor's full socket count. Individual SLA-filtered queries may overlap (e.g. Premium=8, Standard=12, sum=20 > actual total of 12), but the wildcard query (no SLA filter) correctly returns the actual hypervisor socket total because it reads from the \_ANY rows rather than summing per-SLA buckets
+- **Setup**:
+    - Organization is opted in
+    - Hypervisor 1 seeded with 8 sockets (sla/usage blank)
+    - Hypervisor 2 seeded with 4 sockets (sla/usage blank)
+    - Guests seeded across both hypervisors with varying SLA (Premium, Standard) and usage (Production, Development/Test, blank) combinations
+- **Action**:
+    - Perform tally for organization
+    - Query hypervisor category tally report filtered by sla=Premium
+    - Query hypervisor category tally report filtered by sla=Standard
+    - Query hypervisor category tally report with no sla filter (wildcard)
+- **Verification**:
+    - Premium-filtered report's max socket value equals 8 (only hypervisor with Premium guests)
+    - Standard-filtered report's max socket value equals 12 (both hypervisors, since each has a Standard guest)
+    - Wildcard (no SLA filter) report's max socket value equals 12 (actual combined hypervisor total)
+- **Expected Result**:
+    - Per-SLA hypervisor queries may overlap and exceed the actual total due to full-socket-count buckets per SLA/usage combination
+    - The wildcard (no SLA filter) query correctly reports the true combined hypervisor socket total by reading from \_ANY rows
+
 ## Data Persistence
 
 **tally-persistence-TC001 - Tally report is idempotent across separate tally runs**

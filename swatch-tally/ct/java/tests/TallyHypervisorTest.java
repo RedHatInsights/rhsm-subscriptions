@@ -25,9 +25,14 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static utils.TallyTestProducts.RHEL_FOR_X86;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
+import com.redhat.swatch.component.tests.api.hbi.HbiDbConnector;
+import com.redhat.swatch.component.tests.api.hbi.HostConnector.SeededHost;
+import com.redhat.swatch.component.tests.api.hbi.HostStateManager;
+import com.redhat.swatch.component.tests.api.hbi.HostTemplates;
 import com.redhat.swatch.tally.test.model.InstanceData;
 import com.redhat.swatch.tally.test.model.InstanceResponse;
 import com.redhat.swatch.tally.test.model.TallyReportDataPoint;
+import com.redhat.swatch.tally.test.model.TallySnapshot;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
@@ -44,22 +49,21 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import utils.TallyDbHostSeeder;
-import utils.TallyHbiDbSeeder;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class TallyHypervisorTest extends BaseTallyComponentTest {
 
-  private TallyHbiDbSeeder hbiSeeder;
+  private HostStateManager hostManager;
 
   @BeforeEach
-  void setupHbiSeeder() {
-    hbiSeeder = new TallyHbiDbSeeder(hbiDatabase);
+  void setupHostManager() {
+    hostManager = new HostStateManager(new HbiDbConnector(hbiDatabase));
   }
 
   @AfterEach
-  void cleanupHbiHosts() {
-    if (hbiSeeder != null) {
-      hbiSeeder.deleteAllInsertedHosts();
+  void cleanupHosts() {
+    if (hostManager != null) {
+      hostManager.cleanupAll();
     }
   }
 
@@ -127,7 +131,7 @@ public class TallyHypervisorTest extends BaseTallyComponentTest {
     // Given: Hypervisor with overlapping guest SLA/usage and primary-bucket flag configured
     givenPrimaryBucketSearchesEnabled(usePrimaryBucketSearches);
     service.createOptInConfig(orgId);
-    TallyHbiDbSeeder.SeededHost hypervisor = givenHypervisorWithOverlappingGuestSla();
+    SeededHost hypervisor = givenHypervisorWithOverlappingGuestSla();
     OffsetDateTime start = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
     OffsetDateTime end = start.plusDays(1).minusNanos(1);
 
@@ -149,34 +153,28 @@ public class TallyHypervisorTest extends BaseTallyComponentTest {
 
   // --- Given helper methods ---
 
-  private TallyHbiDbSeeder.SeededHost givenHypervisorWithOverlappingGuestSla() {
+  private SeededHost givenHypervisorWithOverlappingGuestSla() {
     // Hypervisor subscription_manager_id must be a UUID so guests can set virtual_host_uuid
-    String hypervisorSubManId = UUID.randomUUID().toString();
-    TallyHbiDbSeeder.SeededHost hypervisor =
-        hbiSeeder
-            .rhelHost(orgId)
-            .subscriptionManagerId(hypervisorSubManId)
+    SeededHost hypervisor =
+        hostManager
+            .createHost(orgId)
             .displayName("hypervisor-overlapping-guest-sla")
-            .cores(8)
-            .sockets(2)
+            .apply(HostTemplates.conduitReportedPhysicalRhel(2, 8))
             .insert();
 
     // Guests mapped to the hypervisor with overlapping SLA and different usages
-    hbiSeeder
-        .rhelHost(orgId)
-        .hypervisorUuid(hypervisorSubManId)
-        .sla("Premium")
-        .usage("Production")
-        .cores(4)
-        .sockets(1)
+    hostManager
+        .createHost(orgId)
+        .apply(
+            HostTemplates.conduitReportedVirtualRhelGuest(
+                hypervisor.subscriptionManagerId(), "Premium", "Production", 1, 4))
         .insert();
-    hbiSeeder
-        .rhelHost(orgId)
-        .hypervisorUuid(hypervisorSubManId)
-        .sla("Premium")
-        .usage("Development/Test")
-        .cores(4)
-        .sockets(1)
+
+    hostManager
+        .createHost(orgId)
+        .apply(
+            HostTemplates.conduitReportedVirtualRhelGuest(
+                hypervisor.subscriptionManagerId(), "Premium", "Development/Test", 1, 4))
         .insert();
 
     service.tallyOrg(orgId);
@@ -192,7 +190,7 @@ public class TallyHypervisorTest extends BaseTallyComponentTest {
             RHEL_FOR_X86.productTag(),
             RHEL_FOR_X86.metricIds().get(0),
             Map.of(
-                "granularity", "Daily",
+                "granularity", TallySnapshot.Granularity.DAILY.toString(),
                 "beginning", beginning.toString(),
                 "ending", ending.toString()));
 

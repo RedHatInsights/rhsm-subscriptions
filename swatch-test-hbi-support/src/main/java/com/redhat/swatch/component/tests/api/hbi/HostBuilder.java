@@ -67,11 +67,19 @@ public class HostBuilder {
     return this;
   }
 
+  public RhsmFacts rhsmFacts() {
+    return host.getRhsmFacts();
+  }
+
   /** Attach Satellite facts and register {@code satellite} as a reporter. */
   public HostBuilder satelliteFacts(SatelliteFacts satelliteFacts) {
     host.satelliteFacts(satelliteFacts);
     setPrimaryReporter("satellite");
     return this;
+  }
+
+  public SatelliteFacts satelliteFacts() {
+    return host.getSatelliteFacts();
   }
 
   /** Attach QPC/discovery facts and register {@code discovery} as a reporter. */
@@ -81,10 +89,18 @@ public class HostBuilder {
     return this;
   }
 
+  public QpcFacts qpcFacts() {
+    return host.getQpcFacts();
+  }
+
   /** Set the system-profile fields (persisted to {@code hbi.system_profiles_static}). */
   public HostBuilder systemProfileFacts(SystemProfileFacts systemProfileFacts) {
     host.systemProfileFacts(systemProfileFacts);
     return this;
+  }
+
+  public SystemProfileFacts getSystemProfileFacts() {
+    return host.getSystemProfileFacts();
   }
 
   // ===== Override Methods (Always Override) =====

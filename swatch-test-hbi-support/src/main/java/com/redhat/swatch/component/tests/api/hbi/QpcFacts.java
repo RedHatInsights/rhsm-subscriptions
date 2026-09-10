@@ -21,9 +21,10 @@
 package com.redhat.swatch.component.tests.api.hbi;
 
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import lombok.Getter;
+import lombok.Singular;
 
 /**
  * Facts reported by the QPC/discovery reporter (HBI namespace {@code qpc}).
@@ -37,12 +38,13 @@ public final class QpcFacts {
 
   private static final String PRODUCT_ID_FACT = "rh_products_installed";
 
-  private final List<String> products;
+  private final Set<String> products;
 
   // Fully-qualified: a bare `@Builder` here would resolve to the nested Builder class below
   // instead of lombok.Builder, since a member type shadows a same-named import in its own body.
-  @lombok.Builder(builderClassName = "Builder")
-  private QpcFacts(List<String> products) {
+  // Instruct Lombok to deep copy the list when toBuilder() is called by using @Singleton.
+  @lombok.Builder(builderClassName = "Builder", toBuilder = true)
+  private QpcFacts(@Singular Set<String> products) {
     this.products = products;
   }
 
@@ -56,7 +58,7 @@ public final class QpcFacts {
    */
   public Map<String, Object> toMap() {
     Map<String, Object> facts = new LinkedHashMap<>();
-    if (products != null) {
+    if (products != null && !products.isEmpty()) {
       facts.put(PRODUCT_ID_FACT, products);
     }
     return facts;
@@ -65,7 +67,7 @@ public final class QpcFacts {
   public static class Builder {
     /** Seed the common QPC defaults used across component tests (RHEL detected). */
     public Builder defaultFacts() {
-      this.products = List.of("69");
+      this.product("69");
       return this;
     }
   }
