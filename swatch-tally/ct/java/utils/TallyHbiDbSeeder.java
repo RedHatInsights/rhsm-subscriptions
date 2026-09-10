@@ -211,6 +211,7 @@ public final class TallyHbiDbSeeder {
     private String sla;
     private String usage;
     private String hypervisorUuid;
+    private boolean isVirtual = false;
 
     private RhelHostBuilder(String orgId) {
       this.orgId = Objects.requireNonNull(orgId, "orgId is required");
@@ -287,6 +288,16 @@ public final class TallyHbiDbSeeder {
       return this;
     }
 
+    /**
+     * Mark this host as virtual without a hypervisor relationship. Sets infrastructure_type to
+     * "virtual" but leaves virtual_host_uuid null. This is for standalone virtual hosts not mapped
+     * to a hypervisor.
+     */
+    public RhelHostBuilder isVirtual(boolean isVirtual) {
+      this.isVirtual = isVirtual;
+      return this;
+    }
+
     public SeededHost insert() {
       return insertRhelHost(
           orgId,
@@ -301,7 +312,8 @@ public final class TallyHbiDbSeeder {
           providerId,
           sla,
           usage,
-          hypervisorUuid);
+          hypervisorUuid,
+          isVirtual);
     }
   }
 
@@ -478,7 +490,8 @@ public final class TallyHbiDbSeeder {
         null,
         null,
         null,
-        null);
+        null,
+        false);
   }
 
   /**
@@ -522,7 +535,8 @@ public final class TallyHbiDbSeeder {
         providerId,
         null,
         null,
-        null);
+        null,
+        false);
   }
 
   /**
@@ -531,6 +545,7 @@ public final class TallyHbiDbSeeder {
    * @param sla syspurpose SLA (e.g. Premium), or null
    * @param usage syspurpose usage (e.g. Production), or null
    * @param hypervisorUuid hypervisor subscription_manager_id to map this guest, or null
+   * @param isVirtual whether to mark as virtual without hypervisor relationship
    */
   public SeededHost insertRhelHost(
       String orgId,
@@ -545,12 +560,14 @@ public final class TallyHbiDbSeeder {
       String providerId,
       String sla,
       String usage,
-      String hypervisorUuid) {
+      String hypervisorUuid,
+      boolean isVirtual) {
     waitForSchemaReady();
     Objects.requireNonNull(orgId, "orgId is required");
 
     boolean isGuest = hypervisorUuid != null;
     boolean isCloud = cloudProvider != null;
+    boolean markAsVirtual = isVirtual || isGuest || isCloud;
 
     // Use defaults if null values passed
     String actualInventoryId =
@@ -617,7 +634,7 @@ public final class TallyHbiDbSeeder {
         ps.setObject(7, now);
         ps.setObject(8, now);
         ps.setObject(9, now);
-        ps.setString(10, buildRhelFacts(cores, sockets, isGuest || isCloud, sla, usage));
+        ps.setString(10, buildRhelFacts(cores, sockets, markAsVirtual, sla, usage));
         ps.setString(11, "[]");
         ps.setString(12, actualReporter);
         ps.setArray(13, conn.createArrayOf("varchar", actualReporters));
@@ -639,7 +656,7 @@ public final class TallyHbiDbSeeder {
         ps.setObject(2, hostId);
         ps.setInt(3, cores / sockets);
         ps.setInt(4, sockets);
-        ps.setString(5, (isGuest || isCloud) ? "virtual" : "physical");
+        ps.setString(5, markAsVirtual ? "virtual" : "physical");
         ps.setString(6, cloudProvider); // null for physical/guest hosts
         ps.setString(7, "x86_64");
         if (isGuest) {
