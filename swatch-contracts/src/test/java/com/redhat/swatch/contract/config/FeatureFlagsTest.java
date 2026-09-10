@@ -22,7 +22,6 @@ package com.redhat.swatch.contract.config;
 
 import static com.redhat.swatch.contract.config.FeatureFlags.CONFIG_VARIANT;
 import static com.redhat.swatch.contract.config.FeatureFlags.DEFAULT_IS_ENABLED;
-import static com.redhat.swatch.contract.config.FeatureFlags.IT_SUBSCRIPTION_SERVICE;
 import static com.redhat.swatch.contract.config.FeatureFlags.PRODUCT_SERVICE_CONSUMER;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -49,47 +48,6 @@ class FeatureFlagsTest {
   @BeforeEach
   void setUp() {
     featureFlags = new FeatureFlags(unleash, OBJECT_MAPPER);
-  }
-
-  @Test
-  void shouldReturnFalse_whenItSubscriptionServiceDisabled() {
-    when(unleash.isEnabled(IT_SUBSCRIPTION_SERVICE, DEFAULT_IS_ENABLED)).thenReturn(false);
-
-    assertFalse(featureFlags.isItSubscriptionServiceKafkaConsumerEnabled());
-    assertFalse(featureFlags.isItSubscriptionServiceUmbConsumerEnabled());
-  }
-
-  @Test
-  void shouldRespectItSubscriptionServiceKafkaConsumerFlag() {
-    givenItSubscriptionServiceEnabledWithConfigPayload("{\"kafka_consumer_enabled\":false}");
-
-    assertFalse(featureFlags.isItSubscriptionServiceKafkaConsumerEnabled());
-  }
-
-  @Test
-  void shouldRespectItSubscriptionServiceUmbConsumerFlag() {
-    givenItSubscriptionServiceEnabledWithConfigPayload("{\"umb_consumer_enabled\":false}");
-
-    assertFalse(featureFlags.isItSubscriptionServiceUmbConsumerEnabled());
-  }
-
-  @Test
-  void shouldDecoupleKafkaAndUmbForItSubscriptionService() {
-    givenItSubscriptionServiceEnabledWithConfigPayload(
-        "{\"kafka_consumer_enabled\":false,\"umb_consumer_enabled\":true}");
-
-    assertFalse(featureFlags.isItSubscriptionServiceKafkaConsumerEnabled());
-    assertTrue(featureFlags.isItSubscriptionServiceUmbConsumerEnabled());
-  }
-
-  private void givenItSubscriptionServiceEnabledWithConfigPayload(String json) {
-    givenItSubscriptionServiceEnabledWithVariant(
-        new Variant(CONFIG_VARIANT, new Payload("json", json), true, "any", true));
-  }
-
-  private void givenItSubscriptionServiceEnabledWithVariant(Variant variant) {
-    when(unleash.isEnabled(IT_SUBSCRIPTION_SERVICE, DEFAULT_IS_ENABLED)).thenReturn(true);
-    when(unleash.getVariant(IT_SUBSCRIPTION_SERVICE)).thenReturn(variant);
   }
 
   @Test

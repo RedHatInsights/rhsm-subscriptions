@@ -33,8 +33,6 @@ import com.redhat.swatch.contract.model.SyncResult;
 import com.redhat.swatch.contract.openapi.model.SubscriptionOutboxChildProduct;
 import com.redhat.swatch.contract.openapi.model.SubscriptionOutboxPayload;
 import com.redhat.swatch.contract.openapi.model.SubscriptionOutboxProduct;
-import com.redhat.swatch.contract.product.umb.SubscriptionProductStatus;
-import com.redhat.swatch.contract.product.umb.UmbSubscription;
 import com.redhat.swatch.contract.repository.BillingProvider;
 import com.redhat.swatch.contract.repository.OfferingEntity;
 import com.redhat.swatch.contract.repository.OfferingRepository;
@@ -488,35 +486,6 @@ public class SubscriptionSyncService {
     return clock.dateFromMilliseconds(epochMs);
   }
 
-  private SubscriptionEntity convertDto(UmbSubscription subscription) {
-
-    var endDate = subscription.getEffectiveEndDateInUtc();
-
-    /*
-     * If a subscription is terminated, set our concept of effective end date to the termination
-     * date.
-     */
-
-    /*
-     * Note that a status only has a "StartDate", which indicates the start of the corresponding
-     * status - this doesn't directly correlate to the StartDate of a subscription.
-     */
-    Optional<SubscriptionProductStatus> terminatedStatus = subscription.findTerminatedStatus();
-    if (terminatedStatus.isPresent()) {
-      endDate = UmbSubscription.convertToUtc(terminatedStatus.get().getStartDate());
-    }
-    // NOTE: we are not setting the offering yet
-    return SubscriptionEntity.builder()
-        // NOTE: UMB messages don't include subscriptionId
-        .subscriptionNumber(subscription.getSubscriptionNumber())
-        .orgId(subscription.getWebCustomerId())
-        .quantity(subscription.getQuantity())
-        .startDate(subscription.getEffectiveStartDateInUtc())
-        .endDate(endDate)
-        // NOTE: UMB messages don't include PAYG identifiers
-        .build();
-  }
-
   private SubscriptionEntity convertDto(Subscription subscription) {
     // Note that we are **not** setting the offering yet!
     return SubscriptionEntity.builder()
@@ -581,21 +550,6 @@ public class SubscriptionSyncService {
       } else {
         throw new BadRequestException("Error offering doesn't exist");
       }
-    }
-  }
-
-  @Transactional
-  public void saveUmbSubscription(UmbSubscription umbSubscription) {
-    acquireSubscriptionLockBy(umbSubscription.getSubscriptionNumber());
-    SubscriptionEntity subscription = convertDto(umbSubscription);
-    var subscriptions =
-        subscriptionService.findBySubscriptionNumber(subscription.getSubscriptionNumber());
-    if (subscriptions.size() > 1) {
-      log.warn(
-          "Skipping UMB message because multiple subscriptions were found for subscriptionNumber={}",
-          subscription.getSubscriptionNumber());
-    } else {
-      syncSubscription(getSku(umbSubscription), subscription, subscriptions.stream().findFirst());
     }
   }
 
@@ -686,14 +640,5 @@ public class SubscriptionSyncService {
 
   private void acquireSubscriptionLockBy(String subscriptionNumber) {
     transactionalLocks.acquireLockBy("subscription", subscriptionNumber);
-  }
-
-  private static String getSku(UmbSubscription subscription) {
-    return subscription
-        .findSku()
-        .orElseThrow(
-            () ->
-                new IllegalStateException(
-                    "Could not find top level SKU for subscription " + subscription));
   }
 }

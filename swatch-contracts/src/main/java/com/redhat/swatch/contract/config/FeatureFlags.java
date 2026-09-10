@@ -24,7 +24,6 @@ import static com.redhat.swatch.common.security.KesselRolesAugmentor.KESSEL_FLAG
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.redhat.swatch.contract.model.ItSubscriptionServiceFeatureFlagVariantPayload;
 import com.redhat.swatch.contract.model.ProductServiceConsumerFeatureFlagVariantPayload;
 import com.redhat.swatch.info.InfoFeatureFlagContributor;
 import com.redhat.swatch.info.UnleashInfoFeatureFlags;
@@ -41,8 +40,6 @@ import lombok.extern.slf4j.Slf4j;
 @ApplicationScoped
 @AllArgsConstructor
 public class FeatureFlags implements InfoFeatureFlagContributor {
-  public static final String IT_SUBSCRIPTION_SERVICE =
-      "swatch.swatch-contracts.enable-it-subscription-service";
   public static final String PRODUCT_SERVICE_CONSUMER =
       "swatch.swatch-contracts.enable-product-service-consumer";
   public static final String CONFIG_VARIANT = "config";
@@ -51,22 +48,6 @@ public class FeatureFlags implements InfoFeatureFlagContributor {
 
   private final Unleash unleash;
   private final ObjectMapper mapper;
-
-  /** Whether the Kafka consumer for IT Subscription Service is allowed. */
-  public boolean isItSubscriptionServiceKafkaConsumerEnabled() {
-    return isFeatureFlagEnabled(
-        IT_SUBSCRIPTION_SERVICE,
-        this::mapToItSubscriptionServicePayload,
-        ItSubscriptionServiceFeatureFlagVariantPayload::getKafkaConsumerEnabled);
-  }
-
-  /** Whether the UMB consumer for IT Subscription Service is allowed. */
-  public boolean isItSubscriptionServiceUmbConsumerEnabled() {
-    return isFeatureFlagEnabled(
-        IT_SUBSCRIPTION_SERVICE,
-        this::mapToItSubscriptionServicePayload,
-        ItSubscriptionServiceFeatureFlagVariantPayload::getUmbConsumerEnabled);
-  }
 
   /** Whether the Kafka consumer for Product Service is allowed. */
   public boolean isProductServiceKafkaConsumerEnabled() {
@@ -120,12 +101,6 @@ public class FeatureFlags implements InfoFeatureFlagContributor {
     return payloadMapper.apply(variant).map(condition).orElse(true);
   }
 
-  private Optional<ItSubscriptionServiceFeatureFlagVariantPayload>
-      mapToItSubscriptionServicePayload(Variant variant) {
-    return mapToPayload(
-        variant, ItSubscriptionServiceFeatureFlagVariantPayload.class, IT_SUBSCRIPTION_SERVICE);
-  }
-
   private Optional<ProductServiceConsumerFeatureFlagVariantPayload>
       mapToProductServiceConsumerPayload(Variant variant) {
     return mapToPayload(
@@ -155,10 +130,6 @@ public class FeatureFlags implements InfoFeatureFlagContributor {
   @Override
   public InfoFeatureFlags getFeatureFlags() {
     return UnleashInfoFeatureFlags.snapshot(
-        unleash,
-        DEFAULT_IS_ENABLED,
-        IT_SUBSCRIPTION_SERVICE,
-        KESSEL_FLAG,
-        PRODUCT_SERVICE_CONSUMER);
+        unleash, DEFAULT_IS_ENABLED, KESSEL_FLAG, PRODUCT_SERVICE_CONSUMER);
   }
 }

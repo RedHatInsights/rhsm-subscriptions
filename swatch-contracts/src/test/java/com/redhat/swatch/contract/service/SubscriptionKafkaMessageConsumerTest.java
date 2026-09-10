@@ -27,9 +27,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.after;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
-import com.redhat.swatch.contract.config.FeatureFlags;
 import com.redhat.swatch.contract.openapi.model.SubscriptionOutboxPayload;
 import com.redhat.swatch.contract.test.LoggerCaptor;
 import io.quarkus.test.InjectMock;
@@ -88,7 +86,6 @@ class SubscriptionKafkaMessageConsumerTest {
       </CanonicalMessage>
       """;
 
-  @InjectMock FeatureFlags featureFlags;
   @InjectMock SubscriptionSyncService service;
   @InjectSpy SubscriptionKafkaMessageConsumer consumer;
   @Inject @Any InMemoryConnector connector;
@@ -104,7 +101,6 @@ class SubscriptionKafkaMessageConsumerTest {
   void setUp() {
     subscriptionKafkaChannel = connector.source(IT_SUBSCRIPTION_SYNC);
     LoggerCaptor.clearRecords();
-    when(featureFlags.isItSubscriptionServiceKafkaConsumerEnabled()).thenReturn(true);
   }
 
   @Test
@@ -155,14 +151,6 @@ class SubscriptionKafkaMessageConsumerTest {
 
     LoggerCaptor.thenLogNothing();
     verify(service, never()).saveSubscription(any());
-  }
-
-  @Test
-  void shouldIgnoreMessagesWhenFeatureFlagIsDisabled() throws Exception {
-    when(featureFlags.isItSubscriptionServiceKafkaConsumerEnabled()).thenReturn(false);
-    whenSendMessage(SUBSCRIPTION_JSON);
-    assertMessageIsNotProcessed();
-    verify(service, after(500).never()).saveSubscription(any());
   }
 
   @Test

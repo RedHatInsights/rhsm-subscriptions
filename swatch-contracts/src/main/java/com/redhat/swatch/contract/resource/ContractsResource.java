@@ -20,7 +20,6 @@
  */
 package com.redhat.swatch.contract.resource;
 
-import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.redhat.swatch.clients.product.api.resources.ApiException;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.contract.config.ApplicationConfiguration;
@@ -44,8 +43,6 @@ import com.redhat.swatch.contract.openapi.model.SubscriptionResponse;
 import com.redhat.swatch.contract.openapi.model.TerminationRequest;
 import com.redhat.swatch.contract.openapi.model.TerminationRequestData;
 import com.redhat.swatch.contract.openapi.resource.DefaultApi;
-import com.redhat.swatch.contract.product.umb.CanonicalMessage;
-import com.redhat.swatch.contract.product.umb.UmbSubscription;
 import com.redhat.swatch.contract.repository.BillingProvider;
 import com.redhat.swatch.contract.repository.DbReportCriteria;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
@@ -87,7 +84,6 @@ public class ContractsResource implements DefaultApi {
   public static final String FEATURE_NOT_ENABLED_MESSAGE = "This feature is not currently enabled.";
   private static final String SUCCESS_STATUS = "Success";
   private static final String FAILURE_MESSAGE = "Failed";
-  private static final XmlMapper XML_MAPPER = CanonicalMessage.createMapper();
 
   private final ContractService service;
   private final AccountResetService accountResetService;
@@ -359,29 +355,6 @@ public class ContractsResource implements DefaultApi {
     } catch (Exception e) {
       log.error("Error saving subscriptions", e);
       response.setDetail("Error saving subscriptions.");
-    }
-    return response;
-  }
-
-  /** Sync a UMB subscription manually. */
-  @Override
-  @RolesAllowed({"test", "support", "service"})
-  public SubscriptionResponse syncUmbSubscription(String subscriptionXml) {
-    var response = new SubscriptionResponse();
-    if (!applicationConfiguration.isManualSubscriptionEditingEnabled()) {
-      response.setDetail(FEATURE_NOT_ENABLED_MESSAGE);
-      return response;
-    }
-    try {
-      log.info("Sync of new UMB subscription {} triggered over internal API", subscriptionXml);
-      CanonicalMessage subscriptionMessage =
-          XML_MAPPER.readValue(subscriptionXml, CanonicalMessage.class);
-      UmbSubscription subscription = subscriptionMessage.getPayload().getSync().getSubscription();
-      subscriptionSyncService.saveUmbSubscription(subscription);
-      response.setDetail(SUCCESS_STATUS);
-    } catch (Exception e) {
-      log.error("Error syncing UMB subscription", e);
-      response.setDetail("Error syncing UMB subscription.");
     }
     return response;
   }

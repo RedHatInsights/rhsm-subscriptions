@@ -21,18 +21,11 @@
 package com.redhat.swatch.contract.service;
 
 import static com.redhat.swatch.contract.config.Channels.SUBSCRIPTION_SYNC_TASK_TOPIC;
-import static com.redhat.swatch.contract.config.Channels.SUBSCRIPTION_SYNC_TASK_UMB;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.dataformat.xml.XmlMapper;
-import com.redhat.swatch.contract.config.FeatureFlags;
 import com.redhat.swatch.contract.model.EnabledOrgsResponse;
-import com.redhat.swatch.contract.product.umb.CanonicalMessage;
-import com.redhat.swatch.contract.product.umb.UmbSubscription;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 
 @Slf4j
@@ -40,18 +33,9 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 public class SubscriptionSyncTaskConsumer {
 
   private final SubscriptionSyncService service;
-  private final boolean umbEnabled;
-  private final XmlMapper xmlMapper;
-  private final FeatureFlags featureFlags;
 
-  public SubscriptionSyncTaskConsumer(
-      SubscriptionSyncService service,
-      @ConfigProperty(name = "UMB_ENABLED") boolean umbEnabled,
-      FeatureFlags featureFlags) {
+  public SubscriptionSyncTaskConsumer(SubscriptionSyncService service) {
     this.service = service;
-    this.umbEnabled = umbEnabled;
-    this.featureFlags = featureFlags;
-    this.xmlMapper = CanonicalMessage.createMapper();
   }
 
   @Blocking
@@ -59,33 +43,5 @@ public class SubscriptionSyncTaskConsumer {
   public void consumeFromTopic(EnabledOrgsResponse message) {
     log.info("Received task for subscription sync with org ID: {}", message.getOrgId());
     service.reconcileSubscriptionsWithSubscriptionService(message.getOrgId(), false);
-  }
-
-  @Blocking
-  @Incoming(SUBSCRIPTION_SYNC_TASK_UMB)
-  public void consumeFromUmb(String subscriptionMessageXml) throws JsonProcessingException {
-    if (!umbEnabled) {
-      log.debug("UMB processing is not enabled");
-      return;
-    }
-    if (!featureFlags.isItSubscriptionServiceUmbConsumerEnabled()) {
-      log.debug("IT Subscription UMB consumer is disabled by feature flag.");
-      return;
-    }
-    CanonicalMessage subscriptionMessage =
-        xmlMapper.readValue(subscriptionMessageXml, CanonicalMessage.class);
-    UmbSubscription subscription = subscriptionMessage.getPayload().getSync().getSubscription();
-    log.info(
-        "IT Subscription message consumed: source=umb, "
-            + "subscriptionNumber={}, webCustomerId={}, sku={}, quantity={}, "
-            + "effectiveStartDate={}, effectiveEndDate={}, terminated={}",
-        subscription.getSubscriptionNumber(),
-        subscription.getWebCustomerId(),
-        subscription.findSku().orElse(null),
-        subscription.getQuantity(),
-        subscription.getEffectiveStartDate(),
-        subscription.getEffectiveEndDate(),
-        subscription.findTerminatedStatus().isPresent());
-    service.saveUmbSubscription(subscription);
   }
 }

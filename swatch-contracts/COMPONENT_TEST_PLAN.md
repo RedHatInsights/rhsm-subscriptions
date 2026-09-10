@@ -949,191 +949,37 @@ This section verifies the automatic contract termination behavior when contracts
 
 ## Subscription Management via IT Subscription
 
-**subscriptions-creation-TC001 - Process a valid UMB subscription XML message from UMB**  
-- **Description**: Verify subscription creation via UMB XML message.  
-- **Setup**:  
-  - Ensure `UMB_ENABLED=true`
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-it-subscription-service` is enabled (UMB subscription consumer from IT Subscription Service)
-- **Action**:  
-  - Publish message to `VirtualTopic.canonical.subscription` channel
-- **Verification**:  
-  - Query subscription via internal API  
-  - Verify subscription created  
-- **Expected Result**:  
-- XML parsed successfully via `CanonicalMessage.createMapper()`  
-- Subscription entity created for org  
-- `subscription_number`  
-- quantity  
-- sku
-- Start and end dates are correctly parsed  
-
-**subscriptions-creation-TC002 - Process UMB subscription with AWS external references**  
-- **Description**: Verify AWS marketplace subscription data extraction from UMB.  
+**subscriptions-creation-TC001 - Process valid Kafka subscription message**
+- **Description**: Verify that a valid `SubscriptionOutboxEvent` JSON delivered via Kafka is deserialized and persisted as a subscription.
 - **Setup**:
-  - Ensure `UMB_ENABLED=true`
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-it-subscription-service` is enabled (UMB subscription consumer from IT Subscription Service)
-- **Action**:  
-  - Publish message to `VirtualTopic.canonical.subscription` channel  
-- **Verification**: Query subscription and check AWS fields  
-- **Expected Result**:  
-  - Subscription created with AWS external references  
-  - `billing_provider`  
-  - `billing_provider_id` contains AWS identifiers  
-  - `billing_account_id`
-
-**subscriptions-creation-TC003 - Process UMB subscription with Azure external references**  
-- **Description**: Verify Azure marketplace subscription data from UMB.  
-- **Setup**:
-  - Ensure `UMB_ENABLED=true`
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-it-subscription-service` is enabled (UMB subscription consumer from IT Subscription Service)
-- **Action**:  
-  - Publish message to `SUBSCRIPTION_SYNC_TASK_UMB` Kafka topic  
-- **Verification**: Check Azure-specific fields  
-- **Expected Result**:  
-- Subscription created with null references since subscription sync does not populate the Azure external references
-
-**subscriptions-creation-TC004 - Process malformed UMB XML message**  
-- **Description**: Verify error handling for invalid XML.  
-- **Setup**:
-  - Ensure `UMB_ENABLED=true`
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-it-subscription-service` is enabled (UMB subscription consumer from IT Subscription Service)
-- **Action**:  
-  - Publish malformed UMB XML message to `VirtualTopic.canonical.subscription` channel  
-- **Verification**: Subscription not created  
-- **Expected Result**:  
-  - `JsonProcessingException` thrown (XML parsing error)  
-  - No subscription created  
-  - Message handling fails gracefully
-
-**subscriptions-creation-TC005 - Process UMB message with missing required fields**  
-- **Description**: Verify validation for incomplete subscription data.  
-- **Setup**:
-  - Ensure `UMB_ENABLED=true`
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-it-subscription-service` is enabled (UMB subscription consumer from IT Subscription Service)
-- **Action**:  
-  - Publish the UMB message with missing required fields to `VirtualTopic.canonical.subscription` channel  
-- **Verification**: Check for validation errors  
-- **Expected Result**:  
-  - Validation failure or graceful error handling  
-  - No subscription created with incomplete data  
-  - Error logged with details
-
-**subscriptions-creation-TC006 - Process subscription update via UMB**  
-- **Description**: Verify subscription updates through messaging.  
-- **Setup**:  
-  - Ensure `UMB_ENABLED=true`
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-it-subscription-service` is enabled (UMB subscription consumer from IT Subscription Service)
-  - Send initial subscription message  
-  - Send an update with a different quantity or dates  
-- **Action**: Publish initial message, then update the message  
-- **Verification**: Check that the subscription record is updated  
-- **Expected Result**:  
-  - Initial subscription created  
-  - Update message modifies existing subscription  
-  - Updated fields reflected in the database  
-  - No duplicate subscriptions
-
-**subscriptions-creation-TC007 - Process terminated subscription via UMB**  
-- **Description**: Verify subscription termination messages.  
-- **Setup**:
-  - Ensure `UMB_ENABLED=true`
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-it-subscription-service` is enabled (UMB subscription consumer from IT Subscription Service)
-- **Action**:  
-  - Publish message to `VirtualTopic.canonical.subscription` channel  
-  - Update the end date to the current timestamp  
-- **Verification**: Check subscription `end_date` updated  
-- **Expected Result**:  
-  - Subscription marked as terminated  
-  - `end_date` set to termination date  
-  - Status reflects termination
-
-**subscriptions-creation-TC008 - Handle null/empty optional fields**
-- **Description**: Verify that a subscription message with null or empty optional fields (e.g., null
-  `billing_account_id`, empty `billing_provider_id`) is processed successfully without errors.
-- **Setup**:
-  - Ensure `UMB_ENABLED=true`
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-it-subscription-service` is enabled
-- **Action**: Publish a `CanonicalMessage` XML with null/empty optional billing fields to `VirtualTopic.canonical.subscription` channel
-- **Verification**: Poll subscriptions until created; verify subscription fields
-- **Expected Result**:
-  - Subscription created with correct `subscription_number`, `quantity`, and `sku`
-  - Optional fields with null values are stored as null (not rejected)
-  - Consumer processes message without errors or warnings
-  - No `NullPointerException` or validation errors logged
-
-**subscriptions-creation-TC011 - Handle invalid/unknown billing provider value**
-- **Description**: Verify that a subscription message with an invalid or unknown billing provider
-  value (e.g., "GCP", "UNKNOWN") is handled gracefully.
-- **Setup**:
-  - Ensure `UMB_ENABLED=true`
-  - Ensure Unleash toggle `swatch.swatch-contracts.enable-it-subscription-service` is enabled
-- **Action**: Publish a `CanonicalMessage` XML with an invalid billing provider value to `VirtualTopic.canonical.subscription` channel
-- **Verification**: Check service logs and subscription table
-- **Expected Result**:
-  - Subscription is created with core fields (`subscription_number`, `quantity`, `sku`)
-  - Unknown billing provider is nullified
-  - `billing_provider` field is null in the persisted subscription
-  - Consumer does not crash or reject the entire message
-  - Info log indicates subscription was consumed: "IT Subscription message consumed: source=umb"
-  - No `NullPointerException` or validation errors logged
-
-**subscriptions-creation-umb-TC008 - Ignore UMB message when IT subscription service flag is disabled**
-- **Description**: Verify that when the Unleash flag
-  `swatch.swatch-contracts.enable-it-subscription-service` is **disabled**, the UMB
-  consumer exits early and no subscription is persisted.
-- **Setup**:
-  - Ensure `UMB_ENABLED=true`
-  - Unleash toggle `swatch.swatch-contracts.enable-it-subscription-service` is disabled
-- **Action**: Publish a valid `CanonicalMessage` XML to `VirtualTopic.canonical.subscription` channel
-- **Verification**: Poll subscriptions after 3 second delay via internal API
-- **Expected Result**: Zero subscriptions created for the test org
-
-**subscriptions-creation-umb-TC009 - Ignore UMB message when UMB consumer disabled via variant**
-- **Description**: Verify that a `config` variant payload of
-  `{"umb_consumer_enabled":false}` blocks the UMB consumer while the flag itself
-  remains enabled.
-- **Setup**:
-  - Ensure `UMB_ENABLED=true`
-  - Unleash flag `swatch.swatch-contracts.enable-it-subscription-service` enabled
-  - `config` variant set with `umb_consumer_enabled=false`
-- **Action**: Publish a valid `CanonicalMessage` XML to `VirtualTopic.canonical.subscription` channel
-- **Verification**: Poll subscriptions after 3 second delay via internal API
-- **Expected Result**: Zero subscriptions created for the test org
-
-**subscriptions-creation-umb-TC010 - Process UMB message when UMB enabled and Kafka disabled via variant**
-- **Description**: Verify that disabling the Kafka consumer via variant
-  (`kafka_consumer_enabled=false`) does not prevent the UMB consumer from working.
-- **Setup**:
-  - Ensure `UMB_ENABLED=true`
-  - Unleash flag `swatch.swatch-contracts.enable-it-subscription-service` enabled
-  - `config` variant set with `{"kafka_consumer_enabled":false,"umb_consumer_enabled":true}`
-- **Action**: Publish a valid `CanonicalMessage` XML to `VirtualTopic.canonical.subscription` channel
-- **Verification**: Poll subscriptions until created
-- **Expected Result**:
-  - Subscription created with correct `quantity` and `sku`
-  - Kafka consumer is independently disabled (not tested in this TC)
-
-**subscriptions-creation-kafka-TC001 - Kafka consumer happy path**
-- **Description**: Verify that a valid `SubscriptionOutboxEvent` JSON delivered via Kafka is
-  deserialized and persisted as a subscription (Kafka consumer smoke test).
-- **Setup**:
-  - Unleash toggle `swatch.swatch-contracts.enable-it-subscription-service` is enabled
-  - WireMock stubs for Search API (`getSubscriptionBySubscriptionNumber`) and Product API
-    (`offeringData`) are in place
-- **Action**: Publish a valid `SubscriptionOutboxEvent` JSON string (with `entityType: "Subscription"`
-  and a `payload` containing `subscriptionNumber`, `customerId`, `quantity`, `effectiveStartDate`,
-  `effectiveEndDate`, and `product.sku`) to the `subscription.subscriptions.private` Kafka topic
-  via Kafka Bridge
+  - WireMock stubs for Search API (`getSubscriptionBySubscriptionNumber`) and Product API (`offeringData`) are in place
+- **Action**: Publish a valid `SubscriptionOutboxEvent` JSON string (with `entityType: "Subscription"` and a `payload` containing `subscriptionNumber`, `customerId`, `quantity`, `effectiveStartDate`, `effectiveEndDate`, and `product.sku`) to the `subscription.subscriptions.private` Kafka topic via Kafka Bridge
 - **Verification**: Query subscriptions via internal API for the test org
 - **Expected Result**:
-  - One subscription created with matching `subscription_number`, `quantity`, `sku`,
-    `start_date`, and `end_date` (dates converted from epoch milliseconds to UTC)
+  - One subscription created with matching `subscription_number`, `quantity`, `sku`, `start_date`, and `end_date` (dates converted from epoch milliseconds to UTC)
+  - Info log indicates subscription was consumed: "IT Subscription message consumed: source=kafka"
 
-**subscriptions-creation-kafka-TC002 - Reject malformed JSON from Kafka**
-- **Description**: Verify that unparseable JSON causes a warn log and does not crash the
-  Kafka consumer or leave a partial subscription in the database (Kafka-specific error handling).
-- **Setup**: IT subscription service flag enabled; WireMock stubs in place for valid message
-- **Action**: 
+**subscriptions-creation-TC002 - Process Kafka subscription with AWS external references**
+- **Description**: Verify AWS marketplace subscription data is persisted when delivered via Kafka.
+- **Setup**: WireMock stubs in place for Search API and Product API
+- **Action**: Publish a valid `SubscriptionOutboxEvent` JSON to the `subscription.subscriptions.private` Kafka topic
+- **Verification**: Query subscription and check AWS fields
+- **Expected Result**:
+  - Subscription created with AWS external references
+  - `billing_provider`, `billing_provider_id`, and `billing_account_id` populated from upstream Search API data
+
+**subscriptions-creation-TC003 - Process Kafka subscription with Azure external references**
+- **Description**: Verify Azure marketplace subscription data from Kafka.
+- **Setup**: WireMock stubs in place for Search API and Product API
+- **Action**: Publish a valid `SubscriptionOutboxEvent` JSON to the `subscription.subscriptions.private` Kafka topic
+- **Verification**: Check Azure-specific fields
+- **Expected Result**:
+  - Subscription created with null billing references since subscription sync does not populate Azure external references
+
+**subscriptions-creation-TC004 - Reject malformed JSON**
+- **Description**: Verify that unparseable JSON causes a warn log and does not crash the Kafka consumer or leave a partial subscription in the database.
+- **Setup**: WireMock stubs in place for a valid follow-up message
+- **Action**:
   - Publish a non-JSON string to the `subscription.subscriptions.private` topic
   - Publish a valid event after the malformed message and verify that the consumer processes it
 - **Verification**: Check service logs and subscription table
@@ -1143,56 +989,63 @@ This section verifies the automatic contract termination behavior when contracts
   - Consumer continues to accept subsequent messages (`failure-strategy=ignore`)
   - Valid event after the malformed message is successfully processed and creates a subscription
 
-**subscriptions-creation-kafka-TC003 - Reject Kafka message with missing required fields**
+**subscriptions-creation-TC005 - Reject message with missing required fields**
 - **Description**: Verify Kafka consumer validation for incomplete subscription data.
-- **Setup**: IT subscription service flag enabled; WireMock stubs in place
-- **Action**: Publish a `SubscriptionOutboxEvent` JSON with `entityType: "Subscription"` but
-  missing required payload fields (e.g., missing `subscriptionNumber` or `customerId`)
-  to the `subscription.subscriptions.private` topic
+- **Setup**: WireMock stubs in place
+- **Action**: Publish a `SubscriptionOutboxEvent` JSON with `entityType: "Subscription"` but missing required payload fields (e.g., missing `subscriptionNumber` or `customerId`) to the `subscription.subscriptions.private` topic
 - **Verification**: Check service logs and subscription table
 - **Expected Result**:
-  - Warn log or validation error logged
+  - Warn log: `IT Subscription Kafka payload is missing subscriptionNumber`
   - No subscription created with incomplete data
   - Consumer continues to accept subsequent messages
 
-**subscriptions-creation-kafka-TC004 - Ignore Kafka message when IT subscription service flag is disabled**
-- **Description**: Verify that when the Unleash flag
-  `swatch.swatch-contracts.enable-it-subscription-service` is **disabled**, the Kafka consumer exits early and no subscription is persisted.
-- **Setup**: Unleash toggle disabled; WireMock stubs in place
-- **Action**: Publish a valid `SubscriptionOutboxEvent` JSON to Kafka
-- **Verification**: Poll subscriptions after 3 second delay via internal API
-- **Expected Result**: Zero subscriptions created for the test org
-
-**subscriptions-creation-kafka-TC005 - Ignore Kafka message when Kafka consumer disabled via variant**
-- **Description**: Verify that a `config` variant payload of
-  `{"kafka_consumer_enabled":false}` blocks the Kafka consumer while the flag itself
-  remains enabled.
-- **Setup**: Unleash flag enabled; `config` variant set with `kafka_consumer_enabled=false`
-- **Action**: Publish a valid `SubscriptionOutboxEvent` JSON to Kafka
-- **Verification**: Poll subscriptions after 3 second delay via internal API
-- **Expected Result**: Zero subscriptions created for the test org
-
-**subscriptions-creation-kafka-TC006 - Process Kafka message when Kafka enabled and UMB disabled via variant**
-- **Description**: Verify that disabling the UMB consumer via variant
-  (`umb_consumer_enabled=false`) does not prevent the Kafka consumer from working.
-- **Setup**: Unleash flag enabled; `config` variant set with
-  `{"kafka_consumer_enabled":true,"umb_consumer_enabled":false}`; WireMock stubs in place
-- **Action**: Publish a valid `SubscriptionOutboxEvent` JSON to Kafka
-- **Verification**: Poll subscriptions until created
+**subscriptions-creation-TC006 - Process subscription update via Kafka**
+- **Description**: Verify subscription updates through Kafka messaging.
+- **Setup**:
+  - WireMock stubs in place
+  - Send initial subscription message
+  - Send an update with a different quantity or dates
+- **Action**: Publish initial `SubscriptionOutboxEvent`, then publish updated event with same subscriptionNumber but different quantity/dates
+- **Verification**: Check that the subscription record is updated
 - **Expected Result**:
-  - Subscription created with correct `quantity` and `sku`
-  - UMB consumer is independently disabled (not tested in this TC)
+  - Initial subscription created
+  - Update message modifies existing subscription
+  - Updated fields (quantity, dates) reflected in the database
+  - No duplicate subscriptions
 
-**subscriptions-creation-kafka-TC007 - Process Kafka message when both consumers explicitly enabled via variant**
-- **Description**: Verify that explicitly enabling both Kafka and UMB consumers via variant
-  (`{"kafka_consumer_enabled":true,"umb_consumer_enabled":true}`) allows both to function correctly.
-- **Setup**: Unleash flag enabled; `config` variant set with
-  `{"kafka_consumer_enabled":true,"umb_consumer_enabled":true}`; WireMock stubs in place
-- **Action**: Publish a valid `SubscriptionOutboxEvent` JSON to Kafka
-- **Verification**: Poll subscriptions until created
+**subscriptions-creation-TC007 - Process terminated subscription via Kafka**
+- **Description**: Verify subscription termination messages.
+- **Setup**: WireMock stubs in place
+- **Action**: Publish `SubscriptionOutboxEvent` with `effectiveEndDate` set to current timestamp
+- **Verification**: Check subscription `end_date` updated
 - **Expected Result**:
-  - Subscription created with correct `quantity` and `sku`
-  - Both Kafka and UMB consumers are enabled and operational
+  - Subscription marked as terminated
+  - `end_date` set to termination date
+  - Status reflects termination
+
+**subscriptions-creation-TC008 - Handle null/empty optional fields**
+- **Description**: Verify that a subscription message with null or empty optional fields (e.g., null `billing_account_id`, empty `billing_provider_id`) is processed successfully without errors.
+- **Setup**: WireMock stubs in place
+- **Action**: Publish a `SubscriptionOutboxEvent` JSON with null/empty optional billing fields
+- **Verification**: Poll subscriptions until created; verify subscription fields
+- **Expected Result**:
+  - Subscription created with correct `subscription_number`, `quantity`, and `sku`
+  - Optional fields with null values are stored as null (not rejected)
+  - Consumer processes message without errors or warnings
+  - No `NullPointerException` or validation errors logged
+
+**subscriptions-creation-TC011 - Handle invalid/unknown billing provider value**
+- **Description**: Verify that a subscription message with an invalid or unknown billing provider value (e.g., "GCP", "UNKNOWN") is handled gracefully.
+- **Setup**: WireMock stubs in place
+- **Action**: Publish a `SubscriptionOutboxEvent` JSON with an invalid billing provider value
+- **Verification**: Check service logs and subscription table
+- **Expected Result**:
+  - Subscription is created with core fields (`subscription_number`, `quantity`, `sku`)
+  - Unknown billing provider is nullified
+  - `billing_provider` field is null in the persisted subscription
+  - Consumer does not crash or reject the entire message
+  - Info log indicates subscription was consumed: "IT Subscription message consumed: source=kafka"
+  - No `NullPointerException` or validation errors logged
 
 ## Subscription Management via API
 
@@ -1229,17 +1082,14 @@ This section verifies the automatic contract termination behavior when contracts
 - **Expected Result:**  
   - RpcResponse with success
 
-**subscriptions-sync-TC002** - **Sync UMB subscription XML message**  
-- **Description:** Verify processing of UMB CanonicalMessage XML.  
-- **Setup:** Prepare a valid UMB subscription XML.  
- **Action:**   
-  - POST `/api/swatch-contracts/internal/subscriptions/umb` with XML.  
-  - Sync subscriptions  
+**subscriptions-sync-TC002** - **Sync IT Subscription Kafka message**  
+- **Description:** Verify processing of an IT Subscription outbox event from Kafka.  
+- **Setup:** Prepare a valid subscription Kafka payload and wiremock stubs for offering lookup.  
+- **Action:**  
+  - Publish to `it-subscription-sync` topic.  
 - **Verification:** Check subscription created.  
 - **Expected Result:**  
-  - XML parsed correctly  
-  - Subscription entity created  
-  - SubscriptionResponse: "Success"
+  - Subscription entity created in DB
 
 **subscriptions-sync-TC003 - Empty upstream org subscription list**
 - **Description**: When IT subscription search returns an empty list, all subscription rows previously stored for the org are removed.

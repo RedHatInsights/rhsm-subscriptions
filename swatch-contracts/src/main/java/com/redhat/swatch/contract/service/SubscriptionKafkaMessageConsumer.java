@@ -24,7 +24,6 @@ import static com.redhat.swatch.contract.config.Channels.IT_SUBSCRIPTION_SYNC;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.redhat.swatch.contract.config.FeatureFlags;
 import com.redhat.swatch.contract.openapi.model.SubscriptionOutboxEvent;
 import io.smallrye.common.annotation.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -36,7 +35,6 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 @Slf4j
 public class SubscriptionKafkaMessageConsumer {
 
-  @Inject FeatureFlags featureFlags;
   @Inject SubscriptionSyncService service;
   @Inject ObjectMapper mapper;
 
@@ -45,10 +43,6 @@ public class SubscriptionKafkaMessageConsumer {
   public void consumeMessage(String message) throws JsonProcessingException {
     log.debug("IT Subscription Kafka consumer was called");
     if (message == null) {
-      return;
-    }
-    if (!featureFlags.isItSubscriptionServiceKafkaConsumerEnabled()) {
-      log.debug("IT Subscription Kafka consumer is disabled by feature flag.");
       return;
     }
     consumeSubscription(message);

@@ -29,15 +29,6 @@ import com.redhat.swatch.component.tests.api.ArtemisService;
 public class ContractsArtemisService extends ArtemisService {
 
   /**
-   * Get facade for building and sending CanonicalMessage messages.
-   *
-   * @return CanonicalMessage instance
-   */
-  public CanonicalMessageArtemisSender forSubscriptions() {
-    return new CanonicalMessageArtemisSender(this);
-  }
-
-  /**
    * Get facade for building and sending OperationalProductEvent messages.
    *
    * @return OperationalProductEvent instance
