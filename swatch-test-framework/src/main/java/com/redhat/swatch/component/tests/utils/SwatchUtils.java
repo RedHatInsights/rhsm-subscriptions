@@ -23,6 +23,7 @@ package com.redhat.swatch.component.tests.utils;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
+import java.util.UUID;
 
 public final class SwatchUtils {
   public static final String SERVER_PORT_PROPERTY = "SERVER_PORT";
@@ -101,15 +102,18 @@ public final class SwatchUtils {
 
   /**
    * Returns headers for a ServiceAccount identity with org and client identifiers (RBAC component
-   * tests).
+   * tests). Generates a random UUID for user_id as required by the identity schema.
    */
   public static Map<String, String> securityHeadersWithServiceAccount(
       String orgId, String clientId) {
+    String userId = UUID.randomUUID().toString();
     String json =
         "{\"identity\":{\"type\":\"ServiceAccount\",\"org_id\":\""
             + orgId
             + "\",\"service_account\":{\"client_id\":\""
             + clientId
+            + "\",\"user_id\":\""
+            + userId
             + "\"}}}";
     String rhId = Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
     return Map.of(ORIGIN_HEADER, ORIGIN_HEADER_VALUE, X_RH_IDENTITY_HEADER, rhId);

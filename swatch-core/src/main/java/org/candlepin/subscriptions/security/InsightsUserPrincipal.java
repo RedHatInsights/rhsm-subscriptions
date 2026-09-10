@@ -24,6 +24,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Objects;
 import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Represents a user or service account authenticated via the x-rh-identity header.
@@ -31,6 +32,7 @@ import java.util.Optional;
  * <p>This class handles both "User" and "ServiceAccount" identity types from the x-rh-identity
  * header, as they share the same org_id structure and authentication flow.
  */
+@Slf4j
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class InsightsUserPrincipal implements RhIdentity.Identity {
 
@@ -80,12 +82,23 @@ public class InsightsUserPrincipal implements RhIdentity.Identity {
     @JsonProperty("client_id")
     private String clientId;
 
+    @JsonProperty("user_id")
+    private String userId;
+
     public String getClientId() {
       return clientId;
     }
 
     public void setClientId(String clientId) {
       this.clientId = clientId;
+    }
+
+    public String getUserId() {
+      return userId;
+    }
+
+    public void setUserId(String userId) {
+      this.userId = userId;
     }
   }
 
@@ -108,24 +121,45 @@ public class InsightsUserPrincipal implements RhIdentity.Identity {
   /**
    * Returns the principal identifier used for Kessel authorization checks ({@code redhat/{id}}).
    *
-   * <p>For users, this returns the user_id. For service accounts, this returns the client_id.
+   * <p>For users, this returns user.user_id or top-level user_id. For service accounts, this
+   * returns service_account.user_id (per <a
+   * href="https://github.com/RedHatInsights/identity-schemas/blob/main/3scale/schema.json">identity
+   * schema</a>), with defensive fallback to top-level user_id.
+   *
+   * <p>Kessel requires user_id, not client_id.
    *
    * <p>Matches insights-rbac and swatch-common-security KesselPrincipalIds logic.
    */
   public Optional<String> getKesselPrincipalId() {
-    // Check top-level user_id first (present in both user and service account identities)
+    // Check ServiceAccount FIRST (before generic fallbacks) to enforce schema contract
+    if (serviceAccount != null) {
+      // Prefer service_account.user_id (correct per schema)
+      if (serviceAccount.getUserId() != null && !serviceAccount.getUserId().isBlank()) {
+        return Optional.of(serviceAccount.getUserId());
+      }
+      // Defensive fallback to top-level user_id (non-standard)
+      if (userId != null && !userId.isBlank()) {
+        log.warn(
+            "ServiceAccount has user_id at top-level instead of service_account.user_id"
+                + " (non-standard): orgId={} clientId={}",
+            getOrgId(),
+            serviceAccount.getClientId());
+        return Optional.of(userId);
+      }
+      // No user_id found - error and deny
+      log.error(
+          "ServiceAccount missing REQUIRED user_id field - denying access: orgId={} clientId={}",
+          getOrgId(),
+          serviceAccount.getClientId());
+      return Optional.empty();
+    }
+    // For Users: check top-level user_id
     if (userId != null && !userId.isBlank()) {
       return Optional.of(userId);
     }
-    // Check nested user.user_id (for User type)
+    // For Users: check nested user.user_id
     if (user != null && user.getUserId() != null && !user.getUserId().isBlank()) {
       return Optional.of(user.getUserId());
-    }
-    // Check service_account.client_id (for ServiceAccount type)
-    if (serviceAccount != null
-        && serviceAccount.getClientId() != null
-        && !serviceAccount.getClientId().isBlank()) {
-      return Optional.of(serviceAccount.getClientId());
     }
     return Optional.empty();
   }

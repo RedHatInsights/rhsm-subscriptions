@@ -47,28 +47,39 @@ class KesselPrincipalIdsTest {
   }
 
   @Test
-  void resolvesServiceAccountFromUserIdWhenPresent() {
+  void resolvesServiceAccountFromServiceAccountUserId() {
+    // Per identity schema, user_id is required in service_account object
     var identity =
         Identity.builder()
             .type("ServiceAccount")
             .orgId("org123")
-            .userId("sa-user-id")
-            .serviceAccount(ServiceAccount.builder().clientId("client-id").build())
+            .serviceAccount(
+                ServiceAccount.builder()
+                    .clientId("b69eaf9e-e6a6-4f9e-805e-02987daddfbd")
+                    .username("service-account-b69eaf9e-e6a6-4f9e-805e-02987daddfbd")
+                    .userId("60ce65dc-4b5a-4812-8b65-b48178d92b12")
+                    .build())
             .build();
 
-    assertEquals("sa-user-id", KesselPrincipalIds.fromIdentity(identity).orElseThrow());
+    assertEquals(
+        "60ce65dc-4b5a-4812-8b65-b48178d92b12",
+        KesselPrincipalIds.fromIdentity(identity).orElseThrow());
   }
 
   @Test
-  void resolvesServiceAccountFromClientIdWhenUserIdMissing() {
+  void serviceAccountWithoutUserIdReturnsEmpty() {
     var identity =
         Identity.builder()
             .type("ServiceAccount")
             .orgId("org123")
-            .serviceAccount(ServiceAccount.builder().clientId("client-id").build())
+            .serviceAccount(
+                ServiceAccount.builder()
+                    .clientId("client-id")
+                    .username("service-account-client-id")
+                    .build())
             .build();
 
-    assertEquals("client-id", KesselPrincipalIds.fromIdentity(identity).orElseThrow());
+    assertTrue(KesselPrincipalIds.fromIdentity(identity).isEmpty());
   }
 
   @Test

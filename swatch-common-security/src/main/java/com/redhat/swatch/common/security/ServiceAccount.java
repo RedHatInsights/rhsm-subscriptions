@@ -35,4 +35,7 @@ public class ServiceAccount {
   private String clientId;
 
   private String username;
+
+  @JsonProperty("user_id")
+  private String userId;
 }

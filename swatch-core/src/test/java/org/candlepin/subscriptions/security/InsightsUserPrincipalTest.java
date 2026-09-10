@@ -77,4 +77,69 @@ class InsightsUserPrincipalTest {
 
     assertTrue(principal.getKesselPrincipalId().isEmpty());
   }
+
+  @Test
+  void resolvesServiceAccountFromServiceAccountUserId() throws Exception {
+    // Per identity schema, ServiceAccount has user_id in service_account object
+    var principal =
+        mapper.readValue(
+            """
+            {
+              "internal": {"org_id": "11009103"},
+              "type": "ServiceAccount",
+              "service_account": {
+                "client_id": "b69eaf9e-e6a6-4f9e-805e-02987daddfbd",
+                "username": "service-account-b69eaf9e-e6a6-4f9e-805e-02987daddfbd",
+                "user_id": "60ce65dc-4b5a-4812-8b65-b48178d92b12"
+              }
+            }
+            """,
+            InsightsUserPrincipal.class);
+
+    assertEquals(
+        "60ce65dc-4b5a-4812-8b65-b48178d92b12", principal.getKesselPrincipalId().orElseThrow());
+  }
+
+  @Test
+  void serviceAccountWithoutUserIdReturnsEmpty() throws Exception {
+    // Kessel requires user_id - if missing, return empty (don't fall back to client_id)
+    var principal =
+        mapper.readValue(
+            """
+            {
+              "internal": {"org_id": "11009103"},
+              "type": "ServiceAccount",
+              "service_account": {
+                "client_id": "client-id",
+                "username": "service-account-client-id"
+              }
+            }
+            """,
+            InsightsUserPrincipal.class);
+
+    assertTrue(principal.getKesselPrincipalId().isEmpty());
+  }
+
+  @Test
+  void serviceAccountWithTopLevelUserIdFallsBack() throws Exception {
+    var principal =
+        mapper.readValue(
+            """
+            {
+              "internal": {"org_id": "11009103"},
+              "type": "ServiceAccount",
+              "user_id": "top-level-fallback-userid",
+              "service_account": {
+                "client_id": "client-id",
+                "username": "service-account-client-id"
+              }
+            }
+            """,
+            InsightsUserPrincipal.class);
+
+    assertEquals(
+        "top-level-fallback-userid",
+        principal.getKesselPrincipalId().orElseThrow(),
+        "ServiceAccount should fall back to top-level user_id with warning");
+  }
 }
