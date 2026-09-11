@@ -60,6 +60,9 @@ class InternalBillableUsageResourceTest {
 
   private static final String ORG_ID = "org123";
   private static final String PRODUCT_ID = "rosa";
+  private static final String LICENSE_ID =
+      "arn:aws:license-manager:us-east-1:123456789012:license:swatch-test-license";
+  private static final String TALLY_ID = "c204074d-626f-4272-aa05-b6d69d6de16a";
 
   @InjectMock ApplicationConfiguration configuration;
   @InjectSpy BillableUsageRemittanceRepository remittanceRepository;
@@ -125,24 +128,26 @@ class InternalBillableUsageResourceTest {
     assertEquals(ORG_ID, remittances[0].getOrgId());
     assertEquals(RemittanceStatus.FAILED.getValue(), remittances[0].getRemittanceStatus());
     assertEquals(RemittanceErrorCode.UNKNOWN.getValue(), remittances[0].getRemittanceErrorCode());
+    assertEquals(LICENSE_ID, remittances[0].getLicenseId());
   }
 
   @Test
   void testGetRemittancesReturnsBadRequestWhenWrongTallyId() {
-    String tallyId = "e404074d-626f-4272-aa05-b6d69d6de16c";
+    String nonexistentTallyId = "e404074d-626f-4272-aa05-b6d69d6de16c";
     given()
-        .get("/api/swatch-billable-usage/internal/remittance/accountRemittances/" + tallyId)
+        .get(
+            "/api/swatch-billable-usage/internal/remittance/accountRemittances/"
+                + nonexistentTallyId)
         .then()
         .statusCode(HttpStatus.SC_BAD_REQUEST);
   }
 
   @Test
   void testGetRemittancesByTallyId() {
-    String tallyId = "c204074d-626f-4272-aa05-b6d69d6de16a";
-    givenRemittanceForTallyId(tallyId);
+    givenRemittanceForTallyId(TALLY_ID);
     TallyRemittance[] remittances =
         given()
-            .get("/api/swatch-billable-usage/internal/remittance/accountRemittances/" + tallyId)
+            .get("/api/swatch-billable-usage/internal/remittance/accountRemittances/" + TALLY_ID)
             .as(TallyRemittance[].class);
     assertEquals(1, remittances.length);
     assertEquals(ORG_ID, remittances[0].getOrgId());
@@ -228,7 +233,8 @@ class InternalBillableUsageResourceTest {
             .remittedPendingValue(2.0)
             .status(RemittanceStatus.FAILED)
             .errorCode(RemittanceErrorCode.UNKNOWN)
-            .tallyId(UUID.fromString("c204074d-626f-4272-aa05-b6d69d6de16a"))
+            .licenseId(LICENSE_ID)
+            .tallyId(UUID.fromString(TALLY_ID))
             .build();
     remittanceRepository.persist(entity);
     return entity;

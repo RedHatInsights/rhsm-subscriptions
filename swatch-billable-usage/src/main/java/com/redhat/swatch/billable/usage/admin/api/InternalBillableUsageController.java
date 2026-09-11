@@ -153,7 +153,8 @@ public class InternalBillableUsageController {
               .remittanceErrorCode(
                   ofNullable(entity.getErrorCode())
                       .map(RemittanceErrorCode::getValue)
-                      .orElse("null"));
+                      .orElse("null"))
+              .licenseId(entity.getLicenseId());
       remittances.add(accountRemittance);
     }
     log.debug("Found {} remittances for this account", remittances.size());

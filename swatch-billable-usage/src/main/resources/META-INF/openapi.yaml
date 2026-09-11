@@ -247,6 +247,9 @@ components:
           type: string
         remittanceErrorCode:
           type: string
+        licenseId:
+          type: string
+          nullable: true
     TallyRemittances:
       type: array
       items:

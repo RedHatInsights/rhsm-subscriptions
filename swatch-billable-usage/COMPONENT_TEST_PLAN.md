@@ -357,6 +357,23 @@ Java component tests in `ContractCoverageComponentTest` (`swatch-billable-usage/
 - **Expected Result:**  
   - Deterministic overage allocation when start dates tie (lexicographically smaller wins)
 
+**billable-usage-contract-coverage-TC015 - Monthly account remittance splits by licenseId**
+
+- **Description:** Verify aggregated `accountRemittances` returns one row per `licenseId` while the monthly total across rows is unchanged.  
+- **Setup:**  
+  - Two ROSA contracts with different `licenseId`s and combined coverage = 4 Instance-hours  
+  - First tally `current_total` = 5 (overage 1 on newest license)  
+  - Contracts restubbed so the other license becomes newest  
+  - Second tally `current_total` = 6 (additional overage 1 on the other license)
+- **Action:**  
+  - Publish both tally summaries in the same accumulation period
+- **Verification:**  
+  - Monthly `accountRemittances` returns two rows (one per `licenseId`)  
+  - Each row has `remittedValue` = 1 for its license  
+  - Sum of monthly `remittedValue` = 2
+- **Expected Result:**  
+  - Per-license monthly attribution without changing the total remitted amount
+
 ---
 
 ## ACM Managed vs Self-Managed Dimensions
