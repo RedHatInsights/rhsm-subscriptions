@@ -36,7 +36,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-class MetricsHbiCreateUpdateComponentTest extends BaseSMHBIComponentTest {
+class MetricsHbiHypervisorCreateUpdateComponentTest extends BaseSMHBIComponentTest {
 
   @BeforeAll
   static void enableEmitEventsFeatureFlag() {
@@ -48,169 +48,7 @@ class MetricsHbiCreateUpdateComponentTest extends BaseSMHBIComponentTest {
     unleash.disableFlag(EMIT_EVENTS);
   }
 
-  @TestPlanName("metrics-hbi-create-update-TC001")
-  @ParameterizedTest
-  @CsvSource({"created, INSTANCE_CREATED", "updated, INSTANCE_UPDATED"})
-  void shouldProduceSwatchEventForPhysicalRhsmHost(String hbiEventType, String swatchEventType) {
-    // Given: A physical RHEL for x86 host event
-    HbiHostCreateUpdateEvent hbiEvent =
-        HbiEventHelper.getRhsmHostEvent(
-            hbiEventType,
-            null,
-            List.of("69"),
-            false,
-            "x86_64",
-            OffsetDateTime.now(ZoneOffset.UTC),
-            "Self-Support",
-            "Development/Test",
-            2,
-            2,
-            null,
-            null,
-            null);
-
-    Event swatchEvent =
-        SwatchEventHelper.createExpectedEvent(
-            hbiEvent, List.of("69"), Set.of("RHEL for x86"), false, false);
-
-    // When: HBI event is produced to Kafka
-    kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hbiEvent);
-
-    // Then: Corresponding SWatch event should be produced
-    thenSwatchEventsAppear(MessageValidators.swatchEventEquals(swatchEvent));
-  }
-
-  @TestPlanName("metrics-hbi-create-update-TC002")
-  @ParameterizedTest
-  @CsvSource({"created, INSTANCE_CREATED", "updated, INSTANCE_UPDATED"})
-  void shouldProduceSwatchEventForUnmappedGuestFromThreadsPerCore(
-      String hbiEventType, String swatchEventType) {
-    // Given: A virtual RHEL unmapped guest with threads per core set
-    HbiHostCreateUpdateEvent hbiEvent =
-        HbiEventHelper.getRhsmHostEvent(
-            hbiEventType,
-            null,
-            List.of("69"),
-            true,
-            "x86_64",
-            OffsetDateTime.now(ZoneOffset.UTC),
-            "Self-Support",
-            "Development/Test",
-            2,
-            2,
-            4,
-            null,
-            null);
-
-    Event swatchEvent =
-        SwatchEventHelper.createExpectedEvent(
-            hbiEvent, List.of("69"), Set.of("RHEL for x86"), true, false);
-
-    // When: HBI event is produced to Kafka
-    kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hbiEvent);
-
-    // Then: Corresponding SWatch event should be produced
-    thenSwatchEventsAppear(MessageValidators.swatchEventEquals(swatchEvent));
-  }
-
-  @TestPlanName("metrics-hbi-create-update-TC003")
-  @ParameterizedTest
-  @CsvSource({"created, INSTANCE_CREATED", "updated, INSTANCE_UPDATED"})
-  void shouldProduceSwatchEventForUnmappedGuestFromCpus(
-      String hbiEventType, String swatchEventType) {
-    // Given: A virtual RHEL unmapped guest with CPUs set
-    HbiHostCreateUpdateEvent hbiEvent =
-        HbiEventHelper.getRhsmHostEvent(
-            hbiEventType,
-            null,
-            List.of("69"),
-            true,
-            "x86_64",
-            OffsetDateTime.now(ZoneOffset.UTC),
-            "Self-Support",
-            "Development/Test",
-            2,
-            2,
-            null,
-            4,
-            null);
-
-    Event swatchEvent =
-        SwatchEventHelper.createExpectedEvent(
-            hbiEvent, List.of("69"), Set.of("RHEL for x86"), true, false);
-
-    // When: HBI event is produced to Kafka
-    kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hbiEvent);
-
-    // Then: Corresponding SWatch event should be produced
-    thenSwatchEventsAppear(MessageValidators.swatchEventEquals(swatchEvent));
-  }
-
-  @TestPlanName("metrics-hbi-create-update-TC004")
-  @ParameterizedTest
-  @CsvSource({"created, INSTANCE_CREATED", "updated, INSTANCE_UPDATED"})
-  void shouldProduceSwatchEventForVirtualArmHost(String hbiEventType, String swatchEventType) {
-    // Given: A virtual RHEL for ARM host event
-    HbiHostCreateUpdateEvent hbiEvent =
-        HbiEventHelper.getRhsmHostEvent(
-            hbiEventType,
-            null,
-            List.of("419"),
-            true,
-            "arm",
-            OffsetDateTime.now(ZoneOffset.UTC),
-            "Self-Support",
-            "Development/Test",
-            2,
-            2,
-            null,
-            null,
-            null);
-
-    Event swatchEvent =
-        SwatchEventHelper.createExpectedEvent(
-            hbiEvent, List.of("419"), Set.of("RHEL for ARM"), true, false);
-
-    // When: HBI event is produced to Kafka
-    kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hbiEvent);
-
-    // Then: Corresponding SWatch event should be produced
-    thenSwatchEventsAppear(MessageValidators.swatchEventEquals(swatchEvent));
-  }
-
-  @TestPlanName("metrics-hbi-create-update-TC005")
-  @ParameterizedTest
-  @CsvSource({"created, INSTANCE_CREATED", "updated, INSTANCE_UPDATED"})
-  void shouldProduceSwatchEventForCloudProviderHost(String hbiEventType, String swatchEventType) {
-    // Given: A virtual cloud provider (AWS) host event
-    HbiHostCreateUpdateEvent hbiEvent =
-        HbiEventHelper.getRhsmHostEvent(
-            hbiEventType,
-            null,
-            List.of("69"),
-            true,
-            "x86_64",
-            OffsetDateTime.now(ZoneOffset.UTC),
-            "Self-Support",
-            "Development/Test",
-            8,
-            4,
-            null,
-            4,
-            "aws");
-
-    Event swatchEvent =
-        SwatchEventHelper.createExpectedEvent(
-            hbiEvent, List.of("69"), Set.of("RHEL for x86"), true, false);
-
-    // When: HBI event is produced to Kafka
-    kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hbiEvent);
-
-    // Then: Corresponding SWatch event should be produced
-    thenSwatchEventsAppear(MessageValidators.swatchEventEquals(swatchEvent));
-  }
-
-  @TestPlanName("metrics-hbi-create-update-TC006")
+  @TestPlanName("metrics-hbi-hypervisor-TC001")
   @ParameterizedTest
   @CsvSource({"created, INSTANCE_CREATED", "updated, INSTANCE_UPDATED"})
   void shouldTransitionPhysicalHostToHypervisorWhenGuestIsKnown(
@@ -252,7 +90,7 @@ class MetricsHbiCreateUpdateComponentTest extends BaseSMHBIComponentTest {
         MessageValidators.swatchEventEquals(swatchEventUpdatedHypervisor));
   }
 
-  @TestPlanName("metrics-hbi-create-update-TC007")
+  @TestPlanName("metrics-hbi-hypervisor-TC002")
   @ParameterizedTest
   @CsvSource({"created, INSTANCE_CREATED", "updated, INSTANCE_UPDATED"})
   void shouldTransitionUnmappedGuestToMappedGuest(String hbiEventType, String swatchEventType) {
@@ -293,7 +131,7 @@ class MetricsHbiCreateUpdateComponentTest extends BaseSMHBIComponentTest {
         MessageValidators.swatchEventEquals(swatchEventUpdatedMappedGuest));
   }
 
-  @TestPlanName("metrics-hbi-create-update-TC008")
+  @TestPlanName("metrics-hbi-hypervisor-TC003")
   @ParameterizedTest
   @CsvSource({"created, INSTANCE_CREATED", "updated, INSTANCE_UPDATED"})
   void shouldRemapGuestFromOneHypervisorToAnother(String hbiEventType, String swatchEventType) {
