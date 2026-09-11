@@ -24,7 +24,6 @@ import static api.BillableUsageTestHelper.createTallySummary;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -44,6 +43,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.TallySummary;
 import org.junit.jupiter.api.BeforeAll;
@@ -222,6 +222,7 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
             INSTANCE_HOURS.toString(), 5.0, OffsetDateTime.now(ZoneOffset.UTC));
     String tallyId = tallySummary.getTallySnapshots().getFirst().getId().toString();
 
+    thenAccountRemittanceEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 1.0, newerLicense);
     thenTallyRemittancePendingValueAndLicenseEquals(tallyId, 1.0, newerLicense);
     thenBillableUsageKafkaMessageWithLicense(ROSA.getName(), 1.0, newerLicense);
   }
@@ -251,6 +252,7 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
             INSTANCE_HOURS.toString(), 5.0, OffsetDateTime.now(ZoneOffset.UTC));
     String tallyId = tallySummary.getTallySnapshots().getFirst().getId().toString();
 
+    thenAccountRemittanceEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 1.0, licensedId);
     thenTallyRemittancePendingValueAndLicenseEquals(tallyId, 1.0, licensedId);
     thenBillableUsageKafkaMessageWithLicense(ROSA.getName(), 1.0, licensedId);
   }
@@ -280,6 +282,8 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
     TallySummary tallySummary = whenAnsibleTallyIsPublished(3.0, ANSIBLE_GRATIS_SNAPSHOT_DATE);
     String tallyId = tallySummary.getTallySnapshots().getFirst().getId().toString();
 
+    thenAccountRemittanceEquals(
+        ANSIBLE_AAP_MANAGED.getName(), MANAGED_NODES.toString(), 1.0, newestLicense);
     thenTallyRemittanceStatusLicenseAndValueEquals(
         tallyId, RemittanceStatus.PENDING, newestLicense, 1.0);
     thenBillableUsageKafkaMessageWithLicense(ANSIBLE_AAP_MANAGED.getName(), 1.0, newestLicense);
@@ -309,6 +313,8 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
     TallySummary tallySummary = whenAnsibleTallyIsPublished(3.0, snapshotDate);
     String tallyId = tallySummary.getTallySnapshots().getFirst().getId().toString();
 
+    thenAccountRemittanceEquals(
+        ANSIBLE_AAP_MANAGED.getName(), MANAGED_NODES.toString(), 1.0, newestLicense);
     thenTallyRemittanceStatusLicenseAndValueEquals(
         tallyId, RemittanceStatus.GRATIS, newestLicense, 1.0);
     thenNoBillableUsageKafkaMessage(ANSIBLE_AAP_MANAGED.getName());
@@ -318,23 +324,62 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
   @TestPlanName("billable-usage-contract-coverage-TC014")
   void shouldSelectLexicographicallySmallerLicenseOnTie() {
     String awsDimension = ROSA.getMetric(INSTANCE_HOURS).getAwsDimension();
-    String smallerLicense = "arn:aws:license-manager:1:license:a";
-    String largerLicense = "arn:aws:license-manager:1:license:z";
+    String lexicographicallySmallerLicenseId = "arn:aws:license-manager:1:license:a";
+    String lexicographicallyLargerLicenseId = "arn:aws:license-manager:1:license:z";
     OffsetDateTime sameStart = OffsetDateTime.now(ZoneOffset.UTC).minusMonths(1);
     OffsetDateTime end = OffsetDateTime.now(ZoneOffset.UTC).plusYears(1);
     givenContracts(
         ROSA.getName(),
         List.of(
-            new ContractStub(sameStart, end, Map.of(awsDimension, 2.0), largerLicense),
-            new ContractStub(sameStart, end, Map.of(awsDimension, 2.0), smallerLicense)));
+            new ContractStub(
+                sameStart, end, Map.of(awsDimension, 2.0), lexicographicallyLargerLicenseId),
+            new ContractStub(
+                sameStart, end, Map.of(awsDimension, 2.0), lexicographicallySmallerLicenseId)));
 
     TallySummary tallySummary =
         whenRosaTallyIsPublished(
             INSTANCE_HOURS.toString(), 5.0, OffsetDateTime.now(ZoneOffset.UTC));
     String tallyId = tallySummary.getTallySnapshots().getFirst().getId().toString();
 
-    thenTallyRemittancePendingValueAndLicenseEquals(tallyId, 1.0, smallerLicense);
-    thenBillableUsageKafkaMessageWithLicense(ROSA.getName(), 1.0, smallerLicense);
+    thenAccountRemittanceEquals(
+        ROSA.getName(), INSTANCE_HOURS.toString(), 1.0, lexicographicallySmallerLicenseId);
+    thenTallyRemittancePendingValueAndLicenseEquals(
+        tallyId, 1.0, lexicographicallySmallerLicenseId);
+    thenBillableUsageKafkaMessageWithLicense(
+        ROSA.getName(), 1.0, lexicographicallySmallerLicenseId);
+  }
+
+  @Test
+  @TestPlanName("billable-usage-contract-coverage-TC015")
+  void shouldExposeSeparateMonthlyAccountRemittanceRowsPerLicenseId() {
+    String awsDimension = ROSA.getMetric(INSTANCE_HOURS).getAwsDimension();
+    String licenseA = "arn:aws:license-manager:1:license:a";
+    String licenseB = "arn:aws:license-manager:1:license:b";
+    OffsetDateTime end = OffsetDateTime.now(ZoneOffset.UTC).plusYears(1);
+    OffsetDateTime firstSnapshot = OffsetDateTime.now(ZoneOffset.UTC);
+    givenContracts(
+        ROSA.getName(),
+        List.of(
+            new ContractStub(
+                firstSnapshot.minusMonths(2), end, Map.of(awsDimension, 2.0), licenseA),
+            new ContractStub(
+                firstSnapshot.minusMonths(1), end, Map.of(awsDimension, 2.0), licenseB)));
+
+    whenRosaTallyIsPublished(INSTANCE_HOURS.toString(), 5.0, firstSnapshot);
+
+    givenContracts(
+        ROSA.getName(),
+        List.of(
+            new ContractStub(firstSnapshot.minusDays(5), end, Map.of(awsDimension, 2.0), licenseA),
+            new ContractStub(
+                firstSnapshot.minusMonths(1), end, Map.of(awsDimension, 2.0), licenseB)));
+
+    whenRosaTallyIsPublished(INSTANCE_HOURS.toString(), 6.0, firstSnapshot.plusHours(1));
+
+    thenAccountRemittanceRowCount(ROSA.getName(), INSTANCE_HOURS.toString(), 2);
+    thenAccountRemittanceSumEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 2.0);
+    thenAccountRemittanceEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 1.0, licenseB);
+    thenAccountRemittanceEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 1.0, licenseA);
   }
 
   private void givenNoContractExistsForRosa() {
@@ -403,6 +448,11 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
 
   private void thenAccountRemittanceEquals(
       String productId, String metricId, double expectedRemittedValue) {
+    thenAccountRemittanceEquals(productId, metricId, expectedRemittedValue, null);
+  }
+
+  private void thenAccountRemittanceSumEquals(
+      String productId, String metricId, double expectedRemittedTotal) {
     AwaitilityUtils.untilAsserted(
         () -> {
           List<MonthlyRemittance> remittances =
@@ -412,12 +462,58 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
                   metricId,
                   BillingProvider.AWS.toTallyApiModel().value(),
                   billingAccountId);
-          assertFalse(remittances.isEmpty(), "Expected account remittance response");
+          assertEquals(
+              expectedRemittedTotal,
+              remittances.stream().mapToDouble(MonthlyRemittance::getRemittedValue).sum(),
+              0.001,
+              "Account remittance total mismatch");
+        });
+  }
+
+  private void thenAccountRemittanceRowCount(
+      String productId, String metricId, int expectedRowCount) {
+    AwaitilityUtils.untilAsserted(
+        () -> {
+          List<MonthlyRemittance> remittances =
+              service.getRemittances(
+                  productId,
+                  orgId,
+                  metricId,
+                  BillingProvider.AWS.toTallyApiModel().value(),
+                  billingAccountId);
+          assertEquals(
+              expectedRowCount,
+              remittances.size(),
+              "Unexpected monthly account remittance row count");
+        });
+  }
+
+  private void thenAccountRemittanceEquals(
+      String productId, String metricId, double expectedRemittedValue, String expectedLicenseId) {
+    AwaitilityUtils.untilAsserted(
+        () -> {
+          List<MonthlyRemittance> remittances =
+              service.getRemittances(
+                  productId,
+                  orgId,
+                  metricId,
+                  BillingProvider.AWS.toTallyApiModel().value(),
+                  billingAccountId);
+          MonthlyRemittance remittance =
+              remittances.stream()
+                  .filter(row -> Objects.equals(expectedLicenseId, row.getLicenseId()))
+                  .findFirst()
+                  .orElseThrow(
+                      () -> new AssertionError("Expected account remittance for licenseId"));
           assertEquals(
               expectedRemittedValue,
-              remittances.get(0).getRemittedValue(),
+              remittance.getRemittedValue(),
               0.001,
               "Account remittance value mismatch");
+          assertEquals(
+              expectedLicenseId,
+              remittance.getLicenseId(),
+              "Account remittance licenseId mismatch");
         });
   }
 
