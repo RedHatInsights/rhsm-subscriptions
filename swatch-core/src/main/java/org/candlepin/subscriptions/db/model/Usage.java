@@ -56,6 +56,11 @@ public enum Usage implements StringValueEnum {
     return StringValueEnum.getValueOf(Usage.class, VALUE_ENUM_MAP, value, EMPTY);
   }
 
+  public static Usage fromRegistryUsage(
+      com.redhat.swatch.configuration.registry.Usage registryUsage) {
+    return Usage.fromString(registryUsage.getValue());
+  }
+
   /** JPA converter for Usage */
   @Converter(autoApply = true)
   public static class EnumConverter implements AttributeConverter<Usage, String> {

@@ -433,18 +433,14 @@ public class MetricUsageCollector {
             .distinct()
             .collect(MoreCollectors.toOptional());
 
-    // Default to product-specific defaults first, then global PREMIUM/PRODUCTION
-    // Treat blank/empty strings (including __EMPTY__) as absent
     ServiceLevel effectiveSla =
         Optional.ofNullable(event.getSla())
             .map(Event.Sla::toString)
-            .filter(s -> !s.isBlank())
             .map(ServiceLevel::fromString)
             .orElse(sla.map(ServiceLevel::fromString).orElse(ServiceLevel.PREMIUM));
     Usage effectiveUsage =
         Optional.ofNullable(event.getUsage())
             .map(Event.Usage::toString)
-            .filter(s -> !s.isBlank())
             .map(Usage::fromString)
             .orElse(usage.map(Usage::fromString).orElse(Usage.PRODUCTION));
     BillingProvider effectiveProvider =

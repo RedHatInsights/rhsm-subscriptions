@@ -1248,8 +1248,8 @@ class MetricUsageCollectorTest {
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType(SERVICE_TYPE)
             .withMeasurements(Collections.singletonList(measurement))
-            .withSla(Event.Sla.__EMPTY__) // Should be treated as absent
-            .withUsage(Event.Usage.__EMPTY__) // Should be treated as absent
+            .withSla(null) // No SLA provided, should default to product default or PREMIUM
+            .withUsage(null) // No usage provided, should default to product default or PRODUCTION
             .withBillingProvider(Event.BillingProvider.RED_HAT)
             .withBillingAccountId(Optional.of("sellerAcct"));
 
@@ -1261,7 +1261,7 @@ class MetricUsageCollectorTest {
 
     AccountUsageCalculation accountUsageCalculation = cache.get(event);
 
-    // Should default to PREMIUM/PRODUCTION, not EMPTY
+    // Should default to PREMIUM/PRODUCTION
     UsageCalculation.Key usageCalculationKey =
         new UsageCalculation.Key(
             OSD_PRODUCT_TAG,
@@ -1287,7 +1287,7 @@ class MetricUsageCollectorTest {
             "sellerAcct");
     assertFalse(
         accountUsageCalculation.containsCalculation(emptyKey),
-        "Should not create buckets with EMPTY sla/usage when __EMPTY__ is provided");
+        "Should not create buckets with EMPTY sla/usage when null is provided");
   }
 
   private static Event createEvent() {
