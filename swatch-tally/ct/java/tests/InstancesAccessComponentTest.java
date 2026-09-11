@@ -101,10 +101,11 @@ class InstancesAccessComponentTest extends BaseTallyComponentTest {
   void shouldAllowInstancesWhenServiceAccountAdminAccessGranted(
       AuthorizationModel authorizationModel) {
     String clientId = RandomUtils.generateRandom();
-    var requestHeaders = SwatchUtils.securityHeadersWithServiceAccount(orgId, clientId);
+    String userId = RandomUtils.generateRandom();
+    var requestHeaders = SwatchUtils.securityHeadersWithServiceAccount(orgId, clientId, userId);
     String identityHeader = requestHeaders.get(X_RH_IDENTITY_HEADER);
     rbacHelper.givenServiceAccountHasSubscriptionsAccess(
-        authorizationModel, clientId, identityHeader, SubscriptionsAccessLevel.GRANTED_ADMIN);
+        authorizationModel, userId, identityHeader, SubscriptionsAccessLevel.GRANTED_ADMIN);
 
     Response response = whenGetInstances(requestHeaders);
 
@@ -117,10 +118,11 @@ class InstancesAccessComponentTest extends BaseTallyComponentTest {
   void shouldAllowInstancesWhenServiceAccountReaderAccessGranted(
       AuthorizationModel authorizationModel) {
     String clientId = RandomUtils.generateRandom();
-    var requestHeaders = SwatchUtils.securityHeadersWithServiceAccount(orgId, clientId);
+    String userId = RandomUtils.generateRandom();
+    var requestHeaders = SwatchUtils.securityHeadersWithServiceAccount(orgId, clientId, userId);
     String identityHeader = requestHeaders.get(X_RH_IDENTITY_HEADER);
     rbacHelper.givenServiceAccountHasSubscriptionsAccess(
-        authorizationModel, clientId, identityHeader, SubscriptionsAccessLevel.GRANTED_READER);
+        authorizationModel, userId, identityHeader, SubscriptionsAccessLevel.GRANTED_READER);
 
     Response response = whenGetInstances(requestHeaders);
 
@@ -132,10 +134,11 @@ class InstancesAccessComponentTest extends BaseTallyComponentTest {
   @TestPlanName("rbac-parity-TC007")
   void shouldDenyInstancesWhenServiceAccountAccessDenied(AuthorizationModel authorizationModel) {
     String clientId = RandomUtils.generateRandom();
-    var requestHeaders = SwatchUtils.securityHeadersWithServiceAccount(orgId, clientId);
+    String userId = RandomUtils.generateRandom();
+    var requestHeaders = SwatchUtils.securityHeadersWithServiceAccount(orgId, clientId, userId);
     String identityHeader = requestHeaders.get(X_RH_IDENTITY_HEADER);
     rbacHelper.givenServiceAccountHasSubscriptionsAccess(
-        authorizationModel, clientId, identityHeader, SubscriptionsAccessLevel.DENIED);
+        authorizationModel, userId, identityHeader, SubscriptionsAccessLevel.DENIED);
 
     Response response = whenGetInstances(requestHeaders);
 

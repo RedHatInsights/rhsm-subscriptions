@@ -100,16 +100,24 @@ public final class SwatchUtils {
   }
 
   /**
-   * Returns headers for a ServiceAccount identity with org and client identifiers (RBAC component
-   * tests).
+   * Returns headers for a ServiceAccount identity with org, client, and user identifiers.
+   *
+   * <p>Per the 3-scale identity schema, ServiceAccount has both client_id and user_id. Kessel v2
+   * authorization uses user_id, so ensure Kessel stubs are configured with the same userId value.
+   *
+   * @param orgId Organization ID
+   * @param clientId Client ID
+   * @param userId User ID (not null identifier used by Kessel for authorization checks)
    */
   public static Map<String, String> securityHeadersWithServiceAccount(
-      String orgId, String clientId) {
+      String orgId, String clientId, String userId) {
     String json =
         "{\"identity\":{\"type\":\"ServiceAccount\",\"org_id\":\""
             + orgId
             + "\",\"service_account\":{\"client_id\":\""
             + clientId
+            + "\",\"user_id\":\""
+            + userId
             + "\"}}}";
     String rhId = Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
     return Map.of(ORIGIN_HEADER, ORIGIN_HEADER_VALUE, X_RH_IDENTITY_HEADER, rhId);

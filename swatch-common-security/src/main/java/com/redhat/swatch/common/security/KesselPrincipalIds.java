@@ -81,15 +81,26 @@ public final class KesselPrincipalIds {
   }
 
   private static Optional<String> serviceAccountPrincipalId(Identity identity) {
-    Optional<String> userId = optionalNonBlank(identity.getUserId());
-    if (userId.isPresent()) {
-      return userId;
-    }
+    // Per 3-scale identity schema, user_id is required in service_account object
+    // See: https://github.com/RedHatInsights/identity-schemas/blob/main/3scale/schema.json
     ServiceAccount serviceAccount = identity.getServiceAccount();
     if (serviceAccount == null) {
+      log.error(
+          "ServiceAccount object is null for identity type=ServiceAccount orgId={} - denying access",
+          identity.getOrgId());
       return Optional.empty();
     }
-    return optionalNonBlank(serviceAccount.getClientId());
+
+    Optional<String> userId = optionalNonBlank(serviceAccount.getUserId());
+    if (userId.isEmpty()) {
+      log.error(
+          "ServiceAccount missing REQUIRED user_id field - denying access: type={} orgId={}"
+              + " clientId={}",
+          identity.getType(),
+          identity.getOrgId(),
+          serviceAccount.getClientId());
+    }
+    return userId;
   }
 
   private static Optional<String> userIdFromNestedUser(User user) {

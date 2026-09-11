@@ -150,10 +150,11 @@ class OrgPreferencesAccessComponentTest extends BaseUtilizationComponentTest {
   void shouldAllowGetOrgPreferencesWhenServiceAccountHasAdminAccess(
       AuthorizationModel authorizationModel) {
     String clientId = RandomUtils.generateRandom();
-    var requestHeaders = SwatchUtils.securityHeadersWithServiceAccount(orgId, clientId);
+    String userId = RandomUtils.generateRandom();
+    var requestHeaders = SwatchUtils.securityHeadersWithServiceAccount(orgId, clientId, userId);
     String identityHeader = requestHeaders.get(X_RH_IDENTITY_HEADER);
     givenServiceAccountHasSubscriptionsAccess(
-        authorizationModel, clientId, identityHeader, SubscriptionsAccessLevel.GRANTED_ADMIN);
+        authorizationModel, userId, identityHeader, SubscriptionsAccessLevel.GRANTED_ADMIN);
 
     Response response = whenGetOrgPreferences(requestHeaders);
 
@@ -165,10 +166,11 @@ class OrgPreferencesAccessComponentTest extends BaseUtilizationComponentTest {
   @TestPlanName("org-preferences-auth-TC008")
   void shouldDenyBothEndpointsWhenServiceAccountHasNoAccess(AuthorizationModel authorizationModel) {
     String clientId = RandomUtils.generateRandom();
-    var requestHeaders = SwatchUtils.securityHeadersWithServiceAccount(orgId, clientId);
+    String userId = RandomUtils.generateRandom();
+    var requestHeaders = SwatchUtils.securityHeadersWithServiceAccount(orgId, clientId, userId);
     String identityHeader = requestHeaders.get(X_RH_IDENTITY_HEADER);
     givenServiceAccountHasSubscriptionsAccess(
-        authorizationModel, clientId, identityHeader, SubscriptionsAccessLevel.DENIED);
+        authorizationModel, userId, identityHeader, SubscriptionsAccessLevel.DENIED);
 
     Response getResponse = whenGetOrgPreferences(requestHeaders);
     Response postResponse = whenPostOrgPreferences(requestHeaders);

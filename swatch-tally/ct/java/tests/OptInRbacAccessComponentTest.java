@@ -100,10 +100,11 @@ class OptInRbacAccessComponentTest extends BaseTallyComponentTest {
   void shouldAllowOptInWhenServiceAccountHasAdminAccess(AuthorizationModel authorizationModel) {
     // Given: ServiceAccount with admin permission
     String clientId = RandomUtils.generateRandom();
-    var requestHeaders = SwatchUtils.securityHeadersWithServiceAccount(orgId, clientId);
+    String userId = RandomUtils.generateRandom();
+    var requestHeaders = SwatchUtils.securityHeadersWithServiceAccount(orgId, clientId, userId);
     String identityHeader = requestHeaders.get(X_RH_IDENTITY_HEADER);
     rbacHelper.givenServiceAccountHasSubscriptionsAccess(
-        authorizationModel, clientId, identityHeader, SubscriptionsAccessLevel.GRANTED_ADMIN);
+        authorizationModel, userId, identityHeader, SubscriptionsAccessLevel.GRANTED_ADMIN);
 
     // When/Then: All operations succeed
     assertOptInEndpointsSucceed(requestHeaders);
@@ -115,10 +116,11 @@ class OptInRbacAccessComponentTest extends BaseTallyComponentTest {
   void shouldAllowOptInWhenServiceAccountHasReaderAccess(AuthorizationModel authorizationModel) {
     // Given: ServiceAccount with reader permission
     String clientId = RandomUtils.generateRandom();
-    var requestHeaders = SwatchUtils.securityHeadersWithServiceAccount(orgId, clientId);
+    String userId = RandomUtils.generateRandom();
+    var requestHeaders = SwatchUtils.securityHeadersWithServiceAccount(orgId, clientId, userId);
     String identityHeader = requestHeaders.get(X_RH_IDENTITY_HEADER);
     rbacHelper.givenServiceAccountHasSubscriptionsAccess(
-        authorizationModel, clientId, identityHeader, SubscriptionsAccessLevel.GRANTED_READER);
+        authorizationModel, userId, identityHeader, SubscriptionsAccessLevel.GRANTED_READER);
 
     // When/Then: All operations succeed
     assertOptInEndpointsSucceed(requestHeaders);
@@ -130,10 +132,11 @@ class OptInRbacAccessComponentTest extends BaseTallyComponentTest {
   void shouldDenyOptInWhenServiceAccountHasNoAccess(AuthorizationModel authorizationModel) {
     // Given: ServiceAccount with no permissions
     String clientId = RandomUtils.generateRandom();
-    var requestHeaders = SwatchUtils.securityHeadersWithServiceAccount(orgId, clientId);
+    String userId = RandomUtils.generateRandom();
+    var requestHeaders = SwatchUtils.securityHeadersWithServiceAccount(orgId, clientId, userId);
     String identityHeader = requestHeaders.get(X_RH_IDENTITY_HEADER);
     rbacHelper.givenServiceAccountHasSubscriptionsAccess(
-        authorizationModel, clientId, identityHeader, SubscriptionsAccessLevel.DENIED);
+        authorizationModel, userId, identityHeader, SubscriptionsAccessLevel.DENIED);
 
     // When/Then: All operations fail (forbidden)
     assertOptInEndpointsForbidden(requestHeaders);
