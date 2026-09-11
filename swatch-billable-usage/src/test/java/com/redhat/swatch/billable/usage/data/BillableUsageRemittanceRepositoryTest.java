@@ -139,6 +139,13 @@ class BillableUsageRemittanceRepositoryTest {
         .build();
   }
 
+  private BillableUsageRemittanceEntity remittanceWithLicense(
+      String orgId, String licenseId, Double value, OffsetDateTime remittanceDate) {
+    var remittance = remittance(orgId, "product1", BILLING_PROVIDER_AWS, value, remittanceDate);
+    remittance.setLicenseId(licenseId);
+    return remittance;
+  }
+
   @Test
   void testFindByProductId() {
     BillableUsageRemittanceEntity remittance1 =
@@ -354,6 +361,46 @@ class BillableUsageRemittanceRepositoryTest {
     List<RemittanceSummaryProjection> results = repository.getRemittanceSummaries(filter1);
     assertEquals(2, results.size());
     assertTrue(results.containsAll(List.of(expectedSummary1, expectedSummary2)));
+  }
+
+  @Test
+  void getMonthlySummaryGroupsByLicenseIdWhilePreservingMonthlyTotal() {
+    OffsetDateTime remittanceDate = truncateDate(clock.startOfCurrentMonth());
+    BillableUsageRemittanceEntity licenseARowOne =
+        remittanceWithLicense("org123", "license-a", 3.0, remittanceDate);
+    BillableUsageRemittanceEntity licenseARowTwo =
+        remittanceWithLicense("org123", "license-a", 2.0, remittanceDate.plusDays(1));
+    BillableUsageRemittanceEntity licenseBRow =
+        remittanceWithLicense("org123", "license-b", 5.0, remittanceDate.plusDays(2));
+
+    repository.persist(List.of(licenseARowOne, licenseARowTwo, licenseBRow));
+
+    BillableUsageRemittanceFilter filter =
+        BillableUsageRemittanceFilter.builder().orgId("org123").productId("product1").build();
+
+    List<RemittanceSummaryProjection> results = repository.getRemittanceSummaries(filter);
+
+    assertEquals(2, results.size());
+    assertEquals(
+        10.0,
+        results.stream()
+            .mapToDouble(RemittanceSummaryProjection::getTotalRemittedPendingValue)
+            .sum(),
+        0.001);
+    assertEquals(
+        5.0,
+        results.stream()
+            .filter(summary -> "license-a".equals(summary.getLicenseId()))
+            .mapToDouble(RemittanceSummaryProjection::getTotalRemittedPendingValue)
+            .sum(),
+        0.001);
+    assertEquals(
+        5.0,
+        results.stream()
+            .filter(summary -> "license-b".equals(summary.getLicenseId()))
+            .mapToDouble(RemittanceSummaryProjection::getTotalRemittedPendingValue)
+            .sum(),
+        0.001);
   }
 
   @Test

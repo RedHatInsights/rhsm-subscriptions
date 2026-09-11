@@ -207,6 +207,64 @@ class InternalBillableUsageControllerTest {
   }
 
   @Test
+  @Transactional
+  void testFilterByOrgIdAndProductGroupsRemittancesByLicenseId() {
+    remittanceRepo.deleteAll();
+    var licenseZRemittance = remittanceWithLicense("org123", "license-z", 3.0);
+    var licenseARemittance = remittanceWithLicense("org123", "license-a", 5.0);
+    var sameLicenseRemittance = remittanceWithLicense("org123", "license-a", 2.0);
+    sameLicenseRemittance.setRemittancePendingDate(clock.startOfCurrentMonth().plusDays(1));
+    licenseARemittance.setRemittancePendingDate(clock.startOfCurrentMonth().plusDays(2));
+    remittanceRepo.persist(List.of(licenseZRemittance, licenseARemittance, sameLicenseRemittance));
+    remittanceRepo.flush();
+
+    var response =
+        controller.getRemittances(
+            BillableUsageRemittanceFilter.builder().orgId("org123").productId("product1").build());
+
+    assertEquals(2, response.size());
+    assertEquals(
+        10.0, response.stream().mapToDouble(MonthlyRemittance::getRemittedValue).sum(), 0.001);
+    assertEquals(
+        7.0,
+        response.stream()
+            .filter(remittance -> "license-a".equals(remittance.getLicenseId()))
+            .mapToDouble(MonthlyRemittance::getRemittedValue)
+            .sum(),
+        0.001);
+    assertEquals(
+        3.0,
+        response.stream()
+            .filter(remittance -> "license-z".equals(remittance.getLicenseId()))
+            .mapToDouble(MonthlyRemittance::getRemittedValue)
+            .sum(),
+        0.001);
+  }
+
+  @Test
+  @Transactional
+  void testFilterByOrgIdAndProductKeepsUnlicensedRemittanceNull() {
+    remittanceRepo.deleteAll();
+    remittanceRepo.persist(
+        remittance(
+            "org123",
+            "product1",
+            BillableUsage.BillingProvider.AWS,
+            3.0,
+            clock.startOfCurrentMonth(),
+            RemittanceStatus.PENDING));
+    remittanceRepo.flush();
+
+    var response =
+        controller.getRemittances(
+            BillableUsageRemittanceFilter.builder().orgId("org123").productId("product1").build());
+
+    assertEquals(1, response.size());
+    assertEquals(3.0, response.get(0).getRemittedValue());
+    assertNull(response.get(0).getLicenseId());
+  }
+
+  @Test
   void testAccountAndOrgIdShouldReturnEmpty() {
     var response =
         controller.getRemittances(
@@ -425,5 +483,19 @@ class InternalBillableUsageControllerTest {
         .remittedPendingValue(value)
         .status(remittanceStatus)
         .build();
+  }
+
+  private BillableUsageRemittanceEntity remittanceWithLicense(
+      String orgId, String licenseId, Double value) {
+    var remittance =
+        remittance(
+            orgId,
+            "product1",
+            BillableUsage.BillingProvider.AWS,
+            value,
+            clock.startOfCurrentMonth(),
+            RemittanceStatus.PENDING);
+    remittance.setLicenseId(licenseId);
+    return remittance;
   }
 }

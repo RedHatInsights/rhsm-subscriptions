@@ -244,10 +244,9 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
                       metric.metricId().toString(),
                       BillingProvider.AWS.toTallyApiModel().value(),
                       billingAccountId);
-              assertEquals(1, remittances.size(), "Expected one monthly remittance row per metric");
               assertEquals(
                   expectedRemittedValue,
-                  remittances.get(0).getRemittedValue(),
+                  remittances.stream().mapToDouble(MonthlyRemittance::getRemittedValue).sum(),
                   0.001,
                   "Account remittance mismatch for metric " + metric.metricId());
             });
