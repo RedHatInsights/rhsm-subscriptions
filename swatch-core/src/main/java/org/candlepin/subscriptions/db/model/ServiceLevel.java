@@ -60,6 +60,11 @@ public enum ServiceLevel implements StringValueEnum {
     return StringValueEnum.getValueOf(ServiceLevel.class, VALUE_ENUM_MAP, value, EMPTY);
   }
 
+  public static ServiceLevel fromRegistrySla(
+      com.redhat.swatch.configuration.registry.Sla registrySla) {
+    return ServiceLevel.fromString(registrySla.getValue());
+  }
+
   /** JPA converter for ServiceLevel */
   @Converter(autoApply = true)
   public static class EnumConverter implements AttributeConverter<ServiceLevel, String> {
