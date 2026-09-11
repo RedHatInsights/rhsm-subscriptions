@@ -102,10 +102,11 @@ class TallyReportAccessComponentTest extends BaseTallyComponentTest {
   void shouldAllowTallyReportWhenServiceAccountAdminAccessGranted(
       AuthorizationModel authorizationModel) {
     String clientId = RandomUtils.generateRandom();
-    var requestHeaders = SwatchUtils.securityHeadersWithServiceAccount(orgId, clientId);
+    String userId = RandomUtils.generateRandom();
+    var requestHeaders = SwatchUtils.securityHeadersWithServiceAccount(orgId, clientId, userId);
     String identityHeader = requestHeaders.get(X_RH_IDENTITY_HEADER);
     rbacHelper.givenServiceAccountHasSubscriptionsAccess(
-        authorizationModel, clientId, identityHeader, SubscriptionsAccessLevel.GRANTED_ADMIN);
+        authorizationModel, userId, identityHeader, SubscriptionsAccessLevel.GRANTED_ADMIN);
 
     Response response = whenGetTallyReport(requestHeaders);
 
@@ -118,10 +119,11 @@ class TallyReportAccessComponentTest extends BaseTallyComponentTest {
   void shouldAllowTallyReportWhenServiceAccountReaderAccessGranted(
       AuthorizationModel authorizationModel) {
     String clientId = RandomUtils.generateRandom();
-    var requestHeaders = SwatchUtils.securityHeadersWithServiceAccount(orgId, clientId);
+    String userId = RandomUtils.generateRandom();
+    var requestHeaders = SwatchUtils.securityHeadersWithServiceAccount(orgId, clientId, userId);
     String identityHeader = requestHeaders.get(X_RH_IDENTITY_HEADER);
     rbacHelper.givenServiceAccountHasSubscriptionsAccess(
-        authorizationModel, clientId, identityHeader, SubscriptionsAccessLevel.GRANTED_READER);
+        authorizationModel, userId, identityHeader, SubscriptionsAccessLevel.GRANTED_READER);
 
     Response response = whenGetTallyReport(requestHeaders);
 
@@ -133,10 +135,11 @@ class TallyReportAccessComponentTest extends BaseTallyComponentTest {
   @TestPlanName("rbac-parity-TC007")
   void shouldDenyTallyReportWhenServiceAccountAccessDenied(AuthorizationModel authorizationModel) {
     String clientId = RandomUtils.generateRandom();
-    var requestHeaders = SwatchUtils.securityHeadersWithServiceAccount(orgId, clientId);
+    String userId = RandomUtils.generateRandom();
+    var requestHeaders = SwatchUtils.securityHeadersWithServiceAccount(orgId, clientId, userId);
     String identityHeader = requestHeaders.get(X_RH_IDENTITY_HEADER);
     rbacHelper.givenServiceAccountHasSubscriptionsAccess(
-        authorizationModel, clientId, identityHeader, SubscriptionsAccessLevel.DENIED);
+        authorizationModel, userId, identityHeader, SubscriptionsAccessLevel.DENIED);
 
     Response response = whenGetTallyReport(requestHeaders);
 

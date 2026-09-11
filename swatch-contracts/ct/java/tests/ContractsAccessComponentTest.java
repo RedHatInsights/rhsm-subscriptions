@@ -181,9 +181,10 @@ public class ContractsAccessComponentTest extends BaseContractComponentTest {
       AuthorizationModel authorizationModel, CustomerFacingEndpoint endpoint) {
     // Given
     String clientId = RandomUtils.generateRandom();
-    var requestHeaders = SwatchUtils.securityHeadersWithServiceAccount(orgId, clientId);
+    String userId = RandomUtils.generateRandom();
+    var requestHeaders = SwatchUtils.securityHeadersWithServiceAccount(orgId, clientId, userId);
     givenServiceAccountAccess(
-        authorizationModel, clientId, requestHeaders, SubscriptionsAccessLevel.GRANTED_ADMIN);
+        authorizationModel, userId, requestHeaders, SubscriptionsAccessLevel.GRANTED_ADMIN);
 
     // When
     Response response = whenGetCustomerFacingEndpoint(endpoint, requestHeaders);
@@ -199,9 +200,10 @@ public class ContractsAccessComponentTest extends BaseContractComponentTest {
       AuthorizationModel authorizationModel, CustomerFacingEndpoint endpoint) {
     // Given
     String clientId = RandomUtils.generateRandom();
-    var requestHeaders = SwatchUtils.securityHeadersWithServiceAccount(orgId, clientId);
+    String userId = RandomUtils.generateRandom();
+    var requestHeaders = SwatchUtils.securityHeadersWithServiceAccount(orgId, clientId, userId);
     givenServiceAccountAccess(
-        authorizationModel, clientId, requestHeaders, SubscriptionsAccessLevel.DENIED);
+        authorizationModel, userId, requestHeaders, SubscriptionsAccessLevel.DENIED);
 
     // When
     Response response = whenGetCustomerFacingEndpoint(endpoint, requestHeaders);
