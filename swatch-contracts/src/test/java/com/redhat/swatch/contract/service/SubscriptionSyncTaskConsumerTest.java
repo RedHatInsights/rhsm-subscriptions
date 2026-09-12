@@ -23,15 +23,12 @@ package com.redhat.swatch.contract.service;
 import static org.mockito.Mockito.verify;
 
 import com.redhat.swatch.contract.model.EnabledOrgsResponse;
-import com.redhat.swatch.contract.test.resources.EnableUmbResource;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
-@TestProfile(EnableUmbResource.class)
 class SubscriptionSyncTaskConsumerTest {
 
   private static final String ORG_ID = "org123";

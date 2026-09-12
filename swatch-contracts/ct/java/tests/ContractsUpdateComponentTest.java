@@ -21,6 +21,7 @@
 package tests;
 
 import static api.PartnerApiStubs.PartnerSubscriptionsStubRequest.forContract;
+import static com.redhat.swatch.component.tests.utils.Topics.IT_PRODUCT_SYNC;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -29,8 +30,6 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import api.ContractsArtemisService;
-import com.redhat.swatch.component.tests.api.Artemis;
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.configuration.registry.MetricId;
@@ -44,13 +43,12 @@ import java.time.OffsetDateTime;
 import java.util.Map;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.Test;
+import utils.OperationalProductEventMapper;
 
 public class ContractsUpdateComponentTest extends BaseContractComponentTest {
 
   private static final double CORES_CAPACITY = 8.0;
   private static final double INSTANCE_HOURS_CAPACITY = 100.0;
-
-  @Artemis static ContractsArtemisService artemis = new ContractsArtemisService();
 
   @TestPlanName("contracts-update-TC001")
   @Test
@@ -338,8 +336,9 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
         Contract.buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, CORES_CAPACITY));
     wiremock.forProductAPI().stubOfferingData(contract.getOffering());
 
-    // When: Offering is synced after receiving a message from UMB
-    artemis.forOfferings().send(contract.getOffering());
+    // When: Offering is synced after receiving a message from Kafka
+    kafkaBridge.produceKafkaMessage(
+        IT_PRODUCT_SYNC, OperationalProductEventMapper.mapFrom(contract.getOffering()));
     thenOfferingShouldExist(contract.getOffering().getSku());
 
     // And: Partner entitlement message creates the contract

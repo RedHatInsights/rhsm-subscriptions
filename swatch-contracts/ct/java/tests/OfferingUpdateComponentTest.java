@@ -20,14 +20,13 @@
  */
 package tests;
 
+import static com.redhat.swatch.component.tests.utils.Topics.IT_PRODUCT_SYNC;
 import static domain.Offering.METERED_NO;
 import static domain.Offering.PRODUCT_ID_OPENSHIFT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import api.ContractsArtemisService;
-import com.redhat.swatch.component.tests.api.Artemis;
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
@@ -41,10 +40,9 @@ import java.util.List;
 import java.util.Map;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.Test;
+import utils.OperationalProductEventMapper;
 
 public class OfferingUpdateComponentTest extends BaseContractComponentTest {
-
-  @Artemis static ContractsArtemisService artemis = new ContractsArtemisService();
 
   @TestPlanName("offering-update-TC001")
   @Test
@@ -56,7 +54,7 @@ public class OfferingUpdateComponentTest extends BaseContractComponentTest {
         domain.Contract.buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, 10.0), sku);
     givenContractIsCreated(contract);
 
-    // When: A UMB product update event is sent changing offering from RHACM to OpenShift
+    // When: A product update event is sent changing offering from RHACM to OpenShift
     Offering openshiftOffering =
         rhacmOffering.toBuilder()
             .description("Updated to OpenShift Container Platform offering")
@@ -66,7 +64,8 @@ public class OfferingUpdateComponentTest extends BaseContractComponentTest {
             .engProducts(List.of(PRODUCT_ID_OPENSHIFT)) // OpenShift product ID
             .build();
     wiremock.forProductAPI().stubOfferingData(openshiftOffering);
-    artemis.forOfferings().send(openshiftOffering);
+    kafkaBridge.produceKafkaMessage(
+        IT_PRODUCT_SYNC, OperationalProductEventMapper.mapFrom(openshiftOffering));
 
     // Then: API returns HTTP 200 response with updated product tag reflecting the change
     AwaitilityUtils.untilAsserted(
@@ -82,7 +81,7 @@ public class OfferingUpdateComponentTest extends BaseContractComponentTest {
     // And: The contract still exists and was not lost during the update
     List<Contract> contractsAfterUpdate = service.getContractsByOrgId(orgId);
     assertEquals(1, contractsAfterUpdate.size());
-    assertEquals(sku, contractsAfterUpdate.get(0).getSku());
+    assertEquals(sku, contractsAfterUpdate.getFirst().getSku());
   }
 
   @TestPlanName("offering-update-TC002")
@@ -92,19 +91,19 @@ public class OfferingUpdateComponentTest extends BaseContractComponentTest {
     Offering validOffering = Offering.buildRosaOffering(RandomUtils.generateRandom());
     givenOfferingExists(validOffering);
 
-    // When: send one malformed UMB message
-    artemis.forOfferings().sendMalformed("{\"invalid\": \"json\" missing bracket");
+    // When: send one malformed Kafka message
+    kafkaBridge.produceKafkaMessage(IT_PRODUCT_SYNC, "{\"invalid\": \"json\" missing bracket");
 
     // Wait for error logs to appear
     AwaitilityUtils.untilAsserted(
-        () -> service.logs().assertContains("Unable to read UMB product message for JSON"));
+        () -> service.logs().assertContains("Unable to read IT Product Kafka message from JSON"));
 
     // Then: System remains operational
     assertTrue(
         service.isRunning(),
         "System should remain operational after malformed events via Health Check API");
 
-    // And: Valid offerings remain unaffected by malformed UMB events
+    // And: Valid offerings remain unaffected by malformed Kafka events
     OfferingProductTags validTagsAfter = whenGetSkuProductTags(validOffering);
     assertNotNull(validTagsAfter, "Valid offering should still be accessible");
   }

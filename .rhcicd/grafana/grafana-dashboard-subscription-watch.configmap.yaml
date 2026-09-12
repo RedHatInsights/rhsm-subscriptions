@@ -9041,25 +9041,6 @@ data:
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "offering-sync-service-umb"
-                },
-                "properties": [
-                  {
-                    "id": "displayName",
-                    "value": "from UMB"
-                  },
-                  {
-                    "id": "color",
-                    "value": {
-                      "fixedColor": "yellow",
-                      "mode": "fixed"
-                    }
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
                   "options": "it-offering-sync"
                 },
                 "properties": [
@@ -9108,7 +9089,7 @@ data:
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "sum by (channel) (\n  increase(quarkus_messaging_message_count_total{\n    channel=~\"it-offering-sync|offering-sync-service-umb\"\n  }[$__rate_interval])\n)",
+              "expr": "sum by (channel) (\n  increase(quarkus_messaging_message_count_total{\n    channel=~\"it-offering-sync\"\n  }[$__rate_interval])\n)",
               "format": "time_series",
               "instant": false,
               "legendFormat": "__auto",
@@ -9180,25 +9161,6 @@ data:
               {
                 "matcher": {
                   "id": "byName",
-                  "options": "offering-sync-service-umb"
-                },
-                "properties": [
-                  {
-                    "id": "displayName",
-                    "value": "from UMB"
-                  },
-                  {
-                    "id": "color",
-                    "value": {
-                      "fixedColor": "yellow",
-                      "mode": "fixed"
-                    }
-                  }
-                ]
-              },
-              {
-                "matcher": {
-                  "id": "byName",
                   "options": "it-offering-sync"
                 },
                 "properties": [
@@ -9247,7 +9209,7 @@ data:
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "sum by (channel) (\n  increase(quarkus_messaging_message_failures_total{\n    channel=~\"it-offering-sync|offering-sync-service-umb\"\n  }[$__rate_interval])\n)",
+              "expr": "sum by (channel) (\n  increase(quarkus_messaging_message_failures_total{\n    channel=~\"it-offering-sync\"\n  }[$__rate_interval])\n)",
               "format": "time_series",
               "instant": false,
               "legendFormat": "__auto",

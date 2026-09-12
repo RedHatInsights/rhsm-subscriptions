@@ -54,10 +54,6 @@
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-messaging-amqp</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkus</groupId>
       <artifactId>quarkus-messaging-kafka</artifactId>
     </dependency>
     <dependency>
@@ -351,8 +347,6 @@
                 <sourcePath>subscriptions_export_json.yaml</sourcePath>
                 <sourcePath>subscriptions_export_json_item.yaml</sourcePath>
                 <sourcePath>subscriptions_export_json_measurement.yaml</sourcePath>
-                <sourcePath>enable_partner_gateway_contracts_variant_payload.yaml</sourcePath>
-                <sourcePath>product_service_consumer_feature_flag_variant_payload.yaml</sourcePath>
               </sourcePaths>
             </configuration>
           </execution>
