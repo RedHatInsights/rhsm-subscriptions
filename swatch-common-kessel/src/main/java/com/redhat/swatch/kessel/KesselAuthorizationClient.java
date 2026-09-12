@@ -78,12 +78,17 @@ public class KesselAuthorizationClient {
 
   private final KesselConfig config;
   private final WorkspaceResolver workspaceResolver;
+  private final KesselMetricsRecorder metricsRecorder;
   private volatile KesselInventoryServiceBlockingStub stub;
   private volatile ManagedChannel channel;
 
-  public KesselAuthorizationClient(KesselConfig config, WorkspaceResolver workspaceResolver) {
+  public KesselAuthorizationClient(
+      KesselConfig config,
+      WorkspaceResolver workspaceResolver,
+      KesselMetricsRecorder metricsRecorder) {
     this.config = config;
     this.workspaceResolver = workspaceResolver;
+    this.metricsRecorder = metricsRecorder != null ? metricsRecorder : KesselMetricsRecorder.NOOP;
   }
 
   public void init() {
@@ -113,6 +118,9 @@ public class KesselAuthorizationClient {
 
     this.channel = Grpc.newChannelBuilder(config.endpoint(), creds).build();
     this.stub = KesselInventoryServiceGrpc.newBlockingStub(this.channel);
+
+    metricsRecorder.recordChannelInit(reason);
+
     log.info(
         "Kessel authorization client initialized: endpoint={} reason={}",
         config.endpoint(),
@@ -163,6 +171,7 @@ public class KesselAuthorizationClient {
   public boolean checkAccess(String subjectId, String permission, String orgId) {
     if (stub == null) {
       log.warn("Kessel client not initialized; denying access for subject={}", subjectId);
+      metricsRecorder.recordCheckRequest(false);
       return false;
     }
     var relation = mapPermissionToRelation(permission);
@@ -182,6 +191,9 @@ public class KesselAuthorizationClient {
         CheckResponse response =
             getClient().withDeadlineAfter(config.timeoutMs(), TimeUnit.MILLISECONDS).check(request);
         boolean allowed = response.getAllowed() == Allowed.ALLOWED_TRUE;
+
+        metricsRecorder.recordCheckRequest(true);
+
         log.debug(
             "Kessel {} subject={}/{} relation={} on workspace={} (permission={})",
             allowed ? "allowed" : "denied",
@@ -194,6 +206,10 @@ public class KesselAuthorizationClient {
       } catch (StatusRuntimeException e) {
         lastException = e;
         Status.Code code = e.getStatus().getCode();
+
+        if (TRANSIENT_FAILURE_CODES.contains(code)) {
+          metricsRecorder.recordConnectionError(code.name());
+        }
 
         if (code == Status.Code.UNAUTHENTICATED) {
           log.warn(
@@ -223,6 +239,7 @@ public class KesselAuthorizationClient {
               subjectId,
               permission,
               e.getStatus());
+          metricsRecorder.recordCheckRequest(false);
           return false;
         }
       }
@@ -234,6 +251,9 @@ public class KesselAuthorizationClient {
         subjectId,
         permission,
         lastException != null ? lastException.getStatus() : "unknown");
+
+    metricsRecorder.recordCheckRequest(false);
+
     return false;
   }
 

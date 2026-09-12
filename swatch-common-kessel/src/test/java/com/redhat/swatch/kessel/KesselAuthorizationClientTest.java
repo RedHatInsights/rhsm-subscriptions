@@ -82,7 +82,7 @@ class KesselAuthorizationClientTest {
     lenient().when(stub.withDeadlineAfter(anyLong(), any(TimeUnit.class))).thenReturn(stub);
     lenient().when(channel.getState(false)).thenReturn(ConnectivityState.READY);
 
-    client = new KesselAuthorizationClient(config, orgId -> "default");
+    client = new KesselAuthorizationClient(config, orgId -> "default", KesselMetricsRecorder.NOOP);
     client.setStub(stub);
     setChannel(channel);
   }
@@ -140,7 +140,8 @@ class KesselAuthorizationClientTest {
 
   @Test
   void checkAccessReturnsFalseWhenStubIsNull() {
-    var uninitializedClient = new KesselAuthorizationClient(config, orgId -> "default");
+    var uninitializedClient =
+        new KesselAuthorizationClient(config, orgId -> "default", KesselMetricsRecorder.NOOP);
     assertFalse(uninitializedClient.checkAccess("user123", "subscriptions:reports:read", ORG_ID));
   }
 
@@ -165,7 +166,9 @@ class KesselAuthorizationClientTest {
 
   @Test
   void checkAccessUsesWorkspaceFromResolver() {
-    var customClient = new KesselAuthorizationClient(config, orgId -> "workspace-" + orgId);
+    var customClient =
+        new KesselAuthorizationClient(
+            config, orgId -> "workspace-" + orgId, KesselMetricsRecorder.NOOP);
     customClient.setStub(stub);
     try {
       setChannel(channel);

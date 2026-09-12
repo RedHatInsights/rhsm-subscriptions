@@ -21,6 +21,8 @@
 package org.candlepin.subscriptions.security;
 
 import com.redhat.swatch.kessel.KesselAuthorizationClient;
+import com.redhat.swatch.kessel.KesselMetricsRecorder;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.util.concurrent.ConcurrentHashMap;
 import org.candlepin.subscriptions.rbac.KesselProperties;
 import org.project_kessel.api.auth.ClientConfigAuth;
@@ -46,9 +48,11 @@ public class KesselConfiguration {
   }
 
   @Bean(initMethod = "init", destroyMethod = "shutdown")
-  public KesselAuthorizationClient kesselAuthorizationClient(KesselProperties props) {
+  public KesselAuthorizationClient kesselAuthorizationClient(
+      KesselProperties props, MeterRegistry meterRegistry) {
     var rbacAuth = initializeRbacAuth(props);
     var workspaceCache = new ConcurrentHashMap<String, String>();
+    KesselMetricsRecorder metricsRecorder = new KesselMicrometerRecorder(meterRegistry);
     return new KesselAuthorizationClient(
         props,
         orgId ->
@@ -66,7 +70,8 @@ public class KesselConfiguration {
                     throw new RuntimeException(
                         "Failed to fetch default workspace for orgId=" + id, e);
                   }
-                }));
+                }),
+        metricsRecorder);
   }
 
   private OAuth2AuthRequest initializeRbacAuth(KesselProperties props) {
