@@ -1,0 +1,138 @@
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: run-iqe-cji
+spec:
+  description: Deploy IQE CJI with ibutsu-aws-credentials mounted and Ibutsu S3 uploads enabled.
+  params:
+    - name: BONFIRE_IMAGE
+      type: string
+    - name: EPHEMERAL_ENV_PROVIDER_SECRET
+      type: string
+      default: ephemeral-env-provider
+    - name: NS
+      type: string
+    - name: NS_REQUESTER
+      type: string
+    - name: COMPONENT_NAME
+      type: string
+    - name: BONFIRE_COMPONENT_NAME
+      type: string
+      default: ""
+    - name: IQE_CJI_CLOWDAPP_NAME
+      type: string
+      default: ""
+    - name: IQE_PLUGINS
+      type: string
+    - name: IQE_MARKER_EXPRESSION
+      type: string
+      default: ""
+    - name: IQE_FILTER_EXPRESSION
+      type: string
+      default: ""
+    - name: IQE_REQUIREMENTS
+      type: string
+      default: ""
+    - name: IQE_REQUIREMENTS_PRIORITY
+      type: string
+      default: ""
+    - name: IQE_TEST_IMPORTANCE
+      type: string
+      default: ""
+    - name: IQE_CJI_TIMEOUT
+      type: string
+      default: 30m
+    - name: IQE_ENV
+      type: string
+      default: "clowder_smoke"
+    - name: IQE_SELENIUM
+      type: string
+      default: "false"
+    - name: IQE_PLAYWRIGHT
+      type: string
+      default: "false"
+    - name: IQE_PARALLEL_ENABLED
+      type: string
+      default: "false"
+    - name: IQE_RP_ARGS
+      type: string
+      default: ""
+    - name: IQE_IMAGE_TAG
+      type: string
+      default: ""
+    - name: PROJECT_REPO
+      type: string
+      default: "RedHatInsights/rhsm-subscriptions"
+    - name: GIT_REVISION
+      type: string
+      description: Git revision used to fetch the CJI template from the project repo
+    - name: IQE_CJI_TEMPLATE
+      type: string
+      default: ".tekton/resources/iqe-cji-ibutsu-s3.yaml"
+  steps:
+    - name: deploy-iqe-cji
+      image: "$(params.BONFIRE_IMAGE)"
+      env:
+        - name: OC_LOGIN_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: $(params.EPHEMERAL_ENV_PROVIDER_SECRET)
+              key: token
+        - name: OC_LOGIN_SERVER
+          valueFrom:
+            secretKeyRef:
+              name: $(params.EPHEMERAL_ENV_PROVIDER_SECRET)
+              key: url
+        - name: COMPONENT_NAME
+          value: $(params.COMPONENT_NAME)
+        - name: BONFIRE_COMPONENT_NAME
+          value: $(params.BONFIRE_COMPONENT_NAME)
+        - name: IQE_CJI_CLOWDAPP_NAME
+          value: $(params.IQE_CJI_CLOWDAPP_NAME)
+        - name: IQE_PLUGINS
+          value: $(params.IQE_PLUGINS)
+        - name: IQE_MARKER_EXPRESSION
+          value: $(params.IQE_MARKER_EXPRESSION)
+        - name: IQE_FILTER_EXPRESSION
+          value: $(params.IQE_FILTER_EXPRESSION)
+        - name: IQE_REQUIREMENTS
+          value: $(params.IQE_REQUIREMENTS)
+        - name: IQE_REQUIREMENTS_PRIORITY
+          value: $(params.IQE_REQUIREMENTS_PRIORITY)
+        - name: IQE_TEST_IMPORTANCE
+          value: $(params.IQE_TEST_IMPORTANCE)
+        - name: IQE_CJI_TIMEOUT
+          value: $(params.IQE_CJI_TIMEOUT)
+        - name: IQE_ENV
+          value: $(params.IQE_ENV)
+        - name: IQE_SELENIUM
+          value: $(params.IQE_SELENIUM)
+        - name: IQE_PLAYWRIGHT
+          value: $(params.IQE_PLAYWRIGHT)
+        - name: IQE_PARALLEL_ENABLED
+          value: $(params.IQE_PARALLEL_ENABLED)
+        - name: IQE_RP_ARGS
+          value: $(params.IQE_RP_ARGS)
+        - name: IQE_IMAGE_TAG
+          value: $(params.IQE_IMAGE_TAG)
+        - name: PROJECT_REPO
+          value: $(params.PROJECT_REPO)
+        - name: GIT_REVISION
+          value: $(params.GIT_REVISION)
+        - name: IQE_CJI_TEMPLATE_PATH
+          value: $(params.IQE_CJI_TEMPLATE)
+        - name: BONFIRE_BOT
+          value: "true"
+      script: |
+        #!/bin/bash
+        set -euo pipefail
+
+        login.sh
+
+        template_url="https://raw.githubusercontent.com/${PROJECT_REPO}/${GIT_REVISION}/${IQE_CJI_TEMPLATE_PATH}"
+        export IQE_CJI_TEMPLATE="/tmp/iqe-cji-template.yaml"
+        echo "Fetching CJI template from ${template_url}"
+        curl -fsSL "${template_url}" -o "${IQE_CJI_TEMPLATE}"
+
+        deploy-iqe-cji.sh "$(params.NS)" "$(params.NS_REQUESTER)"

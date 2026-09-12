@@ -1,0 +1,123 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: iqe-cji-ibutsu-s3
+
+objects:
+- apiVersion: cloud.redhat.com/v1alpha1
+  kind: ClowdJobInvocation
+  metadata:
+    name: ${NAME}
+  spec:
+    appName: ${APP_NAME}
+    testing:
+      iqe:
+        debug: ${{DEBUG}}
+        imageTag: ${IMAGE_TAG}
+        ui:
+          selenium:
+            deploy: ${{DEPLOY_SELENIUM}}
+          playwright:
+            deploy: ${{DEPLOY_PLAYWRIGHT}}
+        env:
+          - name: IQE_MARKER_EXPRESSION
+            value: ${MARKER}
+          - name: IQE_FILTER_EXPRESSION
+            value: ${FILTER}
+          - name: IQE_PLUGINS
+            value: ${PLUGINS}
+          - name: ENV_FOR_DYNACONF
+            value: ${ENV_NAME}
+          - name: IQE_REQUIREMENTS
+            value: ${REQUIREMENTS}
+          - name: IQE_REQUIREMENTS_PRIORITY
+            value: ${REQUIREMENTS_PRIORITY}
+          - name: IQE_TEST_IMPORTANCE
+            value: ${TEST_IMPORTANCE}
+          - name: IQE_PARALLEL_ENABLED
+            value: ${PARALLEL_ENABLED}
+          - name: IQE_PARALLEL_WORKER_COUNT
+            value: ${PARALLEL_WORKER_COUNT}
+          - name: IQE_RP_ARGS
+            value: ${RP_ARGS}
+          - name: IQE_IBUTSU_SOURCE
+            value: ${IBUTSU_SOURCE}
+          - name: IQE_ENABLE_MINIO
+            value: "true"
+          - name: IBUTSU_MODE
+            value: "s3"
+          - name: IBUTSU_PROJECT
+            valueFrom:
+              configMapKeyRef:
+                name: ${IBUTSU_CONFIGMAP}
+                key: IBUTSU_PROJECT
+                optional: true
+          - name: IBUTSU_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: ${IBUTSU_SECRET}
+                key: IBUTSU_TOKEN
+                optional: true
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: ${IBUTSU_AWS_SECRET}
+                key: aws_access_key_id
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: ${IBUTSU_AWS_SECRET}
+                key: aws_secret_access_key
+          - name: AWS_REGION
+            valueFrom:
+              secretKeyRef:
+                name: ${IBUTSU_AWS_SECRET}
+                key: aws_region
+          - name: AWS_BUCKET
+            valueFrom:
+              secretKeyRef:
+                name: ${IBUTSU_AWS_SECRET}
+                key: bucket
+
+parameters:
+- name: NAME
+  required: true
+- name: APP_NAME
+  required: true
+- name: DEBUG
+  value: "false"
+- name: IMAGE_TAG
+  value: ""
+- name: MARKER
+  value: ""
+- name: FILTER
+  value: ""
+- name: ENV_NAME
+  value: "clowder_smoke"
+  required: true
+- name: REQUIREMENTS
+  value: ""
+- name: REQUIREMENTS_PRIORITY
+  value: ""
+- name: TEST_IMPORTANCE
+  value: ""
+- name: PLUGINS
+  value: ""
+- name: DEPLOY_SELENIUM
+  value: "false"
+- name: DEPLOY_PLAYWRIGHT
+  value: "false"
+- name: PARALLEL_ENABLED
+  value: "true"
+- name: PARALLEL_WORKER_COUNT
+  value: "2"
+- name: RP_ARGS
+  value: ""
+- name: IBUTSU_SOURCE
+  value: ""
+- name: IBUTSU_CONFIGMAP
+  value: "ibutsu-config"
+- name: IBUTSU_SECRET
+  value: "iqe-ibutsu-token"
+- name: IBUTSU_AWS_SECRET
+  value: "ibutsu-aws-credentials"

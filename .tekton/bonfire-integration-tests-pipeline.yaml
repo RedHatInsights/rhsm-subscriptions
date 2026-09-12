@@ -129,16 +129,6 @@ spec:
       description: IQE log level
       default: "debug"
 
-    # Data Router configuration
-    - name: DATAROUTER_CREDENTIALS_NAME
-      type: string
-      description: Secret name for Data Router credentials
-      default: "smqe-datarouter-credentials"
-    - name: DATAROUTER_URL
-      type: string
-      default: "https://datarouter.ccitredhat.com"
-      description: Data Router public URL
-
     # Project configuration
     - name: GITHUB_TOKEN_SECRET
       type: string
@@ -641,15 +631,21 @@ spec:
           value: "$(tasks.extract-metadata.results.IQE_IMAGE_TAG)"
         - name: IQE_PARALLEL_ENABLED
           value: "$(params.IQE_PARALLEL_ENABLED)"
+        - name: IQE_RP_ARGS
+          value: "$(params.IQE_RP_ARGS)"
+        - name: PROJECT_REPO
+          value: "$(params.PROJECT_REPO)"
+        - name: GIT_REVISION
+          value: "$(tasks.extract-metadata.results.GIT_REVISION)"
       taskRef:
         resolver: git
         params:
           - name: url
-            value: "$(params.BONFIRE_REPO)"
+            value: "https://github.com/$(params.PROJECT_REPO).git"
           - name: revision
-            value: "$(params.BONFIRE_REVISION)"
+            value: "$(tasks.extract-metadata.results.GIT_REVISION)"
           - name: pathInRepo
-            value: tasks/run-iqe-cji.yaml
+            value: .tekton/tasks/run-iqe-cji.yaml
 
     - name: collect-logs
       onError: continue
@@ -709,161 +705,6 @@ spec:
 
               echo "Artifacts collected:"
               ls -la "$ARTIFACTS_DIR"
-
-    - name: send-to-datarouter
-      onError: continue
-      runAfter:
-        - collect-logs
-      when:
-        - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
-          operator: in
-          values: [ "false" ]
-        - input: "$(tasks.deploy-application.results.DEPLOY_SUCCEEDED)"
-          operator: in
-          values: ["true"]
-      workspaces:
-        - name: artifacts
-          workspace: artifacts
-      params:
-        - name: DATAROUTER_CREDENTIALS_NAME
-          value: "$(params.DATAROUTER_CREDENTIALS_NAME)"
-        - name: DATAROUTER_URL
-          value: "$(params.DATAROUTER_URL)"
-        - name: PIPELINE_NAME
-          value: "$(context.pipelineRun.name)"
-        - name: GIT_REVISION
-          value: "$(tasks.extract-metadata.results.GIT_REVISION)"
-      taskSpec:
-        params:
-          - name: DATAROUTER_CREDENTIALS_NAME
-          - name: DATAROUTER_URL
-          - name: PIPELINE_NAME
-          - name: GIT_REVISION
-        workspaces:
-          - name: artifacts
-        steps:
-          - name: send
-            image: quay.io/dno/droute:latest
-            imagePullPolicy: Always
-            env:
-              - name: DATAROUTER_USERNAME
-                valueFrom:
-                  secretKeyRef:
-                    name: $(params.DATAROUTER_CREDENTIALS_NAME)
-                    key: username
-              - name: DATAROUTER_PASSWORD
-                valueFrom:
-                  secretKeyRef:
-                    name: $(params.DATAROUTER_CREDENTIALS_NAME)
-                    key: password
-              - name: PIPELINE_NAME
-                value: "$(params.PIPELINE_NAME)"
-              - name: EVENT_TYPE
-                valueFrom:
-                  fieldRef:
-                    fieldPath: metadata.labels['pac.test.appstudio.openshift.io/event-type']
-              - name: GROUP_TEST_INFO
-                valueFrom:
-                  fieldRef:
-                    fieldPath: metadata.annotations['test.appstudio.openshift.io/group-test-info']
-              - name: GIT_REVISION
-                value: "$(params.GIT_REVISION)"
-              - name: INTEGRATION_TEST_NAME
-                valueFrom:
-                  fieldRef:
-                    fieldPath: metadata.labels['test.appstudio.openshift.io/scenario']
-            script: |
-              #!/bin/bash
-              set -euo pipefail
-
-              ARTIFACTS_DIR="$(workspaces.artifacts.path)"
-              METADATA_FILE="/tmp/datarouter.json"
-
-              echo "Generating Data Router metadata for event type: ${EVENT_TYPE}"
-
-              PR_NUMBER=""
-              if [ -n "${GROUP_TEST_INFO:-}" ]; then
-                PR_NUMBER=$(echo "${GROUP_TEST_INFO}" | jq -r '.[0].pullRequestNumber // empty' 2>/dev/null || echo "")
-                [ -n "$PR_NUMBER" ] && echo "PR number: $PR_NUMBER"
-              fi
-
-              cat > "$METADATA_FILE" << EOF
-              {
-                "targets": {
-                  "reportportal": {
-                    "config": {
-                      "hostname": "reportportal-smqe.apps.dno.ocp-hub.prod.psi.redhat.com",
-                      "project": "SUBSCRIPTION_WATCH"
-                    },
-                    "processing": {
-                      "property_filter": ["component", "test-plan", "tag"],
-                      "apply_tfa": false,
-                      "apply_llm_analysis": false,
-                      "disable_testitem_updater": false,
-                      "launch": {
-                        "name": "rhsm-subscriptions iqe tests",
-                        "description": "Integration tests ran in Ephemeral through Konflux pipeline.",
-                        "attributes": [
-                          {"key": "tool", "value": "data-router"},
-                          {"key": "environment", "value": "ephemeral"},
-                          {"key": "event_type", "value": "${EVENT_TYPE}"},
-                          {"key": "pipeline_name", "value": "${PIPELINE_NAME}"},
-                          {"key": "git_revision", "value": "${GIT_REVISION}"},
-                          {"key": "integration_test_name", "value": "${INTEGRATION_TEST_NAME}"}
-                        ]
-                      },
-                      "tfa": {
-                        "add_attributes": false,
-                        "auto_finalize_defect_type": false,
-                        "auto_finalization_threshold": 0.55
-                      },
-                      "testcase_concat_char": " "
-                    }
-                  }
-                }
-              }
-              EOF
-
-              if [ -n "$PR_NUMBER" ]; then
-                jq --arg pr "$PR_NUMBER" \
-                  '.targets.reportportal.processing.launch.attributes += [{"key": "pull_request", "value": $pr}]' \
-                  "$METADATA_FILE" > "${METADATA_FILE}.tmp" && mv "${METADATA_FILE}.tmp" "$METADATA_FILE"
-              fi
-
-              echo "Metadata:"
-              jq . "$METADATA_FILE" || cat "$METADATA_FILE"
-
-              MAX_RETRIES=3
-              RETRY_DELAY=45
-              attempt=1
-              while [ $attempt -le $MAX_RETRIES ]; do
-                echo "=== Attempt $attempt of $MAX_RETRIES ==="
-                set +e
-                OUTPUT=$(/droute send \
-                  --url=$(params.DATAROUTER_URL) \
-                  --username=$DATAROUTER_USERNAME \
-                  --password=$DATAROUTER_PASSWORD \
-                  --metadata=$METADATA_FILE \
-                  --results="$ARTIFACTS_DIR/junit-rhsm_subscriptions-sequential.xml" 2>&1)
-                EXIT_CODE=$?
-                set -e
-                echo "Exit code: $EXIT_CODE"
-                echo "Output: $OUTPUT"
-
-                if [ $EXIT_CODE -eq 0 ]; then
-                  echo "Data Router send succeeded"
-                  break
-                fi
-
-                if echo "$OUTPUT" | grep -qi -E "5[0-9][0-9] " && [ $attempt -lt $MAX_RETRIES ]; then
-                  echo "Retrying in $RETRY_DELAY seconds..."
-                  sleep $RETRY_DELAY
-                  attempt=$((attempt + 1))
-                else
-                  echo "Data Router send failed."
-                  break
-                fi
-              done
 
     - name: post-pr-comment
       onError: continue
