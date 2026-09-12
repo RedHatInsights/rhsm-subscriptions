@@ -28,6 +28,8 @@ RUN ls -al /stage/swatch-system-conduit
 FROM registry.access.redhat.com/ubi10/openjdk-25-runtime:1784364635
 
 ARG VERSION=1.0.0
+ARG BUILD_DATE
+ARG VCS_REF
 
 # Required labels for Enterprise Contract
 LABEL name="swatch-system-conduit"
@@ -43,6 +45,14 @@ LABEL description="SWATCH System Conduit service based on UBI10 OpenJDK 25."
 
 #label for EULA
 LABEL com.redhat.license_terms="https://www.redhat.com/en/about/red-hat-end-user-license-agreements#UBI"
+
+# OCI and build metadata labels
+LABEL org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.revision="${VCS_REF}" \
+      org.opencontainers.image.source="https://github.com/RedHatInsights/rhsm-subscriptions" \
+      org.opencontainers.image.title="swatch-system-conduit" \
+      org.opencontainers.image.vendor="Red Hat, Inc." \
+      io.konflux.build="true"
 
 USER root
 RUN microdnf \
