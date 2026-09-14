@@ -36,7 +36,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
@@ -116,7 +115,7 @@ public interface TallySnapshotRepository
 
   @Query(
       value =
-          "SELECT distinct t FROM TallySnapshot t left join fetch t.tallyMeasurements where "
+          "SELECT t FROM TallySnapshot t where "
               + "t.orgId = :orgId and "
               + "t.productId in (:productIds) and "
               + "t.granularity = :granularity  and "
@@ -128,7 +127,7 @@ public interface TallySnapshotRepository
               + "t.productId in (:productIds) and "
               + "t.granularity = :granularity  and "
               + "t.snapshotDate between :beginning and :ending ")
-  Stream<TallySnapshot> findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
+  List<TallySnapshot> findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
       String orgId,
       Collection<String> productIds,
       Granularity granularity,

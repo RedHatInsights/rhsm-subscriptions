@@ -486,24 +486,29 @@ class TallySnapshotRepositoryTest {
         createUnpersisted("Org1", product1, Granularity.DAILY, 99, 100, 101, FAR_FUTURE);
     // Will not be found - incorrect granularity
     TallySnapshot t5 = createUnpersisted("Org1", product1, Granularity.WEEKLY, 20, 22, 23, NOWISH);
+    // Will be found - verifies the "product_id in (...)" match against the second product, and
+    // gives the query a second matching snapshot so that batch-fetching of tallyMeasurements
+    // (across multiple owning snapshots) is actually exercised.
+    TallySnapshot t6 = createUnpersisted("Org1", product2, Granularity.DAILY, 30, 31, 32, NOWISH);
 
-    repository.saveAll(Arrays.asList(t1, t2, t3, t4, t5));
+    repository.saveAll(Arrays.asList(t1, t2, t3, t4, t5, t6));
     repository.flush();
+    // Clear the persistence context so the upcoming query performs a genuine load from the DB
+    // instead of returning the already-managed, already-populated entities from the first-level
+    // cache. Without this, the tallyMeasurements collection fetch never actually happens.
+    repository.getEntityManager().clear();
 
     OffsetDateTime min = OffsetDateTime.of(2019, 05, 23, 00, 00, 00, 00, ZoneOffset.UTC);
     OffsetDateTime max = OffsetDateTime.of(2019, 07, 23, 00, 00, 00, 00, ZoneOffset.UTC);
 
     List<String> products = Arrays.asList(product1, product2);
     List<TallySnapshot> found =
-        repository
-            .findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
-                "Org1", products, Granularity.DAILY, min, max)
-            .collect(Collectors.toList());
-    assertEquals(1, found.size());
+        repository.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
+            "Org1", products, Granularity.DAILY, min, max);
+    assertEquals(2, found.size());
 
-    TallySnapshot result = found.get(0);
-
-    assertEquals(product1, result.getProductId());
+    TallySnapshot result =
+        found.stream().filter(s -> product1.equals(s.getProductId())).findFirst().orElseThrow();
 
     assertEquals(
         9,
@@ -518,6 +523,13 @@ class TallySnapshotRepositoryTest {
         result
             .getMeasurement(HardwareMeasurementType.TOTAL, MetricIdUtils.getInstanceHours())
             .intValue());
+
+    TallySnapshot result2 =
+        found.stream().filter(s -> product2.equals(s.getProductId())).findFirst().orElseThrow();
+
+    assertEquals(
+        30,
+        result2.getMeasurement(HardwareMeasurementType.TOTAL, MetricIdUtils.getCores()).intValue());
   }
 
   @Test
@@ -531,12 +543,14 @@ class TallySnapshotRepositoryTest {
 
     repository.save(snap);
     repository.flush();
+    // Clear the persistence context so the upcoming query performs a genuine load from the DB
+    // instead of returning the already-managed, already-populated entity from the first-level
+    // cache. Without this, the tallyMeasurements collection fetch never actually happens.
+    repository.getEntityManager().clear();
 
     List<TallySnapshot> found =
-        repository
-            .findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
-                "OrgAcme", Arrays.asList("rocket-skates"), Granularity.DAILY, LONG_AGO, FAR_FUTURE)
-            .collect(Collectors.toList());
+        repository.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
+            "OrgAcme", Arrays.asList("rocket-skates"), Granularity.DAILY, LONG_AGO, FAR_FUTURE);
 
     TallySnapshot expected = found.get(0);
 

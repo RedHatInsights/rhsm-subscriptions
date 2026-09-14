@@ -38,7 +38,6 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.candlepin.clock.ApplicationClock;
@@ -528,7 +527,7 @@ public class MetricUsageCollector {
             .flatMap(Set::stream)
             .map(Variant::getTag)
             .collect(Collectors.toSet());
-    Stream<TallySnapshot> snapshots =
+    List<TallySnapshot> snapshots =
         snapshotRepository.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
             event.getOrgId(),
             products,

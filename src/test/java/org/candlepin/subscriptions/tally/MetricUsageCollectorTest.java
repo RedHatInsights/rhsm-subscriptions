@@ -1074,7 +1074,7 @@ class MetricUsageCollectorTest {
             Granularity.HOURLY,
             eventDate,
             clock.endOfHour(eventDate)))
-        .thenReturn(Stream.of(snapshot));
+        .thenReturn(List.of(snapshot));
 
     Measurement measurement =
         new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);
@@ -1196,7 +1196,7 @@ class MetricUsageCollectorTest {
             Granularity.HOURLY,
             eventDate,
             clock.endOfHour(eventDate)))
-        .thenReturn(Stream.of(snapshot));
+        .thenReturn(List.of(snapshot));
 
     // valid metric "Cores":
     Measurement measurement =
