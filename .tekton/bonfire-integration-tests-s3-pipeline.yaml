@@ -180,26 +180,8 @@ spec:
           - name: pathInRepo
             value: .tekton/tasks/extract-metadata.yaml
 
-    - name: wait-for-snapshot-verification
-      params:
-        - name: SNAPSHOT
-          value: $(params.SNAPSHOT)
-        - name: INTEGRATION_TEST_SCENARIOS
-          value: |
-            rhsm-subscriptions-verify-snapshot-components
-      taskRef:
-        resolver: git
-        params:
-          - name: url
-            value: https://github.com/konflux-ci/tekton-integration-catalog.git
-          - name: revision
-            value: main
-          - name: pathInRepo
-            value: tasks/wait-for-integration-tests/0.1/wait-for-integration-tests.yaml
-
     - name: verify-snapshot-completeness
       runAfter:
-        - wait-for-snapshot-verification
         - extract-metadata
       params:
         - name: SNAPSHOT
