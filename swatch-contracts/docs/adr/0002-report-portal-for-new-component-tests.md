@@ -1,8 +1,10 @@
 ### 0002 - Use Report Portal Instead of Ibutsu for Test Reporting
 
-* **Status:** Proposed
+* **Status:** Superseded by [0005](0005-ephemeral-test-results-via-s3-for-ibutsu.md)
 * **Deciders:**
 * **Date:** 2025-09-22
+
+> **Note:** This record is kept for context only. [0005](0005-ephemeral-test-results-via-s3-for-ibutsu.md) replaces it: Report Portal and the Data Router are being decommissioned, so SWATCH publishes the test results to **S3** for Ibutsu import instead.
 
 ---
 

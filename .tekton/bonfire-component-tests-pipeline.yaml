@@ -76,26 +76,10 @@ spec:
       type: string
       description: "Method to deploy optional dependencies - see bonfire docs https://github.com/redhatinsights/bonfire?tab=readme-ov-file#dependency-processing"
       default: "hybrid"
-    - name: DATAROUTER_CREDENTIALS_NAME
+    - name: TEST_RESULTS_AWS_S3_SECRET
       type: string
-      description: Secret name to take the data router credentials from.
-      default: "smqe-datarouter-credentials"
-    - name: DATAROUTER-METADATA-PATH
-      type: string
-      default: "datarouter.json"
-      description: Path from root for datarouter metadata file.
-    - name: datarouter-url
-      type: string
-      default: "https://datarouter.ccitredhat.com"
-      description: Data Router public URL.
-    - name: results-pattern
-      type: string
-      default: "TEST*.xml"
-      description: Patter that Data Router follows to upload tests report.
-    - name: attachments-dir
-      type: string
-      default: ""
-      description: Directory containing attachments to upload with test results.
+      description: Secret name in the ephemeral namespace with S3 credentials for test-results upload
+      default: ibutsu-aws-credentials
 
     # Project configuration
     - name: GITHUB_TOKEN_SECRET
@@ -192,6 +176,8 @@ spec:
           value: "$(params.PROJECT_REPO)"
         - name: GITHUB_TOKEN_SECRET
           value: "$(params.GITHUB_TOKEN_SECRET)"
+        - name: PIPELINE_RUN_NAME
+          value: "$(context.pipelineRun.name)"
       taskRef:
         resolver: git
         params:
@@ -648,6 +634,18 @@ spec:
       params:
         - name: SERVICE
           value: "$(params.COMPONENT_NAME)"
+        - name: COMPONENT_NAME
+          value: "$(params.COMPONENT_NAME)"
+        - name: GIT_REVISION
+          value: "$(tasks.extract-metadata.results.GIT_REVISION)"
+        - name: PIPELINE_NAME
+          value: "$(tasks.extract-metadata.results.PIPELINE_RUN_NAME)"
+        - name: EVENT_TYPE
+          value: "$(tasks.extract-metadata.results.EVENT_TYPE)"
+        - name: INTEGRATION_TEST_NAME
+          value: "$(tasks.extract-metadata.results.INTEGRATION_TEST_NAME)"
+        - name: TEST_RUN_SOURCE
+          value: "$(tasks.extract-metadata.results.TEST_RUN_SOURCE)"
       workspaces:
         - name: output
           workspace: shared-workspace
@@ -665,6 +663,18 @@ spec:
           - name: SERVICE
             type: string
             description: The service to be tested. By default, it will run all the tests.
+          - name: COMPONENT_NAME
+            type: string
+          - name: GIT_REVISION
+            type: string
+          - name: PIPELINE_NAME
+            type: string
+          - name: EVENT_TYPE
+            type: string
+          - name: INTEGRATION_TEST_NAME
+            type: string
+          - name: TEST_RUN_SOURCE
+            type: string
         workspaces:
           - name: output
             description: The workspace where the repository was cloned
@@ -714,160 +724,18 @@ spec:
                 value: "$(params.SERVICE)"
             script: |
               #!/bin/bash
-              mvn -s .mvn/maven-settings.xml clean install --no-transfer-progress -Pcomponent-tests -am -pl ${SERVICE}/ct -Dswatch.component-tests.global.target=openshift -Dlog.disable-color=true -Dlog.level=FINE -Dlog.print-errors-to-std-err=true
-    - name: send-results-task
-      onError: continue
-      params:
-        - name: SERVICE
-          value: "$(params.COMPONENT_NAME)"
-      workspaces:
-        - name: output
-          workspace: shared-workspace
-      runAfter:
-        - run-tests-task
-      when:
-        - input: "$(tasks.check-component-label.results.TESTS_SKIPPED)"
-          operator: in
-          values: [ "false" ]
-        - input: "$(tasks.deploy-application.results.DEPLOY_SUCCEEDED)"
-          operator: in
-          values: [ "true" ]
-      taskSpec:
-        params:
-          - name: SERVICE
-            type: string
-            description: The service that was tested.
-        workspaces:
-          - name: output
-            description: The workspace where the repository was cloned
-        results:
-          - name: status
-            description: Status of the Data Router send operation (success/failure)
-          - name: routing-id
-            description: Data Router routing request ID for tracking
-        steps:
-          - name: send-results
-            image: quay.io/dno/droute:latest
-            imagePullPolicy: Always
-            workingDir: $(workspaces.output.path)/source
-            env:
-              - name: DATAROUTER_USERNAME
-                valueFrom:
-                  secretKeyRef:
-                    name: $(params.DATAROUTER_CREDENTIALS_NAME)
-                    key: username
-              - name: DATAROUTER_PASSWORD
-                valueFrom:
-                  secretKeyRef:
-                    name: $(params.DATAROUTER_CREDENTIALS_NAME)
-                    key: password
-              - name: SERVICE
-                value: "$(params.SERVICE)"
-              - name: EVENT_TYPE
-                valueFrom:
-                  fieldRef:
-                    fieldPath: metadata.labels['pac.test.appstudio.openshift.io/event-type']
-              - name: PIPELINE_NAME
-                value: "$(context.pipelineRun.name)"
-              - name: GIT_REVISION
-                value: "$(tasks.extract-metadata.results.GIT_REVISION)"
-              - name: INTEGRATION_TEST_NAME
-                valueFrom:
-                  fieldRef:
-                    fieldPath: metadata.labels['test.appstudio.openshift.io/scenario']
-            script: |
-              #!/bin/bash
               set -euo pipefail
-              
-              ARTIFACT_DIR="${SERVICE}"/ct/target/surefire-reports
-              METADATA_FILE="$(params.DATAROUTER-METADATA-PATH)"
-              
-              # Skip unsupported attributes by datarouter from the surefire reports:
-              find "$ARTIFACT_DIR" -name "TEST-*.xml" -exec sed -i 's/ flakes="[0-9]*"//g' {} \;
-              
-              # Customize metadata for the current service
-              sed -i "s/SERVICE_NAME/$SERVICE/g" datarouter.json
-              sed -i "s/EVENT_TYPE_PLACEHOLDER/$EVENT_TYPE/g" datarouter.json
-              sed -i "s/PIPELINE_NAME_PLACEHOLDER/$PIPELINE_NAME/g" datarouter.json
-              sed -i "s/GIT_REVISION_PLACEHOLDER/$GIT_REVISION/g" datarouter.json
-              sed -i "s/INTEGRATION_TEST_NAME_PLACEHOLDER/$INTEGRATION_TEST_NAME/g" datarouter.json
-              
-              echo "Using metadata from: $METADATA_FILE"
-              echo "Metadata content:"
-              cat "$METADATA_FILE" | jq . || cat "$METADATA_FILE"
-              
-              echo "Executing Data Router send"
-              echo "  URL: $(params.datarouter-url)"
-              echo "  Metadata: $METADATA_FILE"
-              echo "  Results: $(params.results-pattern)"
-              echo "  Attachments: $(params.attachments-dir)"
-              echo "  Username: $DATAROUTER_USERNAME"
-              echo "  Artifact directory: $ARTIFACT_DIR"
-              
-              # Retry configuration for intermittent 5xx errors
-              MAX_RETRIES=3
-              RETRY_DELAY=45
-              
-              # Function to execute droute command with retry
-              execute_with_retry() {
-                local attempt=1
-                
-                while [ $attempt -le $MAX_RETRIES ]; do
-                  echo "=== Attempt $attempt of $MAX_RETRIES ==="
-                  
-                  # Temporarily disable exit on error to capture output
-                  set +e
-                  OUTPUT=$(/droute send --url=$(params.datarouter-url) --username=$DATAROUTER_USERNAME --password=$DATAROUTER_PASSWORD --metadata=$METADATA_FILE --results=$ARTIFACT_DIR/$(params.results-pattern) $(if [[ -n "$(params.attachments-dir)" ]]; then echo "--attachments=${ARTIFACT_DIR}/$(params.attachments-dir)"; fi) 2>&1)
-                  EXIT_CODE=$?
-                  set -e
-                  
-                  echo "Command completed with exit code: $EXIT_CODE"
-                  echo "Output: $OUTPUT"
-                  
-                  # Check if successful
-                  if [[ $EXIT_CODE -eq 0 ]]; then
-                    return 0
-                  fi
-                  
-                  # Check for retryable error patterns (only 5XX server errors)
-                  if echo "$OUTPUT" | grep -qi -E "5[0-9][0-9] "; then
-                    if [ $attempt -lt $MAX_RETRIES ]; then
-                      echo "5XX server error detected. Retrying in $RETRY_DELAY seconds..."
-                      sleep $RETRY_DELAY
-                      attempt=$((attempt + 1))
-                    else
-                      echo "Maximum retries reached. Data Router send operation failed."
-                      return $EXIT_CODE
-                    fi
-                  else
-                    echo "Non-retryable error detected. Failing immediately."
-                    return $EXIT_CODE
-                  fi
-                done
-                
-                return $EXIT_CODE
-              }
-              
-              # Execute with retry logic
-              execute_with_retry
-              FINAL_EXIT_CODE=$?
-              
-              # Extract routing ID if available (from the last output)
-              ROUTING_ID=$(echo "$OUTPUT" | grep -o "routing[_-]id[:\s]*[a-zA-Z0-9-]*" | head -1 | sed 's/.*[:\s]\+//' || echo "")
-              
-              # Set results
-              if [[ $FINAL_EXIT_CODE -eq 0 ]]; then
-                echo -n "success" > $(results.status.path)
-                echo "Data Router send operation completed successfully"
-              else
-                echo -n "failure" > $(results.status.path)
-                echo "Data Router send operation failed with exit code: $FINAL_EXIT_CODE"
-              fi
-              
-              echo -n "$ROUTING_ID" > $(results.routing-id.path)
-              
-              exit $FINAL_EXIT_CODE
-
+              mvn -s .mvn/maven-settings.xml clean install --no-transfer-progress -Pcomponent-tests -am -pl "${SERVICE}/ct" \
+                -Dswatch.component-tests.global.target=openshift \
+                -Dlog.disable-color=true \
+                -Dlog.level=FINE \
+                -Dlog.print-errors-to-std-err=true \
+                -Dswatch.ct.metadata.component="$(params.COMPONENT_NAME)" \
+                -Dswatch.ct.metadata.git_revision="$(params.GIT_REVISION)" \
+                -Dswatch.ct.metadata.pipeline_name="$(params.PIPELINE_NAME)" \
+                -Dswatch.ct.metadata.event_type="$(params.EVENT_TYPE)" \
+                -Dswatch.ct.metadata.integration_test_name="$(params.INTEGRATION_TEST_NAME)" \
+                -Dswatch.ct.metadata.source="$(params.TEST_RUN_SOURCE)"
     - name: post-pr-comment
       onError: continue
       runAfter:
@@ -913,3 +781,41 @@ spec:
             value: "$(params.PROJECT_TASKS_REVISION)"
           - name: pathInRepo
             value: .tekton/tasks/github-post-test-results.yaml
+
+    - name: upload-test-results-to-s3
+      onError: continue
+      runAfter:
+        - run-tests-task
+        - post-pr-comment
+      when:
+        - input: "$(tasks.check-component-label.results.TESTS_SKIPPED)"
+          operator: in
+          values: [ "false" ]
+        - input: "$(tasks.deploy-application.results.DEPLOY_SUCCEEDED)"
+          operator: in
+          values: [ "true" ]
+      workspaces:
+        - name: artifacts
+          workspace: shared-workspace
+        - name: output
+          workspace: shared-workspace
+      params:
+        - name: NS
+          value: "$(tasks.reserve-namespace.results.NS)"
+        - name: BONFIRE_IMAGE
+          value: "$(params.BONFIRE_IMAGE)"
+        - name: EPHEMERAL_ENV_PROVIDER_SECRET
+          value: "$(params.EPHEMERAL_ENV_PROVIDER_SECRET)"
+        - name: TEST_RESULTS_AWS_S3_SECRET
+          value: "$(params.TEST_RESULTS_AWS_S3_SECRET)"
+        - name: TEST_RESULTS_FILE
+          value: "source/$(params.COMPONENT_NAME)/ct/target/surefire-reports/merged-results.xml"
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: "https://github.com/$(params.PROJECT_REPO).git"
+          - name: revision
+            value: "$(params.PROJECT_TASKS_REVISION)"
+          - name: pathInRepo
+            value: .tekton/tasks/upload-test-results-to-s3.yaml

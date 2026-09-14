@@ -20,12 +20,20 @@
  */
 package com.redhat.swatch.component.tests.reporting;
 
+import static com.redhat.swatch.component.tests.utils.SurefireReportUtils.CLASSNAME;
+import static com.redhat.swatch.component.tests.utils.SurefireReportUtils.NAME;
+import static com.redhat.swatch.component.tests.utils.SurefireReportUtils.PROPERTIES;
+import static com.redhat.swatch.component.tests.utils.SurefireReportUtils.TESTCASE;
+import static com.redhat.swatch.component.tests.utils.SurefireReportUtils.TESTSUITE;
+import static com.redhat.swatch.component.tests.utils.SurefireReportUtils.isSurefireReportFile;
+
 import com.redhat.swatch.component.tests.reporting.extractors.ComponentPropertyExtractor;
 import com.redhat.swatch.component.tests.reporting.extractors.TagPropertyExtractor;
 import com.redhat.swatch.component.tests.reporting.extractors.TestPlanNamePropertyExtractor;
 import com.redhat.swatch.component.tests.utils.ReflectionUtils;
 import java.io.File;
 import java.lang.annotation.Annotation;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -40,6 +48,8 @@ import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import org.jspecify.annotations.NonNull;
+import org.junit.platform.engine.TestExecutionResult;
 import org.junit.platform.engine.TestSource;
 import org.junit.platform.engine.support.descriptor.MethodSource;
 import org.junit.platform.launcher.TestExecutionListener;
@@ -81,13 +91,13 @@ public class ComponentTestReporter implements TestExecutionListener {
   }
 
   @Override
-  public void testPlanExecutionStarted(TestPlan testPlan) {
+  public void testPlanExecutionStarted(@NonNull TestPlan testPlan) {
     this.testPlan = testPlan;
   }
 
   @Override
   public void executionFinished(
-      TestIdentifier testIdentifier, org.junit.platform.engine.TestExecutionResult testResult) {
+      TestIdentifier testIdentifier, @NonNull TestExecutionResult testResult) {
     if (testIdentifier.isTest()) {
       TestMetadata metadata = new TestMetadata();
       metadata.testIdentifier = testIdentifier;
@@ -98,8 +108,19 @@ public class ComponentTestReporter implements TestExecutionListener {
   }
 
   @Override
-  public void testPlanExecutionFinished(TestPlan testPlan) {
+  public void testPlanExecutionFinished(@NonNull TestPlan testPlan) {
     enhanceSurefireReports();
+    writeMergedJUnitReport();
+  }
+
+  private void writeMergedJUnitReport() {
+    try {
+      JUnitMergedReportFinalizer.writeMergedReport(
+          Path.of(outputDirectory), JUnitMergedReportFinalizer.MERGED_REPORT_FILENAME);
+    } catch (Exception e) {
+      System.err.println("Failed to write merged JUnit report: " + e.getMessage());
+      e.printStackTrace();
+    }
   }
 
   /**
@@ -159,7 +180,7 @@ public class ComponentTestReporter implements TestExecutionListener {
 
     // Wait for Surefire XML files to be written and stabilized
     File[] xmlFiles = waitForSurefireXmlFiles(outputDir);
-    if (xmlFiles == null || xmlFiles.length == 0) {
+    if (xmlFiles == null) {
       return;
     }
 
@@ -204,8 +225,7 @@ public class ComponentTestReporter implements TestExecutionListener {
     Map<String, Long> previousSizes = new HashMap<>();
 
     for (int i = 0; i < maxAttempts; i++) {
-      File[] xmlFiles =
-          outputDir.listFiles((dir, name) -> name.startsWith("TEST-") && name.endsWith(".xml"));
+      File[] xmlFiles = outputDir.listFiles((dir, name) -> isSurefireReportFile(name));
 
       if (xmlFiles != null && xmlFiles.length > 0) {
         // Check if all files are stable (size hasn't changed)
@@ -239,7 +259,7 @@ public class ComponentTestReporter implements TestExecutionListener {
     }
 
     // Timeout reached, return whatever files we have
-    return outputDir.listFiles((dir, name) -> name.startsWith("TEST-") && name.endsWith(".xml"));
+    return outputDir.listFiles((dir, name) -> isSurefireReportFile(name));
   }
 
   private void enhanceSurefireXml(File xmlFile) throws Exception {
@@ -252,26 +272,23 @@ public class ComponentTestReporter implements TestExecutionListener {
     removeTestsuiteProperties(doc);
 
     // Find all testcase elements
-    NodeList testcases = doc.getElementsByTagName("testcase");
+    NodeList testcases = doc.getElementsByTagName(TESTCASE);
     boolean modified = false;
 
     for (int i = 0; i < testcases.getLength(); i++) {
       Element testcase = (Element) testcases.item(i);
-      String testName = testcase.getAttribute("name");
-      String className = testcase.getAttribute("classname");
+      String testName = testcase.getAttribute(NAME);
+      String className = testcase.getAttribute(CLASSNAME);
 
       // Find matching metadata
       TestMetadata metadata = findMetadataForTest(className, testName);
       if (metadata != null && !metadata.properties.isEmpty()) {
         // Check if properties element already exists
-        Element propertiesElement = findOrCreatePropertiesElement(doc, testcase);
+        Element propertiesElement = JUnitXmlMetadata.findOrCreatePropertiesElement(doc, testcase);
 
         // Add all properties
         for (Property entry : metadata.properties) {
-          Element property = doc.createElement("property");
-          property.setAttribute("name", entry.name());
-          property.setAttribute("value", entry.value());
-          propertiesElement.appendChild(property);
+          JUnitXmlMetadata.appendProperty(doc, propertiesElement, entry.name(), entry.value());
         }
 
         modified = true;
@@ -295,10 +312,10 @@ public class ComponentTestReporter implements TestExecutionListener {
 
   /**
    * Removes the default Surefire properties from the testsuite element. These properties contain
-   * system information (java.version, os.name, etc.) that we don't want to send to ReportPortal.
+   * system information (java.version, os.name, etc.) that we don't want to send to Ibutsu.
    */
   private void removeTestsuiteProperties(Document doc) {
-    NodeList testsuites = doc.getElementsByTagName("testsuite");
+    NodeList testsuites = doc.getElementsByTagName(TESTSUITE);
     for (int i = 0; i < testsuites.getLength(); i++) {
       Element testsuite = (Element) testsuites.item(i);
       NodeList children = testsuite.getChildNodes();
@@ -306,32 +323,12 @@ public class ComponentTestReporter implements TestExecutionListener {
       // Find and remove properties element
       for (int j = 0; j < children.getLength(); j++) {
         Node child = children.item(j);
-        if (child.getNodeType() == Node.ELEMENT_NODE && child.getNodeName().equals("properties")) {
+        if (child.getNodeType() == Node.ELEMENT_NODE && child.getNodeName().equals(PROPERTIES)) {
           testsuite.removeChild(child);
           break; // Only one properties element per testsuite
         }
       }
     }
-  }
-
-  private Element findOrCreatePropertiesElement(Document doc, Element testcase) {
-    // Check if properties element already exists as first child
-    NodeList children = testcase.getChildNodes();
-    for (int i = 0; i < children.getLength(); i++) {
-      Node child = children.item(i);
-      if (child.getNodeType() == Node.ELEMENT_NODE && child.getNodeName().equals("properties")) {
-        return (Element) child;
-      }
-    }
-
-    // Create new properties element and insert it as first child
-    Element properties = doc.createElement("properties");
-    if (testcase.hasChildNodes()) {
-      testcase.insertBefore(properties, testcase.getFirstChild());
-    } else {
-      testcase.appendChild(properties);
-    }
-    return properties;
   }
 
   private TestMetadata findMetadataForTest(String className, String testName) {
