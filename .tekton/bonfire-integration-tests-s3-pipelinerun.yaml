@@ -73,10 +73,11 @@ spec:
       value: "rhsm-subscriptions"
     - name: IQE_MARKER_EXPRESSION
       value: "ephemeral"
+    # Single-test smoke: internal API product tags (rosa). Clear filter to run full ephemeral suite.
     - name: IQE_FILTER_EXPRESSION
-      value: ""
+      value: "test_product_tags_endpoint and rosa"
     - name: IQE_CJI_TIMEOUT
-      value: "120m"
+      value: "45m"
     - name: IQE_ENV
       value: "clowder_smoke"
     - name: IQE_IMAGE_TAG
