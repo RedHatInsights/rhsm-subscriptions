@@ -15,7 +15,7 @@
   <packaging>pom</packaging>
 
   <properties>
-    <hibernate-jpamodelgen.version>7.4.7.Final</hibernate-jpamodelgen.version>
+    <hibernate-jpamodelgen.version>7.4.8.Final</hibernate-jpamodelgen.version>
   </properties>
 
   <dependencyManagement>
