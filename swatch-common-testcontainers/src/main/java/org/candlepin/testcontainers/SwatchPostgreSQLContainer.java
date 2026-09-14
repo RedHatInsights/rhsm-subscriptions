@@ -39,7 +39,7 @@ public class SwatchPostgreSQLContainer extends PostgreSQLContainer<SwatchPostgre
 
   public SwatchPostgreSQLContainer(String database) {
     super(DockerImageName.parse(POSTGRESQL_IMAGE).asCompatibleSubstituteFor("postgres"));
-    waitingFor(Wait.forLogMessage(".*Starting server.*", 1));
+    waitingFor(Wait.forListeningPort());
     setCommand("run-postgresql");
 
     withDatabaseName(database);
