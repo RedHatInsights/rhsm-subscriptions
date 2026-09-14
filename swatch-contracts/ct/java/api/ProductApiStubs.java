@@ -25,6 +25,7 @@ import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import domain.Offering;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import org.apache.http.HttpStatus;
 
@@ -71,7 +72,7 @@ public class ProductApiStubs {
    * @param offering the offering to stub
    */
   public void stubUpstreamProductData(Offering offering) {
-    var attributes = new java.util.ArrayList<Map<String, String>>();
+    var attributes = new ArrayList<Map<String, String>>();
 
     // For unlimited offerings, send "Unlimited" as the attribute value
     // For regular offerings, send numeric values
@@ -133,7 +134,7 @@ public class ProductApiStubs {
             "attributes",
             attributes);
 
-    var responseBody = Map.of("products", java.util.List.of(product));
+    var responseBody = Map.of("products", List.of(product));
 
     registerProductTreeStub(
         offering.getSku(),

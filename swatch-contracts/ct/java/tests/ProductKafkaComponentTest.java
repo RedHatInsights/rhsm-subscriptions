@@ -104,75 +104,11 @@ public class ProductKafkaComponentTest extends BaseProductConsumerComponentTest 
         "Null message must not be treated as malformed JSON");
   }
 
-  @TestPlanName("product-kafka-TC005")
-  @Test
-  void shouldIgnoreMessageWhenFeatureFlagDisabled() {
-    // Given: Feature flag is disabled and a valid parent SKU event
-    unleash.disableProductServiceConsumer();
-    OperationalProductEvent event = givenParentSkuEvent("RH" + RandomUtils.generateRandom());
-
-    // When: Publishing message to Kafka
-    whenKafkaMessageIsPublished(event);
-
-    // Then: Consumer is disabled and the message is not processed
-    thenKafkaConsumerReportsDisabled();
-    thenMessageIsNotConsumed(event, "kafka");
-    thenSyncServiceWasNotInvoked(event);
-  }
-
-  @TestPlanName("product-kafka-TC006")
-  @Test
-  void shouldIgnoreMessageWhenKafkaDisabledViaVariant() {
-    // Given: Flag enabled with Kafka disabled and UMB enabled via variant
-    unleash.enableProductServiceConsumerUmbOnly();
-    OperationalProductEvent event = givenParentSkuEvent("RH" + RandomUtils.generateRandom());
-
-    // When: Publishing message to Kafka
-    whenKafkaMessageIsPublished(event);
-
-    // Then: Kafka is independently disabled
-    thenKafkaConsumerReportsDisabled();
-    thenMessageIsNotConsumed(event, "kafka");
-    thenSyncServiceWasNotInvoked(event);
-  }
-
-  @TestPlanName("product-kafka-TC007")
-  @Test
-  void shouldProcessWhenKafkaEnabledAndUmbDisabled() {
-    // Given: Flag enabled with Kafka enabled and UMB disabled via variant
-    unleash.enableProductServiceConsumerKafkaOnly();
-    OperationalProductEvent event = givenParentSkuEvent("RH" + RandomUtils.generateRandom());
-
-    // When: Publishing message to Kafka
-    whenKafkaMessageIsPublished(event);
-
-    // Then: Kafka consumes independently and the sync service is invoked
-    thenMessageIsConsumedAndSynced(event, "kafka");
-  }
-
-  @TestPlanName("product-kafka-TC008")
-  @Test
-  void shouldProcessMessageWhenBothConsumersEnabled() {
-    // Given: Flag enabled with both Kafka and UMB consumers enabled via variant
-    unleash.enableProductServiceConsumerBothConsumers();
-    OperationalProductEvent event = givenParentSkuEvent("RH" + RandomUtils.generateRandom());
-
-    // When: Publishing message to Kafka
-    whenKafkaMessageIsPublished(event);
-
-    // Then: Kafka consumes and the sync service is invoked
-    thenMessageIsConsumedAndSynced(event, "kafka");
-  }
-
   private void whenMalformedKafkaMessageIsPublished(String malformedJson) {
     kafkaBridge.produceKafkaMessage(IT_PRODUCT_SYNC, malformedJson);
   }
 
   private void whenNullKafkaMessageIsPublished() {
     kafkaBridge.produceKafkaMessage(IT_PRODUCT_SYNC, null);
-  }
-
-  private void thenKafkaConsumerReportsDisabled() {
-    service.logs().assertContains("IT Product Kafka consumer is disabled by feature flag.");
   }
 }

@@ -29,7 +29,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-public class ProductEdgeComponentTest extends BaseProductUmbComponentTest {
+public class ProductEdgeComponentTest extends BaseProductConsumerComponentTest {
 
   @TestPlanName("product-edge-TC001")
   @Test
@@ -56,11 +56,11 @@ public class ProductEdgeComponentTest extends BaseProductUmbComponentTest {
     OperationalProductEvent event = givenParentSkuEvent("RH" + RandomUtils.generateRandom());
     event.setEventType(null);
 
-    // When: Publishing message to UMB
-    whenUmbMessageIsPublished(event);
+    // When: Publishing message
+    whenKafkaMessageIsPublished(event);
 
     // Then: Message is consumed with eventType=null and sync is invoked
-    thenMessageIsConsumedAndSynced(event, "umb");
+    thenMessageIsConsumedAndSynced(event, "kafka");
   }
 
   @TestPlanName("product-edge-TC003")

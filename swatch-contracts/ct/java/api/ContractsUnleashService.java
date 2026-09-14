@@ -24,69 +24,8 @@ import com.redhat.swatch.component.tests.api.UnleashService;
 
 public class ContractsUnleashService extends UnleashService {
 
-  public static final String IT_SUBSCRIPTION_SERVICE =
-      "swatch.swatch-contracts.enable-it-subscription-service";
-  public static final String PRODUCT_SERVICE_CONSUMER =
-      "swatch.swatch-contracts.enable-product-service-consumer";
-
   /** Matches {@code KesselRolesAugmentor.KESSEL_FLAG} in swatch-common-security. */
   public static final String USE_KESSEL_RBAC = "swatch.common-security.use-kessel-rbac";
-
-  public void enableItSubscriptionServiceKafkaOnly() {
-    enableFlag(IT_SUBSCRIPTION_SERVICE);
-    setVariant(
-        IT_SUBSCRIPTION_SERVICE,
-        "config",
-        "{\"kafka_consumer_enabled\":true,\"umb_consumer_enabled\":false}");
-  }
-
-  public void enableItSubscriptionServiceUmbOnly() {
-    enableFlag(IT_SUBSCRIPTION_SERVICE);
-    setVariant(
-        IT_SUBSCRIPTION_SERVICE,
-        "config",
-        "{\"kafka_consumer_enabled\":false,\"umb_consumer_enabled\":true}");
-  }
-
-  public void enableItSubscriptionServiceBothConsumers() {
-    enableFlag(IT_SUBSCRIPTION_SERVICE);
-    setVariant(
-        IT_SUBSCRIPTION_SERVICE,
-        "config",
-        "{\"kafka_consumer_enabled\":true,\"umb_consumer_enabled\":true}");
-  }
-
-  public void disableItSubscriptionService() {
-    disableFlag(IT_SUBSCRIPTION_SERVICE);
-  }
-
-  public void enableProductServiceConsumerKafkaOnly() {
-    enableFlag(PRODUCT_SERVICE_CONSUMER);
-    setVariant(
-        PRODUCT_SERVICE_CONSUMER,
-        "config",
-        "{\"kafka_consumer_enabled\":true,\"umb_consumer_enabled\":false}");
-  }
-
-  public void enableProductServiceConsumerUmbOnly() {
-    enableFlag(PRODUCT_SERVICE_CONSUMER);
-    setVariant(
-        PRODUCT_SERVICE_CONSUMER,
-        "config",
-        "{\"kafka_consumer_enabled\":false,\"umb_consumer_enabled\":true}");
-  }
-
-  public void enableProductServiceConsumerBothConsumers() {
-    enableFlag(PRODUCT_SERVICE_CONSUMER);
-    setVariant(
-        PRODUCT_SERVICE_CONSUMER,
-        "config",
-        "{\"kafka_consumer_enabled\":true,\"umb_consumer_enabled\":true}");
-  }
-
-  public void disableProductServiceConsumer() {
-    disableFlag(PRODUCT_SERVICE_CONSUMER);
-  }
 
   public void enableKesselRbac() {
     enableFlag(USE_KESSEL_RBAC);

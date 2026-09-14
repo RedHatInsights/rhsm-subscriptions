@@ -26,23 +26,11 @@ import com.redhat.swatch.contract.test.model.OperationalProductEvent;
 import com.redhat.swatch.contract.test.model.OperationalProductEvent.EventTypeEnum;
 import com.redhat.swatch.contract.test.model.OperationalProductEvent.ProductCategoryEnum;
 import java.time.OffsetDateTime;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 
 public abstract class BaseProductConsumerComponentTest extends BaseContractComponentTest {
 
-  @BeforeAll
-  static void enableProductServiceConsumer() {
-    unleash.enableProductServiceConsumerBothConsumers();
-  }
-
   private static boolean isChildSku(String productCode) {
     return productCode != null && productCode.startsWith("SVC");
-  }
-
-  @AfterEach
-  void restoreProductServiceConsumerFlag() {
-    unleash.enableProductServiceConsumerBothConsumers();
   }
 
   protected OperationalProductEvent givenParentSkuEvent(String productCode) {
@@ -77,12 +65,6 @@ public abstract class BaseProductConsumerComponentTest extends BaseContractCompo
     kafkaBridge.produceKafkaMessage(IT_PRODUCT_SYNC, event);
   }
 
-  protected void thenMessageIsNotConsumed(OperationalProductEvent event, String source) {
-    service
-        .logs()
-        .assertDoesNotContain("source=" + source + ", productCode=" + event.getProductCode());
-  }
-
   protected void thenMessageIsConsumed(OperationalProductEvent event, String source) {
     service
         .logs()
@@ -106,10 +88,6 @@ public abstract class BaseProductConsumerComponentTest extends BaseContractCompo
     service
         .logs()
         .assertContains("Received product message for productSku=" + event.getProductCode());
-  }
-
-  protected void thenSyncServiceWasNotInvoked(OperationalProductEvent event) {
-    wiremock.forProductAPI().awaitProductTreeNotRequested(event.getProductCode());
   }
 
   protected int countLogsContaining(String text) {

@@ -8,7 +8,7 @@ LAYOUT_WITH_LEGEND()
 
 title Container diagram for Subscription watch Contracts
 
-Boundary(crc, console.redhat.com) {
+Boundary(crc, "console.redhat.com") {
   Boundary(swatch, "Subscription watch") {
     System_Boundary(subscription_sync, "swatch-contracts") {
       Container(subscription_sync_job, "Subscription Sync CronJob", "Java, Container", "CronJob for syncing subscription data.")
@@ -27,8 +27,8 @@ Boundary(rhit, "Red Hat IT") {
   System_Ext(rhit_product, "RH IT Product Service", "The internal RH Product API which contains Offering definitions.")
   System_Ext(partnergw, "IT Partner Services", "Handles Cloud Provider Listings and SaaS Subscription Lifecycle")
   ContainerQueue_Ext(rhit_kafka_subscription, "subscription.subscriptions.private", "Kafka Topic")
-  ContainerQueue_Ext(rhit_umb_product, "VirtualTopic.services.productservice.Product", "ActiveMQ VirtualTopic")
-  ContainerQueue_Ext(rhit_contracts, "VirtualTopic.services.partner-entitlement-gateway", "ActiveMQ VirtualTopic")
+  ContainerQueue_Ext(rhit_kafka_product, "product-service.operationalproduct.protected", "Kafka Topic")
+  ContainerQueue_Ext(rhit_contracts, "partner-integration.entitlement-gateway.partner-entitlement.protected", "Kafka Topic")
 }
 
 ' capacity ingress process
@@ -42,11 +42,11 @@ Rel_Back(offering_sync_tasks, contracts, "Consumes from")
 Rel(contracts, db, "Reads from and writes to", "JDBC")
 Rel(contracts, rhit_subscriptions, "Reads from", "JSON/HTTPS")
 Rel_Back(contracts, rhit_kafka_subscription, "Consumes from", "JSON")
-Rel_Back(contracts, rhit_umb_product, "Notifies", "XML")
+Rel_Back(contracts, rhit_kafka_product, "Consumes from", "JSON")
 Rel_Back(contracts, rhit_contracts, "Notifies", "JSON")
 Rel(contracts, rhit_product, "Reads from", "JSON/HTTPS")
 Rel(contracts, partnergw, "Reads from", "JSON/HTTPS")
-Rel(rhit_product, rhit_umb_product, "Notifies", "XML")
+Rel(rhit_product, rhit_kafka_product, "Publishes to", "JSON")
 Rel(rhit_subscriptions, rhit_kafka_subscription, "Publishes to", "JSON")
-Rel(partnergw, rhit_contracts, "Notifies", "JSON")
+Rel(partnergw, rhit_contracts, "Publishes to", "JSON")
 @enduml
