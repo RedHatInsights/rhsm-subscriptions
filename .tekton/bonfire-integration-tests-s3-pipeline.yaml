@@ -356,17 +356,12 @@ spec:
               source="$(params.TEST_RUN_SOURCE)"
               event_type="$(params.EVENT_TYPE)"
               integration_test_name="$(params.INTEGRATION_TEST_NAME)"
+              ibutsu_data="component=${component} git_revision=${git_revision} pipeline_name=${pipeline_name} event_type=${event_type} integration_test_name=${integration_test_name} env=ephemeral tool=konflux source=${source}"
 
               metadata_vars=(
                 "IBUTSU_MODE=archive"
-                "IBUTSU_DATA=component=${component}"
-                "git_revision=${git_revision}"
-                "pipeline_name=${pipeline_name}"
-                "source=${source}"
-                "event_type=${event_type}"
-                "integration_test_name=${integration_test_name}"
-                "env=ephemeral"
-                "tool=konflux"
+                "IBUTSU_DATA=${ibutsu_data}"
+                "IBUTSU_SOURCE=${source}"
               )
               metadata="$(IFS=,; echo "${metadata_vars[*]}")"
 
@@ -704,15 +699,21 @@ spec:
           value: "$(params.IQE_PARALLEL_ENABLED)"
         - name: IQE_ENV_VARS
           value: "$(tasks.build-iqe-params.results.IQE_ENV_VARS)"
+        - name: PROJECT_REPO
+          value: "$(params.PROJECT_REPO)"
+        - name: PROJECT_TASKS_REVISION
+          value: "$(params.PROJECT_TASKS_REVISION)"
+        - name: IBUTSU_SOURCE
+          value: "$(tasks.extract-metadata.results.TEST_RUN_SOURCE)"
       taskRef:
         resolver: git
         params:
           - name: url
-            value: "$(params.BONFIRE_REPO)"
+            value: "https://github.com/$(params.PROJECT_REPO).git"
           - name: revision
-            value: "$(params.BONFIRE_REVISION)"
+            value: "$(params.PROJECT_TASKS_REVISION)"
           - name: pathInRepo
-            value: tasks/run-iqe-cji.yaml
+            value: .tekton/tasks/run-iqe-cji.yaml
 
     - name: collect-logs
       onError: continue
