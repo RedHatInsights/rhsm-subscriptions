@@ -135,21 +135,6 @@ consumers:
 These changes are permanent, committed the next time the kafka consumer is detected
 as idle.
 
-### RabbitMQ
-
-Some services like swatch-contracts need an AMQ service to handle the UMB messages.
-For these services, we can start RabbitMQ as an AMQ service locally via:
-
-```
-podman-compose -f config/rabbitmq/docker-compose.yml up -d
-```
-
-RabbitMQ will be listening on the port 5672.
-
-*NOTE*: Our services might be configured to listen on a different hostname and port. For example,
-for the SWATCH contracts service, we need to provide the UMB_HOSTNAME and UMB_PORT to point out to RabbitMQ:
-`java -DUMB_HOSTNAME=localhost -DUMB_PORT=5672 -jar swatch-contracts/build/quarkus-app/quarkus-run.jar`
-
 ### Opentelemetry (OTEL) Exporter
 
 Some services export the logging traces to an externalize service via an exporter.
