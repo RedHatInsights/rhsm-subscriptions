@@ -32,6 +32,8 @@ spec:
     value: .
   - name: sast-target-dirs
     value: .
+  - name: build-image-index
+    value: "true"
   pipelineSpec:
     description: |
       This pipeline is ideal for building container images from a Containerfile while maintaining trust after pipeline customization.
