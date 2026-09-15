@@ -27,7 +27,6 @@ public final class Ports {
 
   public static final int DEFAULT_HTTP_PORT = 8080;
   public static final int DEFAULT_SSL_PORT = 8443;
-  public static final int ARTEMIS_PORT = 5672;
   public static final int WIREMOCK_PORT = 8000;
   public static final List<Integer> SSL_PORTS = Arrays.asList(DEFAULT_SSL_PORT, 443);
 
