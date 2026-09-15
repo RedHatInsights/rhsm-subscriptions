@@ -53,7 +53,7 @@
     <surefire-plugin.version>3.6.0</surefire-plugin.version>
     <maven-jar-plugin.version>3.5.0</maven-jar-plugin.version>
     <maven-assembly-plugin.version>3.8.0</maven-assembly-plugin.version>
-    <exec-maven-plugin.version>3.6.3</exec-maven-plugin.version>
+    <exec-maven-plugin.version>3.6.4</exec-maven-plugin.version>
     <openapi-generator.version>7.25.0</openapi-generator.version>
     <lombok.version>1.18.48</lombok.version>
     <hibernate-jpamodelgen.version>7.4.7.Final</hibernate-jpamodelgen.version>
