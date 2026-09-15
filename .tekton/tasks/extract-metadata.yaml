@@ -20,6 +20,10 @@ spec:
       type: string
       default: ""
       description: Fallback IQE image tag when no /use-iqe-image-tag=... directive appears in the PR body
+    - name: PIPELINE_RUN_NAME
+      type: string
+      description: Owning PipelineRun name
+      default: ""
   results:
     - name: IS_PULL_REQUEST
       description: Whether the event is PR-related (true for all non-push events, false for push)
@@ -31,6 +35,14 @@ spec:
       description: Comma-separated list of PR labels (empty on push events)
     - name: IQE_IMAGE_TAG
       description: IQE image tag from PR body /use-iqe-image-tag=VALUE if present and valid; empty or XXX uses IQE_IMAGE_TAG_DEFAULT
+    - name: EVENT_TYPE
+      description: PAC event type label (e.g. pull_request, push)
+    - name: PIPELINE_RUN_NAME
+      description: Name of the PipelineRun executing this task
+    - name: INTEGRATION_TEST_NAME
+      description: IntegrationTestScenario name from test.appstudio.openshift.io/scenario label
+    - name: TEST_RUN_SOURCE
+      description: Reporting source identifier (konflux-<pipeline-run-name> when pipeline name is set)
   steps:
     - name: extract
       image: quay.io/konflux-ci/task-runner@sha256:b9ef0479b57a494368a12a02886c650314c9ac7391c6228f21065865aab71c9e
@@ -52,6 +64,12 @@ spec:
             secretKeyRef:
               name: $(params.GITHUB_TOKEN_SECRET)
               key: github_token
+        - name: PIPELINE_RUN_NAME
+          value: "$(params.PIPELINE_RUN_NAME)"
+        - name: INTEGRATION_TEST_SCENARIO
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.labels['test.appstudio.openshift.io/scenario']
       script: |
         #!/bin/bash
         set -euo pipefail
@@ -87,6 +105,20 @@ spec:
         fi
         echo "GIT_REVISION=${rev:-empty}"
         printf "%s" "$rev" > "$(results.GIT_REVISION.path)"
+
+        # Extract pipeline metadata
+        printf '%s' "${EVENT_TYPE:-}" > "$(results.EVENT_TYPE.path)"
+        printf '%s' "${PIPELINE_RUN_NAME:-}" > "$(results.PIPELINE_RUN_NAME.path)"
+        printf '%s' "${INTEGRATION_TEST_SCENARIO:-}" > "$(results.INTEGRATION_TEST_NAME.path)"
+        if [ -n "${PIPELINE_RUN_NAME:-}" ]; then
+          printf 'konflux-%s' "${PIPELINE_RUN_NAME}" > "$(results.TEST_RUN_SOURCE.path)"
+        else
+          printf '' > "$(results.TEST_RUN_SOURCE.path)"
+        fi
+        echo "EVENT_TYPE=${EVENT_TYPE:-}"
+        echo "PIPELINE_RUN_NAME=${PIPELINE_RUN_NAME:-}"
+        echo "INTEGRATION_TEST_NAME=${INTEGRATION_TEST_SCENARIO:-}"
+        echo "TEST_RUN_SOURCE=$(cat "$(results.TEST_RUN_SOURCE.path)")"
 
         # Fetch PR metadata (labels + body) only for PR events with a valid PR number
         if [ "$IS_PR" != "true" ] || [ -z "${PR:-}" ] || [ "${PR:-}" = "none" ]; then

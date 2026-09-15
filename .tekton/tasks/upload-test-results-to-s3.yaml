@@ -1,0 +1,203 @@
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: upload-test-results-to-s3
+spec:
+  description: Upload a test results file to the configured S3 bucket.
+  params:
+    - name: NS
+      type: string
+      description: Ephemeral namespace where the test-results S3 credentials secret is provisioned
+    - name: BONFIRE_IMAGE
+      type: string
+      description: Bonfire/cicd-tools image (oc login, aws CLI)
+    - name: EPHEMERAL_ENV_PROVIDER_SECRET
+      type: string
+      description: Secret for connecting to the ephemeral cluster
+      default: ephemeral-env-provider
+    - name: TEST_RESULTS_AWS_S3_SECRET
+      type: string
+      description: Name of the Secret in the ephemeral namespace with S3 credentials and bucket
+    - name: TEST_RESULTS_FILE
+      type: string
+      description: >-
+        Path relative to the workspace root for the file to upload. When empty, uploads every
+        {uuid}.tar.gz file found anywhere under the artifacts workspace.
+      default: ""
+  workspaces:
+    - name: artifacts
+      description: Workspace containing collected test artifacts
+    - name: output
+      description: Optional second mount of the shared PVC (e.g. Maven output from component tests)
+      optional: true
+  results:
+    - name: UPLOAD_COUNT
+      description: Number of test result files uploaded to S3
+    - name: S3_BUCKET
+      description: Target S3 bucket name
+  steps:
+    - name: upload
+      image: "$(params.BONFIRE_IMAGE)"
+      env:
+        - name: OC_LOGIN_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: $(params.EPHEMERAL_ENV_PROVIDER_SECRET)
+              key: token
+        - name: OC_LOGIN_SERVER
+          valueFrom:
+            secretKeyRef:
+              name: $(params.EPHEMERAL_ENV_PROVIDER_SECRET)
+              key: url
+        - name: BONFIRE_BOT
+          value: "true"
+      script: |
+        #!/bin/bash
+        set -euo pipefail
+
+        NS="$(params.NS)"
+        SECRET="$(params.TEST_RESULTS_AWS_S3_SECRET)"
+        ARTIFACTS_DIR="$(workspaces.artifacts.path)"
+        OUTPUT_DIR=""
+        if [[ "$(workspaces.output.bound)" == "true" ]]; then
+          OUTPUT_DIR="$(workspaces.output.path)"
+        fi
+        TEST_RESULTS_REL="$(params.TEST_RESULTS_FILE)"
+
+        echo "Connecting to the ephemeral namespace cluster"
+        login.sh
+
+        if ! oc get secret "$SECRET" -n "$NS" >/dev/null 2>&1; then
+          echo "ERROR: Secret ${SECRET} not found in namespace ${NS}"
+          exit 1
+        fi
+
+        read_secret_key() {
+          local key val
+          for key in "$@"; do
+            val="$(oc get secret "$SECRET" -n "$NS" -o json | jq -r --arg k "$key" '.data[$k] // empty')"
+            if [[ -n "$val" && "$val" != "null" ]]; then
+              printf '%s' "$val" | base64 -d
+              return 0
+            fi
+          done
+          return 1
+        }
+
+        AWS_ACCESS_KEY_ID="$(read_secret_key aws_access_key_id AWS_ACCESS_KEY_ID)" || {
+          echo "ERROR: could not read AWS access key from ${SECRET}"
+          exit 1
+        }
+        AWS_SECRET_ACCESS_KEY="$(read_secret_key aws_secret_access_key AWS_SECRET_ACCESS_KEY)" || {
+          echo "ERROR: could not read AWS secret key from ${SECRET}"
+          exit 1
+        }
+        export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
+
+        AWS_DEFAULT_REGION="$(read_secret_key aws_region AWS_REGION AWS_DEFAULT_REGION || true)"
+        if [[ -z "${AWS_DEFAULT_REGION:-}" ]]; then
+          AWS_DEFAULT_REGION="us-east-1"
+        fi
+        export AWS_DEFAULT_REGION
+
+        AWS_BUCKET="$(read_secret_key bucket AWS_BUCKET BUCKET)" || {
+          echo "ERROR: could not read S3 bucket name from ${SECRET}"
+          exit 1
+        }
+
+        echo -n "$AWS_BUCKET" | tee "$(results.S3_BUCKET.path)"
+
+        uuid_archive_re='^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\.tar\.gz$'
+        upload_count=0
+
+        upload_file() {
+          local file_path="$1"
+          local base
+          base="$(basename "$file_path")"
+          echo "Uploading ${base} to s3://${AWS_BUCKET}/${base}"
+          aws s3 cp "$file_path" "s3://${AWS_BUCKET}/${base}" --sse AES256 --quiet
+          upload_count=$((upload_count + 1))
+        }
+
+        resolve_workspace_file() {
+          local rel="$1"
+          local candidate=""
+          workspace_roots=("$ARTIFACTS_DIR")
+          if [[ -n "$OUTPUT_DIR" && -d "$OUTPUT_DIR" && "$OUTPUT_DIR" != "$ARTIFACTS_DIR" ]]; then
+            workspace_roots+=("$OUTPUT_DIR")
+          fi
+          for attempt in 1 2 3 4 5 6; do
+            for root in "${workspace_roots[@]}"; do
+              candidate="${root}/${rel}"
+              echo "Checking test results file: ${candidate}" >&2
+              if [[ -f "$candidate" ]]; then
+                printf '%s' "$candidate"
+                return 0
+              fi
+            done
+            echo "Test results file not visible yet (attempt ${attempt}/6); waiting 5s" >&2
+            sleep 5
+          done
+          return 1
+        }
+
+        if [[ -n "$TEST_RESULTS_REL" ]]; then
+          results_path="$(resolve_workspace_file "$TEST_RESULTS_REL")" || {
+            echo "ERROR: TEST_RESULTS_FILE not found: ${TEST_RESULTS_REL}"
+            exit 1
+          }
+          base="$(basename "$results_path")"
+          if [[ "$base" == *.xml ]]; then
+            upload_junit="${ARTIFACTS_DIR}/$(python3 -c 'import uuid; print(uuid.uuid4())').xml"
+            cp -f "$results_path" "$upload_junit"
+            upload_file "$upload_junit"
+          else
+            upload_file "$results_path"
+          fi
+        else
+          echo "Searching ${ARTIFACTS_DIR} for test result archives (*.tar.gz)" >&2
+          discover_uuid_archives() {
+            local archive_path base
+            shopt -s nullglob
+            for archive_path in "$ARTIFACTS_DIR"/*.tar.gz; do
+              base="$(basename "$archive_path")"
+              if [[ "$base" =~ $uuid_archive_re ]]; then
+                printf '%s\n' "$archive_path"
+              fi
+            done
+            if command -v find >/dev/null 2>&1; then
+              while IFS= read -r archive_path; do
+                base="$(basename "$archive_path")"
+                if [[ "$base" =~ $uuid_archive_re ]]; then
+                  printf '%s\n' "$archive_path"
+                fi
+              done < <(find "$ARTIFACTS_DIR" -type f -name '*.tar.gz' 2>/dev/null || true)
+            fi
+          }
+          for attempt in 1 2 3 4 5 6; do
+            echo "Listing ${ARTIFACTS_DIR} (attempt ${attempt}/6):" >&2
+            ls -la "$ARTIFACTS_DIR" >&2 || true
+            mapfile -t archive_paths < <(discover_uuid_archives | sort -u)
+            if [[ "${#archive_paths[@]}" -gt 0 ]]; then
+              break
+            fi
+            echo "No UUID .tar.gz archives visible yet; waiting 5s" >&2
+            sleep 5
+          done
+          for archive_path in "${archive_paths[@]:-}"; do
+            [[ -n "$archive_path" && -f "$archive_path" ]] || continue
+            upload_file "$archive_path"
+          done
+        fi
+
+        echo "Uploaded ${upload_count} test result file(s) to s3://${AWS_BUCKET}"
+        echo -n "$upload_count" | tee "$(results.UPLOAD_COUNT.path)"
+
+        if [[ "$upload_count" -eq 0 ]]; then
+          if [[ -n "$TEST_RESULTS_REL" ]]; then
+            echo "WARNING: no files uploaded; expected ${TEST_RESULTS_REL}"
+          else
+            echo "WARNING: no matching .tar.gz archives found under ${ARTIFACTS_DIR}"
+          fi
+        fi

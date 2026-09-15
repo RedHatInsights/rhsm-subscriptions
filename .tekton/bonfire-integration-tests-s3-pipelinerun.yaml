@@ -1,0 +1,97 @@
+---
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: bonfire-integration-tests-pipelinerun-s3-
+  annotations:
+    build.appstudio.openshift.io/repo: https://github.com/RedHatInsights/rhsm-subscriptions
+    pipelinesascode.tekton.dev/max-keep-runs: "3"
+spec:
+  pipelineRef:
+    resolver: git
+    params:
+      - name: url
+        value: "https://github.com/RedHatInsights/rhsm-subscriptions.git"
+      - name: revision
+        value: "jcarvaja/SWATCH-5391"
+      - name: pathInRepo
+        value: .tekton/bonfire-integration-tests-s3-pipeline.yaml
+  params:
+    # Bonfire configuration
+    - name: BONFIRE_REPO
+      value: "https://github.com/RedHatInsights/bonfire-tekton"
+    - name: BONFIRE_REVISION
+      value: "main"
+    - name: BONFIRE_IMAGE
+      value: "quay.io/redhat-services-prod/hcm-eng-prod-tenant/cicd-tools:e312b87"
+    
+    # Ephemeral environment configuration
+    - name: NAMESPACE_RESERVE_DURATION
+      value: "120m"
+    
+    # Application configuration
+    - name: APP_NAME
+      value: "rhsm"
+    - name: COMPONENT_NAME
+      value: "rhsm"
+    - name: COMPONENTS_W_RESOURCES
+      value: "app:rhsm app:export-service"
+    
+    # Deployment configuration
+    ## Workaround to reduce the footprint of the ephemeral environment for rbac. To be fixed in SWATCH-4504.
+    ## Workaround to reduce the footprint of the ephemeral environment for host-inventory. To be fixed in SWATCH-5159.
+    ## Workaround to not deploy swatch-tally-ct-hbi in an ephemeral environment. To be fixed in SWATCH-5160.
+    - name: EXTRA_DEPLOY_ARGS
+      value: >-
+        --timeout 1800
+        --exclude-components puptoo,ingress,storage-broker,swatch-tally-ct-hbi
+        --remove-dependencies host-inventory/ingress
+        --remove-dependencies host-inventory/puptoo
+        -p rbac/CELERY_INITIAL_DELAY_SEC=10
+        -p rbac/MAX_SEED_THREADS=8
+        -p rbac/MIN_POSTGRES_EXPORTER_REPLICAS=0
+        -p rbac/NOTIFICATIONS_ENABLED=False
+        -p rbac/NOTIFICATIONS_RH_ENABLED=False
+        -p rbac/KAFKA_ENABLED=False
+        -p rbac/RBAC_KAFKA_CONSUMER_REPLICAS=0
+        -p host-inventory/GUNICORN_WORKERS=1
+        -p host-inventory/GUNICORN_THREADS=1
+        -p host-inventory/REPLICAS_EXPORT_SVC=0
+        -p host-inventory/REPLICAS_WORKSPACES=0
+        -p host-inventory/REPLICAS_WORKSPACES_BULK=0
+        -p host-inventory/REPLICAS_HOST_APP_DATA=0
+        --set-image-tag quay.io/redhat-services-prod/project-kessel-tenant/kessel-kafka-connect=latest
+    - name: DEPLOY_OPTIONAL_DEPS_METHOD
+      value: "none"
+    - name: DEPLOY_FRONTENDS
+      value: "false"
+    - name: DEPLOY_TIMEOUT
+      value: "1800"
+    
+    # IQE test configuration
+    - name: IQE_PLUGINS
+      value: "rhsm-subscriptions"
+    - name: IQE_MARKER_EXPRESSION
+      value: "ephemeral"
+    # Single-test smoke: internal API product tags (rosa). Clear filter to run full ephemeral suite.
+    - name: IQE_FILTER_EXPRESSION
+      value: "test_product_tags_endpoint and rosa"
+    - name: IQE_CJI_TIMEOUT
+      value: "45m"
+    - name: IQE_ENV
+      value: "clowder_smoke"
+    - name: IQE_IMAGE_TAG
+      value: "rhsm-subscriptions"
+    - name: IQE_PARALLEL_ENABLED
+      value: "false"
+    - name: IQE_LOG_LEVEL
+      value: "debug"
+  workspaces:
+    - name: artifacts
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi
