@@ -946,6 +946,22 @@ This section verifies the automatic contract termination behavior when contracts
   - Contract is terminated (`end_date` before now)
 - **Expected Result**: HTTP 200; sync status SUCCESS; termination date applied from entitlement dates
 
+**contracts-sync-TC023 - Sync skips entitlement with null/missing SKU and persists remaining contracts**
+- **Description**: Verify that when upstream returns a mix of valid Azure entitlements and entitlements whose `rhEntitlements` SKU is null, the sync skips the ones with null SKU and processes the valid contracts. Replaces IQE `test_verify_contract_missing_sku`.
+- **Setup**:
+  - Stub upstream Partner API to return one valid Azure contract and one entitlement with `rhEntitlements[0].sku: null`
+  - Stub offering and search API for the valid contract
+  - Stub search API for the null-SKU entitlement's subscription number so lookup succeeds and validation is reached
+- **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/{orgId}`
+- **Verification**:
+  - Sync returns HTTP 200 with status "SUCCESS"
+  - Only the valid contract is persisted
+- **Expected Result**:
+  - HTTP 200 with StatusResponse
+  - StatusResponse status: "SUCCESS"
+  - Exactly 1 contract persisted (the valid one)
+  - The entitlement with null SKU is skipped without crashing the sync
+
 ## Subscription Management via IT Subscription
 
 **subscriptions-creation-TC001 - Process valid Kafka subscription message**

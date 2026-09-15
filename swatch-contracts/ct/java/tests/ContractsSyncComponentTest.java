@@ -942,6 +942,44 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
     return contracts.get(0).getUuid();
   }
 
+  @TestPlanName("contracts-sync-TC023")
+  @Test
+  void shouldSkipEntitlementWithNullSkuAndSyncRemainingContracts() {
+    // Given: One valid Azure contract and one malformed entitlement with sku = null
+    String sku = RandomUtils.generateRandom();
+    Contract validContract = Contract.buildAzureContract(orgId, Map.of(CORES, 10.0), sku);
+    Contract nullSkuContract =
+        Contract.buildAzureContract(orgId, Map.of(CORES, 10.0), RandomUtils.generateRandom());
+    wiremock.forProductAPI().stubOfferingData(validContract.getOffering());
+    wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(validContract, nullSkuContract);
+
+    var nullSkuEntitlement = PartnerApiStubs.buildEntitlementWithNullSku(nullSkuContract);
+    wiremock
+        .forPartnerAPI()
+        .stubPartnerSubscriptionsWithRawEntitlements(
+            orgId, List.of(validContract), List.of(nullSkuEntitlement));
+
+    Response syncOffering = service.syncOffering(sku);
+    assertEquals(HttpStatus.SC_OK, syncOffering.statusCode(), "Sync offering should succeed");
+
+    // When: Sync contracts for the organization
+    Response syncResponse = service.syncContractsByOrg(orgId);
+
+    // Then: Sync succeeds — the valid contract is persisted, the null-SKU one is skipped
+    assertEquals(HttpStatus.SC_OK, syncResponse.statusCode(), "Sync should return OK");
+    syncResponse
+        .then()
+        .body("status", equalTo(STATUS_SUCCESS))
+        .body("message", equalTo("Contracts Synced for " + orgId));
+
+    var contracts = service.getContractsByOrgId(orgId);
+    assertEquals(1, contracts.size(), "Only the valid contract should be persisted");
+    assertEquals(
+        validContract.getSubscriptionNumber(),
+        contracts.get(0).getSubscriptionNumber(),
+        "Persisted contract should be the valid one");
+  }
+
   protected void verifyContractFields(
       Contract expected, com.redhat.swatch.contract.test.model.Contract actual) {
     assertNotNull(actual.getUuid(), "contracts.uuid must be set");
