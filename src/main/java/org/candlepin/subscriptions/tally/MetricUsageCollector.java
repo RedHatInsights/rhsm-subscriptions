@@ -437,12 +437,12 @@ public class MetricUsageCollector {
         Optional.ofNullable(event.getSla())
             .map(Event.Sla::toString)
             .map(ServiceLevel::fromString)
-            .orElse(sla.map(ServiceLevel::fromString).orElse(ServiceLevel.EMPTY));
+            .orElse(sla.map(ServiceLevel::fromString).orElse(ServiceLevel.PREMIUM));
     Usage effectiveUsage =
         Optional.ofNullable(event.getUsage())
             .map(Event.Usage::toString)
             .map(Usage::fromString)
-            .orElse(usage.map(Usage::fromString).orElse(Usage.EMPTY));
+            .orElse(usage.map(Usage::fromString).orElse(Usage.PRODUCTION));
     BillingProvider effectiveProvider =
         Optional.ofNullable(event.getBillingProvider())
             .map(Event.BillingProvider::toString)
