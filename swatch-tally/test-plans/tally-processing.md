@@ -493,7 +493,7 @@ This test plan covers the core tally processing pipeline:
     - Per-SLA hypervisor queries may overlap and exceed the actual total due to full-socket-count buckets per SLA/usage combination
     - The wildcard (no SLA filter) query correctly reports the true combined hypervisor socket total by reading from \_ANY rows
 
-**tally-hypervisor-TC-011 - Hypervisor with a guest that is then moved to another Hypervisor is reflected on the Instance Guests Report**
+**tally-hypervisor-TC011 - Hypervisor with a guest that is then moved to another Hypervisor is reflected on the Instance Guests Report**
 
 - **Description**: Verify that a hypervisor with a guest, that is moved to another hypervisor has this reflected on the instances guests report
 - **Setup**:

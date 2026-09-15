@@ -45,7 +45,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import utils.TallyDbHostSeeder;
@@ -574,11 +578,11 @@ public class TallyHypervisorTest extends BaseTallyComponentTest {
     assertEquals(
         0,
         instanceGuestReportHostAAfterUpdate.getMeta().getCount(),
-        "Guest count should be 1 for Host A");
+        "Guest count should be 0 for Host A");
     assertEquals(
         1,
         instanceGuestReportHostBAfterUpdate.getMeta().getCount(),
-        "Guest count should be 0 for Host B");
+        "Guest count should be 1 for Host B");
   }
 
   @ParameterizedTest(name = "Using primary bucket searches: {0}")
