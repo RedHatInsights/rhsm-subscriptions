@@ -28,7 +28,7 @@ Before reviewing, **ALWAYS** read the latest version of the component testing do
 ### Key Architecture Concepts
 
 - **Single Service Under Test**: Each component test project tests ONE SWATCH service
-- **Multiple Dependencies**: Tests use supporting services (Kafka, Wiremock, Artemis, Postgres, etc.)
+- **Multiple Dependencies**: Tests use supporting services (Kafka, Wiremock, Postgres, etc.)
 - **Dual Environment Support**: Same test code runs locally and in OpenShift
 - **Service Logic Location**: The service logic is in the parent directory of `ct/` (e.g., if tests are in `swatch-contracts/ct`, the service code is in `swatch-contracts`)
 - **Exception**: `swatch-tally/ct` tests the service logic in `src/` (at repository root)

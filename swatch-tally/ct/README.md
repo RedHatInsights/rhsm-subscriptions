@@ -13,7 +13,7 @@ DB connection can be overridden via env vars: `SWATCH_CT_DB_HOST`, `SWATCH_CT_DB
 Start the required local services using Docker Compose:
 
 ```bash
-podman compose up -d kafka kafka-bridge kafka-setup amqp wiremock db
+podman compose up -d kafka kafka-bridge kafka-setup wiremock db
 ```
 
 ### 2. Run Component Tests
@@ -44,7 +44,6 @@ bonfire deploy rhsm \
   --remove-dependencies swatch-tally/export-service \
   --component wiremock \
   --component rhsm \
-  --component artemis \
   --component swatch-kafka-bridge \
   --component swatch-tally \
   --component swatch-tally-ct-hbi

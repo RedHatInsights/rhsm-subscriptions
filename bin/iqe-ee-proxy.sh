@@ -51,7 +51,6 @@ oc port-forward $(oc get pod -o name | grep kafka-0) 9092:9092 &
 oc port-forward $(oc get pod -o name | grep featureflags | grep -v featureflags-db | grep -v featureflags-edge) 4242:4242 &
 oc port-forward $(oc get service -o name | grep kafka-bridge-bridge-service) 8080:8080 &
 oc port-forward $(oc get service -o name | grep wiremock-service) 8101:8000 &
-oc port-forward $(oc get service -o name | grep artemis-amqp-service) 5672:5672 &
 oc port-forward $(oc get service -o name | grep prometheus-service) 9090:8000 &
 
 
