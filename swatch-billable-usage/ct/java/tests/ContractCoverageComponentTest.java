@@ -361,18 +361,19 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
         ROSA.getName(),
         List.of(
             new ContractStub(
-                firstSnapshot.minusMonths(2), end, Map.of(awsDimension, 2.0), licenseA),
-            new ContractStub(
-                firstSnapshot.minusMonths(1), end, Map.of(awsDimension, 2.0), licenseB)));
+                firstSnapshot.minusMonths(1), end, Map.of(awsDimension, 2.0), licenseA)));
 
-    whenRosaTallyIsPublished(INSTANCE_HOURS.toString(), 5.0, firstSnapshot);
+    whenRosaTallyIsPublished(INSTANCE_HOURS.toString(), 3.0, firstSnapshot);
+    thenAccountRemittanceRowCount(ROSA.getName(), INSTANCE_HOURS.toString(), 1);
+    thenAccountRemittanceEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 1.0, licenseA);
 
     givenContracts(
         ROSA.getName(),
         List.of(
-            new ContractStub(firstSnapshot.minusDays(5), end, Map.of(awsDimension, 2.0), licenseA),
             new ContractStub(
-                firstSnapshot.minusMonths(1), end, Map.of(awsDimension, 2.0), licenseB)));
+                firstSnapshot.minusMonths(1), end, Map.of(awsDimension, 2.0), licenseA),
+            new ContractStub(
+                firstSnapshot.minusDays(5), end, Map.of(awsDimension, 2.0), licenseB)));
 
     whenRosaTallyIsPublished(INSTANCE_HOURS.toString(), 6.0, firstSnapshot.plusHours(1));
 
