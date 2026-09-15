@@ -359,16 +359,16 @@ Java component tests in `ContractCoverageComponentTest` (`swatch-billable-usage/
 
 **billable-usage-contract-coverage-TC015 - Monthly account remittance splits by licenseId**
 
-- **Description:** Verify aggregated `accountRemittances` returns one row per `licenseId` while the monthly total across rows is unchanged.  
+- **Description:** Verify aggregated `accountRemittances` returns one row per `licenseId` while the monthly total across rows is unchanged when a second licensed contract is introduced before a follow-up tally in the same accumulation period.  
 - **Setup:**  
-  - Two ROSA contracts with different `licenseId`s and combined coverage = 4 Instance-hours  
-  - First tally `current_total` = 5 (overage 1 on newest license)  
-  - Contracts restubbed so the other license becomes newest  
-  - Second tally `current_total` = 6 (additional overage 1 on the other license)
+  - One ROSA contract (`licenseA`) with coverage = 2 Instance-hours
 - **Action:**  
-  - Publish both tally summaries in the same accumulation period
+  - Publish first tally summary with `current_total` = 3 (overage 1 on `licenseA`)  
+  - Add a second ROSA contract (`licenseB`, newer agreement; combined coverage with `licenseA` = 4 Instance-hours)  
+  - Publish second tally summary with `current_total` = 6 in the same accumulation period (additional overage 1 on `licenseB`)
 - **Verification:**  
-  - Monthly `accountRemittances` returns two rows (one per `licenseId`)  
+  - Monthly `accountRemittances` returns one row for `licenseA` with `remittedValue` = 1 after the first tally  
+  - Monthly `accountRemittances` returns two rows (one per `licenseId`) after the second tally  
   - Each row has `remittedValue` = 1 for its license  
   - Sum of monthly `remittedValue` = 2
 - **Expected Result:**  
