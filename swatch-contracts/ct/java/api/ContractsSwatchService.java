@@ -319,15 +319,20 @@ public class ContractsSwatchService extends SwatchService {
   }
 
   public Response fetchBillingAccountIdsForOrg(String orgId, Map<String, String> requestHeaders) {
+    return fetchBillingAccountIdsForOrg(orgId, null, requestHeaders);
+  }
+
+  public Response fetchBillingAccountIdsForOrg(
+      String orgId, String productTag, Map<String, String> requestHeaders) {
     Objects.requireNonNull(orgId, "orgId must not be null");
     Objects.requireNonNull(requestHeaders, "requestHeaders must not be null");
 
-    return given()
-        .headers(requestHeaders)
-        .accept("application/json")
-        .queryParam("org_id", orgId)
-        .when()
-        .get(BILLING_ACCOUNT_IDS_ENDPOINT);
+    var request =
+        given().headers(requestHeaders).accept("application/json").queryParam("org_id", orgId);
+    if (productTag != null) {
+      request = request.queryParam("product_tag", productTag);
+    }
+    return request.when().get(BILLING_ACCOUNT_IDS_ENDPOINT);
   }
 
   public CapacityReportByMetricId getCapacityReportByMetricId(
