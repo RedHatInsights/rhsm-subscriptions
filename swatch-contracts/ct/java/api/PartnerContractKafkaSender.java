@@ -32,7 +32,7 @@ import java.util.List;
 
 /**
  * Builder for creating and sending PartnerEntitlementContract messages via the IT Partner Gateway
- * Kafka topic. Mirrors the structure of PartnerContractArtemisSender for UMB.
+ * Kafka topic.
  */
 public class PartnerContractKafkaSender {
 
