@@ -21,19 +21,22 @@
 package api;
 
 import com.redhat.swatch.component.tests.api.MessageValidator;
+import java.util.Objects;
 import org.candlepin.subscriptions.json.Event;
 
 public final class MessageValidators {
 
   private MessageValidators() {}
 
-  public static MessageValidator<String, Event> isEventForInstance(
-      String instanceId, String metricId) {
+  public static MessageValidator<String, Event> isEventForOrgAndInstance(
+      String orgId, String instanceId, String metricId) {
     return new MessageValidator<>(
         (key, event) ->
             event != null
-                && event.getInstanceId().equals(instanceId)
-                && event.getMeasurements().stream().anyMatch(m -> m.getMetricId().equals(metricId)),
+                && Objects.equals(event.getOrgId(), orgId)
+                && Objects.equals(event.getInstanceId(), instanceId)
+                && event.getMeasurements().stream()
+                    .anyMatch(m -> Objects.equals(m.getMetricId(), metricId)),
         String.class,
         Event.class);
   }

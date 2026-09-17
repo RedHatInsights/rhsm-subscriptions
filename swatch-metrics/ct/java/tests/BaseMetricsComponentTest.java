@@ -65,7 +65,7 @@ public class BaseMetricsComponentTest {
   protected List<Event> thenEventsAreProduced(String instanceId, String metricId) {
     return kafkaBridge.waitForKafkaMessage(
         SWATCH_SERVICE_INSTANCE_INGRESS,
-        MessageValidators.isEventForInstance(instanceId, metricId),
+        MessageValidators.isEventForOrgAndInstance(orgId, instanceId, metricId),
         1);
   }
 
@@ -79,7 +79,7 @@ public class BaseMetricsComponentTest {
   protected List<Event> thenEventsAlreadyProduced(String instanceId, String metricId) {
     return kafkaBridge.waitForKafkaMessage(
         SWATCH_SERVICE_INSTANCE_INGRESS,
-        MessageValidators.isEventForInstance(instanceId, metricId),
+        MessageValidators.isEventForOrgAndInstance(orgId, instanceId, metricId),
         0);
   }
 }
