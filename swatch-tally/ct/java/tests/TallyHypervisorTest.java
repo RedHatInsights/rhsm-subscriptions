@@ -482,23 +482,6 @@ public class TallyHypervisorTest extends BaseTallyComponentTest {
             .get()
             .getNumberOfGuests();
 
-    // ** NOT FOR THIS TEST. THIS IS TO VERIFY THAT THE COUNT IS UPDATED IN THE INSTANCE GUEST
-    // REPORT BUT NOT THE INSTANCE REPORT **
-    var instanceGuestReportHostB =
-        service.getInstanceGuestReportData(orgId, start, end, hostBSeededHost.hostId().toString());
-
-    Log.info(
-        "instanceGuestReport Guest Without Host B for %s: %s",
-        hostBSeededHost.hostId(), instanceGuestReportHostB);
-
-    var instanceGuestReportHostA =
-        service.getInstanceGuestReportData(orgId, start, end, hostASeededHost.hostId().toString());
-
-    Log.info(
-        "instanceGuestReport Guest with Host A for %s: %s",
-        hostASeededHost.hostId(), instanceGuestReportHostA);
-    // ** REMOVE ABOVE WHEN BUG IS RESOLVED **
-
     // Assert Host A lost its guest and Host B gained it
     assertEquals(0, hostAIRAfterUpdateCount);
     assertEquals(1, hostBIRAfterUpdateCount);
