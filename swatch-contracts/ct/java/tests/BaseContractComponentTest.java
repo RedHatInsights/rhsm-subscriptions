@@ -21,6 +21,7 @@
 package tests;
 
 import static api.PartnerApiStubs.PartnerSubscriptionsStubRequest.forContract;
+import static com.redhat.swatch.component.tests.utils.Topics.SUBSCRIPTION_SYNC_TASK;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -40,11 +41,13 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import com.redhat.swatch.contract.test.model.CapacityReportByMetricId;
 import com.redhat.swatch.contract.test.model.CapacitySnapshotByMetricId;
+import com.redhat.swatch.contract.test.model.EnabledOrgsResponse;
 import com.redhat.swatch.contract.test.model.GranularityType;
 import com.redhat.swatch.contract.test.model.ReportCategory;
 import com.redhat.swatch.contract.test.model.SubscriptionDeleteReason;
 import domain.BillingProvider;
 import domain.Contract;
+import domain.Offering;
 import domain.Product;
 import domain.Subscription;
 import io.restassured.response.Response;
@@ -123,15 +126,15 @@ public class BaseContractComponentTest {
   }
 
   void givenContractIsCreated(Contract contract) {
-    givenOfferingIsSynced(contract);
+    givenOfferingIsSynced(contract.getOffering());
+    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContract(contract));
     Response create = service.createContract(contract);
     assertEquals(HttpStatus.SC_OK, create.statusCode(), "Creating contract should succeed");
   }
 
-  protected void givenOfferingIsSynced(Contract contract) {
-    wiremock.forProductAPI().stubOfferingData(contract.getOffering());
-    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContract(contract));
-    Response sync = service.syncOffering(contract.getOffering().getSku());
+  protected void givenOfferingIsSynced(Offering offering) {
+    wiremock.forProductAPI().stubOfferingData(offering);
+    Response sync = service.syncOffering(offering.getSku());
     assertEquals(HttpStatus.SC_OK, sync.statusCode(), "Sync offering should succeed");
   }
 
@@ -260,6 +263,11 @@ public class BaseContractComponentTest {
     var contractResponse =
         response.then().extract().as(com.redhat.swatch.contract.test.model.ContractResponse.class);
     assertEquals(SUCCESS_MESSAGE, contractResponse.getStatus().getStatus());
+  }
+
+  protected void whenSubscriptionSyncRunsForOrg() {
+    kafkaBridge.produceKafkaMessage(
+        SUBSCRIPTION_SYNC_TASK, new EnabledOrgsResponse().withOrgId(orgId));
   }
 
   protected void thenContractShouldNotExist(String orgId) {

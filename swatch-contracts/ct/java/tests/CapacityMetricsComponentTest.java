@@ -141,13 +141,6 @@ public class CapacityMetricsComponentTest extends BaseContractComponentTest {
         "Hypervisor sockets capacity should be calculated correctly");
   }
 
-  /** Stubs and syncs an offering with the product API. */
-  private void givenOfferingIsSynced(Offering offering) {
-    wiremock.forProductAPI().stubOfferingData(offering);
-    Response syncResponse = service.syncOffering(offering.getSku());
-    assertThat("Sync offering should succeed", syncResponse.statusCode(), is(HttpStatus.SC_OK));
-  }
-
   /** Creates a subscription with a specific metric and quantity. */
   private Subscription givenSubscriptionWithMetricAndQuantity(
       String sku, MetricId metricId, double metricValue, int quantity) {

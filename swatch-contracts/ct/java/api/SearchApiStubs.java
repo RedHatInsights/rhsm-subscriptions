@@ -181,7 +181,9 @@ public class SearchApiStubs {
     var apiSubscription = new HashMap<String, Object>();
     apiSubscription.put("id", subscription.getSubscriptionId());
     apiSubscription.put("subscriptionNumber", subscription.getSubscriptionNumber());
-    apiSubscription.put("quantity", subscription.getQuantity());
+    if (subscription.getQuantity() != null) {
+      apiSubscription.put("quantity", subscription.getQuantity());
+    }
     apiSubscription.put("webCustomerId", subscription.getOrgId());
 
     // Date fields - convert from OffsetDateTime to epoch milliseconds
