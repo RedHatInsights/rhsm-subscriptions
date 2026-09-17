@@ -12,9 +12,6 @@ spring:
       - api
       - worker
       - kafka-queue
-  jms:
-    listener:
-      auto-startup: ${UMB_ENABLED:false}
 
 rhsm-subscriptions:
   jobs:
@@ -34,12 +31,6 @@ io:
     api-url: ${UNLEASH_URL:${clowder.featureFlags.scheme:http}://${clowder.featureFlags.hostname:localhost}:${clowder.featureFlags.port:4242}/api}
     api-token: ${UNLEASH_API_TOKEN:${clowder.featureFlags.clientAccessToken:default:development.unleash-insecure-api-token}}
     fetch-toggles-interval: ${UNLEASH_FETCH_TOGGLES_INTERVAL:15S}
-
-management:
-  health:
-    jms:
-      # disable activemq health checks when we're not actually using UMB
-      enabled: ${UMB_ENABLED:false}
 
 #Current version of spring-kafka(3.0.10) has bug that logs incorrect warning: https://github.com/spring-projects/spring-kafka/issues/2784
 #TODO remove this. Fixed in next release

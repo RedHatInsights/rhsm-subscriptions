@@ -279,7 +279,7 @@ jobs:
         run: ./mvnw install -DskipTests
 
       - name: Start components
-        run: docker compose up -d db kafka kafka-setup amqp
+        run: docker compose up -d db kafka kafka-setup
 
       - name: Verify SWATCH services for local testing
         run: |

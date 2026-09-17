@@ -59,12 +59,15 @@ public final class PartnerEntitlementStubPayloads {
   }
 
   public static List<Map<String, String>> buildRhEntitlements(Contract contract) {
-    return List.of(
-        Map.of(
-            "sku",
-            contract.getOffering().getSku(),
-            "subscriptionNumber",
-            contract.getSubscriptionNumber()));
+    return buildRhEntitlements(contract.getOffering().getSku(), contract.getSubscriptionNumber());
+  }
+
+  public static List<Map<String, String>> buildRhEntitlements(
+      String sku, String subscriptionNumber) {
+    var rhEntitlement = new HashMap<String, String>();
+    rhEntitlement.put("sku", sku);
+    rhEntitlement.put("subscriptionNumber", subscriptionNumber);
+    return List.of(rhEntitlement);
   }
 
   private static List<Map<String, Object>> buildDimensions(Contract contract) {

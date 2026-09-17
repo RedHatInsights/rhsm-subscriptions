@@ -7,7 +7,7 @@
 Start the required local services using Docker Compose:
 
 ```bash
-podman compose up -d kafka kafka-bridge kafka-setup unleash amqp wiremock db
+podman compose up -d kafka kafka-bridge kafka-setup unleash wiremock db
 ```
 
 This will start all necessary dependencies (databases, Kafka, etc.) required for the component tests.
@@ -27,7 +27,7 @@ Execute tests for a specific service. For example, to run tests for `swatch-cont
 Deploy only the necessary dependencies for a specific service:
 
 ```bash
-bonfire deploy rhsm --source=appsre --ref-env insights-stage --component rhsm --component swatch-kafka-bridge --component swatch-database --component wiremock --component artemis --component swatch-contracts --remove-dependencies swatch-contracts --no-remove-dependencies swatch-contracts/swatch-database --no-remove-resources app:rhsm --set-parameter swatch-contracts/QUARKUS_PROFILE=ephemeral,component-tests
+bonfire deploy rhsm --source=appsre --ref-env insights-stage --component rhsm --component swatch-kafka-bridge --component swatch-database --component wiremock --component swatch-contracts --remove-dependencies swatch-contracts --no-remove-dependencies swatch-contracts/swatch-database --no-remove-resources app:rhsm --set-parameter swatch-contracts/QUARKUS_PROFILE=ephemeral,component-tests
 ```
 
 ### 2. Run Component Tests Against OpenShift

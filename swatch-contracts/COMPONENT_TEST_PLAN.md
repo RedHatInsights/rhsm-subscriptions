@@ -328,6 +328,65 @@ Test cases should be testable locally and in an ephemeral environment.
   - Only the contract with the matching `billing_account_id` is returned  
   - Response includes the correct contract `uuid` and `billing_account_id`
 
+## Billing Account ID Retrieval
+
+Component tests for GET `/api/swatch-contracts/v1/subscriptions/billing_account_ids`. Test class:
+`BillingAccountIdsComponentTest`.
+
+**billing-account-ids-TC001** - **Get a billing account ID by product tag**
+- **Description:** Verify that the billing account ID endpoint returns the billing account and
+  subscription metadata for an active subscription matching a product tag.
+- **Setup:** Create an active AWS subscription for the test organization with a known billing
+  account ID and the ROSA product tag, plus an active subscription for a different product. Use an
+  associate identity for the request.
+- **Action:** GET `/api/swatch-contracts/v1/subscriptions/billing_account_ids` with `org_id` and
+  `product_tag=rosa`.
+- **Verification:** Parse the response as billing account records and compare the returned record
+  with the created subscription.
+- **Expected Result:** HTTP 200 with one record containing the expected `org_id`,
+  `billing_account_id`, `product_tag`, and `billing_provider`.
+
+**billing-account-ids-TC002** - **Get billing account IDs for all products**
+- **Description:** Verify that omitting the product tag returns active billing account records for
+  every product in the organization.
+- **Setup:** Create active subscriptions for the same organization with ROSA and OpenShift
+  product tags that share a billing account ID. Use an associate identity for the request.
+- **Action:** GET the billing account ID endpoint with `org_id` and no `product_tag`.
+- **Verification:** Compare the complete response set with the two created product-specific
+  records.
+- **Expected Result:** HTTP 200 with one record for each product, including the shared billing
+  account ID and the correct metadata in each record.
+
+**billing-account-ids-TC003** - **Exclude subscriptions active only in a prior month**
+- **Description:** Verify that a subscription whose active period ended before the current month
+  is excluded from the current billing account ID result.
+- **Setup:** Create one ROSA subscription ending before the current month and one ROSA
+  subscription active during the current month. Use an associate identity for the request.
+- **Action:** GET the billing account ID endpoint with the current organization and `product_tag=rosa`.
+- **Verification:** Compare the response with the current subscription's billing account record.
+- **Expected Result:** HTTP 200 containing only the current-month subscription's billing account
+  record.
+
+**billing-account-ids-TC004** - **Order billing account IDs by billing account ID**
+- **Description:** Verify that the public endpoint returns billing account records in ascending
+  billing account ID order.
+- **Setup:** Create two active ROSA subscriptions with billing account IDs that sort differently and
+  authorize a customer reader for the test organization.
+- **Action:** GET the endpoint for the user's organization with `product_tag=rosa`.
+- **Verification:** Compare the response order and complete record fields with the created
+  subscriptions.
+- **Expected Result:** HTTP 200 with records ordered by `billing_account_id`.
+
+**billing-account-ids-TC005** - **Reject billing account IDs for another org**
+- **Description:** Verify that a customer cannot request billing account records for another
+  organization.
+- **Setup:** Create an authorized customer reader identity for the test organization and a different
+  organization ID for the request.
+- **Action:** GET the endpoint with `product_tag=rosa` and a different `org_id` while keeping the
+  user's identity header.
+- **Verification:** Check the HTTP status returned by the endpoint.
+- **Expected Result:** HTTP 403.
+
 ## AWS Usage Context
 
 Component tests for GET `/api/swatch-contracts/internal/subscriptions/awsUsageContext`. Test class: `AwsUsageContextComponentTest`.
@@ -945,6 +1004,22 @@ This section verifies the automatic contract termination behavior when contracts
   - Contract `end_date` matches `entitlementDates.endDate`
   - Contract is terminated (`end_date` before now)
 - **Expected Result**: HTTP 200; sync status SUCCESS; termination date applied from entitlement dates
+
+**contracts-sync-TC023 - Sync skips entitlement with null/missing SKU and persists remaining contracts**
+- **Description**: Verify that when upstream returns a mix of valid Azure entitlements and entitlements whose `rhEntitlements` SKU is null, the sync skips the ones with null SKU and processes the valid contracts. Replaces IQE `test_verify_contract_missing_sku`.
+- **Setup**:
+  - Stub upstream Partner API to return one valid Azure contract and one entitlement with `rhEntitlements[0].sku: null`
+  - Stub offering and search API for the valid contract
+  - Stub search API for the null-SKU entitlement's subscription number so lookup succeeds and validation is reached
+- **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/{orgId}`
+- **Verification**:
+  - Sync returns HTTP 200 with status "SUCCESS"
+  - Only the valid contract is persisted
+- **Expected Result**:
+  - HTTP 200 with StatusResponse
+  - StatusResponse status: "SUCCESS"
+  - Exactly 1 contract persisted (the valid one)
+  - The entitlement with null SKU is skipped without crashing the sync
 
 ## Subscription Management via IT Subscription
 

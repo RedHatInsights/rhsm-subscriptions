@@ -232,6 +232,18 @@ public class PartnerApiStubs {
     return body;
   }
 
+  /**
+   * Build a full Azure entitlement body with {@code sku = null} on {@code rhEntitlements} for
+   * testing malformed partner data.
+   */
+  public static Map<String, Object> buildEntitlementWithNullSku(Contract contract) {
+    var body = buildAzureContractBody(contract);
+    body.put(
+        "rhEntitlements",
+        PartnerEntitlementStubPayloads.buildRhEntitlements(null, contract.getSubscriptionNumber()));
+    return body;
+  }
+
   public static class PartnerSubscriptionsStubRequest {
     private final String orgId;
     private final List<Contract> contracts;
@@ -292,7 +304,7 @@ public class PartnerApiStubs {
    * @param contract the contract data
    * @return Azure contract response body map
    */
-  private Map<String, Object> buildAzureContractBody(Contract contract) {
+  private static Map<String, Object> buildAzureContractBody(Contract contract) {
     var contractDetails =
         new HashMap<>(PartnerEntitlementStubPayloads.buildCurrentContractSegment(contract));
     contractDetails.put("planId", contract.getPlanId());
