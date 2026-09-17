@@ -1,0 +1,36 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "/api/rbac/v2/workspaces/?",
+    "queryParameters": {
+      "type": {
+        "equalTo": "default"
+      },
+      "with_ancestry": {
+        "equalTo": "true"
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "data": [
+        {
+          "id": "default-workspace",
+          "name": "Default Workspace",
+          "description": "Default workspace",
+          "parent": null,
+          "hierarchy": [],
+          "type_id": "workspace",
+          "type": "default"
+        }
+      ],
+      "meta": {
+        "count": 1
+      }
+    }
+  }
+}

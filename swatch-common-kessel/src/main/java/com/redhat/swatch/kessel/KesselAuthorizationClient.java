@@ -76,14 +76,30 @@ public class KesselAuthorizationClient {
   static final long RETRY_DELAY_MS = 100;
   static final long CHANNEL_SHUTDOWN_TIMEOUT_SECONDS = 30;
 
+  // Check result contexts for metrics recording error logs
+  private static final String METRICS_CLIENT_NOT_INITIALIZED = "client_not_initialized";
+  private static final String METRICS_SUCCESS = "result_success";
+  private static final String METRICS_FAILURE_NON_TRANSIENT = "result_failure_non_transient";
+  private static final String METRICS_FAILURE_RETRIES_EXHAUSTED =
+      "result_failure_retries_exhausted";
+
   private final KesselConfig config;
   private final WorkspaceResolver workspaceResolver;
+  private final KesselMetricsRecorder metricsRecorder;
   private volatile KesselInventoryServiceBlockingStub stub;
   private volatile ManagedChannel channel;
 
-  public KesselAuthorizationClient(KesselConfig config, WorkspaceResolver workspaceResolver) {
+  public KesselAuthorizationClient(
+      KesselConfig config,
+      WorkspaceResolver workspaceResolver,
+      KesselMetricsRecorder metricsRecorder) {
     this.config = config;
     this.workspaceResolver = workspaceResolver;
+    this.metricsRecorder = metricsRecorder != null ? metricsRecorder : KesselMetricsRecorder.NOOP;
+  }
+
+  public KesselAuthorizationClient(KesselConfig config, WorkspaceResolver workspaceResolver) {
+    this(config, workspaceResolver, KesselMetricsRecorder.NOOP);
   }
 
   public void init() {
@@ -113,6 +129,9 @@ public class KesselAuthorizationClient {
 
     this.channel = Grpc.newChannelBuilder(config.endpoint(), creds).build();
     this.stub = KesselInventoryServiceGrpc.newBlockingStub(this.channel);
+
+    recordChannelInitMetric(reason);
+
     log.info(
         "Kessel authorization client initialized: endpoint={} reason={}",
         config.endpoint(),
@@ -163,6 +182,7 @@ public class KesselAuthorizationClient {
   public boolean checkAccess(String subjectId, String permission, String orgId) {
     if (stub == null) {
       log.warn("Kessel client not initialized; denying access for subject={}", subjectId);
+      recordCheckMetric(false, METRICS_CLIENT_NOT_INITIALIZED);
       return false;
     }
     var relation = mapPermissionToRelation(permission);
@@ -182,6 +202,9 @@ public class KesselAuthorizationClient {
         CheckResponse response =
             getClient().withDeadlineAfter(config.timeoutMs(), TimeUnit.MILLISECONDS).check(request);
         boolean allowed = response.getAllowed() == Allowed.ALLOWED_TRUE;
+
+        recordCheckMetric(true, METRICS_SUCCESS);
+
         log.debug(
             "Kessel {} subject={}/{} relation={} on workspace={} (permission={})",
             allowed ? "allowed" : "denied",
@@ -194,6 +217,10 @@ public class KesselAuthorizationClient {
       } catch (StatusRuntimeException e) {
         lastException = e;
         Status.Code code = e.getStatus().getCode();
+
+        if (TRANSIENT_FAILURE_CODES.contains(code)) {
+          recordConnectionErrorMetric(code.name());
+        }
 
         if (code == Status.Code.UNAUTHENTICATED) {
           log.warn(
@@ -223,6 +250,7 @@ public class KesselAuthorizationClient {
               subjectId,
               permission,
               e.getStatus());
+          recordCheckMetric(false, METRICS_FAILURE_NON_TRANSIENT);
           return false;
         }
       }
@@ -234,6 +262,9 @@ public class KesselAuthorizationClient {
         subjectId,
         permission,
         lastException != null ? lastException.getStatus() : "unknown");
+
+    recordCheckMetric(false, METRICS_FAILURE_RETRIES_EXHAUSTED);
+
     return false;
   }
 
@@ -271,5 +302,36 @@ public class KesselAuthorizationClient {
   // Visible for testing
   public void setStub(KesselInventoryServiceBlockingStub stub) {
     this.stub = stub;
+  }
+
+  /** Record channel initialization metric */
+  private void recordChannelInitMetric(String reason) {
+    try {
+      metricsRecorder.recordChannelInit(reason);
+    } catch (Exception e) {
+      log.warn("Metrics recording error for kessel_channel_init_total: {}", e.getMessage());
+    }
+  }
+
+  /** Record permission check metric */
+  private void recordCheckMetric(boolean success, String context) {
+    try {
+      metricsRecorder.recordCheckRequest(success);
+    } catch (Exception e) {
+      log.warn(
+          "Metrics recording error for kessel_grpc_check_count_total ({}): {}",
+          context,
+          e.getMessage());
+    }
+  }
+
+  /** Record gRPC connection error metric */
+  private void recordConnectionErrorMetric(String errorCode) {
+    try {
+      metricsRecorder.recordConnectionError(errorCode);
+    } catch (Exception e) {
+      log.warn(
+          "Metrics recording error for kessel_grpc_connection_errors_total: {}", e.getMessage());
+    }
   }
 }
