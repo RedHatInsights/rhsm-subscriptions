@@ -21,18 +21,27 @@
 package tests;
 
 import static com.redhat.swatch.component.tests.utils.RandomUtils.generateRandom;
+import static domain.Offering.buildAcsOffering;
+import static domain.Offering.buildAnsibleAapOffering;
+import static domain.Offering.buildOpenShiftMetricsOffering;
 import static domain.Offering.buildOpenShiftOffering;
+import static domain.Offering.buildOsdOffering;
 import static domain.Offering.buildRhelOffering;
+import static domain.Offering.buildRhodsOffering;
 import static domain.Offering.buildRosaOffering;
+import static domain.Product.ANSIBLE_AAP_MANAGED;
 import static domain.Product.OPENSHIFT;
+import static domain.Product.OPENSHIFT_METRICS;
+import static domain.Product.OSD;
+import static domain.Product.RHACS;
 import static domain.Product.RHEL;
+import static domain.Product.RHODS;
 import static domain.Product.ROSA;
 import static org.apache.http.HttpStatus.SC_OK;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
@@ -44,6 +53,9 @@ import domain.Product;
 import io.restassured.common.mapper.TypeRef;
 import io.restassured.response.Response;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.Test;
 
@@ -84,21 +96,47 @@ public class OfferingTagsComponentTest extends BaseContractComponentTest {
     var rosaSku = givenRosaOfferingExists();
     var rhelSku = givenRhelOfferingExists();
     var openshiftSku = givenOpenShiftOfferingExists();
+    var openshiftMetricsSku = givenOpenShiftMetricsOfferingExists();
+    var osdSku = givenOsdOfferingExists();
+    var acsSku = givenAcsOfferingExists();
+    var rhodsSku = givenRhodsOfferingExists();
+    var ansibleSku = givenAnsibleAapOfferingExists();
 
     // When: Retrieving product tags for each product type
     OfferingProductTags rosaTags = whenGetSkuProductTags(rosaSku);
     OfferingProductTags rhelTags = whenGetSkuProductTags(rhelSku);
     OfferingProductTags openshiftTags = whenGetSkuProductTags(openshiftSku);
+    OfferingProductTags openshiftMetricsTags = whenGetSkuProductTags(openshiftMetricsSku);
+    OfferingProductTags osdTags = whenGetSkuProductTags(osdSku);
+    OfferingProductTags acsTags = whenGetSkuProductTags(acsSku);
+    OfferingProductTags rhodsTags = whenGetSkuProductTags(rhodsSku);
+    OfferingProductTags ansibleTags = whenGetSkuProductTags(ansibleSku);
 
     // Then: Each product returns appropriate product tags
     thenProductTagsShouldMatch(rosaTags, ROSA);
     thenProductTagsShouldMatch(rhelTags, RHEL);
     thenProductTagsShouldMatch(openshiftTags, OPENSHIFT);
+    thenProductTagsShouldMatch(openshiftMetricsTags, OPENSHIFT_METRICS);
+    thenProductTagsShouldMatch(osdTags, OSD);
+    thenProductTagsShouldMatch(acsTags, RHACS);
+    thenProductTagsShouldMatch(rhodsTags, RHODS);
+    thenProductTagsShouldMatch(ansibleTags, ANSIBLE_AAP_MANAGED);
 
     // Verify different level combinations produce distinct product tags
-    thenProductTagsShouldBeDifferent(rosaTags, rhelTags, ROSA, RHEL);
-    thenProductTagsShouldBeDifferent(rosaTags, openshiftTags, ROSA, OPENSHIFT);
-    thenProductTagsShouldBeDifferent(rhelTags, openshiftTags, RHEL, OPENSHIFT);
+    Set<List<String>> distinctTagSets =
+        Stream.of(
+                rosaTags,
+                rhelTags,
+                openshiftTags,
+                openshiftMetricsTags,
+                osdTags,
+                acsTags,
+                rhodsTags,
+                ansibleTags)
+            .map(OfferingProductTags::getData)
+            .collect(Collectors.toSet());
+    assertEquals(
+        8, distinctTagSets.size(), "Each product type should resolve to a distinct product tag");
   }
 
   @TestPlanName("offering-tags-TC003")
@@ -137,6 +175,26 @@ public class OfferingTagsComponentTest extends BaseContractComponentTest {
 
   private Offering givenOpenShiftOfferingExists() {
     return givenOfferingExists(buildOpenShiftOffering(generateRandom(), 16.0, 4.0));
+  }
+
+  private Offering givenOpenShiftMetricsOfferingExists() {
+    return givenOfferingExists(buildOpenShiftMetricsOffering(generateRandom()));
+  }
+
+  private Offering givenOsdOfferingExists() {
+    return givenOfferingExists(buildOsdOffering(generateRandom()));
+  }
+
+  private Offering givenAcsOfferingExists() {
+    return givenOfferingExists(buildAcsOffering(generateRandom()));
+  }
+
+  private Offering givenRhodsOfferingExists() {
+    return givenOfferingExists(buildRhodsOffering(generateRandom()));
+  }
+
+  private Offering givenAnsibleAapOfferingExists() {
+    return givenOfferingExists(buildAnsibleAapOffering(generateRandom()));
   }
 
   private Offering givenOfferingExists(Offering offering) {
@@ -195,13 +253,5 @@ public class OfferingTagsComponentTest extends BaseContractComponentTest {
         productName + " should have correct product tag",
         tags.getData(),
         containsInAnyOrder(productName.getName()));
-  }
-
-  private void thenProductTagsShouldBeDifferent(
-      OfferingProductTags tags1, OfferingProductTags tags2, Product name1, Product name2) {
-    assertNotEquals(
-        tags1.getData(),
-        tags2.getData(),
-        name1 + " and " + name2 + " should have different product tags");
   }
 }
