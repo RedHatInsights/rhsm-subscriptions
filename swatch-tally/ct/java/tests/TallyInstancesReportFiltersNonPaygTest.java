@@ -21,7 +21,6 @@
 package tests;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -50,7 +49,6 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 
 /**
  * Non-PAYG nightly instances report filtering, sorting, and pagination tests.
@@ -65,28 +63,23 @@ import org.junit.jupiter.api.TestInstance;
  *
  * <p>Fixtures: Three physical RHEL hosts with varying SLA/usage/socket configurations.
  */
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class TallyInstancesReportFiltersNonPaygTest extends BaseTallyComponentTest {
 
-  // Test product and metric constants
+  // Static fields
   private static final String PRODUCT_TAG = RHEL_FOR_X86.productTag();
   private static final String METRIC_ID = "Sockets";
   private static final String CATEGORY = "physical";
-
-  // Expected host configurations (matching IQE fixture constants)
-  // Host 1: 4 sockets, Premium, Production
-  // Host 2: 6 sockets, Standard, Development/Test
-  // Host 3: 2 sockets, Premium, Development/Test
-  private static final int EXPECTED_TOTAL_SOCKETS = 12; // 4 + 6 + 2
-  private static final int EXPECTED_PREMIUM_SOCKETS = 6; // Host 1 (4) + Host 3 (2)
-  private static final int EXPECTED_STANDARD_SOCKETS = 6; // Host 2 (6)
-  private static final int EXPECTED_PRODUCTION_USAGE_SOCKETS = 4; // Host 1
-  private static final int EXPECTED_DEV_USAGE_SOCKETS = 8; // Host 2 (6) + Host 3 (2)
-  private static final int EXPECTED_PREMIUM_PRODUCTION_SOCKETS = 4; // Host 1
-  private static final int EXPECTED_PREMIUM_DEV_SOCKETS = 2; // Host 3
-  private static final int EXPECTED_STANDARD_DEV_SOCKETS = 6; // Host 2
+  private static final int EXPECTED_TOTAL_SOCKETS = 12;
+  private static final int EXPECTED_PREMIUM_SOCKETS = 6;
+  private static final int EXPECTED_STANDARD_SOCKETS = 6;
+  private static final int EXPECTED_PRODUCTION_USAGE_SOCKETS = 4;
+  private static final int EXPECTED_DEV_USAGE_SOCKETS = 8;
+  private static final int EXPECTED_PREMIUM_PRODUCTION_SOCKETS = 4;
+  private static final int EXPECTED_PREMIUM_DEV_SOCKETS = 2;
+  private static final int EXPECTED_STANDARD_DEV_SOCKETS = 6;
   private static final int EXPECTED_PHYSICAL_HOST_COUNT = 3;
 
+  // Instance fields
   private HostStateManager hostManager;
   private OffsetDateTime start;
   private OffsetDateTime end;
@@ -105,118 +98,17 @@ public class TallyInstancesReportFiltersNonPaygTest extends BaseTallyComponentTe
     }
   }
 
-  /**
-   * Seed three physical RHEL hosts matching the IQE fixture configuration.
-   *
-   * @return list of seeded hosts
-   */
-  private List<SeededHost> setupNonPaygHosts() {
-    // Create opt-in config for the test org
-    service.createOptInConfig(orgId);
-
-    // Host 1: 4 sockets, Premium, Production
-    SeededHost host1 =
-        hostManager
-            .createHost(orgId)
-            .displayName("physical-premium-production")
-            .apply(HostTemplates.conduitReportedPhysicalRhel(4, 8))
-            .rhsmFacts(
-                RhsmFacts.builder()
-                    .products(List.of("69"))
-                    .isVirtual(false)
-                    .sla("Premium")
-                    .usage("Production")
-                    .build())
-            .insert();
-
-    // Host 2: 6 sockets, Standard, Development/Test
-    SeededHost host2 =
-        hostManager
-            .createHost(orgId)
-            .displayName("physical-standard-dev")
-            .apply(HostTemplates.conduitReportedPhysicalRhel(6, 12))
-            .rhsmFacts(
-                RhsmFacts.builder()
-                    .products(List.of("69"))
-                    .isVirtual(false)
-                    .sla("Standard")
-                    .usage("Development/Test")
-                    .build())
-            .insert();
-
-    // Host 3: 2 sockets, Premium, Development/Test
-    SeededHost host3 =
-        hostManager
-            .createHost(orgId)
-            .displayName("physical-premium-dev")
-            .apply(HostTemplates.conduitReportedPhysicalRhel(2, 4))
-            .rhsmFacts(
-                RhsmFacts.builder()
-                    .products(List.of("69"))
-                    .isVirtual(false)
-                    .sla("Premium")
-                    .usage("Development/Test")
-                    .build())
-            .insert();
-
-    service.tallyOrg(orgId);
-    return List.of(host1, host2, host3);
-  }
-
-  /**
-   * Build a map of metric ID -> value from the parallel lists in meta and instance.
-   *
-   * @param response the instance response containing meta with metric IDs
-   * @param instance the instance data containing measurement values
-   * @return map of metric ID to value
-   */
-  private Map<String, Double> getMeasurementsMap(InstanceResponse response, InstanceData instance) {
-    List<String> metricIds = response.getMeta().getMeasurements();
-    List<Double> values = instance.getMeasurements();
-
-    Map<String, Double> measurements = new HashMap<>();
-    for (int i = 0; i < metricIds.size(); i++) {
-      measurements.put(metricIds.get(i), values.get(i));
-    }
-    return measurements;
-  }
-
-  /**
-   * Sum socket values across all instances in the response.
-   *
-   * @param response the instance response
-   * @return total sockets
-   */
-  private int sumSockets(InstanceResponse response) {
-    if (response.getData() == null) {
-      return 0;
-    }
-    return response.getData().stream()
-        .mapToInt(
-            instance -> {
-              Map<String, Double> measurements = getMeasurementsMap(response, instance);
-              Double sockets = measurements.get(METRIC_ID);
-              return sockets != null ? sockets.intValue() : 0;
-            })
-        .sum();
-  }
-
   // --- TC001-TC006: Basic filtering tests ---
 
   @Test
   @TestPlanName("tally-instances-nonpayg-TC001")
-  public void unfilteredPhysicalInstancesReportListsAllFixtureHosts() {
+  public void shouldListAllPhysicalInstancesWhenUnfiltered() {
     // Given: Three physical RHEL hosts
-    setupNonPaygHosts();
+    givenNonPaygPhysicalHosts();
 
     // When: Query unfiltered instances report
     InstanceResponse response =
-        service.getInstancesByProduct(
-            orgId,
-            PRODUCT_TAG,
-            start,
-            end,
-            Map.of("category", CATEGORY, "metric_id", METRIC_ID.toLowerCase()));
+        service.getInstancesByProduct(orgId, PRODUCT_TAG, start, end, givenBaseParams());
 
     // Then: Should return all three hosts with expected total sockets
     assertNotNull(response.getData());
@@ -233,36 +125,30 @@ public class TallyInstancesReportFiltersNonPaygTest extends BaseTallyComponentTe
     assertTrue(actualNames.contains("physical-standard-dev"));
     assertTrue(actualNames.contains("physical-premium-dev"));
 
-    assertEquals(EXPECTED_TOTAL_SOCKETS, sumSockets(response));
+    assertEquals(EXPECTED_TOTAL_SOCKETS, thenSumSockets(response));
   }
 
   @Test
   @TestPlanName("tally-instances-nonpayg-TC002")
-  public void slaFilterPartitionsMetaCountAndSockets() {
+  public void shouldPartitionCountAndSocketsBySla() {
     // Given: Three physical RHEL hosts with different SLAs
-    setupNonPaygHosts();
+    givenNonPaygPhysicalHosts();
 
     // When/Then: Query with SLA=Premium
-    Map<String, Object> premiumParams = new HashMap<>();
-    premiumParams.put("category", CATEGORY);
-    premiumParams.put("metric_id", METRIC_ID.toLowerCase());
-    premiumParams.put("sla", "Premium");
     InstanceResponse premiumResp =
-        service.getInstancesByProduct(orgId, PRODUCT_TAG, start, end, premiumParams);
+        service.getInstancesByProduct(
+            orgId, PRODUCT_TAG, start, end, givenBaseParamsWithSla("Premium"));
     assertEquals(2, premiumResp.getData().size(), "Premium SLA should return 2 hosts");
     assertEquals(2, premiumResp.getMeta().getCount());
-    assertEquals(EXPECTED_PREMIUM_SOCKETS, sumSockets(premiumResp));
+    assertEquals(EXPECTED_PREMIUM_SOCKETS, thenSumSockets(premiumResp));
 
     // When/Then: Query with SLA=Standard
-    Map<String, Object> standardParams = new HashMap<>();
-    standardParams.put("category", CATEGORY);
-    standardParams.put("metric_id", METRIC_ID.toLowerCase());
-    standardParams.put("sla", "Standard");
     InstanceResponse standardResp =
-        service.getInstancesByProduct(orgId, PRODUCT_TAG, start, end, standardParams);
+        service.getInstancesByProduct(
+            orgId, PRODUCT_TAG, start, end, givenBaseParamsWithSla("Standard"));
     assertEquals(1, standardResp.getData().size(), "Standard SLA should return 1 host");
     assertEquals(1, standardResp.getMeta().getCount());
-    assertEquals(EXPECTED_STANDARD_SOCKETS, sumSockets(standardResp));
+    assertEquals(EXPECTED_STANDARD_SOCKETS, thenSumSockets(standardResp));
 
     // Verify SLA buckets partition the total
     assertEquals(
@@ -273,31 +159,25 @@ public class TallyInstancesReportFiltersNonPaygTest extends BaseTallyComponentTe
 
   @Test
   @TestPlanName("tally-instances-nonpayg-TC003")
-  public void usageFilterPartitionsMetaCountAndSockets() {
+  public void shouldPartitionCountAndSocketsByUsage() {
     // Given: Three physical RHEL hosts with different usage values
-    setupNonPaygHosts();
+    givenNonPaygPhysicalHosts();
 
     // When/Then: Query with usage=Production
-    Map<String, Object> prodParams = new HashMap<>();
-    prodParams.put("category", CATEGORY);
-    prodParams.put("metric_id", METRIC_ID.toLowerCase());
-    prodParams.put("usage", "Production");
     InstanceResponse prodResp =
-        service.getInstancesByProduct(orgId, PRODUCT_TAG, start, end, prodParams);
+        service.getInstancesByProduct(
+            orgId, PRODUCT_TAG, start, end, givenBaseParamsWithUsage("Production"));
     assertEquals(1, prodResp.getData().size(), "Production usage should return 1 host");
     assertEquals(1, prodResp.getMeta().getCount());
-    assertEquals(EXPECTED_PRODUCTION_USAGE_SOCKETS, sumSockets(prodResp));
+    assertEquals(EXPECTED_PRODUCTION_USAGE_SOCKETS, thenSumSockets(prodResp));
 
     // When/Then: Query with usage=Development/Test
-    Map<String, Object> devParams = new HashMap<>();
-    devParams.put("category", CATEGORY);
-    devParams.put("metric_id", METRIC_ID.toLowerCase());
-    devParams.put("usage", "Development/Test");
     InstanceResponse devResp =
-        service.getInstancesByProduct(orgId, PRODUCT_TAG, start, end, devParams);
+        service.getInstancesByProduct(
+            orgId, PRODUCT_TAG, start, end, givenBaseParamsWithUsage("Development/Test"));
     assertEquals(2, devResp.getData().size(), "Development/Test usage should return 2 hosts");
     assertEquals(2, devResp.getMeta().getCount());
-    assertEquals(EXPECTED_DEV_USAGE_SOCKETS, sumSockets(devResp));
+    assertEquals(EXPECTED_DEV_USAGE_SOCKETS, thenSumSockets(devResp));
 
     // Verify usage buckets partition the total
     assertEquals(
@@ -308,51 +188,51 @@ public class TallyInstancesReportFiltersNonPaygTest extends BaseTallyComponentTe
 
   @Test
   @TestPlanName("tally-instances-nonpayg-TC004")
-  public void combinedSlaAndUsageFiltersNarrowToOneHost() {
+  public void shouldNarrowToSingleHostWithCombinedFilters() {
     // Given: Three physical RHEL hosts
-    setupNonPaygHosts();
+    givenNonPaygPhysicalHosts();
 
     // When/Then: Premium + Production (Host 1)
-    Map<String, Object> premiumProdParams = new HashMap<>();
-    premiumProdParams.put("category", CATEGORY);
-    premiumProdParams.put("metric_id", METRIC_ID.toLowerCase());
-    premiumProdParams.put("sla", "Premium");
-    premiumProdParams.put("usage", "Production");
     InstanceResponse premiumProdResp =
-        service.getInstancesByProduct(orgId, PRODUCT_TAG, start, end, premiumProdParams);
+        service.getInstancesByProduct(
+            orgId,
+            PRODUCT_TAG,
+            start,
+            end,
+            givenBaseParamsWithSlaAndUsage("Premium", "Production"));
     assertEquals(1, premiumProdResp.getData().size());
-    assertEquals(EXPECTED_PREMIUM_PRODUCTION_SOCKETS, sumSockets(premiumProdResp));
+    assertEquals(EXPECTED_PREMIUM_PRODUCTION_SOCKETS, thenSumSockets(premiumProdResp));
 
     // When/Then: Standard + Development/Test (Host 2)
-    Map<String, Object> standardDevParams = new HashMap<>();
-    standardDevParams.put("category", CATEGORY);
-    standardDevParams.put("metric_id", METRIC_ID.toLowerCase());
-    standardDevParams.put("sla", "Standard");
-    standardDevParams.put("usage", "Development/Test");
     InstanceResponse standardDevResp =
-        service.getInstancesByProduct(orgId, PRODUCT_TAG, start, end, standardDevParams);
+        service.getInstancesByProduct(
+            orgId,
+            PRODUCT_TAG,
+            start,
+            end,
+            givenBaseParamsWithSlaAndUsage("Standard", "Development/Test"));
     assertEquals(1, standardDevResp.getData().size());
-    assertEquals(EXPECTED_STANDARD_DEV_SOCKETS, sumSockets(standardDevResp));
+    assertEquals(EXPECTED_STANDARD_DEV_SOCKETS, thenSumSockets(standardDevResp));
 
     // When/Then: Premium + Development/Test (Host 3)
-    Map<String, Object> premiumDevParams = new HashMap<>();
-    premiumDevParams.put("category", CATEGORY);
-    premiumDevParams.put("metric_id", METRIC_ID.toLowerCase());
-    premiumDevParams.put("sla", "Premium");
-    premiumDevParams.put("usage", "Development/Test");
     InstanceResponse premiumDevResp =
-        service.getInstancesByProduct(orgId, PRODUCT_TAG, start, end, premiumDevParams);
+        service.getInstancesByProduct(
+            orgId,
+            PRODUCT_TAG,
+            start,
+            end,
+            givenBaseParamsWithSlaAndUsage("Premium", "Development/Test"));
     assertEquals(1, premiumDevResp.getData().size());
-    assertEquals(EXPECTED_PREMIUM_DEV_SOCKETS, sumSockets(premiumDevResp));
+    assertEquals(EXPECTED_PREMIUM_DEV_SOCKETS, thenSumSockets(premiumDevResp));
 
     // When/Then: Standard + Production (no matching host)
-    Map<String, Object> standardProdParams = new HashMap<>();
-    standardProdParams.put("category", CATEGORY);
-    standardProdParams.put("metric_id", METRIC_ID.toLowerCase());
-    standardProdParams.put("sla", "Standard");
-    standardProdParams.put("usage", "Production");
     InstanceResponse standardProdResp =
-        service.getInstancesByProduct(orgId, PRODUCT_TAG, start, end, standardProdParams);
+        service.getInstancesByProduct(
+            orgId,
+            PRODUCT_TAG,
+            start,
+            end,
+            givenBaseParamsWithSlaAndUsage("Standard", "Production"));
     assertTrue(
         standardProdResp.getData() == null || standardProdResp.getData().isEmpty(),
         "Standard + Production should return no hosts");
@@ -360,14 +240,12 @@ public class TallyInstancesReportFiltersNonPaygTest extends BaseTallyComponentTe
 
   @Test
   @TestPlanName("tally-instances-nonpayg-TC005")
-  public void excludesAwsBillingProvider() {
+  public void shouldExcludeNonPaygHostsFromAwsBillingProvider() {
     // Given: Three physical RHEL hosts (non-PAYG, should have _ANY billing provider)
-    setupNonPaygHosts();
+    givenNonPaygPhysicalHosts();
 
     // When: Query with billing_provider=aws
-    Map<String, Object> params = new HashMap<>();
-    params.put("category", CATEGORY);
-    params.put("metric_id", METRIC_ID.toLowerCase());
+    Map<String, Object> params = givenBaseParams();
     params.put("billing_provider", "aws");
     InstanceResponse response =
         service.getInstancesByProduct(orgId, PRODUCT_TAG, start, end, params);
@@ -380,15 +258,13 @@ public class TallyInstancesReportFiltersNonPaygTest extends BaseTallyComponentTe
 
   @Test
   @TestPlanName("tally-instances-nonpayg-TC006")
-  public void excludesNonMatchingBillingAccountId() {
+  public void shouldExcludeNonMatchingBillingAccountId() {
     // Given: Three physical RHEL hosts
-    setupNonPaygHosts();
+    givenNonPaygPhysicalHosts();
 
     // When: Query with a random billing_account_id
     String randomBillingAccountId = UUID.randomUUID().toString();
-    Map<String, Object> params = new HashMap<>();
-    params.put("category", CATEGORY);
-    params.put("metric_id", METRIC_ID.toLowerCase());
+    Map<String, Object> params = givenBaseParams();
     params.put("billing_account_id", randomBillingAccountId);
     InstanceResponse response =
         service.getInstancesByProduct(orgId, PRODUCT_TAG, start, end, params);
@@ -399,138 +275,11 @@ public class TallyInstancesReportFiltersNonPaygTest extends BaseTallyComponentTe
         "Random billing_account_id should not match any non-PAYG physical hosts");
   }
 
-  // --- TC007-TC008: Pagination tests ---
-
-  @Test
-  @TestPlanName("tally-instances-sorting-TC007")
-  public void paginationLimitAndOffsetForNonPayg() {
-    // Given: Three physical RHEL hosts
-    setupNonPaygHosts();
-
-    // When: Query first page with limit=1, offset=0, sorted by display_name ascending
-    Map<String, Object> page0Params = new HashMap<>();
-    page0Params.put("category", CATEGORY);
-    page0Params.put("metric_id", METRIC_ID.toLowerCase());
-    page0Params.put("limit", 1);
-    page0Params.put("offset", 0);
-    page0Params.put("sort", "display_name");
-    page0Params.put("dir", "asc");
-    InstanceResponse page0 =
-        service.getInstancesByProduct(orgId, PRODUCT_TAG, start, end, page0Params);
-
-    // Then: Should return exactly 1 row with meta.count = 3
-    assertNotNull(page0.getData());
-    assertEquals(1, page0.getData().size(), "First page should return exactly 1 row");
-    assertEquals(EXPECTED_PHYSICAL_HOST_COUNT, page0.getMeta().getCount());
-    String page0DisplayName = page0.getData().get(0).getDisplayName();
-
-    // When: Query second page with limit=1, offset=1, sorted by display_name ascending
-    Map<String, Object> page1Params = new HashMap<>();
-    page1Params.put("category", CATEGORY);
-    page1Params.put("metric_id", METRIC_ID.toLowerCase());
-    page1Params.put("limit", 1);
-    page1Params.put("offset", 1);
-    page1Params.put("sort", "display_name");
-    page1Params.put("dir", "asc");
-    InstanceResponse page1 =
-        service.getInstancesByProduct(orgId, PRODUCT_TAG, start, end, page1Params);
-
-    // Then: Should also return exactly 1 row with same meta.count
-    assertNotNull(page1.getData());
-    assertEquals(1, page1.getData().size(), "Second page should return exactly 1 row");
-    assertEquals(EXPECTED_PHYSICAL_HOST_COUNT, page1.getMeta().getCount());
-    String page1DisplayName = page1.getData().get(0).getDisplayName();
-
-    // And: Different offsets should return different hosts under deterministic ordering
-    assertNotNull(page1DisplayName);
-    assertNotEquals(
-        page0DisplayName, page1DisplayName, "Different offsets should select different rows");
-  }
-
-  @Test
-  @TestPlanName("tally-instances-sorting-TC008")
-  public void paginationLinksForNonPayg() {
-    // Given: Three physical RHEL hosts
-    setupNonPaygHosts();
-
-    // When: Query without limit
-    Map<String, Object> noLimitParams = new HashMap<>();
-    noLimitParams.put("category", CATEGORY);
-    noLimitParams.put("metric_id", METRIC_ID.toLowerCase());
-    InstanceResponse withoutLimit =
-        service.getInstancesByProduct(orgId, PRODUCT_TAG, start, end, noLimitParams);
-
-    // Then: Should return all 3 rows
-    assertNotNull(withoutLimit.getData());
-    assertEquals(3, withoutLimit.getData().size());
-
-    // When: Query with limit=2
-    Map<String, Object> withLimitParams = new HashMap<>();
-    withLimitParams.put("category", CATEGORY);
-    withLimitParams.put("metric_id", METRIC_ID.toLowerCase());
-    withLimitParams.put("limit", 2);
-    withLimitParams.put("offset", 0);
-    InstanceResponse withLimit =
-        service.getInstancesByProduct(orgId, PRODUCT_TAG, start, end, withLimitParams);
-
-    // Then: Should return exactly 2 rows with links present and meta populated
-    assertNotNull(withLimit.getData());
-    assertEquals(2, withLimit.getData().size(), "Limited query should return exactly 2 rows");
-    assertNotNull(withLimit.getMeta(), "Meta should be present for paginated query");
-    assertNotNull(withLimit.getLinks(), "Pagination links should be present");
-    assertFalse(
-        withLimit.getLinks().getFirst() == null || withLimit.getLinks().getFirst().isBlank(),
-        "Pagination links should be non-empty");
-  }
-
-  @Test
-  @TestPlanName("tally-instances-sorting-TC010")
-  public void sortBySocketsForNonPayg() {
-    // Given: Three physical RHEL hosts with different socket counts (4, 6, 2)
-    setupNonPaygHosts();
-
-    // When: Sort by sockets ascending
-    Map<String, Object> ascParams = new HashMap<>();
-    ascParams.put("category", CATEGORY);
-    ascParams.put("metric_id", METRIC_ID.toLowerCase());
-    ascParams.put("sort", METRIC_ID.toLowerCase());
-    ascParams.put("dir", "asc");
-    InstanceResponse ascResp =
-        service.getInstancesByProduct(orgId, PRODUCT_TAG, start, end, ascParams);
-
-    // Then: First should have 2 sockets, last should have 6 sockets
-    assertNotNull(ascResp.getData());
-    assertEquals(3, ascResp.getData().size());
-    Map<String, Double> firstMeasurements = getMeasurementsMap(ascResp, ascResp.getData().get(0));
-    Map<String, Double> lastMeasurements = getMeasurementsMap(ascResp, ascResp.getData().get(2));
-    assertEquals(2.0, firstMeasurements.get(METRIC_ID), "First host should have 2 sockets");
-    assertEquals(6.0, lastMeasurements.get(METRIC_ID), "Last host should have 6 sockets");
-
-    // When: Sort by sockets descending
-    Map<String, Object> descParams = new HashMap<>();
-    descParams.put("category", CATEGORY);
-    descParams.put("metric_id", METRIC_ID.toLowerCase());
-    descParams.put("sort", METRIC_ID.toLowerCase());
-    descParams.put("dir", "desc");
-    InstanceResponse descResp =
-        service.getInstancesByProduct(orgId, PRODUCT_TAG, start, end, descParams);
-
-    // Then: First should have 6 sockets, last should have 2 sockets
-    assertNotNull(descResp.getData());
-    assertEquals(3, descResp.getData().size());
-    Map<String, Double> firstMeasurementsDesc =
-        getMeasurementsMap(descResp, descResp.getData().get(0));
-    Map<String, Double> lastMeasurementsDesc =
-        getMeasurementsMap(descResp, descResp.getData().get(2));
-    assertEquals(6.0, firstMeasurementsDesc.get(METRIC_ID), "First host should have 6 sockets");
-    assertEquals(2.0, lastMeasurementsDesc.get(METRIC_ID), "Last host should have 2 sockets");
-  }
-
-  // --- TC007-TC011: Advanced filtering and sorting tests ---
+  // --- TC007-TC011: Advanced filtering tests ---
 
   @Test
   @TestPlanName("tally-instances-nonpayg-TC007")
-  public void slaAndUsageChangeMigratesFilterBuckets() {
+  public void shouldMigrateInstancesWhenSlaAndUsageChange() {
     // Given: One physical RHEL host with Premium/Production
     service.createOptInConfig(orgId);
 
@@ -539,90 +288,86 @@ public class TallyInstancesReportFiltersNonPaygTest extends BaseTallyComponentTe
             .createHost(orgId)
             .displayName("migratable-host")
             .apply(HostTemplates.conduitReportedPhysicalRhel(2, 4));
-    SeededHost host =
-        hostBuilder
-            .rhsmFacts(
-                RhsmFacts.builder()
-                    .products(List.of("69"))
-                    .isVirtual(false)
-                    .sla("Premium")
-                    .usage("Production")
-                    .build())
-            .insert();
+    hostBuilder
+        .rhsmFacts(
+            RhsmFacts.builder()
+                .products(List.of("69"))
+                .isVirtual(false)
+                .sla("Premium")
+                .usage("Production")
+                .build())
+        .insert();
     service.tallyOrg(orgId);
 
     // When: Query with Premium SLA filter (should find the host)
-    Map<String, Object> premiumParams = new HashMap<>();
-    premiumParams.put("category", CATEGORY);
-    premiumParams.put("metric_id", METRIC_ID.toLowerCase());
-    premiumParams.put("sla", "Premium");
     InstanceResponse premiumResp =
-        service.getInstancesByProduct(orgId, PRODUCT_TAG, start, end, premiumParams);
+        service.getInstancesByProduct(
+            orgId, PRODUCT_TAG, start, end, givenBaseParamsWithSla("Premium"));
 
     // Then: Should find host in Premium bucket
     assertNotNull(premiumResp.getData());
     assertEquals(1, premiumResp.getData().size());
-    assertEquals(2, sumSockets(premiumResp));
+    assertEquals(2, thenSumSockets(premiumResp));
 
     // Given: Update host to Standard/Development/Test
-    SeededHost updated =
-        hostBuilder
-            .rhsmFacts(
-                RhsmFacts.builder()
-                    .products(List.of("69"))
-                    .isVirtual(false)
-                    .sla("Standard")
-                    .usage("Development/Test")
-                    .build())
-            .update();
+    hostBuilder
+        .rhsmFacts(
+            RhsmFacts.builder()
+                .products(List.of("69"))
+                .isVirtual(false)
+                .sla("Standard")
+                .usage("Development/Test")
+                .build())
+        .update();
 
     service.tallyOrg(orgId);
 
     // When: Query with Premium SLA filter again (should NOT find the host)
     InstanceResponse premiumRespAfter =
-        service.getInstancesByProduct(orgId, PRODUCT_TAG, start, end, premiumParams);
+        service.getInstancesByProduct(
+            orgId, PRODUCT_TAG, start, end, givenBaseParamsWithSla("Premium"));
 
     // Then: Host should have migrated out of Premium bucket
-    int premiumSockets = sumSockets(premiumRespAfter);
+    int premiumSockets = thenSumSockets(premiumRespAfter);
     assertEquals(
         0,
         premiumSockets,
         "Host should no longer appear in Premium bucket after SLA change to Standard");
 
     // When: Query with Standard SLA and Production usage filters (should NOT find the host)
-    Map<String, Object> standardProdParams = new HashMap<>();
-    standardProdParams.put("category", CATEGORY);
-    standardProdParams.put("metric_id", METRIC_ID.toLowerCase());
-    standardProdParams.put("sla", "Standard");
-    standardProdParams.put("usage", "Production");
     InstanceResponse standardProdRespBefore =
-        service.getInstancesByProduct(orgId, PRODUCT_TAG, start, end, standardProdParams);
+        service.getInstancesByProduct(
+            orgId,
+            PRODUCT_TAG,
+            start,
+            end,
+            givenBaseParamsWithSlaAndUsage("Standard", "Production"));
 
     // Then: Host should have migrated out of Production usage bucket
-    int standardProdSockets = sumSockets(standardProdRespBefore);
+    int standardProdSockets = thenSumSockets(standardProdRespBefore);
     assertEquals(
         0,
         standardProdSockets,
         "Host should no longer appear in Production bucket after usage change to Development/Test");
 
     // When: Query with Standard SLA and Development/Test usage filters (should find the host)
-    Map<String, Object> standardParams = new HashMap<>();
-    standardParams.put("category", CATEGORY);
-    standardParams.put("metric_id", METRIC_ID.toLowerCase());
-    standardParams.put("sla", "Standard");
-    standardParams.put("usage", "Development/Test");
     InstanceResponse standardResp =
-        service.getInstancesByProduct(orgId, PRODUCT_TAG, start, end, standardParams);
+        service.getInstancesByProduct(
+            orgId,
+            PRODUCT_TAG,
+            start,
+            end,
+            givenBaseParamsWithSlaAndUsage("Standard", "Development/Test"));
 
     // Then: Host should now appear in Standard+Development/Test bucket
     assertNotNull(standardResp.getData());
     assertEquals(1, standardResp.getData().size());
-    assertEquals(2, sumSockets(standardResp));
+    assertEquals(2, thenSumSockets(standardResp));
   }
 
   @Test
   @TestPlanName("tally-instances-nonpayg-TC008")
-  public void marketplaceAwsCloudHasZeroSockets() {
+  public void shouldExcludeMarketplaceAwsCloudInstances() {
     // Given: AWS marketplace cloud instance (simulated via cloud provider)
     service.createOptInConfig(orgId);
 
@@ -651,15 +396,12 @@ public class TallyInstancesReportFiltersNonPaygTest extends BaseTallyComponentTe
     service.tallyOrg(orgId);
 
     // When: Query for physical instances
-    Map<String, Object> params = new HashMap<>();
-    params.put("category", CATEGORY);
-    params.put("metric_id", METRIC_ID.toLowerCase());
     InstanceResponse response =
-        service.getInstancesByProduct(orgId, PRODUCT_TAG, start, end, params);
+        service.getInstancesByProduct(orgId, PRODUCT_TAG, start, end, givenBaseParams());
 
     // Then: Marketplace AWS cloud should not appear in physical category
     // (Cloud instances with billing provider are marketplace and excluded from physical)
-    int sockets = sumSockets(response);
+    int sockets = thenSumSockets(response);
     assertEquals(
         0, sockets, "Marketplace AWS cloud instances should not appear in physical category");
 
@@ -676,7 +418,7 @@ public class TallyInstancesReportFiltersNonPaygTest extends BaseTallyComponentTe
 
   @Test
   @TestPlanName("tally-instances-nonpayg-TC009")
-  public void nonMarketplaceAwsCloudHasOneSockets() {
+  public void shouldIncludeNonMarketplaceAwsCloudInstances() {
     // Given: Non-marketplace AWS cloud instance (cloud provider without billing metadata)
     service.createOptInConfig(orgId);
 
@@ -703,11 +445,9 @@ public class TallyInstancesReportFiltersNonPaygTest extends BaseTallyComponentTe
     service.tallyOrg(orgId);
 
     // When: Query for cloud instances
-    Map<String, Object> params = new HashMap<>();
-    params.put("category", "cloud");
-    params.put("metric_id", METRIC_ID.toLowerCase());
     InstanceResponse response =
-        service.getInstancesByProduct(orgId, PRODUCT_TAG, start, end, params);
+        service.getInstancesByProduct(
+            orgId, PRODUCT_TAG, start, end, givenParamsWithCategory("cloud"));
 
     // Then: Should find the cloud instance with 1 socket
     assertNotNull(response.getData());
@@ -716,12 +456,12 @@ public class TallyInstancesReportFiltersNonPaygTest extends BaseTallyComponentTe
         "non-marketplace-aws-cloud",
         response.getData().get(0).getDisplayName(),
         "Should return the seeded non-marketplace cloud instance");
-    assertEquals(1, sumSockets(response), "Non-marketplace AWS cloud should have 1 socket");
+    assertEquals(1, thenSumSockets(response), "Non-marketplace AWS cloud should have 1 socket");
   }
 
   @Test
   @TestPlanName("tally-instances-nonpayg-TC010")
-  public void virtualHostIncreasesMetaCount() {
+  public void shouldIncludeAllVirtualHostsInMetaCount() {
     // Given: Two virtual hosts (infrastructure_type=virtual, no hypervisor relationship)
     // Matches IQE test: test_validate_sla_filters_for_daily_tally_on_virtual_rhel
     service.createOptInConfig(orgId);
@@ -741,11 +481,9 @@ public class TallyInstancesReportFiltersNonPaygTest extends BaseTallyComponentTe
     service.tallyOrg(orgId);
 
     // When: Query for virtual instances
-    Map<String, Object> params = new HashMap<>();
-    params.put("category", "virtual");
-    params.put("metric_id", METRIC_ID.toLowerCase());
     InstanceResponse response =
-        service.getInstancesByProduct(orgId, PRODUCT_TAG, start, end, params);
+        service.getInstancesByProduct(
+            orgId, PRODUCT_TAG, start, end, givenParamsWithCategory("virtual"));
 
     // Then: Should find both virtual hosts (meta.count = 2)
     assertNotNull(response.getData());
@@ -755,7 +493,7 @@ public class TallyInstancesReportFiltersNonPaygTest extends BaseTallyComponentTe
     // Verify sockets are normalized to 1 for virtual hosts (matches IQE test)
     for (InstanceData instance : response.getData()) {
       assertEquals(ReportCategory.VIRTUAL, instance.getCategory(), "Category should be virtual");
-      Map<String, Double> measurements = getMeasurementsMap(response, instance);
+      Map<String, Double> measurements = thenGetMeasurementsMap(response, instance);
       Double sockets = measurements.get(METRIC_ID);
       assertEquals(1.0, sockets, "Virtual instance sockets should be normalized to 1");
     }
@@ -763,7 +501,7 @@ public class TallyInstancesReportFiltersNonPaygTest extends BaseTallyComponentTe
 
   @Test
   @TestPlanName("tally-instances-nonpayg-TC011")
-  public void virtualSocketsNormalizedToOne() {
+  public void shouldNormalizeVirtualHostSocketsToOne() {
     // Given: Virtual host with multiple sockets defined (unmapped, no hypervisor relationship)
     service.createOptInConfig(orgId);
 
@@ -776,111 +514,155 @@ public class TallyInstancesReportFiltersNonPaygTest extends BaseTallyComponentTe
     service.tallyOrg(orgId);
 
     // When: Query for virtual instances
-    Map<String, Object> params = new HashMap<>();
-    params.put("category", "virtual");
-    params.put("metric_id", METRIC_ID.toLowerCase());
     InstanceResponse response =
-        service.getInstancesByProduct(orgId, PRODUCT_TAG, start, end, params);
+        service.getInstancesByProduct(
+            orgId, PRODUCT_TAG, start, end, givenParamsWithCategory("virtual"));
 
     // Then: Virtual guest sockets should be normalized to 1
     assertNotNull(response.getData());
     assertEquals(1, response.getData().size(), "Should find one virtual guest");
-    Map<String, Double> measurements = getMeasurementsMap(response, response.getData().get(0));
+    Map<String, Double> measurements = thenGetMeasurementsMap(response, response.getData().get(0));
     assertEquals(
         1.0,
         measurements.get(METRIC_ID),
         "Virtual instance sockets should be normalized to 1 regardless of reported sockets");
   }
 
-  @Test
-  @TestPlanName("tally-instances-sorting-TC009")
-  public void sortByNumberOfGuestsForHypervisor() {
-    // Given: Two hypervisors with different guest counts
+  // Private given helper methods
+  private List<SeededHost> givenNonPaygPhysicalHosts() {
     service.createOptInConfig(orgId);
 
-    // Hypervisor 1 with 1 guest
-    String hypervisor1Uuid = UUID.randomUUID().toString();
-    hostManager
-        .createHost(orgId)
-        .displayName("hypervisor-one-guest")
-        .apply(HostTemplates.conduitReportedPhysicalRhel(2, 8))
-        .subscriptionManagerId(hypervisor1Uuid)
-        .insert();
+    SeededHost host1 =
+        hostManager
+            .createHost(orgId)
+            .displayName("physical-premium-production")
+            .apply(HostTemplates.conduitReportedPhysicalRhel(4, 8))
+            .rhsmFacts(
+                RhsmFacts.builder()
+                    .products(List.of("69"))
+                    .isVirtual(false)
+                    .sla("Premium")
+                    .usage("Production")
+                    .build())
+            .insert();
 
-    hostManager
-        .createHost(orgId)
-        .displayName("guest-of-hypervisor-1")
-        .apply(HostTemplates.conduitReportedVirtualRhelGuest(hypervisor1Uuid, null, null, 1, 2))
-        .insert();
+    SeededHost host2 =
+        hostManager
+            .createHost(orgId)
+            .displayName("physical-standard-dev")
+            .apply(HostTemplates.conduitReportedPhysicalRhel(6, 12))
+            .rhsmFacts(
+                RhsmFacts.builder()
+                    .products(List.of("69"))
+                    .isVirtual(false)
+                    .sla("Standard")
+                    .usage("Development/Test")
+                    .build())
+            .insert();
 
-    // Hypervisor 2 with 3 guests
-    String hypervisor2Uuid = UUID.randomUUID().toString();
-    hostManager
-        .createHost(orgId)
-        .subscriptionManagerId(hypervisor2Uuid)
-        .displayName("hypervisor-three-guests")
-        .apply(HostTemplates.conduitReportedPhysicalRhel(4, 16))
-        .subscriptionManagerId(hypervisor2Uuid)
-        .insert();
-
-    hostManager
-        .createHost(orgId)
-        .displayName("guest-1-of-hypervisor-2")
-        .apply(
-            HostTemplates.conduitReportedVirtualRhelGuest(
-                hypervisor2Uuid, "Premium", "Production", 1, 2))
-        .insert();
-
-    hostManager
-        .createHost(orgId)
-        .displayName("guest-2-of-hypervisor-2")
-        .apply(
-            HostTemplates.conduitReportedVirtualRhelGuest(
-                hypervisor2Uuid, "Premium", "Production", 1, 2))
-        .insert();
-
-    hostManager
-        .createHost(orgId)
-        .displayName("guest-3-of-hypervisor-2")
-        .apply(
-            HostTemplates.conduitReportedVirtualRhelGuest(
-                hypervisor2Uuid, "Premium", "Production", 1, 2))
-        .insert();
+    SeededHost host3 =
+        hostManager
+            .createHost(orgId)
+            .displayName("physical-premium-dev")
+            .apply(HostTemplates.conduitReportedPhysicalRhel(2, 4))
+            .rhsmFacts(
+                RhsmFacts.builder()
+                    .products(List.of("69"))
+                    .isVirtual(false)
+                    .sla("Premium")
+                    .usage("Development/Test")
+                    .build())
+            .insert();
 
     service.tallyOrg(orgId);
+    return List.of(host1, host2, host3);
+  }
 
-    // When: Sort hypervisors by number_of_guests ascending
-    Map<String, Object> ascParams = new HashMap<>();
-    ascParams.put("category", "hypervisor");
-    ascParams.put("metric_id", METRIC_ID.toLowerCase());
-    ascParams.put("sort", "number_of_guests");
-    ascParams.put("dir", "asc");
-    InstanceResponse ascResp =
-        service.getInstancesByProduct(orgId, PRODUCT_TAG, start, end, ascParams);
+  private Map<String, Object> givenBaseParams() {
+    Map<String, Object> params = new HashMap<>();
+    params.put("category", CATEGORY);
+    params.put("metric_id", METRIC_ID.toLowerCase());
+    return params;
+  }
 
-    // Then: First hypervisor should have 1 guest, last should have 3 guests
-    assertNotNull(ascResp.getData());
-    assertEquals(2, ascResp.getData().size(), "Should find both hypervisors");
-    assertEquals(
-        1, ascResp.getData().get(0).getNumberOfGuests(), "First hypervisor should have 1 guest");
-    assertEquals(
-        3, ascResp.getData().get(1).getNumberOfGuests(), "Last hypervisor should have 3 guests");
+  private Map<String, Object> givenBaseParamsWithSla(String sla) {
+    Map<String, Object> params = givenBaseParams();
+    params.put("sla", sla);
+    return params;
+  }
 
-    // When: Sort hypervisors by number_of_guests descending
-    Map<String, Object> descParams = new HashMap<>();
-    descParams.put("category", "hypervisor");
-    descParams.put("metric_id", METRIC_ID.toLowerCase());
-    descParams.put("sort", "number_of_guests");
-    descParams.put("dir", "desc");
-    InstanceResponse descResp =
-        service.getInstancesByProduct(orgId, PRODUCT_TAG, start, end, descParams);
+  private Map<String, Object> givenBaseParamsWithUsage(String usage) {
+    Map<String, Object> params = givenBaseParams();
+    params.put("usage", usage);
+    return params;
+  }
 
-    // Then: First hypervisor should have 3 guests, last should have 1 guest
-    assertNotNull(descResp.getData());
-    assertEquals(2, descResp.getData().size(), "Should find both hypervisors");
-    assertEquals(
-        3, descResp.getData().get(0).getNumberOfGuests(), "First hypervisor should have 3 guests");
-    assertEquals(
-        1, descResp.getData().get(1).getNumberOfGuests(), "Last hypervisor should have 1 guest");
+  private Map<String, Object> givenBaseParamsWithSlaAndUsage(String sla, String usage) {
+    Map<String, Object> params = givenBaseParams();
+    params.put("sla", sla);
+    params.put("usage", usage);
+    return params;
+  }
+
+  private Map<String, Object> givenBaseParamsWithPagination(int limit, int offset) {
+    Map<String, Object> params = givenBaseParams();
+    params.put("limit", limit);
+    params.put("offset", offset);
+    return params;
+  }
+
+  private Map<String, Object> givenBaseParamsWithPaginationAndSort(
+      int limit, int offset, String sort, String dir) {
+    Map<String, Object> params = givenBaseParamsWithPagination(limit, offset);
+    params.put("sort", sort);
+    params.put("dir", dir);
+    return params;
+  }
+
+  private Map<String, Object> givenBaseParamsWithSort(String sort, String dir) {
+    Map<String, Object> params = givenBaseParams();
+    params.put("sort", sort);
+    params.put("dir", dir);
+    return params;
+  }
+
+  private Map<String, Object> givenParamsWithCategory(String category) {
+    Map<String, Object> params = new HashMap<>();
+    params.put("category", category);
+    params.put("metric_id", METRIC_ID.toLowerCase());
+    return params;
+  }
+
+  private Map<String, Object> givenParamsWithCategoryAndSort(
+      String category, String sort, String dir) {
+    Map<String, Object> params = givenParamsWithCategory(category);
+    params.put("sort", sort);
+    params.put("dir", dir);
+    return params;
+  }
+
+  private Map<String, Double> thenGetMeasurementsMap(
+      InstanceResponse response, InstanceData instance) {
+    List<String> metricIds = response.getMeta().getMeasurements();
+    List<Double> values = instance.getMeasurements();
+    Map<String, Double> measurements = new HashMap<>();
+    for (int i = 0; i < metricIds.size(); i++) {
+      measurements.put(metricIds.get(i), values.get(i));
+    }
+    return measurements;
+  }
+
+  private int thenSumSockets(InstanceResponse response) {
+    if (response.getData() == null) {
+      return 0;
+    }
+    return response.getData().stream()
+        .mapToInt(
+            instance -> {
+              Map<String, Double> measurements = thenGetMeasurementsMap(response, instance);
+              Double sockets = measurements.get(METRIC_ID);
+              return sockets != null ? sockets.intValue() : 0;
+            })
+        .sum();
   }
 }
