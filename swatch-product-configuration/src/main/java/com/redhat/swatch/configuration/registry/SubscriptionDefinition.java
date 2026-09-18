@@ -450,6 +450,20 @@ public class SubscriptionDefinition {
         .orElse(false);
   }
 
+  public static Sla getProductDefaultSla(String productTag) {
+    return lookupSubscriptionByTag(productTag)
+        .map(SubscriptionDefinition::getDefaults)
+        .flatMap(defaults -> Optional.ofNullable(defaults.getSla()))
+        .orElse(null);
+  }
+
+  public static Usage getProductDefaultUsage(String productTag) {
+    return SubscriptionDefinition.lookupSubscriptionByTag(productTag)
+        .map(SubscriptionDefinition::getDefaults)
+        .flatMap(defaults -> Optional.ofNullable(defaults.getUsage()))
+        .orElse(null);
+  }
+
   /**
    * Returns a predicate that only evaluates to true if Level1 AND Level2 parameters are specified
    * AND both match the same Variant.

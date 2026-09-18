@@ -27,13 +27,16 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.Sets;
+import com.redhat.swatch.configuration.registry.Defaults;
 import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
@@ -79,6 +82,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -1234,6 +1238,132 @@ class MetricUsageCollectorTest {
             .getCalculation(usageCalculationKey)
             .getTotals(HardwareMeasurementType.PHYSICAL)
             .getMeasurement(MetricIdUtils.getStorageGibibyteMonths()));
+  }
+
+  @Test
+  void testEmptySlaAndUsageDefaultsToPremiumProduction() {
+    Measurement measurement =
+        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);
+    Event event =
+        createEvent()
+            .withEventId(UUID.randomUUID())
+            .withRole(Event.Role.OSD)
+            .withProductTag(Set.of(OSD_PRODUCT_TAG))
+            .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
+            .withServiceType(SERVICE_TYPE)
+            .withMeasurements(Collections.singletonList(measurement))
+            .withSla(null) // No SLA provided, should default to product default or PREMIUM
+            .withUsage(null) // No usage provided, should default to product default or PRODUCTION
+            .withBillingProvider(Event.BillingProvider.RED_HAT)
+            .withBillingAccountId(Optional.of("sellerAcct"));
+
+    AccountUsageCalculationCache cache = new AccountUsageCalculationCache();
+    metricUsageCollector.calculateUsage(List.of(event), cache);
+
+    assertEquals(1, cache.getCalculations().size());
+    assertTrue(cache.contains(event));
+
+    AccountUsageCalculation accountUsageCalculation = cache.get(event);
+
+    // Should default to PREMIUM/PRODUCTION
+    UsageCalculation.Key usageCalculationKey =
+        new UsageCalculation.Key(
+            OSD_PRODUCT_TAG,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider.RED_HAT,
+            "sellerAcct");
+    assertTrue(accountUsageCalculation.containsCalculation(usageCalculationKey));
+    assertEquals(
+        Double.valueOf(42.0),
+        accountUsageCalculation
+            .getCalculation(usageCalculationKey)
+            .getTotals(HardwareMeasurementType.PHYSICAL)
+            .getMeasurement(MetricIdUtils.getCores()));
+
+    // Verify EMPTY values are NOT used
+    UsageCalculation.Key emptyKey =
+        new UsageCalculation.Key(
+            OSD_PRODUCT_TAG,
+            ServiceLevel.EMPTY,
+            Usage.EMPTY,
+            BillingProvider.RED_HAT,
+            "sellerAcct");
+    assertFalse(
+        accountUsageCalculation.containsCalculation(emptyKey),
+        "Should not create buckets with EMPTY sla/usage when null is provided");
+  }
+
+  @Test
+  void testBlankSubscriptionDefinitionDefaultsFallbacksToPremiumProduction() {
+    // This test verifies the regression where a SubscriptionDefinition has blank SLA/usage
+    // defaults. Without the .filter(s -> !s.isBlank()) fix, buildBucketTuples would try to
+    // use the blank string defaults instead of falling back to PREMIUM/PRODUCTION.
+    Measurement measurement =
+        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);
+
+    // Create event without explicit SLA/Usage (null), which would normally fall back to
+    // subscription definition defaults.
+    Event event =
+        createEvent()
+            .withEventId(UUID.randomUUID())
+            .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
+            .withServiceType(SERVICE_TYPE)
+            .withMeasurements(Collections.singletonList(measurement))
+            .withSla(null) // Null: should fall back to subscription default or PREMIUM
+            .withUsage(null) // Null: should fall back to subscription default or PRODUCTION
+            .withBillingProvider(Event.BillingProvider.RED_HAT)
+            .withBillingAccountId(Optional.of("sellerAcct"));
+
+    // Mock a SubscriptionDefinition with null SLA/usage defaults (which represents blank
+    // values that stringify to empty strings)
+    Defaults nullDefaults = new Defaults();
+    nullDefaults.setSla(null); // null.toString() would cause NPE, but filtered out
+    nullDefaults.setUsage(null);
+
+    SubscriptionDefinition subDef = new SubscriptionDefinition();
+    subDef.setServiceType(SERVICE_TYPE);
+    subDef.setDefaults(nullDefaults);
+
+    // Mock the static method to return a set with our subscription definition
+    try (MockedStatic<SubscriptionDefinition> mockedSubDef =
+        mockStatic(SubscriptionDefinition.class)) {
+      mockedSubDef
+          .when(() -> SubscriptionDefinition.findByServiceType(SERVICE_TYPE))
+          .thenReturn(Set.of(subDef));
+
+      // Also need to mock the other calls to SubscriptionDefinition static methods
+      mockedSubDef
+          .when(() -> SubscriptionDefinition.getAllProductTags(any()))
+          .thenReturn(Set.of(OSD_PRODUCT_TAG));
+
+      AccountUsageCalculationCache cache = new AccountUsageCalculationCache();
+      metricUsageCollector.calculateUsage(List.of(event), cache);
+
+      assertEquals(1, cache.getCalculations().size());
+      assertTrue(cache.contains(event));
+
+      AccountUsageCalculation accountUsageCalculation = cache.get(event);
+
+      // Should default to PREMIUM/PRODUCTION despite null event SLA/usage and null
+      // subscription defaults
+      UsageCalculation.Key usageCalculationKey =
+          new UsageCalculation.Key(
+              OSD_PRODUCT_TAG,
+              ServiceLevel.PREMIUM,
+              Usage.PRODUCTION,
+              BillingProvider.RED_HAT,
+              "sellerAcct");
+      assertTrue(
+          accountUsageCalculation.containsCalculation(usageCalculationKey),
+          "Should create buckets with PREMIUM/PRODUCTION when subscription defaults are null/blank");
+      assertEquals(
+          Double.valueOf(42.0),
+          accountUsageCalculation
+              .getCalculation(usageCalculationKey)
+              .getTotals(HardwareMeasurementType.PHYSICAL)
+              .getMeasurement(MetricIdUtils.getCores()));
+    }
   }
 
   private static Event createEvent() {
