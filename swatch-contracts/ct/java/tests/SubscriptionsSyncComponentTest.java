@@ -35,7 +35,6 @@ import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.contract.test.model.CapacityReportByMetricId;
 import com.redhat.swatch.contract.test.model.CapacitySnapshotByMetricId;
 import com.redhat.swatch.contract.test.model.EnabledOrgsRequest;
-import com.redhat.swatch.contract.test.model.EnabledOrgsResponse;
 import com.redhat.swatch.contract.test.model.GranularityType;
 import com.redhat.swatch.contract.test.model.SubscriptionDeleteReason;
 import domain.Offering;
@@ -259,11 +258,6 @@ public class SubscriptionsSyncComponentTest extends BaseContractComponentTest {
         .startDate(replacementStartDate)
         .endDate(replacementEnd)
         .build();
-  }
-
-  private void whenSubscriptionSyncRunsForOrg() {
-    kafkaBridge.produceKafkaMessage(
-        SUBSCRIPTION_SYNC_TASK, new EnabledOrgsResponse().withOrgId(orgId));
   }
 
   private void whenSubscriptionSyncRunsWithUpstream(Subscription... upstreamSubscriptions) {

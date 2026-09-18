@@ -633,6 +633,26 @@ Component tests for GET `/api/swatch-contracts/internal/subscriptions/azureUsage
   - Offering exists after product ingress event
   - Contract created with correct `org_id`, `sku`, `subscription_number`, and metrics
 
+## Contract Update via Subscription Sync
+
+**contracts-update-TC011 - Replace contract and subscription dates after subscription sync**
+- **Description**: Verify org subscription reconciliation of an AWS ROSA entitlement with changed start and end dates replaces the old contract and subscription segment, persisting the new dates.
+- **Setup**:
+  - Stub Product API for an AWS ROSA offering (Cores: 8) and sync the offering. Do not stub Partner Gateway yet.
+  - Create the contract via the internal API with `start_date` = start of today minus 30 days and `end_date` = start of today plus 5 days.
+  - Record the contract UUID.
+  - Verify exactly one persisted subscription exists with those original dates and the same subscription ID.
+  - Stub Partner Gateway's contract query (AWS customer account + vendor product code), Subscription Search by org, and Search by subscription number with the same entitlement and subscription identifiers, but `start_date` = start of today minus 1 day and `end_date` = start of today plus 10 days.
+- **Action**: Publish an `EnabledOrgsResponse` for the org to the `platform.rhsm-subscriptions.subscription-sync-task` Kafka topic so org subscription reconciliation runs.
+- **Verification**:
+  - Wait until application logs contain `Finished syncing subscriptions for orgId` for that org.
+  - Query contracts by org and verify exactly one contract remains with a different UUID and the same org, SKU, and subscription number.
+  - Assert contract start and end dates match the updated entitlement.
+  - Query the database-backed internal subscriptions API by org and verify exactly one subscription remains with the original subscription ID.
+  - Assert persisted subscription `start_date` and `end_date` match the updated entitlement.
+- **Expected Result**: 
+  - The original contract and subscription segment are removed. The replacement contract and subscription contain the new entitlement dates. Other contract fields (org, SKU, subscription number) are unchanged.
+
 ## Contract Termination
 
 **contracts-termination-TC001 - A contract remains active after receiving a message with a future end date.**

@@ -21,6 +21,7 @@
 package tests;
 
 import static api.PartnerApiStubs.PartnerSubscriptionsStubRequest.forContract;
+import static com.redhat.swatch.component.tests.utils.DateUtils.assertDatesAreEqual;
 import static com.redhat.swatch.component.tests.utils.Topics.IT_PRODUCT_SYNC;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
@@ -109,14 +110,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
     whenContractIsUpdatedViaApi(updatedContract);
 
     // Then: Old contract is deleted, new contract created with different UUID
-    var contracts = service.getContractsByOrgId(orgId);
-    assertEquals(1, contracts.size(), "Should have one contract (old deleted, new created)");
-
-    var newContract = contracts.getFirst();
-    assertNotEquals(
-        initialUuid, newContract.getUuid(), "UUID should be different (new contract created)");
-    thenContractDatesShouldBeUpdated(newContract, updatedStartDate, updatedEndDate);
-    thenContractFieldsShouldRemainUnchanged(newContract, initialContract);
+    thenContractWasReplaced(initialUuid, initialContract, updatedContract);
     thenSubscriptionAuditDeleteLog(
         SubscriptionDeleteReason.PARTNER_ENTITLEMENT_START_DATE_NOT_IN_GATEWAY);
   }
@@ -357,14 +351,35 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
     thenMetricShouldHaveValue(actual, CORES, CORES_CAPACITY);
   }
 
+  @TestPlanName("contracts-update-TC011")
+  @Test
+  void shouldReplaceContractAndSubscriptionDatesAfterSubscriptionSync() {
+    // Given: A persisted contract and subscription with the original dates
+    OffsetDateTime now = clock.startOfToday();
+    Contract initialContract =
+        givenContractWithDatesAndMetrics(
+            BillingProvider.AWS, now.minusDays(30), now.plusDays(5), Map.of(CORES, CORES_CAPACITY));
+    String initialUuid = getContractUuid(orgId);
+    thenSubscriptionDatesShouldMatch(initialContract);
+
+    Contract updatedContract =
+        initialContract.toBuilder().startDate(now.minusDays(1)).endDate(now.plusDays(10)).build();
+    givenPartnerAndSearchReturn(updatedContract);
+
+    // When: Subscription sync reconciles the changed partner entitlement
+    whenSubscriptionSyncRunsForOrg();
+
+    // Then: The old contract and subscription segment are replaced
+    service.logs().assertContains("Finished syncing subscriptions for orgId " + orgId);
+    thenContractWasReplaced(initialUuid, initialContract, updatedContract);
+    thenSubscriptionDatesShouldMatch(updatedContract);
+  }
+
   private Contract givenContractCreatedViaMessageBroker() {
     Contract contract = Contract.buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, 10.0));
-    wiremock.forProductAPI().stubOfferingData(contract.getOffering());
+    givenOfferingIsSynced(contract.getOffering());
     wiremock.forPartnerAPI().stubPartnerSubscriptions(forContract(contract));
     wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(contract);
-
-    Response sync = service.syncOffering(contract.getOffering().getSku());
-    assertThat("Sync offering should succeed", sync.statusCode(), is(HttpStatus.SC_OK));
 
     // Send the contract via Message Broker
     kafkaBridge.asOfPartnerGateway().send(contract);
@@ -385,10 +400,16 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
             .endDate(endDate)
             .build();
 
-    givenOfferingIsSynced(contract);
+    givenOfferingIsSynced(contract.getOffering());
     whenContractIsCreatedViaApi(contract);
 
     return contract;
+  }
+
+  private void givenPartnerAndSearchReturn(Contract contract) {
+    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContract(contract));
+    wiremock.forSearchApi().stubSearchSubscriptionsByOrgId(orgId, contract);
+    wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(contract);
   }
 
   private void whenContractIsUpdatedViaApi(Contract contract) {
@@ -410,27 +431,38 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
         "Message should indicate existing contracts were synced");
   }
 
-  private void thenContractDatesShouldBeUpdated(
-      com.redhat.swatch.contract.test.model.Contract actual,
-      OffsetDateTime expectedStartDate,
-      OffsetDateTime expectedEndDate) {
-    assertNotNull(actual.getStartDate(), "start_date should not be null");
-    assertNotNull(actual.getEndDate(), "end_date should not be null");
-    assertTrue(
-        actual.getStartDate().isEqual(expectedStartDate)
-            || actual.getStartDate().isAfter(expectedStartDate.minusSeconds(1)),
-        "start_date should be updated");
-    assertTrue(
-        actual.getEndDate().isEqual(expectedEndDate)
-            || actual.getEndDate().isAfter(expectedEndDate.minusSeconds(1)),
-        "end_date should be updated");
+  private void thenContractWasReplaced(
+      String initialUuid, Contract initialContract, Contract updatedContract) {
+    var contracts = service.getContractsByOrgId(orgId);
+    assertEquals(1, contracts.size(), "Only the replacement should remain");
+    var actual = contracts.getFirst();
+    assertNotEquals(initialUuid, actual.getUuid(), "The old contract should be replaced");
+    assertDatesAreEqual(updatedContract.getStartDate(), actual.getStartDate());
+    assertDatesAreEqual(updatedContract.getEndDate(), actual.getEndDate());
+    thenContractFieldsShouldRemainUnchanged(actual, initialContract);
   }
 
   private void thenContractFieldsShouldRemainUnchanged(
       com.redhat.swatch.contract.test.model.Contract actual, Contract expected) {
     assertEquals(expected.getOrgId(), actual.getOrgId(), "org_id should remain unchanged");
     assertEquals(expected.getOffering().getSku(), actual.getSku(), "SKU should remain unchanged");
+    assertEquals(
+        expected.getSubscriptionNumber(),
+        actual.getSubscriptionNumber(),
+        "The contract should retain its subscription number");
     assertNotNull(actual.getMetrics(), "Metrics should not be null");
+  }
+
+  private void thenSubscriptionDatesShouldMatch(Contract expected) {
+    var subscriptions = service.getSubscriptionsByOrgId(orgId);
+    assertEquals(1, subscriptions.size(), "Exactly one subscription should remain");
+    var actual = subscriptions.getFirst();
+    assertEquals(
+        expected.getSubscriptionId(),
+        actual.getSubscriptionId(),
+        "The persisted subscription ID should match");
+    assertDatesAreEqual(expected.getStartDate(), actual.getStartDate());
+    assertDatesAreEqual(expected.getEndDate(), actual.getEndDate());
   }
 
   private void thenMetricShouldHaveValue(

@@ -93,23 +93,41 @@ public class Contract extends Subscription {
       String orgId, BillingProvider billingProvider, Map<MetricId, Double> capacity, String sku) {
     Objects.requireNonNull(billingProvider, "billingProvider cannot be null");
     String seed = RandomUtils.generateRandom();
-    String sellerAccountId = billingProvider == BillingProvider.AWS ? "seller" + seed : null;
+    String productCode = "product" + seed;
+    String customerId = "customer" + seed;
+    String resourceId = "resourceId" + seed;
+    String planId = "plan" + seed;
+    String clientId = "clientId" + seed;
+    String sellerAccountId =
+        switch (billingProvider) {
+          case AWS -> "seller" + seed;
+          case AZURE -> null;
+        };
+    // Search API AWS refs are productCode;customerId;sellerAccountId. Without this, org
+    // sync queries Partner Gateway with vendorProductCode "null" and never applies new dates.
+    String billingProviderId =
+        switch (billingProvider) {
+          case AWS -> String.join(";", productCode, customerId, sellerAccountId);
+          case AZURE -> String.join(";", resourceId, planId, productCode, customerId, clientId);
+        };
 
     return Contract.builder()
-        .resourceId("resourceId" + seed)
-        .planId("plan" + seed)
-        .productCode("product" + seed)
-        .customerId("customer" + seed)
-        .clientId("clientId" + seed)
+        .resourceId(resourceId)
+        .planId(planId)
+        .productCode(productCode)
+        .customerId(customerId)
+        .clientId(clientId)
         .sellerAccountId(sellerAccountId)
         .subscriptionMeasurements(capacity)
         .billingProvider(billingProvider)
+        .billingProviderId(billingProviderId)
         .billingAccountId("billing" + seed)
         .orgId(orgId)
         .product(Product.ROSA)
         .offering(Offering.buildRosaOffering(Objects.requireNonNullElse(sku, seed)))
         .subscriptionId(seed)
         .subscriptionNumber(seed)
+        .quantity(1)
         .startDate(OffsetDateTime.now().minusDays(1))
         .endDate(OffsetDateTime.now().plusDays(1))
         .build();

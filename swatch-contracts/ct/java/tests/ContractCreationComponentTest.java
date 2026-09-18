@@ -374,7 +374,8 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
   private Contract givenRosaContractWithMetrics(
       BillingProvider provider, Map<MetricId, Double> metrics) {
     Contract contract = buildRosaContract(orgId, provider, metrics);
-    givenOfferingIsSynced(contract);
+    givenOfferingIsSynced(contract.getOffering());
+    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContract(contract));
     return contract;
   }
 
