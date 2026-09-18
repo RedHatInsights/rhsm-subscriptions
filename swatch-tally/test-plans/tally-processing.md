@@ -503,15 +503,15 @@ This test plan covers the core tally processing pipeline:
     - A Hypervisor Host B seeded with 1 sockets
     - A Tally has been performed for the organization
 - **Action**:
-    - Moved the guest form Host A to Host B (hypervisor B)
+    - Moved the guest from Host A to Host B (hypervisor B)
     - Perform tally for organization
 - **Verification**:
     - Query instances guest report for Host A
     - Verify that Host A Instance guest report reflects that it has 0 guests
     - Query instances guests report for Host B
     - Verify that Host B Instance guest report reflects that it has 1 guest
-- ** Expected Result**:
-    - Hypervisor guest report reflects the guest moved form Host A to Host B
+- **Expected Result**:
+    - Hypervisor guest report reflects the guest moved from Host A to Host B
     - Host A guest report reflects the accurate number of guests, 0
     - Host B guest report reflects the accurate number of guests, 1
 
