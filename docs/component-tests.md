@@ -75,6 +75,11 @@ public class MyOpenShiftTest {
 ./mvnw clean install -Pcomponent-tests -Dswatch.component-tests.global.target=openshift
 ```
 
+### Test reporting
+
+The component-test pipelines upload a merged JUnit report (`merged-results.xml`) to a **S3** bucket for Ibutsu import. 
+Run metadata (component, git revision, pipeline name, and related fields) is embedded in the XML via `swatch.ct.metadata.*` Maven properties and `ComponentTestReporter`. 
+
 ## Running Component Tests
 
 ### Running All Component Tests
@@ -316,9 +321,9 @@ The framework provides dependency injection capabilities:
 - Parameter resolution for test methods
 - Context-aware resource management
 
-## Custom Test Properties for ReportPortal
+## Custom Test Properties for Ibutsu
 
-The framework automatically enriches Surefire XML reports with custom properties that are sent to ReportPortal via DataRouter. This enables better test traceability, filtering, and organization in ReportPortal.
+The framework automatically enriches Surefire XML reports with custom properties that are sent to Ibutsu via S3. This enables better test traceability, filtering, and organization in Ibutsu.
 
 ### Available Properties
 
@@ -371,7 +376,6 @@ public void testReceivedMetricIsIncremented() {
    - Removes default Surefire properties (system info)
    - Injects custom properties into each `<testcase>` element
    - Preserves all original Surefire data (system-out, system-err, failures, etc.)
-3. **DataRouter Filtering**: Only whitelisted properties in `datarouter.json` are sent to ReportPortal
 
 ### Adding a New Custom Property
 
@@ -457,30 +461,7 @@ public ComponentTestReporter() {
 }
 ```
 
-#### Step 4: Update DataRouter Configuration
-
-Add your property to the allowlist in `datarouter.json`:
-
-```json
-{
-  "targets": {
-    "reportportal": {
-      "processing": {
-        "property_filter": [
-          "component",
-          "test-plan",
-          "tag",
-          "my-property"  // Add your property here
-        ]
-      }
-    }
-  }
-}
-```
-
-**Important**: Only properties listed in `property_filter` are sent to ReportPortal. This keeps reports clean and focused.
-
-#### Step 5: Use the Annotation
+#### Step 4: Use the Annotation
 
 Use your new annotation in tests:
 
@@ -554,8 +535,7 @@ public class PriorityPropertyExtractor implements PropertyExtractor<Priority> {
 // 3. Register in ComponentTestReporter
 propertyExtractors.add(new PriorityPropertyExtractor());
 
-// 4. Update datarouter.json
-"property_filter": ["component", "test-plan", "tag", "priority"]
+// 4. Ensure the property name is included in Konflux run metadata (merged JUnit / Ibutsu import)
 
 // 5. Use in tests
 @Priority("high")

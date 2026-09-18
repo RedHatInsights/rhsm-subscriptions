@@ -120,24 +120,18 @@ spec:
       type: string
       description: Whether to run IQE with --parallel-enabled
       default: "false"
-    - name: IQE_RP_ARGS
-      type: string
-      description: Arguments to send to Report Portal
-      default: "true"
     - name: IQE_LOG_LEVEL
       type: string
       description: IQE log level
       default: "debug"
-
-    # Data Router configuration
-    - name: DATAROUTER_CREDENTIALS_NAME
+    - name: IQE_ENV_VARS
       type: string
-      description: Secret name for Data Router credentials
-      default: "smqe-datarouter-credentials"
-    - name: DATAROUTER_URL
+      description: Optional extra IQE env vars prepended for deploy-iqe-cji (comma-separated)
+      default: ""
+    - name: IQE_TEST_RESULTS_AWS_S3_SECRET
       type: string
-      default: "https://datarouter.ccitredhat.com"
-      description: Data Router public URL
+      description: Secret name in the ephemeral namespace with S3 credentials for test-results upload
+      default: ibutsu-aws-credentials
 
     # Project configuration
     - name: GITHUB_TOKEN_SECRET
@@ -159,7 +153,7 @@ spec:
   results:
     - name: ARTIFACTS_URL
       description: URL for the test artifacts
-      value: $(tasks.upload-artifacts-to-s3.results.ARTIFACTS_URL)
+      value: $(tasks.upload-logs-to-s3.results.ARTIFACTS_URL)
 
   tasks:
     - name: extract-metadata
@@ -174,6 +168,8 @@ spec:
           value: "$(params.GITHUB_TOKEN_SECRET)"
         - name: IQE_IMAGE_TAG_DEFAULT
           value: "$(params.IQE_IMAGE_TAG)"
+        - name: PIPELINE_RUN_NAME
+          value: "$(context.pipelineRun.name)"
       taskRef:
         resolver: git
         params:
@@ -322,6 +318,83 @@ spec:
               echo ""
               echo "Final args: $UPDATED_ARGS"
               printf "%s" "$UPDATED_ARGS" > $(results.UPDATED_EXTRA_DEPLOY_ARGS.path)
+
+    - name: build-iqe-params
+      runAfter:
+        - verify-snapshot-completeness
+      when:
+        - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
+          operator: in
+          values: ["false"]
+      params:
+        - name: IQE_ENV_VARS
+          value: "$(params.IQE_ENV_VARS)"
+        - name: COMPONENT_NAME
+          value: "$(params.COMPONENT_NAME)"
+        - name: GIT_REVISION
+          value: "$(tasks.extract-metadata.results.GIT_REVISION)"
+        - name: PIPELINE_RUN_NAME
+          value: "$(tasks.extract-metadata.results.PIPELINE_RUN_NAME)"
+        - name: TEST_RUN_SOURCE
+          value: "$(tasks.extract-metadata.results.TEST_RUN_SOURCE)"
+        - name: EVENT_TYPE
+          value: "$(tasks.extract-metadata.results.EVENT_TYPE)"
+        - name: INTEGRATION_TEST_NAME
+          value: "$(tasks.extract-metadata.results.INTEGRATION_TEST_NAME)"
+      taskSpec:
+        params:
+          - name: IQE_ENV_VARS
+            type: string
+          - name: COMPONENT_NAME
+            type: string
+          - name: GIT_REVISION
+            type: string
+          - name: PIPELINE_RUN_NAME
+            type: string
+          - name: TEST_RUN_SOURCE
+            type: string
+          - name: EVENT_TYPE
+            type: string
+          - name: INTEGRATION_TEST_NAME
+            type: string
+        results:
+          - name: IQE_ENV_VARS
+            description: Comma-separated env vars for deploy-iqe-cji
+        steps:
+          - name: build
+            image: quay.io/konflux-ci/task-runner@sha256:b9ef0479b57a494368a12a02886c650314c9ac7391c6228f21065865aab71c9e
+            script: |
+              #!/usr/bin/env bash
+              set -euo pipefail
+
+              prefix="$(params.IQE_ENV_VARS)"
+              component="$(params.COMPONENT_NAME)"
+              git_revision="$(params.GIT_REVISION)"
+              pipeline_name="$(params.PIPELINE_RUN_NAME)"
+              source="$(params.TEST_RUN_SOURCE)"
+              event_type="$(params.EVENT_TYPE)"
+              integration_test_name="$(params.INTEGRATION_TEST_NAME)"
+              ibutsu_data="component=${component} git_revision=${git_revision} pipeline_name=${pipeline_name} event_type=${event_type} integration_test_name=${integration_test_name} env=ephemeral tool=konflux source=${source}"
+
+              metadata_vars=(
+                "IBUTSU_MODE=archive"
+                "IBUTSU_DATA=${ibutsu_data}"
+                "IBUTSU_SOURCE=${source}"
+              )
+              metadata="$(IFS=,; echo "${metadata_vars[*]}")"
+
+              if [[ -n "$prefix" ]]; then
+                if [[ "$prefix" == *, ]]; then
+                  combined="${prefix}${metadata}"
+                else
+                  combined="${prefix},${metadata}"
+                fi
+              else
+                combined="${metadata}"
+              fi
+
+              echo "build-iqe-params: IQE_ENV_VARS length=${#combined}"
+              printf '%s' "$combined" > "$(results.IQE_ENV_VARS.path)"
 
     - name: github-delete-old-comments
       runAfter:
@@ -607,6 +680,7 @@ spec:
       timeout: "1h45m"
       runAfter:
         - deploy-application
+        - build-iqe-params
       when:
         - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
           operator: in
@@ -641,6 +715,8 @@ spec:
           value: "$(tasks.extract-metadata.results.IQE_IMAGE_TAG)"
         - name: IQE_PARALLEL_ENABLED
           value: "$(params.IQE_PARALLEL_ENABLED)"
+        - name: IQE_ENV_VARS
+          value: "$(tasks.build-iqe-params.results.IQE_ENV_VARS)"
       taskRef:
         resolver: git
         params:
@@ -651,10 +727,123 @@ spec:
           - name: pathInRepo
             value: tasks/run-iqe-cji.yaml
 
+    - name: collect-iqe-artifacts
+      runAfter:
+        - run-iqe-tests
+      when:
+        - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
+          operator: in
+          values: [ "false" ]
+        - input: "$(tasks.deploy-application.results.DEPLOY_SUCCEEDED)"
+          operator: in
+          values: ["true"]
+      workspaces:
+        - name: artifacts
+          workspace: artifacts
+      params:
+        - name: NS
+          value: "$(tasks.reserve-namespace.results.NS)"
+        - name: BONFIRE_IMAGE
+          value: "$(params.BONFIRE_IMAGE)"
+        - name: EPHEMERAL_ENV_PROVIDER_SECRET
+          value: "$(params.EPHEMERAL_ENV_PROVIDER_SECRET)"
+      taskSpec:
+        params:
+          - name: NS
+          - name: BONFIRE_IMAGE
+          - name: EPHEMERAL_ENV_PROVIDER_SECRET
+        workspaces:
+          - name: artifacts
+        steps:
+          - name: collect
+            image: "$(params.BONFIRE_IMAGE)"
+            env:
+              - name: OC_LOGIN_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: $(params.EPHEMERAL_ENV_PROVIDER_SECRET)
+                    key: token
+              - name: OC_LOGIN_SERVER
+                valueFrom:
+                  secretKeyRef:
+                    name: $(params.EPHEMERAL_ENV_PROVIDER_SECRET)
+                    key: url
+              - name: BONFIRE_BOT
+                value: "true"
+            script: |
+              #!/bin/bash
+              set -euo pipefail
+
+              ns="$(params.NS)"
+              artifacts_dir="$(workspaces.artifacts.path)"
+
+              echo "Connecting to the ephemeral namespace cluster"
+              login.sh
+
+              get_iqe_pod() {
+                local pods
+                local ret=0
+                pods=($(oc_wrapper get pods -o name -n "$ns" | grep iqe)) || ret="$?"
+                if [[ "$ret" -ne 0 ]] || [[ ${#pods[@]} -eq 0 ]]; then
+                  echo "Failed to detect IQE pod in $ns" >&2
+                  oc_wrapper get pods -n "$ns" >&2 || true
+                  return 1
+                fi
+                if [[ ${#pods[@]} -ne 1 ]]; then
+                  echo "Expected exactly one IQE pod, found: ${pods[*]}" >&2
+                  return 1
+                fi
+                echo "${pods[0]#pod/}"
+              }
+
+              pod="$(get_iqe_pod)"
+              bucket_name="${pod}-artifacts"
+
+              local_svc_port="$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')"
+              oc_wrapper port-forward "svc/env-${ns}-minio" "${local_svc_port}:9000" -n "$ns" &
+              port_forward_pid=$!
+              sleep 5
+              trap 'kill "$port_forward_pid" 2>/dev/null || true' EXIT
+
+              oc_wrapper get secret "env-${ns}-minio" -o json -n "$ns" | jq -r '.data' > minio-creds.json
+              minio_access="$(jq -r .accessKey < minio-creds.json | base64 -d)"
+              minio_secret="$(jq -r .secretKey < minio-creds.json | base64 -d)"
+              if [[ -z "$minio_access" ]] || [[ -z "$minio_secret" ]]; then
+                echo "Failed to read MinIO credentials from env-${ns}-minio" >&2
+                exit 1
+              fi
+
+              endpoint_url="http://localhost:${local_svc_port}"
+              export AWS_ACCESS_KEY_ID="$minio_access"
+              export AWS_SECRET_ACCESS_KEY="$minio_secret"
+              export AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION:-us-east-1}"
+
+              echo "Fetching IQE artifacts from minio bucket ${bucket_name} into ${artifacts_dir}"
+              minio_success=false
+              for attempt in $(seq 1 5); do
+                if aws --endpoint-url "$endpoint_url" s3 sync \
+                  "s3://${bucket_name}/" "$artifacts_dir" --only-show-errors; then
+                  minio_success=true
+                  break
+                fi
+                if [[ "$attempt" -lt 5 ]]; then
+                  echo "WARNING: minio artifact copy failed (attempt ${attempt}/5), retrying in 5s..." >&2
+                  sleep 5
+                fi
+              done
+
+              if [[ "$minio_success" != true ]]; then
+                echo "ERROR: minio artifact copy failed after 5 attempts" >&2
+                exit 1
+              fi
+
+              echo "IQE artifacts collected:"
+              ls -la "$artifacts_dir"
+
     - name: collect-logs
       onError: continue
       runAfter:
-        - run-iqe-tests
+        - collect-iqe-artifacts
       when:
         - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
           operator: in
@@ -703,172 +892,16 @@ spec:
               login.sh
 
               ARTIFACTS_DIR="$(workspaces.artifacts.path)"
-              echo "Collecting logs and test results from namespace: $(params.NS)"
+              echo "Collecting namespace logs into ${ARTIFACTS_DIR} (IQE junit/log/tar.gz already from collect-iqe-artifacts)"
               collect-logs.sh "$(params.NS)" "$ARTIFACTS_DIR" || :
-              minio-collect.sh "$(params.NS)" "$ARTIFACTS_DIR"
 
               echo "Artifacts collected:"
               ls -la "$ARTIFACTS_DIR"
 
-    - name: send-to-datarouter
-      onError: continue
-      runAfter:
-        - collect-logs
-      when:
-        - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
-          operator: in
-          values: [ "false" ]
-        - input: "$(tasks.deploy-application.results.DEPLOY_SUCCEEDED)"
-          operator: in
-          values: ["true"]
-      workspaces:
-        - name: artifacts
-          workspace: artifacts
-      params:
-        - name: DATAROUTER_CREDENTIALS_NAME
-          value: "$(params.DATAROUTER_CREDENTIALS_NAME)"
-        - name: DATAROUTER_URL
-          value: "$(params.DATAROUTER_URL)"
-        - name: PIPELINE_NAME
-          value: "$(context.pipelineRun.name)"
-        - name: GIT_REVISION
-          value: "$(tasks.extract-metadata.results.GIT_REVISION)"
-      taskSpec:
-        params:
-          - name: DATAROUTER_CREDENTIALS_NAME
-          - name: DATAROUTER_URL
-          - name: PIPELINE_NAME
-          - name: GIT_REVISION
-        workspaces:
-          - name: artifacts
-        steps:
-          - name: send
-            image: quay.io/dno/droute:latest
-            imagePullPolicy: Always
-            env:
-              - name: DATAROUTER_USERNAME
-                valueFrom:
-                  secretKeyRef:
-                    name: $(params.DATAROUTER_CREDENTIALS_NAME)
-                    key: username
-              - name: DATAROUTER_PASSWORD
-                valueFrom:
-                  secretKeyRef:
-                    name: $(params.DATAROUTER_CREDENTIALS_NAME)
-                    key: password
-              - name: PIPELINE_NAME
-                value: "$(params.PIPELINE_NAME)"
-              - name: EVENT_TYPE
-                valueFrom:
-                  fieldRef:
-                    fieldPath: metadata.labels['pac.test.appstudio.openshift.io/event-type']
-              - name: GROUP_TEST_INFO
-                valueFrom:
-                  fieldRef:
-                    fieldPath: metadata.annotations['test.appstudio.openshift.io/group-test-info']
-              - name: GIT_REVISION
-                value: "$(params.GIT_REVISION)"
-              - name: INTEGRATION_TEST_NAME
-                valueFrom:
-                  fieldRef:
-                    fieldPath: metadata.labels['test.appstudio.openshift.io/scenario']
-            script: |
-              #!/bin/bash
-              set -euo pipefail
-
-              ARTIFACTS_DIR="$(workspaces.artifacts.path)"
-              METADATA_FILE="/tmp/datarouter.json"
-
-              echo "Generating Data Router metadata for event type: ${EVENT_TYPE}"
-
-              PR_NUMBER=""
-              if [ -n "${GROUP_TEST_INFO:-}" ]; then
-                PR_NUMBER=$(echo "${GROUP_TEST_INFO}" | jq -r '.[0].pullRequestNumber // empty' 2>/dev/null || echo "")
-                [ -n "$PR_NUMBER" ] && echo "PR number: $PR_NUMBER"
-              fi
-
-              cat > "$METADATA_FILE" << EOF
-              {
-                "targets": {
-                  "reportportal": {
-                    "config": {
-                      "hostname": "reportportal-smqe.apps.dno.ocp-hub.prod.psi.redhat.com",
-                      "project": "SUBSCRIPTION_WATCH"
-                    },
-                    "processing": {
-                      "property_filter": ["component", "test-plan", "tag"],
-                      "apply_tfa": false,
-                      "apply_llm_analysis": false,
-                      "disable_testitem_updater": false,
-                      "launch": {
-                        "name": "rhsm-subscriptions iqe tests",
-                        "description": "Integration tests ran in Ephemeral through Konflux pipeline.",
-                        "attributes": [
-                          {"key": "tool", "value": "data-router"},
-                          {"key": "environment", "value": "ephemeral"},
-                          {"key": "event_type", "value": "${EVENT_TYPE}"},
-                          {"key": "pipeline_name", "value": "${PIPELINE_NAME}"},
-                          {"key": "git_revision", "value": "${GIT_REVISION}"},
-                          {"key": "integration_test_name", "value": "${INTEGRATION_TEST_NAME}"}
-                        ]
-                      },
-                      "tfa": {
-                        "add_attributes": false,
-                        "auto_finalize_defect_type": false,
-                        "auto_finalization_threshold": 0.55
-                      },
-                      "testcase_concat_char": " "
-                    }
-                  }
-                }
-              }
-              EOF
-
-              if [ -n "$PR_NUMBER" ]; then
-                jq --arg pr "$PR_NUMBER" \
-                  '.targets.reportportal.processing.launch.attributes += [{"key": "pull_request", "value": $pr}]' \
-                  "$METADATA_FILE" > "${METADATA_FILE}.tmp" && mv "${METADATA_FILE}.tmp" "$METADATA_FILE"
-              fi
-
-              echo "Metadata:"
-              jq . "$METADATA_FILE" || cat "$METADATA_FILE"
-
-              MAX_RETRIES=3
-              RETRY_DELAY=45
-              attempt=1
-              while [ $attempt -le $MAX_RETRIES ]; do
-                echo "=== Attempt $attempt of $MAX_RETRIES ==="
-                set +e
-                OUTPUT=$(/droute send \
-                  --url=$(params.DATAROUTER_URL) \
-                  --username=$DATAROUTER_USERNAME \
-                  --password=$DATAROUTER_PASSWORD \
-                  --metadata=$METADATA_FILE \
-                  --results="$ARTIFACTS_DIR/junit-rhsm_subscriptions-sequential.xml" 2>&1)
-                EXIT_CODE=$?
-                set -e
-                echo "Exit code: $EXIT_CODE"
-                echo "Output: $OUTPUT"
-
-                if [ $EXIT_CODE -eq 0 ]; then
-                  echo "Data Router send succeeded"
-                  break
-                fi
-
-                if echo "$OUTPUT" | grep -qi -E "5[0-9][0-9] " && [ $attempt -lt $MAX_RETRIES ]; then
-                  echo "Retrying in $RETRY_DELAY seconds..."
-                  sleep $RETRY_DELAY
-                  attempt=$((attempt + 1))
-                else
-                  echo "Data Router send failed."
-                  break
-                fi
-              done
-
     - name: post-pr-comment
       onError: continue
       runAfter:
-        - collect-logs
+        - collect-iqe-artifacts
       when:
         - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
           operator: in
@@ -907,7 +940,7 @@ spec:
           - name: pathInRepo
             value: .tekton/tasks/github-post-test-results.yaml
 
-    - name: upload-artifacts-to-s3
+    - name: upload-logs-to-s3
       onError: continue
       runAfter:
         - collect-logs
@@ -966,10 +999,43 @@ spec:
               bucket="${BUCKET:-rh-artifacts-bucket}"
               artifacts_key="${ARTIFACTS_KEY:?ARTIFACTS_KEY required}"
               region="${AWS_DEFAULT_REGION:-us-east-1}"
-              echo "Copying files to S3 from $ARTIFACTS_DIR"
+              echo "Copying namespace and IQE logs to S3 from $ARTIFACTS_DIR"
               aws s3 cp --recursive "$ARTIFACTS_DIR" "s3://${bucket}/${artifacts_key}" --quiet
               url="https://s3.console.aws.amazon.com/s3/buckets/${bucket}?region=${region}&prefix=${artifacts_key}/&showversions=false"
               echo -n "$url" | tee "$(results.ARTIFACTS_URL.path)"
+
+    - name: upload-test-results-to-s3
+      onError: continue
+      runAfter:
+        - collect-iqe-artifacts
+      when:
+        - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
+          operator: in
+          values: [ "false" ]
+        - input: "$(tasks.deploy-application.results.DEPLOY_SUCCEEDED)"
+          operator: in
+          values: ["true"]
+      workspaces:
+        - name: artifacts
+          workspace: artifacts
+      params:
+        - name: NS
+          value: "$(tasks.reserve-namespace.results.NS)"
+        - name: BONFIRE_IMAGE
+          value: "$(params.BONFIRE_IMAGE)"
+        - name: EPHEMERAL_ENV_PROVIDER_SECRET
+          value: "$(params.EPHEMERAL_ENV_PROVIDER_SECRET)"
+        - name: TEST_RESULTS_AWS_S3_SECRET
+          value: "$(params.IQE_TEST_RESULTS_AWS_S3_SECRET)"
+      taskRef:
+        resolver: git
+        params:
+          - name: url
+            value: "https://github.com/$(params.PROJECT_REPO).git"
+          - name: revision
+            value: "$(params.PROJECT_TASKS_REVISION)"
+          - name: pathInRepo
+            value: .tekton/tasks/upload-test-results-to-s3.yaml
 
   finally:
     - name: check-test-results
