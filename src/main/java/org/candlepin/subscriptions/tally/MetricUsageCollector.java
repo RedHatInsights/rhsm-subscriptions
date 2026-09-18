@@ -533,6 +533,9 @@ public class MetricUsageCollector {
             .collect(Collectors.toSet());
     boolean useLegacyQuery =
         featureFlags.isEnabled(FeatureFlags.USE_LEGACY_HOURLY_TALLY_SNAPSHOT_QUERY, false);
+    log.debug(
+        "Using {} snapshot query for hourly usage calculation",
+        useLegacyQuery ? "legacy" : "current");
     List<TallySnapshot> snapshots =
         useLegacyQuery
             ? snapshotRepository
