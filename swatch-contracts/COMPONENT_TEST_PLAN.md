@@ -1490,14 +1490,23 @@ This section verifies the automatic contract termination behavior when contracts
   - Subsequent API calls return consistent tag data.
 
 **offering-tags-TC002: Verify product tag mapping for different product types**
-- **Description:** Verify that different level_1/level_2 combinations result in correct product tag assignments.
-- **Setup:** Create test products with various level_1/level_2 combinations to test different product structures.
-- **Action:** Query public API endpoint to retrieve product tags for each product type.
-- **Verification:** Verify each product returns appropriate product tags based on level_1/level_2 values.
+- **Description:** Verify that different level_1/level_2 combinations (and engineering product IDs for RHEL/OpenShift) result in correct product tag assignments for all major PAYG and traditional subscription products.
+- **Setup:** Synchronize offerings for:
+  - ROSA (`OpenShift` / `ROSA - RH OpenShift on AWS`) → `rosa`
+  - RHEL for x86 (engineering IDs) → `RHEL for x86`
+  - OpenShift Container Platform (engineering ID 290, non-metered) → `OpenShift Container Platform`
+  - OpenShift metrics PAYG (`OpenShift` / `OCP - OpenShift Container Platform`, metered) → `OpenShift-metrics`
+  - OSD (`OpenShift` / `OSD - OpenShift Dedicated`) → `OpenShift-dedicated-metrics`
+  - ACS (`OpenShift` / `ACS - Advanced Cluster Security`) → `rhacs`
+  - OpenShift AI (`AI Platforms` / `OpenShift AI`) → `rhods`
+  - Ansible Automation Platform (`Ansible` / `Ansible Automation Platform`) → `ansible-aap-managed`
+- **Action:** Query public API endpoint to retrieve product tags for each synchronized SKU.
+- **Verification:** Verify each offering returns the expected single product tag; all eight tag sets are distinct.
 - **Expected Result:**
-  - Product tags correctly generated from level_1/level_2 combinations.
+  - Product tags correctly generated from level_1/level_2 combinations or engineering IDs.
+  - Traditional OpenShift (eng ID) and metered OpenShift-metrics (levels) resolve to different tags.
   - API responses for different SKUs are consistent and accurate.
-  - Different level combinations produce distinct product tags.
+  - Different product structures produce distinct product tags.
 
 **offering-tags-TC003: Handle product tag retrieval for non-existent offering**
 - **Description:** Verify that retrieving product tags for non-existent offerings is handled appropriately.
