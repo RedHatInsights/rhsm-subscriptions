@@ -120,7 +120,7 @@ spec:
             type: string
         steps:
           - name: check
-            image: quay.io/konflux-ci/task-runner@sha256:b9ef0479b57a494368a12a02886c650314c9ac7391c6228f21065865aab71c9e
+            image: quay.io/konflux-ci/task-runner:v3
             script: |
               #!/bin/bash
               FAILED=false
@@ -207,7 +207,7 @@ spec:
             description: "true if component tests should be skipped, false to run"
         steps:
           - name: check
-            image: quay.io/konflux-ci/task-runner@sha256:b9ef0479b57a494368a12a02886c650314c9ac7391c6228f21065865aab71c9e
+            image: quay.io/konflux-ci/task-runner:v3
             script: |
               #!/bin/bash
               set -euo pipefail
@@ -299,7 +299,7 @@ spec:
             description: Updated EXTRA_DEPLOY_ARGS with template ref if rhsm component is present
         steps:
           - name: update-args
-            image: quay.io/konflux-ci/task-runner@sha256:b9ef0479b57a494368a12a02886c650314c9ac7391c6228f21065865aab71c9e
+            image: quay.io/konflux-ci/task-runner:v3
             script: |
               #!/usr/bin/env bash
               set -euo pipefail
