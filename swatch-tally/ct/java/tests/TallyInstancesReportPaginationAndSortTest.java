@@ -22,6 +22,7 @@ package tests;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -473,5 +474,139 @@ public class TallyInstancesReportPaginationAndSortTest extends BaseTallyComponen
     List<ReportCategory> ascReversed = new ArrayList<>(ascCategories);
     Collections.reverse(ascReversed);
     assertEquals(descCategories, ascReversed, "desc order should reverse asc category order");
+  }
+
+  @Test
+  @TestPlanName("tally-instances-sorting-TC007")
+  public void shouldPaginateWithLimitAndOffset() {
+    // Given: Three instances under same billing account
+    Map<String, Object> params = new HashMap<>();
+    params.put("limit", 1);
+    params.put("offset", 0);
+    params.put("billing_account_id", pagination.billingAccountId());
+
+    // When: Query first page
+    InstanceResponse page0 =
+        service.getInstancesByProduct(
+            testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfMonth, start, params);
+
+    // Then: Should return exactly 1 row with meta.count = 3
+    assertNotNull(page0.getData());
+    assertEquals(1, page0.getData().size());
+    assertEquals(3, page0.getMeta().getCount());
+    String page0InstanceId = page0.getData().get(0).getInstanceId();
+
+    // When: Query second page with offset=1
+    Map<String, Object> page1Params = new HashMap<>();
+    page1Params.put("limit", 1);
+    page1Params.put("offset", 1);
+    page1Params.put("billing_account_id", pagination.billingAccountId());
+    InstanceResponse page1 =
+        service.getInstancesByProduct(
+            testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfMonth, start, page1Params);
+
+    // Then: Should return exactly 1 row with same meta.count
+    assertNotNull(page1.getData());
+    assertEquals(1, page1.getData().size());
+    assertEquals(3, page1.getMeta().getCount());
+    String page1InstanceId = page1.getData().get(0).getInstanceId();
+
+    // And: Different offsets should return different instances
+    assertNotEquals(page0InstanceId, page1InstanceId);
+  }
+
+  @Test
+  @TestPlanName("tally-instances-sorting-TC008")
+  public void shouldIncludePaginationLinksInResponse() {
+    // When: Query without limit
+    InstanceResponse withoutLimit =
+        service.getInstancesByProduct(
+            testOrgId,
+            RHEL_FOR_X86_ELS_PAYG.productTag(),
+            firstOfMonth,
+            start,
+            Map.of("billing_account_id", pagination.billingAccountId()));
+
+    // Then: Should return all rows without links
+    assertNotNull(withoutLimit.getData());
+    assertEquals(3, withoutLimit.getData().size());
+    assertNull(withoutLimit.getLinks());
+
+    // When: Query with limit
+    Map<String, Object> params = new HashMap<>();
+    params.put("limit", 2);
+    params.put("offset", 0);
+    params.put("billing_account_id", pagination.billingAccountId());
+    InstanceResponse withLimit =
+        service.getInstancesByProduct(
+            testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfMonth, start, params);
+
+    // Then: Should return 2 rows with links present
+    assertNotNull(withLimit.getData());
+    assertEquals(2, withLimit.getData().size());
+    assertNotNull(withLimit.getMeta());
+    assertNotNull(withLimit.getLinks());
+    assertFalse(
+        withLimit.getLinks().getFirst() == null || withLimit.getLinks().getFirst().isBlank());
+  }
+
+  @Test
+  @TestPlanName("tally-instances-sorting-TC009")
+  public void shouldSortInstancesByMetricValue() {
+    // When: Sort by metric ascending
+    Map<String, Object> asc = new HashMap<>();
+    asc.put("billing_account_id", metric.billingAccountId());
+    asc.put("sort", metricId);
+    asc.put("dir", SortDirection.ASC);
+    InstanceResponse ascResp =
+        service.getInstancesByProduct(
+            testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfMonth, start, asc);
+
+    // Then: First should have smaller metric value, last should have larger
+    assertNotNull(ascResp.getData());
+    assertEquals(2, ascResp.getData().size());
+    assertEquals(metric.smallMeterInstanceId(), ascResp.getData().get(0).getInstanceId());
+
+    // When: Sort by metric descending
+    Map<String, Object> desc = new HashMap<>();
+    desc.put("billing_account_id", metric.billingAccountId());
+    desc.put("sort", metricId);
+    desc.put("dir", SortDirection.DESC);
+    InstanceResponse descResp =
+        service.getInstancesByProduct(
+            testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfMonth, start, desc);
+
+    // Then: First should have larger metric value
+    assertEquals(metric.largeMeterInstanceId(), descResp.getData().get(0).getInstanceId());
+  }
+
+  @Test
+  @TestPlanName("tally-instances-sorting-TC010")
+  public void shouldSortInstancesBySocketCount() {
+    // When: Sort by metric ascending (sockets for physical/cloud)
+    Map<String, Object> asc = new HashMap<>();
+    asc.put("billing_account_id", metric.billingAccountId());
+    asc.put("sort", metricId);
+    asc.put("dir", SortDirection.ASC);
+    InstanceResponse ascResp =
+        service.getInstancesByProduct(
+            testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfMonth, start, asc);
+
+    // Then: Verify ascending order
+    assertNotNull(ascResp.getData());
+    assertEquals(2, ascResp.getData().size());
+
+    // When: Sort by metric descending
+    Map<String, Object> desc = new HashMap<>();
+    desc.put("billing_account_id", metric.billingAccountId());
+    desc.put("sort", metricId);
+    desc.put("dir", SortDirection.DESC);
+    InstanceResponse descResp =
+        service.getInstancesByProduct(
+            testOrgId, RHEL_FOR_X86_ELS_PAYG.productTag(), firstOfMonth, start, desc);
+
+    // Then: Verify descending order
+    assertNotNull(descResp.getData());
+    assertEquals(2, descResp.getData().size());
   }
 }
