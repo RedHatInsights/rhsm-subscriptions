@@ -226,6 +226,34 @@ public class TallyConsumerComponentTest extends BaseContractComponentTest {
         "Should have null capacity (no subscription matches Self-Support/Dev-Test)");
   }
 
+  @TestPlanName("tally-consumer-TC009")
+  @Test
+  void shouldNotEnrichCapacityWhenContractHasNoDimensions() {
+    // Given: A pure PAYG ROSA contract with no dimensions (no capacity metrics)
+    var contract = givenRosaContractWithoutDimensions();
+    var tallySnapshot = givenTallySnapshot(contract, CORES, TALLY_VALUE);
+
+    // When: Tally summary is processed
+    whenTallySummaryMessageIsSent(tallySnapshot);
+
+    // Then: Utilization is emitted with the matching subscription but null capacity
+    UtilizationSummary utilizationSummary = thenUtilizationMessageIsProduced(tallySnapshot);
+    assertNotNull(utilizationSummary, "Utilization summary should be produced");
+    assertTrue(utilizationSummary.getSubscriptionFound(), "Should find matching subscription");
+    assertEquals(
+        UtilizationSummary.Granularity.HOURLY,
+        utilizationSummary.getGranularity(),
+        "PAYG contract should emit HOURLY utilization");
+    var cores =
+        utilizationSummary.getMeasurements().stream()
+            .filter(m -> CORES.getValue().equals(m.getMetricId()))
+            .findFirst();
+    assertTrue(cores.isPresent(), "Should have cores measurement");
+    assertEquals(TALLY_VALUE, cores.get().getValue(), 0.001, "Should keep tally usage value");
+    assertNull(
+        cores.get().getCapacity(), "Should have null capacity when contract has no dimensions");
+  }
+
   private List<Contract> givenMultipleSubscriptionsWithDifferentBillingAccount() {
     var subscriptions =
         List.of(
@@ -255,6 +283,12 @@ public class TallyConsumerComponentTest extends BaseContractComponentTest {
   private Contract givenRosaSubscription() {
     var contract =
         Contract.buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, DEFAULT_CAPACITY));
+    givenContractIsCreated(contract);
+    return contract;
+  }
+
+  private Contract givenRosaContractWithoutDimensions() {
+    var contract = Contract.buildRosaContract(orgId, BillingProvider.AWS, Map.of());
     givenContractIsCreated(contract);
     return contract;
   }

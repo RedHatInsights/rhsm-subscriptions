@@ -2625,6 +2625,19 @@ This section validates the tally-to-utilization pipeline, where `swatch-contract
   - Utilization summary is produced but with `capacity=null` for the Sockets measurement (no subscription matches that SLA/Usage combination)  
   - This snapshot should not be eligible to trigger an over-usage notification
 
+**tally-consumer-TC009 - Capacity is null when PAYG contract has no dimensions**  
+- **Description**: Verify that a pure PAYG contract created without dimensions (no capacity metrics) still matches the tally snapshot, but the emitted utilization measurement has `capacity=null`.  
+- **Setup**:  
+  - Create an AWS ROSA contract with empty subscription measurements (no dimensions)  
+  - Prepare an hourly tally snapshot for Cores usage against that contract  
+- **Action**:  
+  - Publish the tally summary to the tally Kafka topic  
+- **Verification**:  
+  - Wait for a utilization summary on the utilization Kafka topic  
+- **Expected Result**:  
+  - Utilization summary is produced with `subscriptionFound=true` and `granularity=HOURLY`  
+  - Cores measurement keeps the tally usage value and has `capacity=null`
+
 ## Customer API access control
 
 **Endpoint:** `GET /api/rhsm-subscriptions/v2/subscriptions/products/{product_id}`  
