@@ -23,17 +23,23 @@ package tests;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
+import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
+import com.redhat.swatch.contract.test.model.GranularityType;
 import com.redhat.swatch.contract.test.model.SubscriptionDeleteReason;
 import domain.BillingProvider;
 import domain.Contract;
+import domain.Product;
 import io.restassured.response.Response;
+import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.UUID;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.Test;
 
 public class ContractsDeletionComponentTest extends BaseContractComponentTest {
+
+  private static final double ROSA_CORES_CAPACITY = 8.0;
 
   @TestPlanName("contracts-deletion-TC001")
   @Test
@@ -66,10 +72,60 @@ public class ContractsDeletionComponentTest extends BaseContractComponentTest {
     thenDeleteShouldBeIdempotent(deleteResponse);
   }
 
+  @TestPlanName("contracts-termination-TC003")
+  @Test
+  void shouldDoubleThenZeroCapacityWhenAddAndDeleteContracts() {
+    // Given: An active ROSA contract exists with capacity matching its value
+    String sku = RandomUtils.generateRandom();
+    Contract firstContract =
+        Contract.buildRosaContract(
+            orgId, BillingProvider.AWS, Map.of(CORES, ROSA_CORES_CAPACITY), sku);
+    givenContractIsCreated(firstContract);
+    thenRosaCoresCapacityEquals(ROSA_CORES_CAPACITY);
+
+    // When: A second identical contract is added (same SKU and capacity)
+    Contract secondContract =
+        Contract.buildRosaContract(
+            orgId, BillingProvider.AWS, Map.of(CORES, ROSA_CORES_CAPACITY), sku);
+    givenOfferingIsSynced(secondContract);
+    whenContractIsCreatedViaApi(secondContract);
+
+    // Then: Capacity doubles
+    thenRosaCoresCapacityEquals(ROSA_CORES_CAPACITY * 2);
+
+    // When: the two contracts are deleted
+    var contracts = service.getContractsByOrgId(orgId);
+    assertEquals(2, contracts.size(), "Should have exactly two contracts");
+    for (var contract : contracts) {
+      whenContractIsDeleted(contract.getUuid());
+    }
+
+    // Then: Capacity returns to zero
+    thenRosaCoresCapacityEquals(0.0);
+  }
+
   private void thenDeleteShouldBeIdempotent(Response deleteResponse) {
     assertEquals(
         HttpStatus.SC_NO_CONTENT,
         deleteResponse.statusCode(),
         "Delete non-existent contract should return 204 No Content (idempotent behavior)");
+  }
+
+  private void thenRosaCoresCapacityEquals(double expectedCapacity) {
+    OffsetDateTime beginning = clock.now().minusDays(1);
+    OffsetDateTime ending = clock.now().plusDays(1);
+
+    AwaitilityUtils.until(
+        () ->
+            getCapacityValueFromReport(
+                service.getCapacityReportByMetricId(
+                    Product.ROSA,
+                    orgId,
+                    CORES.toString(),
+                    beginning,
+                    ending,
+                    GranularityType.DAILY,
+                    null)),
+        capacity -> Math.abs(capacity - expectedCapacity) < 0.01);
   }
 }
