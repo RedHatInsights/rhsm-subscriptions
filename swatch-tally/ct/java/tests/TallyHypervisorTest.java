@@ -60,6 +60,9 @@ public class TallyHypervisorTest extends BaseTallyComponentTest {
 
   private HostStateManager hostManager;
 
+  public OffsetDateTime start = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
+  public OffsetDateTime end = start.plusDays(1).minusNanos(1);
+
   @BeforeEach
   void setupHostManager() {
     hostManager = new HostStateManager(new HbiDbConnector(hbiDatabase));
@@ -124,13 +127,14 @@ public class TallyHypervisorTest extends BaseTallyComponentTest {
   @TestPlanName("tally-hypervisor-TC002")
   public void testRHELHypervisorWithoutGuestsContributesToDailyTotal() {
     int testSocketCount = 2;
+
     // Given: Org is opted in and a nightly tally is preformed
     service.createOptInConfig(orgId);
     service.tallyOrg(orgId);
 
     var initalTallyReport =
         service.getTallyReportData(
-            orgId, RHEL_FOR_X86.productTag(), "Sockets", getDailyTallyTimeParameters());
+            orgId, RHEL_FOR_X86.productTag(), "Sockets", getDailyTallyTimeParameters(start, end));
 
     double beforeHostTotal =
         initalTallyReport.getData().stream()
@@ -148,7 +152,7 @@ public class TallyHypervisorTest extends BaseTallyComponentTest {
 
     var endTallyReport =
         service.getTallyReportData(
-            orgId, RHEL_FOR_X86.productTag(), "Sockets", getDailyTallyTimeParameters());
+            orgId, RHEL_FOR_X86.productTag(), "Sockets", getDailyTallyTimeParameters(start, end));
     Log.info("endTallyReport: %s", endTallyReport);
 
     double afterHostTotal =
@@ -171,9 +175,6 @@ public class TallyHypervisorTest extends BaseTallyComponentTest {
         seeder, orgId, RHEL_FOR_X86.productTag(), UUID.randomUUID().toString(), service);
     service.tallyOrg(orgId);
 
-    OffsetDateTime startOfToday = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
-    OffsetDateTime endOfToday = startOfToday.plusDays(1).minusNanos(1);
-
     TallyDbHostSeeder.SeededHost hypervisorHost =
         seeder.insertHost(
             orgId, UUID.randomUUID().toString(), "VIRTUALIZED", false, false, true, 0, null);
@@ -183,7 +184,7 @@ public class TallyHypervisorTest extends BaseTallyComponentTest {
 
     // Then: Hypervisor without guests should not appear in instances report
     var instancesResponse =
-        service.getInstancesByProduct(orgId, RHEL_FOR_X86.productTag(), startOfToday, endOfToday);
+        service.getInstancesByProduct(orgId, RHEL_FOR_X86.productTag(), start, end);
     var data = instancesResponse.getData();
 
     boolean found = containsSubscriptionManagerId(data, hypervisorHost.subscriptionManagerId());
@@ -198,10 +199,7 @@ public class TallyHypervisorTest extends BaseTallyComponentTest {
         seeder, orgId, RHEL_FOR_X86.productTag(), UUID.randomUUID().toString(), service);
     service.tallyOrg(orgId);
 
-    OffsetDateTime startOfToday = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
-    OffsetDateTime endOfToday = startOfToday.plusDays(1).minusNanos(1);
-
-    long initialSockets = getDailySocketsTotal(startOfToday, endOfToday);
+    long initialSockets = getDailySocketsTotal(start, end);
 
     seeder.insertHost(
         orgId, UUID.randomUUID().toString(), "VIRTUALIZED", false, false, true, 0, null);
@@ -210,7 +208,7 @@ public class TallyHypervisorTest extends BaseTallyComponentTest {
     service.tallyOrg(orgId);
 
     // Then: Hypervisor without guests should not change the total sockets
-    long newSockets = getDailySocketsTotal(startOfToday, endOfToday);
+    long newSockets = getDailySocketsTotal(start, end);
     assertEquals(
         initialSockets, newSockets, "Hypervisor without guests should not change total sockets");
   }
@@ -218,8 +216,6 @@ public class TallyHypervisorTest extends BaseTallyComponentTest {
   @TestPlanName("tally-hypervisor-TC005")
   @Test
   public void testRHELHypervisorWithGuestsIncreasesTotalSockets() {
-    OffsetDateTime start = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
-    OffsetDateTime end = start.plusDays(1).minusNanos(1);
     String sla = "Premium";
     String usage = "Production";
 
@@ -233,7 +229,7 @@ public class TallyHypervisorTest extends BaseTallyComponentTest {
             orgId,
             RHEL_FOR_X86.productTag(),
             "Sockets",
-            mapWith(getDailyTallyTimeParameters(), "category", "hypervisor"));
+            mapWith(getDailyTallyTimeParameters(start, end), "category", "hypervisor"));
     Log.info("initialHypervisorTally: %s", initialHypervisorTally);
 
     var initialTallyCloudSockets =
@@ -241,7 +237,7 @@ public class TallyHypervisorTest extends BaseTallyComponentTest {
             orgId,
             RHEL_FOR_X86.productTag(),
             "Sockets",
-            mapWith(getDailyTallyTimeParameters(), "category", "cloud"));
+            mapWith(getDailyTallyTimeParameters(start, end), "category", "cloud"));
     Log.info("initialTallyCloudSockets: %s", initialTallyCloudSockets);
 
     var initialTallyCloudCores =
@@ -249,7 +245,7 @@ public class TallyHypervisorTest extends BaseTallyComponentTest {
             orgId,
             RHEL_FOR_X86.productTag(),
             "Cores",
-            mapWith(getDailyTallyTimeParameters(), "category", "cloud"));
+            mapWith(getDailyTallyTimeParameters(start, end), "category", "cloud"));
     Log.info("initialTallyCloudCores: %s", initialTallyCloudCores);
 
     var initTallySum =
@@ -273,23 +269,21 @@ public class TallyHypervisorTest extends BaseTallyComponentTest {
             .apply(HostTemplates.conduitReportedPhysicalRhel(1, 4))
             .insert();
 
-    SeededHost guest1 =
-        hostManager
-            .createHost(orgId)
-            .displayName("guest1")
-            .apply(
-                HostTemplates.conduitReportedVirtualRhelGuest(
-                    phyHypervisor.subscriptionManagerId(), sla, usage, 1, 1))
-            .insert();
+    hostManager
+        .createHost(orgId)
+        .displayName("guest1")
+        .apply(
+            HostTemplates.conduitReportedVirtualRhelGuest(
+                phyHypervisor.subscriptionManagerId(), sla, usage, 1, 1))
+        .insert();
 
-    SeededHost guest2 =
-        hostManager
-            .createHost(orgId)
-            .displayName("guest2")
-            .apply(
-                HostTemplates.conduitReportedVirtualRhelGuest(
-                    phyHypervisor.subscriptionManagerId(), sla, usage, 1, 1))
-            .insert();
+    hostManager
+        .createHost(orgId)
+        .displayName("guest2")
+        .apply(
+            HostTemplates.conduitReportedVirtualRhelGuest(
+                phyHypervisor.subscriptionManagerId(), sla, usage, 1, 1))
+        .insert();
 
     // Then: Run a post hypervisor tally and fetch the updated tally data
     service.tallyOrg(orgId);
@@ -312,7 +306,7 @@ public class TallyHypervisorTest extends BaseTallyComponentTest {
             orgId,
             RHEL_FOR_X86.productTag(),
             "Sockets",
-            mapWith(getDailyTallyTimeParameters(), "category", "hypervisor"));
+            mapWith(getDailyTallyTimeParameters(start, end), "category", "hypervisor"));
     Log.info("endHypervisorTally: %s", endHypervisorTally.getData());
 
     var endTallyCloudSockets =
@@ -320,7 +314,7 @@ public class TallyHypervisorTest extends BaseTallyComponentTest {
             orgId,
             RHEL_FOR_X86.productTag(),
             "Sockets",
-            mapWith(getDailyTallyTimeParameters(), "category", "cloud"));
+            mapWith(getDailyTallyTimeParameters(start, end), "category", "cloud"));
     Log.info("endTallyCloudSockets: %s", endTallyCloudSockets.getData());
 
     var endTallyCloudCores =
@@ -328,7 +322,7 @@ public class TallyHypervisorTest extends BaseTallyComponentTest {
             orgId,
             RHEL_FOR_X86.productTag(),
             "Cores",
-            mapWith(getDailyTallyTimeParameters(), "category", "cloud"));
+            mapWith(getDailyTallyTimeParameters(start, end), "category", "cloud"));
     Log.info("endTallyCloudCores: %s", endTallyCloudCores.getData());
 
     var endHypervisorTallySum =
@@ -384,8 +378,6 @@ public class TallyHypervisorTest extends BaseTallyComponentTest {
   @TestPlanName("tally-hypervisor-TC006")
   @Disabled("This test uncovered bug SWATCH-5585. Should be reactivated when the bug is resolved")
   public void testGuestMappingUpdateChangesInstancesPresence() {
-    OffsetDateTime start = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
-    OffsetDateTime end = start.plusDays(1).minusNanos(1);
     String sla = "Premium";
     String usage = "Production";
 
@@ -408,7 +400,7 @@ public class TallyHypervisorTest extends BaseTallyComponentTest {
             .apply(
                 HostTemplates.conduitReportedVirtualRhelGuest(
                     hostASeededHost.subscriptionManagerId(), sla, usage, 1, 1));
-    SeededHost guest1 = guestBuilder.insert();
+    guestBuilder.insert();
 
     // Create a hypervisor Host B without a guest
     SeededHost hostBSeededHost =
@@ -452,13 +444,12 @@ public class TallyHypervisorTest extends BaseTallyComponentTest {
             "Hypervisor without guest should have 0 guest but has %s guests", hostBGuestCount));
 
     // Update the guest1 to have hypervisor_uuid to point to Host B
-    var updatedGuest =
-        guestBuilder
-            .systemProfileFacts(
-                guestBuilder.getSystemProfileFacts().toBuilder()
-                    .hypervisorUuid(hostBSeededHost.subscriptionManagerId())
-                    .build())
-            .update();
+    guestBuilder
+        .systemProfileFacts(
+            guestBuilder.getSystemProfileFacts().toBuilder()
+                .hypervisorUuid(hostBSeededHost.subscriptionManagerId())
+                .build())
+        .update();
 
     service.tallyOrg(orgId);
 
@@ -490,8 +481,6 @@ public class TallyHypervisorTest extends BaseTallyComponentTest {
   @Test
   @TestPlanName("tally-hypervisor-TC011")
   public void testGuestMappingUpdateChangesInstanceGuestReport() {
-    OffsetDateTime start = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
-    OffsetDateTime end = start.plusDays(1).minusNanos(1);
     String sla = "Premium";
     String usage = "Production";
 
@@ -577,8 +566,6 @@ public class TallyHypervisorTest extends BaseTallyComponentTest {
     givenPrimaryBucketSearchesEnabled(usePrimaryBucketSearches);
     service.createOptInConfig(orgId);
     SeededHost hypervisor = givenHypervisorWithOverlappingGuestSla();
-    OffsetDateTime start = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
-    OffsetDateTime end = start.plusDays(1).minusNanos(1);
 
     // When: Fetching instances with category=hypervisor (SLA and usage wildcarded)
     InstanceResponse response =
@@ -658,9 +645,8 @@ public class TallyHypervisorTest extends BaseTallyComponentTest {
         .anyMatch(i -> Objects.equals(i.getSubscriptionManagerId(), subscriptionManagerId));
   }
 
-  private Map<String, Object> getDailyTallyTimeParameters() {
-    OffsetDateTime start = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
-    OffsetDateTime end = start.plusDays(1).minusNanos(1);
+  private Map<String, Object> getDailyTallyTimeParameters(
+      OffsetDateTime start, OffsetDateTime end) {
 
     return Map.of(
         "granularity", "Daily",
