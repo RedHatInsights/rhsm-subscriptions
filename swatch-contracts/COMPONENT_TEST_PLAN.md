@@ -718,6 +718,20 @@ Component tests for GET `/api/swatch-contracts/internal/subscriptions/azureUsage
   - HTTP 204 No Content (idempotent behavior - delete succeeds regardless)  
   - Graceful handling of non-existent contracts
 
+**contracts-deletion-TC003** - **Capacity gets updated when creating new and deleted all contracts.**
+- **Description:** Verify capacity across the full contract lifecycle: create a contract, add a second identical contract (same SKU and metric capacity), then delete all contracts.
+- **Setup:** Create an active ROSA contract with a known cores capacity value.
+- **Action:**
+  1. Assert capacity matches the single-contract value.
+  2. Create a second identical contract for the same org/SKU/capacity.
+  3. Assert capacity doubles.
+  4. Delete all contracts for the org.
+- **Verification:** Poll the ROSA cores capacity report after each step.
+- **Expected Result:**
+  1. Capacity equals the single contract value after the first create.
+  2. Capacity equals twice that value after the second identical contract is added.
+  3. Capacity returns to 0 after all contracts are deleted.
+
 ## Contract Sync
 
 **contracts-sync-TC001 - Sync contracts for a single organization**  
