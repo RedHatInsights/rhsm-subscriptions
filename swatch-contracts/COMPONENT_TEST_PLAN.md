@@ -784,14 +784,15 @@ Component tests for GET `/api/swatch-contracts/internal/subscriptions/azureUsage
   - StatusResponse: "All Contracts are Synced"
   - Each org's contracts synced
 
-**contracts-sync-TC004** - Sync subscriptions for contracts by org**  
-- **Description**: Verify subscription sync for all contracts of an org.  
-- **Setup**: Have contracts for org without subscriptions.  
-- **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/{org_id}/subscriptions`.  
-- **Verification**: Check subscriptions are created.  
-  - **Expected Result**:  
+**contracts-sync-TC004** - Sync subscriptions for contracts by org restores missing measurements
+- **Description**: Verify subscription sync for all contracts of an org regenerates deleted subscription measurements and restores capacity.
+- **Setup**: Create a contract and confirm its subscription contributes positive capacity. Delete that subscription's rows from `subscription_measurements`.
+- **Action**: Confirm capacity is zero, then POST `/api/swatch-contracts/internal/rpc/sync/contracts/{org_id}/subscriptions`.
+- **Verification**: Check that the subscription measurements and capacity are restored.
+- **Expected Result**:
   - StatusResponse success  
   - Subscriptions synced from Subscription API
+  - Capacity is positive again after the deleted measurements are regenerated
 
 **contracts-sync-TC005 - Clear all contracts for the organization**
 - **Description**: Verify that deleteContractsByOrg removes all org contracts.

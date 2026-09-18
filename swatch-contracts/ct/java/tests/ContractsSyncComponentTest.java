@@ -35,7 +35,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import api.PartnerApiStubs;
+import com.redhat.swatch.component.tests.api.SwatchDatabase;
 import com.redhat.swatch.component.tests.api.TestPlanName;
+import com.redhat.swatch.component.tests.api.db.DatabaseService;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.configuration.registry.MetricId;
@@ -52,6 +54,8 @@ import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.Test;
 
 public class ContractsSyncComponentTest extends BaseContractComponentTest {
+
+  @SwatchDatabase static DatabaseService swatchDatabase = new DatabaseService();
 
   private static final String STATUS_SUCCESS = "SUCCESS";
   private static final String STATUS_ENQUEUED_PREFIX = "Enqueued";
@@ -241,7 +245,7 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
   @TestPlanName("contracts-sync-TC004")
   @Test
   void shouldSyncSubscriptionsForContractsByOrg() {
-    // Given: Contracts exist for the organization without subscriptions
+    // Given: A contract with a subscription contributing positive capacity
     String sku = RandomUtils.generateRandom();
     Contract contract =
         Contract.buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, 10.0), sku);
@@ -257,6 +261,36 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
     // Create contract
     givenContractIsCreated(contract);
 
+    // Verify the initial subscription measurements contribute to capacity.
+    var initialSkuCapacity =
+        service.getSkuCapacityByProductIdForOrgAndSku(contract.getProduct(), orgId, sku);
+    assertTrue(initialSkuCapacity.isPresent(), "SKU capacity should exist before deletion");
+    var initialCapacity = initialSkuCapacity.orElseThrow();
+    assertNotNull(initialCapacity.getSubscriptions(), "Should have subscriptions before deletion");
+    assertEquals(
+        1,
+        initialCapacity.getSubscriptions().size(),
+        "Should have exactly one subscription before deletion");
+    String subscriptionId = initialCapacity.getSubscriptions().get(0).getId();
+    double initialMeasurementTotal =
+        initialCapacity.getMeasurements().stream().mapToDouble(Double::doubleValue).sum();
+    assertTrue(initialMeasurementTotal > 0.0, "Initial capacity should be positive");
+
+    // Delete the measurements to reproduce the missing-row regression.
+    swatchDatabase.executeInTransaction(
+        context ->
+            context.executeUpdate(
+                "DELETE FROM subscription_measurements WHERE subscription_id = ?", subscriptionId));
+    AwaitilityUtils.until(
+        () ->
+            service
+                .getSkuCapacityByProductIdForOrgAndSku(contract.getProduct(), orgId, sku)
+                .map(
+                    capacity ->
+                        capacity.getMeasurements().stream().mapToDouble(Double::doubleValue).sum())
+                .orElse(0.0),
+        capacity -> capacity == 0.0);
+
     // When: Sync subscriptions for all contracts of the org
     Response syncResponse = service.syncSubscriptionsForContractsByOrg(orgId);
 
@@ -265,13 +299,30 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
         "Sync subscriptions should succeed", syncResponse.statusCode(), is(HttpStatus.SC_OK));
     syncResponse.then().body("status", equalTo(STATUS_SUCCESS));
 
-    // Verify subscriptions were actually created
+    // Verify the deleted measurements and capacity were restored.
     var skuCapacity =
-        service.getSkuCapacityByProductIdForOrgAndSku(contract.getProduct(), orgId, sku);
-    assertTrue(skuCapacity.isPresent(), "SKU capacity should exist");
-    assertNotNull(skuCapacity.get().getSubscriptions(), "Should have subscriptions");
+        AwaitilityUtils.until(
+            () -> service.getSkuCapacityByProductIdForOrgAndSku(contract.getProduct(), orgId, sku),
+            capacity ->
+                capacity
+                    .map(
+                        value ->
+                            value.getMeasurements().stream().mapToDouble(Double::doubleValue).sum()
+                                == initialMeasurementTotal)
+                    .orElse(false));
+    var restoredCapacity = skuCapacity.orElseThrow();
+    assertNotNull(restoredCapacity.getSubscriptions(), "Should have subscriptions");
+    assertEquals(1, restoredCapacity.getSubscriptions().size(), "Should have one subscription");
     assertEquals(
-        1, skuCapacity.get().getSubscriptions().size(), "Should have exactly one subscription");
+        subscriptionId,
+        restoredCapacity.getSubscriptions().get(0).getId(),
+        "The original subscription should be preserved");
+    double restoredMeasurementTotal =
+        restoredCapacity.getMeasurements().stream().mapToDouble(Double::doubleValue).sum();
+    assertEquals(
+        initialMeasurementTotal,
+        restoredMeasurementTotal,
+        "Capacity should be restored after subscription sync");
   }
 
   @TestPlanName("contracts-sync-TC006")
