@@ -1,0 +1,27 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Scrape Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Scrape local swatch-tally service
+  - job_name: 'swatch-tally'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['host.containers.internal:9010']
+        labels:
+          service: 'swatch-tally'
+          env: 'local'
+
+  # Scrape other local swatch services (add as needed)
+  - job_name: 'swatch-contracts'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['host.containers.internal:9011']
+        labels:
+          service: 'swatch-contracts'
+          env: 'local'
