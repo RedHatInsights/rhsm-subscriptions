@@ -23,7 +23,6 @@ package tests;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -36,14 +35,16 @@ import com.redhat.swatch.configuration.util.MetricIdUtils;
 import com.redhat.swatch.contract.test.model.SkuCapacityReportV2;
 import com.redhat.swatch.contract.test.model.SkuCapacitySubscription;
 import com.redhat.swatch.contract.test.model.SkuCapacityV2;
+import domain.BillingProvider;
+import domain.Contract;
 import domain.Offering;
 import domain.Product;
 import domain.Subscription;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
-import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.Test;
 
 public class OfferingCapacityComponentTest extends BaseContractComponentTest {
@@ -60,7 +61,7 @@ public class OfferingCapacityComponentTest extends BaseContractComponentTest {
     final String sku = RandomUtils.generateRandom();
     Offering offering = Offering.buildOpenShiftOffering(sku, CORES_CAPACITY, SOCKETS_CAPACITY);
     Subscription createdSubscription =
-        givenSubscriptionIsCreated(sku, offering, Product.OPENSHIFT, SUBSCRIPTION_QUANTITY);
+        givenSubscriptionIsCreated(offering, Product.OPENSHIFT, SUBSCRIPTION_QUANTITY);
 
     // When: Querying capacity report for the SKU
     SkuCapacityReportV2 report = service.getSkuCapacityByProductIdForOrg(Product.OPENSHIFT, orgId);
@@ -129,7 +130,7 @@ public class OfferingCapacityComponentTest extends BaseContractComponentTest {
     final String sku = RandomUtils.generateRandom();
     Offering unlimitedOffering = Offering.buildRhelUnlimitedOffering(sku);
     Subscription createdSubscription =
-        givenSubscriptionIsCreated(sku, unlimitedOffering, Product.RHEL, 1);
+        givenSubscriptionIsCreated(unlimitedOffering, Product.RHEL, 1);
 
     // When: Querying capacity report for the unlimited offering SKU
     Optional<SkuCapacityV2> skuCapacity =
@@ -183,7 +184,7 @@ public class OfferingCapacityComponentTest extends BaseContractComponentTest {
         Offering.buildRhelOffering(sku, CORES_CAPACITY, SOCKETS_CAPACITY).toBuilder()
             .entitlementQuantity(String.valueOf(entitlementQuantity))
             .build();
-    givenSubscriptionIsCreated(sku, offering, Product.RHEL, SUBSCRIPTION_QUANTITY);
+    givenSubscriptionIsCreated(offering, Product.RHEL, SUBSCRIPTION_QUANTITY);
 
     // When: Querying capacity report for the SKU
     SkuCapacityReportV2 report = service.getSkuCapacityByProductIdForOrg(Product.RHEL, orgId);
@@ -220,7 +221,7 @@ public class OfferingCapacityComponentTest extends BaseContractComponentTest {
         Offering.buildRhelOffering(sku, CORES_CAPACITY, SOCKETS_CAPACITY).toBuilder()
             .entitlementQuantity("Unlimited")
             .build();
-    givenSubscriptionIsCreated(sku, offering, Product.RHEL, SUBSCRIPTION_QUANTITY);
+    givenSubscriptionIsCreated(offering, Product.RHEL, SUBSCRIPTION_QUANTITY);
 
     // When: Querying capacity report for the SKU
     SkuCapacityReportV2 report = service.getSkuCapacityByProductIdForOrg(Product.RHEL, orgId);
@@ -238,27 +239,25 @@ public class OfferingCapacityComponentTest extends BaseContractComponentTest {
         "hasInfiniteQuantity flag should be true for unlimited offering");
   }
 
-  /**
-   * Helper method to create an offering with subscription for capacity testing.
-   *
-   * @param sku the SKU to create
-   * @param offering the offering to stub
-   * @param product the product for the subscription
-   * @param quantity the subscription quantity
-   * @return the created subscription
-   */
+  @TestPlanName("offering-capacity-TC005")
+  @Test
+  void shouldReportZeroCapacityForSubscriptionWithoutContract() {
+    // Given: A ROSA subscription for a contract-enabled SKU, with no matching contract
+    String sku = RandomUtils.generateRandom();
+    Subscription subscription =
+        Contract.buildRosaContract(orgId, BillingProvider.AWS, Map.of(), sku);
+    givenSubscriptionIsCreated(subscription);
+
+    // When: Querying the SKU capacity report
+    SkuCapacityReportV2 report = service.getSkuCapacityReportV2(Product.ROSA, orgId);
+
+    // Then: No contract is persisted, and the SKU report shows quantity 1 with zero measurements
+    thenContractShouldNotExist(orgId);
+    thenSkuHasQuantityOneAndZeroMeasurements(report, sku);
+  }
+
   private Subscription givenSubscriptionIsCreated(
-      String sku, Offering offering, Product product, Integer quantity) {
-    // Stub the offering data in external product API
-    wiremock.forProductAPI().stubOfferingData(offering);
-
-    // Sync offering to persist it
-    assertThat(
-        "Sync offering should succeed",
-        service.syncOffering(sku).statusCode(),
-        is(HttpStatus.SC_OK));
-
-    // Create subscription measurements map based on offering
+      Offering offering, Product product, Integer quantity) {
     Map<MetricId, Double> measurements =
         Map.of(
             MetricIdUtils.getCores(),
@@ -266,7 +265,6 @@ public class OfferingCapacityComponentTest extends BaseContractComponentTest {
             MetricIdUtils.getSockets(),
             offering.getSockets() != null ? offering.getSockets().doubleValue() : 0.0);
 
-    // Create subscription with the specified quantity
     Subscription subscription =
         Subscription.builder()
             .orgId(orgId)
@@ -280,12 +278,24 @@ public class OfferingCapacityComponentTest extends BaseContractComponentTest {
             .quantity(quantity)
             .build();
 
-    assertThat(
-        "Creating subscription should succeed",
-        service.saveSubscriptions(true, subscription).statusCode(),
-        is(HttpStatus.SC_OK));
+    return givenSubscriptionIsCreated(subscription);
+  }
 
-    return subscription;
+  private void thenSkuHasQuantityOneAndZeroMeasurements(SkuCapacityReportV2 report, String sku) {
+    assertNotNull(report, "SKU capacity report should not be null");
+    assertNotNull(report.getData(), "SKU capacity data should not be null");
+    Optional<SkuCapacityV2> skuCapacity =
+        report.getData().stream().filter(d -> sku.equals(d.getSku())).findFirst();
+    assertTrue(skuCapacity.isPresent(), "SKU should appear in the capacity report");
+    SkuCapacityV2 capacity = skuCapacity.get();
+    assertEquals(1, capacity.getQuantity(), "SKU quantity should be 1");
+    assertNotNull(capacity.getMeasurements(), "SKU measurements should not be null");
+    double measurementSum =
+        capacity.getMeasurements().stream()
+            .filter(Objects::nonNull)
+            .mapToDouble(Double::doubleValue)
+            .sum();
+    assertEquals(0.0, measurementSum, 0.01, "SKU measurements should sum to 0 without a contract");
   }
 
   private Double getMetricCapacityFromReport(

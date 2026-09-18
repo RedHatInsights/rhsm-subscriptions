@@ -1557,6 +1557,16 @@ This section verifies the automatic contract termination behavior when contracts
   - API returns HTTP 200 response indicating successful synchronization.
   - Capacity values indicate unlimited status appropriately.
 
+**offering-capacity-TC005: Verify zero capacity for a contract-enabled product without a contract**
+- **Description:** Verify that a subscription for a contract-enabled product with no matching contract still appears in the capacity report with quantity 1 and zero capacity measurements.
+- **Setup:** Create a contract-enabled offering and subscription without a contract.
+- **Action:** Query public capacity report API endpoint for the SKU.
+- **Verification:** Verify API response contains the SKU with quantity 1 and zero capacity measurements, and that no contract exists for the organization.
+- **Expected Result:**
+  - SKU appears in the capacity report with quantity 1.
+  - Capacity measurements are zero.
+  - No contract is created for the organization.
+
 ## Subscription Type (SKU capacity report meta)
 
 **subscription-type-TC001: Report On-demand subscription type on V1 for PAYG products**
