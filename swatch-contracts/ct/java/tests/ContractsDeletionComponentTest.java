@@ -87,7 +87,7 @@ public class ContractsDeletionComponentTest extends BaseContractComponentTest {
     Contract secondContract =
         Contract.buildRosaContract(
             orgId, BillingProvider.AWS, Map.of(CORES, ROSA_CORES_CAPACITY), sku);
-    givenOfferingIsSynced(secondContract);
+    givenOfferingIsSynced(secondContract.getOffering());
     whenContractIsCreatedViaApi(secondContract);
 
     // Then: Capacity doubles
