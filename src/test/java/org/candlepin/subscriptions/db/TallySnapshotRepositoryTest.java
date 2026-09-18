@@ -471,8 +471,9 @@ class TallySnapshotRepositoryTest {
     assertEquals(18887, sum.getValue().intValue());
   }
 
-  @Test
-  void testFindByOrgIdInAndProductIdInAndGranularityAndSnapshotDateBetween() {
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  void testFindByOrgIdInAndProductIdInAndGranularityAndSnapshotDateBetween(boolean useLegacy) {
     String product1 = "Product1";
     String product2 = "Product2";
     // Will not be found - out of date range.
@@ -503,8 +504,11 @@ class TallySnapshotRepositoryTest {
 
     List<String> products = Arrays.asList(product1, product2);
     List<TallySnapshot> found =
-        repository.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
-            "Org1", products, Granularity.DAILY, min, max);
+        useLegacy
+            ? repository.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetweenLegacy(
+                "Org1", products, Granularity.DAILY, min, max)
+            : repository.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
+                "Org1", products, Granularity.DAILY, min, max);
     assertEquals(2, found.size());
 
     TallySnapshot result =
