@@ -32,6 +32,8 @@ spec:
       description: Optional second mount of the shared PVC (e.g. Maven output from component tests)
       optional: true
   results:
+    - name: TEST_RESULTS_RUN_ID
+      description: UUID of the first successfully uploaded test run, or empty if none
     - name: UPLOAD_COUNT
       description: Number of test result files uploaded to S3
     - name: S3_BUCKET
@@ -55,6 +57,9 @@ spec:
       script: |
         #!/bin/bash
         set -euo pipefail
+
+        # Keep the PR comment runnable even if no file is uploaded.
+        printf '%s' "" > "$(results.TEST_RESULTS_RUN_ID.path)"
 
         NS="$(params.NS)"
         SECRET="$(params.TEST_RESULTS_AWS_S3_SECRET)"
@@ -117,6 +122,9 @@ spec:
           base="$(basename "$file_path")"
           echo "Uploading ${base} to s3://${AWS_BUCKET}/${base}"
           aws s3 cp "$file_path" "s3://${AWS_BUCKET}/${base}" --sse AES256 --quiet
+          if [[ "$upload_count" -eq 0 ]]; then
+            printf '%s' "${base%%.*}" > "$(results.TEST_RESULTS_RUN_ID.path)"
+          fi
           upload_count=$((upload_count + 1))
         }
 
