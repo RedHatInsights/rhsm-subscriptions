@@ -36,12 +36,24 @@ spec:
       type: string
       default: ""
       description: Full IQE container reference (e.g. registry/repo:tag) to show in the PR comment; omit line when empty
+    - name: BONFIRE_COMMAND
+      type: string
+      default: ""
+      description: Raw deployment command to show in a collapsed section
+    - name: TEST_RESULTS_RUN_ID
+      type: string
+      default: ""
+      description: UUID of the test run uploaded to S3
   workspaces:
     - name: artifacts
   steps:
     - name: post-comment
       image: quay.io/konflux-ci/task-runner:v3
       env:
+        - name: BONFIRE_COMMAND
+          value: "$(params.BONFIRE_COMMAND)"
+        - name: TEST_RESULTS_RUN_ID
+          value: "$(params.TEST_RESULTS_RUN_ID)"
         - name: GITHUB_TOKEN
           valueFrom:
             secretKeyRef:
@@ -49,6 +61,7 @@ spec:
               key: github_token
       script: |
         #!/usr/bin/env python3
+        import html
         import glob, json, os, sys, time, traceback, urllib.request, urllib.error
         import xml.etree.ElementTree as ET
 
@@ -213,6 +226,26 @@ spec:
 
         if IQE_IMAGE:
             lines.append(f"- **IQE image:** `{IQE_IMAGE}`")
+
+        run_id = os.environ.get("TEST_RESULTS_RUN_ID", "").strip()
+        if run_id:
+            run_url = (
+                "https://ibutsu.insights.corp.redhat.com/project/"
+                f"3915c900-85fc-1222-833c-10d51af56f2e/runs/{run_id}#summary"
+            )
+            lines.append(f"- **Ibutsu run:** [{run_id}]({run_url})")
+
+        bonfire_command = os.environ.get("BONFIRE_COMMAND", "").strip()
+        if bonfire_command:
+            lines.extend([
+                "",
+                "<details>",
+                "<summary>Bonfire command</summary>",
+                "",
+                f"<pre><code>{html.escape(bonfire_command)}</code></pre>",
+                "",
+                "</details>",
+            ])
 
         if failed_tests:
             lines.append("")
