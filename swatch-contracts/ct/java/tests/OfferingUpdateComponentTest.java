@@ -32,12 +32,14 @@ import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.contract.test.model.Contract;
 import com.redhat.swatch.contract.test.model.OfferingProductTags;
+import com.redhat.swatch.contract.test.model.SkuCapacityV2;
 import domain.BillingProvider;
 import domain.Offering;
 import domain.Product;
 import io.restassured.response.Response;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.Test;
 import utils.OperationalProductEventMapper;
@@ -108,6 +110,34 @@ public class OfferingUpdateComponentTest extends BaseContractComponentTest {
     assertNotNull(validTagsAfter, "Valid offering should still be accessible");
   }
 
+  @TestPlanName("offering-update-TC003")
+  @Test
+  void shouldPropagateDescriptionToSkuCapacityProductName() {
+    // Given: A ROSA contract with a known offering description
+    String sku = RandomUtils.generateRandom();
+    String initialDescription = "Initial offering product name";
+    String updatedDescription = "Updated offering product name";
+    Offering offering =
+        Offering.buildRosaOffering(sku).toBuilder().description(initialDescription).build();
+    var contract =
+        domain.Contract.buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, 10.0), sku)
+            .toBuilder()
+            .offering(offering)
+            .build();
+    givenContractIsCreated(contract);
+    thenSkuCapacityProductNameShouldBe(Product.ROSA, sku, initialDescription);
+
+    // When: Offering description is updated via product sync event
+    Offering updatedOffering = offering.toBuilder().description(updatedDescription).build();
+    wiremock.forProductAPI().stubOfferingData(updatedOffering);
+    kafkaBridge.produceKafkaMessage(
+        IT_PRODUCT_SYNC, OperationalProductEventMapper.mapFrom(updatedOffering));
+
+    // Then: SKU capacity report productName reflects the new description
+    AwaitilityUtils.untilAsserted(
+        () -> thenSkuCapacityProductNameShouldBe(Product.ROSA, sku, updatedDescription));
+  }
+
   private void givenOfferingExists(Offering offering) {
     wiremock.forProductAPI().stubOfferingData(offering);
     Response syncResponse = service.syncOffering(offering.getSku());
@@ -130,5 +160,16 @@ public class OfferingUpdateComponentTest extends BaseContractComponentTest {
     assertTrue(
         productTags.getData().stream().anyMatch(expectedTag::equals),
         message + " (expected: " + expectedTag + ")");
+  }
+
+  private void thenSkuCapacityProductNameShouldBe(
+      Product product, String sku, String expectedProductName) {
+    Optional<SkuCapacityV2> capacity =
+        service.getSkuCapacityByProductIdForOrgAndSku(product, orgId, sku);
+    assertTrue(capacity.isPresent(), "SKU capacity should be present for " + sku);
+    assertEquals(
+        expectedProductName,
+        capacity.get().getProductName(),
+        "productName should match offering description");
   }
 }

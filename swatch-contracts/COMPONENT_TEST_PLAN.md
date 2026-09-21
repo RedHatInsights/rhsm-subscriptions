@@ -1633,6 +1633,16 @@ This section verifies the automatic contract termination behavior when contracts
   - Valid offerings remain unaffected by malformed events.
   - Appropriate error handling and logging for debugging malformed events.
 
+**offering-update-TC003: Propagate offering description to SKU capacity productName**
+- **Description:** Verify that updating an offering's description via a product sync event updates `productName` in the SKU capacity report for an already-created subscription (subscription-table display name).
+- **Setup:** Create a ROSA contract/subscription with a known offering description; assert the SKU capacity report `productName` matches the initial description.
+- **Action:** Stub updated product tree data with a new description and send a product update event through the message broker.
+- **Verification:** Query the v2 SKU capacity report for the same org/SKU until `productName` matches the updated description.
+- **Expected Result:**
+  - Initial SKU capacity `productName` equals the offering description at contract creation.
+  - After the UMB product update, SKU capacity `productName` equals the new offering description.
+  - Existing subscription/contract remains associated with the same SKU.
+
 ## Contract Management via IT Partner Gateway
 
 **partner-gateway-kafka-TC001 - Process a valid PAYG contract via Kafka for AWS Marketplace**
