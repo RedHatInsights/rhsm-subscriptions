@@ -35,7 +35,12 @@ import lombok.Getter;
 public enum Product {
   ROSA("rosa", MetricIdUtils.getCores(), MetricIdUtils.getInstanceHours()),
   RHEL("RHEL for x86", MetricIdUtils.getSockets()),
-  OPENSHIFT("OpenShift Container Platform", MetricIdUtils.getCores(), MetricIdUtils.getSockets());
+  OPENSHIFT("OpenShift Container Platform", MetricIdUtils.getCores(), MetricIdUtils.getSockets()),
+  OPENSHIFT_METRICS("OpenShift-metrics", MetricIdUtils.getCores()),
+  OSD("OpenShift-dedicated-metrics", MetricIdUtils.getCores(), MetricIdUtils.getInstanceHours()),
+  RHACS("rhacs", MetricIdUtils.getCores()),
+  RHODS("rhods", MetricIdUtils.getCores()),
+  ANSIBLE_AAP_MANAGED("ansible-aap-managed", MetricIdUtils.getManagedNodes());
 
   private final ProductId id;
   private final Map<MetricId, Metric> metrics;
