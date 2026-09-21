@@ -48,6 +48,28 @@ public class Offering {
   private static final String OPENSHIFT_DESCRIPTION =
       "Test component for OpenShift Container Platform";
 
+  private static final String OPENSHIFT_METRICS_DESCRIPTION =
+      "Test component for OpenShift Container Platform metrics";
+  private static final String OPENSHIFT_METRICS_LEVEL1 = "OpenShift";
+  private static final String OPENSHIFT_METRICS_LEVEL2 = "OCP - OpenShift Container Platform";
+
+  private static final String OSD_DESCRIPTION = "Test component for OpenShift Dedicated";
+  private static final String OSD_LEVEL1 = "OpenShift";
+  private static final String OSD_LEVEL2 = "OSD - OpenShift Dedicated";
+
+  private static final String ACS_DESCRIPTION = "Test component for Advanced Cluster Security";
+  private static final String ACS_LEVEL1 = "OpenShift";
+  private static final String ACS_LEVEL2 = "ACS - Advanced Cluster Security";
+
+  private static final String RHODS_DESCRIPTION = "Test component for OpenShift AI";
+  private static final String RHODS_LEVEL1 = "AI Platforms";
+  private static final String RHODS_LEVEL2 = "OpenShift AI";
+
+  private static final String ANSIBLE_AAP_DESCRIPTION =
+      "Test component for Ansible Automation Platform";
+  private static final String ANSIBLE_AAP_LEVEL1 = "Ansible";
+  private static final String ANSIBLE_AAP_LEVEL2 = "Ansible Automation Platform";
+
   // Common Constants
   public static final String METERED_YES = "Y";
   public static final String METERED_NO = "N";
@@ -136,6 +158,81 @@ public class Offering {
         .serviceLevel(ServiceLevel.PREMIUM)
         .usage(Usage.PRODUCTION)
         .engProducts(List.of(PRODUCT_ID_OPENSHIFT))
+        .build();
+  }
+
+  public static Offering buildOpenShiftMetricsOffering(String sku) {
+    Objects.requireNonNull(sku, "sku cannot be null");
+
+    return Offering.builder()
+        .sku(sku)
+        .description(OPENSHIFT_METRICS_DESCRIPTION)
+        .level1(OPENSHIFT_METRICS_LEVEL1)
+        .level2(OPENSHIFT_METRICS_LEVEL2)
+        .metered(METERED_YES)
+        .serviceLevel(ServiceLevel.PREMIUM)
+        .usage(Usage.PRODUCTION)
+        .engProducts(List.of())
+        .build();
+  }
+
+  public static Offering buildOsdOffering(String sku) {
+    Objects.requireNonNull(sku, "sku cannot be null");
+
+    return Offering.builder()
+        .sku(sku)
+        .description(OSD_DESCRIPTION)
+        .level1(OSD_LEVEL1)
+        .level2(OSD_LEVEL2)
+        .metered(METERED_YES)
+        .serviceLevel(ServiceLevel.PREMIUM)
+        .usage(Usage.PRODUCTION)
+        .engProducts(List.of())
+        .build();
+  }
+
+  public static Offering buildAcsOffering(String sku) {
+    Objects.requireNonNull(sku, "sku cannot be null");
+
+    return Offering.builder()
+        .sku(sku)
+        .description(ACS_DESCRIPTION)
+        .level1(ACS_LEVEL1)
+        .level2(ACS_LEVEL2)
+        .metered(METERED_YES)
+        .serviceLevel(ServiceLevel.PREMIUM)
+        .usage(Usage.PRODUCTION)
+        .engProducts(List.of())
+        .build();
+  }
+
+  public static Offering buildRhodsOffering(String sku) {
+    Objects.requireNonNull(sku, "sku cannot be null");
+
+    return Offering.builder()
+        .sku(sku)
+        .description(RHODS_DESCRIPTION)
+        .level1(RHODS_LEVEL1)
+        .level2(RHODS_LEVEL2)
+        .metered(METERED_YES)
+        .serviceLevel(ServiceLevel.PREMIUM)
+        .usage(Usage.PRODUCTION)
+        .engProducts(List.of())
+        .build();
+  }
+
+  public static Offering buildAnsibleAapOffering(String sku) {
+    Objects.requireNonNull(sku, "sku cannot be null");
+
+    return Offering.builder()
+        .sku(sku)
+        .description(ANSIBLE_AAP_DESCRIPTION)
+        .level1(ANSIBLE_AAP_LEVEL1)
+        .level2(ANSIBLE_AAP_LEVEL2)
+        .metered(METERED_YES)
+        .serviceLevel(ServiceLevel.PREMIUM)
+        .usage(Usage.PRODUCTION)
+        .engProducts(List.of())
         .build();
   }
 

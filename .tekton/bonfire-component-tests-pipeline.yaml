@@ -424,144 +424,16 @@ spec:
           value: "$(params.EPHEMERAL_ENV_PROVIDER_SECRET)"
         - name: GITHUB_TOKEN_SECRET
           value: "$(params.GITHUB_TOKEN_SECRET)"
-      taskSpec:
+      taskRef:
+        resolver: git
         params:
-          - name: BONFIRE_IMAGE
-            type: string
-          - name: SNAPSHOT
-            type: string
-          - name: NS
-            type: string
-          - name: NS_REQUESTER
-            type: string
-          - name: APP_INTERFACE_SECRET
-            type: string
-          - name: APP_NAME
-            type: string
-          - name: BONFIRE_COMPONENT_NAME
-            type: string
-          - name: COMPONENT_NAME
-            type: string
-          - name: COMPONENTS
-            type: string
-          - name: COMPONENTS_W_RESOURCES
-            type: string
-          - name: EXTRA_DEPLOY_ARGS
-            type: string
-          - name: DEPLOY_FRONTENDS
-            type: string
-          - name: DEPLOY_TIMEOUT
-            type: string
-          - name: OPTIONAL_DEPS_METHOD
-            type: string
-          - name: EPHEMERAL_ENV_PROVIDER_SECRET
-            type: string
-          - name: GITHUB_TOKEN_SECRET
-            type: string
-        workspaces:
-          - name: artifacts
-        results:
-          - name: DEPLOY_SUCCEEDED
-            description: Whether the deploy succeeded ("true" or "false")
-        steps:
-          - name: deploy
-            image: "$(params.BONFIRE_IMAGE)"
-            env:
-              - name: APP_INTERFACE_USERNAME
-                valueFrom:
-                  secretKeyRef:
-                    name: $(params.APP_INTERFACE_SECRET)
-                    key: username
-              - name: APP_INTERFACE_PASSWORD
-                valueFrom:
-                  secretKeyRef:
-                    name: $(params.APP_INTERFACE_SECRET)
-                    key: password
-              - name: APP_INTERFACE_BASE_URL
-                valueFrom:
-                  secretKeyRef:
-                    name: $(params.APP_INTERFACE_SECRET)
-                    key: baseurl
-              - name: OC_LOGIN_TOKEN
-                valueFrom:
-                  secretKeyRef:
-                    name: $(params.EPHEMERAL_ENV_PROVIDER_SECRET)
-                    key: token
-              - name: OC_LOGIN_SERVER
-                valueFrom:
-                  secretKeyRef:
-                    name: $(params.EPHEMERAL_ENV_PROVIDER_SECRET)
-                    key: url
-              - name: GITHUB_TOKEN
-                valueFrom:
-                  secretKeyRef:
-                    name: $(params.GITHUB_TOKEN_SECRET)
-                    key: github_token
-              - name: APP_NAME
-                value: $(params.APP_NAME)
-              - name: BONFIRE_COMPONENT_NAME
-                value: $(params.BONFIRE_COMPONENT_NAME)
-              - name: COMPONENT_NAME
-                value: $(params.COMPONENT_NAME)
-              - name: COMPONENTS
-                value: $(params.COMPONENTS)
-              - name: COMPONENTS_W_RESOURCES
-                value: $(params.COMPONENTS_W_RESOURCES)
-              - name: SNAPSHOT
-                value: $(params.SNAPSHOT)
-              - name: BONFIRE_BOT
-                value: "true"
-              - name: EXTRA_DEPLOY_ARGS
-                value: "$(params.EXTRA_DEPLOY_ARGS)"
-              - name: DEPLOY_FRONTENDS
-                value: "$(params.DEPLOY_FRONTENDS)"
-              - name: DEPLOY_TIMEOUT
-                value: "$(params.DEPLOY_TIMEOUT)"
-              - name: OPTIONAL_DEPS_METHOD
-                value: "$(params.OPTIONAL_DEPS_METHOD)"
-            script: |
-              #!/bin/bash
-              set +e
+          - name: url
+            value: "https://github.com/$(params.PROJECT_REPO).git"
+          - name: revision
+            value: "$(params.PROJECT_TASKS_REVISION)"
+          - name: pathInRepo
+            value: .tekton/tasks/deploy-application.yaml
 
-              if [ -n "${GITHUB_TOKEN:-}" ]; then
-                export GITHUB_TOKEN="$(echo -n "$GITHUB_TOKEN" | tr -d '[:space:]')"
-              fi
-
-              DEPLOY_LOG="$(workspaces.artifacts.path)/deploy.log"
-              EXIT_CODE_FILE="$(workspaces.artifacts.path)/deploy-exit-code"
-
-              {
-                echo "Connecting to the ephemeral namespace cluster"
-                login.sh
-
-                echo "deploying to ephemeral"
-
-                # Limit snapshot to the component under test.
-                if [ -n "${COMPONENT_NAME}" ]; then
-                  export SNAPSHOT
-                  SNAPSHOT=$(echo "${SNAPSHOT}" | jq --arg name "${COMPONENT_NAME}" \
-                    '{application: .application, components: [.components[] | select(.name == $name)]}')
-                  echo "parse-snapshot: filtered SNAPSHOT to component '${COMPONENT_NAME}'"
-                fi
-
-                if [ -z "${EXTRA_DEPLOY_ARGS}" ]; then
-                  EXTRA_DEPLOY_ARGS="$(parse-snapshot.py)"
-                else
-                  EXTRA_DEPLOY_ARGS+=" $(parse-snapshot.py)"
-                fi
-                export EXTRA_DEPLOY_ARGS
-                deploy.sh "$(params.NS)" "$(params.NS_REQUESTER)"
-              } 2>&1 | tee "$DEPLOY_LOG"
-
-              EXIT_CODE=${PIPESTATUS[0]}
-              echo "$EXIT_CODE" > "$EXIT_CODE_FILE"
-              echo "Deploy exit code: $EXIT_CODE"
-              if [ "$EXIT_CODE" -eq 0 ]; then
-                printf "true" > $(results.DEPLOY_SUCCEEDED.path)
-              else
-                printf "false" > $(results.DEPLOY_SUCCEEDED.path)
-              fi
-              exit 0
     - name: post-deploy-failure-comment
       onError: continue
       runAfter:
@@ -739,6 +611,7 @@ spec:
     - name: post-pr-comment
       onError: continue
       runAfter:
+        - upload-test-results-to-s3
         - run-tests-task
       when:
         - input: "$(tasks.check-component-label.results.TESTS_SKIPPED)"
@@ -754,6 +627,10 @@ spec:
         - name: artifacts
           workspace: shared-workspace
       params:
+        - name: BONFIRE_COMMAND_FILE
+          value: "$(tasks.deploy-application.results.BONFIRE_COMMAND_FILE)"
+        - name: TEST_RESULTS_RUN_ID
+          value: "$(tasks.upload-test-results-to-s3.results.TEST_RESULTS_RUN_ID)"
         - name: PROJECT_REPO
           value: "$(params.PROJECT_REPO)"
         - name: PR_NUMBER
@@ -786,7 +663,6 @@ spec:
       onError: continue
       runAfter:
         - run-tests-task
-        - post-pr-comment
       when:
         - input: "$(tasks.check-component-label.results.TESTS_SKIPPED)"
           operator: in

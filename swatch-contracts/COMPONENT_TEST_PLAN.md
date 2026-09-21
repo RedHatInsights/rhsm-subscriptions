@@ -784,14 +784,15 @@ Component tests for GET `/api/swatch-contracts/internal/subscriptions/azureUsage
   - StatusResponse: "All Contracts are Synced"
   - Each org's contracts synced
 
-**contracts-sync-TC004** - Sync subscriptions for contracts by org**  
-- **Description**: Verify subscription sync for all contracts of an org.  
-- **Setup**: Have contracts for org without subscriptions.  
-- **Action**: POST `/api/swatch-contracts/internal/rpc/sync/contracts/{org_id}/subscriptions`.  
-- **Verification**: Check subscriptions are created.  
-  - **Expected Result**:  
+**contracts-sync-TC004** - Sync subscriptions for contracts by org restores missing measurements
+- **Description**: Verify subscription sync for all contracts of an org regenerates deleted subscription measurements and restores capacity.
+- **Setup**: Create a contract and confirm its subscription contributes positive capacity. Delete that subscription's rows from `subscription_measurements`.
+- **Action**: Confirm capacity is zero, then POST `/api/swatch-contracts/internal/rpc/sync/contracts/{org_id}/subscriptions`.
+- **Verification**: Check that the subscription measurements and capacity are restored.
+- **Expected Result**:
   - StatusResponse success  
   - Subscriptions synced from Subscription API
+  - Capacity is positive again after the deleted measurements are regenerated
 
 **contracts-sync-TC005 - Clear all contracts for the organization**
 - **Description**: Verify that deleteContractsByOrg removes all org contracts.
@@ -1490,14 +1491,23 @@ This section verifies the automatic contract termination behavior when contracts
   - Subsequent API calls return consistent tag data.
 
 **offering-tags-TC002: Verify product tag mapping for different product types**
-- **Description:** Verify that different level_1/level_2 combinations result in correct product tag assignments.
-- **Setup:** Create test products with various level_1/level_2 combinations to test different product structures.
-- **Action:** Query public API endpoint to retrieve product tags for each product type.
-- **Verification:** Verify each product returns appropriate product tags based on level_1/level_2 values.
+- **Description:** Verify that different level_1/level_2 combinations (and engineering product IDs for RHEL/OpenShift) result in correct product tag assignments for all major PAYG and traditional subscription products.
+- **Setup:** Synchronize offerings for:
+  - ROSA (`OpenShift` / `ROSA - RH OpenShift on AWS`) → `rosa`
+  - RHEL for x86 (engineering IDs) → `RHEL for x86`
+  - OpenShift Container Platform (engineering ID 290, non-metered) → `OpenShift Container Platform`
+  - OpenShift metrics PAYG (`OpenShift` / `OCP - OpenShift Container Platform`, metered) → `OpenShift-metrics`
+  - OSD (`OpenShift` / `OSD - OpenShift Dedicated`) → `OpenShift-dedicated-metrics`
+  - ACS (`OpenShift` / `ACS - Advanced Cluster Security`) → `rhacs`
+  - OpenShift AI (`AI Platforms` / `OpenShift AI`) → `rhods`
+  - Ansible Automation Platform (`Ansible` / `Ansible Automation Platform`) → `ansible-aap-managed`
+- **Action:** Query public API endpoint to retrieve product tags for each synchronized SKU.
+- **Verification:** Verify each offering returns the expected single product tag; all eight tag sets are distinct.
 - **Expected Result:**
-  - Product tags correctly generated from level_1/level_2 combinations.
+  - Product tags correctly generated from level_1/level_2 combinations or engineering IDs.
+  - Traditional OpenShift (eng ID) and metered OpenShift-metrics (levels) resolve to different tags.
   - API responses for different SKUs are consistent and accurate.
-  - Different level combinations produce distinct product tags.
+  - Different product structures produce distinct product tags.
 
 **offering-tags-TC003: Handle product tag retrieval for non-existent offering**
 - **Description:** Verify that retrieving product tags for non-existent offerings is handled appropriately.
@@ -1557,6 +1567,16 @@ This section verifies the automatic contract termination behavior when contracts
   - API returns HTTP 200 response indicating successful synchronization.
   - Capacity values indicate unlimited status appropriately.
 
+**offering-capacity-TC005: Verify zero capacity for a contract-enabled product without a contract**
+- **Description:** Verify that a subscription for a contract-enabled product with no matching contract still appears in the capacity report with quantity 1 and zero capacity measurements.
+- **Setup:** Create a contract-enabled offering and subscription without a contract.
+- **Action:** Query public capacity report API endpoint for the SKU.
+- **Verification:** Verify API response contains the SKU with quantity 1 and zero capacity measurements, and that no contract exists for the organization.
+- **Expected Result:**
+  - SKU appears in the capacity report with quantity 1.
+  - Capacity measurements are zero.
+  - No contract is created for the organization.
+
 ## Subscription Type (SKU capacity report meta)
 
 **subscription-type-TC001: Report On-demand subscription type on V1 for PAYG products**
@@ -1612,6 +1632,16 @@ This section verifies the automatic contract termination behavior when contracts
   - System processes the malformed event without crashing or data corruption.
   - Valid offerings remain unaffected by malformed events.
   - Appropriate error handling and logging for debugging malformed events.
+
+**offering-update-TC003: Propagate offering description to SKU capacity productName**
+- **Description:** Verify that updating an offering's description via a product sync event updates `productName` in the SKU capacity report for an already-created subscription (subscription-table display name).
+- **Setup:** Create a ROSA contract/subscription with a known offering description; assert the SKU capacity report `productName` matches the initial description.
+- **Action:** Stub updated product tree data with a new description and send a product update event through the message broker.
+- **Verification:** Query the v2 SKU capacity report for the same org/SKU until `productName` matches the updated description.
+- **Expected Result:**
+  - Initial SKU capacity `productName` equals the offering description at contract creation.
+  - After the UMB product update, SKU capacity `productName` equals the new offering description.
+  - Existing subscription/contract remains associated with the same SKU.
 
 ## Contract Management via IT Partner Gateway
 
