@@ -40,12 +40,10 @@ import domain.BillingProvider;
 import domain.Contract;
 import domain.Subscription;
 import domain.SubscriptionEvent;
-import io.restassured.response.Response;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -329,19 +327,6 @@ public class TallyConsumerComponentTest extends BaseContractComponentTest {
       Subscription subscription, MetricId metricId, double value) {
     return ContractsTestHelper.givenTallySnapshot(
         SubscriptionEvent.eventFor(subscription, metricId, value));
-  }
-
-  private void givenSubscriptionIsCreated(Subscription subscription) {
-    wiremock.forProductAPI().stubOfferingData(subscription.getOffering());
-    Response syncOfferingResponse = service.syncOffering(subscription.getOffering().getSku());
-    assertEquals(
-        HttpStatus.SC_OK, syncOfferingResponse.statusCode(), "Sync offering call should succeed");
-
-    Response createSubscriptionResponse = service.saveSubscriptions(subscription);
-    assertEquals(
-        HttpStatus.SC_OK,
-        createSubscriptionResponse.statusCode(),
-        "Subscription creation should succeed");
   }
 
   private void whenTallySummaryMessageIsSent(TallySnapshot... snapshots) {

@@ -138,6 +138,15 @@ public class BaseContractComponentTest {
     assertEquals(HttpStatus.SC_OK, sync.statusCode(), "Sync offering should succeed");
   }
 
+  protected Subscription givenSubscriptionIsCreated(Subscription subscription) {
+    givenOfferingIsSynced(subscription.getOffering());
+    assertEquals(
+        HttpStatus.SC_OK,
+        service.saveSubscriptions(true, subscription).statusCode(),
+        "Creating subscription should succeed");
+    return subscription;
+  }
+
   protected int givenCapacityIsIncreased(Subscription subscription) {
     return AwaitilityUtils.until(
         () -> service.getSkuCapacityBySubscription(subscription).getMeta().getCount(),
