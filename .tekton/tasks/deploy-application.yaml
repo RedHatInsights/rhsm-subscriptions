@@ -42,8 +42,8 @@ spec:
   workspaces:
     - name: artifacts
   results:
-    - name: BONFIRE_COMMAND
-      description: Shell-escaped Bonfire command executed for the deployment
+    - name: BONFIRE_COMMAND_FILE
+      description: Path to the full Bonfire command relative to the artifacts workspace
     - name: DEPLOY_SUCCEEDED
       description: Whether the deploy succeeded ("true" or "false")
   steps:
@@ -117,7 +117,9 @@ spec:
         DEPLOY_LOG="$(workspaces.artifacts.path)/deploy.log"
         EXIT_CODE_FILE="$(workspaces.artifacts.path)/deploy-exit-code"
 
-        : > "$(results.BONFIRE_COMMAND.path)"
+        BONFIRE_COMMAND_FILE="$(workspaces.artifacts.path)/bonfire-command.txt"
+        printf '%s' "" > "$BONFIRE_COMMAND_FILE"
+        printf '%s' 'bonfire-command.txt' > "$(results.BONFIRE_COMMAND_FILE.path)"
         (
           set -euo pipefail
           set -f
@@ -150,7 +152,7 @@ spec:
           done
           command+=("${extra_args[@]}" "$APP_NAME")
           printf -v bonfire_command '%q ' "${command[@]}"
-          printf '%s' "${bonfire_command% }" > "$(results.BONFIRE_COMMAND.path)"
+          printf '%s' "${bonfire_command% }" > "$BONFIRE_COMMAND_FILE"
           printf 'Executing: %s\n' "${bonfire_command% }"
           "${command[@]}"
         ) 2>&1 | tee "$DEPLOY_LOG"

@@ -36,10 +36,10 @@ spec:
       type: string
       default: ""
       description: Full IQE container reference (e.g. registry/repo:tag) to show in the PR comment; omit line when empty
-    - name: BONFIRE_COMMAND
+    - name: BONFIRE_COMMAND_FILE
       type: string
       default: ""
-      description: Raw deployment command to show in a collapsed section
+      description: Path to the deployment command relative to the artifacts workspace
     - name: TEST_RESULTS_RUN_ID
       type: string
       default: ""
@@ -50,8 +50,8 @@ spec:
     - name: post-comment
       image: quay.io/konflux-ci/task-runner:v3
       env:
-        - name: BONFIRE_COMMAND
-          value: "$(params.BONFIRE_COMMAND)"
+        - name: BONFIRE_COMMAND_FILE
+          value: "$(params.BONFIRE_COMMAND_FILE)"
         - name: TEST_RESULTS_RUN_ID
           value: "$(params.TEST_RESULTS_RUN_ID)"
         - name: GITHUB_TOKEN
@@ -235,8 +235,10 @@ spec:
             )
             lines.append(f"- **Ibutsu run:** [{run_id}]({run_url})")
 
-        bonfire_command = os.environ.get("BONFIRE_COMMAND", "").strip()
-        if bonfire_command:
+        bonfire_command_file = os.environ.get("BONFIRE_COMMAND_FILE", "").strip()
+        if bonfire_command_file:
+            with open(os.path.join(WS, bonfire_command_file), encoding="utf-8") as command_file:
+                bonfire_command = command_file.read().strip()
             lines.extend([
                 "",
                 "<details>",

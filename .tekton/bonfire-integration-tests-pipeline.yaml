@@ -806,8 +806,8 @@ spec:
         - name: artifacts
           workspace: artifacts
       params:
-        - name: BONFIRE_COMMAND
-          value: "$(tasks.deploy-application.results.BONFIRE_COMMAND)"
+        - name: BONFIRE_COMMAND_FILE
+          value: "$(tasks.deploy-application.results.BONFIRE_COMMAND_FILE)"
         - name: TEST_RESULTS_RUN_ID
           value: "$(tasks.upload-test-results-to-s3.results.TEST_RESULTS_RUN_ID)"
         - name: PROJECT_REPO
