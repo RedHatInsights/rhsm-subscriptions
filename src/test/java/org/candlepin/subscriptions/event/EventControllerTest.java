@@ -651,6 +651,43 @@ class EventControllerTest {
   }
 
   @Test
+  void testPersistServiceInstancesNormalizesTimestampToStartOfHour() {
+    List<String> eventRecords = new ArrayList<>();
+    var eventWithSubHourTimestamp =
+        """
+                {
+                   "sla": "Premium",
+                   "org_id": "111111111",
+                   "timestamp": "2026-08-10T10:34:09.804078Z",
+                   "conversion": false,
+                   "event_type": "snapshot_rhel-for-x86-els-payg-addon_vCPUs",
+                   "expiration": "2026-08-10T11:00:00Z",
+                   "instance_id": "d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                   "product_tag": [
+                     "rhel-for-x86-els-payg-addon"
+                   ],
+                   "display_name": "automation__cluster_d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                   "event_source": "Premium",
+                   "measurements": [
+                     {
+                       "value": 4.0,
+                       "metric_id": "vCPUs"
+                     }
+                   ],
+                   "service_type": "RHEL System"
+                }
+        """;
+    eventRecords.add(eventWithSubHourTimestamp);
+    eventController.persistServiceInstances(eventRecords);
+    ArgumentCaptor<List<EventRecord>> captor = ArgumentCaptor.forClass(List.class);
+    verify(eventRecordRepository).saveAll(captor.capture());
+    List<EventRecord> events = captor.getValue();
+    assertEquals(1, events.size());
+    assertEquals(
+        OffsetDateTime.parse("2026-08-10T10:00:00Z"), events.get(0).getEvent().getTimestamp());
+  }
+
+  @Test
   void incomingHbiEventsAreFilteredByActiveOrgIdIfFromHbi() {
     String expectedActiveOrgId = "111111111";
     String expectedInactiveOrgId = "22222222";

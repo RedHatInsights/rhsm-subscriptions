@@ -24,6 +24,8 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -109,6 +111,12 @@ public class EventNormalizer {
   }
 
   public Event normalizeEvent(Event event) {
+    // Truncate timestamp to the beginning of the hour
+    if (event.getTimestamp() != null) {
+      event.setTimestamp(
+          event.getTimestamp().withOffsetSameInstant(ZoneOffset.UTC).truncatedTo(ChronoUnit.HOURS));
+    }
+
     // NOTE we will probably remove the below serviceType normalization
     // after https://issues.redhat.com/browse/SWATCH-2533
     // placeholder card to remove it in https://issues.redhat.com/browse/SWATCH-2794
