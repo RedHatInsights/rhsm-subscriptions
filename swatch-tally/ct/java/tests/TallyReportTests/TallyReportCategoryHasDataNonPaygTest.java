@@ -32,6 +32,7 @@ import com.redhat.swatch.component.tests.api.hbi.HostStateManager;
 import com.redhat.swatch.component.tests.api.hbi.HostTemplates;
 import com.redhat.swatch.component.tests.api.hbi.RhsmFacts;
 import com.redhat.swatch.component.tests.api.hbi.SystemProfileFacts;
+import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.tally.test.model.TallyReportData;
 import com.redhat.swatch.tally.test.model.TallyReportDataPoint;
 import java.time.OffsetDateTime;
@@ -43,7 +44,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -57,19 +59,45 @@ public class TallyReportCategoryHasDataNonPaygTest extends BaseTallyComponentTes
   private static final String HYPERVISOR = "hypervisor";
   private static final String CLOUD = "cloud";
 
-  private HostStateManager hostManager;
-  private OffsetDateTime beginning;
-  private OffsetDateTime ending;
+  private static String physicalOrgId;
+  private static String mixedOrgId;
+  private static String cloudOrgId;
+  private static HostStateManager hostManager;
+  private static OffsetDateTime beginning;
+  private static OffsetDateTime ending;
 
-  @BeforeEach
-  void setUpHostManager() {
+  @BeforeAll
+  static void setUpSharedHosts() {
     hostManager = new HostStateManager(new HbiDbConnector(hbiDatabase));
+    physicalOrgId = RandomUtils.generateRandom();
+    mixedOrgId = RandomUtils.generateRandom();
+    cloudOrgId = RandomUtils.generateRandom();
     beginning = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
     ending = beginning.plusDays(1).minusNanos(1);
+
+    service.createOptInConfig(physicalOrgId);
+    service.createOptInConfig(mixedOrgId);
+    service.createOptInConfig(cloudOrgId);
+
+    givenPhysicalFixture(physicalOrgId);
+    givenPhysicalHost(mixedOrgId, 4, "Premium", "Production");
+    givenVirtualHost(mixedOrgId);
+    givenCloudHost(cloudOrgId);
+
+    service.tallyOrg(physicalOrgId);
+    service.tallyOrg(mixedOrgId);
+    service.tallyOrg(cloudOrgId);
   }
 
-  @AfterEach
-  void cleanUpHosts() {
+  @BeforeEach
+  void setUpRbacForSharedOrgs() {
+    stubRbacAccessForOrg(physicalOrgId);
+    stubRbacAccessForOrg(mixedOrgId);
+    stubRbacAccessForOrg(cloudOrgId);
+  }
+
+  @AfterAll
+  static void cleanUpHosts() {
     if (hostManager != null) {
       hostManager.cleanupAll();
     }
@@ -79,30 +107,31 @@ public class TallyReportCategoryHasDataNonPaygTest extends BaseTallyComponentTes
   @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-has-data-nonpayg-TC001")
   void shouldMarkOnlyPhysicalDataPresent(boolean primaryRowSearches) {
-    // Given: Only three physical hosts contribute twelve sockets
+    // Given: The shared physical-only org contributes twelve sockets
     givenFeatureFlagIsConfigured(primaryRowSearches);
-    givenOrgIsOptedIn();
-    givenPhysicalFixture();
 
-    // When: Nightly tally runs
-    whenNightlyTallyRuns();
+    // When: Daily reports are queried for each category
+    Map<String, TallyReportData> reports = new HashMap<>();
+    for (String category : List.of(PHYSICAL, VIRTUAL, HYPERVISOR, CLOUD)) {
+      reports.put(
+          category,
+          thenDailyReportBetween(
+              physicalOrgId, category, beginning.minusDays(11), ending, Map.of()));
+    }
+    TallyReportDataPoint physical = thenLatestPoint(physicalOrgId, PHYSICAL, Map.of());
+    TallyReportDataPoint virtual = thenLatestPoint(physicalOrgId, VIRTUAL, Map.of());
 
     // Then: Physical reports data while empty categories do not
     for (String category : List.of(PHYSICAL, VIRTUAL, HYPERVISOR, CLOUD)) {
-      TallyReportData report =
-          thenDailyReportBetween(category, beginning.minusDays(11), ending, Map.of());
+      TallyReportData report = reports.get(category);
       assertFalse(
           report.getData() != null && report.getData().stream().anyMatch(this::claimsDataForZero),
           category + " must not claim data for a zero measurement");
     }
 
-    TallyReportDataPoint physical =
-        thenLatestPoint(PHYSICAL, Map.of());
     assertEquals(12, physical.getValue());
     assertEquals(Boolean.TRUE, physical.getHasData());
 
-    TallyReportDataPoint virtual =
-        thenLatestPoint(VIRTUAL, Map.of());
     assertEquals(0, virtual.getValue());
     assertNotEquals(Boolean.TRUE, virtual.getHasData());
   }
@@ -111,17 +140,14 @@ public class TallyReportCategoryHasDataNonPaygTest extends BaseTallyComponentTes
   @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-has-data-nonpayg-TC002")
   void shouldMarkVirtualDataPresent(boolean primaryRowSearches) {
-    // Given: One virtual RHEL host contributes normalized sockets
+    // Given: The shared mixed org contains a virtual RHEL host
     givenFeatureFlagIsConfigured(primaryRowSearches);
-    givenOrgIsOptedIn();
-    givenVirtualHost();
 
-    // When: Nightly tally runs
-    whenNightlyTallyRuns();
+    // When: Its virtual daily report is queried
+    TallyReportData report = thenDailyReport(mixedOrgId, VIRTUAL, Map.of());
+    TallyReportDataPoint latest = latestPoint(report);
 
     // Then: Virtual has_data matches its positive contribution
-    TallyReportData report = thenDailyReport(VIRTUAL, Map.of());
-    TallyReportDataPoint latest = latestPoint(report);
     assertTrue(latest.getValue() > 0);
     assertEquals(Boolean.TRUE, latest.getHasData());
     assertFalse(
@@ -132,20 +158,14 @@ public class TallyReportCategoryHasDataNonPaygTest extends BaseTallyComponentTes
   @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-has-data-nonpayg-TC003")
   void shouldMarkMixedCategoriesPresent(boolean primaryRowSearches) {
-    // Given: Physical and virtual hosts contribute on the same day
+    // Given: The shared mixed org has physical and virtual contributions
     givenFeatureFlagIsConfigured(primaryRowSearches);
-    givenOrgIsOptedIn();
-    givenPhysicalHost(4, "Premium", "Production");
-    givenVirtualHost();
 
-    // When: Nightly tally runs
-    whenNightlyTallyRuns();
+    // When: Physical and virtual daily reports are queried
+    TallyReportDataPoint physical = thenLatestPoint(mixedOrgId, PHYSICAL, Map.of());
+    TallyReportDataPoint virtual = thenLatestPoint(mixedOrgId, VIRTUAL, Map.of());
 
     // Then: Each category reports only its own positive contribution
-    TallyReportDataPoint physical =
-        thenLatestPoint(PHYSICAL, Map.of());
-    TallyReportDataPoint virtual =
-        thenLatestPoint(VIRTUAL, Map.of());
     assertEquals(4, physical.getValue());
     assertEquals(Boolean.TRUE, physical.getHasData());
     assertEquals(1, virtual.getValue());
@@ -156,53 +176,57 @@ public class TallyReportCategoryHasDataNonPaygTest extends BaseTallyComponentTes
   @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-has-data-nonpayg-TC004")
   void shouldMarkOnlyCloudDataPresent(boolean primaryRowSearches) {
-    // Given: Only one non-marketplace AWS host contributes
+    // Given: The shared cloud-only org has one non-marketplace AWS host
     givenFeatureFlagIsConfigured(primaryRowSearches);
-    givenOrgIsOptedIn();
-    givenCloudHost();
 
-    // When: Nightly tally runs
-    whenNightlyTallyRuns();
+    // When: Cloud and empty-category daily reports are queried
+    TallyReportData cloud = thenDailyReport(cloudOrgId, CLOUD, Map.of());
+    TallyReportDataPoint cloudLatest = latestPoint(cloud);
+    Map<String, TallyReportDataPoint> emptyCategories = new HashMap<>();
+    for (String category : List.of(PHYSICAL, VIRTUAL, HYPERVISOR)) {
+      emptyCategories.put(category, thenLatestPoint(cloudOrgId, category, Map.of()));
+    }
 
     // Then: Cloud reports data and all other categories remain empty
-    TallyReportData cloud = thenDailyReport(CLOUD, Map.of());
-    TallyReportDataPoint cloudLatest = latestPoint(cloud);
     assertTrue(cloudLatest.getValue() > 0);
     assertEquals(Boolean.TRUE, cloudLatest.getHasData());
     assertFalse(
         cloud.getData() != null && cloud.getData().stream().anyMatch(this::claimsDataForZero));
 
     for (String category : List.of(PHYSICAL, VIRTUAL, HYPERVISOR)) {
-      TallyReportDataPoint empty = thenLatestPoint(category, Map.of());
+      TallyReportDataPoint empty = emptyCategories.get(category);
       assertEquals(0, empty.getValue());
       assertNotEquals(Boolean.TRUE, empty.getHasData());
     }
   }
 
-  private void givenOrgIsOptedIn() {
-    service.createOptInConfig(orgId);
+  private static void givenPhysicalFixture(String fixtureOrgId) {
+    givenPhysicalHost(fixtureOrgId, 4, "Premium", "Production");
+    givenPhysicalHost(fixtureOrgId, 6, "Standard", "Development/Test");
+    givenPhysicalHost(fixtureOrgId, 2, "Premium", "Development/Test");
   }
 
-  private void givenPhysicalFixture() {
-    givenPhysicalHost(4, "Premium", "Production");
-    givenPhysicalHost(6, "Standard", "Development/Test");
-    givenPhysicalHost(2, "Premium", "Development/Test");
-  }
-
-  private void givenPhysicalHost(int sockets, String sla, String usage) {
+  private static void givenPhysicalHost(
+      String fixtureOrgId, int sockets, String sla, String usage) {
     hostManager
-        .createHost(orgId)
+        .createHost(fixtureOrgId)
         .displayName("physical-" + UUID.randomUUID())
         .apply(HostTemplates.conduitReportedPhysicalRhel(sockets, sockets * 2))
         .rhsmFacts(RhsmFacts.builder().defaultFacts().sla(sla).usage(usage).build())
         .insert();
   }
 
-  private void givenVirtualHost() {
+  private static void givenVirtualHost(String fixtureOrgId) {
     hostManager
-        .createHost(orgId)
+        .createHost(fixtureOrgId)
         .displayName("virtual-" + UUID.randomUUID())
-        .rhsmFacts(RhsmFacts.builder().defaultFacts().isVirtual(true).sla("Premium").usage("Production").build())
+        .rhsmFacts(
+            RhsmFacts.builder()
+                .defaultFacts()
+                .isVirtual(true)
+                .sla("Premium")
+                .usage("Production")
+                .build())
         .systemProfileFacts(
             SystemProfileFacts.builder()
                 .infrastructureType("virtual")
@@ -214,9 +238,9 @@ public class TallyReportCategoryHasDataNonPaygTest extends BaseTallyComponentTes
         .insert();
   }
 
-  private void givenCloudHost() {
+  private static void givenCloudHost(String fixtureOrgId) {
     hostManager
-        .createHost(orgId)
+        .createHost(fixtureOrgId)
         .displayName("cloud-" + UUID.randomUUID())
         .subscriptionManagerId(UUID.randomUUID().toString())
         .providerId("i-test-" + UUID.randomUUID())
@@ -234,15 +258,13 @@ public class TallyReportCategoryHasDataNonPaygTest extends BaseTallyComponentTes
         .insert();
   }
 
-  private void whenNightlyTallyRuns() {
-    service.tallyOrg(orgId);
-  }
-
-  private TallyReportData thenDailyReport(String category, Map<String, ?> filters) {
-    return thenDailyReportBetween(category, beginning, ending, filters);
+  private TallyReportData thenDailyReport(
+      String fixtureOrgId, String category, Map<String, ?> filters) {
+    return thenDailyReportBetween(fixtureOrgId, category, beginning, ending, filters);
   }
 
   private TallyReportData thenDailyReportBetween(
+      String fixtureOrgId,
       String category,
       OffsetDateTime rangeBeginning,
       OffsetDateTime rangeEnding,
@@ -255,12 +277,14 @@ public class TallyReportCategoryHasDataNonPaygTest extends BaseTallyComponentTes
       parameters.put("category", category);
     }
     parameters.putAll(filters);
-    return service.getTallyReportData(orgId, PRODUCT, TallyReportCategoryHasDataNonPaygTest.SOCKETS, parameters);
+    return service.getTallyReportData(
+        fixtureOrgId, PRODUCT, TallyReportCategoryHasDataNonPaygTest.SOCKETS, parameters);
   }
 
   private TallyReportDataPoint thenLatestPoint(
-      String category, Map<String, ?> filters) {
-    return Objects.requireNonNull(thenDailyReport(category, filters).getData()).stream()
+      String fixtureOrgId, String category, Map<String, ?> filters) {
+    return Objects.requireNonNull(thenDailyReport(fixtureOrgId, category, filters).getData())
+        .stream()
         .max(Comparator.comparing(TallyReportDataPoint::getDate))
         .orElseThrow(() -> new AssertionError("Daily report has no data points"));
   }

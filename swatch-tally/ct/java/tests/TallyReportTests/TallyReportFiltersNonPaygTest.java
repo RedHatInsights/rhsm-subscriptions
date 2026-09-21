@@ -31,6 +31,7 @@ import com.redhat.swatch.component.tests.api.hbi.HostStateManager;
 import com.redhat.swatch.component.tests.api.hbi.HostTemplates;
 import com.redhat.swatch.component.tests.api.hbi.RhsmFacts;
 import com.redhat.swatch.component.tests.api.hbi.SystemProfileFacts;
+import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.tally.test.model.GranularityType;
 import com.redhat.swatch.tally.test.model.InstanceResponse;
 import com.redhat.swatch.tally.test.model.ServiceLevelType;
@@ -44,7 +45,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -58,19 +60,41 @@ public class TallyReportFiltersNonPaygTest extends BaseTallyComponentTest {
   private static final String VIRTUAL = "virtual";
   private static final String CLOUD = "cloud";
 
-  private HostStateManager hostManager;
-  private OffsetDateTime beginning;
-  private OffsetDateTime ending;
+  private static String testOrgId;
+  private static String cloudOrgId;
+  private static HostStateManager hostManager;
+  private static OffsetDateTime beginning;
+  private static OffsetDateTime ending;
 
-  @BeforeEach
-  void setUpHostManager() {
+  @BeforeAll
+  static void setUpSharedHosts() {
     hostManager = new HostStateManager(new HbiDbConnector(hbiDatabase));
+    testOrgId = RandomUtils.generateRandom();
+    cloudOrgId = RandomUtils.generateRandom();
     beginning = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
     ending = beginning.plusDays(1).minusNanos(1);
+
+    service.createOptInConfig(testOrgId);
+    service.createOptInConfig(cloudOrgId);
+
+    givenPhysicalFixture(testOrgId);
+    givenVirtualHost(testOrgId, 4, "Premium", "Production");
+    givenVirtualHost(testOrgId, 2, "Standard", "Development/Test");
+    givenVirtualHost(testOrgId, 2, "Self-Support", "Development/Test");
+    givenCloudHost(cloudOrgId);
+
+    service.tallyOrg(testOrgId);
+    service.tallyOrg(cloudOrgId);
   }
 
-  @AfterEach
-  void cleanUpHosts() {
+  @BeforeEach
+  void setUpRbacForSharedOrgs() {
+    stubRbacAccessForOrg(testOrgId);
+    stubRbacAccessForOrg(cloudOrgId);
+  }
+
+  @AfterAll
+  static void cleanUpHosts() {
     if (hostManager != null) {
       hostManager.cleanupAll();
     }
@@ -80,88 +104,64 @@ public class TallyReportFiltersNonPaygTest extends BaseTallyComponentTest {
   @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-nonpayg-TC001")
   void shouldFilterPhysicalSocketsBySla(boolean primaryRowSearches) {
-    // Given: Three physical hosts have distinct SLA and usage values
+    // Given: Shared physical hosts have distinct SLA and usage values
     givenFeatureFlagIsConfigured(primaryRowSearches);
-    givenOrgIsOptedIn();
-    givenPhysicalFixture();
 
-    // When: Nightly tally runs
-    whenNightlyTallyRuns();
+    // When: Daily physical reports are filtered by SLA
+    int premium = thenDailyValue(testOrgId, SOCKETS, PHYSICAL, Map.of("sla", "Premium"));
+    int standard = thenDailyValue(testOrgId, SOCKETS, PHYSICAL, Map.of("sla", "Standard"));
 
     // Then: Each SLA reports the sockets contributed by matching hosts
-    assertEquals(
-        6, thenDailyValue(SOCKETS, PHYSICAL, Map.of("sla", "Premium")));
-    assertEquals(
-        6, thenDailyValue(SOCKETS, PHYSICAL, Map.of("sla", "Standard")));
+    assertEquals(6, premium);
+    assertEquals(6, standard);
   }
 
   @ParameterizedTest(name = "primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-nonpayg-TC002")
   void shouldFilterPhysicalSocketsByUsage(boolean primaryRowSearches) {
-    // Given: Three physical hosts have distinct SLA and usage values
+    // Given: Shared physical hosts have distinct SLA and usage values
     givenFeatureFlagIsConfigured(primaryRowSearches);
-    givenOrgIsOptedIn();
-    givenPhysicalFixture();
 
-    // When: Nightly tally runs
-    whenNightlyTallyRuns();
+    // When: Daily physical reports are filtered by usage
+    int production = thenDailyValue(testOrgId, SOCKETS, PHYSICAL, Map.of("usage", "Production"));
+    int development =
+        thenDailyValue(testOrgId, SOCKETS, PHYSICAL, Map.of("usage", "Development/Test"));
 
     // Then: Each usage reports the sockets contributed by matching hosts
-    assertEquals(
-        4,
-        thenDailyValue(
-            SOCKETS, PHYSICAL, Map.of("usage", "Production")));
-    assertEquals(
-        8,
-        thenDailyValue(
-            SOCKETS,
-            PHYSICAL,
-            Map.of("usage", "Development/Test")));
+    assertEquals(4, production);
+    assertEquals(8, development);
   }
 
   @ParameterizedTest(name = "primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-nonpayg-TC003")
   void shouldCombineSlaAndUsageFilters(boolean primaryRowSearches) {
-    // Given: Three physical hosts have distinct SLA and usage values
+    // Given: Shared physical hosts have distinct SLA and usage values
     givenFeatureFlagIsConfigured(primaryRowSearches);
-    givenOrgIsOptedIn();
-    givenPhysicalFixture();
+    Map<String, String> premiumProduction = Map.of("sla", "Premium", "usage", "Production");
 
-    // When: Nightly tally runs
-    whenNightlyTallyRuns();
+    // When: Daily physical reports combine SLA and usage filters
+    TallyReportData report = thenDailyReport(testOrgId, SOCKETS, PHYSICAL, premiumProduction);
+    int standardDevelopment =
+        thenDailyValue(
+            testOrgId, SOCKETS, PHYSICAL, Map.of("sla", "Standard", "usage", "Development/Test"));
+    int premiumDevelopment =
+        thenDailyValue(
+            testOrgId, SOCKETS, PHYSICAL, Map.of("sla", "Premium", "usage", "Development/Test"));
+    int standardProduction =
+        thenDailyValue(
+            testOrgId, SOCKETS, PHYSICAL, Map.of("sla", "Standard", "usage", "Production"));
 
     // Then: Combined filters isolate each host and echo report metadata
-    Map<String, String> premiumProduction =
-        Map.of("sla", "Premium", "usage", "Production");
-    TallyReportData report =
-        thenDailyReport(SOCKETS, PHYSICAL, premiumProduction);
     assertEquals(
         4,
         report.getData() != null
             ? report.getData().stream().mapToInt(TallyReportDataPoint::getValue).sum()
             : 0);
-    assertEquals(
-        6,
-        thenDailyValue(
-            SOCKETS,
-            PHYSICAL,
-            Map.of(
-                "sla", "Standard", "usage", "Development/Test")));
-    assertEquals(
-        2,
-        thenDailyValue(
-            SOCKETS,
-            PHYSICAL,
-            Map.of(
-                "sla", "Premium", "usage", "Development/Test")));
-    assertEquals(
-        0,
-        thenDailyValue(
-            SOCKETS,
-            PHYSICAL,
-            Map.of("sla", "Standard", "usage", "Production")));
+    assertEquals(6, standardDevelopment);
+    assertEquals(2, premiumDevelopment);
+    assertEquals(0, standardProduction);
     assertEquals(
         ServiceLevelType.PREMIUM,
         report.getMeta() != null ? report.getMeta().getServiceLevel() : null);
@@ -175,20 +175,15 @@ public class TallyReportFiltersNonPaygTest extends BaseTallyComponentTest {
   @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-nonpayg-TC004")
   void shouldPartitionUnfilteredTotalBySla(boolean primaryRowSearches) {
-    // Given: Three physical hosts total twelve sockets
+    // Given: Shared physical hosts total twelve sockets
     givenFeatureFlagIsConfigured(primaryRowSearches);
-    givenOrgIsOptedIn();
-    givenPhysicalFixture();
 
-    // When: Nightly tally runs
-    whenNightlyTallyRuns();
+    // When: The unfiltered and SLA-filtered reports are queried
+    int all = thenDailyValue(testOrgId, SOCKETS, PHYSICAL, Map.of());
+    int premium = thenDailyValue(testOrgId, SOCKETS, PHYSICAL, Map.of("sla", "Premium"));
+    int standard = thenDailyValue(testOrgId, SOCKETS, PHYSICAL, Map.of("sla", "Standard"));
 
     // Then: SLA slices partition the unfiltered physical total
-    int all = thenDailyValue(SOCKETS, PHYSICAL, Map.of());
-    int premium =
-        thenDailyValue(SOCKETS, PHYSICAL, Map.of("sla", "Premium"));
-    int standard =
-        thenDailyValue(SOCKETS, PHYSICAL, Map.of("sla", "Standard"));
     assertEquals(12, all);
     assertEquals(6, premium);
     assertEquals(6, standard);
@@ -199,107 +194,71 @@ public class TallyReportFiltersNonPaygTest extends BaseTallyComponentTest {
   @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-nonpayg-TC005")
   void shouldExcludeAwsBillingProvider(boolean primaryRowSearches) {
-    // Given: Traditional physical hosts have no billing provider
+    // Given: Shared traditional physical hosts have no billing provider
     givenFeatureFlagIsConfigured(primaryRowSearches);
-    givenOrgIsOptedIn();
-    givenPhysicalFixture();
 
-    // When: Nightly tally runs
-    whenNightlyTallyRuns();
+    // When: Reports are queried with and without an AWS filter
+    int all = thenDailyValue(testOrgId, SOCKETS, PHYSICAL, Map.of());
+    int aws = thenDailyValue(testOrgId, SOCKETS, PHYSICAL, Map.of("billing_provider", "aws"));
 
     // Then: AWS filtering excludes traditional nightly snapshots
-    assertEquals(12, thenDailyValue(SOCKETS, PHYSICAL, Map.of()));
-    assertEquals(
-        0,
-        thenDailyValue(
-            SOCKETS,
-            PHYSICAL,
-            Map.of("billing_provider", "aws")));
+    assertEquals(12, all);
+    assertEquals(0, aws);
   }
 
   @ParameterizedTest(name = "primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-nonpayg-TC006")
   void shouldExcludeUnknownBillingAccount(boolean primaryRowSearches) {
-    // Given: Traditional physical hosts have no billing account
+    // Given: Shared traditional physical hosts have no billing account
     givenFeatureFlagIsConfigured(primaryRowSearches);
-    givenOrgIsOptedIn();
-    givenPhysicalFixture();
 
-    // When: Nightly tally runs
-    whenNightlyTallyRuns();
+    // When: Reports are queried with and without a billing account filter
+    int all = thenDailyValue(testOrgId, SOCKETS, PHYSICAL, Map.of());
+    int unknownAccount =
+        thenDailyValue(testOrgId, SOCKETS, PHYSICAL, Map.of("billing_account_id", "test123"));
 
     // Then: A non-matching billing account returns no sockets
-    assertEquals(12, thenDailyValue(SOCKETS, PHYSICAL, Map.of()));
-    assertEquals(
-        0,
-        thenDailyValue(
-            SOCKETS,
-            PHYSICAL,
-            Map.of("billing_account_id", "test123")));
+    assertEquals(12, all);
+    assertEquals(0, unknownAccount);
   }
 
   @ParameterizedTest(name = "primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-nonpayg-TC007")
   void shouldAddVirtualSocketsAndCores(boolean primaryRowSearches) {
-    // Given: Baseline reports are empty and one matching virtual host exists
+    // Given: One shared virtual host matches Premium and Production
     givenFeatureFlagIsConfigured(primaryRowSearches);
-    givenOrgIsOptedIn();
-    int baselineSockets =
-        thenDailyValue(
-            SOCKETS,
-            VIRTUAL,
-            Map.of("sla", "Premium", "usage", "Production"));
-    int baselineCores =
-        thenDailyValue(
-            CORES,
-            VIRTUAL,
-            Map.of("sla", "Premium", "usage", "Production"));
-    givenVirtualHost(4, "Premium");
+    Map<String, String> filters = Map.of("sla", "Premium", "usage", "Production");
 
-    // When: Nightly tally runs
-    whenNightlyTallyRuns();
-
-    // Then: The matching virtual slice gains normalized sockets and cores
-    Map<String, String> filters =
-        Map.of("sla", "Premium", "usage", "Production");
-    assertEquals(
-        baselineSockets + 1, thenDailyValue(SOCKETS, VIRTUAL, filters));
-    assertEquals(
-        baselineCores + 2, thenDailyValue(CORES, VIRTUAL, filters));
-    assertEquals(
-        0,
+    // When: Matching and non-matching virtual reports are queried
+    int sockets = thenDailyValue(testOrgId, SOCKETS, VIRTUAL, filters);
+    int cores = thenDailyValue(testOrgId, CORES, VIRTUAL, filters);
+    int nonMatching =
         thenDailyValue(
-            SOCKETS,
-            VIRTUAL,
-            Map.of("sla", "Standard", "usage", "Production")));
+            testOrgId, SOCKETS, VIRTUAL, Map.of("sla", "Standard", "usage", "Production"));
+
+    // Then: The matching virtual slice contains normalized sockets and cores
+    assertEquals(1, sockets);
+    assertEquals(2, cores);
+    assertEquals(0, nonMatching);
   }
 
   @ParameterizedTest(name = "primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-nonpayg-TC008")
   void shouldPartitionVirtualSocketsBySla(boolean primaryRowSearches) {
-    // Given: Virtual hosts cover every defined SLA
+    // Given: Shared virtual hosts cover every defined SLA
     givenFeatureFlagIsConfigured(primaryRowSearches);
-    givenOrgIsOptedIn();
-    givenVirtualHost(2, "Premium");
-    givenVirtualHost(2, "Standard");
-    givenVirtualHost(2, "Self-Support");
 
-    // When: Nightly tally runs
-    whenNightlyTallyRuns();
+    // When: The unfiltered and SLA-filtered virtual reports are queried
+    int all = thenDailyValue(testOrgId, SOCKETS, VIRTUAL, Map.of());
+    int premium = thenDailyValue(testOrgId, SOCKETS, VIRTUAL, Map.of("sla", "Premium"));
+    int standard = thenDailyValue(testOrgId, SOCKETS, VIRTUAL, Map.of("sla", "Standard"));
+    int selfSupport = thenDailyValue(testOrgId, SOCKETS, VIRTUAL, Map.of("sla", "Self-Support"));
+    int empty = thenDailyValue(testOrgId, SOCKETS, VIRTUAL, Map.of("sla", ""));
 
     // Then: Defined and empty SLA slices partition the total
-    int all = thenDailyValue(SOCKETS, VIRTUAL, Map.of());
-    int premium =
-        thenDailyValue(SOCKETS, VIRTUAL, Map.of("sla", "Premium"));
-    int standard =
-        thenDailyValue(SOCKETS, VIRTUAL, Map.of("sla", "Standard"));
-    int selfSupport =
-        thenDailyValue(
-            SOCKETS, VIRTUAL, Map.of("sla", "Self-Support"));
-    int empty = thenDailyValue(SOCKETS, VIRTUAL, Map.of("sla", ""));
     assertTrue(premium > 0);
     assertTrue(standard > 0);
     assertTrue(selfSupport > 0);
@@ -311,21 +270,17 @@ public class TallyReportFiltersNonPaygTest extends BaseTallyComponentTest {
   @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-nonpayg-TC009")
   void shouldIsolateVirtualFromPhysical(boolean primaryRowSearches) {
-    // Given: One physical and one virtual host contribute on the same day
+    // Given: Shared physical and virtual hosts contribute on the same day
     givenFeatureFlagIsConfigured(primaryRowSearches);
-    givenOrgIsOptedIn();
-    givenPhysicalHost(4, "Premium", "Production");
-    givenVirtualHost(2, "Premium");
 
-    // When: Nightly tally runs
-    whenNightlyTallyRuns();
+    // When: Physical, virtual, and unfiltered reports are queried
+    int physical = thenDailyValue(testOrgId, SOCKETS, PHYSICAL, Map.of());
+    int virtual = thenDailyValue(testOrgId, SOCKETS, VIRTUAL, Map.of());
+    int all = thenDailyValue(testOrgId, SOCKETS, null, Map.of());
 
     // Then: Category reports isolate and partition both contributions
-    int physical = thenDailyValue(SOCKETS, PHYSICAL, Map.of());
-    int virtual = thenDailyValue(SOCKETS, VIRTUAL, Map.of());
-    int all = thenDailyValue(SOCKETS, null, Map.of());
-    assertEquals(4, physical);
-    assertEquals(1, virtual);
+    assertEquals(12, physical);
+    assertEquals(3, virtual);
     assertEquals(physical + virtual, all);
   }
 
@@ -333,52 +288,42 @@ public class TallyReportFiltersNonPaygTest extends BaseTallyComponentTest {
   @ValueSource(booleans = {true, false})
   @TestPlanName("tally-report-filters-nonpayg-TC010")
   void shouldAddNonMarketplaceCloudTotals(boolean primaryRowSearches) {
-    // Given: Baseline cloud reports are empty and one AWS host exists
+    // Given: One shared non-marketplace AWS cloud host exists
     givenFeatureFlagIsConfigured(primaryRowSearches);
-    givenOrgIsOptedIn();
-    int baselineSockets = thenDailyValue(SOCKETS, CLOUD, Map.of());
-    int baselineCores = thenDailyValue(CORES, CLOUD, Map.of());
-    int baselineInstances = thenInstancesForCategory().getMeta().getCount();
-    givenCloudHost();
 
-    // When: Nightly tally runs
-    whenNightlyTallyRuns();
+    // When: Cloud tally and instance reports are queried
+    int sockets = thenDailyValue(cloudOrgId, SOCKETS, CLOUD, Map.of());
+    int cores = thenDailyValue(cloudOrgId, CORES, CLOUD, Map.of());
+    int instances =
+        Objects.requireNonNull(thenInstancesForCategory(cloudOrgId).getMeta()).getCount();
 
-    // Then: Cloud sockets, cores, and instance count increase
-    assertEquals(
-        baselineSockets + 1, thenDailyValue(SOCKETS, CLOUD, Map.of()));
-    assertEquals(
-        baselineCores + 2, thenDailyValue(CORES, CLOUD, Map.of()));
-    assertEquals(
-        baselineInstances + 1,
-        Objects.requireNonNull(thenInstancesForCategory().getMeta())
-            .getCount());
+    // Then: Cloud sockets, cores, and instance count match the host
+    assertEquals(1, sockets);
+    assertEquals(2, cores);
+    assertEquals(1, instances);
   }
 
-  private void givenOrgIsOptedIn() {
-    service.createOptInConfig(orgId);
+  private static void givenPhysicalFixture(String fixtureOrgId) {
+    givenPhysicalHost(fixtureOrgId, 4, "Premium", "Production");
+    givenPhysicalHost(fixtureOrgId, 6, "Standard", "Development/Test");
+    givenPhysicalHost(fixtureOrgId, 2, "Premium", "Development/Test");
   }
 
-  private void givenPhysicalFixture() {
-    givenPhysicalHost(4, "Premium", "Production");
-    givenPhysicalHost(6, "Standard", "Development/Test");
-    givenPhysicalHost(2, "Premium", "Development/Test");
-  }
-
-  private void givenPhysicalHost(int sockets, String sla, String usage) {
+  private static void givenPhysicalHost(
+      String fixtureOrgId, int sockets, String sla, String usage) {
     hostManager
-        .createHost(orgId)
+        .createHost(fixtureOrgId)
         .displayName("physical-" + UUID.randomUUID())
         .apply(HostTemplates.conduitReportedPhysicalRhel(sockets, sockets * 2))
         .rhsmFacts(RhsmFacts.builder().defaultFacts().sla(sla).usage(usage).build())
         .insert();
   }
 
-  private void givenVirtualHost(int cores, String sla) {
+  private static void givenVirtualHost(String fixtureOrgId, int cores, String sla, String usage) {
     hostManager
-        .createHost(orgId)
+        .createHost(fixtureOrgId)
         .displayName("virtual-" + UUID.randomUUID())
-        .rhsmFacts(RhsmFacts.builder().defaultFacts().isVirtual(true).sla(sla).usage("Production").build())
+        .rhsmFacts(RhsmFacts.builder().defaultFacts().isVirtual(true).sla(sla).usage(usage).build())
         .systemProfileFacts(
             SystemProfileFacts.builder()
                 .infrastructureType("virtual")
@@ -390,9 +335,9 @@ public class TallyReportFiltersNonPaygTest extends BaseTallyComponentTest {
         .insert();
   }
 
-  private void givenCloudHost() {
+  private static void givenCloudHost(String fixtureOrgId) {
     hostManager
-        .createHost(orgId)
+        .createHost(fixtureOrgId)
         .displayName("cloud-" + UUID.randomUUID())
         .subscriptionManagerId(UUID.randomUUID().toString())
         .providerId("i-test-" + UUID.randomUUID())
@@ -410,11 +355,8 @@ public class TallyReportFiltersNonPaygTest extends BaseTallyComponentTest {
         .insert();
   }
 
-  private void whenNightlyTallyRuns() {
-    service.tallyOrg(orgId);
-  }
-
-  private TallyReportData thenDailyReport(String metric, String category, Map<String, ?> filters) {
+  private TallyReportData thenDailyReport(
+      String fixtureOrgId, String metric, String category, Map<String, ?> filters) {
     Map<String, Object> parameters = new HashMap<>();
     parameters.put("granularity", "Daily");
     parameters.put("beginning", beginning.toString());
@@ -423,18 +365,21 @@ public class TallyReportFiltersNonPaygTest extends BaseTallyComponentTest {
       parameters.put("category", category);
     }
     parameters.putAll(filters);
-    return service.getTallyReportData(orgId, PRODUCT, metric, parameters);
+    return service.getTallyReportData(fixtureOrgId, PRODUCT, metric, parameters);
   }
 
-  private int thenDailyValue(String metric, String category, Map<String, ?> filters) {
-    return Objects.requireNonNull(thenDailyReport(metric, category, filters).getData()).stream()
+  private int thenDailyValue(
+      String fixtureOrgId, String metric, String category, Map<String, ?> filters) {
+    return Objects.requireNonNull(
+            thenDailyReport(fixtureOrgId, metric, category, filters).getData())
+        .stream()
         .mapToInt(TallyReportDataPoint::getValue)
         .sum();
   }
 
-  private InstanceResponse thenInstancesForCategory() {
+  private InstanceResponse thenInstancesForCategory(String fixtureOrgId) {
     return service.getInstancesByProduct(
-        orgId,
+        fixtureOrgId,
         PRODUCT,
         beginning,
         ending,
