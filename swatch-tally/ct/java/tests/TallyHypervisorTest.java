@@ -141,11 +141,10 @@ public class TallyHypervisorTest extends BaseTallyComponentTest {
             .mapToDouble(point -> point.getValue() != null ? point.getValue() : 0.0)
             .sum();
 
-    SeededHost hypervisor =
-        hostManager
-            .createHost(orgId)
-            .apply(HostTemplates.conduitReportedPhysicalRhel(testSocketCount, 1))
-            .insert();
+    hostManager
+        .createHost(orgId)
+        .apply(HostTemplates.conduitReportedPhysicalRhel(testSocketCount, 1))
+        .insert();
 
     // When: Nightly tally runs
     service.tallyOrg(orgId);
