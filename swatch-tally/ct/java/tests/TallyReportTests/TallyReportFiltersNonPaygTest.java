@@ -21,6 +21,7 @@
 package tests;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static utils.TallyTestProducts.RHEL_FOR_X86;
@@ -142,7 +143,7 @@ public class TallyReportFiltersNonPaygTest extends BaseTallyComponentTest {
     Map<String, String> premiumProduction = Map.of("sla", "Premium", "usage", "Production");
 
     // When: Daily physical reports combine SLA and usage filters
-    TallyReportData report = thenDailyReport(testOrgId, SOCKETS, PHYSICAL, premiumProduction);
+    TallyReportData report = getDailyReport(testOrgId, SOCKETS, PHYSICAL, premiumProduction);
     int standardDevelopment =
         thenDailyValue(
             testOrgId, SOCKETS, PHYSICAL, Map.of("sla", "Standard", "usage", "Development/Test"));
@@ -154,21 +155,19 @@ public class TallyReportFiltersNonPaygTest extends BaseTallyComponentTest {
             testOrgId, SOCKETS, PHYSICAL, Map.of("sla", "Standard", "usage", "Production"));
 
     // Then: Combined filters isolate each host and echo report metadata
-    assertEquals(
-        4,
-        report.getData() != null
-            ? report.getData().stream().mapToInt(TallyReportDataPoint::getValue).sum()
-            : 0);
+    var data = report.getData();
+    assertNotNull(data);
+    assertEquals(4, data.stream().mapToInt(TallyReportDataPoint::getValue).sum());
     assertEquals(6, standardDevelopment);
     assertEquals(2, premiumDevelopment);
     assertEquals(0, standardProduction);
-    assertEquals(
-        ServiceLevelType.PREMIUM,
-        report.getMeta() != null ? report.getMeta().getServiceLevel() : null);
-    assertEquals(UsageType.PRODUCTION, report.getMeta().getUsage());
-    assertEquals(GranularityType.DAILY, report.getMeta().getGranularity());
-    assertNull(report.getMeta().getBillingProvider());
-    assertNull(report.getMeta().getBillingAcountId());
+    var meta = report.getMeta();
+    assertNotNull(meta);
+    assertEquals(ServiceLevelType.PREMIUM, meta.getServiceLevel());
+    assertEquals(UsageType.PRODUCTION, meta.getUsage());
+    assertEquals(GranularityType.DAILY, meta.getGranularity());
+    assertNull(meta.getBillingProvider());
+    assertNull(meta.getBillingAcountId());
   }
 
   @ParameterizedTest(name = "primaryRowSearches={0}")
@@ -355,7 +354,7 @@ public class TallyReportFiltersNonPaygTest extends BaseTallyComponentTest {
         .insert();
   }
 
-  private TallyReportData thenDailyReport(
+  private TallyReportData getDailyReport(
       String fixtureOrgId, String metric, String category, Map<String, ?> filters) {
     Map<String, Object> parameters = new HashMap<>();
     parameters.put("granularity", "Daily");
@@ -371,7 +370,7 @@ public class TallyReportFiltersNonPaygTest extends BaseTallyComponentTest {
   private int thenDailyValue(
       String fixtureOrgId, String metric, String category, Map<String, ?> filters) {
     return Objects.requireNonNull(
-            thenDailyReport(fixtureOrgId, metric, category, filters).getData())
+            getDailyReport(fixtureOrgId, metric, category, filters).getData())
         .stream()
         .mapToInt(TallyReportDataPoint::getValue)
         .sum();

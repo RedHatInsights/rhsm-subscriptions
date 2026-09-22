@@ -115,11 +115,11 @@ public class TallyReportCategoryHasDataNonPaygTest extends BaseTallyComponentTes
     for (String category : List.of(PHYSICAL, VIRTUAL, HYPERVISOR, CLOUD)) {
       reports.put(
           category,
-          thenDailyReportBetween(
+          getDailyReportBetween(
               physicalOrgId, category, beginning.minusDays(11), ending, Map.of()));
     }
-    TallyReportDataPoint physical = thenLatestPoint(physicalOrgId, PHYSICAL, Map.of());
-    TallyReportDataPoint virtual = thenLatestPoint(physicalOrgId, VIRTUAL, Map.of());
+    TallyReportDataPoint physical = latestPoint(getDailyReport(physicalOrgId, PHYSICAL, Map.of()));
+    TallyReportDataPoint virtual = latestPoint(getDailyReport(physicalOrgId, VIRTUAL, Map.of()));
 
     // Then: Physical reports data while empty categories do not
     for (String category : List.of(PHYSICAL, VIRTUAL, HYPERVISOR, CLOUD)) {
@@ -144,7 +144,7 @@ public class TallyReportCategoryHasDataNonPaygTest extends BaseTallyComponentTes
     givenFeatureFlagIsConfigured(primaryRowSearches);
 
     // When: Its virtual daily report is queried
-    TallyReportData report = thenDailyReport(mixedOrgId, VIRTUAL, Map.of());
+    TallyReportData report = getDailyReport(mixedOrgId, VIRTUAL, Map.of());
     TallyReportDataPoint latest = latestPoint(report);
 
     // Then: Virtual has_data matches its positive contribution
@@ -162,8 +162,8 @@ public class TallyReportCategoryHasDataNonPaygTest extends BaseTallyComponentTes
     givenFeatureFlagIsConfigured(primaryRowSearches);
 
     // When: Physical and virtual daily reports are queried
-    TallyReportDataPoint physical = thenLatestPoint(mixedOrgId, PHYSICAL, Map.of());
-    TallyReportDataPoint virtual = thenLatestPoint(mixedOrgId, VIRTUAL, Map.of());
+    TallyReportDataPoint physical = latestPoint(getDailyReport(mixedOrgId, PHYSICAL, Map.of()));
+    TallyReportDataPoint virtual = latestPoint(getDailyReport(mixedOrgId, VIRTUAL, Map.of()));
 
     // Then: Each category reports only its own positive contribution
     assertEquals(4, physical.getValue());
@@ -180,11 +180,11 @@ public class TallyReportCategoryHasDataNonPaygTest extends BaseTallyComponentTes
     givenFeatureFlagIsConfigured(primaryRowSearches);
 
     // When: Cloud and empty-category daily reports are queried
-    TallyReportData cloud = thenDailyReport(cloudOrgId, CLOUD, Map.of());
+    TallyReportData cloud = getDailyReport(cloudOrgId, CLOUD, Map.of());
     TallyReportDataPoint cloudLatest = latestPoint(cloud);
     Map<String, TallyReportDataPoint> emptyCategories = new HashMap<>();
     for (String category : List.of(PHYSICAL, VIRTUAL, HYPERVISOR)) {
-      emptyCategories.put(category, thenLatestPoint(cloudOrgId, category, Map.of()));
+      emptyCategories.put(category, latestPoint(getDailyReport(cloudOrgId, category, Map.of())));
     }
 
     // Then: Cloud reports data and all other categories remain empty
@@ -258,12 +258,12 @@ public class TallyReportCategoryHasDataNonPaygTest extends BaseTallyComponentTes
         .insert();
   }
 
-  private TallyReportData thenDailyReport(
+  private TallyReportData getDailyReport(
       String fixtureOrgId, String category, Map<String, ?> filters) {
-    return thenDailyReportBetween(fixtureOrgId, category, beginning, ending, filters);
+    return getDailyReportBetween(fixtureOrgId, category, beginning, ending, filters);
   }
 
-  private TallyReportData thenDailyReportBetween(
+  private TallyReportData getDailyReportBetween(
       String fixtureOrgId,
       String category,
       OffsetDateTime rangeBeginning,
@@ -281,17 +281,10 @@ public class TallyReportCategoryHasDataNonPaygTest extends BaseTallyComponentTes
         fixtureOrgId, PRODUCT, TallyReportCategoryHasDataNonPaygTest.SOCKETS, parameters);
   }
 
-  private TallyReportDataPoint thenLatestPoint(
-      String fixtureOrgId, String category, Map<String, ?> filters) {
-    return Objects.requireNonNull(thenDailyReport(fixtureOrgId, category, filters).getData())
-        .stream()
+  private TallyReportDataPoint latestPoint(TallyReportData report) {
+    return Objects.requireNonNull(report.getData()).stream()
         .max(Comparator.comparing(TallyReportDataPoint::getDate))
         .orElseThrow(() -> new AssertionError("Daily report has no data points"));
-  }
-
-  private TallyReportDataPoint latestPoint(TallyReportData report) {
-    List<TallyReportDataPoint> data = Objects.requireNonNull(report.getData());
-    return data.getLast();
   }
 
   private boolean claimsDataForZero(TallyReportDataPoint point) {
