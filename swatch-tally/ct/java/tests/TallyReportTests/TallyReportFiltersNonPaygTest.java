@@ -369,8 +369,7 @@ public class TallyReportFiltersNonPaygTest extends BaseTallyComponentTest {
 
   private int thenDailyValue(
       String fixtureOrgId, String metric, String category, Map<String, ?> filters) {
-    return Objects.requireNonNull(
-            getDailyReport(fixtureOrgId, metric, category, filters).getData())
+    return Objects.requireNonNull(getDailyReport(fixtureOrgId, metric, category, filters).getData())
         .stream()
         .mapToInt(TallyReportDataPoint::getValue)
         .sum();
