@@ -20,22 +20,43 @@
  */
 package com.redhat.swatch.component.tests.utils;
 
+import com.redhat.swatch.component.tests.logging.Log;
+import java.util.BitSet;
 import java.util.concurrent.ThreadLocalRandom;
 
 public final class RandomUtils {
-
   private static final int MIN_RANGE = 10000;
   private static final int MAX_RANGE = 99999;
+  private static final int RANGE_SIZE = MAX_RANGE - MIN_RANGE + 1;
+
+  private static final BitSet USED_NUMBERS = new BitSet(RANGE_SIZE);
+  private static int COUNT = 0;
 
   private RandomUtils() {}
 
   /**
-   * Generates a random five-digit number within a predefined range and returns it as a string.
+   * Returns a random five-digit number unique within the current cycle.
    *
-   * @return a random number as a string, generated within the specified range
+   * <p>After all numbers are used, logs a warning and starts a new cycle. Uniqueness applies to
+   * threads sharing this class loader, not separate JVMs or different cycles.
+   *
+   * @return a unique number as a string, within the specified range
    */
-  public static String generateRandom() {
-    int randomNumber = ThreadLocalRandom.current().nextInt(MIN_RANGE, MAX_RANGE + 1);
-    return String.valueOf(randomNumber);
+  public static synchronized String generateRandom() {
+    if (COUNT >= RANGE_SIZE) {
+      Log.warn("All random numbers used; resetting pool.");
+      USED_NUMBERS.clear();
+      COUNT = 0;
+    }
+
+    int offset;
+    do {
+      offset = ThreadLocalRandom.current().nextInt(0, RANGE_SIZE);
+    } while (USED_NUMBERS.get(offset));
+
+    USED_NUMBERS.set(offset);
+    COUNT++;
+
+    return String.valueOf(MIN_RANGE + offset);
   }
 }
