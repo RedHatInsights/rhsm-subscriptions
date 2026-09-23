@@ -23,9 +23,10 @@ ALL_SERVICES=(
     "swatch-api:9019"
 )
 
-# Heavier services: run alone so they are not starved by sibling quarkus:dev JVMs.
+# Services: run alone so they are not starved by sibling quarkus:dev JVMs.
 SERIAL_SERVICES=(
     "swatch-contracts"
+    "swatch-billable-usage"
 )
 
 MAX_PARALLEL=${MAX_PARALLEL:-5}
