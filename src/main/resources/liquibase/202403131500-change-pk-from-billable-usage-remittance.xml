@@ -16,6 +16,7 @@
         <not>
           <uniqueConstraintExists tableName="billable_usage_remittance" constraintName="billable_usage_remittance_unique"/>
         </not>
+        <columnExists tableName="billable_usage_remittance" columnName="remittance_pending_date"/>
       </and>
     </preConditions>
     <dropPrimaryKey tableName="billable_usage_remittance" constraintName="billable_usage_remittance_pkey"/>
