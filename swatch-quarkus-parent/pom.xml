@@ -22,7 +22,8 @@
     <dependencies>
       <!--
         Keep RESTEasy at the fixed 6.2.19.Final release until Quarkus manages it.
-        This remediates CVE-2026-89059 (IIOImageProvider decompression-bomb DoS).
+        This remediates CVE-2026-89058 (CorsFilter wildcard credential exposure)
+        and CVE-2026-89059 (IIOImageProvider decompression-bomb DoS).
       -->
       <dependency>
         <groupId>org.jboss.resteasy</groupId>
