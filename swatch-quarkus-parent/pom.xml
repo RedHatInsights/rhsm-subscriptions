@@ -20,6 +20,18 @@
 
   <dependencyManagement>
     <dependencies>
+      <!--
+        Keep RESTEasy at the fixed 6.2.19.Final release until Quarkus manages it.
+        This remediates CVE-2026-89059 (IIOImageProvider decompression-bomb DoS).
+      -->
+      <dependency>
+        <groupId>org.jboss.resteasy</groupId>
+        <artifactId>resteasy-bom</artifactId>
+        <version>${resteasy.quarkus.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
       <dependency>
         <groupId>io.quarkus</groupId>
         <artifactId>quarkus-bom</artifactId>
