@@ -45,6 +45,13 @@
         </exclusions>
       </dependency>
 
+      <!-- CVE-2026-89425 is fixed in jackson-core 2.22.3. -->
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-core</artifactId>
+        <version>${jackson.version}</version>
+      </dependency>
+
       <dependency>
         <groupId>io.quarkus</groupId>
         <artifactId>quarkus-bom</artifactId>
