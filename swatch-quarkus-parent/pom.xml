@@ -15,7 +15,7 @@
   <packaging>pom</packaging>
 
   <properties>
-    <hibernate-jpamodelgen.version>7.4.10.Final</hibernate-jpamodelgen.version>
+    <hibernate-jpamodelgen.version>${hibernate-orm.version}</hibernate-jpamodelgen.version>
   </properties>
 
   <dependencyManagement>
@@ -58,6 +58,23 @@
         <version>${quarkus.platform.version}</version>
         <type>pom</type>
         <scope>import</scope>
+      </dependency>
+
+      <!-- Align only Hibernate ORM artifacts on the CVE-2026-77874-fixed release. -->
+      <dependency>
+        <groupId>org.hibernate.orm</groupId>
+        <artifactId>hibernate-core</artifactId>
+        <version>${hibernate-orm.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.hibernate.orm</groupId>
+        <artifactId>hibernate-graalvm</artifactId>
+        <version>${hibernate-orm.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.hibernate.orm</groupId>
+        <artifactId>hibernate-jcache</artifactId>
+        <version>${hibernate-orm.version}</version>
       </dependency>
 
       <dependency>
