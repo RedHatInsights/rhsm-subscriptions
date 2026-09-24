@@ -31,12 +31,7 @@ import jakarta.inject.Inject;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.extern.slf4j.Slf4j;
-import org.project_kessel.api.auth.ClientConfigAuth;
-import org.project_kessel.api.auth.OAuth2AuthRequest;
-import org.project_kessel.api.auth.OAuth2ClientCredentials;
-import org.project_kessel.api.auth.OIDCDiscovery;
 import org.project_kessel.api.inventory.v1beta2.KesselInventoryServiceGrpc.KesselInventoryServiceBlockingStub;
-import org.project_kessel.api.rbac.v2.FetchWorkspace;
 
 /**
  * CDI wrapper around the shared {@link KesselAuthorizationClient}. Handles Quarkus-specific
@@ -49,15 +44,21 @@ public class KesselAuthorizationService {
 
   @Inject KesselProperties properties;
   @Inject MeterRegistry meterRegistry;
+  @Inject RbacWorkspaceClient workspaceClient;
+  @Inject HccAuthTokenProvider tokenProvider;
 
   private KesselAuthorizationClient client;
-  private volatile OAuth2AuthRequest rbacAuth;
   private final ConcurrentHashMap<String, String> workspaceCache = new ConcurrentHashMap<>();
 
   @PostConstruct
   void init() {
     KesselConfig config =
         new KesselConfig() {
+          @Override
+          public boolean authEnabled() {
+            return properties.authEnabled();
+          }
+
           @Override
           public String endpoint() {
             return properties.resolvedEndpoint();
@@ -76,31 +77,10 @@ public class KesselAuthorizationService {
 
     KesselMetricsRecorder metricsRecorder = new KesselMicrometerRecorder(meterRegistry);
 
-    client = new KesselAuthorizationClient(config, this::getDefaultWorkspaceId, metricsRecorder);
+    client =
+        new KesselAuthorizationClient(
+            config, this::getDefaultWorkspaceId, metricsRecorder, tokenProvider.credentials());
     client.init();
-
-    try {
-      initializeRbacAuth();
-    } catch (Exception e) {
-      log.warn(
-          "Failed to initialize RBAC OAuth2 client; workspace lookups will be unauthenticated", e);
-    }
-  }
-
-  private void initializeRbacAuth() throws Exception {
-    var issuerUrl = properties.authOidcIssuer().filter(s -> !s.isBlank());
-    var clientId = properties.authClientId().filter(s -> !s.isBlank());
-    var clientSecret = properties.authClientSecret().filter(s -> !s.isBlank());
-    if (issuerUrl.isEmpty() || clientId.isEmpty() || clientSecret.isEmpty()) {
-      log.info("RBAC OAuth2 credentials not configured; workspace fetches will be unauthenticated");
-      return;
-    }
-    var discovery = OIDCDiscovery.fetchOIDCDiscovery(issuerUrl.get());
-    var credentials =
-        new OAuth2ClientCredentials(
-            new ClientConfigAuth(clientId.get(), clientSecret.get(), discovery.tokenEndpoint()));
-    this.rbacAuth = new OAuth2AuthRequest(credentials);
-    log.info("RBAC OAuth2 client initialized for workspace lookups");
   }
 
   @PreDestroy
@@ -143,10 +123,9 @@ public class KesselAuthorizationService {
 
   private String fetchDefaultWorkspaceId(String orgId) {
     try {
-      var workspace =
-          FetchWorkspace.fetchDefaultWorkspace(properties.rbacBaseEndpoint(), orgId, rbacAuth);
-      log.info("Fetched default workspace for orgId={}: id={}", orgId, workspace.getId());
-      return workspace.getId();
+      String workspaceId = workspaceClient.defaultWorkspaceId(orgId);
+      log.info("Fetched default workspace for orgId={}: id={}", orgId, workspaceId);
+      return workspaceId;
     } catch (Exception e) {
       throw new RuntimeException("Failed to fetch default workspace for orgId=" + orgId, e);
     }

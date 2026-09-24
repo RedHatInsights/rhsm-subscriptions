@@ -87,6 +87,9 @@ parameters:
   - name: KESSEL_INSECURE
     value: 'true'
   - name: KESSEL_AUTH_ENABLED
+    value: 'false'
+  - name: KESSEL_INVENTORY_API_PORT
+    value: '9000'
 #    Environment provides this
   - name: KESSEL_AUTH_OIDC_ISSUER
   - name: RBAC_BASE_ENDPOINT
@@ -149,6 +152,10 @@ objects:
                 value: ${DEV_MODE}
               - name: KESSEL_INSECURE
                 value: ${KESSEL_INSECURE}
+              - name: KESSEL_INVENTORY_API_PORT
+                value: ${KESSEL_INVENTORY_API_PORT}
+              - name: RBAC_BASE_ENDPOINT
+                value: ${RBAC_BASE_ENDPOINT}
               - name: KESSEL_AUTH_ENABLED
                 value: ${KESSEL_AUTH_ENABLED}
               - name: KESSEL_AUTH_OIDC_ISSUER

@@ -18,16 +18,32 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.kessel;
+package com.redhat.swatch.common.security;
 
-public interface KesselConfig {
-  default boolean authEnabled() {
-    return false;
+import com.redhat.swatch.kessel.HccCredentials;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+
+/** One lazy SDK credential cache shared by Quarkus HCC clients, including token renewal. */
+@ApplicationScoped
+public class HccAuthTokenProvider {
+
+  @Inject KesselProperties properties;
+  private final HccCredentials credentials =
+      new HccCredentials(
+          () -> properties.authOidcIssuer().orElse(null),
+          () -> properties.authClientId().orElse(null),
+          () -> properties.authClientSecret().orElse(null));
+
+  public boolean isConfigured() {
+    return credentials.isConfigured();
   }
 
-  String endpoint();
+  public String authorizationHeader() {
+    return credentials.authorizationHeader();
+  }
 
-  boolean insecure();
-
-  long timeoutMs();
+  HccCredentials credentials() {
+    return credentials;
+  }
 }

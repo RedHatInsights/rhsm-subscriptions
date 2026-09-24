@@ -117,7 +117,7 @@ public class HttpClient {
     return ((ResteasyClientBuilder) clientBuilder).httpEngine(engine).build();
   }
 
-  private static SSLContext getSslContext(HttpClientProperties serviceProperties) {
+  public static SSLContext getSslContext(HttpClientProperties serviceProperties) {
     try {
       KeyManager[] keyManagers = null;
       TrustManager[] trustManagers = null;
@@ -138,7 +138,7 @@ public class HttpClient {
         keyManagers = kmf.getKeyManagers();
       }
 
-      if (serviceProperties.providesTruststore()) {
+      if (serviceProperties.getTruststore() != null) {
         var truststoreResource = serviceProperties.getTruststore();
         var truststorePass =
             Objects.requireNonNullElse(serviceProperties.getTruststorePassword(), emptyPass);
@@ -161,7 +161,9 @@ public class HttpClient {
     try {
       final KeyStore store =
           KeyStore.getInstance(Optional.ofNullable(type).orElse(KeyStore.getDefaultType()));
-      store.load(keyStoreResource.getInputStream(), keyStorePassword);
+      try (var input = keyStoreResource.getInputStream()) {
+        store.load(input, keyStorePassword);
+      }
       return store;
     } catch (IOException | GeneralSecurityException e) {
       var message = String.format("Error loading Keystore resource %s", keyStoreResource);

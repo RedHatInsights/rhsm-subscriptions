@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.security;
 
+import com.redhat.swatch.kessel.HccCredentials;
 import org.candlepin.subscriptions.rbac.RbacApiFactory;
 import org.candlepin.subscriptions.rbac.RbacProperties;
 import org.candlepin.subscriptions.rbac.RbacService;
@@ -43,7 +44,7 @@ public class RbacConfiguration {
   }
 
   @Bean
-  public RbacApiFactory rbacApiFactory(RbacProperties props) {
-    return new RbacApiFactory(props);
+  public RbacApiFactory rbacApiFactory(RbacProperties props, HccCredentials credentials) {
+    return new RbacApiFactory(props, credentials::authorizationHeader);
   }
 }

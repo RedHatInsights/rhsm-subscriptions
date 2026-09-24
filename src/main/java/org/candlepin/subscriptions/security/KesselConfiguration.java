@@ -20,26 +20,20 @@
  */
 package org.candlepin.subscriptions.security;
 
+import com.redhat.swatch.kessel.HccCredentials;
 import com.redhat.swatch.kessel.KesselAuthorizationClient;
 import com.redhat.swatch.kessel.KesselMetricsRecorder;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.concurrent.ConcurrentHashMap;
 import org.candlepin.subscriptions.rbac.KesselProperties;
-import org.project_kessel.api.auth.ClientConfigAuth;
-import org.project_kessel.api.auth.OAuth2AuthRequest;
-import org.project_kessel.api.auth.OAuth2ClientCredentials;
-import org.project_kessel.api.auth.OIDCDiscovery;
-import org.project_kessel.api.rbac.v2.FetchWorkspace;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.candlepin.subscriptions.rbac.RbacProperties;
+import org.candlepin.subscriptions.rbac.RbacWorkspaceClient;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class KesselConfiguration {
-
-  private static final Logger log = LoggerFactory.getLogger(KesselConfiguration.class);
 
   @Bean
   @ConfigurationProperties(prefix = "rhsm-subscriptions.kessel")
@@ -49,55 +43,28 @@ public class KesselConfiguration {
 
   @Bean(initMethod = "init", destroyMethod = "shutdown")
   public KesselAuthorizationClient kesselAuthorizationClient(
-      KesselProperties props, MeterRegistry meterRegistry) {
-    var rbacAuth = initializeRbacAuth(props);
+      KesselProperties props,
+      MeterRegistry meterRegistry,
+      HccCredentials credentials,
+      RbacWorkspaceClient workspaceClient) {
     var workspaceCache = new ConcurrentHashMap<String, String>();
     KesselMetricsRecorder metricsRecorder = new KesselMicrometerRecorder(meterRegistry);
     return new KesselAuthorizationClient(
         props,
-        orgId ->
-            workspaceCache.computeIfAbsent(
-                orgId,
-                id -> {
-                  try {
-                    var workspace =
-                        FetchWorkspace.fetchDefaultWorkspace(
-                            props.getRbacBaseEndpoint(), id, rbacAuth);
-                    log.info(
-                        "Fetched default workspace for orgId={}: id={}", id, workspace.getId());
-                    return workspace.getId();
-                  } catch (Exception e) {
-                    throw new RuntimeException(
-                        "Failed to fetch default workspace for orgId=" + id, e);
-                  }
-                }),
-        metricsRecorder);
+        orgId -> workspaceCache.computeIfAbsent(orgId, workspaceClient::defaultWorkspaceId),
+        metricsRecorder,
+        credentials);
   }
 
-  private OAuth2AuthRequest initializeRbacAuth(KesselProperties props) {
-    var issuerUrl = props.getAuthOidcIssuer();
-    var clientId = props.getAuthClientId();
-    var clientSecret = props.getAuthClientSecret();
-    if (issuerUrl == null
-        || issuerUrl.isBlank()
-        || clientId == null
-        || clientId.isBlank()
-        || clientSecret == null
-        || clientSecret.isBlank()) {
-      log.info("RBAC OAuth2 credentials not configured; workspace fetches will be unauthenticated");
-      return null;
-    }
-    try {
-      var discovery = OIDCDiscovery.fetchOIDCDiscovery(issuerUrl);
-      var credentials =
-          new OAuth2ClientCredentials(
-              new ClientConfigAuth(clientId, clientSecret, discovery.tokenEndpoint()));
-      log.info("RBAC OAuth2 client initialized for workspace lookups");
-      return new OAuth2AuthRequest(credentials);
-    } catch (Exception e) {
-      log.warn(
-          "Failed to initialize RBAC OAuth2 client; workspace fetches will be unauthenticated", e);
-      return null;
-    }
+  @Bean
+  public HccCredentials hccCredentials(KesselProperties props) {
+    return new HccCredentials(
+        props::getAuthOidcIssuer, props::getAuthClientId, props::getAuthClientSecret);
+  }
+
+  @Bean(destroyMethod = "close")
+  public RbacWorkspaceClient rbacWorkspaceClient(
+      KesselProperties props, RbacProperties rbac, HccCredentials credentials) {
+    return new RbacWorkspaceClient(props, rbac, credentials);
   }
 }

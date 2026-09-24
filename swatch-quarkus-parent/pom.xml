@@ -16,6 +16,8 @@
 
   <properties>
     <hibernate-jpamodelgen.version>${hibernate-orm.version}</hibernate-jpamodelgen.version>
+    <!-- Local SWATCH-5598 POC; replace with an upstream release before shipping. -->
+    <clowder-quarkus-config-source.version>2.12.0-SWATCH-5598-SNAPSHOT</clowder-quarkus-config-source.version>
   </properties>
 
   <dependencyManagement>
@@ -170,7 +172,7 @@
       <dependency>
         <groupId>com.redhat.cloud.common</groupId>
         <artifactId>clowder-quarkus-config-source</artifactId>
-        <version>2.12.0</version>
+        <version>${clowder-quarkus-config-source.version}</version>
       </dependency>
       <dependency>
         <groupId>io.quarkiverse.logging.logback</groupId>
