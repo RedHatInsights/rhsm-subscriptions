@@ -502,6 +502,35 @@ monitoring owners, and schedule each switch.
    if necessary and compatible with the restored configuration.
 7. Record readiness and migration as separate outcomes for each integration, with follow-up owners.
 
+## Startup destination logging
+
+Spring API/Tally and Quarkus Contracts/Utilization log their resolved HCC destinations at INFO
+on application startup, without waiting for the first outbound request. For example:
+
+```text
+HCC endpoint resolved: service=rbac, destination=https://rbac.example:443
+HCC endpoint resolved: service=rbac-workspaces, destination=https://workspaces.example:443
+HCC endpoint resolved: service=kessel, destination=kessel.example:443
+HCC endpoint resolved: service=export, destination=https://export.example:443
+```
+
+These are the effective configured destinations after overrides, not a connectivity check or proof
+that a feature-flagged integration is active. Kessel reports its resolved gRPC host/port, not the
+HTTP discovery port. The separate RBAC workspace override is reported independently. Export is
+only included where its client configuration is present; Spring stub clients are marked `<stub>`.
+Missing or unresolvable addresses are marked `<not-configured>` or `<unresolved>` without making
+diagnostic logging itself fail startup.
+
+The logs include only the scheme (where applicable), host, and configured port. URL paths, userinfo,
+query strings, fragments, service-account credentials, tokens, and PSKs are not included in these
+startup summaries. Clowder supplies an endpoint rather than a physical cluster name; use the
+reported hostname to identify the HCC destination. Both V1 fallback and V2 configurations use the
+same log format.
+
+Verified locally with 49 focused logging/configuration tests and JVM packaging for API/Tally,
+Contracts, and Utilization. The Quarkus packages include the generated startup observer. No live
+HCC requests, container image builds, or deployments were performed for this logging change.
+
 ## Reproducing local verification
 
 Use Java 25 from the SWATCH root and install the bundled snapshot before running Maven directly:

@@ -38,14 +38,20 @@ import org.candlepin.subscriptions.actuator.FeatureFlagsInfoContributor;
 import org.candlepin.subscriptions.clowder.KafkaSslBeanPostProcessor;
 import org.candlepin.subscriptions.clowder.RdsSslBeanPostProcessor;
 import org.candlepin.subscriptions.configuration.FeatureFlags;
+import org.candlepin.subscriptions.configuration.HccEndpointStartupLogger;
 import org.candlepin.subscriptions.configuration.UnleashConfiguration;
 import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
+import org.candlepin.subscriptions.http.HttpClientProperties;
+import org.candlepin.subscriptions.rbac.KesselProperties;
+import org.candlepin.subscriptions.rbac.RbacProperties;
 import org.candlepin.subscriptions.resource.ApiConfiguration;
 import org.candlepin.subscriptions.security.AuthProperties;
 import org.candlepin.subscriptions.security.SecurityConfiguration;
 import org.candlepin.subscriptions.tally.TallyWorkerConfiguration;
 import org.candlepin.subscriptions.util.LiquibaseUpdateOnlyConfiguration;
 import org.candlepin.subscriptions.util.UtilConfiguration;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.actuate.autoconfigure.info.ConditionalOnEnabledInfoContributor;
 import org.springframework.boot.actuate.autoconfigure.info.InfoContributorFallback;
 import org.springframework.context.ApplicationContext;
@@ -71,6 +77,15 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
   UnleashConfiguration.class,
 })
 public class ApplicationConfiguration implements WebMvcConfigurer {
+  @Bean
+  HccEndpointStartupLogger hccEndpointStartupLogger(
+      ObjectProvider<RbacProperties> rbac,
+      ObjectProvider<KesselProperties> kessel,
+      @Qualifier("exportApiProperties") ObjectProvider<HttpClientProperties> export) {
+    return new HccEndpointStartupLogger(
+        rbac.getIfAvailable(), kessel.getIfAvailable(), export.getIfAvailable());
+  }
+
   @Bean
   ApplicationProperties applicationProperties() {
     return new ApplicationProperties();
