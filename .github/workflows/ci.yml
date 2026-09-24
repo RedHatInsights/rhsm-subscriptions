@@ -250,7 +250,7 @@ jobs:
         env:
           MAVEN_OPTS: "-Xmx4g -Xms512m"
         run: |
-          ./mvnw verify -Dcoverage surefire-report:report
+          ./mvnw verify -Dcoverage -Dsurefire.parallel=none -DforkCount=1 -DreuseForks=true surefire-report:report
 
       - name: Upload JUnit Report
         if: always() && (hashFiles('**/target/surefire-reports/TEST-*.xml') != '')
