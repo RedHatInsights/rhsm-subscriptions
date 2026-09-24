@@ -43,7 +43,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
@@ -87,7 +86,7 @@ class CombiningRollupSnapshotStrategyTest {
   void testConsecutiveHoursAddedTogether() {
     when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), any(), any(), any()))
-        .then(invocation -> Stream.empty());
+        .then(invocation -> List.of());
     UsageCalculation.Key usageKey =
         new UsageCalculation.Key(
             OPEN_SHIFT_HOURLY,
@@ -142,7 +141,7 @@ class CombiningRollupSnapshotStrategyTest {
     OffsetDateTime dailyTimestamp2 = OffsetDateTime.parse("2021-02-26T00:00:00Z");
     when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), any(), any(), any()))
-        .then(invocation -> Stream.empty());
+        .then(invocation -> List.of());
     UsageCalculation.Key usageKey =
         new UsageCalculation.Key(
             OPEN_SHIFT_HOURLY,
@@ -209,10 +208,10 @@ class CombiningRollupSnapshotStrategyTest {
     noonSnapshot.setId(UUID.randomUUID());
     when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), eq(Granularity.HOURLY), any(), any()))
-        .thenReturn(Stream.of(noonSnapshot));
+        .thenReturn(List.of(noonSnapshot));
     when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), eq(Granularity.DAILY), any(), any()))
-        .thenReturn(Stream.empty());
+        .thenReturn(List.of());
     UsageCalculation.Key usageKey =
         new UsageCalculation.Key(
             OPEN_SHIFT_HOURLY,
@@ -261,10 +260,10 @@ class CombiningRollupSnapshotStrategyTest {
     dailySnapshot.setId(UUID.randomUUID());
     when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), eq(Granularity.HOURLY), any(), any()))
-        .thenReturn(Stream.empty());
+        .thenReturn(List.of());
     when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), eq(Granularity.DAILY), any(), any()))
-        .thenReturn(Stream.of(dailySnapshot));
+        .thenReturn(List.of(dailySnapshot));
     UsageCalculation.Key usageKey =
         new UsageCalculation.Key(
             OPEN_SHIFT_HOURLY,
@@ -319,11 +318,11 @@ class CombiningRollupSnapshotStrategyTest {
 
     when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), eq(Granularity.HOURLY), any(), any()))
-        .thenReturn(Stream.of(noonSnapshot, afternoonSnapshot));
+        .thenReturn(List.of(noonSnapshot, afternoonSnapshot));
 
     when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), eq(Granularity.DAILY), any(), any()))
-        .thenReturn(Stream.of(dailySnapshot));
+        .thenReturn(List.of(dailySnapshot));
 
     when(repo.save(any())).then(invocation -> invocation.getArgument(0));
 
@@ -387,7 +386,7 @@ class CombiningRollupSnapshotStrategyTest {
     when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), eq(Granularity.HOURLY), any(), any()))
         .thenReturn(
-            Stream.of(existingHourlySnapshot1, existingHourlySnapshot2, existingHourlySnapshot3));
+            List.of(existingHourlySnapshot1, existingHourlySnapshot2, existingHourlySnapshot3));
 
     TallySnapshot existingDailySnapshot1 =
         createTallySnapshot(Granularity.DAILY, "2021-02-25T00:00:00Z", 4.0);
@@ -399,7 +398,7 @@ class CombiningRollupSnapshotStrategyTest {
     existingDailySnapshot2.setBillingProvider(BillingProvider.AWS);
     when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), eq(Granularity.DAILY), any(), any()))
-        .thenReturn(Stream.of(existingDailySnapshot1, existingDailySnapshot2));
+        .thenReturn(List.of(existingDailySnapshot1, existingDailySnapshot2));
 
     UsageCalculation.Key snapUsageKey1 =
         UsageCalculation.Key.fromTallySnapshot(existingHourlySnapshot1);
@@ -451,7 +450,7 @@ class CombiningRollupSnapshotStrategyTest {
   void testFinestGranularitySnapshotFilteredByDateRange() {
     when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), any(), any(), any()))
-        .then(invocation -> Stream.empty());
+        .then(invocation -> List.of());
     UsageCalculation.Key usageKey =
         new UsageCalculation.Key(
             OPEN_SHIFT_HOURLY,
@@ -498,7 +497,7 @@ class CombiningRollupSnapshotStrategyTest {
         createTallySnapshot(Granularity.HOURLY, "2022-10-24T12:00:00Z", 4.0);
     when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), any(), any(), any()))
-        .then(invocation -> Stream.of(existingSnapshot));
+        .then(invocation -> List.of(existingSnapshot));
     combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
         "org123",
         new DateRange(
@@ -520,7 +519,7 @@ class CombiningRollupSnapshotStrategyTest {
         createTallySnapshot(Granularity.HOURLY, "2022-10-24T14:00:00Z", 4.0);
     when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), any(), any(), any()))
-        .then(invocation -> Stream.of(existingSnapshot));
+        .then(invocation -> List.of(existingSnapshot));
     combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
         "org123",
         new DateRange(
@@ -542,7 +541,7 @@ class CombiningRollupSnapshotStrategyTest {
         createTallySnapshot(Granularity.HOURLY, "2022-10-24T13:00:00Z", 4.0);
     when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), any(), any(), any()))
-        .then(invocation -> Stream.of(existingSnapshot));
+        .then(invocation -> List.of(existingSnapshot));
     when(repo.save(any())).then(invocation -> invocation.getArgument(0));
     Map<String, List<TallySnapshot>> snaps =
         combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
@@ -606,7 +605,7 @@ class CombiningRollupSnapshotStrategyTest {
   void testSnapshotMarkedAsPrimary() {
     when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), any(), any(), any()))
-        .then(invocation -> Stream.empty());
+        .then(invocation -> List.of());
     when(repo.save(any())).then(invocation -> invocation.getArgument(0));
 
     // Use a PAYG product with all fields specified to create a primary record
@@ -648,7 +647,7 @@ class CombiningRollupSnapshotStrategyTest {
   void testSnapshotNotMarkedAsPrimary() {
     when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), any(), any(), any()))
-        .then(invocation -> Stream.empty());
+        .then(invocation -> List.of());
     when(repo.save(any())).then(invocation -> invocation.getArgument(0));
 
     // Use SLA _ANY to create a non-primary record
@@ -691,7 +690,7 @@ class CombiningRollupSnapshotStrategyTest {
   void testRollupSnapshotMarkedAsPrimary() {
     when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), any(), any(), any()))
-        .then(invocation -> Stream.empty());
+        .then(invocation -> List.of());
     when(repo.save(any())).then(invocation -> invocation.getArgument(0));
 
     // Use a PAYG product with all fields specified to create a primary record
@@ -736,7 +735,7 @@ class CombiningRollupSnapshotStrategyTest {
   void testRollupSnapshotNotMarkedAsPrimary() {
     when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), any(), any(), any()))
-        .then(invocation -> Stream.empty());
+        .then(invocation -> List.of());
     when(repo.save(any())).then(invocation -> invocation.getArgument(0));
 
     // Use Usage _ANY to create a non-primary record

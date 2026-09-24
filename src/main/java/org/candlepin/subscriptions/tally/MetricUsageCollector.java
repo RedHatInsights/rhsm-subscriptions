@@ -38,10 +38,10 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.candlepin.clock.ApplicationClock;
+import org.candlepin.subscriptions.configuration.FeatureFlags;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
@@ -71,16 +71,19 @@ public class MetricUsageCollector {
 
   private final HostRepository hostRepository;
   private final TallySnapshotRepository snapshotRepository;
+  private final FeatureFlags featureFlags;
 
   public MetricUsageCollector(
       AccountServiceInventoryRepository accountServiceInventoryRepository,
       ApplicationClock clock,
       HostRepository hostRepository,
-      TallySnapshotRepository snapshotRepository) {
+      TallySnapshotRepository snapshotRepository,
+      FeatureFlags featureFlags) {
     this.accountServiceInventoryRepository = accountServiceInventoryRepository;
     this.clock = clock;
     this.hostRepository = hostRepository;
     this.snapshotRepository = snapshotRepository;
+    this.featureFlags = featureFlags;
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -528,13 +531,26 @@ public class MetricUsageCollector {
             .flatMap(Set::stream)
             .map(Variant::getTag)
             .collect(Collectors.toSet());
-    Stream<TallySnapshot> snapshots =
-        snapshotRepository.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
-            event.getOrgId(),
-            products,
-            Granularity.HOURLY,
-            event.getTimestamp(),
-            clock.endOfHour(event.getTimestamp()));
+    boolean useLegacyQuery =
+        featureFlags.isEnabled(FeatureFlags.USE_LEGACY_HOURLY_TALLY_SNAPSHOT_QUERY, false);
+    log.debug(
+        "Using {} snapshot query for hourly usage calculation",
+        useLegacyQuery ? "legacy" : "current");
+    List<TallySnapshot> snapshots =
+        useLegacyQuery
+            ? snapshotRepository
+                .findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetweenLegacy(
+                    event.getOrgId(),
+                    products,
+                    Granularity.HOURLY,
+                    event.getTimestamp(),
+                    clock.endOfHour(event.getTimestamp()))
+            : snapshotRepository.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
+                event.getOrgId(),
+                products,
+                Granularity.HOURLY,
+                event.getTimestamp(),
+                clock.endOfHour(event.getTimestamp()));
 
     AccountUsageCalculation calc = new AccountUsageCalculation(event.getOrgId());
     snapshots.forEach(

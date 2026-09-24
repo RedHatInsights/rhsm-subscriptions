@@ -46,6 +46,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import org.hibernate.annotations.BatchSize;
 
 /** Model object to represent pieces of tally data. */
 @ToString
@@ -98,6 +99,7 @@ public class TallySnapshot extends ModificationTrackedEntity implements Serializ
   @CollectionTable(name = "tally_measurements", joinColumns = @JoinColumn(name = "snapshot_id"))
   @Column(name = "value")
   @MapKeyClass(TallyMeasurementKey.class)
+  @BatchSize(size = 1000)
   @Builder.Default
   private Map<TallyMeasurementKey, Double> tallyMeasurements = new HashMap<>();
 
