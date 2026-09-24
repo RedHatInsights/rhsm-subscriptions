@@ -82,8 +82,41 @@ class RhsmApiFactoryTest {
 
   @Test
   void testNoAuthClientConfiguration() throws Exception {
+    server = new WireMockServer(WireMockConfiguration.options().dynamicPort());
+    server.start();
+    server.stubFor(stubHelloWorld());
+
+    config.setUrl(server.baseUrl());
     RhsmApiFactory factory = new RhsmApiFactory(config);
-    assertEquals(null, factory.getObject().getApiClient().getHttpClient().getSslContext());
+    ApiClient client = factory.getObject().getApiClient();
+
+    // An SSL context can exist without client credentials. Test the request, not its storage.
+    try {
+      assertEquals("Hello World", invokeHello(client));
+    } finally {
+      client.getHttpClient().close();
+    }
+  }
+
+  @Test
+  void testTlsWithoutClientAuth() throws Exception {
+    server = new WireMockServer(buildWireMockConfig().needClientAuth(false));
+    server.start();
+    server.stubFor(stubHelloWorld());
+
+    config.setUrl(server.baseUrl());
+    config.setTruststore(rl.getResource("classpath:test-ca.jks"));
+    config.setTruststorePassword(STORE_PASSWORD);
+
+    RhsmApiFactory factory = new RhsmApiFactory(config);
+    ApiClient client = factory.getObject().getApiClient();
+
+    // Trust the server's certificate without supplying a client certificate.
+    try {
+      assertEquals("Hello World", invokeHello(client));
+    } finally {
+      client.getHttpClient().close();
+    }
   }
 
   @Test
