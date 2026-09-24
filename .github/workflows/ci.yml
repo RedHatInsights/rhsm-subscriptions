@@ -34,6 +34,8 @@ jobs:
           distribution: 'temurin'
           java-version: 25
           cache: 'maven'
+      - name: Install vendored Clowder snapshot
+        run: sh bin/install-vendored-clowder.sh
       - name: Install GitHub CLI
         run: |
           sudo apt update && sudo apt install -y gh
@@ -114,6 +116,9 @@ jobs:
           distribution: 'temurin'
           java-version: 25
           cache: 'maven'
+
+      - name: Install vendored Clowder snapshot
+        run: sh bin/install-vendored-clowder.sh
 
       - name: Run Spotless & Checkstyle
         id: run-lint
@@ -199,6 +204,12 @@ jobs:
           java-version: 25
           cache: 'maven'
 
+      - name: Test vendored dependency bootstrap
+        run: sh bin/test-install-vendored-clowder.sh
+
+      - name: Install vendored Clowder snapshot
+        run: sh bin/install-vendored-clowder.sh
+
       - name: Run Build
         id: run-build
         env:
@@ -230,6 +241,9 @@ jobs:
           distribution: 'temurin'
           java-version: 25
           cache: 'maven'
+
+      - name: Install vendored Clowder snapshot
+        run: sh bin/install-vendored-clowder.sh
 
       - name: Run Tests
         id: run-tests
@@ -274,6 +288,9 @@ jobs:
           distribution: 'temurin'
           java-version: 25
           cache: 'maven'
+
+      - name: Install vendored Clowder snapshot
+        run: sh bin/install-vendored-clowder.sh
 
       - name: Build
         run: ./mvnw install -DskipTests

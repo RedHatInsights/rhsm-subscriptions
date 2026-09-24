@@ -38,8 +38,12 @@ validated against live HCC**. The baseline audit descriptions explain why each c
   `swatch-contracts`, and `swatch-utilization`, with container image building/pushing disabled.
   The packaging run also rechecked Spring property binding, including empty truststore handling.
 
-The local library dependency is still `2.12.0-SWATCH-5598-SNAPSHOT`. It is not a published release;
-other developers and CI must build/install that library first until its upstream version is available.
+The library dependency is still `2.12.0-SWATCH-5598-SNAPSHOT`. It is not a published release;
+the temporary [vendored bundle](../third-party/clowder/README.md) includes the normal JAR, flattened
+POM, checksums, license, and exact source commit. Developers can install it with
+`sh bin/install-vendored-clowder.sh`; Makefile, CI, and container build paths install it automatically.
+No separate library checkout is required. Replace the bundle with the reviewed upstream release
+when available; vendoring does not satisfy the upstream publication or live-validation gates.
 The library's separate 88-test Java 17 verification remains applicable (no further library changes
 were needed in this implementation pass).
 - **Readiness deadline:** End of Q4 2026.
@@ -201,20 +205,22 @@ See the [library POC documentation](/Users/lburnett/code/clowder-quarkus-config-
 - New optional lookups return no value for absent endpoints so typed defaults such as
   `authenticated:false` work. Existing optional V1 properties retain their empty-string behavior.
 - All 88 tests pass on Java 17: 59 existing tests and 29 new selection, TLS, and configuration-factory tests.
-  Packaging also succeeds with `-Drevision=2.12.0-SWATCH-5598-SNAPSHOT`; the artifact is local only.
+  Packaging also succeeds with `-Drevision=2.12.0-SWATCH-5598-SNAPSHOT`; the artifact is now
+  bundled under `third-party/clowder`, not published to a Maven repository.
 - OAuth/token handling and SWATCH client wiring are implemented separately below. Native-image
   verification and live cross-cluster validation remain outside this POC. Property naming/API review and upstream release coordination
   are still required before Story 2 is complete.
 
 ### Local SWATCH Quarkus HTTP POC — 2026-09-24
 
-This extends the library POC into parts of Stories 2–5. It is uncommitted, unpublished work, not
-a statement that those stories or multicluster readiness are complete.
+This records the initial extension of the library POC into parts of Stories 2–5. The implementation
+has since been committed and pushed; that is not a statement that deployment or multicluster
+readiness validation is complete. See the implementation checkpoint above for current coverage.
 
 - **Dependency:** The shared Quarkus parent consumes `2.12.0-SWATCH-5598-SNAPSHOT` through
-  `clowder-quarkus-config-source.version`. The snapshot is installed locally for development;
-  replace it with an agreed upstream version before shipping. Existing RESTEasy parent changes
-  in the working tree are preserved.
+  `clowder-quarkus-config-source.version`. The temporary vendored bundle installs that coordinate
+  for development and CI; replace it with an agreed upstream version before shipping, unless
+  the team explicitly approves shipping the vendored dependency.
 - **Discovery and TLS:** Shared Quarkus RBAC and Contracts Export configuration use the new
   public/private dependency properties. V1 fallback and development/test endpoint overrides remain.
   `RBAC_TRUST_STORE*` and `EXPORT_SERVICE_TRUST_STORE*` expose the selected endpoint's trust settings;
@@ -237,8 +243,10 @@ a statement that those stories or multicluster readiness are complete.
   limited to development/test/component-test profiles. The Contracts template's `export-psk`
   secret reference is optional so Bearer-mode pods do not depend on that unused secret.
 
-To reproduce locally, run `mvn -Drevision=2.12.0-SWATCH-5598-SNAPSHOT install` in the library
-checkout (Java 17), then build SWATCH with Java 25. The library's released `2.12.0` artifact is not overwritten.
+To reproduce locally, use Java 25 and run `sh bin/install-vendored-clowder.sh` from the SWATCH root
+before the test command below. The library's released `2.12.0` artifact is not overwritten.
+See the [bundle documentation](../third-party/clowder/README.md) for source provenance,
+rebuilding with Java 17, custom Maven settings, and removal after upstream release.
 
 **Verified locally:** 60 focused tests pass on Java 25 (31 new tests and 29 existing authorization
 regressions), with formatting and style checks enabled. Coverage includes concurrent token reuse,
@@ -496,9 +504,10 @@ monitoring owners, and schedule each switch.
 
 ## Reproducing local verification
 
-Build/install the library snapshot as described in Story 2, then use Java 25 from the SWATCH root:
+Use Java 25 from the SWATCH root and install the bundled snapshot before running Maven directly:
 
 ```sh
+sh bin/install-vendored-clowder.sh
 mvn -pl swatch-core,clients/export-client,swatch-common-security,swatch-contracts -am \
   -Dtest=ClowderDependencyEndpointsTest,ClowderSpringConfigurationTest,ClowderJsonPropertySourceTest,RbacMulticlusterTest,ExportMulticlusterTest,ExportApiClientFactoryTest,KesselAuthenticatedTransportTest,KesselAuthorizationClientTest,HttpClientTest,HccAuthTokenProviderTest,RbacAuthHeaderProviderTest,RbacWorkspaceClientTest,ExportPskHeaderProviderTest,ExportAuthClientTest,HccEndpointConfigurationTest,KesselAuthorizationServiceTest,RbacRolesAugmentorTest,KesselRolesAugmentorTest,KesselPropertiesTest,MockKesselServerTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
@@ -529,4 +538,5 @@ and cutover scheduling belong to Story 8.
 
 The SWATCH audit was performed against the local main branch on 2026-09-22, with library and
 SWATCH implementation work on 2026-09-24. Local verification is recorded above; validation against
-live multicluster HCC environments has not yet been performed. No release, push, or deployment was made.
+live multicluster HCC environments has not yet been performed. The implementation branches have
+been pushed, but no upstream library release or deployment has been made.

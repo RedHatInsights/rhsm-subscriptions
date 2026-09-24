@@ -2,4 +2,5 @@ FROM registry.access.redhat.com/ubi10/openjdk-25-runtime:1784364635
 USER root
 WORKDIR /tmp/src
 ADD . /tmp/src
+RUN sh bin/install-vendored-clowder.sh
 RUN ./mvnw clean package -DskipTests

@@ -66,6 +66,21 @@ Networking diagrams show how requests are routed:
 ![Networking diagram for internal APIs](docs/networking-internal-api.svg)
 </details>
 
+## Temporary SWATCH-5598 dependency
+
+This branch bundles its unpublished Clowder library change under
+[`third-party/clowder`](third-party/clowder/README.md). With Java 25, run this once before a direct
+Maven build (and again after clearing the Maven cache or updating the bundle):
+
+```sh
+sh bin/install-vendored-clowder.sh
+./mvnw compile -DskipTests
+```
+
+The usual Makefile build/test/install paths and CI/container builds perform this step automatically.
+No separate Clowder checkout is required. The bundle is temporary and will be removed when the
+upstream library release is adopted.
+
 ## Deployment
 
 There are currently 3 different ways to deploy the components, with running them locally as the

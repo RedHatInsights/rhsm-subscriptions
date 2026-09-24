@@ -16,7 +16,7 @@
 
   <properties>
     <hibernate-jpamodelgen.version>${hibernate-orm.version}</hibernate-jpamodelgen.version>
-    <!-- Local SWATCH-5598 POC; replace with an upstream release before shipping. -->
+    <!-- Temporary SWATCH-5598 bundle: third-party/clowder. Replace after upstream release. -->
     <clowder-quarkus-config-source.version>2.12.0-SWATCH-5598-SNAPSHOT</clowder-quarkus-config-source.version>
   </properties>
 
