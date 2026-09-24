@@ -34,15 +34,8 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.http.HttpHost;
-import org.apache.http.client.config.CookieSpecs;
-import org.apache.http.client.config.RequestConfig;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.jboss.resteasy.client.jaxrs.ClientHttpEngine;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
-import org.jboss.resteasy.client.jaxrs.engines.ApacheHttpClientEngine;
 import org.jboss.resteasy.client.jaxrs.internal.ClientConfiguration;
 import org.jboss.resteasy.spi.ResteasyProviderFactory;
 import org.springframework.core.io.Resource;
@@ -79,31 +72,6 @@ public class HttpClient {
     String proxyHost = System.getProperty("http.proxyHost");
     String proxyPort = System.getProperty("http.proxyPort");
 
-    HttpClientBuilder apacheBuilder = HttpClientBuilder.create();
-
-    if (proxyHost != null && proxyPort != null) {
-      int port = Integer.parseInt(proxyPort);
-      apacheBuilder.setProxy(new HttpHost(proxyHost, port));
-    }
-
-    apacheBuilder.setSSLHostnameVerifier(serviceProperties.getHostnameVerifier());
-
-    // Bump the max connections so that we don't block on multiple async requests to the service.
-    apacheBuilder.setMaxConnPerRoute(serviceProperties.getMaxConnections());
-    apacheBuilder.setMaxConnTotal(serviceProperties.getMaxConnections());
-    apacheBuilder.setConnectionTimeToLive(
-        serviceProperties.getConnectionTtl().getSeconds(), TimeUnit.SECONDS);
-    apacheBuilder.setSSLContext(getSslContext(serviceProperties));
-
-    // Ignore cookies. Not ignoring them results in error messages in the logs due to mismatches
-    // in domains.
-    RequestConfig cookieConfig =
-        RequestConfig.custom().setCookieSpec(CookieSpecs.IGNORE_COOKIES).build();
-    apacheBuilder.setDefaultRequestConfig(cookieConfig);
-
-    CloseableHttpClient httpClient = apacheBuilder.build();
-    ClientHttpEngine engine = ApacheHttpClientEngine.create(httpClient);
-
     ClientConfiguration clientConfig =
         new ClientConfiguration(ResteasyProviderFactory.getInstance());
     if (clientJson != null) {
@@ -112,9 +80,21 @@ public class HttpClient {
     if (isDebugging) {
       clientConfig.register(org.jboss.logging.Logger.class);
     }
-    ClientBuilder clientBuilder = ClientBuilder.newBuilder().withConfig(clientConfig);
+    ResteasyClientBuilder clientBuilder =
+        ((ResteasyClientBuilder) ClientBuilder.newBuilder().withConfig(clientConfig))
+            .hostnameVerifier(serviceProperties.getHostnameVerifier())
+            .sslContext(getSslContext(serviceProperties))
+            // Bump the max connections so that we don't block on multiple async requests.
+            .connectionPoolSize(serviceProperties.getMaxConnections())
+            .maxPooledPerRoute(serviceProperties.getMaxConnections())
+            .connectionTTL(serviceProperties.getConnectionTtl().getSeconds(), TimeUnit.SECONDS);
 
-    return ((ResteasyClientBuilder) clientBuilder).httpEngine(engine).build();
+    if (proxyHost != null && proxyPort != null) {
+      clientBuilder.defaultProxy(proxyHost, Integer.parseInt(proxyPort));
+    }
+
+    // Cookie management is disabled by default. Enabling it causes domain mismatch warnings.
+    return clientBuilder.build();
   }
 
   public static SSLContext getSslContext(HttpClientProperties serviceProperties) {
