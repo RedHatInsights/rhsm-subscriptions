@@ -581,7 +581,7 @@ Test cases should be testable locally and in deployed environments.
   - Trigger outbox flush via internal API
 - **Verification**:
   - Confirm no outbox record is created after the event is ingested
-  - Confirm no message is consumed from the service instance ingress Kafka topic within a reasonable timeout period
+  - Confirm no message is consumed from the service instance ingress Kafka topic by checking logs contain "Incoming HBI event will be skipped due to an invalid billing model"
 - **Expected Result**:
   - Service successfully ingests both created and updated HBI events but filters them before normalization
   - No SWatch event is produced to the outbox or published to the service instance ingress topic
@@ -599,7 +599,7 @@ Test cases should be testable locally and in deployed environments.
   - Trigger outbox flush via internal API
 - **Verification**:
   - Confirm no outbox record is created after the event is ingested
-  - Confirm no message is consumed from the service instance ingress Kafka topic within a reasonable timeout period
+  - Confirm no message is consumed from the service instance ingress Kafka topic by checking logs contain "Incoming HBI event will be skipped due to an invalid host type"
 - **Expected Result**:
   - Service successfully ingests both created and updated HBI events but filters them before normalization
   - No SWatch event is produced to the outbox or published to the service instance ingress topic
@@ -617,7 +617,7 @@ Test cases should be testable locally and in deployed environments.
   - Trigger outbox flush via internal API
 - **Verification**:
   - Confirm no outbox record is created after the event is ingested
-  - Confirm no message is consumed from the service instance ingress Kafka topic within a reasonable timeout period
+  - Confirm no message is consumed from the service instance ingress Kafka topic by checking logs contain "Incoming HBI event will be skipped because it is stale"
 - **Expected Result**:
   - Service successfully ingests both created and updated HBI events but filters them before normalization
   - No SWatch event is produced to the outbox or published to the service instance ingress topic
@@ -625,7 +625,7 @@ Test cases should be testable locally and in deployed environments.
 
 ## Multiple Fact Reporters on Same Host
 
-**metrics-hbi-multiple-reporters-TC001 \- RHSM sla/usage used over Satellite when both reporters are present and RHSM sync is recent**
+**metrics-hbi-multiple-reporters-TC001 \- RHSM SLA/usage preferred over Satellite when both reporters are present and RHSM is within the sync threshold**
 
 - **Description**: Verify that when a host reports both RHSM and Satellite facts with a recent RHSM sync timestamp, the service uses RHSM SLA and Usage values over Satellite values while aggregating product tags from both sources, and produces the corresponding SWatch event with the correct prioritized facts.
 - **Setup**:
@@ -646,7 +646,7 @@ Test cases should be testable locally and in deployed environments.
   - SWatch event contains correct product tags aggregated from both RHSM and system profile sources, and correct measurements
   - Resulting SWatch event is consistent between created and updated besides for the event type
 
-**metrics-hbi-multiple-reporters-TC002 \- Satellite sla/usage used over RHSM when both reporters are present and RHSM sync is stale**
+**metrics-hbi-multiple-reporters-TC002 \- Satellite SLA/usage used over RHSM when both reporters are present and RHSM sync is stale**
 
 - **Description**: Verify that when a host reports both RHSM and Satellite facts but the RHSM sync timestamp exceeds the staleness threshold, the service skips RHSM facts and falls back to Satellite SLA and Usage values, excludes RHSM-sourced product tags, and produces the corresponding SWatch event with the correct fallback facts.
 - **Setup**:
@@ -665,5 +665,31 @@ Test cases should be testable locally and in deployed environments.
   - Exactly one SWatch event is produced after being written to the outbox and published to the service instance ingress topic
   - SWatch event contains Satellite-sourced SLA ("Standard") and Usage ("Development/Test"), not the RHSM values
   - SWatch event product tags do not include tags derived solely from RHSM product IDs (only tags from system profile installed products and Satellite role are present)
+  - SWatch event contains correct measurements
+  - Resulting SWatch event is consistent between created and updated besides for the event type
+
+**metrics-hbi-multiple-reporters-TC003 \- Satellite fills missing RHSM SLA/Usage independently when both reporters are present**
+
+- **Description**: Verify that when a host reports both RHSM and Satellite facts and RHSM is within the sync threshold, the service resolves SLA and Usage independently: it prefers a valid RHSM value for each dimension and falls back to the Satellite value when the corresponding RHSM value is missing or unsupported.
+- **Setup**:
+  - Ensure `EMIT_EVENTS` feature flag is enabled
+  - Kafka topics for HBI events and service instance ingress are available
+  - Prepare test host data representing a physical RHEL for x86 host with both rhsm and satellite facts namespaces. Include RHSM RH_PROD product ID "69" and a recent SYNC_TIMESTAMP (within the 24-hour threshold). Set Satellite SLA to "Standard" and Satellite Usage to "Development/Test".
+  - Parameterize the RHSM SLA/Usage values and expected normalized values as follows:
+    - RHSM SLA = absent or unsupported, RHSM Usage = "Production"; expected SLA = "Standard" and expected Usage = "Production"
+    - RHSM SLA = "Premium", RHSM Usage = absent or unsupported; expected SLA = "Premium" and expected Usage = "Development/Test"
+    - RHSM SLA = absent or unsupported, RHSM Usage = absent or unsupported; expected SLA = "Standard" and expected Usage = "Development/Test"
+- **Action**:
+  - Two different test runs for event types created and updated: Produce HbiHostCreateUpdateEvent with event type to HBI event Kafka topic
+  - Trigger outbox flush via internal API
+- **Verification**:
+  - Confirm outbox record is created after the event is ingested
+  - Message is consumed from the service instance ingress Kafka topic and captured in a SWatch event message
+  - Verify SWatch event message exists and matches the expected values derived from the HBI event
+- **Expected Result**:
+  - Service successfully ingests both created and updated HBI events for the dual-reporter host
+  - Exactly one SWatch event is produced after being written to the outbox and published to the service instance ingress topic
+  - SWatch event contains the expected SLA and Usage for each parameterization: RHSM values are used independently when valid, and Satellite values fill only the missing or unsupported RHSM dimensions
+  - SWatch event contains the normalized RHSM product tag "RHEL for x86" derived from product ID "69" since RHSM is within the sync threshold
   - SWatch event contains correct measurements
   - Resulting SWatch event is consistent between created and updated besides for the event type
