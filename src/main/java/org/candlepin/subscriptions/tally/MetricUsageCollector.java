@@ -321,6 +321,7 @@ public class MetricUsageCollector {
 
   private void addBucketsFromEvent(Host host, Event event) {
     Set<List<Object>> bucketTuples = buildBucketTuples(event);
+    Set<String> productTags = getProductTag(event);
 
     HardwareMeasurementType hardwareMeasurementType =
         getHardwareMeasurementType(
@@ -367,8 +368,13 @@ public class MetricUsageCollector {
     // mark as deleted the buckets that are not active
     // and are only related to the incoming event product.
     for (HostTallyBucket bucket : host.getBuckets()) {
-      if (!activeHostBucketKeys.contains(bucket.getKey())
-          && event.getProductTag().contains(bucket.getKey().getProductId())) {
+      boolean isProductRelated = productTags.contains(bucket.getKey().getProductId());
+      boolean isNotActive = !activeHostBucketKeys.contains(bucket.getKey());
+      boolean isEmptyBucket =
+          ServiceLevel.EMPTY.equals(bucket.getKey().getSla())
+              || Usage.EMPTY.equals(bucket.getKey().getUsage());
+
+      if ((isNotActive || isEmptyBucket) && isProductRelated) {
         bucket.setStale(true);
       }
     }
@@ -440,16 +446,24 @@ public class MetricUsageCollector {
             .distinct()
             .collect(MoreCollectors.toOptional());
 
-    ServiceLevel effectiveSla =
+    ServiceLevel parsedSla =
         Optional.ofNullable(event.getSla())
             .map(Event.Sla::toString)
             .map(ServiceLevel::fromString)
-            .orElse(sla.map(ServiceLevel::fromString).orElse(ServiceLevel.PREMIUM));
-    Usage effectiveUsage =
+            .orElse(null);
+    Usage parsedUsage =
         Optional.ofNullable(event.getUsage())
             .map(Event.Usage::toString)
             .map(Usage::fromString)
-            .orElse(usage.map(Usage::fromString).orElse(Usage.PRODUCTION));
+            .orElse(null);
+    ServiceLevel effectiveSla =
+        (parsedSla == null || ServiceLevel.EMPTY.equals(parsedSla))
+            ? sla.map(ServiceLevel::fromString).orElse(ServiceLevel.PREMIUM)
+            : parsedSla;
+    Usage effectiveUsage =
+        (parsedUsage == null || Usage.EMPTY.equals(parsedUsage))
+            ? usage.map(Usage::fromString).orElse(Usage.PRODUCTION)
+            : parsedUsage;
     BillingProvider effectiveProvider =
         Optional.ofNullable(event.getBillingProvider())
             .map(Event.BillingProvider::toString)

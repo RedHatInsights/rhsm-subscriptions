@@ -333,10 +333,16 @@ public class InventoryAccountUsageCollector {
     system
         .getBuckets()
         .removeIf(
-            b ->
-                b.getKey().getAsHypervisor()
-                    && !seenBucketKeys.contains(b.getKey())
-                    && applicableProducts.contains(b.getKey().getProductId()));
+            b -> {
+              boolean isApplicableProduct = applicableProducts.contains(b.getKey().getProductId());
+              boolean isHypervisor = b.getKey().getAsHypervisor();
+              boolean wasNotSeenThisPass = !seenBucketKeys.contains(b.getKey());
+              boolean isEmptyBucket =
+                  ServiceLevel.EMPTY.equals(b.getKey().getSla())
+                      || Usage.EMPTY.equals(b.getKey().getUsage());
+
+              return isApplicableProduct && isHypervisor && (wasNotSeenThisPass || isEmptyBucket);
+            });
   }
 
   private Host createSwatchSystem(
@@ -396,10 +402,18 @@ public class InventoryAccountUsageCollector {
     // those added for a guest system).
     host.getBuckets()
         .removeIf(
-            b ->
-                !b.getKey().getAsHypervisor()
-                    && !seenBucketKeys.contains(b.getKey())
-                    && applicableProducts.contains(b.getKey().getProductId()));
+            b -> {
+              boolean isApplicableProduct = applicableProducts.contains(b.getKey().getProductId());
+              boolean isNonHypervisor = !b.getKey().getAsHypervisor();
+              boolean wasNotSeenThisPass = !seenBucketKeys.contains(b.getKey());
+              boolean isEmptyBucket =
+                  ServiceLevel.EMPTY.equals(b.getKey().getSla())
+                      || Usage.EMPTY.equals(b.getKey().getUsage());
+
+              return isApplicableProduct
+                  && isNonHypervisor
+                  && (wasNotSeenThisPass || isEmptyBucket);
+            });
   }
 
   private Host updateSwatchSystem(

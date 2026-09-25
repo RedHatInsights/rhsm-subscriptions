@@ -42,6 +42,7 @@ import org.candlepin.subscriptions.db.HostTallyBucketRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.Host;
+import org.candlepin.subscriptions.db.model.HostBucketKey;
 import org.candlepin.subscriptions.db.model.HostHardwareType;
 import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
@@ -477,5 +478,181 @@ class InventoryAccountUsageCollectorReconcileTest {
     collector.reconcileHbiSystemWithSwatchSystem(
         hbiSystem, hypervisorCopy1, orgHostsData, Set.of("RHEL for x86"), new ArrayList<>());
     assertTrue(hypervisorCopy1.getBuckets().isEmpty(), "buckets added to hypervisor copy");
+  }
+
+  @Test
+  void testReconcileRemovesEmptySlaBucketsWhenDefaultsApplied() {
+    // Create an HBI host with no explicit SLA/Usage (will get normalized to EMPTY)
+    InventoryHostFacts hbiHost = InventoryHostFactTestHelper.createHypervisor("org123", 1);
+
+    // Create a swatch host with old EMPTY SLA bucket (pre-SWATCH-5518)
+    Host swatchHost = new Host();
+    swatchHost.setInventoryId(hbiHost.getInventoryId().toString());
+    swatchHost.setOrgId("org123");
+    swatchHost.setInstanceId(hbiHost.getProviderId());
+
+    HostTallyBucket emptySlaBucket = new HostTallyBucket();
+    emptySlaBucket.setKey(
+        new HostBucketKey(
+            swatchHost,
+            "RHEL for x86",
+            ServiceLevel.EMPTY,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            "_ANY",
+            false));
+    emptySlaBucket.setMeasurementType(HardwareMeasurementType.PHYSICAL);
+    swatchHost.addBucket(emptySlaBucket);
+
+    assertEquals(1, swatchHost.getBuckets().size());
+
+    // Mock the normalizer to return EMPTY SLA/Usage (no explicit values from host facts)
+    NormalizedFacts normalizedFacts = new NormalizedFacts();
+    normalizedFacts.setProducts(Set.of("RHEL for x86"));
+    normalizedFacts.setSla(ServiceLevel.EMPTY);
+    normalizedFacts.setUsage(Usage.EMPTY);
+    normalizedFacts.setCores(4);
+    normalizedFacts.setSockets(2);
+
+    when(factNormalizer.normalize(any(), any())).thenReturn(normalizedFacts);
+    when(entityManager.merge(any(Host.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+    ArgumentCaptor<InventorySwatchDataCollator.Processor> processorCaptor =
+        ArgumentCaptor.forClass(InventorySwatchDataCollator.Processor.class);
+    when(collator.collateData(any(), anyInt(), anyInt(), processorCaptor.capture()))
+        .thenAnswer(
+            invocation -> {
+              InventorySwatchDataCollator.Processor processor = processorCaptor.getValue();
+              processor.accept(hbiHost, swatchHost, new OrgHostsData("org123"), 1);
+              return 1;
+            });
+
+    when(props.getHbiReconciliationFlushInterval()).thenReturn(10L);
+
+    var collector = setupCollector();
+    collector.reconcileSystemDataWithHbi("org123", Set.of("RHEL for x86"));
+
+    // Verify that EMPTY SLA bucket was removed (defaults PREMIUM were applied and old EMPTY
+    // removed)
+    assertTrue(
+        swatchHost.getBuckets().stream()
+            .noneMatch(b -> ServiceLevel.EMPTY.equals(b.getKey().getSla())),
+        "EMPTY SLA buckets should be removed when defaults are applied");
+  }
+
+  @Test
+  void testReconcileRemovesEmptyUsageBucketsWhenDefaultsApplied() {
+    // Create an HBI host with no explicit SLA/Usage
+    InventoryHostFacts hbiHost = InventoryHostFactTestHelper.createHypervisor("org123", 2);
+
+    // Create a swatch host with old EMPTY Usage bucket
+    Host swatchHost = new Host();
+    swatchHost.setInventoryId(hbiHost.getInventoryId().toString());
+    swatchHost.setOrgId("org123");
+    swatchHost.setInstanceId(hbiHost.getProviderId());
+
+    HostTallyBucket emptyUsageBucket = new HostTallyBucket();
+    emptyUsageBucket.setKey(
+        new HostBucketKey(
+            swatchHost,
+            "RHEL for x86",
+            ServiceLevel.EMPTY,
+            Usage.EMPTY,
+            BillingProvider._ANY,
+            "_ANY",
+            false));
+    emptyUsageBucket.setMeasurementType(HardwareMeasurementType.PHYSICAL);
+    swatchHost.addBucket(emptyUsageBucket);
+
+    assertEquals(1, swatchHost.getBuckets().size());
+
+    // Mock the normalizer to return EMPTY values (no explicit values from host facts)
+    NormalizedFacts normalizedFacts = new NormalizedFacts();
+    normalizedFacts.setProducts(Set.of("RHEL for x86"));
+    normalizedFacts.setSla(ServiceLevel.EMPTY);
+    normalizedFacts.setUsage(Usage.EMPTY);
+
+    when(factNormalizer.normalize(any(), any())).thenReturn(normalizedFacts);
+    when(entityManager.merge(any(Host.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+    ArgumentCaptor<InventorySwatchDataCollator.Processor> processorCaptor =
+        ArgumentCaptor.forClass(InventorySwatchDataCollator.Processor.class);
+    when(collator.collateData(any(), anyInt(), anyInt(), processorCaptor.capture()))
+        .thenAnswer(
+            invocation -> {
+              InventorySwatchDataCollator.Processor processor = processorCaptor.getValue();
+              processor.accept(hbiHost, swatchHost, new OrgHostsData("org123"), 1);
+              return 1;
+            });
+
+    when(props.getHbiReconciliationFlushInterval()).thenReturn(10L);
+
+    var collector = setupCollector();
+    collector.reconcileSystemDataWithHbi("org123", Set.of("RHEL for x86"));
+
+    // Verify that EMPTY Usage bucket was removed (defaults PRODUCTION were applied and old EMPTY
+    // removed)
+    assertTrue(
+        swatchHost.getBuckets().stream().noneMatch(b -> Usage.EMPTY.equals(b.getKey().getUsage())),
+        "EMPTY Usage buckets should be removed when defaults are applied");
+  }
+
+  @Test
+  void testReconcileRemovesEmptyHypervisorBuckets() {
+    // Create a hypervisor host
+    InventoryHostFacts hbiHypervisor = InventoryHostFactTestHelper.createHypervisor("org123", 3);
+
+    // Create a swatch host with old EMPTY hypervisor bucket (asHypervisor=true)
+    Host swatchHypervisor = new Host();
+    swatchHypervisor.setInventoryId(hbiHypervisor.getInventoryId().toString());
+    swatchHypervisor.setOrgId("org123");
+    swatchHypervisor.setInstanceId(hbiHypervisor.getProviderId());
+    swatchHypervisor.setSubscriptionManagerId("sm-123");
+
+    HostTallyBucket emptyHypervisorBucket = new HostTallyBucket();
+    emptyHypervisorBucket.setKey(
+        new HostBucketKey(
+            swatchHypervisor,
+            "RHEL for x86",
+            ServiceLevel.EMPTY,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            "_ANY",
+            true)); // <-- asHypervisor=true
+    emptyHypervisorBucket.setMeasurementType(HardwareMeasurementType.PHYSICAL);
+    swatchHypervisor.addBucket(emptyHypervisorBucket);
+
+    assertEquals(1, swatchHypervisor.getBuckets().size());
+
+    // Mock the normalizer to return EMPTY values
+    NormalizedFacts normalizedFacts = new NormalizedFacts();
+    normalizedFacts.setProducts(Set.of("RHEL for x86"));
+    normalizedFacts.setSla(ServiceLevel.EMPTY);
+    normalizedFacts.setUsage(Usage.EMPTY);
+
+    when(factNormalizer.normalize(any(), any())).thenReturn(normalizedFacts);
+    when(entityManager.merge(any(Host.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+    ArgumentCaptor<InventorySwatchDataCollator.Processor> processorCaptor =
+        ArgumentCaptor.forClass(InventorySwatchDataCollator.Processor.class);
+    when(collator.collateData(any(), anyInt(), anyInt(), processorCaptor.capture()))
+        .thenAnswer(
+            invocation -> {
+              InventorySwatchDataCollator.Processor processor = processorCaptor.getValue();
+              processor.accept(hbiHypervisor, swatchHypervisor, new OrgHostsData("org123"), 1);
+              return 1;
+            });
+
+    when(props.getHbiReconciliationFlushInterval()).thenReturn(10L);
+
+    var collector = setupCollector();
+    collector.reconcileSystemDataWithHbi("org123", Set.of("RHEL for x86"));
+
+    // Verify that EMPTY hypervisor bucket was removed
+    assertTrue(
+        swatchHypervisor.getBuckets().stream()
+            .filter(b -> b.getKey().getAsHypervisor())
+            .noneMatch(b -> ServiceLevel.EMPTY.equals(b.getKey().getSla())),
+        "EMPTY hypervisor SLA buckets should be removed");
   }
 }
