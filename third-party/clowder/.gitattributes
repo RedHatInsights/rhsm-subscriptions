@@ -1,0 +1,5 @@
+# Preserve the bytes recorded in SHA256SUMS across checkout platforms.
+*.jar binary
+*.pom text eol=lf
+LICENSE text eol=lf
+SHA256SUMS text eol=lf

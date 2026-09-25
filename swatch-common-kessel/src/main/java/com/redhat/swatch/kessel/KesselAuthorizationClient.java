@@ -86,6 +86,7 @@ public class KesselAuthorizationClient {
   private final KesselConfig config;
   private final WorkspaceResolver workspaceResolver;
   private final KesselMetricsRecorder metricsRecorder;
+  private final HccCredentials credentials;
   private volatile KesselInventoryServiceBlockingStub stub;
   private volatile ManagedChannel channel;
 
@@ -93,9 +94,18 @@ public class KesselAuthorizationClient {
       KesselConfig config,
       WorkspaceResolver workspaceResolver,
       KesselMetricsRecorder metricsRecorder) {
+    this(config, workspaceResolver, metricsRecorder, null);
+  }
+
+  public KesselAuthorizationClient(
+      KesselConfig config,
+      WorkspaceResolver workspaceResolver,
+      KesselMetricsRecorder metricsRecorder,
+      HccCredentials credentials) {
     this.config = config;
     this.workspaceResolver = workspaceResolver;
     this.metricsRecorder = metricsRecorder != null ? metricsRecorder : KesselMetricsRecorder.NOOP;
+    this.credentials = credentials;
   }
 
   public KesselAuthorizationClient(KesselConfig config, WorkspaceResolver workspaceResolver) {
@@ -117,6 +127,12 @@ public class KesselAuthorizationClient {
     }
     ManagedChannel oldChannel = this.channel;
 
+    if (config.authEnabled()
+        && (config.insecure() || credentials == null || !credentials.isConfigured())) {
+      throw new IllegalStateException(
+          "Authenticated Kessel requires TLS and complete HCC credentials");
+    }
+
     ChannelCredentials creds;
     if (config.insecure()) {
       log.warn(
@@ -129,6 +145,10 @@ public class KesselAuthorizationClient {
 
     this.channel = Grpc.newChannelBuilder(config.endpoint(), creds).build();
     this.stub = KesselInventoryServiceGrpc.newBlockingStub(this.channel);
+    if (config.authEnabled()) {
+      this.stub =
+          this.stub.withCallCredentials(new HccCallCredentials(credentials::authorizationHeader));
+    }
 
     recordChannelInitMetric(reason);
 
@@ -198,7 +218,6 @@ public class KesselAuthorizationClient {
     StatusRuntimeException lastException = null;
     for (int attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       try {
-        ManagedChannel currentChannel = channel;
         CheckResponse response =
             getClient().withDeadlineAfter(config.timeoutMs(), TimeUnit.MILLISECONDS).check(request);
         boolean allowed = response.getAllowed() == Allowed.ALLOWED_TRUE;
@@ -223,6 +242,18 @@ public class KesselAuthorizationClient {
         }
 
         if (code == Status.Code.UNAUTHENTICATED) {
+          if (attempt == MAX_RETRIES) {
+            break;
+          }
+          if (config.authEnabled()) {
+            try {
+              credentials.authorizationHeader(true);
+            } catch (RuntimeException refreshFailure) {
+              log.warn("Kessel credential refresh failed; denying access");
+              recordCheckMetric(false, METRICS_FAILURE_NON_TRANSIENT);
+              return false;
+            }
+          }
           log.warn(
               "Transient gRPC error from Kessel (attempt {}/{}): {} - {}. Recreating channel.",
               attempt + 1,

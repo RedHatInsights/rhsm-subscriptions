@@ -21,12 +21,15 @@
 package org.candlepin.subscriptions.clowder;
 
 import java.io.IOException;
+import java.net.URI;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.regex.Pattern;
@@ -130,6 +133,10 @@ public class ClowderJsonPropertySource extends PropertySource<ClowderJson>
           this::getEndpointProperty,
           PRIVATE_ENDPOINTS,
           this::getEndpointProperty,
+          "dependency-endpoints",
+          this::getDependencyEndpointProperty,
+          "private-dependency-endpoints",
+          this::getDependencyEndpointProperty,
           FEATURE_FLAGS,
           this::getFeatureFlagProperty);
 
@@ -144,6 +151,8 @@ public class ClowderJsonPropertySource extends PropertySource<ClowderJson>
               StandardServletEnvironment.SERVLET_CONFIG_PROPERTY_SOURCE_NAME));
 
   private ClowderTrustStoreConfiguration trustStoreConfiguration;
+  private final Map<String, ClowderTrustStoreConfiguration> endpointTrustStores =
+      new ConcurrentHashMap<>();
 
   public ClowderJsonPropertySource(ClowderJson source) {
     super(PROPERTY_SOURCE_NAME, source);
@@ -261,6 +270,70 @@ public class ClowderJsonPropertySource extends PropertySource<ClowderJson>
     }
 
     return null;
+  }
+
+  /** Resolve one complete V2 endpoint, or fall back to its V1 entry without mixing metadata. */
+  private Object getDependencyEndpointProperty(String name) {
+    String[] parts = name.split("\\.", 4);
+    if (parts.length != 4) {
+      return null;
+    }
+    boolean privateEndpoint = parts[0].equals("private-dependency-endpoints");
+    String root = privateEndpoint ? "privateDependencyEndpoints" : "dependencyEndpoints";
+    var endpoint = source.getNode(root + ".v2." + parts[1] + "." + parts[2]);
+    String uri = endpoint == null ? "" : endpoint.path("uri").asText("");
+    if (!uri.isBlank()) {
+      URI parsed = URI.create(uri);
+      if (!("http".equals(parsed.getScheme()) || "https".equals(parsed.getScheme()))
+          || parsed.getHost() == null
+          || parsed.getUserInfo() != null
+          || parsed.getQuery() != null
+          || parsed.getFragment() != null) {
+        throw new IllegalArgumentException("Invalid Clowder V2 dependency URI");
+      }
+      if (!endpoint.path("authenticated").isBoolean()) {
+        throw new IllegalArgumentException("Clowder V2 endpoint requires authenticated boolean");
+      }
+      String ca = endpoint.path("ca_certificate").asText("");
+      return switch (parts[3]) {
+        case "uri" -> uri;
+        case "authenticated" -> endpoint.get("authenticated").asText();
+        case "ca-certificate" -> ca.isBlank() ? null : ca;
+        case "trust-store-path", "trust-store-password", "trust-store-type" -> {
+          if (ca.isBlank()) {
+            yield null; // V2 without a CA uses system trust, never the V1 global CA.
+          }
+          var trust =
+              endpointTrustStores.computeIfAbsent(
+                  Path.of(ca).toAbsolutePath().normalize().toString(),
+                  ClowderTrustStoreConfiguration::new);
+          yield switch (parts[3]) {
+            case "trust-store-path" -> "file:" + trust.getPath();
+            case "trust-store-password" -> trust.getPassword();
+            default -> ClowderTrustStoreConfiguration.CLOWDER_ENDPOINT_STORE_TYPE;
+          };
+        }
+        default -> null;
+      };
+    }
+    // Match app and deployment separately: hyphens are legal in either name.
+    var legacy =
+        source.getNodeAsListOfMaps(privateEndpoint ? PRIVATE_ENDPOINTS : ENDPOINTS).stream()
+            .filter(e -> parts[1].equals(e.get("app")) && parts[2].equals(e.get("name")))
+            .findFirst()
+            .orElse(null);
+    if (legacy == null) {
+      return null;
+    }
+    return switch (parts[3]) {
+      case "uri" -> endpointToUrl(this, legacy);
+      case "authenticated" -> "false";
+      case "ca-certificate" -> endpointUsesTls(legacy) ? source.getNodeAsString("tlsCAPath") : null;
+      default -> {
+        var mapper = ENDPOINTS_PROPERTIES.get("." + parts[3]);
+        yield mapper == null ? null : mapper.apply(this, legacy);
+      }
+    };
   }
 
   private Object getFeatureFlagProperty(String name) {

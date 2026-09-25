@@ -365,6 +365,20 @@
       </plugin>
 
       <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <!-- Embedded Kafka brokers are not safe to run concurrently in this suite. -->
+          <parallel>none</parallel>
+          <forkCount>1</forkCount>
+          <reuseForks>true</reuseForks>
+          <perCoreThreadCount>false</perCoreThreadCount>
+
+          <!-- Give Spring/Kafka time to stop before the context is destroyed. -->
+          <forkedProcessExitTimeoutInSeconds>60</forkedProcessExitTimeoutInSeconds>
+        </configuration>
+      </plugin>
+
+      <plugin>
         <groupId>org.openapitools</groupId>
         <artifactId>openapi-generator-maven-plugin</artifactId>
         <executions>

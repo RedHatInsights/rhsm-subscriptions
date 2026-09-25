@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.export;
 
 import com.redhat.swatch.clients.export.api.client.ExportApiClientFactory;
+import com.redhat.swatch.kessel.HccCredentials;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
@@ -77,7 +78,8 @@ public class ExportClientConfiguration {
    */
   @Bean
   public ExportApiClientFactory exportClientApiFactory(
-      @Qualifier(EXPORT_API_QUALIFIER) HttpClientProperties properties) {
-    return new ExportApiClientFactory(properties);
+      @Qualifier(EXPORT_API_QUALIFIER) HttpClientProperties properties,
+      HccCredentials credentials) {
+    return new ExportApiClientFactory(properties, credentials::authorizationHeader);
   }
 }

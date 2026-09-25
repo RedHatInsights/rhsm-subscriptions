@@ -49,6 +49,16 @@ class MockKesselServerTest {
     service.properties =
         new KesselProperties() {
           @Override
+          public int inventoryApiPort() {
+            return GRPC_PORT;
+          }
+
+          @Override
+          public boolean authEnabled() {
+            return false;
+          }
+
+          @Override
           public String endpoint() {
             return "localhost:9000";
           }
@@ -64,8 +74,8 @@ class MockKesselServerTest {
           }
 
           @Override
-          public String rbacBaseEndpoint() {
-            return "http://localhost:8080";
+          public Optional<String> rbacBaseEndpoint() {
+            return Optional.of("http://localhost:8080");
           }
 
           @Override
