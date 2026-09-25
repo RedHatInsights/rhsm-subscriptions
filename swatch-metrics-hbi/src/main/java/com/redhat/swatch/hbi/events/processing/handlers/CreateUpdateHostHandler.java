@@ -80,14 +80,14 @@ public class CreateUpdateHostHandler implements HbiEventHandler<HbiHostCreateUpd
     boolean validBillingModel = Objects.isNull(billingModel) || !"marketplace".equals(billingModel);
     if (!validBillingModel) {
       log.warn(
-          "Incoming HBI event will be skipped do to an invalid billing model: {}", billingModel);
+          "Incoming HBI event will be skipped due to an invalid billing model: {}", billingModel);
       return true;
     }
 
     String hostType = host.getSystemProfileFacts().getHostType();
     boolean validHostType = Objects.isNull(hostType) || !"edge".equals(hostType);
     if (!validHostType) {
-      log.warn("Incoming HBI event will be skipped do to an invalid host type: {}", hostType);
+      log.warn("Incoming HBI event will be skipped due to an invalid host type: {}", hostType);
       return true;
     }
 
