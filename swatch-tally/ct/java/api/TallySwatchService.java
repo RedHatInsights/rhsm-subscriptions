@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import com.redhat.swatch.component.tests.api.SwatchService;
 import com.redhat.swatch.component.tests.logging.Log;
 import com.redhat.swatch.component.tests.utils.SwatchUtils;
+import com.redhat.swatch.tally.test.model.InstanceGuestReport;
 import com.redhat.swatch.tally.test.model.InstanceResponse;
 import com.redhat.swatch.tally.test.model.TallyReportData;
 import com.redhat.swatch.tally.test.model.VersionInfo;
@@ -328,6 +329,20 @@ public class TallySwatchService extends SwatchService {
         .then()
         .extract()
         .response();
+  }
+
+  public InstanceGuestReport getInstanceGuestReportData(
+      String orgId, OffsetDateTime beginning, OffsetDateTime ending, String hostId) {
+    return given()
+        .header(X_RH_IDENTITY_HEADER, SwatchUtils.createUserIdentityHeader(orgId))
+        .queryParam("beginning", beginning.toString())
+        .queryParam("ending", ending.toString())
+        .when()
+        .get(API_PATH + "/instances/" + hostId + "/guests")
+        .then()
+        .statusCode(200)
+        .extract()
+        .as(InstanceGuestReport.class);
   }
 
   /**

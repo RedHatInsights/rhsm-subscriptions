@@ -22,20 +22,26 @@ package tests;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static utils.TallyTestProducts.RHEL_FOR_X86;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.api.hbi.HbiDbConnector;
+import com.redhat.swatch.component.tests.api.hbi.HostBuilder;
 import com.redhat.swatch.component.tests.api.hbi.HostConnector.SeededHost;
 import com.redhat.swatch.component.tests.api.hbi.HostStateManager;
 import com.redhat.swatch.component.tests.api.hbi.HostTemplates;
+import com.redhat.swatch.component.tests.logging.Log;
 import com.redhat.swatch.tally.test.model.InstanceData;
 import com.redhat.swatch.tally.test.model.InstanceResponse;
+import com.redhat.swatch.tally.test.model.ReportCategory;
 import com.redhat.swatch.tally.test.model.TallyReportDataPoint;
 import com.redhat.swatch.tally.test.model.TallySnapshot;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -44,6 +50,7 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -51,9 +58,12 @@ import org.junit.jupiter.params.provider.ValueSource;
 import utils.TallyDbHostSeeder;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class TallyHypervisorTest extends BaseTallyComponentTest {
+class TallyHypervisorTest extends BaseTallyComponentTest {
 
   private HostStateManager hostManager;
+
+  public OffsetDateTime start = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
+  public OffsetDateTime end = start.plusDays(1).minusNanos(1);
 
   @BeforeEach
   void setupHostManager() {
@@ -73,15 +83,113 @@ public class TallyHypervisorTest extends BaseTallyComponentTest {
   }
 
   @Test
+  @TestPlanName("tally-hypervisor-TC001")
+  void testRHELHypervisorWithoutGuestsInInstancesReport() {
+    // Given: You have an org opted in and a hypervisor host with no guests
+    service.createOptInConfig(orgId);
+    service.tallyOrg(orgId);
+
+    SeededHost hypervisor =
+        hostManager
+            .createHost(orgId)
+            .apply(HostTemplates.conduitReportedPhysicalRhel(2, 1))
+            .insert();
+
+    // When: Nightly tally runs
+    service.tallyOrg(orgId);
+
+    OffsetDateTime beginning = OffsetDateTime.now().minusDays(1);
+    OffsetDateTime ending = OffsetDateTime.now().plusDays(1);
+    var instanceResponse =
+        service.getInstancesByProduct(orgId, RHEL_FOR_X86.productTag(), beginning, ending);
+
+    assertNotNull(instanceResponse.getData(), "Instance response should not be null");
+
+    // Then: The instance appears in the instances API
+    var hypervisorIR =
+        instanceResponse.getData().stream()
+            .filter(i -> hypervisor.hostId().toString().equalsIgnoreCase(i.getInstanceId()))
+            .findFirst();
+
+    assertTrue(hypervisorIR.isPresent(), "Hypervisor should be in the instances report");
+
+    var subManFromIR =
+        hypervisorIR
+            .orElseThrow(
+                () ->
+                    new RuntimeException(
+                        String.format(
+                            "Hypervisor missing from the Instance Report! %s", instanceResponse)))
+            .getSubscriptionManagerId();
+
+    assertEquals(
+        subManFromIR,
+        hypervisor.subscriptionManagerId(),
+        String.format(
+            "Hypervisor should match the expected subscription manager id %s but was not found in the Instance Report %s",
+            hypervisor.subscriptionManagerId(), instanceResponse));
+
+    var measurements = hypervisorIR.get().getMeasurements();
+    assertNotNull(measurements, "The measurements should not be null!");
+    assertFalse(measurements.isEmpty(), "The measurements should not be empty!");
+
+    assertEquals(
+        2.0,
+        measurements.getFirst(),
+        String.format(
+            "Was expecting the hypervisor's measurement of the sockets %s to be on the instances report data but found %s",
+            2, hypervisorIR.get().getSubscriptionManagerId()));
+  }
+
+  @Test
+  @TestPlanName("tally-hypervisor-TC002")
+  void testRHELHypervisorWithoutGuestsContributesToDailyTotal() {
+    int testSocketCount = 2;
+
+    // Given: Org is opted in and a nightly tally is preformed
+    service.createOptInConfig(orgId);
+    service.tallyOrg(orgId);
+
+    var initialTallyReport =
+        service.getTallyReportData(
+            orgId, RHEL_FOR_X86.productTag(), "Sockets", getDailyTallyTimeParameters(start, end));
+    assertNotNull(initialTallyReport.getData(), "Instance response should not be null");
+
+    Log.info("initialTallyReport: %s", initialTallyReport);
+    double beforeHostTotal =
+        initialTallyReport.getData().stream().mapToDouble(TallyReportDataPoint::getValue).sum();
+
+    hostManager
+        .createHost(orgId)
+        .apply(HostTemplates.conduitReportedPhysicalRhel(testSocketCount, 1))
+        .insert();
+
+    // When: Nightly tally runs
+    service.tallyOrg(orgId);
+
+    var endTallyReport =
+        service.getTallyReportData(
+            orgId, RHEL_FOR_X86.productTag(), "Sockets", getDailyTallyTimeParameters(start, end));
+    Log.info("endTallyReport: %s", endTallyReport);
+    assertNotNull(endTallyReport.getData(), "The Tally Report should not be null");
+
+    double afterHostTotal =
+        endTallyReport.getData().stream().mapToDouble(TallyReportDataPoint::getValue).sum();
+
+    // Then: The daily total should increase by the number of sockets of the hypervisor
+    assertEquals(
+        beforeHostTotal + testSocketCount,
+        afterHostTotal,
+        "Daily total should increase by the number of sockets of the hypervisor");
+  }
+
+  @Test
   @TestPlanName("tally-hypervisor-TC003")
-  public void testHypervisorWithNoGuestsDoesNotShowInInstancesReport() {
+  void testHypervisorWithNoGuestsDoesNotShowInInstancesReport() {
     // Given: Baseline tally data and a hypervisor host with no guests
     helpers.seedNightlyTallyHostBuckets(
         seeder, orgId, RHEL_FOR_X86.productTag(), UUID.randomUUID().toString(), service);
     service.tallyOrg(orgId);
-
-    OffsetDateTime startOfToday = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
-    OffsetDateTime endOfToday = startOfToday.plusDays(1).minusNanos(1);
 
     TallyDbHostSeeder.SeededHost hypervisorHost =
         seeder.insertHost(
@@ -92,7 +200,7 @@ public class TallyHypervisorTest extends BaseTallyComponentTest {
 
     // Then: Hypervisor without guests should not appear in instances report
     var instancesResponse =
-        service.getInstancesByProduct(orgId, RHEL_FOR_X86.productTag(), startOfToday, endOfToday);
+        service.getInstancesByProduct(orgId, RHEL_FOR_X86.productTag(), start, end);
     var data = instancesResponse.getData();
 
     boolean found = containsSubscriptionManagerId(data, hypervisorHost.subscriptionManagerId());
@@ -101,16 +209,13 @@ public class TallyHypervisorTest extends BaseTallyComponentTest {
 
   @Test
   @TestPlanName("tally-hypervisor-TC004")
-  public void testHypervisorWithNoGuestsDoesNotChangeDailyTotal() {
+  void testHypervisorWithNoGuestsDoesNotChangeDailyTotal() {
     // Given: Baseline usage and a hypervisor host with no guests
     helpers.seedNightlyTallyHostBuckets(
         seeder, orgId, RHEL_FOR_X86.productTag(), UUID.randomUUID().toString(), service);
     service.tallyOrg(orgId);
 
-    OffsetDateTime startOfToday = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
-    OffsetDateTime endOfToday = startOfToday.plusDays(1).minusNanos(1);
-
-    long initialSockets = getDailySocketsTotal(startOfToday, endOfToday);
+    long initialSockets = getDailySocketsTotal(start, end);
 
     seeder.insertHost(
         orgId, UUID.randomUUID().toString(), "VIRTUALIZED", false, false, true, 0, null);
@@ -119,9 +224,383 @@ public class TallyHypervisorTest extends BaseTallyComponentTest {
     service.tallyOrg(orgId);
 
     // Then: Hypervisor without guests should not change the total sockets
-    long newSockets = getDailySocketsTotal(startOfToday, endOfToday);
+    long newSockets = getDailySocketsTotal(start, end);
     assertEquals(
         initialSockets, newSockets, "Hypervisor without guests should not change total sockets");
+  }
+
+  @TestPlanName("tally-hypervisor-TC005")
+  @Test
+  void testRHELHypervisorWithGuestsIncreasesTotalSockets() {
+    String sla = "Premium";
+    String usage = "Production";
+
+    // Given: Org is opted in, Tally has been preformed, and the initial state reports have been
+    // fetched
+    service.createOptInConfig(orgId);
+    service.tallyOrg(orgId);
+
+    var initialHypervisorTally =
+        service.getTallyReportData(
+            orgId,
+            RHEL_FOR_X86.productTag(),
+            "Sockets",
+            mapWith(getDailyTallyTimeParameters(start, end), "hypervisor"));
+    Log.info("initialHypervisorTally: %s", initialHypervisorTally);
+
+    var initialTallyCloudSockets =
+        service.getTallyReportData(
+            orgId,
+            RHEL_FOR_X86.productTag(),
+            "Sockets",
+            mapWith(getDailyTallyTimeParameters(start, end), "cloud"));
+    Log.info("initialTallyCloudSockets: %s", initialTallyCloudSockets);
+
+    var initialTallyCloudCores =
+        service.getTallyReportData(
+            orgId,
+            RHEL_FOR_X86.productTag(),
+            "Cores",
+            mapWith(getDailyTallyTimeParameters(start, end), "cloud"));
+    Log.info("initialTallyCloudCores: %s", initialTallyCloudCores);
+
+    assertNotNull(initialHypervisorTally.getData(), "Instance response should not be null!");
+    assertNotNull(initialTallyCloudSockets.getData(), "Instance response should not be null!");
+    assertNotNull(initialTallyCloudCores.getData(), "Instance response should not be null!");
+
+    var initTallySum =
+        initialHypervisorTally.getData().stream().mapToDouble(TallyReportDataPoint::getValue).sum();
+    var initTallyCloudSocketsSum =
+        initialTallyCloudSockets.getData().stream()
+            .mapToDouble(TallyReportDataPoint::getValue)
+            .sum();
+    var initTallyCloudCoresSum =
+        initialTallyCloudCores.getData().stream().mapToDouble(TallyReportDataPoint::getValue).sum();
+
+    // Create a hypervisor with 2 guests
+    SeededHost phyHypervisor =
+        hostManager
+            .createHost(orgId)
+            .displayName("Hypervisor-1")
+            .apply(HostTemplates.conduitReportedPhysicalRhel(1, 4))
+            .insert();
+
+    hostManager
+        .createHost(orgId)
+        .displayName("guest1")
+        .apply(
+            HostTemplates.conduitReportedVirtualRhelGuest(
+                phyHypervisor.subscriptionManagerId(), sla, usage, 1, 1))
+        .insert();
+
+    hostManager
+        .createHost(orgId)
+        .displayName("guest2")
+        .apply(
+            HostTemplates.conduitReportedVirtualRhelGuest(
+                phyHypervisor.subscriptionManagerId(), sla, usage, 1, 1))
+        .insert();
+
+    // Then: Run a post hypervisor tally and fetch the updated tally data
+    service.tallyOrg(orgId);
+
+    start = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
+    end = start.plusDays(1).minusNanos(1);
+    // Query for instances report by NAME containing "Hypervisor-1" and category "hypervisor"
+    var instanceResponse =
+        service.getInstancesByProduct(
+            orgId,
+            RHEL_FOR_X86.productTag(),
+            start,
+            end,
+            Map.of("display_name_contains", "Hypervisor-1", "category", "hypervisor"));
+
+    Log.info("Instance Report: %s", instanceResponse);
+
+    var endHypervisorTally =
+        service.getTallyReportData(
+            orgId,
+            RHEL_FOR_X86.productTag(),
+            "Sockets",
+            mapWith(getDailyTallyTimeParameters(start, end), "hypervisor"));
+    Log.info("endHypervisorTally: %s", endHypervisorTally.getData());
+
+    var endTallyCloudSockets =
+        service.getTallyReportData(
+            orgId,
+            RHEL_FOR_X86.productTag(),
+            "Sockets",
+            mapWith(getDailyTallyTimeParameters(start, end), "cloud"));
+    Log.info("endTallyCloudSockets: %s", endTallyCloudSockets.getData());
+
+    var endTallyCloudCores =
+        service.getTallyReportData(
+            orgId,
+            RHEL_FOR_X86.productTag(),
+            "Cores",
+            mapWith(getDailyTallyTimeParameters(start, end), "cloud"));
+    Log.info("endTallyCloudCores: %s", endTallyCloudCores.getData());
+
+    assertNotNull(endHypervisorTally.getData(), "The Hypervisor Tally should not be null!");
+    assertNotNull(endTallyCloudSockets.getData(), "The Cloud Sockets Tally should not be null!");
+    assertNotNull(endTallyCloudCores.getData(), "The Cloud Cores Tally should not be null!");
+
+    var endHypervisorTallySum =
+        endHypervisorTally.getData().stream().mapToDouble(TallyReportDataPoint::getValue).sum();
+    var endTallyCloudSocketsSum =
+        endTallyCloudSockets.getData().stream().mapToDouble(TallyReportDataPoint::getValue).sum();
+    var endTallyCloudCoresSum =
+        endTallyCloudCores.getData().stream().mapToDouble(TallyReportDataPoint::getValue).sum();
+
+    assertNotNull(instanceResponse.getData(), "The Instance Report should not be null!");
+
+    Log.info("instanceResponse: %s", instanceResponse.getData());
+
+    double hypervisorCount =
+        instanceResponse.getData().stream()
+            .filter(i -> ReportCategory.HYPERVISOR.equals(i.getCategory()))
+            .filter(i -> i.getMeasurements() != null)
+            .flatMapToDouble(i -> i.getMeasurements().stream().mapToDouble(Double::doubleValue))
+            .sum();
+
+    var hypervisor1IR =
+        instanceResponse.getData().stream()
+            .filter(
+                i ->
+                    i.getDisplayName() != null
+                        && "Hypervisor-1".equalsIgnoreCase(i.getDisplayName()))
+            .findFirst();
+
+    assertTrue(hypervisor1IR.isPresent(), "Hypervisor-1 should be present in the Instance Report!");
+
+    Integer guestCount = hypervisor1IR.get().getNumberOfGuests();
+    // Assert that hypervisor socket measurements increased as expected
+    assertEquals(2, hypervisorCount, "Hypervisor sockets should be equal to 2");
+
+    // Asser the guest count is 2
+    assertEquals(2, guestCount, "Hypervisor should have 2 guests");
+
+    // Verify the tally increased by 2
+    assertEquals(
+        initTallySum + 2,
+        endHypervisorTallySum,
+        String.format(
+            "Daily total should increase by 2 sockets. Started with %s and ended with %s",
+            initTallySum, endHypervisorTallySum));
+
+    // Verify that the Cloud sockets should NOT have changed
+    assertEquals(
+        initTallyCloudSocketsSum,
+        endTallyCloudSocketsSum,
+        "There should be no change in cloud sockets");
+    assertEquals(
+        initTallyCloudCoresSum, endTallyCloudCoresSum, "There should be no change in cloud cores");
+  }
+
+  @Test
+  @TestPlanName("tally-hypervisor-TC006")
+  @Disabled("This test uncovered bug SWATCH-5585. Should be reactivated when the bug is resolved")
+  void testGuestMappingUpdateChangesInstancesPresence() {
+    String sla = "Premium";
+    String usage = "Production";
+
+    service.createOptInConfig(orgId);
+
+    // Create a hypervisor Host A
+    SeededHost hostASeededHost =
+        hostManager
+            .createHost(orgId)
+            .displayName("HostA")
+            .apply(HostTemplates.conduitReportedPhysicalRhel(2, 4))
+            .insert();
+
+    // Create a guest on Host A
+    // Creating a builder because we are updating the host for this guest later
+    HostBuilder guestBuilder =
+        hostManager
+            .createHost(orgId)
+            .displayName("guest1")
+            .apply(
+                HostTemplates.conduitReportedVirtualRhelGuest(
+                    hostASeededHost.subscriptionManagerId(), sla, usage, 1, 1));
+    guestBuilder.insert();
+
+    // Create a hypervisor Host B without a guest
+    SeededHost hostBSeededHost =
+        hostManager
+            .createHost(orgId)
+            .displayName("HostB")
+            .apply(HostTemplates.conduitReportedPhysicalRhel(1, 4))
+            .insert();
+
+    service.tallyOrg(orgId);
+
+    // Verify that the system table (instance report) has mapped guest to hypervisor A
+    var instanceResponse =
+        service.getInstancesByProduct(orgId, RHEL_FOR_X86.productTag(), start, end);
+    Log.info("Instance Report: %s", instanceResponse);
+
+    assertNotNull(instanceResponse.getData(), "The Instance Report should not be null!");
+
+    // Verify that hypervisor Host A is in the Instance report and has a guest
+
+    var hostAInstanceReport =
+        instanceResponse.getData().stream()
+            .filter(i -> hostASeededHost.hostId().toString().equalsIgnoreCase(i.getInstanceId()))
+            .findFirst();
+    assertTrue(
+        hostAInstanceReport.isPresent(),
+        "Hypervisor Host A should be present in the Instance Report!");
+    var hostAGuestCount = hostAInstanceReport.get().getNumberOfGuests();
+
+    var hostBInstanceReport =
+        instanceResponse.getData().stream()
+            .filter(i -> hostBSeededHost.hostId().toString().equalsIgnoreCase(i.getInstanceId()))
+            .findFirst();
+    assertTrue(
+        hostBInstanceReport.isPresent(),
+        "Hypervisor Host B should be present in the Instance Report!");
+    var hostBGuestCount = hostBInstanceReport.get().getNumberOfGuests();
+
+    assertEquals(
+        1,
+        hostAGuestCount,
+        String.format(
+            "Hypervisor with guest should have 1 guest but has %s guests", hostAGuestCount));
+    assertEquals(
+        0,
+        hostBGuestCount,
+        String.format(
+            "Hypervisor without guest should have 0 guest but has %s guests", hostBGuestCount));
+
+    // Update the guest1 to have hypervisor_uuid to point to Host B
+    guestBuilder
+        .systemProfileFacts(
+            guestBuilder.getSystemProfileFacts().toBuilder()
+                .hypervisorUuid(hostBSeededHost.subscriptionManagerId())
+                .build())
+        .update();
+
+    service.tallyOrg(orgId);
+
+    // Fetch fresh instance reports
+    InstanceResponse response =
+        service.getInstancesByProduct(orgId, RHEL_FOR_X86.productTag(), start, end);
+    Log.info("Instance Report after update: %s", response);
+    assertNotNull(response.getData(), "The Instance Report should not be null");
+
+    // Get the Host A guest count after the update
+
+    var hostAIR =
+        response.getData().stream()
+            .filter(i -> hostASeededHost.hostId().toString().equalsIgnoreCase(i.getInstanceId()))
+            .findFirst();
+    assertTrue(hostAIR.isPresent(), "Hypervisor Host A should be present in the Instance Report!");
+    var hostAIRAfterUpdateCount = hostAIR.get().getNumberOfGuests();
+
+    var hostBIR =
+        response.getData().stream()
+            .filter(i -> hostBSeededHost.hostId().toString().equalsIgnoreCase(i.getInstanceId()))
+            .findFirst();
+    assertTrue(hostBIR.isPresent(), "Hypervisor Host B should be present in the Instance Report!");
+    var hostBIRAfterUpdateCount = hostBIR.get().getNumberOfGuests();
+
+    // Assert Host A lost its guest and Host B gained it
+    assertEquals(0, hostAIRAfterUpdateCount);
+    assertEquals(1, hostBIRAfterUpdateCount);
+  }
+
+  @Test
+  @TestPlanName("tally-hypervisor-TC011")
+  void testGuestMappingUpdateChangesInstanceGuestReport() {
+    String sla = "Premium";
+    String usage = "Production";
+
+    service.createOptInConfig(orgId);
+
+    // Create a hypervisor A with 1 guest
+    SeededHost hostA =
+        hostManager
+            .createHost(orgId)
+            .displayName("Host A")
+            .apply(HostTemplates.conduitReportedPhysicalRhel(2, 4))
+            .insert();
+
+    // Creating a builder because we are updating the host later
+    HostBuilder guestBuilder =
+        hostManager
+            .createHost(orgId)
+            .displayName("guest1")
+            .apply(
+                HostTemplates.conduitReportedVirtualRhelGuest(
+                    hostA.subscriptionManagerId(), sla, usage, 1, 1));
+    guestBuilder.insert();
+
+    // Create a hypervisor b without a guest
+    SeededHost hostB =
+        hostManager
+            .createHost(orgId)
+            .displayName("Host B")
+            .apply(HostTemplates.conduitReportedPhysicalRhel(1, 4))
+            .insert();
+
+    // Verify that the system table (instance report) has mapped guest to hypervisor A
+    service.tallyOrg(orgId);
+
+    // Query for instances Guest report
+    var instanceGuestReportHostA =
+        service.getInstanceGuestReportData(orgId, start, end, hostA.hostId().toString());
+    Log.info("Instance Guest report Host a: %s", instanceGuestReportHostA);
+
+    var instanceGuestReportHostB =
+        service.getInstanceGuestReportData(orgId, start, end, hostB.hostId().toString());
+    Log.info("Instance Guest report Host b: %s", instanceGuestReportHostB);
+
+    assertNotNull(
+        instanceGuestReportHostA.getMeta(),
+        "The Instance Guest report metadata for Host A should not be null!");
+    assertNotNull(
+        instanceGuestReportHostB.getMeta(),
+        "The Instance Guest report metadata for Host B should not be null!");
+
+    assertEquals(
+        1, instanceGuestReportHostA.getMeta().getCount(), "Guest count should be 1 for Host A");
+    assertEquals(
+        0, instanceGuestReportHostB.getMeta().getCount(), "Guest count should be 0 for Host B");
+
+    // Update the guest to have hypervisor_uuid to point to host b
+    guestBuilder
+        .systemProfileFacts(
+            guestBuilder.getSystemProfileFacts().toBuilder()
+                .hypervisorUuid(hostB.subscriptionManagerId())
+                .build())
+        .update();
+
+    service.tallyOrg(orgId);
+
+    // Verify that the Instance Guest report has the updated guest count
+    var instanceGuestReportHostAAfterUpdate =
+        service.getInstanceGuestReportData(orgId, start, end, hostA.hostId().toString());
+    Log.info("Instance Guest report Host a: %s", instanceGuestReportHostAAfterUpdate);
+    assertNotNull(
+        instanceGuestReportHostAAfterUpdate.getMeta(),
+        "The updated Instance Guest report metadata for Host A should not be null!");
+
+    var instanceGuestReportHostBAfterUpdate =
+        service.getInstanceGuestReportData(orgId, start, end, hostB.hostId().toString());
+    Log.info("Instance Guest report Host b: %s", instanceGuestReportHostBAfterUpdate);
+    assertNotNull(
+        instanceGuestReportHostBAfterUpdate.getMeta(),
+        "The updated Instance Guest report metadata for Host B should not be null!");
+
+    assertEquals(
+        0,
+        instanceGuestReportHostAAfterUpdate.getMeta().getCount(),
+        "Guest count should be 0 for Host A");
+    assertEquals(
+        1,
+        instanceGuestReportHostBAfterUpdate.getMeta().getCount(),
+        "Guest count should be 1 for Host B");
   }
 
   @ParameterizedTest(name = "Using primary bucket searches: {0}")
@@ -132,8 +611,6 @@ public class TallyHypervisorTest extends BaseTallyComponentTest {
     givenPrimaryBucketSearchesEnabled(usePrimaryBucketSearches);
     service.createOptInConfig(orgId);
     SeededHost hypervisor = givenHypervisorWithOverlappingGuestSla();
-    OffsetDateTime start = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
-    OffsetDateTime end = start.plusDays(1).minusNanos(1);
 
     // When: Fetching instances with category=hypervisor (SLA and usage wildcarded)
     InstanceResponse response =
@@ -188,7 +665,7 @@ public class TallyHypervisorTest extends BaseTallyComponentTest {
         service.getTallyReportData(
             orgId,
             RHEL_FOR_X86.productTag(),
-            RHEL_FOR_X86.metricIds().get(0),
+            RHEL_FOR_X86.metricIds().getFirst(),
             Map.of(
                 "granularity", TallySnapshot.Granularity.DAILY.toString(),
                 "beginning", beginning.toString(),
@@ -211,5 +688,20 @@ public class TallyHypervisorTest extends BaseTallyComponentTest {
 
     return data.stream()
         .anyMatch(i -> Objects.equals(i.getSubscriptionManagerId(), subscriptionManagerId));
+  }
+
+  private Map<String, Object> getDailyTallyTimeParameters(
+      OffsetDateTime start, OffsetDateTime end) {
+
+    return Map.of(
+        "granularity", "Daily",
+        "beginning", start.toString(),
+        "ending", end.toString());
+  }
+
+  private Map<String, Object> mapWith(Map<String, Object> baseMap, Object value) {
+    Map<String, Object> newMap = new HashMap<>(baseMap);
+    newMap.put("category", value);
+    return newMap;
   }
 }
