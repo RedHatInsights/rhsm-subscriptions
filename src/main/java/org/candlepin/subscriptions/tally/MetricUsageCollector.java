@@ -442,11 +442,13 @@ public class MetricUsageCollector {
 
     ServiceLevel effectiveSla =
         Optional.ofNullable(event.getSla())
+            .filter(s -> !Event.Sla.__EMPTY__.equals(s))
             .map(Event.Sla::toString)
             .map(ServiceLevel::fromString)
             .orElse(sla.map(ServiceLevel::fromString).orElse(ServiceLevel.PREMIUM));
     Usage effectiveUsage =
         Optional.ofNullable(event.getUsage())
+            .filter(u -> !Event.Usage.__EMPTY__.equals(u))
             .map(Event.Usage::toString)
             .map(Usage::fromString)
             .orElse(usage.map(Usage::fromString).orElse(Usage.PRODUCTION));

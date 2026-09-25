@@ -56,6 +56,7 @@ public class TallySummaryMessagesByAttributesPaygTest extends BaseTallyComponent
   @TestPlanName("tally-summary-by-attributes-payg-TC001")
   public void testTallySummarySeparatesMeasurementsBySla() {
     // Given: Events for each SLA type and one event with no SLA
+    // (Empty SLA events default to PREMIUM during processing)
     OffsetDateTime now = OffsetDateTime.now();
     for (Sla sla : slas) {
       publishSlaEvent(now, sla);
@@ -63,29 +64,18 @@ public class TallySummaryMessagesByAttributesPaygTest extends BaseTallyComponent
     publishSlaEvent(now, Sla.__EMPTY__);
 
     // When: Polling for tally summaries
+    // Empty SLA merges with PREMIUM, resulting in 3 snapshots
     List<TallySummary> tallySummaries =
         helpers.pollForTallySyncAndMessages(
-            orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, Granularity.HOURLY, 4, service, kafkaBridge);
+            orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, Granularity.HOURLY, 3, service, kafkaBridge);
 
     // Then: Each SLA should have its own tally value and their sum should equal total
     double slaValues =
         slas.stream().mapToDouble(sla -> slaValue(tallySummaries, sla.toString())).sum();
-    double noSla = slaValue(tallySummaries, Sla.__EMPTY__.toString());
     double allTallySummaries = slaValue(tallySummaries, null);
 
-    Assertions.assertAll(
-        () ->
-            Assertions.assertEquals(
-                allTallySummaries - slaValues,
-                noSla,
-                0.0001,
-                "No-SLA value should equal total minus SLA values"),
-        () ->
-            Assertions.assertEquals(
-                slaValues + noSla,
-                allTallySummaries,
-                0.0001,
-                "SLA values plus no-SLA should equal total"));
+    Assertions.assertEquals(
+        slaValues, allTallySummaries, 0.0001, "Sum of individual SLA values should equal total");
   }
 
   // ---- Usage tests ----
@@ -94,6 +84,7 @@ public class TallySummaryMessagesByAttributesPaygTest extends BaseTallyComponent
   @TestPlanName("tally-summary-by-attributes-payg-TC002")
   public void testTallySummarySeparatesMeasurementsByUsage() {
     // Given: Events for each Usage type and one event with no Usage
+    // (Empty usage events default to PRODUCTION during processing)
     OffsetDateTime now = OffsetDateTime.now();
     for (Usage usage : usages) {
       publishUsageEvent(now, usage);
@@ -101,29 +92,21 @@ public class TallySummaryMessagesByAttributesPaygTest extends BaseTallyComponent
     publishUsageEvent(now, Usage.__EMPTY__);
 
     // When: Polling for tally summaries
+    // Empty usage merges with PRODUCTION, resulting in 3 snapshots
     List<TallySummary> tallySummaries =
         helpers.pollForTallySyncAndMessages(
-            orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, Granularity.HOURLY, 4, service, kafkaBridge);
+            orgId, TEST_PRODUCT_TAG, TEST_METRIC_ID, Granularity.HOURLY, 3, service, kafkaBridge);
 
     // Then: Each Usage should have its own tally value and their sum should equal total
     double usageValues =
         usages.stream().mapToDouble(usage -> usageValue(tallySummaries, usage.toString())).sum();
-    double noUsage = usageValue(tallySummaries, Usage.__EMPTY__.toString());
     double allTallySummaries = usageValue(tallySummaries, null);
 
-    Assertions.assertAll(
-        () ->
-            Assertions.assertEquals(
-                allTallySummaries - usageValues,
-                noUsage,
-                0.0001,
-                "No-Usage value should equal total minus Usage values"),
-        () ->
-            Assertions.assertEquals(
-                usageValues + noUsage,
-                allTallySummaries,
-                0.0001,
-                "Usage values plus no-Usage should equal total"));
+    Assertions.assertEquals(
+        usageValues,
+        allTallySummaries,
+        0.0001,
+        "Sum of individual Usage values should equal total");
   }
 
   // ---- Billing account ID tests ----
