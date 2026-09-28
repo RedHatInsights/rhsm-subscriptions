@@ -26,6 +26,7 @@ import static org.mockito.Mockito.verify;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.EventRecordRepository;
@@ -129,7 +130,7 @@ class InternalTallyDataControllerTest {
             .withEventSource("TEST_SOURCE")
             .withServiceType("SERVICE_TYPE")
             .withInstanceId("1234")
-            .withTimestamp(CLOCK.now())
+            .withTimestamp(CLOCK.now().truncatedTo(ChronoUnit.HOURS))
             .withMeasurements(List.of(new Measurement().withMetricId("vCPUs").withValue(1.0)));
 
     Event invalidEvent =

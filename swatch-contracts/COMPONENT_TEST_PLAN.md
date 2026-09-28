@@ -1793,6 +1793,18 @@ This section verifies the automatic contract termination behavior when contracts
   - Unlimited offerings show appropriate unlimited capacity flags.
   - Contract creation adapts correctly to different offering capacity types.
 
+**offering-contract-TC003: Aggregate capacity across active contracts**
+
+- **Description:** Verify that capacity from multiple active contracts for one organization is
+  summed consistently across the contract metrics, SKU capacity report, and daily capacity report.
+- **Setup:** Create two active AWS ROSA contracts for the same organization, SKU, and billing
+  account with Cores and Instance-hours metrics.
+- **Action:** Query the contracts, the V2 SKU capacity report, and the v1 daily capacity report.
+- **Verification:** Sum each contract's AWS metric value and divide by its configured billing
+  factor.
+- **Expected Result:** The adjusted metric sum equals the corresponding SKU capacity report
+  measurement and the v1 daily capacity report value for both metrics.
+
 ## Marketplace Integration
 
 **offering-marketplace-TC001: Create marketplace contract with offering dimensions**

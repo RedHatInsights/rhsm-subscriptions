@@ -46,6 +46,7 @@ import com.redhat.swatch.contract.openapi.model.ContractRequest;
 import com.redhat.swatch.contract.openapi.model.ContractResponse;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.repository.ContractEntity;
+import com.redhat.swatch.contract.repository.ContractEntity.ContractIdentity;
 import com.redhat.swatch.contract.repository.ContractMetricEntity;
 import com.redhat.swatch.contract.repository.ContractMetricRepository;
 import com.redhat.swatch.contract.repository.ContractRepository;
@@ -468,7 +469,7 @@ public class ContractService {
     StatusResponse statusResponse = new StatusResponse();
 
     try {
-      Set<ContractEntity.ContractIdentity> upstreamContracts = new HashSet<>();
+      Set<ContractIdentity> upstreamContracts = new HashSet<>();
       int totalPages = 1;
       for (int pageNumber = 0; pageNumber < totalPages; pageNumber++) {
         var result = syncContractsByOrgId(contractOrgSync, pageNumber, upstreamContracts);
@@ -500,7 +501,7 @@ public class ContractService {
   }
 
   private void terminateContractsOrphanedByBillingProviders(
-      String orgId, Set<ContractEntity.ContractIdentity> upstreamContracts) {
+      String orgId, Set<ContractIdentity> upstreamContracts) {
     var now = OffsetDateTime.now();
 
     Specification<ContractEntity> spec =
@@ -570,8 +571,7 @@ public class ContractService {
   }
 
   private PartnerEntitlements syncContractsByOrgId(
-      String orgId, int pageNumber, Set<ContractEntity.ContractIdentity> upstreamContracts)
-      throws ApiException {
+      String orgId, int pageNumber, Set<ContractIdentity> upstreamContracts) throws ApiException {
     PageRequest page = new PageRequest();
     page.setSize(PAGE_SIZE);
     page.setNumber(pageNumber);
@@ -583,26 +583,46 @@ public class ContractService {
       for (PartnerEntitlementV1 entitlement : result.getContent()) {
         if (entitlement != null
             && ContractSourcePartnerEnum.isSupported(entitlement.getSourcePartner())) {
-          String bpId = contractEntityMapper.extractBillingProviderId(entitlement);
-          if (bpId != null) {
-            upstreamContracts.add(
-                new ContractEntity.ContractIdentity(bpId, findSubscriptionNumber(entitlement)));
-            tryUpsertPartnerContract(entitlement);
-          } else {
-            log.warn(
-                "Skipping entitlement with missing purchase data for org {}: {}",
-                orgId,
-                entitlement);
-          }
+          syncContractsByOrgIdAndEntitlement(orgId, upstreamContracts, entitlement);
         }
       }
     }
     return result;
   }
 
+  private void syncContractsByOrgIdAndEntitlement(
+      String orgId, Set<ContractIdentity> upstreamContracts, PartnerEntitlementV1 entitlement) {
+
+    if (entitlement.getPartnerIdentities() == null) {
+      log.warn(
+          "Skipping entitlement with missing partner identities for org {}: {}",
+          orgId,
+          entitlement);
+      return;
+    }
+
+    String subscriptionNumber = findSubscriptionNumber(entitlement);
+    if (subscriptionNumber == null) {
+      log.warn(
+          "Skipping entitlement with missing subscription number for org {}: {}",
+          orgId,
+          entitlement);
+      return;
+    }
+
+    String bpId = contractEntityMapper.extractBillingProviderId(entitlement);
+    if (bpId != null) {
+      upstreamContracts.add(new ContractIdentity(bpId, subscriptionNumber));
+      tryUpsertPartnerContract(entitlement);
+    } else {
+      log.warn(
+          "Skipping entitlement with missing purchase data for org {}: {}", orgId, entitlement);
+    }
+  }
+
   private void tryUpsertPartnerContract(PartnerEntitlementV1 entitlement) {
-    var subscriptionId = lookupSubscriptionId(findSubscriptionNumber(entitlement));
     try {
+      var subscriptionId = lookupSubscriptionId(findSubscriptionNumber(entitlement));
       upsertPartnerContracts(entitlement, subscriptionId);
     } catch (ContractNotAssociatedToOrgException | ContractValidationFailedException e) {
       log.error(

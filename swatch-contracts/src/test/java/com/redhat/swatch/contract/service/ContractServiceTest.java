@@ -25,6 +25,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static com.redhat.swatch.contract.model.MeasurementMetricIdTransformer.MEASUREMENT_TYPE_DEFAULT;
+import static com.redhat.swatch.contract.service.ContractService.SUCCESS_MESSAGE;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -266,6 +268,24 @@ class ContractServiceTest extends BaseUnitTest {
   }
 
   @Test
+  @Transactional
+  void syncContractsByOrgIdContinuesAfterMalformedEntitlement() throws Exception {
+    var malformedEntitlement =
+        new PartnerEntitlementV1()
+            .rhAccountId(AZURE_PARTNER_ORG_ID)
+            .sourcePartner(ContractSourcePartnerEnum.AZURE.getCode())
+            .purchase(new PurchaseV1().vendorProductCode("azureProductCode"));
+    var response = new PartnerEntitlements().content(List.of(malformedEntitlement));
+    var stub = mockPartnerApi(response);
+
+    StatusResponse statusResponse =
+        assertDoesNotThrow(() -> contractService.syncContractsByOrgId(AZURE_PARTNER_ORG_ID));
+
+    assertEquals(SUCCESS_MESSAGE, statusResponse.getStatus());
+    wireMockServer.removeStub(stub);
+  }
+
+  @Test
   void upsertPartnerContractWhenNullEntityThrowError() {
     PartnerEntitlementV1 contract = givenContractWithoutRequiredData();
     assertThrows(
@@ -374,7 +394,7 @@ class ContractServiceTest extends BaseUnitTest {
 
     StatusResponse statusResponse = contractService.syncContractsByOrgId(ORG_ID);
 
-    assertEquals(ContractService.SUCCESS_MESSAGE, statusResponse.getStatus());
+    assertEquals(SUCCESS_MESSAGE, statusResponse.getStatus());
     assertEquals(
         "No contracts found in upstream for the org " + ORG_ID, statusResponse.getMessage());
 
@@ -397,7 +417,7 @@ class ContractServiceTest extends BaseUnitTest {
 
     StatusResponse statusResponse = contractService.syncContractsByOrgId(ORG_ID);
 
-    assertEquals(ContractService.SUCCESS_MESSAGE, statusResponse.getStatus());
+    assertEquals(SUCCESS_MESSAGE, statusResponse.getStatus());
     assertEquals(
         "No contracts found in upstream for the org " + ORG_ID, statusResponse.getMessage());
 
@@ -640,7 +660,7 @@ class ContractServiceTest extends BaseUnitTest {
 
     StatusResponse statusResponse = contractService.syncContractsByOrgId(ORG_ID);
 
-    assertEquals(ContractService.SUCCESS_MESSAGE, statusResponse.getStatus());
+    assertEquals(SUCCESS_MESSAGE, statusResponse.getStatus());
     assertEquals(
         "No contracts found in upstream for the org " + ORG_ID, statusResponse.getMessage());
 

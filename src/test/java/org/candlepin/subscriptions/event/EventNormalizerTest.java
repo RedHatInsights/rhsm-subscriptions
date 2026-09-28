@@ -28,6 +28,7 @@ import static org.mockito.Mockito.mock;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Set;
 import org.candlepin.subscriptions.json.Event;
@@ -230,6 +231,32 @@ class EventNormalizerTest {
         "Ansible Managed Node",
         result.getServiceType(),
         "Service type should be converted from 'Ansible Infrastructure Hour' to 'Ansible Managed Node'");
+  }
+
+  @Test
+  void normalizeEventTruncatesTimestampToHour() {
+    // Given: Event with timestamp that has sub-hour precision
+    Event event = createEvent();
+    event.setTimestamp(OffsetDateTime.parse("2026-07-01T12:34:09.804078Z"));
+
+    // When: Normalizing the event
+    Event result = normalizer.normalizeEvent(event);
+
+    // Then: Timestamp is truncated to the beginning of the hour
+    assertEquals(OffsetDateTime.parse("2026-07-01T12:00:00Z"), result.getTimestamp());
+  }
+
+  @Test
+  void normalizeEventTruncatesNonUtcTimestampToUtcHour() {
+    // Given: Event with a non-UTC offset timestamp (12:34 +05:30 = 07:04 UTC)
+    Event event = createEvent();
+    event.setTimestamp(OffsetDateTime.parse("2026-07-01T12:34:09.804078+05:30"));
+
+    // When: Normalizing the event
+    Event result = normalizer.normalizeEvent(event);
+
+    // Then: Timestamp is normalized to UTC and truncated to the beginning of that UTC hour
+    assertEquals(OffsetDateTime.parse("2026-07-01T07:00:00Z"), result.getTimestamp());
   }
 
   @Test

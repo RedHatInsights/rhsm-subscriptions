@@ -23,7 +23,7 @@ ALL_SERVICES=(
     "swatch-api:9019"
 )
 
-# Heavier services: run alone so they are not starved by sibling quarkus:dev JVMs.
+# Services: run alone so they are not starved by sibling quarkus:dev JVMs.
 SERIAL_SERVICES=(
     "swatch-contracts"
 )
@@ -176,8 +176,8 @@ run_batch() {
             PASSED_SERVICES+=("$svc_name")
         else
             echo "  ❌ $svc_name: FAILED"
-            echo "     Last 20 lines of log:"
-            tail -20 "$TMPDIR_BASE/${svc_name}.log" 2>/dev/null | sed 's/^/     /' || true
+            echo "     Last lines of log:"
+            tail -100 "$TMPDIR_BASE/${svc_name}.log" 2>/dev/null | sed 's/^/     /' || true
             FAILED_SERVICES+=("$svc_name")
         fi
     done
