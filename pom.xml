@@ -366,23 +366,6 @@
           <version>${git-commit-id-maven-plugin.version}</version>
         </plugin>
 
-        <!-- Required to start Quarkus services in dev mode from the Maven command -->
-        <plugin>
-          <groupId>io.quarkus.platform</groupId>
-          <artifactId>quarkus-maven-plugin</artifactId>
-          <version>${quarkus.platform.version}</version>
-          <extensions>true</extensions>
-          <executions>
-            <execution>
-              <goals>
-                <goal>build</goal>
-                <goal>generate-code</goal>
-                <goal>generate-code-tests</goal>
-              </goals>
-            </execution>
-          </executions>
-        </plugin>
-
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>build-helper-maven-plugin</artifactId>
