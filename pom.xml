@@ -19,8 +19,7 @@
     <codegen.skipIfSpecIsUnchanged>true</codegen.skipIfSpecIsUnchanged>
 
     <!-- Dependencies -->
-    <quarkus.platform.version>3.39.4</quarkus.platform.version>
-    <resteasy.quarkus.version>7.0.5.Final</resteasy.quarkus.version>
+    <quarkus.platform.version>3.40.0</quarkus.platform.version>
     <spring.boot.version>4.1.1</spring.boot.version>
     <resteasy.version>7.0.0.Final</resteasy.version>
     <!-- Only use as provided in the common dependencies.
@@ -365,23 +364,6 @@
           <groupId>io.github.git-commit-id</groupId>
           <artifactId>git-commit-id-maven-plugin</artifactId>
           <version>${git-commit-id-maven-plugin.version}</version>
-        </plugin>
-
-        <!-- Required to start Quarkus services in dev mode from the Maven command -->
-        <plugin>
-          <groupId>io.quarkus.platform</groupId>
-          <artifactId>quarkus-maven-plugin</artifactId>
-          <version>${quarkus.platform.version}</version>
-          <extensions>true</extensions>
-          <executions>
-            <execution>
-              <goals>
-                <goal>build</goal>
-                <goal>generate-code</goal>
-                <goal>generate-code-tests</goal>
-              </goals>
-            </execution>
-          </executions>
         </plugin>
 
         <plugin>
