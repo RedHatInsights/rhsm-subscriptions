@@ -184,11 +184,6 @@
   <build>
     <plugins>
       <plugin>
-        <groupId>io.quarkus.platform</groupId>
-        <artifactId>quarkus-maven-plugin</artifactId>
-      </plugin>
-
-      <plugin>
         <groupId>org.openapitools</groupId>
         <artifactId>openapi-generator-maven-plugin</artifactId>
         <executions>

@@ -19,8 +19,7 @@
     <codegen.skipIfSpecIsUnchanged>true</codegen.skipIfSpecIsUnchanged>
 
     <!-- Dependencies -->
-    <quarkus.platform.version>3.39.4</quarkus.platform.version>
-    <resteasy.quarkus.version>7.0.5.Final</resteasy.quarkus.version>
+    <quarkus.platform.version>3.40.0</quarkus.platform.version>
     <spring.boot.version>4.1.1</spring.boot.version>
     <resteasy.version>7.0.0.Final</resteasy.version>
     <!-- Only use as provided in the common dependencies.
@@ -31,7 +30,7 @@
     <jakarta.ws.rs-api.version>4.0.0</jakarta.ws.rs-api.version>
     <jakarta.persistence-api.version>3.2.0</jakarta.persistence-api.version>
     <opentelemetry-api.version>1.66.0</opentelemetry-api.version>
-    <awssdk-bom.version>2.55.5</awssdk-bom.version>
+    <awssdk-bom.version>2.55.6</awssdk-bom.version>
     <guava.version>33.7.1-jre</guava.version>
     <liquibase.version>5.0.4</liquibase.version>
     <postgresql.version>42.7.13</postgresql.version>
@@ -40,7 +39,7 @@
     <mockito.version>5.24.0</mockito.version>
     <awaitility.version>4.3.0</awaitility.version>
     <hibernate-validator.version>9.1.4.Final</hibernate-validator.version>
-    <hibernate-orm.version>7.4.10.Final</hibernate-orm.version>
+    <hibernate-orm.version>7.4.11.Final</hibernate-orm.version>
     <swagger-parser.version>2.1.48</swagger-parser.version>
     <swagger-ui.version>5.32.15</swagger-ui.version>
     <splunk-otel-javaagent.version>2.31.1</splunk-otel-javaagent.version>
@@ -59,7 +58,7 @@
     <openapi-generator.version>7.25.0</openapi-generator.version>
     <lombok.version>1.18.48</lombok.version>
     <hibernate-jpamodelgen.version>${hibernate-orm.version}</hibernate-jpamodelgen.version>
-    <spotless.version>3.10.2</spotless.version>
+    <spotless.version>3.10.3</spotless.version>
     <checkstyle.version>3.6.0</checkstyle.version>
     <jacoco-maven-plugin.version>0.8.15</jacoco-maven-plugin.version>
     <maven-antrun-plugin.version>3.2.0</maven-antrun-plugin.version>
@@ -213,7 +212,7 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
-        <version>3.20.0</version>
+        <version>3.21.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
@@ -365,23 +364,6 @@
           <groupId>io.github.git-commit-id</groupId>
           <artifactId>git-commit-id-maven-plugin</artifactId>
           <version>${git-commit-id-maven-plugin.version}</version>
-        </plugin>
-
-        <!-- Required to start Quarkus services in dev mode from the Maven command -->
-        <plugin>
-          <groupId>io.quarkus.platform</groupId>
-          <artifactId>quarkus-maven-plugin</artifactId>
-          <version>${quarkus.platform.version}</version>
-          <extensions>true</extensions>
-          <executions>
-            <execution>
-              <goals>
-                <goal>build</goal>
-                <goal>generate-code</goal>
-                <goal>generate-code-tests</goal>
-              </goals>
-            </execution>
-          </executions>
         </plugin>
 
         <plugin>
