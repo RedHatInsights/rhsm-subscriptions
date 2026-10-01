@@ -67,7 +67,7 @@ public class SubscriptionEntity extends ModificationTrackedEntity {
   @Column(name = "subscription_id")
   private String subscriptionId;
 
-  @Column(name = "subscription_number")
+  @Column(name = "subscription_number", nullable = false)
   private String subscriptionNumber;
 
   @ManyToOne(fetch = FetchType.EAGER)
