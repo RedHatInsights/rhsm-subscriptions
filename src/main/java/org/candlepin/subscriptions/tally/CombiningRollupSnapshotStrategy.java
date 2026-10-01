@@ -197,11 +197,11 @@ public class CombiningRollupSnapshotStrategy {
       Granularity granularity,
       OffsetDateTime begin,
       OffsetDateTime end) {
-    try (Stream<TallySnapshot> snapStream =
-        tallyRepo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
-            orgId, products, granularity, begin, end)) {
-      return snapStream.collect(Collectors.groupingBy(TallySnapshot::getOrgId));
-    }
+    return tallyRepo
+        .findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
+            orgId, products, granularity, begin, end)
+        .stream()
+        .collect(Collectors.groupingBy(TallySnapshot::getOrgId));
   }
 
   protected void populateSnapshotFromProductUsageCalculation(

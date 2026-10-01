@@ -115,11 +115,8 @@ public abstract class BaseSnapshotRoller {
       Granularity granularity,
       OffsetDateTime begin,
       OffsetDateTime end) {
-    try (Stream<TallySnapshot> snapStream =
-        tallyRepo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
-            orgId, products, granularity, begin, end)) {
-      return snapStream.collect(Collectors.toList());
-    }
+    return tallyRepo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
+        orgId, products, granularity, begin, end);
   }
 
   protected Collection<TallySnapshot> updateSnapshots(

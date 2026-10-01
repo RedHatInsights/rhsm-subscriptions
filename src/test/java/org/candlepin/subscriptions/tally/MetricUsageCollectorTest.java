@@ -51,6 +51,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
+import org.candlepin.subscriptions.configuration.FeatureFlags;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
@@ -110,12 +111,15 @@ class MetricUsageCollectorTest {
 
   @Mock TallySnapshotRepository tallySnapshotRepository;
 
+  @Mock FeatureFlags featureFlags;
+
   ApplicationClock clock = new TestClockConfiguration().adjustableClock();
 
   @BeforeEach
   void setup() {
     metricUsageCollector =
-        new MetricUsageCollector(accountRepo, clock, hostRepository, tallySnapshotRepository);
+        new MetricUsageCollector(
+            accountRepo, clock, hostRepository, tallySnapshotRepository, featureFlags);
   }
 
   @Test
@@ -1074,7 +1078,7 @@ class MetricUsageCollectorTest {
             Granularity.HOURLY,
             eventDate,
             clock.endOfHour(eventDate)))
-        .thenReturn(Stream.of(snapshot));
+        .thenReturn(List.of(snapshot));
 
     Measurement measurement =
         new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);
@@ -1109,6 +1113,68 @@ class MetricUsageCollectorTest {
             .getCalculation(usageCalculationKey)
             .getTotals(HardwareMeasurementType.PHYSICAL)
             .getMeasurement(MetricIdUtils.getCores()));
+  }
+
+  @Test
+  void testCalculateUsageUsesLegacySnapshotQueryWhenFeatureFlagEnabled() {
+    when(featureFlags.isEnabled(FeatureFlags.USE_LEGACY_HOURLY_TALLY_SNAPSHOT_QUERY, false))
+        .thenReturn(true);
+
+    OffsetDateTime eventDate = OffsetDateTime.parse("2021-02-26T00:00:00Z");
+    TallySnapshot snapshot = createSnapshot(eventDate, 100.0);
+    when(tallySnapshotRepository
+            .findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetweenLegacy(
+                "test-org",
+                Set.of(OCP_PRODUCT_TAG, OSD_PRODUCT_TAG),
+                Granularity.HOURLY,
+                eventDate,
+                clock.endOfHour(eventDate)))
+        .thenReturn(List.of(snapshot));
+
+    Measurement measurement =
+        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);
+    Event event =
+        createEvent()
+            .withEventId(UUID.randomUUID())
+            .withRole(Event.Role.OSD)
+            .withTimestamp(eventDate)
+            .withServiceType(SERVICE_TYPE)
+            .withMeasurements(Collections.singletonList(measurement))
+            .withBillingProvider(Event.BillingProvider.RED_HAT)
+            .withBillingAccountId(Optional.of("sellerAcct"));
+
+    AccountUsageCalculationCache cache = new AccountUsageCalculationCache();
+    metricUsageCollector.calculateUsage(List.of(event), cache);
+
+    assertEquals(1, cache.getCalculations().size());
+    assertTrue(cache.contains(event));
+
+    AccountUsageCalculation accountUsageCalculation = cache.get(event);
+    UsageCalculation.Key usageCalculationKey =
+        new UsageCalculation.Key(
+            OSD_PRODUCT_TAG,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider.RED_HAT,
+            "sellerAcct");
+    assertTrue(accountUsageCalculation.containsCalculation(usageCalculationKey));
+    assertEquals(
+        Double.valueOf(142.0),
+        accountUsageCalculation
+            .getCalculation(usageCalculationKey)
+            .getTotals(HardwareMeasurementType.PHYSICAL)
+            .getMeasurement(MetricIdUtils.getCores()));
+
+    verify(tallySnapshotRepository, times(1))
+        .findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetweenLegacy(
+            "test-org",
+            Set.of(OCP_PRODUCT_TAG, OSD_PRODUCT_TAG),
+            Granularity.HOURLY,
+            eventDate,
+            clock.endOfHour(eventDate));
+    verify(tallySnapshotRepository, times(0))
+        .findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
+            any(), any(), any(), any(), any());
   }
 
   @Test
@@ -1196,7 +1262,7 @@ class MetricUsageCollectorTest {
             Granularity.HOURLY,
             eventDate,
             clock.endOfHour(eventDate)))
-        .thenReturn(Stream.of(snapshot));
+        .thenReturn(List.of(snapshot));
 
     // valid metric "Cores":
     Measurement measurement =

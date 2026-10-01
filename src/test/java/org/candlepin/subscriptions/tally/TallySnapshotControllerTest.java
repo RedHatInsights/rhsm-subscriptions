@@ -161,11 +161,11 @@ class TallySnapshotControllerTest implements ExtendWithEmbeddedKafka {
 
     when(snapshotRepo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), any(), any(), any()))
-        .thenReturn(Stream.empty())
+        .thenReturn(List.of())
         .thenThrow(new RuntimeException("FORCED"))
-        .thenReturn(Stream.empty())
-        .thenReturn(Stream.empty())
-        .thenReturn(Stream.empty());
+        .thenReturn(List.of())
+        .thenReturn(List.of())
+        .thenReturn(List.of());
 
     ArgumentCaptor<TallySnapshot> snapshotCaptor = ArgumentCaptor.forClass(TallySnapshot.class);
     when(snapshotRepo.save(snapshotCaptor.capture())).thenAnswer(input -> input.getArgument(0));
