@@ -222,12 +222,12 @@ public class ContractsTerminationComponentTest extends BaseContractComponentTest
             sub.getProduct(), sub.getOrgId(), sub.getOffering().getSku());
     assertTrue(skuItem.isPresent(), "SKU item should be present");
 
-    var containsId =
+    var containsNumber =
         skuItem.stream()
             .filter(i -> i.getSubscriptions() != null)
             .flatMap(i -> i.getSubscriptions().stream())
-            .anyMatch(s -> sub.getSubscriptionId().equals(s.getId()));
-    assertTrue(containsId, "Active subscriptions should include created subscription id");
+            .anyMatch(s -> sub.getSubscriptionNumber().equals(s.getNumber()));
+    assertTrue(containsNumber, "Active subscriptions should include created subscription number");
     return sub;
   }
 

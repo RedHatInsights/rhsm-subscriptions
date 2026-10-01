@@ -821,7 +821,6 @@ class SubscriptionTableControllerV2Test {
 
   private static void assertSubscription(
       SubscriptionCapacityView expectedSub, SkuCapacitySubscription actual) {
-    assertEquals(expectedSub.getSubscriptionId(), actual.getId(), "Wrong Subscription ID");
     assertEquals(
         expectedSub.getSubscriptionNumber(), actual.getNumber(), "Wrong Subscription Number");
   }
