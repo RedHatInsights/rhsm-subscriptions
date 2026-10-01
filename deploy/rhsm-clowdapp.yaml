@@ -25,6 +25,7 @@ objects:
       testing:
         iqePlugin: rhsm-subscriptions
 
+  # deprecated: to be deleted after SWATCH-5383
   - apiVersion: v1
     kind: ConfigMap
     metadata:
@@ -96,9 +97,88 @@ objects:
               level: info
 
   - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: swatch-otel-config-contrib
+    data:
+      config.yaml: |
+        extensions:
+          health_check:
+            endpoint: 0.0.0.0:13133
+        receivers:
+          otlp:
+            protocols:
+              grpc:
+                endpoint: 0.0.0.0:4317
+              http:
+                endpoint: 0.0.0.0:4318
+          syslog:
+            protocol: rfc3164
+            udp:
+              listen_address: '0.0.0.0:54526'
+          filelog:
+            include:
+              - /logs/server.log*
+            start_at: end
+            operators:
+              - type: json_parser
+                parse_from: body
+                parse_to: attributes
+        processors:
+          batch:
+          transform/syslog:
+            log_statements:
+            - context: log
+              statements:
+              - set(resource.attributes["host.name"], attributes["hostname"]) where attributes["hostname"] != nil
+              - set(body, attributes["message"]) where attributes["message"] != nil
+          transform/file_logs:
+            log_statements:
+            - context: log
+              statements:
+              - set(body, attributes) where IsMap(attributes)
+              - keep_keys(body, ["message", "severity", "properties"])
+          resource/add_log_origin:
+            attributes:
+            - action: upsert
+              key: log_origin
+              value: otel-collector
+        exporters:
+          debug:
+            verbosity: detailed
+        service:
+          extensions:
+            - health_check
+          pipelines:
+            traces:
+              receivers: [otlp]
+              processors: [batch]
+              exporters: [debug]
+            logs/syslog:
+              receivers: [syslog]
+              processors: [batch, transform/syslog]
+              exporters: [debug]
+            logs/file:
+              receivers: [filelog]
+              processors: [batch, resource/add_log_origin, transform/file_logs]
+              exporters: [debug]
+          telemetry:
+            logs:
+              level: info
+
+  - apiVersion: v1
     kind: Secret
     metadata:
       name: signalfx
+    type: Opaque
+    data:
+      # dummy-token for testing purposes only
+      token: ZHVtbXktdG9rZW4=
+
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: datadog
     type: Opaque
     data:
       # dummy-token for testing purposes only
