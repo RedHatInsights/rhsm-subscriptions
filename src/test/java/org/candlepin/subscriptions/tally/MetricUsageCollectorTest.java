@@ -1408,6 +1408,198 @@ class MetricUsageCollectorTest {
         .build();
   }
 
+  @Test
+  void testUpdateHostsMarksEmptySlaBucketsAsStale() {
+    Host host = new Host();
+    host.setInstanceId("i-test-123");
+    host.setInstanceType(SERVICE_TYPE);
+    host.setOrgId(ORG_ID);
+
+    // Add buckets with EMPTY SLA and valid SLA
+    HostTallyBucket emptySlaBucket = new HostTallyBucket();
+    emptySlaBucket.setKey(
+        new HostBucketKey(
+            host,
+            RHEL_FOR_X86,
+            ServiceLevel.EMPTY,
+            Usage.PRODUCTION,
+            BillingProvider.RED_HAT,
+            "_ANY",
+            false));
+    emptySlaBucket.setMeasurementType(HardwareMeasurementType.PHYSICAL);
+
+    HostTallyBucket validBucket = new HostTallyBucket();
+    validBucket.setKey(
+        new HostBucketKey(
+            host,
+            RHEL_FOR_X86,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider.RED_HAT,
+            "_ANY",
+            false));
+    validBucket.setMeasurementType(HardwareMeasurementType.PHYSICAL);
+
+    host.addBucket(emptySlaBucket);
+    host.addBucket(validBucket);
+
+    when(hostRepository.findAllByOrgIdAndInstanceIdIn(ORG_ID, Set.of("i-test-123")))
+        .thenReturn(java.util.stream.Stream.of(host));
+    when(accountRepo.existsById(any())).thenReturn(true);
+
+    Measurement measurement =
+        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(4.0);
+    Event event =
+        createEvent("i-test-123")
+            .withEventId(UUID.randomUUID())
+            .withProductIds(List.of(RHEL_FOR_X86))
+            .withProductTag(Set.of(RHEL_FOR_X86))
+            .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
+            .withServiceType(SERVICE_TYPE)
+            .withMeasurements(List.of(measurement))
+            .withSla(Event.Sla.PREMIUM)
+            .withUsage(Event.Usage.PRODUCTION)
+            .withBillingProvider(Event.BillingProvider.RED_HAT);
+
+    // Call updateHosts which should mark EMPTY SLA buckets as stale
+    metricUsageCollector.updateHosts(ORG_ID, SERVICE_TYPE, List.of(event));
+
+    // Verify EMPTY SLA bucket was marked stale and removed
+    assertTrue(
+        host.getBuckets().stream().noneMatch(b -> ServiceLevel.EMPTY.equals(b.getKey().getSla())),
+        "EMPTY SLA buckets should be removed as stale");
+  }
+
+  @Test
+  void testUpdateHostsMarksEmptyUsageBucketsAsStale() {
+    Host host = new Host();
+    host.setInstanceId("i-test-456");
+    host.setInstanceType(SERVICE_TYPE);
+    host.setOrgId(ORG_ID);
+
+    // Add buckets with EMPTY Usage and valid Usage
+    HostTallyBucket emptyUsageBucket = new HostTallyBucket();
+    emptyUsageBucket.setKey(
+        new HostBucketKey(
+            host,
+            RHEL_FOR_X86,
+            ServiceLevel.PREMIUM,
+            Usage.EMPTY,
+            BillingProvider.RED_HAT,
+            "_ANY",
+            false));
+    emptyUsageBucket.setMeasurementType(HardwareMeasurementType.PHYSICAL);
+
+    HostTallyBucket validBucket = new HostTallyBucket();
+    validBucket.setKey(
+        new HostBucketKey(
+            host,
+            RHEL_FOR_X86,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider.RED_HAT,
+            "_ANY",
+            false));
+    validBucket.setMeasurementType(HardwareMeasurementType.PHYSICAL);
+
+    host.addBucket(emptyUsageBucket);
+    host.addBucket(validBucket);
+
+    when(hostRepository.findAllByOrgIdAndInstanceIdIn(ORG_ID, Set.of("i-test-456")))
+        .thenReturn(java.util.stream.Stream.of(host));
+    when(accountRepo.existsById(any())).thenReturn(true);
+
+    Measurement measurement =
+        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(4.0);
+    Event event =
+        createEvent("i-test-456")
+            .withEventId(UUID.randomUUID())
+            .withProductIds(List.of(RHEL_FOR_X86))
+            .withProductTag(Set.of(RHEL_FOR_X86))
+            .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
+            .withServiceType(SERVICE_TYPE)
+            .withMeasurements(List.of(measurement))
+            .withSla(Event.Sla.PREMIUM)
+            .withUsage(Event.Usage.PRODUCTION)
+            .withBillingProvider(Event.BillingProvider.RED_HAT);
+
+    // Call updateHosts which should mark EMPTY Usage buckets as stale
+    metricUsageCollector.updateHosts(ORG_ID, SERVICE_TYPE, List.of(event));
+
+    // Verify EMPTY Usage bucket was marked stale and removed
+    assertTrue(
+        host.getBuckets().stream().noneMatch(b -> Usage.EMPTY.equals(b.getKey().getUsage())),
+        "EMPTY Usage buckets should be removed as stale");
+  }
+
+  @Test
+  void testBuildBucketTuplesFiltersEmptyStringFromEventWhenSubscriptionDefaultsAreBlank() {
+    // Demonstrates the full filtering path: when event has Event.Sla.__EMPTY__/
+    // Event.Usage.__EMPTY__, they are filtered out by .filter(s -> !__EMPTY__.equals(s)).
+    // Then even if subscription defaults stringify to empty/blank strings, they are
+    // filtered out by .filter(s -> !s.isBlank()), and the code falls back to PREMIUM/PRODUCTION.
+    // This test verifies both __EMPTY__ filtering and blank string filtering work together.
+    Measurement measurement =
+        new Measurement().withMetricId(MetricIdUtils.getCores().toString()).withValue(42.0);
+
+    Event event =
+        createEvent()
+            .withEventId(UUID.randomUUID())
+            .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
+            .withServiceType(SERVICE_TYPE)
+            .withMeasurements(Collections.singletonList(measurement))
+            .withSla(Event.Sla.__EMPTY__)
+            .withUsage(Event.Usage.__EMPTY__)
+            .withBillingProvider(Event.BillingProvider.RED_HAT)
+            .withBillingAccountId(Optional.of("sellerAcct"));
+
+    Defaults nullDefaults = new Defaults();
+    nullDefaults.setSla(null);
+    nullDefaults.setUsage(null);
+
+    SubscriptionDefinition subDef = new SubscriptionDefinition();
+    subDef.setServiceType(SERVICE_TYPE);
+    subDef.setDefaults(nullDefaults);
+
+    try (MockedStatic<SubscriptionDefinition> mockedSubDef =
+        mockStatic(SubscriptionDefinition.class)) {
+      mockedSubDef
+          .when(() -> SubscriptionDefinition.findByServiceType(SERVICE_TYPE))
+          .thenReturn(Set.of(subDef));
+
+      mockedSubDef
+          .when(() -> SubscriptionDefinition.getAllProductTags(any()))
+          .thenReturn(Set.of(OSD_PRODUCT_TAG));
+
+      AccountUsageCalculationCache cache = new AccountUsageCalculationCache();
+      metricUsageCollector.calculateUsage(List.of(event), cache);
+
+      assertEquals(1, cache.getCalculations().size());
+      assertTrue(cache.contains(event));
+
+      AccountUsageCalculation accountUsageCalculation = cache.get(event);
+
+      UsageCalculation.Key expectedKey =
+          new UsageCalculation.Key(
+              OSD_PRODUCT_TAG,
+              ServiceLevel.PREMIUM,
+              Usage.PRODUCTION,
+              BillingProvider.RED_HAT,
+              "sellerAcct");
+      assertTrue(
+          accountUsageCalculation.containsCalculation(expectedKey),
+          "Event.__EMPTY__ values filtered by .filter(s -> !__EMPTY__.equals(s)), "
+              + "blank subscription defaults filtered by .filter(s -> !s.isBlank()), "
+              + "both fall back to PREMIUM/PRODUCTION");
+      assertEquals(
+          Double.valueOf(42.0),
+          accountUsageCalculation
+              .getCalculation(expectedKey)
+              .getTotals(HardwareMeasurementType.PHYSICAL)
+              .getMeasurement(MetricIdUtils.getCores()));
+    }
+  }
+
   private void assertUsageCalculationForEvent(Event event) {
     double expectedValue = 42.0;
     Measurement measurement =
