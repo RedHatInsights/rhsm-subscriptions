@@ -27,6 +27,7 @@ import com.redhat.swatch.hbi.events.ct.utils.HbiEventHelper;
 import com.redhat.swatch.hbi.events.ct.utils.SwatchEventHelper;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostDeleteEvent;
+import com.redhat.swatch.hbi.events.normalization.NormalizedEventType;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -94,7 +95,12 @@ class MetricsHbiDeleteComponentTest extends BaseSMHBIComponentTest {
             hypervisorEvent, hbiDeleteEvent, List.of("69"), Set.of("RHEL for x86"), false, true);
     Event swatchEventGuest =
         SwatchEventHelper.createExpectedEvent(
-            guestEvent, List.of("69"), Set.of("RHEL for x86"), true, false, true);
+            guestEvent,
+            NormalizedEventType.INSTANCE_UPDATED,
+            List.of("69"),
+            Set.of("RHEL for x86"),
+            true,
+            false);
 
     // When: Hypervisor delete event is produced to Kafka
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hbiDeleteEvent);
@@ -126,7 +132,12 @@ class MetricsHbiDeleteComponentTest extends BaseSMHBIComponentTest {
             guestEvent, hbiDeleteEvent, List.of("69"), Set.of("RHEL for x86"), false, false);
     Event swatchEventHypervisor =
         SwatchEventHelper.createExpectedEvent(
-            hypervisorEvent, List.of("69"), Set.of("RHEL for x86"), false, false, true);
+            hypervisorEvent,
+            NormalizedEventType.INSTANCE_UPDATED,
+            List.of("69"),
+            Set.of("RHEL for x86"),
+            false,
+            false);
 
     // When: Mapped guest delete event is produced to Kafka
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hbiDeleteEvent);
@@ -179,7 +190,12 @@ class MetricsHbiDeleteComponentTest extends BaseSMHBIComponentTest {
 
     Event swatchEvent =
         SwatchEventHelper.createExpectedEvent(
-            hbiEvent, List.of("69"), Set.of("RHEL for x86"), false, false);
+            hbiEvent,
+            NormalizedEventType.INSTANCE_CREATED,
+            List.of("69"),
+            Set.of("RHEL for x86"),
+            false,
+            false);
 
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hbiEvent);
 
@@ -206,13 +222,28 @@ class MetricsHbiDeleteComponentTest extends BaseSMHBIComponentTest {
 
     Event swatchEventHypervisor =
         SwatchEventHelper.createExpectedEvent(
-            hypervisorEvent, List.of("69"), Set.of("RHEL for x86"), false, false);
+            hypervisorEvent,
+            NormalizedEventType.INSTANCE_CREATED,
+            List.of("69"),
+            Set.of("RHEL for x86"),
+            false,
+            false);
     Event swatchEventMappedGuest =
         SwatchEventHelper.createExpectedEvent(
-            guestEvent, List.of("69"), Set.of("RHEL for x86"), false, false);
+            guestEvent,
+            NormalizedEventType.INSTANCE_CREATED,
+            List.of("69"),
+            Set.of("RHEL for x86"),
+            false,
+            false);
     Event swatchEventUpdatedHypervisor =
         SwatchEventHelper.createExpectedEvent(
-            hypervisorEvent, List.of("69"), Set.of("RHEL for x86"), false, true, true);
+            hypervisorEvent,
+            NormalizedEventType.INSTANCE_UPDATED,
+            List.of("69"),
+            Set.of("RHEL for x86"),
+            false,
+            true);
 
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hypervisorEvent);
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, guestEvent);

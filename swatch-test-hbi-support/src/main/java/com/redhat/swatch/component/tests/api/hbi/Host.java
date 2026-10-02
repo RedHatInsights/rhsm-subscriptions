@@ -84,6 +84,49 @@ public class Host {
     this.orgId = Objects.requireNonNull(orgId, "orgId is required");
   }
 
+  /**
+   * Create a detached copy of the supplied host, preserving all field values, including nulls and
+   * existing identifiers.
+   *
+   * <p>Clones the mutable reporters array and shares references to immutable values and fact
+   * objects. The copy remains mutable, but changes to either host do not affect the other.
+   *
+   * @param source the host to copy
+   * @throws NullPointerException if source is null
+   */
+  public Host(Host source) {
+    Objects.requireNonNull(source, "Source host is required.");
+
+    // Core identity
+    this.orgId = source.orgId;
+    this.id = source.id;
+    this.subscriptionManagerId = source.subscriptionManagerId;
+    this.insightsId = source.insightsId;
+    this.displayName = source.displayName;
+    this.providerId = source.providerId;
+    this.account = source.account;
+
+    // System profile and immutable reporter facts
+    this.systemProfileFacts = source.systemProfileFacts;
+    this.rhsmFacts = source.rhsmFacts;
+    this.qpcFacts = source.qpcFacts;
+    this.satelliteFacts = source.satelliteFacts;
+    this.yupanaFacts = source.yupanaFacts;
+
+    // Reporter information
+    this.reporter = source.reporter;
+    this.reporters = source.reporters == null ? null : source.reporters.clone();
+
+    // Timestamps
+    this.createdOn = source.createdOn;
+    this.modifiedOn = source.modifiedOn;
+    this.lastCheckIn = source.lastCheckIn;
+
+    // Additional fields
+    this.conversionsActivity = source.conversionsActivity;
+    this.billingModel = source.billingModel;
+  }
+
   // ===== Core Identity Setters =====
 
   public Host subscriptionManagerId(String subscriptionManagerId) {

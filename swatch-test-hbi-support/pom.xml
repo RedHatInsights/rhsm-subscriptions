@@ -20,5 +20,10 @@
       <artifactId>swatch-test-framework</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-model-metrics-hbi</artifactId>
+      <version>${project.version}</version>
+    </dependency>
   </dependencies>
 </project>

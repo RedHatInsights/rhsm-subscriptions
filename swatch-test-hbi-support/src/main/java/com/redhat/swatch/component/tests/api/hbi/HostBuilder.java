@@ -136,6 +136,11 @@ public class HostBuilder {
    * @return information about the seeded host
    */
   public SeededHost insert() {
+    if (manager == null) {
+      throw new UnsupportedOperationException(
+          "This builder has no HostStateManager — call build() to get a Host snapshot for event publishing");
+    }
+
     applyDerivedFacts();
 
     // Seed via manager (which tracks the host)
@@ -155,6 +160,11 @@ public class HostBuilder {
    * @throws IllegalStateException if this builder's host has not been {@link #insert()}-ed yet
    */
   public SeededHost update() {
+    if (manager == null) {
+      throw new UnsupportedOperationException(
+          "This builder has no HostStateManager — call build() to get a Host snapshot for event publishing");
+    }
+
     if (host.getId() == null) {
       throw new IllegalStateException("Host must be insert()-ed before it can be update()-d");
     }
@@ -162,6 +172,28 @@ public class HostBuilder {
     applyDerivedFacts();
 
     return manager.update(host);
+  }
+
+  /**
+   * Build a detached snapshot of the currently configured host.
+   *
+   * <p>Preserves existing field values without deriving facts, generating identifiers, or calling
+   * the connector. Subsequent changes to this builder do not affect the returned host. The returned
+   * host remains mutable and can be customized independently.
+   *
+   * @return a copy of the host in its current state
+   */
+  public Host build() {
+    return new Host(host);
+  }
+
+  /**
+   * Start building an HBI event from a detached snapshot of the currently configured host.
+   *
+   * <p>Equivalent to {@code new HbiEventBuilder(build())}; this does not insert or update the host.
+   */
+  public HbiEventBuilder toEvent() {
+    return new HbiEventBuilder(build());
   }
 
   private void applyDerivedFacts() {
