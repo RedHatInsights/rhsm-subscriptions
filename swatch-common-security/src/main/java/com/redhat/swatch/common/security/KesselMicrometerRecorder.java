@@ -35,6 +35,7 @@ public class KesselMicrometerRecorder implements KesselMetricsRecorder {
 
   private static final String METRIC_CHECK_COUNT = "kessel.grpc.check.count";
   private static final String METRIC_CONNECTION_ERRORS = "kessel.grpc.connection.errors";
+  private static final String METRIC_AUTHORIZATION_DENIED = "kessel.authorization.denied";
   private static final String METRIC_CHANNEL_INIT = "kessel.channel.init";
 
   private static final String TAG_RESULT = "result";
@@ -61,6 +62,14 @@ public class KesselMicrometerRecorder implements KesselMetricsRecorder {
     Counter.builder(METRIC_CONNECTION_ERRORS)
         .description("Kessel gRPC connection errors")
         .tags(Tags.of("error_code", errorCode))
+        .register(registry)
+        .increment();
+  }
+
+  @Override
+  public void recordAuthorizationDenied() {
+    Counter.builder(METRIC_AUTHORIZATION_DENIED)
+        .description("Kessel authorization denials (user lacks permission)")
         .register(registry)
         .increment();
   }

@@ -20,22 +20,20 @@
  */
 package com.redhat.swatch.kessel;
 
-import io.grpc.ChannelCredentials;
+import com.nimbusds.jose.util.Pair;
 import io.grpc.ConnectivityState;
-import io.grpc.Grpc;
-import io.grpc.InsecureChannelCredentials;
 import io.grpc.ManagedChannel;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
-import io.grpc.TlsChannelCredentials;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
+import org.project_kessel.api.auth.OAuth2ClientCredentials;
 import org.project_kessel.api.inventory.v1beta2.Allowed;
 import org.project_kessel.api.inventory.v1beta2.CheckRequest;
 import org.project_kessel.api.inventory.v1beta2.CheckResponse;
-import org.project_kessel.api.inventory.v1beta2.KesselInventoryServiceGrpc;
+import org.project_kessel.api.inventory.v1beta2.ClientBuilder;
 import org.project_kessel.api.inventory.v1beta2.KesselInventoryServiceGrpc.KesselInventoryServiceBlockingStub;
 import org.project_kessel.api.rbac.v2.Utils;
 
@@ -86,18 +84,49 @@ public class KesselAuthorizationClient {
   private final KesselConfig config;
   private final WorkspaceResolver workspaceResolver;
   private final KesselMetricsRecorder metricsRecorder;
+  private final OAuth2ClientCredentials oauth2Credentials;
   private volatile KesselInventoryServiceBlockingStub stub;
   private volatile ManagedChannel channel;
 
+  /**
+   * Primary constructor with full configuration including OAuth2 credentials.
+   *
+   * @param config Kessel configuration
+   * @param workspaceResolver Resolves organization IDs to Kessel workspace IDs
+   * @param metricsRecorder Metrics recorder (null defaults to NOOP)
+   * @param oauth2Credentials OAuth2 credentials for gRPC authentication (null uses TLS only)
+   */
+  public KesselAuthorizationClient(
+      KesselConfig config,
+      WorkspaceResolver workspaceResolver,
+      KesselMetricsRecorder metricsRecorder,
+      OAuth2ClientCredentials oauth2Credentials) {
+    this.config = config;
+    this.workspaceResolver = workspaceResolver;
+    this.metricsRecorder = metricsRecorder != null ? metricsRecorder : KesselMetricsRecorder.NOOP;
+    this.oauth2Credentials = oauth2Credentials;
+  }
+
+  /**
+   * Constructor without OAuth2 credentials (uses TLS only).
+   *
+   * @param config Kessel configuration
+   * @param workspaceResolver Resolves organization IDs to Kessel workspace IDs
+   * @param metricsRecorder Metrics recorder
+   */
   public KesselAuthorizationClient(
       KesselConfig config,
       WorkspaceResolver workspaceResolver,
       KesselMetricsRecorder metricsRecorder) {
-    this.config = config;
-    this.workspaceResolver = workspaceResolver;
-    this.metricsRecorder = metricsRecorder != null ? metricsRecorder : KesselMetricsRecorder.NOOP;
+    this(config, workspaceResolver, metricsRecorder, null);
   }
 
+  /**
+   * Constructor with minimal configuration (NOOP metrics, TLS only).
+   *
+   * @param config Kessel configuration
+   * @param workspaceResolver Resolves organization IDs to Kessel workspace IDs
+   */
   public KesselAuthorizationClient(KesselConfig config, WorkspaceResolver workspaceResolver) {
     this(config, workspaceResolver, KesselMetricsRecorder.NOOP);
   }
@@ -117,18 +146,26 @@ public class KesselAuthorizationClient {
     }
     ManagedChannel oldChannel = this.channel;
 
-    ChannelCredentials creds;
+    ClientBuilder clientBuilder = new ClientBuilder(config.endpoint());
+    Pair<KesselInventoryServiceBlockingStub, ManagedChannel> clientAndChannel;
+
     if (config.insecure()) {
       log.warn(
           "Initializing insecure client for Kessel: OAuth2 authentication and TLS verification"
               + " will be disabled");
-      creds = InsecureChannelCredentials.create();
+      clientAndChannel = clientBuilder.insecure().build();
+    } else if (oauth2Credentials != null) {
+      log.info("Initializing Kessel client with OAuth2 authentication and TLS");
+      clientAndChannel = clientBuilder.oauth2ClientAuthenticated(oauth2Credentials).build();
     } else {
-      creds = TlsChannelCredentials.create();
+      log.warn(
+          "OAuth2 credentials not configured; initializing Kessel client with TLS only (no"
+              + " authentication)");
+      clientAndChannel = clientBuilder.build();
     }
 
-    this.channel = Grpc.newChannelBuilder(config.endpoint(), creds).build();
-    this.stub = KesselInventoryServiceGrpc.newBlockingStub(this.channel);
+    this.stub = clientAndChannel.getLeft();
+    this.channel = clientAndChannel.getRight();
 
     recordChannelInitMetric(reason);
 
@@ -195,10 +232,20 @@ public class KesselAuthorizationClient {
             .setObject(Utils.workspaceResource(workspaceId))
             .build();
 
-    StatusRuntimeException lastException = null;
+    return executeCheckWithRetry(request, subjectId, permission, relation, workspaceId);
+  }
+
+  /** Executes the permission check with automatic retry on transient failures. */
+  private boolean executeCheckWithRetry(
+      CheckRequest request,
+      String subjectId,
+      String permission,
+      String relation,
+      String workspaceId) {
+    KesselTransientException lastTransientException = null;
+
     for (int attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       try {
-        ManagedChannel currentChannel = channel;
         CheckResponse response =
             getClient().withDeadlineAfter(config.timeoutMs(), TimeUnit.MILLISECONDS).check(request);
         boolean allowed = response.getAllowed() == Allowed.ALLOWED_TRUE;
@@ -215,57 +262,116 @@ public class KesselAuthorizationClient {
             permission);
         return allowed;
       } catch (StatusRuntimeException e) {
-        lastException = e;
-        Status.Code code = e.getStatus().getCode();
+        RuntimeException exception = handleGrpcException(e);
 
-        if (TRANSIENT_FAILURE_CODES.contains(code)) {
-          recordConnectionErrorMetric(code.name());
+        // If non-transient, don't retry
+        if (!(exception instanceof KesselTransientException)) {
+          handleNonTransientError(e, subjectId, permission);
+          return false;
         }
 
-        if (code == Status.Code.UNAUTHENTICATED) {
-          log.warn(
-              "Transient gRPC error from Kessel (attempt {}/{}): {} - {}. Recreating channel.",
-              attempt + 1,
-              MAX_RETRIES + 1,
-              code,
-              e.getMessage());
-          initializeChannel("unauthenticated", channel);
-        } else if (TRANSIENT_FAILURE_CODES.contains(code) && attempt < MAX_RETRIES) {
-          log.warn(
-              "Transient gRPC error from Kessel (attempt {}/{}): {} - {}",
-              attempt + 1,
-              MAX_RETRIES + 1,
-              code,
-              e.getMessage());
+        lastTransientException = (KesselTransientException) exception;
+
+        // Transient error - retry if not at max attempts
+        if (attempt < MAX_RETRIES) {
           try {
             Thread.sleep(RETRY_DELAY_MS);
           } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
             break;
           }
-        } else {
-          log.warn(
-              "Kessel check failed for subject={}/{}, permission={}: {}",
-              KESSEL_DOMAIN,
-              subjectId,
-              permission,
-              e.getStatus());
-          recordCheckMetric(false, METRICS_FAILURE_NON_TRANSIENT);
-          return false;
         }
       }
     }
 
     log.warn(
-        "Kessel check exhausted retries for subject={}/{}, permission={}: {}",
+        "Kessel check failed after {} retries (transient connection issue persists) for"
+            + " subject={}/{}, permission={}: {}",
+        MAX_RETRIES,
         KESSEL_DOMAIN,
         subjectId,
         permission,
-        lastException != null ? lastException.getStatus() : "unknown");
-
+        lastTransientException.getCause().getStatus());
     recordCheckMetric(false, METRICS_FAILURE_RETRIES_EXHAUSTED);
-
     return false;
+  }
+
+  /**
+   * Handles non-transient gRPC errors by logging and recording appropriate metrics.
+   *
+   * <p>PERMISSION_DENIED is treated as a successful gRPC call (Kessel responded) where the user was
+   * denied access. Other non-transient errors indicate actual failures.
+   *
+   * @param e the gRPC exception
+   * @param subjectId the subject identifier
+   * @param permission the permission being checked
+   */
+  private void handleNonTransientError(
+      StatusRuntimeException e, String subjectId, String permission) {
+    if (e.getStatus().getCode() == Status.Code.PERMISSION_DENIED) {
+      log.debug(
+          "Kessel authorization denied (gRPC call succeeded, user lacks permission) for"
+              + " subject={}/{}, permission={}: {}",
+          KESSEL_DOMAIN,
+          subjectId,
+          permission,
+          e.getStatus());
+      recordCheckMetric(true, METRICS_SUCCESS);
+    } else {
+      log.warn(
+          "Kessel check failed with non-retryable error for subject={}/{}, permission={}: {}",
+          KESSEL_DOMAIN,
+          subjectId,
+          permission,
+          e.getStatus());
+      recordCheckMetric(false, METRICS_FAILURE_NON_TRANSIENT);
+    }
+  }
+
+  /**
+   * Handles gRPC exceptions, distinguishing between transient and non-transient failures.
+   *
+   * <p>Transient failures (UNAVAILABLE, DEADLINE_EXCEEDED, etc.) are wrapped in {@link
+   * KesselTransientException} to trigger retry. UNAUTHENTICATED errors trigger channel recreation.
+   *
+   * @param e the gRPC exception
+   * @return the exception to throw (either KesselTransientException or the original)
+   */
+  private RuntimeException handleGrpcException(StatusRuntimeException e) {
+    Status.Code code = e.getStatus().getCode();
+
+    if (TRANSIENT_FAILURE_CODES.contains(code)) {
+      recordConnectionErrorMetric(code.name());
+    }
+
+    if (code == Status.Code.UNAUTHENTICATED) {
+      log.warn(
+          "Kessel gRPC UNAUTHENTICATED (token likely expired, recreating channel with fresh"
+              + " credentials, will retry): {} - {}",
+          code,
+          e.getMessage());
+      initializeChannel("unauthenticated", channel);
+      return new KesselTransientException(e);
+    }
+
+    if (TRANSIENT_FAILURE_CODES.contains(code)) {
+      log.warn(
+          "Kessel gRPC transient failure (connection issue, will retry): {} - {}",
+          code,
+          e.getMessage());
+      return new KesselTransientException(e);
+    }
+
+    if (code == Status.Code.PERMISSION_DENIED) {
+      log.debug(
+          "Kessel gRPC PERMISSION_DENIED (not a connection failure, tracked separately): {} - {}",
+          code,
+          e.getMessage());
+      recordAuthorizationDeniedMetric();
+      return e;
+    }
+
+    return e;
   }
 
   /**
@@ -332,6 +438,15 @@ public class KesselAuthorizationClient {
     } catch (Exception e) {
       log.warn(
           "Metrics recording error for kessel_grpc_connection_errors_total: {}", e.getMessage());
+    }
+  }
+
+  /** Record authorization denied metric */
+  private void recordAuthorizationDeniedMetric() {
+    try {
+      metricsRecorder.recordAuthorizationDenied();
+    } catch (Exception e) {
+      log.warn("Metrics recording error for kessel_authorization_denied_total: {}", e.getMessage());
     }
   }
 }
