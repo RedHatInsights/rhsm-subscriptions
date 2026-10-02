@@ -72,23 +72,6 @@ public class CapacityReconciliationService {
   }
 
   @Transactional
-  public void reconcileCapacityForOffering(String sku) {
-    long subscriptionCount = subscriptionRepository.countByOfferingSku(sku);
-    var pageSize = 100;
-    for (long i = 0; i < subscriptionCount; i += pageSize) {
-      // NOTE(khowell): we wait for the message send to be successful here so asynchronous send does
-      // not propagate the transaction and cause confusing errors; see
-      // https://github.com/quarkusio/quarkus/issues/21948#issuecomment-1068845737
-      reconcileCapacityByOfferingEmitter.sendAndAwait(
-          ReconcileCapacityByOfferingTask.builder()
-              .sku(sku)
-              .offset((int) i)
-              .limit(pageSize)
-              .build());
-    }
-  }
-
-  @Transactional
   public void reconcileCapacityForOffering(String sku, int offset, int limit) {
     List<SubscriptionEntity> subscriptions =
         subscriptionRepository.findByOfferingSku(sku, offset, limit);
@@ -105,9 +88,22 @@ public class CapacityReconciliationService {
     reconcileSubscriptionCapacities(subscription);
   }
 
+  /** Enqueue asynchronous capacity reconciliation for every subscription of the SKU. */
+  @Transactional
   public void enqueueReconcileCapacityForOffering(String sku) {
-    reconcileCapacityByOfferingEmitter.sendAndAwait(
-        ReconcileCapacityByOfferingTask.builder().sku(sku).offset(0).limit(100).build());
+    long subscriptionCount = subscriptionRepository.countByOfferingSku(sku);
+    var pageSize = 100;
+    for (long i = 0; i < subscriptionCount; i += pageSize) {
+      // NOTE(khowell): we wait for the message send to be successful here so asynchronous send does
+      // not propagate the transaction and cause confusing errors; see
+      // https://github.com/quarkusio/quarkus/issues/21948#issuecomment-1068845737
+      reconcileCapacityByOfferingEmitter.sendAndAwait(
+          ReconcileCapacityByOfferingTask.builder()
+              .sku(sku)
+              .offset((int) i)
+              .limit(pageSize)
+              .build());
+    }
   }
 
   private void reconcileSubscriptionCapacities(SubscriptionEntity subscription) {

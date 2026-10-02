@@ -192,7 +192,7 @@ public class ContractsResource implements DefaultApi {
     var response = new OfferingResponse();
     try {
       log.info("Capacity Reconciliation for sku {} triggered", sku);
-      capacityReconciliationService.reconcileCapacityForOffering(sku);
+      capacityReconciliationService.enqueueReconcileCapacityForOffering(sku);
       response.setDetail(SUCCESS_STATUS);
     } catch (Exception e) {
       log.error("Error reconciling offering", e);
