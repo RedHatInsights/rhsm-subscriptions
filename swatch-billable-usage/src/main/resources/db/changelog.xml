@@ -11,4 +11,5 @@
   <include file="/db/202607231000-add-license-id-to-billable-usage-remittance.xml"/>
   <include file="/db/202608051100-drop-retry-after-from-billable-usage-remittance.xml"/>
 
+  <include file="/db/202609301200-add-last-modified-compatibility.xml"/>
 </databaseChangeLog>
