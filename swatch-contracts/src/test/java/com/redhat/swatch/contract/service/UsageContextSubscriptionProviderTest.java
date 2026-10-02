@@ -132,6 +132,7 @@ class UsageContextSubscriptionProviderTest {
   SubscriptionEntity givenNewSubscription(OffsetDateTime endDate) {
     SubscriptionEntity sub = new SubscriptionEntity();
     sub.setSubscriptionId(UUID.randomUUID().toString());
+    sub.setSubscriptionNumber(sub.getSubscriptionId());
     sub.setBillingProvider(BILLING_PROVIDER);
     sub.setBillingProviderId(UUID.randomUUID().toString());
     sub.setBillingAccountId(BILLING_ACCOUNT_ID);

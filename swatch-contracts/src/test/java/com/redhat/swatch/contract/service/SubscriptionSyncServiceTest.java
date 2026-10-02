@@ -245,7 +245,9 @@ class SubscriptionSyncServiceTest {
   void shouldSkipSyncSubscriptionIfSkuIsOnDenyList() {
     String sku = "MW0001";
     when(denylist.productIdMatches(sku)).thenReturn(true);
-    subscriptionSyncService.syncSubscription(sku, new SubscriptionEntity(), Optional.empty());
+    var subscription = new SubscriptionEntity();
+    subscription.setSubscriptionNumber("890");
+    subscriptionSyncService.syncSubscription(sku, subscription, Optional.empty());
     verify(subscriptionService, never()).save(any(SubscriptionEntity.class));
   }
 
@@ -255,7 +257,52 @@ class SubscriptionSyncServiceTest {
     when(denylist.productIdMatches(sku)).thenReturn(false);
     when(offeringRepository.findByIdOptional(sku)).thenReturn(Optional.empty());
     when(offeringSyncService.syncOffering(sku)).thenReturn(SyncResult.SKIPPED_NOT_FOUND);
-    subscriptionSyncService.syncSubscription(sku, new SubscriptionEntity(), Optional.empty());
+    var subscription = new SubscriptionEntity();
+    subscription.setSubscriptionNumber("890");
+    subscriptionSyncService.syncSubscription(sku, subscription, Optional.empty());
+    verify(subscriptionService, never()).save(any(SubscriptionEntity.class));
+  }
+
+  @Test
+  void shouldSkipSyncWhenSubscriptionNumberIsBlank() {
+    OfferingEntity offering = OfferingEntity.builder().sku(SKU).build();
+    when(offeringRepository.findByIdOptional(SKU)).thenReturn(Optional.of(offering));
+    when(offeringRepository.findById(SKU)).thenReturn(offering);
+    when(denylist.productIdMatches(any())).thenReturn(false);
+
+    var dto = createDto("456", 10);
+    dto.setSubscriptionNumber("  ");
+    subscriptionSyncService.syncSubscription(dto);
+
+    verify(subscriptionService, never()).findBySubscriptionNumber(any());
+    verify(subscriptionService, never()).save(any(SubscriptionEntity.class));
+  }
+
+  @Test
+  void shouldSkipSyncWhenSubscriptionNumberIsNull() {
+    OfferingEntity offering = OfferingEntity.builder().sku(SKU).build();
+    when(offeringRepository.findByIdOptional(SKU)).thenReturn(Optional.of(offering));
+    when(offeringRepository.findById(SKU)).thenReturn(offering);
+    when(denylist.productIdMatches(any())).thenReturn(false);
+
+    var dto = createDto("456", 10);
+    dto.setSubscriptionNumber(null);
+    subscriptionSyncService.syncSubscription(dto);
+
+    verify(subscriptionService, never()).findBySubscriptionNumber(any());
+    verify(subscriptionService, never()).save(any(SubscriptionEntity.class));
+  }
+
+  @Test
+  void shouldRejectSaveSubscriptionsWhenSubscriptionNumberMissing() throws JsonProcessingException {
+    ObjectMapper mapper = new ObjectMapper();
+    var subscription = createDto("123", 1);
+    subscription.setSubscriptionNumber(null);
+    String subscriptionsJson = mapper.writeValueAsString(new Subscription[] {subscription});
+
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> subscriptionSyncService.saveSubscriptions(subscriptionsJson, false));
     verify(subscriptionService, never()).save(any(SubscriptionEntity.class));
   }
 
@@ -667,8 +714,29 @@ class SubscriptionSyncServiceTest {
   }
 
   @Test
-  void testSubscriptionEnrichedFromDbWhenSubscriptionIdMissing() {
+  void shouldSkipEnrichmentWhenSearchResponseMissingSubscriptionNumber() {
     SubscriptionEntity incoming = createConvertedDtoSubscription("123", null, null);
+    incoming.setSubscriptionNumber("subnum");
+    var serviceResponse = createDto("456", 1);
+    serviceResponse.setSubscriptionNumber(null);
+
+    when(denylist.productIdMatches(any())).thenReturn(false);
+    OfferingEntity offering = OfferingEntity.builder().sku(SKU).build();
+    when(offeringRepository.findByIdOptional(SKU)).thenReturn(Optional.of(offering));
+    when(offeringRepository.findById(SKU)).thenReturn(offering);
+    when(subscriptionSearchService.getSubscriptionBySubscriptionNumber("subnum"))
+        .thenReturn(serviceResponse);
+
+    subscriptionSyncService.syncSubscription(SKU, incoming, Optional.empty());
+
+    verify(subscriptionSearchService).getSubscriptionBySubscriptionNumber("subnum");
+    assertNull(incoming.getSubscriptionId());
+    assertNull(incoming.getBillingAccountId());
+  }
+
+  @Test
+  void testSubscriptionEnrichedFromDbWhenSubscriptionIdMissing() {
+    SubscriptionEntity incoming = createConvertedDtoSubscription("123", null, "890");
     SubscriptionEntity existing = createSubscription();
     existing.setBillingAccountId("billingAccountId");
     existing.setBillingProvider(BillingProvider.RED_HAT);

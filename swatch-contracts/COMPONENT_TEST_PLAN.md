@@ -1300,6 +1300,19 @@ This section verifies the automatic contract termination behavior when contracts
   - The stored subscription row is removed
   - Application logs contain `Subscription deleted` with `delete_reason=FILTERED_END_TOO_FAR_IN_PAST`
 
+**subscriptions-sync-TC010 - Upstream subscription missing subscriptionNumber is not persisted**
+- **Description**: When IT subscription search returns a subscription with a null/blank `subscriptionNumber`, sync skips that DTO and does not create a subscription row.
+- **Setup**:
+  - No existing subscription for the org
+  - Offering stubs prepared for the upstream SKU
+  - IT subscription search returns one subscription with blank/null `subscriptionNumber`
+- **Action**:
+  - Run subscription sync for the org
+- **Verification**:
+  - List subscriptions for the org via internal API
+- **Expected Results**:
+  - No subscription rows are created for the org
+
 **subscriptions-termination-TC001** - **Terminate subscription with timestamp**  
 - **Description:** Verify manual subscription termination.  
 - **Setup:**

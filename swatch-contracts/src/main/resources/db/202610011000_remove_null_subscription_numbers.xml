@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+  <!--
+    Remove subscriptions/contracts that lack a usable subscription_number,
+    then enforce NOT NULL on both tables. contract_metrics cascade on
+    contract delete.
+  -->
+  <changeSet id="202610011000-01" author="jcarvaja" dbms="postgresql">
+    <comment>
+      Delete subscription_measurements for subscriptions with null/blank
+      subscription_number
+    </comment>
+    <sql>
+      DELETE FROM subscription_measurements sm
+      USING subscription s
+      WHERE sm.subscription_id = s.subscription_id
+        AND sm.start_date = s.start_date
+        AND (s.subscription_number IS NULL OR BTRIM(s.subscription_number) = '');
+    </sql>
+  </changeSet>
+
+  <changeSet id="202610011000-02" author="jcarvaja" dbms="postgresql">
+    <comment>Delete subscriptions with null/blank subscription_number</comment>
+    <sql>
+      DELETE FROM subscription
+      WHERE subscription_number IS NULL OR BTRIM(subscription_number) = '';
+    </sql>
+  </changeSet>
+
+  <changeSet id="202610011000-03" author="jcarvaja">
+    <comment>Enforce NOT NULL on subscription.subscription_number</comment>
+    <addNotNullConstraint tableName="subscription" columnName="subscription_number"/>
+  </changeSet>
+
+  <!-- Stage/prod currently have zero null/blank contracts rows; delete is defensive. -->
+  <changeSet id="202610011000-04" author="jcarvaja" dbms="postgresql">
+    <comment>Delete contracts with null/blank subscription_number</comment>
+    <sql>
+      DELETE FROM contracts
+      WHERE subscription_number IS NULL OR BTRIM(subscription_number) = '';
+    </sql>
+  </changeSet>
+
+  <changeSet id="202610011000-05" author="jcarvaja">
+    <comment>Enforce NOT NULL on contracts.subscription_number</comment>
+    <addNotNullConstraint tableName="contracts" columnName="subscription_number"/>
+  </changeSet>
+</databaseChangeLog>

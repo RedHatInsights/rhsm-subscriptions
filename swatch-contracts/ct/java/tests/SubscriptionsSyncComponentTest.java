@@ -192,6 +192,31 @@ public class SubscriptionsSyncComponentTest extends BaseContractComponentTest {
     thenSubscriptionAuditDeleteLog(SubscriptionDeleteReason.FILTERED_END_TOO_FAR_IN_PAST);
   }
 
+  @TestPlanName("subscriptions-sync-TC010")
+  @Test
+  void shouldNotPersistUpstreamSubscriptionWithoutNumber() {
+    String sku = RandomUtils.generateRandom();
+    wiremock
+        .forProductAPI()
+        .stubOfferingData(Offering.buildRhelOffering(sku, 4.0, SOCKETS_CAPACITY));
+    assertEquals(
+        HttpStatus.SC_OK, service.syncOffering(sku).statusCode(), "Sync offering should succeed");
+
+    Subscription upstreamMissingNumber =
+        Subscription.buildRhelSubscriptionUsingSku(orgId, Map.of(SOCKETS, SOCKETS_CAPACITY), sku)
+            .toBuilder()
+            .subscriptionNumber(null)
+            .startDate(ACTIVE_SUBSCRIPTION_START)
+            .endDate(REPORT_END)
+            .build();
+
+    wiremock.forSearchApi().stubSearchSubscriptionsByOrgId(orgId, upstreamMissingNumber);
+    whenSubscriptionSyncRunsForOrg();
+
+    service.logs().assertContains("Finished syncing subscriptions for orgId " + orgId);
+    thenNoSubscriptionsForOrg();
+  }
+
   private Subscription givenSubscription() {
     var subscription = Subscription.buildRhelSubscription(orgId, Map.of(SOCKETS, 1.0));
     wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(subscription);
@@ -295,6 +320,12 @@ public class SubscriptionsSyncComponentTest extends BaseContractComponentTest {
         AwaitilitySettings.defaults()
             .withService(service)
             .timeoutMessage("Subscription " + subscriptionId + " should be removed from DB"));
+  }
+
+  private void thenNoSubscriptionsForOrg() {
+    assertTrue(
+        service.getSubscriptionsByOrgId(orgId).isEmpty(),
+        "Org " + orgId + " should have no subscriptions");
   }
 
   private void thenDailyCapacityShowsSocketsOnDaysInRange(
