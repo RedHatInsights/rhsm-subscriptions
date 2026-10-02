@@ -39,11 +39,19 @@ public interface KesselMetricsRecorder {
   void recordCheckRequest(boolean success);
 
   /**
-   * Record a gRPC connection error.
+   * Record a gRPC connection error (transient failures that may be retried).
    *
    * @param errorCode gRPC status code name (e.g., "UNAVAILABLE", "DEADLINE_EXCEEDED")
    */
   void recordConnectionError(String errorCode);
+
+  /**
+   * Record an authorization denial (PERMISSION_DENIED).
+   *
+   * <p>This indicates the gRPC connection succeeded but the user lacks permission. Tracked
+   * separately from connection errors since it's not a system failure.
+   */
+  void recordAuthorizationDenied();
 
   /**
    * Record a channel initialization event.
@@ -60,6 +68,9 @@ public interface KesselMetricsRecorder {
 
         @Override
         public void recordConnectionError(String errorCode) {}
+
+        @Override
+        public void recordAuthorizationDenied() {}
 
         @Override
         public void recordChannelInit(String reason) {}
