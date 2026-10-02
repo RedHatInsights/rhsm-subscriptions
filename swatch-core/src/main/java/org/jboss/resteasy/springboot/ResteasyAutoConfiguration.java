@@ -40,14 +40,14 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 
 /**
- * This is the main class that configures this Resteasy Spring Boot starter
+ * Spring Boot autoconfiguration for RESTEasy on servlet-based Spring Boot services.
  *
- * <p>WORKAROUND: This class is copied from resteasy-servlet-spring-boot-starter:6.3.0.Final with
- * the Spring Boot 4 import fix for WebMvcAutoConfiguration. See:
- * https://github.com/resteasy/resteasy-spring-boot/issues/429 See:
+ * <p>Maintained in-tree (with helpers under {@code org.jboss.resteasy.springboot.common}) so Spring
+ * Boot services can use RESTEasy without depending on {@code resteasy-spring-boot-starter-common}
+ * or {@code resteasy-servlet-spring-boot-starter}. Adapted from the upstream resteasy-spring-boot
+ * project for Spring Boot 4 package compatibility. See:
+ * https://github.com/resteasy/resteasy-spring-boot/issues/429 and
  * https://github.com/resteasy/resteasy-spring-boot/pull/425
- *
- * <p>This can be removed once a Spring Boot 4 compatible version is released.
  *
  * @author Fabio Carvalho (facarvalho@paypal.com or fabiocarvalho777@gmail.com)
  */
