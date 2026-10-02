@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+  <!-- Keep last_modified current for old pods that still write updated_at during rolling deploy. -->
+  <changeSet id="202609301200-001" author="vbusch" dbms="postgresql">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="billable_usage_remittance"/>
+      <columnExists tableName="billable_usage_remittance" columnName="updated_at"/>
+      <not>
+        <columnExists tableName="billable_usage_remittance" columnName="last_modified"/>
+      </not>
+    </preConditions>
+    <comment>Add last_modified and trigger for rolling update compatibility</comment>
+    <addColumn tableName="billable_usage_remittance">
+      <column name="last_modified" type="TIMESTAMP WITH TIME ZONE"/>
+    </addColumn>
+    <sql splitStatements="false"><![CDATA[
+      CREATE OR REPLACE FUNCTION swatch_billable_usage_update_last_modified_column()
+        RETURNS TRIGGER AS $$
+      BEGIN
+        -- Only assign CURRENT_TIMESTAMP when the statement did not set last_modified
+        -- (e.g. preserve SET last_modified = updated_at during backfill).
+        IF TG_OP = 'INSERT' THEN
+          IF NEW.last_modified IS NULL THEN
+            NEW.last_modified = CURRENT_TIMESTAMP;
+          END IF;
+        ELSIF NEW.last_modified IS NOT DISTINCT FROM OLD.last_modified THEN
+          NEW.last_modified = CURRENT_TIMESTAMP;
+        END IF;
+        RETURN NEW;
+      END;
+      $$ LANGUAGE plpgsql;
+    ]]></sql>
+    <sql>CREATE TRIGGER trg_billable_usage_remittance_last_modified
+      BEFORE INSERT OR UPDATE ON billable_usage_remittance
+      FOR EACH ROW EXECUTE FUNCTION swatch_billable_usage_update_last_modified_column();</sql>
+
+    <rollback>
+      <sql>DROP TRIGGER IF EXISTS trg_billable_usage_remittance_last_modified
+        ON billable_usage_remittance;</sql>
+      <sql>DROP FUNCTION IF EXISTS swatch_billable_usage_update_last_modified_column();</sql>
+      <dropColumn tableName="billable_usage_remittance" columnName="last_modified"/>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202609301200-002" author="vbusch" dbms="postgresql">
+    <preConditions onFail="MARK_RAN">
+      <columnExists tableName="billable_usage_remittance" columnName="updated_at"/>
+      <columnExists tableName="billable_usage_remittance" columnName="last_modified"/>
+    </preConditions>
+    <comment>Backfill last_modified from updated_at for existing rows</comment>
+    <sql>UPDATE billable_usage_remittance
+      SET last_modified = updated_at
+      WHERE last_modified IS NULL AND updated_at IS NOT NULL;</sql>
+  </changeSet>
+
+  <changeSet id="202609301200-003" author="vbusch" dbms="postgresql" runInTransaction="false">
+    <preConditions onFail="MARK_RAN">
+      <columnExists tableName="billable_usage_remittance" columnName="last_modified"/>
+    </preConditions>
+    <comment>Create the last_modified index without blocking remittance writes</comment>
+    <sql>CREATE INDEX CONCURRENTLY IF NOT EXISTS billable_usage_remittance_last_modified_idx
+      ON billable_usage_remittance (last_modified);</sql>
+    <rollback>
+      <sql>DROP INDEX CONCURRENTLY IF EXISTS billable_usage_remittance_last_modified_idx;</sql>
+    </rollback>
+  </changeSet>
+
+</databaseChangeLog>

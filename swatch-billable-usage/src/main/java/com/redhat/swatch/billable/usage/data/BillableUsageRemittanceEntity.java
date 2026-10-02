@@ -20,18 +20,15 @@
  */
 package com.redhat.swatch.billable.usage.data;
 
+import com.redhat.swatch.panache.ModificationTrackedEntity;
 import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
-import java.io.Serializable;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -44,7 +41,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @Entity
 @Table(name = "billable_usage_remittance")
-public class BillableUsageRemittanceEntity implements Serializable {
+public class BillableUsageRemittanceEntity extends ModificationTrackedEntity {
 
   @Id
   @GeneratedValue(strategy = GenerationType.AUTO)
@@ -94,15 +91,6 @@ public class BillableUsageRemittanceEntity implements Serializable {
   @Column(name = "billed_on")
   private OffsetDateTime billedOn;
 
-  @Column(name = "updated_at")
-  private OffsetDateTime updatedAt;
-
   @Column(name = "license_id")
   private String licenseId;
-
-  @PreUpdate
-  @PrePersist
-  public void onCreateOrUpdate() {
-    this.updatedAt = OffsetDateTime.now(ZoneId.of("UTC"));
-  }
 }

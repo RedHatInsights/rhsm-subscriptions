@@ -40,6 +40,7 @@ import io.smallrye.reactive.messaging.memory.InMemoryConnector;
 import io.smallrye.reactive.messaging.memory.InMemorySource;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -195,16 +196,16 @@ class BillableUsageStatusConsumerTest {
   }
 
   @Test
-  void testWhenHandlingStatusThenUpdatedAtIsPopulated() {
+  void testWhenHandlingStatusThenLastModifiedIsPopulated() {
     var existingRemittance = givenExistingRemittance();
-    OffsetDateTime createdAt = existingRemittance.getUpdatedAt();
-    // check the updatedAt was updated when creating the entity
+    Instant createdAt = existingRemittance.getLastModified();
+    // Check last_modified was populated when creating the entity.
     assertNotNull(createdAt);
-    // check the updatedAt was updated when updating an entity
+    // Check last_modified was updated when changing the entity.
     var successMessage =
         createBillableUsageAggregate(Status.SUCCEEDED, null, BILLED_ON, existingRemittance);
     whenSendResponse(successMessage);
-    Awaitility.await().untilAsserted(() -> verifyRemittanceHasUpdatedAtHigherThan(createdAt));
+    Awaitility.await().untilAsserted(() -> verifyRemittanceHasLastModifiedHigherThan(createdAt));
   }
 
   @Test
@@ -318,14 +319,14 @@ class BillableUsageStatusConsumerTest {
   }
 
   @Transactional
-  void verifyRemittanceHasUpdatedAtHigherThan(OffsetDateTime createdAt) {
+  void verifyRemittanceHasLastModifiedHigherThan(Instant createdAt) {
     remittanceRepository.findAll().stream()
         .forEach(
             result ->
                 assertTrue(
-                    result.getUpdatedAt().isAfter(createdAt),
-                    "Updated at '%s' was not updated. Previous value was: '%s'"
-                        .formatted(result.getUpdatedAt(), createdAt)));
+                    result.getLastModified().isAfter(createdAt),
+                    "Last modified '%s' was not updated. Previous value was: '%s'"
+                        .formatted(result.getLastModified(), createdAt)));
   }
 
   @Transactional

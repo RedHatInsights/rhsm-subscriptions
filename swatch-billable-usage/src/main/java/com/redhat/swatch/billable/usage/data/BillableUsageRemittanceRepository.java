@@ -25,8 +25,8 @@ import com.redhat.swatch.panache.Specification;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -113,12 +113,13 @@ public class BillableUsageRemittanceRepository
       String licenseId) {
     List<UUID> uuidList = uuids.stream().map(UUID::fromString).toList();
     update(
-        "status = ?1, billedOn=?2, errorCode=?3, updatedAt=?4, licenseId=?5 where uuid in (?6)",
+        "status = ?1, billedOn=?2, errorCode=?3, licenseId=?4, "
+            + "lastModified=?5 where uuid in (?6)",
         status,
         billedOn,
         errorCode,
-        OffsetDateTime.now(ZoneOffset.UTC),
         licenseId,
+        Instant.now(),
         uuidList);
   }
 
@@ -129,13 +130,16 @@ public class BillableUsageRemittanceRepository
       Set<String> orgIds,
       Set<String> billingAccountIds) {
     String query =
-        "update BillableUsageRemittanceEntity bu set bu.remittedPendingValue=0.0 "
+        "update BillableUsageRemittanceEntity bu "
+            + "set bu.remittedPendingValue=0.0, "
+            + "bu.lastModified = :lastModified "
             + "where bu.productId = :productId and bu.remittancePendingDate between :start and :end";
 
     Map<String, Object> parameters = new HashMap<>();
     parameters.put("productId", productId);
     parameters.put("start", start);
     parameters.put("end", end);
+    parameters.put("lastModified", Instant.now());
 
     if (orgIds != null && !orgIds.isEmpty()) {
       query += " and bu.orgId in :orgIds";
@@ -153,20 +157,23 @@ public class BillableUsageRemittanceRepository
       RemittanceStatus oldStatus,
       RemittanceStatus newStatus,
       RemittanceErrorCode errorCode) {
-    OffsetDateTime cutoffDate = OffsetDateTime.now(ZoneOffset.UTC).minus(stuckDuration);
+    Instant now = Instant.now();
+    Instant cutoffDate = now.minus(stuckDuration);
 
     String query;
     Map<String, Object> parameters = new HashMap<>();
     query =
         "update BillableUsageRemittanceEntity bu "
             + "set bu.status = :newStatus, "
-            + "bu.errorCode = :errorCode "
+            + "bu.errorCode = :errorCode, "
+            + "bu.lastModified = :lastModified "
             + "where bu.status = :oldStatus "
-            + "and bu.updatedAt <= :cutoffDate";
+            + "and bu.lastModified <= :cutoffDate";
     parameters.put("errorCode", errorCode);
     parameters.put("newStatus", newStatus);
     parameters.put("oldStatus", oldStatus);
     parameters.put("cutoffDate", cutoffDate);
+    parameters.put("lastModified", now);
 
     return update(query, parameters);
   }
