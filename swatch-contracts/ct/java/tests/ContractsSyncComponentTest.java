@@ -150,10 +150,10 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
         initialSkuCapacity.get().getSubscriptions().isEmpty(),
         "Should have at least one AWS PAYG subscription before delete");
 
-    // Capture initial subscription IDs to verify they are deleted
-    var initialSubscriptionIds =
+    // Capture initial subscription numbers to verify they are deleted
+    var initialSubscriptionNumbers =
         initialSkuCapacity.get().getSubscriptions().stream()
-            .map(SkuCapacitySubscription::getId)
+            .map(SkuCapacitySubscription::getNumber)
             .collect(Collectors.toSet());
 
     // Setup new upstream contracts (different from existing - same SKU, different provider)
@@ -186,15 +186,15 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
     if (finalSkuCapacity.isPresent()
         && finalSkuCapacity.get().getSubscriptions() != null
         && !finalSkuCapacity.get().getSubscriptions().isEmpty()) {
-      // Get IDs of any remaining subscriptions
-      var remainingSubscriptionIds =
+      // Get numbers of any remaining subscriptions
+      var remainingSubscriptionNumbers =
           finalSkuCapacity.get().getSubscriptions().stream()
-              .map(SkuCapacitySubscription::getId)
+              .map(SkuCapacitySubscription::getNumber)
               .collect(Collectors.toSet());
 
-      // Verify none of the old AWS subscription IDs remain
+      // Verify none of the old AWS subscription numbers remain
       assertTrue(
-          disjoint(initialSubscriptionIds, remainingSubscriptionIds),
+          disjoint(initialSubscriptionNumbers, remainingSubscriptionNumbers),
           "All old AWS PAYG subscriptions should be deleted");
     }
     // If no subscriptions exist at all, that's also valid (old ones were deleted)
@@ -271,7 +271,8 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
         1,
         initialCapacity.getSubscriptions().size(),
         "Should have exactly one subscription before deletion");
-    String subscriptionId = initialCapacity.getSubscriptions().get(0).getId();
+    String subscriptionNumber = initialCapacity.getSubscriptions().get(0).getNumber();
+    String subscriptionId = contract.getSubscriptionId();
     double initialMeasurementTotal =
         initialCapacity.getMeasurements().stream().mapToDouble(Double::doubleValue).sum();
     assertTrue(initialMeasurementTotal > 0.0, "Initial capacity should be positive");
@@ -314,8 +315,8 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
     assertNotNull(restoredCapacity.getSubscriptions(), "Should have subscriptions");
     assertEquals(1, restoredCapacity.getSubscriptions().size(), "Should have one subscription");
     assertEquals(
-        subscriptionId,
-        restoredCapacity.getSubscriptions().get(0).getId(),
+        subscriptionNumber,
+        restoredCapacity.getSubscriptions().get(0).getNumber(),
         "The original subscription should be preserved");
     double restoredMeasurementTotal =
         restoredCapacity.getMeasurements().stream().mapToDouble(Double::doubleValue).sum();

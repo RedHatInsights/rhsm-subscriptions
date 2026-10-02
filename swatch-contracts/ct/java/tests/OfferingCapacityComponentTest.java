@@ -113,10 +113,6 @@ public class OfferingCapacityComponentTest extends BaseContractComponentTest {
 
     SkuCapacitySubscription returnedSubscription = capacity.getSubscriptions().get(0);
     assertThat(
-        "Subscription ID should match the created subscription",
-        returnedSubscription.getId(),
-        equalTo(createdSubscription.getSubscriptionId()));
-    assertThat(
         "Subscription number should match the created subscription",
         returnedSubscription.getNumber(),
         equalTo(createdSubscription.getSubscriptionNumber()));
@@ -158,10 +154,6 @@ public class OfferingCapacityComponentTest extends BaseContractComponentTest {
         "Should have exactly one subscription", capacity.getSubscriptions().size(), equalTo(1));
 
     SkuCapacitySubscription returnedSubscription = capacity.getSubscriptions().get(0);
-    assertThat(
-        "Subscription ID should match the created subscription",
-        returnedSubscription.getId(),
-        equalTo(createdSubscription.getSubscriptionId()));
     assertThat(
         "Subscription number should match the created subscription",
         returnedSubscription.getNumber(),
