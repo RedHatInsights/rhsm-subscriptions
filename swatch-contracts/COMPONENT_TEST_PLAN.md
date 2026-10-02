@@ -2397,6 +2397,18 @@ This section validates that the subscription table API (V2 SKU capacity) and the
   - No measurements created for null or zero values
   - Only non-null, positive values result in measurements
 
+**capacity-reconciliation-TC011 - Offering sync enqueues capacity reconcile for all subscription pages**
+- **Description**: Verify that when offering sync changes capacity attributes, capacity reconciliation is enqueued for all subscriptions of the SKU.
+- **Action**: `POST /api/swatch-contracts/internal/rpc/offerings/sync`
+- **Test Steps**:
+  1. Create and sync an offering
+  2. Create 101 subscriptions for the offering without reconciling capacity
+  3. Update offering cores (capacity-impacting change) and call sync all offerings again
+- **Expected Results**:
+  - HTTP 200 OK from sync all offerings operation
+  - Two `ReconcileCapacityByOfferingTask` messages for the SKU on `platform.rhsm-subscriptions.capacity-reconcile`
+  - SKU capacity report reflects updated cores for all 101 subscriptions
+
 ## Reconciliation Consumer (Kafka)
 
 **capacity-reconciliation-kafka-TC001 - Process Reconciliation Task from Kafka**

@@ -56,7 +56,8 @@ import utils.SubscriptionRequestMapper;
 public class ContractsSwatchService extends SwatchService {
 
   private static final String ENDPOINT_PREFIX = "/api/swatch-contracts/internal";
-  private static final String OFFERING_SYNC_ENDPOINT = ENDPOINT_PREFIX + "/rpc/offerings/sync/%s";
+  private static final String SYNC_ALL_OFFERINGS_ENDPOINT = ENDPOINT_PREFIX + "/rpc/offerings/sync";
+  private static final String OFFERING_SYNC_ENDPOINT = SYNC_ALL_OFFERINGS_ENDPOINT + "/%s";
   private static final String RESET_DATA_ENDPOINT = ENDPOINT_PREFIX + "/rpc/reset/%s";
   private static final String CONTRACTS_ENDPOINT = ENDPOINT_PREFIX + "/contracts";
   private static final String SUBSCRIPTIONS_ENDPOINT = ENDPOINT_PREFIX + "/subscriptions";
@@ -86,6 +87,10 @@ public class ContractsSwatchService extends SwatchService {
   private static final String TAG_METRICS_ENDPOINT = ENDPOINT_PREFIX + "/tags/%s/metrics";
   private static final String FORCE_RECONCILE_OFFERING_ENDPOINT =
       ENDPOINT_PREFIX + "/rpc/offerings/reconcile/%s";
+
+  public Response syncAllOfferings() {
+    return given().headers(SECURITY_HEADERS).when().post(SYNC_ALL_OFFERINGS_ENDPOINT);
+  }
 
   public Response syncOffering(String sku) {
     Objects.requireNonNull(sku, "sku must not be null");
