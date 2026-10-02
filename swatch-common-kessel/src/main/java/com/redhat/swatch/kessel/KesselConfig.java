@@ -21,6 +21,10 @@
 package com.redhat.swatch.kessel;
 
 public interface KesselConfig {
+  default boolean authEnabled() {
+    return false;
+  }
+
   String endpoint();
 
   boolean insecure();

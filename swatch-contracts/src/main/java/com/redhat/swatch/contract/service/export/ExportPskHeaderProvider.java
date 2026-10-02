@@ -20,33 +20,54 @@
  */
 package com.redhat.swatch.contract.service.export;
 
+import com.redhat.swatch.common.security.HccAuthTokenProvider;
 import io.quarkus.arc.Unremovable;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.ws.rs.client.ClientRequestContext;
 import jakarta.ws.rs.client.ClientRequestFilter;
-import lombok.extern.slf4j.Slf4j;
+import jakarta.ws.rs.core.HttpHeaders;
+import java.util.Optional;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 /**
- * Resteasy client filter that adds x-rh-exports-psk to requests based on the value of the
- * SWATCH_EXPORT_PSK property/environment variable.
+ * Selects workload Bearer authentication or the legacy Export Service PSK for every request,
+ * including uploads and error callbacks. The historical class name is kept for compatibility.
  *
  * <p>Use by configuring as a provider on a rest client instance, e.g. <code>
  * quarkus.rest-client."com.redhat.swatch.clients.export.api.resources.ExportApi".providers=com.redhat.swatch.contract.service.export.ExportPskHeaderProvider
  * </code>
  */
-@Slf4j
 // NOTE: without @Unremovable quarkus attempts to optimize this bean out because it's only
 // referenced in application.properties
 @Unremovable
 @ApplicationScoped
 public class ExportPskHeaderProvider implements ClientRequestFilter {
 
-  @ConfigProperty(name = "SWATCH_EXPORT_PSK", defaultValue = "placeholder")
-  String psk;
+  @ConfigProperty(name = "SWATCH_EXPORT_PSK")
+  Optional<String> psk;
+
+  @ConfigProperty(name = "EXPORT_SERVICE_AUTHENTICATED", defaultValue = "false")
+  boolean authenticated;
+
+  @Inject HccAuthTokenProvider tokenProvider;
 
   @Override
   public void filter(ClientRequestContext requestContext) {
-    requestContext.getHeaders().add("x-rh-exports-psk", psk);
+    var headers = requestContext.getHeaders();
+    if (authenticated) {
+      String authorization = tokenProvider.authorizationHeader();
+      headers.remove("x-rh-exports-psk");
+      headers.putSingle(HttpHeaders.AUTHORIZATION, authorization);
+    } else {
+      String secret =
+          psk.filter(value -> !value.isBlank())
+              .orElseThrow(
+                  () ->
+                      new IllegalStateException(
+                          "SWATCH_EXPORT_PSK is required for legacy Export Service authentication"));
+      headers.remove(HttpHeaders.AUTHORIZATION);
+      headers.putSingle("x-rh-exports-psk", secret);
+    }
   }
 }

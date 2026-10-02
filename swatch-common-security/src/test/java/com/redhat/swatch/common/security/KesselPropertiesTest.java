@@ -23,10 +23,32 @@ package com.redhat.swatch.common.security;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import io.smallrye.config.PropertiesConfigSource;
+import io.smallrye.config.SmallRyeConfigBuilder;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 class KesselPropertiesTest {
+
+  @Test
+  void mappedPortAndAuthenticationOverridesAreApplied() {
+    var config =
+        new SmallRyeConfigBuilder()
+            .withMapping(KesselProperties.class)
+            .withSources(
+                new PropertiesConfigSource(
+                    Map.of(
+                        "swatch.kessel.endpoint", "https://kessel.example:8000",
+                        "swatch.kessel.inventory-api-port", "443",
+                        "swatch.kessel.auth-enabled", "true"),
+                    "test",
+                    100))
+            .build();
+    var props = config.getConfigMapping(KesselProperties.class);
+    assertEquals("kessel.example:443", props.resolvedEndpoint());
+    org.junit.jupiter.api.Assertions.assertTrue(props.authEnabled());
+  }
 
   @Test
   void resolvedEndpointPassesThroughSchemelessValues() {
@@ -65,6 +87,16 @@ class KesselPropertiesTest {
   private static KesselProperties withEndpoint(String endpoint) {
     return new KesselProperties() {
       @Override
+      public int inventoryApiPort() {
+        return GRPC_PORT;
+      }
+
+      @Override
+      public boolean authEnabled() {
+        return false;
+      }
+
+      @Override
       public String endpoint() {
         return endpoint;
       }
@@ -80,8 +112,8 @@ class KesselPropertiesTest {
       }
 
       @Override
-      public String rbacBaseEndpoint() {
-        return "http://localhost:8080";
+      public Optional<String> rbacBaseEndpoint() {
+        return Optional.of("http://localhost:8080");
       }
 
       @Override

@@ -17,6 +17,7 @@ SHELL=/bin/bash
 	check \
 	install \
 	test \
+	install-vendored-clowder \
 	clean \
 	status
 
@@ -115,6 +116,14 @@ check: format
 
 clean:
 	$(MVN) clean
+
+install-vendored-clowder:
+	sh bin/install-vendored-clowder.sh
+
+# Bootstrap once per make invocation, including direct dev-mode and component-test entry points.
+swatch-contracts swatch-billable-usage swatch-producer-aws swatch-producer-azure \
+swatch-tally swatch-metrics-hbi swatch-metrics swatch-system-conduit \
+swatch-utilization swatch-api component-test install test: install-vendored-clowder
 
 # E.g. make install PL=swatch-core
 install: clean

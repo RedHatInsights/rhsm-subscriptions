@@ -79,11 +79,12 @@ rhsm-subscriptions:
   use-cpu-system-facts-to-all-products: ${USE_CPU_SYSTEM_FACTS_TO_ALL_PRODUCTS:true}
   host-last-sync-threshold: ${HOST_LAST_SYNC_THRESHOLD:24h}
   export-service:
-    url: ${clowder.privateEndpoints.export-service-service.url:http://localhost:10000}
-    truststore: ${clowder.privateEndpoints.export-service-service.trust-store-path}
-    truststore-password: ${clowder.privateEndpoints.export-service-service.trust-store-password}
-    truststore-type: ${clowder.privateEndpoints.export-service-service.trust-store-type}
-    psk: ${SWATCH_EXPORT_PSK:placeholder}
+    url: ${EXPORT_SERVICE_ENDPOINT:${clowder.private-dependency-endpoints.export-service.service.uri:http://localhost:10000}}
+    authenticated: ${EXPORT_SERVICE_AUTHENTICATED:${clowder.private-dependency-endpoints.export-service.service.authenticated:false}}
+    truststore: ${EXPORT_SERVICE_TRUST_STORE:${clowder.private-dependency-endpoints.export-service.service.trust-store-path:}}
+    truststore-password: ${EXPORT_SERVICE_TRUST_STORE_PASSWORD:${clowder.private-dependency-endpoints.export-service.service.trust-store-password:}}
+    truststore-type: ${EXPORT_SERVICE_TRUST_STORE_TYPE:${clowder.private-dependency-endpoints.export-service.service.trust-store-type:PKCS12}}
+    psk: ${SWATCH_EXPORT_PSK:}
   export:
     tasks:
       topic: ${SUBSCRIPTION_EXPORT_TOPIC}

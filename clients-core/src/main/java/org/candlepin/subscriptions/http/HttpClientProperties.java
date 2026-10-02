@@ -37,6 +37,9 @@ public class HttpClientProperties extends TlsProperties {
   /** Use a stub of the service. */
   private boolean useStub;
 
+  /** Whether the selected HCC endpoint requires workload OAuth2 authentication. */
+  private boolean authenticated;
+
   /** The URL of the service. */
   private String url;
 

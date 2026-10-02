@@ -20,7 +20,9 @@
  */
 package org.candlepin.subscriptions.rbac;
 
+import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.http.HccBearerAuthFilter;
 import org.candlepin.subscriptions.http.HttpClient;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.util.StringUtils;
@@ -33,9 +35,15 @@ import org.springframework.util.StringUtils;
 public class RbacApiFactory implements FactoryBean<RbacApi> {
 
   private final RbacProperties properties;
+  private final Supplier<String> authorization;
 
   public RbacApiFactory(RbacProperties properties) {
+    this(properties, null);
+  }
+
+  public RbacApiFactory(RbacProperties properties, Supplier<String> authorization) {
     this.properties = properties;
+    this.authorization = authorization;
   }
 
   @Override
@@ -47,6 +55,9 @@ public class RbacApiFactory implements FactoryBean<RbacApi> {
     ApiClient client = new RbacApiClient();
     client.setHttpClient(
         HttpClient.buildHttpClient(properties, client.getJSON(), client.isDebugging()));
+    if (properties.isAuthenticated()) {
+      client.getHttpClient().register(new HccBearerAuthFilter(authorization));
+    }
 
     var url = properties.getUrl();
     if (StringUtils.hasText(url)) {

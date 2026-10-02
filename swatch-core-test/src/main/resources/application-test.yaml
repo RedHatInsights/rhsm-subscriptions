@@ -1,4 +1,6 @@
 rhsm-subscriptions:
+  export-service:
+    psk: placeholder
   datasource:
     url: jdbc:hsqldb:mem:testdb
     username: test

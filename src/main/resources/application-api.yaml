@@ -1,21 +1,23 @@
 # See https://goessner.net/articles/JsonPath/ for JSON Path syntax
 
-RHSM_RBAC_URL: ${clowder.endpoints.rbac-service.url:http://localhost:8819}
+RHSM_RBAC_URL: ${clowder.dependency-endpoints.rbac.service.uri:http://localhost:8819}
 RHSM_CONTRACTS_URL: ${clowder.endpoints.swatch-contracts-service.url:http://localhost:8011}
-KESSEL_ENDPOINT: ${clowder.endpoints.kessel-inventory-api.hostname:localhost}:9000
+KESSEL_ENDPOINT: ${clowder.endpoints.kessel-inventory-api.hostname:localhost}:${KESSEL_INVENTORY_API_PORT:9000}
 
 rhsm-subscriptions:
   pretty-print-json: ${PRETTY_PRINT_JSON:false}
   rbac-service:
     application-name: ${RHSM_RBAC_APPLICATION_NAME:subscriptions}
     url: ${RHSM_RBAC_URL}/api/rbac/v1
-    truststore: ${clowder.endpoints.rbac-service.trust-store-path}
-    truststore-password: ${clowder.endpoints.rbac-service.trust-store-password}
-    truststore-type: ${clowder.endpoints.rbac-service.trust-store-type}
+    authenticated: ${RBAC_AUTHENTICATED:${clowder.dependency-endpoints.rbac.service.authenticated:false}}
+    truststore: ${RBAC_TRUST_STORE:${clowder.dependency-endpoints.rbac.service.trust-store-path:}}
+    truststore-password: ${RBAC_TRUST_STORE_PASSWORD:${clowder.dependency-endpoints.rbac.service.trust-store-password:}}
+    truststore-type: ${RBAC_TRUST_STORE_TYPE:${clowder.dependency-endpoints.rbac.service.trust-store-type:PKCS12}}
     max-connections: ${RHSM_RBAC_MAX_CONNECTIONS:100}
   kessel:
     endpoint: ${KESSEL_ENDPOINT}
     insecure: ${KESSEL_INSECURE:true}
+    auth-enabled: ${KESSEL_AUTH_ENABLED:false}
     timeout-ms: ${KESSEL_TIMEOUT_MS:5000}
     rbac-base-endpoint: ${RBAC_BASE_ENDPOINT:${RHSM_RBAC_URL}}
     auth-oidc-issuer: ${KESSEL_AUTH_OIDC_ISSUER:}

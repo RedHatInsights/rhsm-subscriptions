@@ -138,7 +138,9 @@ public class ClowderTrustStoreConfiguration {
   private String writeTruststore(KeyStore keyStore, char[] password) {
     try {
       File file = createTempFile();
-      keyStore.store(new FileOutputStream(file), password);
+      try (var output = new FileOutputStream(file)) {
+        keyStore.store(output, password);
+      }
       return file.getAbsolutePath();
     } catch (IOException | KeyStoreException | NoSuchAlgorithmException | CertificateException e) {
       throw new IllegalStateException("Truststore creation failed", e);

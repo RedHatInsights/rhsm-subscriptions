@@ -22,8 +22,10 @@ package com.redhat.swatch.clients.export.api.client;
 
 import com.redhat.swatch.clients.export.api.client.auth.ApiKeyAuth;
 import com.redhat.swatch.clients.export.api.resources.ExportApi;
+import java.util.function.Supplier;
 import javax.naming.ConfigurationException;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.http.HccBearerAuthFilter;
 import org.candlepin.subscriptions.http.HttpClient;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.springframework.beans.factory.FactoryBean;
@@ -33,9 +35,15 @@ import org.springframework.util.StringUtils;
 public class ExportApiClientFactory implements FactoryBean<ExportApi> {
 
   private final HttpClientProperties properties;
+  private final Supplier<String> authorization;
 
   public ExportApiClientFactory(HttpClientProperties properties) {
+    this(properties, null);
+  }
+
+  public ExportApiClientFactory(HttpClientProperties properties, Supplier<String> authorization) {
     this.properties = properties;
+    this.authorization = authorization;
   }
 
   @Override
@@ -45,7 +53,7 @@ public class ExportApiClientFactory implements FactoryBean<ExportApi> {
       return new StubExportApi();
     }
 
-    ApiClient client = Configuration.getDefaultApiClient();
+    ApiClient client = new ApiClient();
     client.setHttpClient(
         HttpClient.buildHttpClient(properties, client.getJSON(), client.isDebugging()));
 
@@ -56,7 +64,11 @@ public class ExportApiClientFactory implements FactoryBean<ExportApi> {
     } else {
       log.warn("Export API URL not set...");
     }
-    setupPsk(client);
+    if (properties.isAuthenticated()) {
+      client.getHttpClient().register(new HccBearerAuthFilter(authorization));
+    } else {
+      setupPsk(client);
+    }
 
     return new ExportApi(client);
   }

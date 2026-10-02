@@ -29,11 +29,17 @@ import lombok.ToString;
 public class KesselProperties implements KesselConfig {
   private String endpoint = "localhost:9000";
   private boolean insecure = true;
+  private boolean authEnabled;
   private long timeoutMs = 5000;
   private String rbacBaseEndpoint = "http://localhost:8080";
   private String authOidcIssuer;
   private String authClientId;
   private String authClientSecret;
+
+  @Override
+  public boolean authEnabled() {
+    return authEnabled;
+  }
 
   @Override
   public String endpoint() {

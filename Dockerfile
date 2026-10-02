@@ -19,6 +19,7 @@ COPY . .
 ARG VERSION=1.0.0
 ARG MAVEN_BUILD_ARGS=''
 ARG MAVEN_TASKS='clean package'
+RUN MAVEN_CMD=mvn sh bin/install-vendored-clowder.sh -s /tmp/maven-settings.xml ${MAVEN_BUILD_ARGS}
 RUN mvn --no-transfer-progress -U -s /tmp/maven-settings.xml ${MAVEN_TASKS} -pl swatch-tally -am -DskipTests ${MAVEN_BUILD_ARGS}
 
 RUN (cd /stage/swatch-tally && exec jar -xf ./target/*.jar)

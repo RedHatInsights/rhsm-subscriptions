@@ -30,6 +30,12 @@ public interface KesselProperties {
 
   int GRPC_PORT = 9000;
 
+  @WithDefault("9000")
+  int inventoryApiPort();
+
+  @WithDefault("false")
+  boolean authEnabled();
+
   @WithDefault("localhost:9000")
   String endpoint();
 
@@ -39,8 +45,7 @@ public interface KesselProperties {
   @WithDefault("5000")
   long timeoutMs();
 
-  @WithDefault("http://localhost:8080")
-  String rbacBaseEndpoint();
+  Optional<String> rbacBaseEndpoint();
 
   Optional<String> authOidcIssuer();
 
@@ -57,6 +62,9 @@ public interface KesselProperties {
     if (host == null) {
       throw new IllegalArgumentException("Cannot resolve hostname from Kessel endpoint: " + ep);
     }
-    return host + ":" + GRPC_PORT;
+    if (inventoryApiPort() < 1 || inventoryApiPort() > 65535) {
+      throw new IllegalArgumentException("Kessel inventory API port must be between 1 and 65535");
+    }
+    return host + ":" + inventoryApiPort();
   }
 }
