@@ -26,6 +26,7 @@ import com.redhat.swatch.hbi.events.ct.api.MessageValidators;
 import com.redhat.swatch.hbi.events.ct.utils.HbiEventHelper;
 import com.redhat.swatch.hbi.events.ct.utils.SwatchEventHelper;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
+import com.redhat.swatch.hbi.events.normalization.NormalizedEventType;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -52,7 +53,7 @@ class MetricsHbiHypervisorCreateUpdateComponentTest extends BaseSMHBIComponentTe
   @ParameterizedTest
   @CsvSource({"created, INSTANCE_CREATED", "updated, INSTANCE_UPDATED"})
   void shouldTransitionPhysicalHostToHypervisorWhenGuestIsKnown(
-      String hbiEventType, String swatchEventType) {
+      String hbiEventType, NormalizedEventType swatchEventType) {
     // Given: A physical hypervisor host and a mapped guest host
     List<HbiHostCreateUpdateEvent> hbiEvents =
         HbiEventHelper.getHypervisorAndGuestEvents(
@@ -71,13 +72,18 @@ class MetricsHbiHypervisorCreateUpdateComponentTest extends BaseSMHBIComponentTe
 
     Event swatchEventHypervisor =
         SwatchEventHelper.createExpectedEvent(
-            hypervisorEvent, List.of("69"), Set.of("RHEL for x86"), false, false);
+            hypervisorEvent, swatchEventType, List.of("69"), Set.of("RHEL for x86"), false, false);
     Event swatchEventMappedGuest =
         SwatchEventHelper.createExpectedEvent(
-            guestEvent, List.of("69"), Set.of("RHEL for x86"), false, false);
+            guestEvent, swatchEventType, List.of("69"), Set.of("RHEL for x86"), false, false);
     Event swatchEventUpdatedHypervisor =
         SwatchEventHelper.createExpectedEvent(
-            hypervisorEvent, List.of("69"), Set.of("RHEL for x86"), false, true, true);
+            hypervisorEvent,
+            NormalizedEventType.INSTANCE_UPDATED,
+            List.of("69"),
+            Set.of("RHEL for x86"),
+            false,
+            true);
 
     // When: Hypervisor and guest events are produced to Kafka
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hypervisorEvent);
@@ -93,7 +99,8 @@ class MetricsHbiHypervisorCreateUpdateComponentTest extends BaseSMHBIComponentTe
   @TestPlanName("metrics-hbi-hypervisor-TC002")
   @ParameterizedTest
   @CsvSource({"created, INSTANCE_CREATED", "updated, INSTANCE_UPDATED"})
-  void shouldTransitionUnmappedGuestToMappedGuest(String hbiEventType, String swatchEventType) {
+  void shouldTransitionUnmappedGuestToMappedGuest(
+      String hbiEventType, NormalizedEventType swatchEventType) {
     // Given: A virtual unmapped guest and a hypervisor host
     List<HbiHostCreateUpdateEvent> hbiEvents =
         HbiEventHelper.getHypervisorAndGuestEvents(
@@ -112,13 +119,18 @@ class MetricsHbiHypervisorCreateUpdateComponentTest extends BaseSMHBIComponentTe
 
     Event swatchEventUnmappedGuest =
         SwatchEventHelper.createExpectedEvent(
-            guestEvent, List.of("69"), Set.of("RHEL for x86"), true, false);
+            guestEvent, swatchEventType, List.of("69"), Set.of("RHEL for x86"), true, false);
     Event swatchEventHypervisor =
         SwatchEventHelper.createExpectedEvent(
-            hypervisorEvent, List.of("69"), Set.of("RHEL for x86"), false, true);
+            hypervisorEvent, swatchEventType, List.of("69"), Set.of("RHEL for x86"), false, true);
     Event swatchEventUpdatedMappedGuest =
         SwatchEventHelper.createExpectedEvent(
-            guestEvent, List.of("69"), Set.of("RHEL for x86"), false, false, true);
+            guestEvent,
+            NormalizedEventType.INSTANCE_UPDATED,
+            List.of("69"),
+            Set.of("RHEL for x86"),
+            false,
+            false);
 
     // When: Guest event is produced first, then hypervisor event
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, guestEvent);
@@ -134,7 +146,8 @@ class MetricsHbiHypervisorCreateUpdateComponentTest extends BaseSMHBIComponentTe
   @TestPlanName("metrics-hbi-hypervisor-TC003")
   @ParameterizedTest
   @CsvSource({"created, INSTANCE_CREATED", "updated, INSTANCE_UPDATED"})
-  void shouldRemapGuestFromOneHypervisorToAnother(String hbiEventType, String swatchEventType) {
+  void shouldRemapGuestFromOneHypervisorToAnother(
+      String hbiEventType, NormalizedEventType swatchEventType) {
     // Given: Hypervisor A with mapped guest, and hypervisor B with no guests
     OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
 
@@ -164,16 +177,21 @@ class MetricsHbiHypervisorCreateUpdateComponentTest extends BaseSMHBIComponentTe
 
     Event swatchHypervisorA =
         SwatchEventHelper.createExpectedEvent(
-            hypervisorAEvent, List.of("69"), Set.of("RHEL for x86"), false, false);
+            hypervisorAEvent, swatchEventType, List.of("69"), Set.of("RHEL for x86"), false, false);
     Event swatchGuestMapped =
         SwatchEventHelper.createExpectedEvent(
-            guestEvent, List.of("69"), Set.of("RHEL for x86"), false, false);
+            guestEvent, swatchEventType, List.of("69"), Set.of("RHEL for x86"), false, false);
     Event swatchHypervisorAUpdated =
         SwatchEventHelper.createExpectedEvent(
-            hypervisorAEvent, List.of("69"), Set.of("RHEL for x86"), false, true, true);
+            hypervisorAEvent,
+            NormalizedEventType.INSTANCE_UPDATED,
+            List.of("69"),
+            Set.of("RHEL for x86"),
+            false,
+            true);
     Event swatchHypervisorB =
         SwatchEventHelper.createExpectedEvent(
-            hypervisorBEvent, List.of("69"), Set.of("RHEL for x86"), false, false);
+            hypervisorBEvent, swatchEventType, List.of("69"), Set.of("RHEL for x86"), false, false);
 
     // When: Phase 1 - Hypervisor A, guest, and hypervisor B events are produced
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hypervisorAEvent);
@@ -193,10 +211,20 @@ class MetricsHbiHypervisorCreateUpdateComponentTest extends BaseSMHBIComponentTe
 
     Event swatchGuestRemapped =
         SwatchEventHelper.createExpectedEvent(
-            guestEvent, List.of("69"), Set.of("RHEL for x86"), false, false, true);
+            guestEvent,
+            NormalizedEventType.INSTANCE_UPDATED,
+            List.of("69"),
+            Set.of("RHEL for x86"),
+            false,
+            false);
     Event swatchHypervisorBUpdated =
         SwatchEventHelper.createExpectedEvent(
-            hypervisorBEvent, List.of("69"), Set.of("RHEL for x86"), false, true, true);
+            hypervisorBEvent,
+            NormalizedEventType.INSTANCE_UPDATED,
+            List.of("69"),
+            Set.of("RHEL for x86"),
+            false,
+            true);
 
     // When: Phase 2 - Updated guest event is produced with new hypervisor mapping
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, guestEvent);

@@ -27,10 +27,13 @@ import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.api.Quarkus;
 import com.redhat.swatch.component.tests.api.Unleash;
 import com.redhat.swatch.component.tests.api.UnleashService;
+import com.redhat.swatch.component.tests.api.hbi.HbiEventManager;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
+import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.component.tests.utils.Topics;
 import com.redhat.swatch.hbi.events.ct.api.SwatchMetricsHbiRestService;
 import org.candlepin.subscriptions.json.Event;
+import org.junit.jupiter.api.BeforeEach;
 
 @ComponentTest(name = "swatch-metrics-hbi")
 public class BaseSMHBIComponentTest {
@@ -39,12 +42,21 @@ public class BaseSMHBIComponentTest {
   static KafkaBridgeService kafkaBridge =
       new KafkaBridgeService().subscribeToTopic(Topics.SWATCH_SERVICE_INSTANCE_INGRESS);
 
+  static HbiEventManager hostEvents = new HbiEventManager(kafkaBridge);
+
   @Quarkus(service = "swatch-metrics-hbi")
   static SwatchMetricsHbiRestService service = new SwatchMetricsHbiRestService();
 
   @Unleash static UnleashService unleash = new UnleashService().withSwatchService(service);
 
   protected static final String EMIT_EVENTS = "swatch.swatch-metrics-hbi.emit-events";
+
+  protected String orgId;
+
+  @BeforeEach
+  void setUp() {
+    orgId = RandomUtils.generateRandom();
+  }
 
   @SafeVarargs
   protected final void thenSwatchEventsAppear(DefaultMessageValidator<Event>... expectedMessages) {

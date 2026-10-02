@@ -94,20 +94,11 @@ public class SwatchEventHelper {
 
   public static Event createExpectedEvent(
       HbiHostCreateUpdateEvent hbiEvent,
+      NormalizedEventType eventType,
       List<String> productIds,
       Set<String> tags,
       boolean isUnmappedGuest,
       boolean isHypervisor) {
-    return createExpectedEvent(hbiEvent, productIds, tags, isUnmappedGuest, isHypervisor, false);
-  }
-
-  public static Event createExpectedEvent(
-      HbiHostCreateUpdateEvent hbiEvent,
-      List<String> productIds,
-      Set<String> tags,
-      boolean isUnmappedGuest,
-      boolean isHypervisor,
-      boolean forceUpdatedEventType) {
     // 1) Normalize context
     Host hostModel = new Host(hbiEvent.getHost());
     SystemProfileFacts sys = hostModel.getSystemProfileFacts();
@@ -128,12 +119,6 @@ public class SwatchEventHelper {
 
     // 4) Cloud provider
     CloudProvider cloudProvider = resolveCloudProvider(sys, hasCloudProvider);
-
-    // 5) Event type and build
-    NormalizedEventType eventType =
-        forceUpdatedEventType
-            ? NormalizedEventType.INSTANCE_UPDATED
-            : NormalizedEventType.from(hbiEvent);
 
     return createSwatchEvent(
         hbiEvent.getHost(),

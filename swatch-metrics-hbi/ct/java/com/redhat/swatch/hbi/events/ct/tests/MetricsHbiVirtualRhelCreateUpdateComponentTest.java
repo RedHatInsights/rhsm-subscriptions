@@ -26,6 +26,7 @@ import com.redhat.swatch.hbi.events.ct.api.MessageValidators;
 import com.redhat.swatch.hbi.events.ct.utils.HbiEventHelper;
 import com.redhat.swatch.hbi.events.ct.utils.SwatchEventHelper;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
+import com.redhat.swatch.hbi.events.normalization.NormalizedEventType;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -52,7 +53,7 @@ class MetricsHbiVirtualRhelCreateUpdateComponentTest extends BaseSMHBIComponentT
   @ParameterizedTest
   @CsvSource({"created, INSTANCE_CREATED", "updated, INSTANCE_UPDATED"})
   void shouldProduceSwatchEventForUnmappedGuestFromThreadsPerCore(
-      String hbiEventType, String swatchEventType) {
+      String hbiEventType, NormalizedEventType swatchEventType) {
     // Given: A virtual RHEL unmapped guest with threads per core set
     HbiHostCreateUpdateEvent hbiEvent =
         HbiEventHelper.getRhsmHostEvent(
@@ -72,7 +73,7 @@ class MetricsHbiVirtualRhelCreateUpdateComponentTest extends BaseSMHBIComponentT
 
     Event swatchEvent =
         SwatchEventHelper.createExpectedEvent(
-            hbiEvent, List.of("69"), Set.of("RHEL for x86"), true, false);
+            hbiEvent, swatchEventType, List.of("69"), Set.of("RHEL for x86"), true, false);
 
     // When: HBI event is produced to Kafka
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hbiEvent);
@@ -85,7 +86,7 @@ class MetricsHbiVirtualRhelCreateUpdateComponentTest extends BaseSMHBIComponentT
   @ParameterizedTest
   @CsvSource({"created, INSTANCE_CREATED", "updated, INSTANCE_UPDATED"})
   void shouldProduceSwatchEventForUnmappedGuestFromCpus(
-      String hbiEventType, String swatchEventType) {
+      String hbiEventType, NormalizedEventType swatchEventType) {
     // Given: A virtual RHEL unmapped guest with CPUs set
     HbiHostCreateUpdateEvent hbiEvent =
         HbiEventHelper.getRhsmHostEvent(
@@ -105,7 +106,7 @@ class MetricsHbiVirtualRhelCreateUpdateComponentTest extends BaseSMHBIComponentT
 
     Event swatchEvent =
         SwatchEventHelper.createExpectedEvent(
-            hbiEvent, List.of("69"), Set.of("RHEL for x86"), true, false);
+            hbiEvent, swatchEventType, List.of("69"), Set.of("RHEL for x86"), true, false);
 
     // When: HBI event is produced to Kafka
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hbiEvent);
@@ -117,7 +118,8 @@ class MetricsHbiVirtualRhelCreateUpdateComponentTest extends BaseSMHBIComponentT
   @TestPlanName("metrics-hbi-virtual-TC003")
   @ParameterizedTest
   @CsvSource({"created, INSTANCE_CREATED", "updated, INSTANCE_UPDATED"})
-  void shouldProduceSwatchEventForVirtualArmHost(String hbiEventType, String swatchEventType) {
+  void shouldProduceSwatchEventForVirtualArmHost(
+      String hbiEventType, NormalizedEventType swatchEventType) {
     // Given: A virtual RHEL for ARM host event
     HbiHostCreateUpdateEvent hbiEvent =
         HbiEventHelper.getRhsmHostEvent(
@@ -137,7 +139,7 @@ class MetricsHbiVirtualRhelCreateUpdateComponentTest extends BaseSMHBIComponentT
 
     Event swatchEvent =
         SwatchEventHelper.createExpectedEvent(
-            hbiEvent, List.of("419"), Set.of("RHEL for ARM"), true, false);
+            hbiEvent, swatchEventType, List.of("419"), Set.of("RHEL for ARM"), true, false);
 
     // When: HBI event is produced to Kafka
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hbiEvent);
@@ -149,7 +151,8 @@ class MetricsHbiVirtualRhelCreateUpdateComponentTest extends BaseSMHBIComponentT
   @TestPlanName("metrics-hbi-virtual-TC004")
   @ParameterizedTest
   @CsvSource({"created, INSTANCE_CREATED", "updated, INSTANCE_UPDATED"})
-  void shouldProduceSwatchEventForCloudProviderHost(String hbiEventType, String swatchEventType) {
+  void shouldProduceSwatchEventForCloudProviderHost(
+      String hbiEventType, NormalizedEventType swatchEventType) {
     // Given: A virtual cloud provider (AWS) host event
     HbiHostCreateUpdateEvent hbiEvent =
         HbiEventHelper.getRhsmHostEvent(
@@ -169,7 +172,7 @@ class MetricsHbiVirtualRhelCreateUpdateComponentTest extends BaseSMHBIComponentT
 
     Event swatchEvent =
         SwatchEventHelper.createExpectedEvent(
-            hbiEvent, List.of("69"), Set.of("RHEL for x86"), true, false);
+            hbiEvent, swatchEventType, List.of("69"), Set.of("RHEL for x86"), true, false);
 
     // When: HBI event is produced to Kafka
     kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hbiEvent);

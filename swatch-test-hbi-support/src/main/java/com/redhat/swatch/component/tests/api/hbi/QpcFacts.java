@@ -59,7 +59,7 @@ public final class QpcFacts {
   public Map<String, Object> toMap() {
     Map<String, Object> facts = new LinkedHashMap<>();
     if (products != null && !products.isEmpty()) {
-      facts.put(PRODUCT_ID_FACT, products);
+      facts.put(PRODUCT_ID_FACT, new java.util.ArrayList<>(products));
     }
     return facts;
   }
