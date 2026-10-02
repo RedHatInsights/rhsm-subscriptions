@@ -101,12 +101,13 @@ public final class RhsmFacts {
     putIfPresent(facts, SLA_FACT, sla);
     putIfPresent(facts, USAGE_FACT, usage);
     putIfPresent(facts, SYNC_TIMESTAMP_FACT, syncTimestamp);
-    putIfPresent(facts, IS_VIRTUAL_FACT, isVirtual == null ? null : String.valueOf(isVirtual));
+    putIfPresent(facts, IS_VIRTUAL_FACT, isVirtual);
     putIfPresent(facts, SYSTEM_PURPOSE_ROLE_FACT, systemPurposeRole);
     putIfPresent(facts, SYSTEM_PURPOSE_UNITS_FACT, systemPurposeUnits);
     putIfPresent(facts, BILLING_MODEL_FACT, billingModel);
     putIfPresent(facts, GUEST_ID_FACT, guestId);
-    putIfPresent(facts, PRODUCT_IDS_FACT, products);
+    putIfPresent(
+        facts, PRODUCT_IDS_FACT, products != null ? new java.util.ArrayList<>(products) : null);
     return facts;
   }
 
