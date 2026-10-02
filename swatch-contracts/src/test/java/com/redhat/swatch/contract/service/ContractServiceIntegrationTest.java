@@ -30,8 +30,6 @@ import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerIdentityV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PurchaseV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.RhEntitlementV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.SaasContractV1;
-import com.redhat.swatch.contract.exception.ContractNotAssociatedToOrgException;
-import com.redhat.swatch.contract.exception.ContractValidationFailedException;
 import com.redhat.swatch.contract.model.ContractSourcePartnerEnum;
 import com.redhat.swatch.contract.openapi.model.ContractRequest;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
@@ -92,26 +90,6 @@ class ContractServiceIntegrationTest {
   }
 
   @Test
-  void concurrentUpsertPartnerContractsWithoutSubscriptionNumberShouldLeaveSingleContractRow()
-      throws Exception {
-    var entitlement = givenAwsEntitlementWithoutSubscriptionNumber();
-
-    runConcurrent(
-        () -> upsertPartnerContractsInNewTransaction(entitlement),
-        () -> upsertPartnerContractsInNewTransaction(entitlement));
-
-    assertEquals(
-        1,
-        contractRepository.listAll().size(),
-        "Expected a single contract row when subscription number is absent (lock on"
-            + " billingProviderId)");
-    assertEquals(
-        0,
-        subscriptionRepository.listAll().size(),
-        "Subscription sync is skipped when entitlement has no subscription number");
-  }
-
-  @Test
   void concurrentCreateContractCallsShouldLeaveSingleContractAndSubscription() throws Exception {
     var request = givenContractRequest();
 
@@ -127,24 +105,6 @@ class ContractServiceIntegrationTest {
         1,
         contractRepository.listAll().size(),
         "Expected a single contract row after concurrent createContract calls");
-  }
-
-  private void upsertPartnerContractsInNewTransaction(PartnerEntitlementV1 entitlement) {
-    QuarkusTransaction.requiringNew()
-        .run(
-            () -> {
-              try {
-                contractService.upsertPartnerContracts(entitlement, null);
-              } catch (ContractNotAssociatedToOrgException | ContractValidationFailedException e) {
-                throw new RuntimeException(e);
-              }
-            });
-  }
-
-  private PartnerEntitlementV1 givenAwsEntitlementWithoutSubscriptionNumber() {
-    var entitlement = givenContractRequest().getPartnerEntitlement();
-    entitlement.getRhEntitlements().getFirst().setSubscriptionNumber(null);
-    return entitlement;
   }
 
   private void runConcurrent(Runnable first, Runnable second) throws InterruptedException {

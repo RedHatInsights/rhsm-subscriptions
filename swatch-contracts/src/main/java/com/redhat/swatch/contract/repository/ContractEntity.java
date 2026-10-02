@@ -33,6 +33,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.criteria.Predicate;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.time.OffsetDateTime;
 import java.util.Collection;
@@ -62,8 +63,9 @@ public class ContractEntity extends ModificationTrackedEntity {
   @Column(name = "uuid", nullable = false)
   private UUID uuid;
 
+  @NotBlank
   @Basic
-  @Column(name = "subscription_number")
+  @Column(name = "subscription_number", nullable = false)
   private String subscriptionNumber;
 
   @Basic

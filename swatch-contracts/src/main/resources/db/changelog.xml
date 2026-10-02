@@ -27,4 +27,6 @@
   <include file="db/202604301203_add_last_modified_columns.xml"/>
   <include file="db/202607221600_add_license_id_to_contracts.xml"/>
   <include file="db/202609030810_add_entitlement_quantity_to_offering.xml"/>
+  <include file="db/202610011000_remove_null_subscription_numbers.xml"/>
+  <include file="db/202610011100_remove_product_id_from_contracts.xml"/>
 </databaseChangeLog>

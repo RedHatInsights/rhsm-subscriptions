@@ -1300,6 +1300,19 @@ This section verifies the automatic contract termination behavior when contracts
   - The stored subscription row is removed
   - Application logs contain `Subscription deleted` with `delete_reason=FILTERED_END_TOO_FAR_IN_PAST`
 
+**subscriptions-sync-TC010 - Upstream subscription missing subscriptionNumber is not persisted**
+- **Description**: When IT subscription search returns a subscription with a null/blank `subscriptionNumber`, sync skips that DTO and does not create a subscription row.
+- **Setup**:
+  - No existing subscription for the org
+  - Offering stubs prepared for the upstream SKU
+  - IT subscription search returns one subscription with blank/null `subscriptionNumber`
+- **Action**:
+  - Run subscription sync for the org
+- **Verification**:
+  - List subscriptions for the org via internal API
+- **Expected Results**:
+  - No subscription rows are created for the org
+
 **subscriptions-termination-TC001** - **Terminate subscription with timestamp**  
 - **Description:** Verify manual subscription termination.  
 - **Setup:**
@@ -2383,6 +2396,18 @@ This section validates that the subscription table API (V2 SKU capacity) and the
 - **Expected Results**:
   - No measurements created for null or zero values
   - Only non-null, positive values result in measurements
+
+**capacity-reconciliation-TC011 - Offering sync enqueues capacity reconcile for all subscription pages**
+- **Description**: Verify that when offering sync changes capacity attributes, capacity reconciliation is enqueued for all subscriptions of the SKU.
+- **Action**: `POST /api/swatch-contracts/internal/rpc/offerings/sync`
+- **Test Steps**:
+  1. Create and sync an offering
+  2. Create 101 subscriptions for the offering without reconciling capacity
+  3. Update offering cores (capacity-impacting change) and call sync all offerings again
+- **Expected Results**:
+  - HTTP 200 OK from sync all offerings operation
+  - Two `ReconcileCapacityByOfferingTask` messages for the SKU on `platform.rhsm-subscriptions.capacity-reconcile`
+  - SKU capacity report reflects updated cores for all 101 subscriptions
 
 ## Reconciliation Consumer (Kafka)
 

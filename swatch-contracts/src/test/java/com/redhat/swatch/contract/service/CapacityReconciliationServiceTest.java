@@ -46,9 +46,11 @@ import jakarta.enterprise.inject.Any;
 import jakarta.inject.Inject;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -161,12 +163,32 @@ class CapacityReconciliationServiceTest {
   }
 
   @Test
-  void enqueueShouldOnlyCreateKafkaMessage() {
-    // Some clients (example, OfferingSyncController) should not wait for capacities to reconcile.
-    // In that case, the client should be able to enqueue the first capacity reconciliation page,
-    // rather than have it be worked on immediately.
+  void enqueueShouldCreateKafkaMessageForEachSubscriptionPage() {
+    // Offering sync must enqueue capacity reconciliation asynchronously for all subscriptions
+    // of the SKU.
+    when(subscriptionRepository.countByOfferingSku(SKU)).thenReturn(250L);
+
     capacityReconciliationController.enqueueReconcileCapacityForOffering(SKU);
-    assertEquals(1, reconcileCapacityByOfferingSink.received().size());
+
+    List<ReconcileCapacityByOfferingTask> tasks =
+        reconcileCapacityByOfferingSink.received().stream().map(Message::getPayload).toList();
+    assertEquals(3, tasks.size());
+    assertEquals(0, tasks.getFirst().getOffset());
+    assertEquals(100, tasks.getFirst().getLimit());
+    assertEquals(SKU, tasks.getFirst().getSku());
+    assertEquals(100, tasks.get(1).getOffset());
+    assertEquals(100, tasks.get(1).getLimit());
+    assertEquals(200, tasks.get(2).getOffset());
+    assertEquals(100, tasks.get(2).getLimit());
+  }
+
+  @Test
+  void enqueueShouldNotCreateKafkaMessageWhenSkuHasNoSubscriptions() {
+    when(subscriptionRepository.countByOfferingSku(SKU)).thenReturn(0L);
+
+    capacityReconciliationController.enqueueReconcileCapacityForOffering(SKU);
+
+    assertEquals(0, reconcileCapacityByOfferingSink.received().size());
   }
 
   private void givenMeteredOffering() {

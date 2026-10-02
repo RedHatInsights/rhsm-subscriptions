@@ -84,6 +84,11 @@ public class SubscriptionSyncService {
   private final TransactionalLocks transactionalLocks;
 
   public void syncSubscription(Subscription subscription) {
+    if (StringUtils.isBlank(subscription.getSubscriptionNumber())) {
+      log.warn("Skipping subscription sync; missing subscriptionNumber for {}", subscription);
+      return;
+    }
+
     // Contract provided subscriptions will have a different start_date than what is
     // stored in Subscription SearchAPI
     var existingSubscription =
@@ -282,9 +287,16 @@ public class SubscriptionSyncService {
   }
 
   private Optional<? extends SubscriptionEntity> fetchSubscription(String subscriptionNumber) {
-    return Optional.of(
-        convertDto(
-            subscriptionSearchService.getSubscriptionBySubscriptionNumber(subscriptionNumber)));
+    Subscription dto =
+        subscriptionSearchService.getSubscriptionBySubscriptionNumber(subscriptionNumber);
+    if (StringUtils.isBlank(dto.getSubscriptionNumber())) {
+      log.warn(
+          "Skipping enrichment from IT Search; response missing subscriptionNumber"
+              + " for lookup subscriptionNumber={}",
+          subscriptionNumber);
+      return Optional.empty();
+    }
+    return Optional.of(convertDto(dto));
   }
 
   @Transactional
@@ -487,6 +499,10 @@ public class SubscriptionSyncService {
   }
 
   private SubscriptionEntity convertDto(Subscription subscription) {
+    if (StringUtils.isBlank(subscription.getSubscriptionNumber())) {
+      throw new IllegalArgumentException(
+          "IT Subscription Search DTO is missing subscriptionNumber");
+    }
     // Note that we are **not** setting the offering yet!
     return SubscriptionEntity.builder()
         .subscriptionId(String.valueOf(subscription.getId()))
@@ -511,7 +527,13 @@ public class SubscriptionSyncService {
     if (newOrUpdated.getEndDate() != null) {
       entity.setEndDate(newOrUpdated.getEndDate());
     }
-    entity.setSubscriptionNumber(newOrUpdated.getSubscriptionNumber());
+    if (StringUtils.isNotBlank(newOrUpdated.getSubscriptionNumber())) {
+      entity.setSubscriptionNumber(newOrUpdated.getSubscriptionNumber());
+    } else {
+      log.warn(
+          "Refusing to overwrite subscriptionNumber with blank/null for" + " subscriptionId={}",
+          entity.getSubscriptionId());
+    }
     entity.setBillingProvider(newOrUpdated.getBillingProvider());
     entity.setBillingAccountId(newOrUpdated.getBillingAccountId());
     entity.setBillingProviderId(newOrUpdated.getBillingProviderId());

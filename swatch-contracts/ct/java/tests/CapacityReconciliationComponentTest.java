@@ -30,6 +30,7 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -48,8 +49,12 @@ import domain.Subscription;
 import io.restassured.response.Response;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -58,6 +63,8 @@ import org.junit.jupiter.api.Test;
 public class CapacityReconciliationComponentTest extends BaseContractComponentTest {
 
   private static final int SUBSCRIPTION_COUNT = 5;
+  private static final int CAPACITY_RECONCILE_PAGE_SIZE = 100;
+  private static final double UPDATED_CORES_CAPACITY = 16.0;
   private static final double CORES_CAPACITY = 8.0;
   private static final String MSG_FORCE_RECONCILE_SUCCESS = "Force reconcile should succeed";
   private static final String MSG_CREATE_SUBSCRIPTION_SUCCESS =
@@ -157,6 +164,36 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
     assertThat("Task should be enqueued with correct SKU", task.getSku(), is(testSku));
   }
 
+  @TestPlanName("capacity-reconciliation-TC011")
+  @Test
+  void shouldEnqueueAllPagesWhenOfferingSyncChangesCapacity() {
+    // Given: An offering synced, then more than one page of subscriptions without reconcile
+    final String testSku = RandomUtils.generateRandom();
+    Offering initialOffering = Offering.buildOpenShiftOffering(testSku, CORES_CAPACITY, null);
+    givenOfferingIsStubbedAndSynced(initialOffering);
+    // it should exceed the page size limit.
+    int subscriptionToCreate = CAPACITY_RECONCILE_PAGE_SIZE + 1;
+    for (int i = 0; i < subscriptionToCreate; i++) {
+      var subscription =
+          Subscription.buildOpenShiftSubscriptionUsingSku(
+              orgId, Map.of(CORES, CORES_CAPACITY), testSku);
+      Response saveResponse = service.saveSubscriptions(false, subscription);
+      assertThat(MSG_CREATE_SUBSCRIPTION_SUCCESS, saveResponse.statusCode(), is(HttpStatus.SC_OK));
+    }
+
+    // When: Offering capacity changes and sync all offering is called
+    Offering updatedOffering =
+        Offering.buildOpenShiftOffering(testSku, UPDATED_CORES_CAPACITY, null);
+    wiremock.forProductAPI().stubOfferingData(updatedOffering);
+    Response syncResponse = service.syncAllOfferings();
+
+    // Then: All subscription pages are enqueued and capacity is updated for every subscription
+    assertEquals(HttpStatus.SC_OK, syncResponse.statusCode(), "Offering sync should succeed");
+    thenReconciliationTasksCoverAllPages(testSku, subscriptionToCreate);
+    thenSubscriptionHasCoresMeasurement(
+        Product.OPENSHIFT, testSku, subscriptionToCreate * UPDATED_CORES_CAPACITY);
+  }
+
   @TestPlanName("capacity-reconciliation-kafka-TC001")
   @Test
   void shouldProcessReconciliationTaskFromKafka() {
@@ -194,7 +231,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
     whenOfferingAndSubscriptionReconciled(offering, subscription);
 
     // Then: PHYSICAL Cores measurement = 4 * 10 = 40
-    thenSubscriptionHasCoresMeasurement(testSku, 40.0);
+    thenSubscriptionHasCoresMeasurement(Product.OPENSHIFT, testSku, 40.0);
   }
 
   @TestPlanName("capacity-reconciliation-TC004b")
@@ -227,7 +264,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
     whenOfferingAndSubscriptionReconciled(offering, subscription);
 
     // Then: PHYSICAL Sockets = 2 * 5 = 10
-    thenSubscriptionHasSocketsMeasurement(testSku, 10.0);
+    thenSubscriptionHasSocketsMeasurement(Product.RHEL, testSku, 10.0);
   }
 
   @TestPlanName("capacity-reconciliation-TC005b")
@@ -262,7 +299,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
     whenOfferingAndSubscriptionReconciled(offering, subscription);
 
     // Then: PHYSICAL Cores = 24, PHYSICAL Sockets = 6
-    thenSubscriptionHasCoresAndSocketsMeasurements(testSku, 24.0, 6.0);
+    thenSubscriptionHasCoresAndSocketsMeasurements(Product.OPENSHIFT, testSku, 24.0, 6.0);
   }
 
   @TestPlanName("capacity-reconciliation-TC006b")
@@ -297,7 +334,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
     whenOfferingAndSubscriptionReconciled(initialOffering, subscription);
 
     // Then: PHYSICAL Cores = 40
-    thenSubscriptionHasCoresMeasurement(testSku, 40.0);
+    thenSubscriptionHasCoresMeasurement(Product.OPENSHIFT, testSku, 40.0);
 
     // Given: Offering updated with cores=6
     Offering updatedOffering = Offering.buildOpenShiftOffering(testSku, 6.0, null);
@@ -308,7 +345,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
 
     // Then: Existing measurement updated to new value (6 * 5 = 30)
     assertThat(MSG_FORCE_RECONCILE_SUCCESS, reconcileResponse.statusCode(), is(HttpStatus.SC_OK));
-    thenSubscriptionHasCoresMeasurementAfterForceReconcile(testSku, 30.0);
+    thenSubscriptionHasCoresMeasurement(Product.OPENSHIFT, testSku, 30.0);
   }
 
   @TestPlanName("capacity-reconciliation-TC007b")
@@ -356,7 +393,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
 
     // Then: New measurements created (4 * 5 = 20)
     assertThat(MSG_FORCE_RECONCILE_SUCCESS, reconcileResponse.statusCode(), is(HttpStatus.SC_OK));
-    thenSubscriptionHasCoresMeasurementAfterForceReconcile(testSku, 20.0);
+    thenSubscriptionHasCoresMeasurement(Product.OPENSHIFT, testSku, 20.0);
   }
 
   @TestPlanName("capacity-reconciliation-TC008b")
@@ -389,7 +426,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
             .quantity(3)
             .build();
     whenOfferingAndSubscriptionReconciled(initialOffering, subscription);
-    thenSubscriptionHasCoresAndSocketsMeasurements(testSku, 24.0, 6.0);
+    thenSubscriptionHasCoresAndSocketsMeasurements(Product.OPENSHIFT, testSku, 24.0, 6.0);
     // Given: Offering updated to have PHYSICAL Cores only (sockets = null)
     Offering coresOnlyOffering = Offering.buildOpenShiftOffering(testSku, 8.0, null);
     givenOfferingIsStubbedAndSynced(coresOnlyOffering);
@@ -399,7 +436,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
 
     // Then: PHYSICAL Cores retained (24), PHYSICAL Sockets measurement deleted
     assertThat(MSG_FORCE_RECONCILE_SUCCESS, reconcileResponse.statusCode(), is(HttpStatus.SC_OK));
-    thenSubscriptionHasCoresOnlyMeasurementAfterForceReconcile(testSku, 24.0);
+    thenSubscriptionHasCoresOnlyMeasurement(Product.OPENSHIFT, testSku, 24.0);
   }
 
   @TestPlanName("capacity-reconciliation-TC009b")
@@ -474,6 +511,32 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
   }
 
   // Helper methods
+
+  private void thenReconciliationTasksCoverAllPages(String sku, int subscriptionCount) {
+    int expectedPages =
+        (subscriptionCount + CAPACITY_RECONCILE_PAGE_SIZE - 1) / CAPACITY_RECONCILE_PAGE_SIZE;
+    List<ReconcileCapacityByOfferingTask> tasks =
+        kafkaBridge.waitForKafkaMessage(
+            CAPACITY_RECONCILE,
+            new DefaultMessageValidator<>(
+                task -> sku.equals(task.getSku()), ReconcileCapacityByOfferingTask.class),
+            expectedPages);
+
+    assertEquals(expectedPages, tasks.size(), "Expected one reconcile task per page");
+    Set<Integer> offsets =
+        tasks.stream().map(ReconcileCapacityByOfferingTask::getOffset).collect(Collectors.toSet());
+    Set<Integer> expectedOffsets =
+        IntStream.range(0, expectedPages)
+            .map(i -> i * CAPACITY_RECONCILE_PAGE_SIZE)
+            .boxed()
+            .collect(Collectors.toSet());
+    assertEquals(expectedOffsets, offsets, "Reconcile task offsets should cover all pages");
+    for (ReconcileCapacityByOfferingTask task : tasks) {
+      assertEquals(
+          CAPACITY_RECONCILE_PAGE_SIZE, task.getLimit(), "Each reconcile task uses page size 100");
+      assertEquals(sku, task.getSku(), "Reconcile task SKU should match");
+    }
+  }
 
   /**
    * Creates a RHEL hypervisor subscription for the given offering and capacity.
@@ -704,45 +767,39 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
             });
   }
 
-  private void thenSubscriptionHasCoresMeasurement(String sku, double expectedCores) {
+  private void thenSubscriptionHasCoresMeasurement(
+      Product product, String sku, double expectedCores) {
     thenSubscriptionHasPhysicalMeasurements(
-        Product.OPENSHIFT,
+        product,
         sku,
-        new MetricExpectation("Cores", expectedCores, MSG_PHYSICAL_CORES_MATCH));
+        new MetricExpectation(CORES.toString(), expectedCores, MSG_PHYSICAL_CORES_MATCH));
   }
 
-  private void thenSubscriptionHasCoresMeasurementAfterForceReconcile(
-      String sku, double expectedCores) {
+  private void thenSubscriptionHasCoresOnlyMeasurement(
+      Product product, String sku, double expectedCores) {
     thenSubscriptionHasPhysicalMeasurements(
-        Product.OPENSHIFT,
+        product,
         sku,
-        new MetricExpectation("Cores", expectedCores, MSG_PHYSICAL_CORES_MATCH));
-  }
-
-  private void thenSubscriptionHasCoresOnlyMeasurementAfterForceReconcile(
-      String sku, double expectedCores) {
-    thenSubscriptionHasPhysicalMeasurements(
-        Product.OPENSHIFT,
-        sku,
-        new MetricExpectation("Cores", expectedCores, MSG_PHYSICAL_CORES_MATCH),
+        new MetricExpectation(CORES.toString(), expectedCores, MSG_PHYSICAL_CORES_MATCH),
         new MetricExpectation(
-            "Sockets", 0.0, "PHYSICAL Sockets measurement should be deleted (0)"));
+            SOCKETS.toString(), 0.0, "PHYSICAL Sockets measurement should be deleted (0)"));
   }
 
-  private void thenSubscriptionHasSocketsMeasurement(String sku, double expectedSockets) {
+  private void thenSubscriptionHasSocketsMeasurement(
+      Product product, String sku, double expectedSockets) {
     thenSubscriptionHasPhysicalMeasurements(
-        Product.RHEL,
+        product,
         sku,
-        new MetricExpectation("Sockets", expectedSockets, MSG_PHYSICAL_SOCKETS_MATCH));
+        new MetricExpectation(SOCKETS.toString(), expectedSockets, MSG_PHYSICAL_SOCKETS_MATCH));
   }
 
   private void thenSubscriptionHasCoresAndSocketsMeasurements(
-      String sku, double expectedCores, double expectedSockets) {
+      Product product, String sku, double expectedCores, double expectedSockets) {
     thenSubscriptionHasPhysicalMeasurements(
-        Product.OPENSHIFT,
+        product,
         sku,
-        new MetricExpectation("Cores", expectedCores, MSG_PHYSICAL_CORES_MATCH),
-        new MetricExpectation("Sockets", expectedSockets, MSG_PHYSICAL_SOCKETS_MATCH));
+        new MetricExpectation(CORES.toString(), expectedCores, MSG_PHYSICAL_CORES_MATCH),
+        new MetricExpectation(SOCKETS.toString(), expectedSockets, MSG_PHYSICAL_SOCKETS_MATCH));
   }
 
   private record MetricExpectation(
