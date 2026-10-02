@@ -418,4 +418,44 @@ public class TallyWorkerConfiguration {
         .setObservationEnabled(kafkaProperties.getTemplate().isObservationEnabled());
     return factory;
   }
+
+  @Bean
+  @Qualifier("usageTopicProperties")
+  @ConfigurationProperties(prefix = "rhsm-subscriptions.usage.incoming")
+  public TaskQueueProperties usageTopicProperties() {
+    return new TaskQueueProperties();
+  }
+
+  @Bean
+  @Qualifier("usageConsumerFactory")
+  ConsumerFactory<String, String> usageConsumerFactory(
+      KafkaProperties kafkaProperties,
+      @Qualifier("usageTopicProperties") TaskQueueProperties taskQueueProperties) {
+    var props = kafkaProperties.buildConsumerProperties();
+    props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, taskQueueProperties.getMaxPollRecords());
+    return new DefaultKafkaConsumerFactory<>(
+        props, new StringDeserializer(), new StringDeserializer());
+  }
+
+  @Bean
+  ConcurrentKafkaListenerContainerFactory<String, String> kafkaUsageListenerContainerFactory(
+      @Qualifier("usageConsumerFactory") ConsumerFactory<String, String> consumerFactory,
+      KafkaProperties kafkaProperties,
+      KafkaConsumerRegistry registry) {
+
+    var factory = new ConcurrentKafkaListenerContainerFactory<String, String>();
+    factory.setConsumerFactory(consumerFactory);
+    factory.setBatchListener(true);
+    factory.setConcurrency(kafkaProperties.getListener().getConcurrency());
+    if (kafkaProperties.getListener().getIdleEventInterval() != null) {
+      factory
+          .getContainerProperties()
+          .setIdleEventInterval(kafkaProperties.getListener().getIdleEventInterval().toMillis());
+    }
+    factory.getContainerProperties().setConsumerRebalanceListener(registry);
+    factory
+        .getContainerProperties()
+        .setObservationEnabled(kafkaProperties.getTemplate().isObservationEnabled());
+    return factory;
+  }
 }
