@@ -294,7 +294,9 @@ class SubscriptionRepositoryTest {
     subscriptionRepo.persistAndFlush(subscription);
 
     SubscriptionEntity retrieved =
-        subscriptionRepo.findActiveSubscription("123").stream().findFirst().orElse(null);
+        subscriptionRepo.findActiveSubscription(subscription.getSubscriptionNumber()).stream()
+            .findFirst()
+            .orElse(null);
 
     // because of an issue with precision related to findActiveSubscription passing the entity
     // cache, we'll have to check fields
@@ -632,8 +634,8 @@ class SubscriptionRepositoryTest {
     offeringRepo.persist(offering1);
     List.of(s1, s2).forEach(subscriptionRepo::persistAndFlush);
 
-    assertFalse(subscriptionRepo.findActiveSubscription(s1.getSubscriptionId()).isEmpty());
-    assertFalse(subscriptionRepo.findActiveSubscription(s2.getSubscriptionId()).isEmpty());
+    assertFalse(subscriptionRepo.findActiveSubscription(s1.getSubscriptionNumber()).isEmpty());
+    assertFalse(subscriptionRepo.findActiveSubscription(s2.getSubscriptionNumber()).isEmpty());
   }
 
   @TestTransaction

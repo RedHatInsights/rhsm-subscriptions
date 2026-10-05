@@ -70,7 +70,7 @@ public class ContractsSwatchService extends SwatchService {
   private static final String BILLING_ACCOUNT_IDS_ENDPOINT =
       "/api/swatch-contracts/v1/subscriptions/billing_account_ids";
   private static final String TERMINATE_SUBSCRIPTION_ENDPOINT =
-      ENDPOINT_PREFIX + "/subscriptions/terminate/{subscription_id}";
+      ENDPOINT_PREFIX + "/subscriptions/terminate/{subscription_number}";
   private static final String SYNC_CONTRACTS_BY_ORG_ENDPOINT =
       ENDPOINT_PREFIX + "/rpc/sync/contracts/%s";
   private static final String SYNC_ALL_CONTRACTS_ENDPOINT = ENDPOINT_PREFIX + "/rpc/contracts/sync";
@@ -541,12 +541,13 @@ public class ContractsSwatchService extends SwatchService {
 
   public Response terminateSubscription(Subscription subscription, OffsetDateTime timestamp) {
     Objects.requireNonNull(subscription, "contract must not be null");
-    Objects.requireNonNull(subscription.getSubscriptionId(), "subscriptionId must not be null");
+    Objects.requireNonNull(
+        subscription.getSubscriptionNumber(), "subscriptionNumber must not be null");
     Objects.requireNonNull(timestamp, "timestamp must not be null");
 
     return given()
         .headers(SECURITY_HEADERS)
-        .pathParam("subscription_id", subscription.getSubscriptionId())
+        .pathParam("subscription_number", subscription.getSubscriptionNumber())
         .queryParam("timestamp", timestamp.toString())
         .when()
         .post(TERMINATE_SUBSCRIPTION_ENDPOINT);

@@ -435,18 +435,18 @@ public class ContractsResource implements DefaultApi {
 
   @Override
   @RolesAllowed({"test", "support", "service"})
-  public TerminationRequest terminateSubscription(String subscriptionId, OffsetDateTime timestamp)
-      throws ProcessingException {
+  public TerminationRequest terminateSubscription(
+      String subscriptionNumber, OffsetDateTime timestamp) throws ProcessingException {
     if (!applicationConfiguration.isManualSubscriptionEditingEnabled()) {
       throw new UnsupportedOperationException("Manual subscription editing is disabled");
     }
 
     try {
-      var msg = subscriptionSyncService.terminateSubscription(subscriptionId, timestamp);
+      var msg = subscriptionSyncService.terminateSubscription(subscriptionNumber, timestamp);
       return new TerminationRequest().data(new TerminationRequestData().terminationMessage(msg));
     } catch (EntityNotFoundException e) {
       throw new NotFoundException(
-          "Subscription " + subscriptionId + " either does not exist or is already terminated");
+          "Subscription " + subscriptionNumber + " either does not exist or is already terminated");
     }
   }
 }

@@ -47,8 +47,8 @@ public class SubscriptionService {
     return subscriptionRepository.findBySubscriptionNumber(subscriptionNumber);
   }
 
-  public List<SubscriptionEntity> findActiveSubscription(String subscriptionId) {
-    return subscriptionRepository.findActiveSubscription(subscriptionId);
+  public List<SubscriptionEntity> findActiveSubscription(String subscriptionNumber) {
+    return subscriptionRepository.findActiveSubscription(subscriptionNumber);
   }
 
   public List<SubscriptionEntity> findByContract(ContractEntity contract) {
