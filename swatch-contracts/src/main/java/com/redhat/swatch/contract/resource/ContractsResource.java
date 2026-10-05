@@ -274,14 +274,14 @@ public class ContractsResource implements DefaultApi {
           ErrorCode.SUBSCRIPTION_MISSING_BILLING_ACCOUNT_ID,
           Response.Status.NOT_FOUND,
           ErrorCode.SUBSCRIPTION_MISSING_BILLING_ACCOUNT_ID.getDescription(),
-          subscription.getSubscriptionId());
+          subscription.getSubscriptionNumber());
     }
     String[] parts = subscription.getBillingProviderId().split(";");
     String productCode = parts[0];
     String customerId = parts[1];
     String sellerAccount = parts[2];
     return new AwsUsageContext()
-        .rhSubscriptionId(subscription.getSubscriptionId())
+        .rhSubscriptionNumber(subscription.getSubscriptionNumber())
         .subscriptionStartDate(subscription.getStartDate())
         .productCode(productCode)
         .customerId(customerId)

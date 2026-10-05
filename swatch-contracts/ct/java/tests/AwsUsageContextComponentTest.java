@@ -248,8 +248,8 @@ public class AwsUsageContextComponentTest extends BaseContractComponentTest {
         usageContext.getLicenseId(),
         "licenseId should match the selected contract");
     assertEquals(
-        contract.getSubscriptionId(),
-        usageContext.getRhSubscriptionId(),
-        "rhSubscriptionId should match the selected contract");
+        contract.getSubscriptionNumber(),
+        usageContext.getRhSubscriptionNumber(),
+        "rhSubscriptionNumber should match the selected contract");
   }
 }
