@@ -313,11 +313,11 @@ This test plan covers the core tally processing pipeline:
 
 **tally-hypervisor-TC001 - RHEL hypervisor without guests appears in instances report**
 
-- **Description**: Verify that a RHEL-based hypervisor with no guests appears in the instances report when the hypervisor itself has RHEL usage data
+- **Description**: Verify that a RHEL-based Physical hypervisor with no guests appears on the instance report when the hypervisor itself has RHEL usage data
 - **Setup**:
     - Organization is opted in
     - Nightly tally is performed
-    - RHEL hypervisor host is inserted with RHEL for x86 buckets but no guests
+    - RHEL Physical hypervisor host is inserted with RHEL for x86 buckets but no guests
 - **Action**:
     - Perform tally for organization
     - Retrieve instances report for RHEL for x86 product for the day
@@ -326,11 +326,11 @@ This test plan covers the core tally processing pipeline:
     - Instances report includes the hypervisor
     - Hypervisor shows expected socket/core counts from its buckets
 - **Expected Result**:
-    - RHEL-based hypervisors appear in instances reports based on their own RHEL usage
+    - RHEL-based Physical hypervisors appear on instance reports based on their own RHEL usage
     - Guest count is irrelevant when the hypervisor itself is running RHEL
     - Hypervisor is treated as a RHEL instance
 
-**tally-hypervisor-TC002 - RHEL hypervisor without guests contributes to daily total**
+**tally-hypervisor-TC002 - RHEL Physical hypervisor without guests contributes to daily total**
 
 - **Description**: Verify that a RHEL-based hypervisor with no guests contributes to the daily total socket count based on its own RHEL usage
 - **Setup**:
@@ -347,7 +347,7 @@ This test plan covers the core tally processing pipeline:
     - Hypervisor contributed to the total
 - **Expected Result**:
     - RHEL-based hypervisors contribute to tally totals based on their own RHEL usage
-    - Guest count does not affect whether the hypervisor contributes to totals
+    - Guest count being 0 does not affect whether the hypervisor contributes to totals
     - Hypervisor usage is aggregated with other RHEL instances
 
 **tally-hypervisor-TC003 - Non-RHEL hypervisor without usage data not in instances report**
@@ -389,19 +389,18 @@ This test plan covers the core tally processing pipeline:
 
 **tally-hypervisor-TC005 - RHEL hypervisor with guests increases total sockets**
 
-- **Description**: Verify hypervisor with guest mapping increases hypervisor socket totals and hypervisor appears in instances report
+- **Description**: Verify hypervisor with guest mapping increases hypervisor socket totals and hypervisor appears on instance report
 - **Setup**:
     - Capture baseline daily tally (all metrics) for RHEL for x86
-    - Create hypervisor (1 socket) + 2 guests
+    - Create hypervisor (1 socket) with 2 guests
 - **Action**:
     - Sync nightly tally
-    - Query instances report category hypervisor filtered by hypervisor display name
+    - Query instances report filtering on category hypervisor and by hypervisor display name
 - **Verification**:
-    - hypervisor_sockets increases by at least 1
-    - Total sockets increases by at least 1
-    - cloud_sockets / cloud_cores unchanged
-    - Hypervisor row in instances; all rows category hypervisor
+    - hypervisor_sockets is 2
     - Guest count on hypervisor = 2
+    - The Tally sum has increased by 2 sockets
+    - That the cloud_sockets and cloud_cores totals are unchanged
 - **Expected Result**:
     - Hypervisor topology reflected in tally totals and instances category filter
 
@@ -494,6 +493,29 @@ This test plan covers the core tally processing pipeline:
     - Per-SLA hypervisor queries may overlap and exceed the actual total due to full-socket-count buckets per SLA/usage combination
     - The wildcard (no SLA filter) query correctly reports the true combined hypervisor socket total by reading from \_ANY rows
 
+**tally-hypervisor-TC011 - Hypervisor with a guest that is then moved to another Hypervisor is reflected on the Instance Guests Report**
+
+- **Description**: Verify that a hypervisor with a guest, that is moved to another hypervisor has this reflected on the instances guests report
+- **Setup**:
+    - Have an organization that has opted in
+    - A Hypervisor Host A seeded with 2 sockets
+    - A Guest 1 seeded to Host A
+    - A Hypervisor Host B seeded with 1 sockets
+    - A Tally has been performed for the organization
+- **Action**:
+    - Moved the guest from Host A to Host B (hypervisor B)
+    - Perform tally for organization
+- **Verification**:
+    - Query instances guest report for Host A
+    - Verify that Host A Instance guest report reflects that it has 0 guests
+    - Query instances guests report for Host B
+    - Verify that Host B Instance guest report reflects that it has 1 guest
+- **Expected Result**:
+    - Hypervisor guest report reflects the guest moved from Host A to Host B
+    - Host A guest report reflects the accurate number of guests, 0
+    - Host B guest report reflects the accurate number of guests, 1
+
+  
 ## Data Persistence
 
 **tally-persistence-TC001 - Tally report is idempotent across separate tally runs**
