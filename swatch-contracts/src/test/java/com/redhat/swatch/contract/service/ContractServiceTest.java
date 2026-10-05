@@ -64,8 +64,6 @@ import com.redhat.swatch.contract.model.ContractSourcePartnerEnum;
 import com.redhat.swatch.contract.model.MeasurementMetricIdTransformer;
 import com.redhat.swatch.contract.model.PartnerEntitlementsRequest;
 import com.redhat.swatch.contract.openapi.model.Contract;
-import com.redhat.swatch.contract.openapi.model.ContractRequest;
-import com.redhat.swatch.contract.openapi.model.ContractResponse;
 import com.redhat.swatch.contract.openapi.model.Dimension;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContractCloudIdentifiers;
@@ -79,6 +77,7 @@ import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.repository.SubscriptionRepository;
 import com.redhat.swatch.contract.test.resources.InjectWireMock;
 import com.redhat.swatch.contract.test.resources.WireMockResource;
+import com.redhat.swatch.contract.utils.ContractMessageProcessingResult;
 import io.quarkus.narayana.jta.QuarkusTransaction;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
@@ -149,15 +148,14 @@ class ContractServiceTest extends BaseUnitTest {
   }
 
   @Test
-  void testSaveContracts() {
-    ContractRequest request = givenContractRequest();
-    Contract response = contractService.createContract(request).getContract();
+  void testSaveContracts() throws Exception {
+    PartnerEntitlementV1 entitlement = givenPartnerEntitlement();
+    ContractMessageProcessingResult result =
+        contractService.upsertPartnerContracts(entitlement, SUBSCRIPTION_ID);
+    ContractEntity entity = result.getEntity();
 
-    ContractEntity entity = contractRepository.findById(UUID.fromString(response.getUuid()));
-    assertEquals(
-        request.getPartnerEntitlement().getRhEntitlements().get(0).getSku(),
-        entity.getOffering().getSku());
-    assertEquals(response.getUuid(), entity.getUuid().toString());
+    assertEquals(entitlement.getRhEntitlements().get(0).getSku(), entity.getOffering().getSku());
+    assertNotNull(entity.getUuid());
     verify(subscriptionService).save(any(SubscriptionEntity.class));
     verify(measurementMetricIdTransformer).mapContractMetricsToSubscriptionMeasurements(any());
   }
@@ -174,10 +172,10 @@ class ContractServiceTest extends BaseUnitTest {
   @Test
   void testGetContractsReturnsMixedLicenseIds() {
     String licenseId = "arn:aws:license-manager:us-east-1:000000000000:license:swatch-test-license";
-    var withLicenseRequest = givenContractRequest("with-license-sub");
-    withLicenseRequest.getPartnerEntitlement().getPartnerIdentities().setLicenseArn(licenseId);
-    givenExistingContract(withLicenseRequest);
-    givenExistingContract(givenContractRequest("without-license-sub"));
+    var withLicenseEntitlement = givenPartnerEntitlement("with-license-sub");
+    withLicenseEntitlement.getPartnerIdentities().setLicenseArn(licenseId);
+    givenExistingContract(withLicenseEntitlement);
+    givenExistingContract(givenPartnerEntitlement("without-license-sub"));
 
     List<Contract> contracts =
         contractService.getContracts(ORG_ID, PRODUCT_TAG, null, null, null, null);
@@ -315,7 +313,7 @@ class ContractServiceTest extends BaseUnitTest {
   @Test
   void createPartnerContractUpdateContract() {
     ContractEntity existingContract =
-        givenExistingContract(givenContractRequest(PARTNER_API_AWS_SUBSCRIPTION_NUMBER));
+        givenExistingContract(givenPartnerEntitlement(PARTNER_API_AWS_SUBSCRIPTION_NUMBER));
     givenExistingSubscriptionWithBillingProviderId("1234:agb1:1fa");
     UUID deletedContractUuid = existingContract.getUuid();
     assertTrue(
@@ -970,19 +968,24 @@ class ContractServiceTest extends BaseUnitTest {
 
   private ContractEntity givenExistingContractWithSameStartDateThanInPartnerGateway() {
     return givenExistingContract(
-        givenContractRequestWithDates(
+        givenPartnerEntitlementWithDates(
             WireMockResource.DEFAULT_START_DATE,
             WireMockResource.DEFAULT_END_DATE,
             PARTNER_API_AWS_SUBSCRIPTION_NUMBER));
   }
 
   private ContractEntity givenExistingContract() {
-    return givenExistingContract(givenContractRequest());
+    return givenExistingContract(givenPartnerEntitlement());
   }
 
-  private ContractEntity givenExistingContract(ContractRequest request) {
-    ContractResponse created = contractService.createContract(request);
-    var entity = contractRepository.findById(UUID.fromString(created.getContract().getUuid()));
+  private ContractEntity givenExistingContract(PartnerEntitlementV1 entitlement) {
+    ContractMessageProcessingResult created;
+    try {
+      created = contractService.upsertPartnerContracts(entitlement, SUBSCRIPTION_ID);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+    var entity = created.getEntity();
     // reset the invocations of this repository, so it does not mix up with the assertions.
     reset(contractRepository);
     clearInvocations(subscriptionService);
@@ -1034,20 +1037,20 @@ class ContractServiceTest extends BaseUnitTest {
     return orphan;
   }
 
-  private ContractRequest givenContractRequest() {
-    return givenContractRequest(SUBSCRIPTION_NUMBER);
+  private PartnerEntitlementV1 givenPartnerEntitlement() {
+    return givenPartnerEntitlement(SUBSCRIPTION_NUMBER);
   }
 
-  private ContractRequest givenContractRequest(String subscriptionNumber) {
-    return givenContractRequestWithDates(
+  private PartnerEntitlementV1 givenPartnerEntitlement(String subscriptionNumber) {
+    return givenPartnerEntitlementWithDates(
         "2023-03-17T12:29:48.569Z", DEFAULT_END_DATE.toString(), subscriptionNumber);
   }
 
-  private ContractRequest givenContractRequestWithDates(String startDate, String endDate) {
-    return givenContractRequestWithDates(startDate, endDate, SUBSCRIPTION_NUMBER);
+  private PartnerEntitlementV1 givenPartnerEntitlementWithDates(String startDate, String endDate) {
+    return givenPartnerEntitlementWithDates(startDate, endDate, SUBSCRIPTION_NUMBER);
   }
 
-  private ContractRequest givenContractRequestWithDates(
+  private PartnerEntitlementV1 givenPartnerEntitlementWithDates(
       String startDate, String endDate, String subscriptionNumber) {
     var contract = new PartnerEntitlementContract();
     var entitlement = new PartnerEntitlementV1();
@@ -1076,13 +1079,10 @@ class ContractServiceTest extends BaseUnitTest {
     saasContract.setStartDate(entitlement.getEntitlementDates().getStartDate());
     contract.setCloudIdentifiers(cloudIdentifiers);
 
-    ContractRequest contractRequest = new ContractRequest();
-    contractRequest.setSubscriptionId(SUBSCRIPTION_ID);
-    contractRequest.setPartnerEntitlement(entitlement);
     entitlement.setPartnerIdentities(partnerIdentity);
     entitlement.setPurchase(purchase);
     entitlement.setRhEntitlements(List.of(rhEntitlement));
-    return contractRequest;
+    return entitlement;
   }
 
   @Transactional

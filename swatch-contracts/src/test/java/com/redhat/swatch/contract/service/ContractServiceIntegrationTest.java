@@ -31,7 +31,6 @@ import com.redhat.swatch.clients.rh.partner.gateway.api.model.PurchaseV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.RhEntitlementV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.SaasContractV1;
 import com.redhat.swatch.contract.model.ContractSourcePartnerEnum;
-import com.redhat.swatch.contract.openapi.model.ContractRequest;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContractCloudIdentifiers;
 import com.redhat.swatch.contract.repository.ContractRepository;
@@ -90,21 +89,28 @@ class ContractServiceIntegrationTest {
   }
 
   @Test
-  void concurrentCreateContractCallsShouldLeaveSingleContractAndSubscription() throws Exception {
-    var request = givenContractRequest();
+  void concurrentUpsertPartnerContractsCallsShouldLeaveSingleContractAndSubscription()
+      throws Exception {
+    var entitlement = givenPartnerEntitlement();
 
-    runConcurrent(
-        () -> contractService.createContract(request),
-        () -> contractService.createContract(request));
+    runConcurrent(() -> upsertContract(entitlement), () -> upsertContract(entitlement));
 
     assertEquals(
         1,
         subscriptionRepository.findBySubscriptionNumber(SUBSCRIPTION_NUMBER).size(),
-        "createContract bypasses advisory lock via CDI self-invocation");
+        "Expected a single subscription after concurrent upsertPartnerContracts calls");
     assertEquals(
         1,
         contractRepository.listAll().size(),
-        "Expected a single contract row after concurrent createContract calls");
+        "Expected a single contract row after concurrent upsertPartnerContracts calls");
+  }
+
+  private void upsertContract(PartnerEntitlementV1 entitlement) {
+    try {
+      contractService.upsertPartnerContracts(entitlement, SUBSCRIPTION_ID);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private void runConcurrent(Runnable first, Runnable second) throws InterruptedException {
@@ -135,7 +141,7 @@ class ContractServiceIntegrationTest {
     if (failure.get() != null) {
       if (isSubscriptionDuplicateKeyRace(failure.get())) {
         throw new AssertionError(
-            "Concurrent createContract calls raced without advisory lock (subscription_pkey"
+            "Concurrent upsertPartnerContracts calls raced without advisory lock (subscription_pkey"
                 + " violation)",
             failure.get());
       }
@@ -153,7 +159,7 @@ class ContractServiceIntegrationTest {
     return false;
   }
 
-  private ContractRequest givenContractRequest() {
+  private PartnerEntitlementV1 givenPartnerEntitlement() {
     var contract = new PartnerEntitlementContract();
     var entitlement = new PartnerEntitlementV1();
     var cloudIdentifiers = new PartnerEntitlementContractCloudIdentifiers();
@@ -182,13 +188,10 @@ class ContractServiceIntegrationTest {
     saasContract.setStartDate(entitlement.getEntitlementDates().getStartDate());
     contract.setCloudIdentifiers(cloudIdentifiers);
 
-    ContractRequest contractRequest = new ContractRequest();
-    contractRequest.setSubscriptionId(SUBSCRIPTION_ID);
-    contractRequest.setPartnerEntitlement(entitlement);
     entitlement.setPartnerIdentities(partnerIdentity);
     entitlement.setPurchase(purchase);
     entitlement.setRhEntitlements(List.of(rhEntitlement));
-    return contractRequest;
+    return entitlement;
   }
 
   private static DimensionV1 controlPlaneDimension(String value) {

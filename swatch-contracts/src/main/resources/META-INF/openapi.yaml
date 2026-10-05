@@ -102,25 +102,6 @@ paths:
         - test: []
         - service: []
       operationId: getContract
-    post:
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ContractRequest'
-        required: true
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ContractResponse'
-          description: success
-        default:
-          $ref: '#/components/responses/ErrorResponse'
-      security:
-        - test: []
-      operationId: createContract
   /api/swatch-contracts/internal/rpc/sync/contracts/{org_id}:
     description: "Trigger a contract sync for a given Org ID"
     post:
@@ -1160,18 +1141,6 @@ components:
         title:
           type: string
         detail:
-          type: string
-    ContractRequest:
-      description: ""
-      required:
-        - partner_entitlement
-        - subscription_id
-      type: object
-      properties:
-        partner_entitlement:
-          $ref: '../../../../../clients/rh-partner-gateway-client/rh-partner-gateway-api-spec.yaml#/components/schemas/PartnerEntitlementV1'
-        subscription_id:
-          description: The subscription ID provided by the Subscription API using the subscription number.
           type: string
     BillingAccountIdResponse:
       type: object

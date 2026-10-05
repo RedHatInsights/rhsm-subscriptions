@@ -20,8 +20,6 @@
  */
 package com.redhat.swatch.contract.model;
 
-import com.redhat.swatch.clients.rh.partner.gateway.api.model.RhEntitlementV1;
-import com.redhat.swatch.contract.openapi.model.ContractRequest;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.repository.BillingProvider;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
@@ -46,31 +44,6 @@ public class PartnerEntitlementsRequest {
       request.awsCustomerAccountId = contract.getCloudIdentifiers().getAwsCustomerAccountId();
       request.azureResourceId = contract.getCloudIdentifiers().getAzureResourceId();
       request.productCode = contract.getCloudIdentifiers().getProductCode();
-    }
-
-    return request;
-  }
-
-  public static PartnerEntitlementsRequest from(ContractRequest contractRequest) {
-    PartnerEntitlementsRequest request = new PartnerEntitlementsRequest();
-    var entitlement = contractRequest.getPartnerEntitlement();
-    if (entitlement.getRhEntitlements() != null) {
-      request.redHatSubscriptionNumber =
-          entitlement.getRhEntitlements().stream()
-              .map(RhEntitlementV1::getSubscriptionNumber)
-              .filter(Objects::nonNull)
-              .findFirst()
-              .orElse(null);
-    }
-
-    if (entitlement.getPartnerIdentities() != null) {
-      request.awsCustomerId = entitlement.getPartnerIdentities().getAwsCustomerId();
-      request.awsCustomerAccountId = entitlement.getPartnerIdentities().getCustomerAwsAccountId();
-    }
-
-    if (entitlement.getPurchase() != null) {
-      request.azureResourceId = entitlement.getPurchase().getAzureResourceId();
-      request.productCode = entitlement.getPurchase().getVendorProductCode();
     }
 
     return request;

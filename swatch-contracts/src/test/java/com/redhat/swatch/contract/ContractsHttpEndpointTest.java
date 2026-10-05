@@ -28,10 +28,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1;
 import com.redhat.swatch.contract.openapi.model.Contract;
-import com.redhat.swatch.contract.openapi.model.ContractRequest;
-import com.redhat.swatch.contract.openapi.model.ContractResponse;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.service.AccountResetService;
 import com.redhat.swatch.contract.service.ContractService;
@@ -64,26 +61,6 @@ class ContractsHttpEndpointTest {
         .statusCode(HttpStatus.SC_OK)
         .body("size()", is(1))
         .body("[0].org_id", is("org123"));
-  }
-
-  @Test
-  void whenCreateContract_thenCreatedContractShouldBeReturned() {
-    Contract newContract = new Contract();
-    newContract.setOrgId("org123");
-    ContractResponse response = new ContractResponse();
-    response.setContract(newContract);
-    when(contractService.createContract(any())).thenReturn(response);
-    ContractRequest request = new ContractRequest();
-    request.setPartnerEntitlement(new PartnerEntitlementV1());
-    request.setSubscriptionId("any");
-    given()
-        .contentType(ContentType.JSON)
-        .body(request)
-        .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
-        .when()
-        .post("/api/swatch-contracts/internal/contracts")
-        .then()
-        .statusCode(HttpStatus.SC_OK);
   }
 
   @Test

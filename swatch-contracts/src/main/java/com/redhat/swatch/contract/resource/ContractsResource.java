@@ -30,8 +30,6 @@ import com.redhat.swatch.contract.model.SyncResult;
 import com.redhat.swatch.contract.openapi.model.AwsUsageContext;
 import com.redhat.swatch.contract.openapi.model.AzureUsageContext;
 import com.redhat.swatch.contract.openapi.model.Contract;
-import com.redhat.swatch.contract.openapi.model.ContractRequest;
-import com.redhat.swatch.contract.openapi.model.ContractResponse;
 import com.redhat.swatch.contract.openapi.model.MetricResponse;
 import com.redhat.swatch.contract.openapi.model.OfferingProductTags;
 import com.redhat.swatch.contract.openapi.model.OfferingResponse;
@@ -61,7 +59,6 @@ import io.quarkus.runtime.LaunchMode;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.InternalServerErrorException;
@@ -97,20 +94,6 @@ public class ContractsResource implements DefaultApi {
   private final UsageContextSubscriptionProvider usageContextSubscriptionProvider;
   private final MetricMapper metricMapper;
   private final ContractSyncService contractSyncService;
-
-  /**
-   * Create contract record in database from provided contract dto payload
-   *
-   * @param request the ContractRequest
-   * @return status
-   */
-  @Override
-  @Transactional
-  @RolesAllowed({"test"})
-  public ContractResponse createContract(ContractRequest request) throws ProcessingException {
-    log.info("Creating contract");
-    return service.createContract(request);
-  }
 
   @Override
   @RolesAllowed({"test"})

@@ -22,6 +22,7 @@ package tests;
 
 import static api.PartnerApiStubs.PartnerSubscriptionsStubRequest.forContract;
 import static com.redhat.swatch.component.tests.utils.Topics.SUBSCRIPTION_SYNC_TASK;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -56,6 +57,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import org.apache.http.HttpStatus;
 import org.candlepin.clock.ApplicationClock;
@@ -125,11 +127,17 @@ public class BaseContractComponentTest {
     return contract;
   }
 
-  void givenContractIsCreated(Contract contract) {
+  protected void givenContractIsCreated(Contract contract) {
     givenOfferingIsSynced(contract.getOffering());
     wiremock.forPartnerAPI().stubPartnerSubscriptions(forContract(contract));
-    Response create = service.createContract(contract);
-    assertEquals(HttpStatus.SC_OK, create.statusCode(), "Creating contract should succeed");
+    wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(contract);
+    kafkaBridge.asOfPartnerGateway().send(contract);
+    AwaitilityUtils.until(() -> hasPersistedContract(contract), is(true));
+  }
+
+  protected boolean hasPersistedContract(Contract contract) {
+    return service.getContractsByOrgId(contract.getOrgId()).stream()
+        .anyMatch(c -> Objects.equals(contract.getSubscriptionNumber(), c.getSubscriptionNumber()));
   }
 
   protected void givenOfferingIsSynced(Offering offering) {
@@ -264,14 +272,6 @@ public class BaseContractComponentTest {
     Response response = service.deleteContract(contractUuid);
     assertEquals(HttpStatus.SC_NO_CONTENT, response.statusCode(), "Delete should succeed");
     return response;
-  }
-
-  protected void whenContractIsCreatedViaApi(Contract contract) {
-    Response response = service.createContract(contract);
-    assertEquals(HttpStatus.SC_OK, response.statusCode());
-    var contractResponse =
-        response.then().extract().as(com.redhat.swatch.contract.test.model.ContractResponse.class);
-    assertEquals(SUCCESS_MESSAGE, contractResponse.getStatus().getStatus());
   }
 
   protected void whenSubscriptionSyncRunsForOrg() {

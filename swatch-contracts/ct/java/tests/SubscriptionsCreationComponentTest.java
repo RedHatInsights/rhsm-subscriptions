@@ -34,7 +34,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
-import com.redhat.swatch.contract.test.model.ContractResponse;
 import domain.BillingProvider;
 import domain.Contract;
 import domain.Offering;
@@ -258,14 +257,11 @@ public class SubscriptionsCreationComponentTest extends BaseContractComponentTes
     Response sync = service.syncOffering(contract.getOffering().getSku());
     assertThat("Sync offering should succeed", sync.statusCode(), is(HttpStatus.SC_OK));
 
-    // when create the valid PAYG contract
-    Response response = service.createContract(contract);
+    wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(contract);
+    kafkaBridge.asOfPartnerGateway().send(contract);
+    AwaitilityUtils.until(() -> service.getContracts(contract).size(), is(1));
 
-    // assert the created contract
-    assertThat("Creating contract should succeed", response.statusCode(), is(HttpStatus.SC_OK));
-    var actual = response.then().extract().as(ContractResponse.class);
-    assertNotNull(actual.getContract());
-    var actualContract = actual.getContract();
+    var actualContract = service.getContracts(contract).getFirst();
     assertEquals(contract.getSubscriptionNumber(), actualContract.getSubscriptionNumber());
     assertEquals(contract.getOffering().getSku(), actualContract.getSku());
     assertDatesAreEqual(contract.getStartDate(), actualContract.getStartDate());

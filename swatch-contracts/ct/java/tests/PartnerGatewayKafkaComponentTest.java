@@ -35,6 +35,7 @@ import com.redhat.swatch.contract.test.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.test.model.PartnerEntitlementContractCloudIdentifiers;
 import domain.BillingProvider;
 import domain.Contract;
+import domain.Offering;
 import io.restassured.response.Response;
 import java.util.Map;
 import org.apache.http.HttpStatus;
@@ -132,6 +133,7 @@ public class PartnerGatewayKafkaComponentTest extends BaseContractComponentTest 
 
     kafkaBridge.asOfPartnerGateway().send(contract);
 
+    service.logs().assertContains("Error fetching subscription ID for contract");
     thenNoContractCreated();
   }
 
@@ -231,6 +233,62 @@ public class PartnerGatewayKafkaComponentTest extends BaseContractComponentTest 
     assertTrue(service.isRunning(), "Service health checks should all be UP");
 
     thenKafkaConsumerAcceptsSubsequentMessages();
+  }
+
+  @TestPlanName("partner-gateway-kafka-TC012")
+  @Test
+  void shouldProcessContractWithValidAndInvalidMetricsViaKafka() {
+    Contract contract =
+        givenContractCreatedViaKafka(
+            BillingProvider.AWS, Map.of(CORES, DEFAULT_CAPACITY, SOCKETS, DEFAULT_CAPACITY));
+
+    var actual = service.getContracts(contract).getFirst();
+    verifyCommonContractFields(contract, actual);
+    verifyAwsBillingProviderId(contract, actual);
+    assertEquals(
+        1,
+        actual.getMetrics().size(),
+        "Contract should have only 1 valid metric (Cores), invalid metric (Sockets) filtered out");
+    verifyMetric(actual, contract.getProduct().getMetric(CORES), DEFAULT_CAPACITY);
+  }
+
+  @TestPlanName("partner-gateway-kafka-TC013")
+  @Test
+  void shouldProcessPurePaygAzureContractViaKafka() {
+    Contract contract =
+        givenContractCreatedViaKafka(BillingProvider.AZURE, Map.of(SOCKETS, DEFAULT_CAPACITY));
+
+    var actual = service.getContracts(contract).getFirst();
+    verifyCommonContractFields(contract, actual);
+    verifyAzureBillingProviderId(contract, actual);
+    assertEquals(0, actual.getMetrics().size(), "Pure PAYG contract should have 0 metrics");
+  }
+
+  @TestPlanName("partner-gateway-kafka-TC014")
+  @Test
+  void shouldFilterDimensionsForUnconfiguredSkuViaKafka() {
+    String unconfiguredSku = "UNCONFIGURED_" + orgId;
+    Offering unconfiguredOffering = Offering.buildUnconfiguredOffering(unconfiguredSku);
+    Contract contract =
+        buildRosaContract(orgId, BillingProvider.AWS, Map.of(CORES, DEFAULT_CAPACITY)).toBuilder()
+            .offering(unconfiguredOffering)
+            .build();
+    wiremock.forProductAPI().stubOfferingData(unconfiguredOffering);
+    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContract(contract));
+    wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(contract);
+
+    Response sync = service.syncOffering(unconfiguredSku);
+    assertThat("Sync offering should succeed", sync.statusCode(), is(HttpStatus.SC_OK));
+
+    kafkaBridge.asOfPartnerGateway().send(contract);
+    AwaitilityUtils.until(() -> service.getContractsByOrgId(orgId).size(), is(1));
+
+    var contracts = service.getContractsByOrgId(orgId);
+    assertEquals(1, contracts.size(), "Contract should be created");
+    assertEquals(
+        0,
+        contracts.getFirst().getMetrics().size(),
+        "All dimensions should be filtered out for unconfigured SKU");
   }
 
   private Contract givenContractCreatedViaKafka(

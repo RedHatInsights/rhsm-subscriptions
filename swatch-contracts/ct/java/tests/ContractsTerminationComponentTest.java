@@ -153,6 +153,7 @@ public class ContractsTerminationComponentTest extends BaseContractComponentTest
     Response terminateResponse = service.terminateSubscription(contract);
     assertThat(
         "Terminate contract should succeed", terminateResponse.statusCode(), is(HttpStatus.SC_OK));
+    service.forceReconcileOffering(contract.getOffering().getSku());
 
     // Then: The capacity decreases to zero
     int newCapacity = thenCapacityIsDecreased(contract, initialCapacity);

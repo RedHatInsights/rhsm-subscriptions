@@ -34,7 +34,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.configuration.registry.MetricId;
-import com.redhat.swatch.contract.test.model.ContractResponse;
 import com.redhat.swatch.contract.test.model.SubscriptionDeleteReason;
 import domain.BillingProvider;
 import domain.Contract;
@@ -107,7 +106,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
     OffsetDateTime updatedEndDate = OffsetDateTime.parse("2025-01-31T23:59:59Z");
     Contract updatedContract =
         initialContract.toBuilder().startDate(updatedStartDate).endDate(updatedEndDate).build();
-    whenContractIsUpdatedViaApi(updatedContract);
+    whenContractIsUpdated(updatedContract);
 
     // Then: Old contract is deleted, new contract created with different UUID
     thenContractWasReplaced(initialUuid, initialContract, updatedContract);
@@ -134,7 +133,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
     // contract
     OffsetDateTime renewalEndDate = OffsetDateTime.parse("2025-12-31T23:59:59Z");
     Contract renewedContract = initialContract.toBuilder().endDate(renewalEndDate).build();
-    whenContractIsUpdatedViaApiExpectingUpdate(renewedContract);
+    whenContractIsUpdated(renewedContract);
 
     // Then: The existing contract is updated (UUID remains the same)
     var contracts = service.getContractsByOrgId(orgId);
@@ -176,7 +175,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
             .subscriptionMeasurements(
                 Map.of(CORES, CORES_CAPACITY * 2, INSTANCE_HOURS, INSTANCE_HOURS_CAPACITY * 2))
             .build();
-    whenContractIsUpdatedViaApiExpectingUpdate(upgradedContract);
+    whenContractIsUpdated(upgradedContract);
 
     // Then: Existing contract found and updated with new metric values
     var contracts = service.getContractsByOrgId(orgId);
@@ -209,7 +208,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
             .subscriptionMeasurements(
                 Map.of(CORES, CORES_CAPACITY, INSTANCE_HOURS, INSTANCE_HOURS_CAPACITY))
             .build();
-    whenContractIsUpdatedViaApiExpectingUpdate(upgradedContract);
+    whenContractIsUpdated(upgradedContract);
 
     // Then: Contract now has metrics (upgraded from pure PAYG to PAYG with prepaid)
     var contracts = service.getContractsByOrgId(orgId);
@@ -238,7 +237,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
     // When: Submit entitlement with end_date set to current timestamp (termination)
     OffsetDateTime terminationTime = OffsetDateTime.now();
     Contract terminatedContract = initialContract.toBuilder().endDate(terminationTime).build();
-    whenContractIsUpdatedViaApiExpectingUpdate(terminatedContract);
+    whenContractIsUpdated(terminatedContract);
 
     // Then: Contract is terminated (end_date set to termination timestamp)
     var contracts = service.getContractsByOrgId(orgId);
@@ -276,7 +275,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
             .subscriptionMeasurements(
                 Map.of(CORES, CORES_CAPACITY, INSTANCE_HOURS, INSTANCE_HOURS_CAPACITY))
             .build();
-    whenContractIsUpdatedViaApiExpectingUpdate(updatedContract);
+    whenContractIsUpdated(updatedContract);
 
     // Then: Old metric remains, new metric added
     var contracts = service.getContractsByOrgId(orgId);
@@ -309,7 +308,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
     // When: Remove one metric (keep only Cores: 8, remove Instance-hours)
     Contract updatedContract =
         initialContract.toBuilder().subscriptionMeasurements(Map.of(CORES, CORES_CAPACITY)).build();
-    whenContractIsUpdatedViaApiExpectingUpdate(updatedContract);
+    whenContractIsUpdated(updatedContract);
 
     // Then: Specified metric removed, other metric remains
     var contracts = service.getContractsByOrgId(orgId);
@@ -401,7 +400,7 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
             .build();
 
     givenOfferingIsSynced(contract.getOffering());
-    whenContractIsCreatedViaApi(contract);
+    givenContractIsCreated(contract);
 
     return contract;
   }
@@ -412,23 +411,16 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
     wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(contract);
   }
 
-  private void whenContractIsUpdatedViaApi(Contract contract) {
-    Response response = service.createContract(contract);
-    assertThat("Updating contract should succeed", response.statusCode(), is(HttpStatus.SC_OK));
-  }
-
-  private void whenContractIsUpdatedViaApiExpectingUpdate(Contract contract) {
-    Response response = service.createContract(contract);
-    assertThat("Updating contract should succeed", response.statusCode(), is(HttpStatus.SC_OK));
-    var contractResponse = response.then().extract().as(ContractResponse.class);
-    assertEquals(
-        SUCCESS_MESSAGE,
-        contractResponse.getStatus().getStatus(),
-        "Status should be SUCCESS for successful operations");
-    assertEquals(
-        EXISTING_CONTRACTS_SYNCED_MESSAGE,
-        contractResponse.getStatus().getMessage(),
-        "Message should indicate existing contracts were synced");
+  private void whenContractIsUpdated(Contract contract) {
+    wiremock.forPartnerAPI().stubPartnerSubscriptions(forContract(contract));
+    wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(contract);
+    kafkaBridge.asOfPartnerGateway().send(contract);
+    AwaitilityUtils.untilAsserted(
+        () ->
+            assertThat(
+                "Contract update should be persisted",
+                service.getContractsByOrgId(orgId).size(),
+                is(1)));
   }
 
   private void thenContractWasReplaced(

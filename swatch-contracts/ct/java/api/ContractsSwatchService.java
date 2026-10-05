@@ -28,7 +28,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import com.redhat.swatch.component.tests.api.SwatchService;
 import com.redhat.swatch.component.tests.utils.JsonUtils;
 import com.redhat.swatch.contract.test.model.CapacityReportByMetricId;
-import com.redhat.swatch.contract.test.model.ContractRequest;
 import com.redhat.swatch.contract.test.model.GranularityType;
 import com.redhat.swatch.contract.test.model.ReportCategory;
 import com.redhat.swatch.contract.test.model.ServiceLevelType;
@@ -50,7 +49,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 import org.apache.http.HttpStatus;
-import utils.ContractRequestMapper;
 import utils.SubscriptionRequestMapper;
 
 public class ContractsSwatchService extends SwatchService {
@@ -157,24 +155,6 @@ public class ContractsSwatchService extends SwatchService {
             billingProvider.toApiModel(),
             "timestamp",
             timestamp.toString()));
-  }
-
-  public Response createContract(Contract contract) {
-    Objects.requireNonNull(contract, "contract must not be null");
-
-    ContractRequest contractRequest = ContractRequestMapper.buildContractRequest(contract);
-    return createContract(contractRequest);
-  }
-
-  public Response createContract(ContractRequest contractRequest) {
-    Objects.requireNonNull(contractRequest, "contractRequest must not be null");
-
-    return given()
-        .headers(SECURITY_HEADERS)
-        .contentType("application/json")
-        .body(contractRequest)
-        .when()
-        .post(CONTRACTS_ENDPOINT);
   }
 
   public Response deleteDataForOrg(String orgId) {

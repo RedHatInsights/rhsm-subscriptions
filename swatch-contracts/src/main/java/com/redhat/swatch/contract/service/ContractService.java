@@ -42,8 +42,6 @@ import com.redhat.swatch.contract.model.MeasurementMetricIdTransformer;
 import com.redhat.swatch.contract.model.PartnerEntitlementsRequest;
 import com.redhat.swatch.contract.model.SubscriptionEntityMapper;
 import com.redhat.swatch.contract.openapi.model.Contract;
-import com.redhat.swatch.contract.openapi.model.ContractRequest;
-import com.redhat.swatch.contract.openapi.model.ContractResponse;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractEntity.ContractIdentity;
@@ -115,31 +113,6 @@ public class ContractService {
     this.measurementMetricIdTransformer = measurementMetricIdTransformer;
     this.partnerEntitlementsProviders =
         List.of(awsPartnerEntitlementsProvider, azurePartnerEntitlementsProvider);
-  }
-
-  @Transactional
-  public ContractResponse createContract(ContractRequest request) {
-    ContractResponse response = new ContractResponse();
-    if (findPartnerEntitlementsProvider(PartnerEntitlementsRequest.from(request)) == null) {
-      log.info("Can't process the contract because is not contract-enabled: {}", request);
-      response.setStatus(INVALID_MESSAGE_UNPROCESSED.toStatus());
-      return response;
-    }
-
-    try {
-      var result =
-          upsertPartnerContracts(request.getPartnerEntitlement(), request.getSubscriptionId());
-      response.setStatus(result.toStatus());
-      if (result.isValid() && result.getEntity() != null) {
-        response.setContract(contractDtoMapper.contractEntityToDto(result.getEntity()));
-      }
-    } catch (ContractNotAssociatedToOrgException e) {
-      response.setStatus(ContractMessageProcessingResult.RH_ORG_NOT_ASSOCIATED.toStatus());
-    } catch (ContractValidationFailedException e) {
-      response.setStatus(buildContractDetailsMissingStatus(e));
-    }
-
-    return response;
   }
 
   /**
