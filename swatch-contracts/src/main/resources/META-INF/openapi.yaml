@@ -629,18 +629,19 @@ paths:
         - support: [ ]
         - test: [ ]
         - service: [ ]
-  /api/swatch-contracts/internal/subscriptions/terminate/{subscription_id}:
-    description: "Terminate a subscription with a given end date."
+  /api/swatch-contracts/internal/subscriptions/terminate/{subscription_number}:
+    description: "Terminate a subscription with a given end date. **DEPRECATED**: This API is to be deleted in SWATCH-5748"
     parameters:
-      - name: subscription_id
+      - name: subscription_number
         in: path
         required: true
         schema:
           type: string
-        description: "Subscription ID to terminate."
+        description: "Subscription Number to terminate."
     post:
       operationId: terminateSubscription
       summary: "Terminate a subscription."
+      deprecated: true
       parameters:
         - name: timestamp
           description: "The termination timestamp to use."

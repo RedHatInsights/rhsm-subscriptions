@@ -71,12 +71,12 @@ public class SubscriptionRepository
     return query.stream();
   }
 
-  public List<SubscriptionEntity> findActiveSubscription(String subscriptionId) {
+  public List<SubscriptionEntity> findActiveSubscription(String subscriptionNumber) {
     // Added an order by clause to avoid Hibernate issue HHH-17040
     return find(
-            "(endDate IS NULL OR endDate > CURRENT_TIMESTAMP) AND subscriptionId = ?1",
+            "(endDate IS NULL OR endDate > CURRENT_TIMESTAMP) AND subscriptionNumber = ?1",
             DEFAULT_SORT,
-            subscriptionId)
+            subscriptionNumber)
         .list();
   }
 

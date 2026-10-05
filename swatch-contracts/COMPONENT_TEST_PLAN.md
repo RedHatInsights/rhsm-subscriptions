@@ -1318,7 +1318,7 @@ This section verifies the automatic contract termination behavior when contracts
 - **Setup:**
   - Create an active subscription
   - Confirm it appears in the active subscription search (SKU capacity report)
-- **Action:** POST `/api/swatch-contracts/internal/subscriptions/terminate/{subscription_id}?timestamp=<past>`.  
+- **Action:** POST `/api/swatch-contracts/internal/subscriptions/terminate/{subscription_number}?timestamp=<past>`.  
 - **Verification:**
   - Check subscription `end_date` via internal GET subscriptions
   - Re-query the v2 SKU capacity report (active subscription search) for the org/product
