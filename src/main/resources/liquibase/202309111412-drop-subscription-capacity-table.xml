@@ -6,6 +6,11 @@
   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
   <changeSet id="202309111412-01" author="awood" dbms="postgresql">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <tableExists tableName="DATABASECHANGELOGLOCK_SWATCH_CONTRACTS"/>
+      </not>
+    </preConditions>
     <sql>
       DROP TRIGGER subscription_measurements_insert ON subscription_capacity;
     </sql>
@@ -14,6 +19,11 @@
   </changeSet>
 
   <changeSet id="202309111412-02" author="awood" dbms="postgresql">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <tableExists tableName="DATABASECHANGELOGLOCK_SWATCH_CONTRACTS"/>
+      </not>
+    </preConditions>
     <sql>
       DROP TRIGGER subscription_measurements_update ON subscription_capacity;
     </sql>
@@ -22,6 +32,11 @@
   </changeSet>
 
   <changeSet id="202309111412-03" author="awood" dbms="postgresql">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <tableExists tableName="DATABASECHANGELOGLOCK_SWATCH_CONTRACTS"/>
+      </not>
+    </preConditions>
     <sql>
       DROP TRIGGER subscription_product_id_insert ON subscription_capacity;
     </sql>
@@ -30,6 +45,11 @@
   </changeSet>
 
   <changeSet id="202309111412-04" author="awood" dbms="postgresql">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <tableExists tableName="DATABASECHANGELOGLOCK_SWATCH_CONTRACTS"/>
+      </not>
+    </preConditions>
     <sql>
       DROP TRIGGER subscription_product_id_update ON subscription_capacity;
     </sql>
@@ -38,6 +58,11 @@
   </changeSet>
 
   <changeSet id="202309111412-05" author="awood" dbms="postgresql">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <tableExists tableName="DATABASECHANGELOGLOCK_SWATCH_CONTRACTS"/>
+      </not>
+    </preConditions>
     <sql>
       DROP FUNCTION copy_subscription_capacity_sockets_and_cores();
     </sql>
@@ -46,6 +71,11 @@
   </changeSet>
 
   <changeSet id="202309111412-07" author="awood" dbms="postgresql">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <tableExists tableName="DATABASECHANGELOGLOCK_SWATCH_CONTRACTS"/>
+      </not>
+    </preConditions>
     <sql>
       DROP FUNCTION copy_subscription_product_id();
     </sql>
@@ -54,6 +84,12 @@
   </changeSet>
 
   <changeSet id="202309111412-08" author="awood">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="subscription_capacity"/>
+      <not>
+        <tableExists tableName="DATABASECHANGELOGLOCK_SWATCH_CONTRACTS"/>
+      </not>
+    </preConditions>
     <dropTable tableName="subscription_capacity"/>
   </changeSet>
 </databaseChangeLog>

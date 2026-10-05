@@ -132,8 +132,8 @@ public class CapacityReconciliationService {
       if (!existingKeys.isEmpty()) {
         measurementsDeleted.increment(existingKeys.size());
         log.info(
-            "Update for subscription ID {} removed {} incorrect capacity measurements.",
-            subscription.getSubscriptionId(),
+            "Update for subscription number {} removed {} incorrect capacity measurements.",
+            subscription.getSubscriptionNumber(),
             existingKeys.size());
       }
     }

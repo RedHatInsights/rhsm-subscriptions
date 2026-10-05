@@ -173,7 +173,7 @@ class SubscriptionCapacityServiceTest {
     var result = subscriptionCapacityService.getCapacityForTallySummary(tallySummary);
 
     assertEquals(1, result.size());
-    assertEquals("sub123", result.values().iterator().next().get(0).getSubscriptionId());
+    assertEquals("sub123", result.values().iterator().next().get(0).getSubscriptionNumber());
   }
 
   @Test
@@ -212,7 +212,8 @@ class SubscriptionCapacityServiceTest {
 
     // Self-Support snapshot matches only the Self-Support capacity
     assertEquals(1, result.get(selfSupportSnapshot).size());
-    assertEquals("sub-self-support", result.get(selfSupportSnapshot).get(0).getSubscriptionId());
+    assertEquals(
+        "sub-self-support", result.get(selfSupportSnapshot).get(0).getSubscriptionNumber());
   }
 
   @Test
@@ -235,29 +236,31 @@ class SubscriptionCapacityServiceTest {
 
   private void assertSingleCapacityResult(
       Map<TallySnapshot, List<SubscriptionCapacityView>> result,
-      String expectedSubId,
+      String expectedSubNumber,
       String expectedOrgId,
       ProductId expectedProduct) {
     assertNotNull(result);
     assertEquals(1, result.size());
     var capacities = result.values().iterator().next();
     assertEquals(1, capacities.size());
-    assertEquals(expectedSubId, capacities.get(0).getSubscriptionId());
+    assertEquals(expectedSubNumber, capacities.get(0).getSubscriptionNumber());
     assertEquals(expectedOrgId, capacities.get(0).getOrgId());
     assertEquals(expectedProduct.getValue(), capacities.get(0).getProductTag());
   }
 
   private void assertMultipleCapacityResults(
-      Map<TallySnapshot, List<SubscriptionCapacityView>> result, List<String> expectedSubIds) {
+      Map<TallySnapshot, List<SubscriptionCapacityView>> result, List<String> expectedSubNumbers) {
     assertNotNull(result);
-    assertEquals(expectedSubIds.size(), result.size());
+    assertEquals(expectedSubNumbers.size(), result.size());
 
-    for (String expectedSubId : expectedSubIds) {
+    for (String expectedSubNumber : expectedSubNumbers) {
       assertTrue(
           result.values().stream()
               .anyMatch(
-                  c -> c.stream().anyMatch(cv -> expectedSubId.equals(cv.getSubscriptionId()))),
-          "Should contain capacity for " + expectedSubId);
+                  c ->
+                      c.stream()
+                          .anyMatch(cv -> expectedSubNumber.equals(cv.getSubscriptionNumber()))),
+          "Should contain capacity for " + expectedSubNumber);
     }
   }
 
@@ -326,17 +329,17 @@ class SubscriptionCapacityServiceTest {
   }
 
   private SubscriptionCapacityView createCapacityViewWithBillingProviderAws(
-      String subscriptionId, String orgId, ProductId productTag) {
-    SubscriptionCapacityView capacityView = createCapacityView(subscriptionId, orgId, productTag);
+      String subscriptionNumber, String orgId, ProductId productTag) {
+    SubscriptionCapacityView capacityView =
+        createCapacityView(subscriptionNumber, orgId, productTag);
     capacityView.setBillingProvider(BillingProvider.AWS);
     return capacityView;
   }
 
   private SubscriptionCapacityView createCapacityView(
-      String subscriptionId, String orgId, ProductId productTag) {
+      String subscriptionNumber, String orgId, ProductId productTag) {
     SubscriptionCapacityView capacityView = new SubscriptionCapacityView();
-    capacityView.setSubscriptionId(subscriptionId);
-    capacityView.setSubscriptionNumber("SUB-" + subscriptionId);
+    capacityView.setSubscriptionNumber(subscriptionNumber);
     capacityView.setOrgId(orgId);
     capacityView.setProductTag(productTag.getValue());
     capacityView.setSku("RH00001");
