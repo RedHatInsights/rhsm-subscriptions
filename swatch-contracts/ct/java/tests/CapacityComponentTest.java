@@ -131,6 +131,6 @@ public class CapacityComponentTest extends BaseContractComponentTest {
   private boolean containsSubscription(SkuCapacityV2 skuCapacity, Subscription subscription) {
     return skuCapacity.getSubscriptions() != null
         && skuCapacity.getSubscriptions().stream()
-            .anyMatch(s -> subscription.getSubscriptionId().equals(s.getId()));
+            .anyMatch(s -> subscription.getSubscriptionNumber().equals(s.getNumber()));
   }
 }

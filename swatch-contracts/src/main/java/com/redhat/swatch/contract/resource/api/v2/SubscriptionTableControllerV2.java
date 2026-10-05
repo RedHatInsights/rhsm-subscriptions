@@ -178,7 +178,6 @@ public class SubscriptionTableControllerV2 {
   private void addOnDemandSubscriptionInformation(
       SubscriptionCapacityView subscription, SkuCapacityV2 skuCapacity) {
     var invSub = new SkuCapacitySubscription();
-    invSub.setId(subscription.getSubscriptionId());
     Optional.ofNullable(subscription.getSubscriptionNumber()).ifPresent(invSub::setNumber);
     skuCapacity.addSubscriptionsItem(invSub);
     skuCapacity.setQuantity(skuCapacity.getQuantity() + (int) subscription.getQuantity());
@@ -194,7 +193,6 @@ public class SubscriptionTableControllerV2 {
   private void addSubscriptionInformation(
       SubscriptionCapacityView subscription, SkuCapacityV2 skuCapacity) {
     var invSub = new SkuCapacitySubscription();
-    invSub.setId(subscription.getSubscriptionId());
     Optional.ofNullable(subscription.getSubscriptionNumber()).ifPresent(invSub::setNumber);
     // Different measurements can have the same subscription.  I'm not crazy about this
     // implementation but refining it is for another day.

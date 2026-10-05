@@ -757,12 +757,9 @@ paths:
                     service_level: Premium
                     usage: Production
                     subscriptions:
-                      - id: "1234567890"
-                        number: "1234567891"
-                      - id: "1234567892"
-                        number: "1234567893"
-                      - id: "1234567894"
-                        number: "1234567895"
+                      - number: "1234567891"
+                      - number: "1234567893"
+                      - number: "1234567895"
                     next_event_date: "2020-04-01T00:00:00Z"
                     next_event_type: Subscription Begin
                     quantity: 3
@@ -775,12 +772,9 @@ paths:
                     service_level: Self-Support
                     usage: Production
                     subscriptions:
-                      - id: "1234567896"
-                        number: "1234567897"
-                      - id: "1234567898"
-                        number: "1234567899"
-                      - id: "1234567900"
-                        number: "1234567901"
+                      - number: "1234567897"
+                      - number: "1234567899"
+                      - number: "1234567901"
                     next_event_date: "2020-04-02T00:00:00Z"
                     next_event_type: Subscription Begin
                     quantity: 3
@@ -793,12 +787,9 @@ paths:
                     service_level: Premium
                     usage: Production
                     subscriptions:
-                      - id: "1234567902"
-                        number: "1234567903"
-                      - id: "1234567904"
-                        number: "1234567905"
-                      - id: "1234567906"
-                        number: "1234567907"
+                      - number: "1234567903"
+                      - number: "1234567905"
+                      - number: "1234567907"
                     next_event_date: "2020-04-01T00:00:00Z"
                     next_event_type: Subscription End
                     quantity: 3
@@ -915,12 +906,9 @@ paths:
                     service_level: Premium
                     usage: Production
                     subscriptions:
-                      - id: "1234567890"
-                        number: "1234567891"
-                      - id: "1234567892"
-                        number: "1234567893"
-                      - id: "1234567894"
-                        number: "1234567895"
+                      - number: "1234567891"
+                      - number: "1234567893"
+                      - number: "1234567895"
                     next_event_date: "2020-04-01T00:00:00Z"
                     next_event_type: Subscription Begin
                     quantity: 3
@@ -933,12 +921,9 @@ paths:
                     service_level: Self-Support
                     usage: Production
                     subscriptions:
-                      - id: "1234567896"
-                        number: "1234567897"
-                      - id: "1234567898"
-                        number: "1234567899"
-                      - id: "1234567900"
-                        number: "1234567901"
+                      - number: "1234567897"
+                      - number: "1234567899"
+                      - number: "1234567901"
                     next_event_date: "2020-04-02T00:00:00Z"
                     next_event_type: Subscription Begin
                     quantity: 3
@@ -951,12 +936,9 @@ paths:
                     service_level: Premium
                     usage: Production
                     subscriptions:
-                      - id: "1234567902"
-                        number: "1234567903"
-                      - id: "1234567904"
-                        number: "1234567905"
-                      - id: "1234567906"
-                        number: "1234567907"
+                      - number: "1234567903"
+                      - number: "1234567905"
+                      - number: "1234567907"
                     next_event_date: "2020-04-01T00:00:00Z"
                     next_event_type: Subscription End
                     quantity: 3
@@ -1640,8 +1622,6 @@ components:
 
     SkuCapacitySubscription:
       properties:
-        id:
-          type: string
         number:
           type: string
 
