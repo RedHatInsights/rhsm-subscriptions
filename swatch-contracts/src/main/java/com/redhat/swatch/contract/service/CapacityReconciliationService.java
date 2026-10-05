@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.contract.service;
 
+import com.redhat.swatch.contract.config.ApplicationConfiguration;
 import com.redhat.swatch.contract.config.Channels;
 import com.redhat.swatch.contract.config.ProductDenylist;
 import com.redhat.swatch.contract.model.ReconcileCapacityByOfferingTask;
@@ -51,6 +52,7 @@ public class CapacityReconciliationService {
   private final SubscriptionRepository subscriptionRepository;
   private final MutinyEmitter<ReconcileCapacityByOfferingTask> reconcileCapacityByOfferingEmitter;
   private final ProductDenylist productDenylist;
+  private final ApplicationConfiguration applicationConfiguration;
 
   private final Counter measurementsCreated;
   private final Counter measurementsUpdated;
@@ -60,11 +62,13 @@ public class CapacityReconciliationService {
   public CapacityReconciliationService(
       SubscriptionRepository subscriptionRepository,
       ProductDenylist productDenylist,
+      ApplicationConfiguration applicationConfiguration,
       MeterRegistry meterRegistry,
       @Channel(Channels.CAPACITY_RECONCILE)
           MutinyEmitter<ReconcileCapacityByOfferingTask> reconcileCapacityByOfferingEmitter) {
     this.subscriptionRepository = subscriptionRepository;
     this.productDenylist = productDenylist;
+    this.applicationConfiguration = applicationConfiguration;
     this.reconcileCapacityByOfferingEmitter = reconcileCapacityByOfferingEmitter;
     measurementsCreated = meterRegistry.counter("rhsm-subscriptions.capacity.measurements_created");
     measurementsUpdated = meterRegistry.counter("rhsm-subscriptions.capacity.measurements_updated");
@@ -92,7 +96,7 @@ public class CapacityReconciliationService {
   @Transactional
   public void enqueueReconcileCapacityForOffering(String sku) {
     long subscriptionCount = subscriptionRepository.countByOfferingSku(sku);
-    var pageSize = 100;
+    var pageSize = applicationConfiguration.getCapacityReconcilePageSize();
     for (long i = 0; i < subscriptionCount; i += pageSize) {
       // NOTE(khowell): we wait for the message send to be successful here so asynchronous send does
       // not propagate the transaction and cause confusing errors; see
