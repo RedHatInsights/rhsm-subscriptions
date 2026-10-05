@@ -76,7 +76,6 @@ public class SubscriptionCsvDataMapperService
 
   private SubscriptionsExportCsvItem buildSubscriptionItem(SubscriptionCapacityView dataItem) {
     var item = new SubscriptionsExportCsvItem();
-    item.setSubscriptionId(dataItem.getSubscriptionId());
     item.setSubscriptionNumber(dataItem.getSubscriptionNumber());
     if (dataItem.getBillingProvider() != null) {
       item.setBillingProvider(dataItem.getBillingProvider().getValue());
