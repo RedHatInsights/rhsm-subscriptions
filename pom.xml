@@ -19,7 +19,7 @@
     <codegen.skipIfSpecIsUnchanged>true</codegen.skipIfSpecIsUnchanged>
 
     <!-- Dependencies -->
-    <quarkus.platform.version>3.40.0</quarkus.platform.version>
+    <quarkus.platform.version>3.40.1</quarkus.platform.version>
     <spring.boot.version>4.1.1</spring.boot.version>
     <resteasy.version>7.0.5.Final</resteasy.version>
     <!-- Only use as provided in the common dependencies.
@@ -30,8 +30,8 @@
     <jakarta.ws.rs-api.version>4.0.0</jakarta.ws.rs-api.version>
     <jakarta.persistence-api.version>3.2.0</jakarta.persistence-api.version>
     <opentelemetry-api.version>1.66.0</opentelemetry-api.version>
-    <awssdk-bom.version>2.55.7</awssdk-bom.version>
-    <guava.version>33.7.1-jre</guava.version>
+    <awssdk-bom.version>2.55.10</awssdk-bom.version>
+    <guava.version>33.7.2-jre</guava.version>
     <liquibase.version>5.0.4</liquibase.version>
     <postgresql.version>42.7.13</postgresql.version>
     <testcontainers.version>2.0.5</testcontainers.version>
@@ -42,10 +42,10 @@
     <hibernate-orm.version>7.4.11.Final</hibernate-orm.version>
     <swagger-parser.version>2.1.48</swagger-parser.version>
     <swagger-ui.version>5.32.15</swagger-ui.version>
-    <splunk-otel-javaagent.version>2.31.1</splunk-otel-javaagent.version>
+    <splunk-otel-javaagent.version>2.31.3</splunk-otel-javaagent.version>
     <insights-notification-schemas-java.version>1.1.0</insights-notification-schemas-java.version>
     <rest-assured.version>6.0.1</rest-assured.version>
-    <kessel-sdk.version>1.9.1</kessel-sdk.version>
+    <kessel-sdk.version>1.10.0</kessel-sdk.version>
     <grpc.version>1.84.0</grpc.version>
     <oauth2-oidc-sdk.version>11.38.2</oauth2-oidc-sdk.version>
 

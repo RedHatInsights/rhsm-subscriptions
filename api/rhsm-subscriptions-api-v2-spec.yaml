@@ -118,12 +118,9 @@ paths:
                     service_level: Premium
                     usage: Production
                     subscriptions:
-                      - id: "1234567890"
-                        number: "1234567891"
-                      - id: "1234567892"
-                        number: "1234567893"
-                      - id: "1234567894"
-                        number: "1234567895"
+                      - number: "1234567891"
+                      - number: "1234567893"
+                      - number: "1234567895"
                     next_event_date: "2020-04-01T00:00:00Z"
                     next_event_type: Subscription Begin
                     quantity: 3
@@ -282,8 +279,6 @@ components:
 
     SkuCapacitySubscription:
       properties:
-        id:
-          type: string
         number:
           type: string
 
