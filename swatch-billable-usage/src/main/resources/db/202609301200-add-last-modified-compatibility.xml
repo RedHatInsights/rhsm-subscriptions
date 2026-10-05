@@ -5,7 +5,6 @@
     xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
 
-  <!-- Keep last_modified current for old pods that still write updated_at during rolling deploy. -->
   <changeSet id="202609301200-001" author="vbusch" dbms="postgresql">
     <preConditions onFail="MARK_RAN">
       <tableExists tableName="billable_usage_remittance"/>
@@ -14,51 +13,54 @@
         <columnExists tableName="billable_usage_remittance" columnName="last_modified"/>
       </not>
     </preConditions>
-    <comment>Add last_modified and trigger for rolling update compatibility</comment>
+    <comment>Add last_modified for rolling update compatibility</comment>
     <addColumn tableName="billable_usage_remittance">
       <column name="last_modified" type="TIMESTAMP WITH TIME ZONE"/>
     </addColumn>
-    <sql splitStatements="false"><![CDATA[
-      CREATE OR REPLACE FUNCTION swatch_billable_usage_update_last_modified_column()
-        RETURNS TRIGGER AS $$
-      BEGIN
-        -- Only assign CURRENT_TIMESTAMP when the statement did not set last_modified
-        -- (e.g. preserve SET last_modified = updated_at during backfill).
-        IF TG_OP = 'INSERT' THEN
-          IF NEW.last_modified IS NULL THEN
-            NEW.last_modified = CURRENT_TIMESTAMP;
-          END IF;
-        ELSIF NEW.last_modified IS NOT DISTINCT FROM OLD.last_modified THEN
-          NEW.last_modified = CURRENT_TIMESTAMP;
-        END IF;
-        RETURN NEW;
-      END;
-      $$ LANGUAGE plpgsql;
-    ]]></sql>
-    <sql>CREATE TRIGGER trg_billable_usage_remittance_last_modified
-      BEFORE INSERT OR UPDATE ON billable_usage_remittance
-      FOR EACH ROW EXECUTE FUNCTION swatch_billable_usage_update_last_modified_column();</sql>
-
     <rollback>
-      <sql>DROP TRIGGER IF EXISTS trg_billable_usage_remittance_last_modified
-        ON billable_usage_remittance;</sql>
-      <sql>DROP FUNCTION IF EXISTS swatch_billable_usage_update_last_modified_column();</sql>
       <dropColumn tableName="billable_usage_remittance" columnName="last_modified"/>
     </rollback>
   </changeSet>
 
-  <changeSet id="202609301200-002" author="vbusch" dbms="postgresql">
+  <changeSet id="202609301200-002" author="vbusch" dbms="postgresql" runInTransaction="true">
     <preConditions onFail="MARK_RAN">
       <columnExists tableName="billable_usage_remittance" columnName="updated_at"/>
       <columnExists tableName="billable_usage_remittance" columnName="last_modified"/>
     </preConditions>
-    <comment>Backfill last_modified from updated_at for existing rows</comment>
+    <comment>Backfill last_modified and install the trigger</comment>
     <sql>UPDATE billable_usage_remittance
-      SET last_modified = updated_at
+      SET last_modified = updated_at AT TIME ZONE 'UTC'
       WHERE last_modified IS NULL AND updated_at IS NOT NULL;</sql>
+    <sql splitStatements="false"><![CDATA[
+      CREATE OR REPLACE FUNCTION swatch_billable_usage_update_last_modified_column()
+        RETURNS TRIGGER AS $$
+      BEGIN
+        NEW.last_modified = CURRENT_TIMESTAMP;
+        RETURN NEW;
+      END;
+      $$ LANGUAGE plpgsql;
+      ]]></sql>
+    <sql>CREATE TRIGGER trg_billable_usage_remittance_last_modified
+      BEFORE INSERT OR UPDATE ON billable_usage_remittance
+      FOR EACH ROW EXECUTE FUNCTION swatch_billable_usage_update_last_modified_column();</sql>
+    <rollback>
+      <sql>DROP TRIGGER IF EXISTS trg_billable_usage_remittance_last_modified
+        ON billable_usage_remittance;</sql>
+      <sql>DROP FUNCTION IF EXISTS swatch_billable_usage_update_last_modified_column();</sql>
+    </rollback>
   </changeSet>
 
-  <changeSet id="202609301200-003" author="vbusch" dbms="postgresql" runInTransaction="false">
+  <changeSet id="202609301200-003" author="vbusch" dbms="postgresql">
+    <preConditions onFail="MARK_RAN">
+      <columnExists tableName="billable_usage_remittance" columnName="last_modified"/>
+    </preConditions>
+    <comment>Fill any last_modified values missed before the trigger was installed</comment>
+    <sql>UPDATE billable_usage_remittance
+      SET last_modified = CURRENT_TIMESTAMP
+      WHERE last_modified IS NULL;</sql>
+  </changeSet>
+
+  <changeSet id="202609301200-004" author="vbusch" dbms="postgresql" runInTransaction="false">
     <preConditions onFail="MARK_RAN">
       <columnExists tableName="billable_usage_remittance" columnName="last_modified"/>
     </preConditions>
