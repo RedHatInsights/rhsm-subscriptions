@@ -107,7 +107,7 @@ class AwsBillableUsageAggregateConsumerTest {
 
   public static final AwsUsageContext MOCK_AWS_USAGE_CONTEXT =
       new AwsUsageContext()
-          .rhSubscriptionId("id")
+          .rhSubscriptionNumber("sub-number")
           .customerId("customer")
           .customerAwsAccountId("123456789012")
           .productCode("product")
@@ -217,7 +217,7 @@ class AwsBillableUsageAggregateConsumerTest {
   void shouldUseCustomerAwsAccountId() throws ApiException {
     AwsUsageContext context =
         new AwsUsageContext()
-            .rhSubscriptionId("id")
+            .rhSubscriptionNumber("sub-number")
             .customerId("marketplace-customer")
             .customerAwsAccountId("123456789012")
             .productCode("product")

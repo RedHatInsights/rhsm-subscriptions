@@ -1490,7 +1490,7 @@ components:
       required:
         - customerAwsAccountId
       properties:
-        rhSubscriptionId:
+        rhSubscriptionNumber:
           type: string
         customerId:
           type: string
