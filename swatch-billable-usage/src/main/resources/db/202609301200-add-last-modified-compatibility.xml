@@ -5,7 +5,15 @@
     xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
 
-  <changeSet id="202609301200-001" author="vbusch" dbms="postgresql">
+  <changeSet id="202609301200-001" author="vbusch" dbms="postgresql" runOnChange="true">
+    <comment>Keep the last_modified trigger function current when its SQL changes</comment>
+    <sqlFile path="db/procedures/swatch_billable_usage_update_last_modified_column.sql"
+             splitStatements="false"/>
+    <!-- No rollback provided as other changesets may rely on this stored procedure -->
+    <rollback/>
+  </changeSet>
+
+  <changeSet id="202609301200-002" author="vbusch" dbms="postgresql">
     <preConditions onFail="MARK_RAN">
       <tableExists tableName="billable_usage_remittance"/>
       <columnExists tableName="billable_usage_remittance" columnName="updated_at"/>
@@ -22,7 +30,7 @@
     </rollback>
   </changeSet>
 
-  <changeSet id="202609301200-002" author="vbusch" dbms="postgresql" runInTransaction="true">
+  <changeSet id="202609301200-003" author="vbusch" dbms="postgresql" runInTransaction="true">
     <preConditions onFail="MARK_RAN">
       <columnExists tableName="billable_usage_remittance" columnName="updated_at"/>
       <columnExists tableName="billable_usage_remittance" columnName="last_modified"/>
@@ -31,15 +39,6 @@
     <sql>UPDATE billable_usage_remittance
       SET last_modified = updated_at AT TIME ZONE 'UTC'
       WHERE last_modified IS NULL AND updated_at IS NOT NULL;</sql>
-    <sql splitStatements="false"><![CDATA[
-      CREATE OR REPLACE FUNCTION swatch_billable_usage_update_last_modified_column()
-        RETURNS TRIGGER AS $$
-      BEGIN
-        NEW.last_modified = CURRENT_TIMESTAMP;
-        RETURN NEW;
-      END;
-      $$ LANGUAGE plpgsql;
-      ]]></sql>
     <sql>CREATE TRIGGER trg_billable_usage_remittance_last_modified
       BEFORE INSERT OR UPDATE ON billable_usage_remittance
       FOR EACH ROW EXECUTE FUNCTION swatch_billable_usage_update_last_modified_column();</sql>
@@ -50,7 +49,7 @@
     </rollback>
   </changeSet>
 
-  <changeSet id="202609301200-003" author="vbusch" dbms="postgresql">
+  <changeSet id="202609301200-004" author="vbusch" dbms="postgresql">
     <preConditions onFail="MARK_RAN">
       <columnExists tableName="billable_usage_remittance" columnName="last_modified"/>
     </preConditions>
@@ -60,7 +59,7 @@
       WHERE last_modified IS NULL;</sql>
   </changeSet>
 
-  <changeSet id="202609301200-004" author="vbusch" dbms="postgresql" runInTransaction="false">
+  <changeSet id="202609301200-005" author="vbusch" dbms="postgresql" runInTransaction="false">
     <preConditions onFail="MARK_RAN">
       <columnExists tableName="billable_usage_remittance" columnName="last_modified"/>
     </preConditions>
