@@ -94,4 +94,29 @@ public final class HostTemplates {
                     .numberOfCpus(cores)
                     .build());
   }
+
+  /** Virtual OCP cluster (product 290) */
+  public static Function<HostBuilder, HostBuilder> openshiftVirtualCluster(
+      int sockets, int coresPerSocket, String sla, String usage) {
+    return builder ->
+        builder
+            .subscriptionManagerId(UUID.randomUUID().toString())
+            .rhsmFacts(
+                RhsmFacts.builder()
+                    .defaultFacts()
+                    .isVirtual(true)
+                    .product("290")
+                    .sla(sla)
+                    .usage(usage)
+                    .build())
+            .systemProfileFacts(
+                SystemProfileFacts.builder()
+                    .infrastructureType("virtual")
+                    .arch("x86_64")
+                    .numberOfSockets(sockets)
+                    .coresPerSocket(coresPerSocket)
+                    .numberOfCpus(sockets * coresPerSocket)
+                    .threadsPerCore(2)
+                    .build());
+  }
 }
