@@ -206,7 +206,7 @@ class MetricsHbiHypervisorCreateUpdateComponentTest extends BaseSMHBIComponentTe
         MessageValidators.swatchEventEquals(swatchHypervisorB));
 
     // Given: Guest is re-mapped from hypervisor A to hypervisor B
-    guestEvent.getHost().getSystemProfile().put("virtual_host_uuid", hypervisorBSubManId);
+    guestEvent.getHost().getSystemProfile().setHypervisorUuid(hypervisorBSubManId);
     guestEvent.setType("updated");
 
     Event swatchGuestRemapped =
