@@ -174,10 +174,10 @@ public class AwsBillableUsageAggregateConsumer {
     } catch (UsageTimestampOutOfBoundsException e) {
       emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.REDUNDANT);
       log.warn(
-          "{} aggregate={}, rhSubscriptionId={} awsCustomerId={} awsProductCode={} subscriptionStartDate={}",
+          "{} aggregate={}, rhSubscriptionNumber={} awsCustomerId={} awsProductCode={} subscriptionStartDate={}",
           e.getMessage(),
           billableUsageAggregate,
-          context.getRhSubscriptionId(),
+          context.getRhSubscriptionNumber(),
           context.getCustomerId(),
           context.getProductCode(),
           context.getSubscriptionStartDate());
@@ -186,8 +186,8 @@ public class AwsBillableUsageAggregateConsumer {
       emitErrorStatusOnUsage(
           billableUsageAggregate, errorCodeForAwsUsageResult(e.getResultStatus()));
       log.warn(
-          "AWS usage not accepted for rhSubscriptionId={} aggregate={} awsCustomerId={} awsProductCode={} resultStatus={}",
-          context.getRhSubscriptionId(),
+          "AWS usage not accepted for rhSubscriptionNumber={} aggregate={} awsCustomerId={} awsProductCode={} resultStatus={}",
+          context.getRhSubscriptionNumber(),
           billableUsageAggregate,
           context.getCustomerId(),
           context.getProductCode(),
@@ -196,8 +196,8 @@ public class AwsBillableUsageAggregateConsumer {
       emitErrorStatusOnUsage(
           billableUsageAggregate, BillableUsage.ErrorCode.MARKETPLACE_RATE_LIMIT);
       log.error(
-          "Error sending aws usage due to rate limit for rhSubscriptionId={} aggregate={} awsCustomerId={} awsProductCode={}",
-          context.getRhSubscriptionId(),
+          "Error sending aws usage due to rate limit for rhSubscriptionNumber={} aggregate={} awsCustomerId={} awsProductCode={}",
+          context.getRhSubscriptionNumber(),
           billableUsageAggregate,
           context.getCustomerId(),
           context.getProductCode(),
@@ -205,8 +205,8 @@ public class AwsBillableUsageAggregateConsumer {
     } catch (Exception e) {
       emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.UNKNOWN);
       log.error(
-          "Error sending aws usage for rhSubscriptionId={} aggregate={} awsCustomerId={} awsProductCode={}",
-          context.getRhSubscriptionId(),
+          "Error sending aws usage for rhSubscriptionNumber={} aggregate={} awsCustomerId={} awsProductCode={}",
+          context.getRhSubscriptionNumber(),
           billableUsageAggregate,
           context.getCustomerId(),
           context.getProductCode(),

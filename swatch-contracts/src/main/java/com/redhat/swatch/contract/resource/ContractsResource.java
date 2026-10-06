@@ -274,14 +274,14 @@ public class ContractsResource implements DefaultApi {
           ErrorCode.SUBSCRIPTION_MISSING_BILLING_ACCOUNT_ID,
           Response.Status.NOT_FOUND,
           ErrorCode.SUBSCRIPTION_MISSING_BILLING_ACCOUNT_ID.getDescription(),
-          subscription.getSubscriptionId());
+          subscription.getSubscriptionNumber());
     }
     String[] parts = subscription.getBillingProviderId().split(";");
     String productCode = parts[0];
     String customerId = parts[1];
     String sellerAccount = parts[2];
     return new AwsUsageContext()
-        .rhSubscriptionId(subscription.getSubscriptionId())
+        .rhSubscriptionNumber(subscription.getSubscriptionNumber())
         .subscriptionStartDate(subscription.getStartDate())
         .productCode(productCode)
         .customerId(customerId)
@@ -435,18 +435,18 @@ public class ContractsResource implements DefaultApi {
 
   @Override
   @RolesAllowed({"test", "support", "service"})
-  public TerminationRequest terminateSubscription(String subscriptionId, OffsetDateTime timestamp)
-      throws ProcessingException {
+  public TerminationRequest terminateSubscription(
+      String subscriptionNumber, OffsetDateTime timestamp) throws ProcessingException {
     if (!applicationConfiguration.isManualSubscriptionEditingEnabled()) {
       throw new UnsupportedOperationException("Manual subscription editing is disabled");
     }
 
     try {
-      var msg = subscriptionSyncService.terminateSubscription(subscriptionId, timestamp);
+      var msg = subscriptionSyncService.terminateSubscription(subscriptionNumber, timestamp);
       return new TerminationRequest().data(new TerminationRequestData().terminationMessage(msg));
     } catch (EntityNotFoundException e) {
       throw new NotFoundException(
-          "Subscription " + subscriptionId + " either does not exist or is already terminated");
+          "Subscription " + subscriptionNumber + " either does not exist or is already terminated");
     }
   }
 }

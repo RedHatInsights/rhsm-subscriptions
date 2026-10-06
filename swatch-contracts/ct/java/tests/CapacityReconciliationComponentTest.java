@@ -63,7 +63,7 @@ import org.junit.jupiter.api.Test;
 public class CapacityReconciliationComponentTest extends BaseContractComponentTest {
 
   private static final int SUBSCRIPTION_COUNT = 5;
-  private static final int CAPACITY_RECONCILE_PAGE_SIZE = 100;
+  private static final int CAPACITY_RECONCILE_PAGE_SIZE = 10;
   private static final double UPDATED_CORES_CAPACITY = 16.0;
   private static final double CORES_CAPACITY = 8.0;
   private static final String MSG_FORCE_RECONCILE_SUCCESS = "Force reconcile should succeed";
@@ -202,7 +202,11 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
 
     // When: A ReconcileCapacityByOfferingTask is published to the Kafka topic
     ReconcileCapacityByOfferingTask task =
-        ReconcileCapacityByOfferingTask.builder().sku(testSku).offset(0).limit(100).build();
+        ReconcileCapacityByOfferingTask.builder()
+            .sku(testSku)
+            .offset(0)
+            .limit(CAPACITY_RECONCILE_PAGE_SIZE)
+            .build();
     kafkaBridge.produceKafkaMessage(CAPACITY_RECONCILE, task);
 
     // Then: Consumer receives task and reconciles capacity for the offering
@@ -488,7 +492,11 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
     // Given: An offering with subscriptions exists and a valid task is ready
     final String testSku = givenOfferingWithMultipleSubscriptions();
     ReconcileCapacityByOfferingTask validTask =
-        ReconcileCapacityByOfferingTask.builder().sku(testSku).offset(0).limit(100).build();
+        ReconcileCapacityByOfferingTask.builder()
+            .sku(testSku)
+            .offset(0)
+            .limit(CAPACITY_RECONCILE_PAGE_SIZE)
+            .build();
 
     // When: A malformed message is published followed by a valid message
     // With fail-on-deserialization-failure=false, malformed message is gracefully skipped
@@ -533,7 +541,9 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
     assertEquals(expectedOffsets, offsets, "Reconcile task offsets should cover all pages");
     for (ReconcileCapacityByOfferingTask task : tasks) {
       assertEquals(
-          CAPACITY_RECONCILE_PAGE_SIZE, task.getLimit(), "Each reconcile task uses page size 100");
+          CAPACITY_RECONCILE_PAGE_SIZE,
+          task.getLimit(),
+          "Each reconcile task uses the configured page size");
       assertEquals(sku, task.getSku(), "Reconcile task SKU should match");
     }
   }

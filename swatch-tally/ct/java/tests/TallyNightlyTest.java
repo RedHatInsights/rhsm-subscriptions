@@ -25,34 +25,36 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static utils.TallyTestHelpers.getSocketCount;
+import static utils.TallyTestProducts.OPENSHIFT_CONTAINER_PLATFORM;
 import static utils.TallyTestProducts.RHEL_FOR_X86;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.api.hbi.HbiDbConnector;
 import com.redhat.swatch.component.tests.api.hbi.HostConnector.SeededHost;
 import com.redhat.swatch.component.tests.api.hbi.HostStateManager;
+import com.redhat.swatch.component.tests.api.hbi.HostTemplates;
 import com.redhat.swatch.component.tests.api.hbi.RhsmFacts;
 import com.redhat.swatch.component.tests.api.hbi.SystemProfileFacts;
 import com.redhat.swatch.component.tests.logging.Log;
 import com.redhat.swatch.tally.test.model.InstanceData;
+import com.redhat.swatch.tally.test.model.InstanceResponse;
+import com.redhat.swatch.tally.test.model.TallyReportDataPoint;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 /**
- * Component tests for RHEL physical host tally with socket increase mapping.
- *
- * <p>Tests the RHEL per-socket increase behavior where certain socket counts are mapped to higher
- * values for licensing purposes: {1: 2, 2: 2, 4: 4, 7: 8}
- *
- * <p>Matches IQE test: test_validate_tally_on_physical_rhel_sockets
+ * Component tests for nightly tally on non-payg products and asserting correct measurement values.
  */
 public class TallyNightlyTest extends BaseTallyComponentTest {
 
@@ -179,5 +181,75 @@ public class TallyNightlyTest extends BaseTallyComponentTest {
         String.format(
             "Labeled measurement should show %d sockets (increased from %d)",
             expectedReportedSockets, startingSockets));
+  }
+
+  @Test
+  @TestPlanName("nightly-tally-TC002")
+  void testDailyTallyMatchesUnfilteredInstanceMeasurements() {
+    service.createOptInConfig(orgId);
+    OffsetDateTime beginning = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS);
+    OffsetDateTime ending = beginning.plusDays(1).minusNanos(1);
+    String displayName = "ocp-nightly-" + orgId;
+    String product = OPENSHIFT_CONTAINER_PLATFORM.productTag();
+    hostManager
+        .createHost(orgId)
+        .displayName(displayName)
+        .apply(HostTemplates.openshiftVirtualCluster(2, 7, "Premium", "Development/Test"))
+        .insert();
+
+    service.tallyOrg(orgId);
+
+    InstanceResponse instances =
+        service.getInstancesByProduct(orgId, product, beginning, ending, null);
+    assertEquals(1, instances.getMeta().getCount());
+
+    double instanceSockets = sumInstanceMeasurements(instances, "Sockets");
+    double instanceCores = sumInstanceMeasurements(instances, "Cores");
+
+    assertEquals(2, instanceSockets);
+    assertEquals(7, instanceCores); // ceil((2 * 7) / 2) with threads_per_core = 2
+    assertEquals(
+        instanceSockets, latestDailyTallyValue(orgId, product, "Sockets", beginning, ending));
+    assertEquals(instanceCores, latestDailyTallyValue(orgId, product, "Cores", beginning, ending));
+  }
+
+  private static double latestDailyTallyValue(
+      String orgId,
+      String productTag,
+      String metricId,
+      OffsetDateTime beginning,
+      OffsetDateTime ending) {
+    var report =
+        service.getTallyReportData(
+            orgId,
+            productTag,
+            metricId,
+            Map.of(
+                "granularity", "Daily",
+                "beginning", beginning.toString(),
+                "ending", ending.toString()));
+    var data = report.getData();
+    assertNotNull(data, "Daily tally report data should not be null");
+    assertFalse(data.isEmpty(), "Daily tally report should contain at least one data point");
+    return data.stream()
+        .max(Comparator.comparing(TallyReportDataPoint::getDate))
+        .orElseThrow(() -> new AssertionError("Daily tally report has no data points"))
+        .getValue();
+  }
+
+  private static double sumInstanceMeasurements(InstanceResponse response, String metricId) {
+    if (response.getData() == null || response.getMeta() == null) {
+      return 0.0;
+    }
+    List<String> labels = response.getMeta().getMeasurements();
+    int idx = labels.indexOf(metricId);
+    if (idx < 0) {
+      return 0.0;
+    }
+    return response.getData().stream()
+        .map(InstanceData::getMeasurements)
+        .filter(m -> m != null && m.size() > idx)
+        .mapToDouble(m -> m.get(idx))
+        .sum();
   }
 }

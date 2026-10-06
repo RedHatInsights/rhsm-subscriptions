@@ -1014,7 +1014,6 @@ class SubscriptionTableControllerV1Test {
 
   private static void assertSubscription(
       SubscriptionEntity expectedSub, SkuCapacitySubscription actual) {
-    assertEquals(expectedSub.getSubscriptionId(), actual.getId(), "Wrong Subscription ID");
     assertEquals(
         expectedSub.getSubscriptionNumber(), actual.getNumber(), "Wrong Subscription Number");
   }

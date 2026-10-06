@@ -45,7 +45,9 @@ public enum TallyTestProducts {
       "ansible-aap-managed",
       "Ansible Managed Node",
       "Managed-nodes",
-      "Instance-hours");
+      "Instance-hours"),
+  OPENSHIFT_CONTAINER_PLATFORM(
+      "openshift-container-platform", "OpenShift Container Platform", null, "Sockets", "Cores");
 
   private final String productId;
   private final String productTag;
