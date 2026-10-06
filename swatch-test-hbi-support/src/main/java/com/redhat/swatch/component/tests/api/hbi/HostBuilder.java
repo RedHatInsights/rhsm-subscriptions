@@ -42,6 +42,7 @@ import java.util.stream.Stream;
 public class HostBuilder {
   private final HostStateManager manager;
   private final Host host;
+  private UUID eventId;
 
   HostBuilder(HostStateManager manager, Host host) {
     this.manager = manager;
@@ -190,10 +191,16 @@ public class HostBuilder {
   /**
    * Start building an HBI event from a detached snapshot of the currently configured host.
    *
-   * <p>Equivalent to {@code new HbiEventBuilder(build())}; this does not insert or update the host.
+   * <p>Each call captures the current host state while reusing the same inventory ID, so events
+   * built from this builder identify the same host. This does not insert or update the host.
    */
   public HbiEventBuilder toEvent() {
-    return new HbiEventBuilder(build());
+    Host snapshot = build();
+    if (eventId == null) {
+      eventId = snapshot.getId() != null ? snapshot.getId() : UUID.randomUUID();
+    }
+    snapshot.id(eventId);
+    return new HbiEventBuilder(snapshot);
   }
 
   private void applyDerivedFacts() {
