@@ -121,6 +121,49 @@ parameters:
     value: latest
   - name: READ_ONLY_MODE_ENABLED
     value: 'true'
+  - name: FLOORIST_DB_SECRET_NAME
+    description: database secret name
+    value: swatch-db-ro
+  # FloorPlan swatch-billable-usage: Stage=dev, Prod=prod
+  - name: FLOORIST_BUCKET_SECRET_NAME
+    description: bucket secret name
+    required: true
+    value: egress-s3
+  # FloorPlan swatch-billable-usage-test: Stage=sandbox, Prod=preprod
+  - name: FLOORIST_BUCKET_SECRET_NAME_TEST
+    description: bucket secret name for test environment
+    required: true
+    value: egress-s3
+  - name: FLOORIST_LOGLEVEL
+    description: Floorist loglevel config
+    value: 'DEBUG'
+  - name: FLOORIST_SUSPEND
+    description: Disable Floorist cronjob execution
+    required: true
+    value: 'false'
+  - name: FLOORIST_S3_SNOWPIPE_PATH
+    description: Path for dataproduct in snowpipe s3 bucket
+    value: 'swatch'
+
+# Shared FloorPlan specification for all environments (sandbox, dev, preprod, prod)
+# Only objectStore differs per environment
+.floorplan_spec: &floorplan_spec_base
+  database:
+    secretName: ${FLOORIST_DB_SECRET_NAME}
+  logLevel: ${FLOORIST_LOGLEVEL}
+  suspend: ${{FLOORIST_SUSPEND}}
+  resources:
+    limits:
+      cpu: 400m
+      memory: 500Mi
+    requests:
+      cpu: 200m
+      memory: 250Mi
+  queries:
+  - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/billable_usage_remittance/
+    chunksize: 50000
+    query: >-
+      select * from billable_usage_remittance;
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -450,6 +493,24 @@ objects:
     appName: swatch-billable-db-cleanup
     jobs:
       - changelog-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
+
+- apiVersion: metrics.console.redhat.com/v1alpha1
+  kind: FloorPlan
+  metadata:
+    name: swatch-billable-usage
+  spec:
+    <<: *floorplan_spec_base
+    objectStore:
+      secretName: ${FLOORIST_BUCKET_SECRET_NAME}
+
+- apiVersion: metrics.console.redhat.com/v1alpha1
+  kind: FloorPlan
+  metadata:
+    name: swatch-billable-usage-test
+  spec:
+    <<: *floorplan_spec_base
+    objectStore:
+      secretName: ${FLOORIST_BUCKET_SECRET_NAME_TEST}
 
 - apiVersion: v1
   kind: Secret
