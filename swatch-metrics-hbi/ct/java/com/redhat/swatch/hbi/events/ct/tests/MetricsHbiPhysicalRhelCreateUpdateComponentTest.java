@@ -21,15 +21,17 @@
 package com.redhat.swatch.hbi.events.ct.tests;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
-import com.redhat.swatch.component.tests.utils.Topics;
+import com.redhat.swatch.component.tests.api.hbi.RhsmFacts;
+import com.redhat.swatch.component.tests.api.hbi.SystemProfileFacts;
 import com.redhat.swatch.hbi.events.ct.api.MessageValidators;
-import com.redhat.swatch.hbi.events.ct.utils.HbiEventHelper;
 import com.redhat.swatch.hbi.events.ct.utils.SwatchEventHelper;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
+import com.redhat.swatch.hbi.events.normalization.NormalizedEventType;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -51,32 +53,39 @@ class MetricsHbiPhysicalRhelCreateUpdateComponentTest extends BaseSMHBIComponent
   @TestPlanName("metrics-hbi-physical-TC001")
   @ParameterizedTest
   @CsvSource({"created, INSTANCE_CREATED", "updated, INSTANCE_UPDATED"})
-  void shouldProduceSwatchEventForPhysicalRhsmHost(String hbiEventType, String swatchEventType) {
-    // Given: A physical RHEL for x86 host event
+  void shouldProduceSwatchEventForPhysicalRhsmHost(
+      String hbiEventType, NormalizedEventType swatchEventType) {
+    // Given: A physical RHEL for x86 host with an HBI event built from it
     HbiHostCreateUpdateEvent hbiEvent =
-        HbiEventHelper.getRhsmHostEvent(
-            hbiEventType,
-            null,
-            List.of("69"),
-            false,
-            "x86_64",
-            OffsetDateTime.now(ZoneOffset.UTC),
-            "Self-Support",
-            "Development/Test",
-            2,
-            2,
-            null,
-            null,
-            null);
-
-    Event swatchEvent =
-        SwatchEventHelper.createExpectedEvent(
-            hbiEvent, List.of("69"), Set.of("RHEL for x86"), false, false);
+        hostEvents
+            .createHost(orgId)
+            .subscriptionManagerId(UUID.randomUUID().toString())
+            .rhsmFacts(
+                RhsmFacts.builder()
+                    .defaultFacts()
+                    .sla("Self-Support")
+                    .usage("Development/Test")
+                    .build())
+            .systemProfileFacts(
+                SystemProfileFacts.builder()
+                    .infrastructureType("physical")
+                    .arch("x86_64")
+                    .coresPerSocket(2)
+                    .numberOfSockets(2)
+                    .build())
+            .toEvent()
+            .type(hbiEventType)
+            .timestamp(OffsetDateTime.now(ZoneOffset.UTC))
+            .buildCreateUpdate();
 
     // When: HBI event is produced to Kafka
-    kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hbiEvent);
+    hostEvents.publish(hbiEvent);
 
     // Then: Corresponding SWatch event should be produced
+    Event swatchEvent =
+        SwatchEventHelper.createExpectedEvent(
+            hbiEvent, swatchEventType, List.of("69"), Set.of("RHEL for x86"), false, false);
+
     thenSwatchEventsAppear(MessageValidators.swatchEventEquals(swatchEvent));
   }
 }
