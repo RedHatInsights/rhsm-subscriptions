@@ -42,6 +42,9 @@ public class ApplicationConfiguration {
   @ConfigProperty(name = "SUBSCRIPTION_PAGE_SIZE", defaultValue = "1000")
   int subscriptionPageSize;
 
+  @ConfigProperty(name = "CAPACITY_RECONCILE_PAGE_SIZE", defaultValue = "100")
+  int capacityReconcilePageSize;
+
   @ConfigProperty(name = "DEVTEST_SUBSCRIPTION_EDITING_ENABLED", defaultValue = "true")
   boolean manualSubscriptionEditingEnabled;
 

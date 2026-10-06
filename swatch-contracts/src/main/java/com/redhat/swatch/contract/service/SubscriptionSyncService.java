@@ -621,24 +621,24 @@ public class SubscriptionSyncService {
   }
 
   @Transactional
-  public String terminateSubscription(String subscriptionId, OffsetDateTime terminationDate) {
-    var subscriptions = subscriptionService.findActiveSubscription(subscriptionId);
+  public String terminateSubscription(String subscriptionNumber, OffsetDateTime terminationDate) {
+    var subscriptions = subscriptionService.findActiveSubscription(subscriptionNumber);
     if (subscriptions.isEmpty()) {
       throw new EntityNotFoundException(
           String.format(
-              "Cannot terminate subscription because no active subscription was found with subscription ID '%s'",
-              subscriptionId));
+              "Cannot terminate subscription because no active subscription was found with subscription number '%s'",
+              subscriptionNumber));
     } else if (subscriptions.size() > 1) {
       throw new ServiceException(
           ErrorCode.UNHANDLED_EXCEPTION,
           Response.Status.INTERNAL_SERVER_ERROR,
           "Multiple active subscription found",
           String.format(
-              "Cannot terminate subscription because multiple active subscriptions were found for subscription ID '%s'",
-              subscriptionId));
+              "Cannot terminate subscription because multiple active subscriptions were found for subscription number '%s'",
+              subscriptionNumber));
     }
 
-    var subscription = subscriptions.get(0);
+    var subscription = subscriptions.getFirst();
 
     // Wait until after we are sure there's an offering for this subscription before setting the
     // end date.  We want validation to occur before we start mutating data.
@@ -653,11 +653,11 @@ public class SubscriptionSyncService {
       var msg =
           String.format(
               "Subscription %s terminated at %s with out of range termination date %s.",
-              subscriptionId, now, terminationDate);
+              subscriptionNumber, now, terminationDate);
       log.warn(msg);
       return msg;
     }
-    return String.format("Subscription %s terminated at %s.", subscriptionId, terminationDate);
+    return String.format("Subscription %s terminated at %s.", subscriptionNumber, terminationDate);
   }
 
   private void acquireSubscriptionLockBy(String subscriptionNumber) {

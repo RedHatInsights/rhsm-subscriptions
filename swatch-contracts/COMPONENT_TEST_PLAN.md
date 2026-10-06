@@ -1318,7 +1318,7 @@ This section verifies the automatic contract termination behavior when contracts
 - **Setup:**
   - Create an active subscription
   - Confirm it appears in the active subscription search (SKU capacity report)
-- **Action:** POST `/api/swatch-contracts/internal/subscriptions/terminate/{subscription_id}?timestamp=<past>`.  
+- **Action:** POST `/api/swatch-contracts/internal/subscriptions/terminate/{subscription_number}?timestamp=<past>`.  
 - **Verification:**
   - Check subscription `end_date` via internal GET subscriptions
   - Re-query the v2 SKU capacity report (active subscription search) for the org/product
@@ -2402,12 +2402,12 @@ This section validates that the subscription table API (V2 SKU capacity) and the
 - **Action**: `POST /api/swatch-contracts/internal/rpc/offerings/sync`
 - **Test Steps**:
   1. Create and sync an offering
-  2. Create 101 subscriptions for the offering without reconciling capacity
-  3. Update offering cores (capacity-impacting change) and call sync all offerings again
+  2. Create 11 subscriptions for the offering without reconciling capacity (page size 10 + 1)
+  3. Update offering cores (capacity-impacting change) and call sync all offerings
 - **Expected Results**:
   - HTTP 200 OK from sync all offerings operation
   - Two `ReconcileCapacityByOfferingTask` messages for the SKU on `platform.rhsm-subscriptions.capacity-reconcile`
-  - SKU capacity report reflects updated cores for all 101 subscriptions
+  - SKU capacity report reflects updated cores for all 11 subscriptions
 
 ## Reconciliation Consumer (Kafka)
 
