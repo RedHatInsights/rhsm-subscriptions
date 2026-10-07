@@ -21,26 +21,39 @@
 package com.redhat.swatch.contract.config;
 
 import static com.redhat.swatch.common.security.KesselRolesAugmentor.KESSEL_FLAG;
+import static com.redhat.swatch.info.UnleashInfoFeatureFlags.toFlag;
 
 import com.redhat.swatch.info.InfoFeatureFlagContributor;
-import com.redhat.swatch.info.UnleashInfoFeatureFlags;
 import com.redhat.swatch.info.model.InfoFeatureFlags;
+import com.redhat.swatch.kafka.config.ReadOnlyProvider;
 import io.getunleash.Unleash;
 import jakarta.enterprise.context.ApplicationScoped;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @ApplicationScoped
 @AllArgsConstructor
-public class FeatureFlags implements InfoFeatureFlagContributor {
+public class FeatureFlags implements InfoFeatureFlagContributor, ReadOnlyProvider {
 
-  protected static final boolean DEFAULT_IS_ENABLED = true;
+  public static final String READ_ONLY_FLAG = "swatch.swatch-contracts.enable-read-only";
+  protected static final boolean DEFAULT_READ_ONLY_FLAG_VALUE = false;
 
   private final Unleash unleash;
 
+  /** Whether the service is in read-only mode. */
+  @Override
+  public boolean isReadOnly() {
+    return unleash.isEnabled(READ_ONLY_FLAG, DEFAULT_READ_ONLY_FLAG_VALUE);
+  }
+
   @Override
   public InfoFeatureFlags getFeatureFlags() {
-    return UnleashInfoFeatureFlags.snapshot(unleash, DEFAULT_IS_ENABLED, KESSEL_FLAG);
+    return new InfoFeatureFlags()
+        .withFlags(
+            List.of(
+                toFlag(unleash, KESSEL_FLAG, null),
+                toFlag(unleash, READ_ONLY_FLAG, DEFAULT_READ_ONLY_FLAG_VALUE)));
   }
 }

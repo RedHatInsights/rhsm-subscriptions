@@ -180,6 +180,8 @@ parameters:
 #    Environment provides this
   - name: KESSEL_AUTH_OIDC_ISSUER
   - name: RBAC_BASE_ENDPOINT
+  - name: READ_ONLY_MODE_ENABLED
+    value: 'true'
 
 # Shared FloorPlan specification for all environments (sandbox, dev, preprod, prod)
 # Only objectStore differs per environment
@@ -464,6 +466,8 @@ objects:
                 value: ${ENABLE_PAYG_SUBSCRIPTION_FORCE_SYNC}
               - name: OTEL_DISABLED
                 value: ${OTEL_DISABLED}
+              - name: READ_ONLY_MODE_ENABLED
+                value: ${READ_ONLY_MODE_ENABLED}
             volumeMounts:
               - name: logs
                 mountPath: /logs
