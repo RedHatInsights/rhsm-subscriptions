@@ -614,22 +614,18 @@ class BillableUsageRemittanceRepositoryTest {
   void testUpdateStatusForStaleRemittances() {
     var now = OffsetDateTime.now(ZoneOffset.UTC);
 
-    var staleInProgress1 = remittance("org1", "product1", BILLING_PROVIDER_AWS, 12.0, now);
-    staleInProgress1.setStatus(RemittanceStatus.IN_PROGRESS);
-    var staleInProgress2 = remittance("org2", "product1", BILLING_PROVIDER_AWS, 12.0, now);
-    staleInProgress2.setStatus(RemittanceStatus.IN_PROGRESS);
-    var freshInProgress = remittance("org3", "product1", BILLING_PROVIDER_AWS, 12.0, now);
-    freshInProgress.setStatus(RemittanceStatus.IN_PROGRESS);
-    var staleSent = remittance("org4", "product1", BILLING_PROVIDER_AWS, 12.0, now);
-    staleSent.setStatus(RemittanceStatus.SENT);
-
-    repository.persist(List.of(staleInProgress1, staleInProgress2, freshInProgress, staleSent));
-    repository.flush();
-    setLastModified(staleInProgress1, now.minusDays(10).toInstant());
-    setLastModified(staleInProgress2, now.minusDays(8).toInstant());
-    setLastModified(freshInProgress, now.minusDays(2).toInstant());
-    setLastModified(staleSent, now.minusDays(10).toInstant());
-    entityManager.clear();
+    var staleInProgress1 =
+        persistRemittanceWithLastModified(
+            "org1", RemittanceStatus.IN_PROGRESS, now, now.minusDays(10).toInstant());
+    var staleInProgress2 =
+        persistRemittanceWithLastModified(
+            "org2", RemittanceStatus.IN_PROGRESS, now, now.minusDays(8).toInstant());
+    var freshInProgress =
+        persistRemittanceWithLastModified(
+            "org3", RemittanceStatus.IN_PROGRESS, now, now.minusDays(2).toInstant());
+    var staleSent =
+        persistRemittanceWithLastModified(
+            "org4", RemittanceStatus.SENT, now, now.minusDays(10).toInstant());
 
     var staleInProgressCount =
         repository.updateStatusForStaleRemittances(
@@ -660,17 +656,8 @@ class BillableUsageRemittanceRepositoryTest {
   void testStaleStatusesWithNullLastModified() {
     var now = OffsetDateTime.now(ZoneOffset.UTC);
 
-    var inProgressNullLastModified =
-        remittance("org1", "product1", BILLING_PROVIDER_AWS, 12.0, now);
-    inProgressNullLastModified.setStatus(RemittanceStatus.IN_PROGRESS);
-    var sentNullLastModified = remittance("org2", "product1", BILLING_PROVIDER_AWS, 12.0, now);
-    sentNullLastModified.setStatus(RemittanceStatus.SENT);
-
-    repository.persist(List.of(inProgressNullLastModified, sentNullLastModified));
-    repository.flush();
-    setLastModified(inProgressNullLastModified, null);
-    setLastModified(sentNullLastModified, null);
-    entityManager.clear();
+    persistRemittanceWithLastModified("org1", RemittanceStatus.IN_PROGRESS, now, null);
+    persistRemittanceWithLastModified("org2", RemittanceStatus.SENT, now, null);
 
     var staleSentResultsCount =
         repository.updateStatusForStaleRemittances(
@@ -691,25 +678,13 @@ class BillableUsageRemittanceRepositoryTest {
     var now = OffsetDateTime.now(ZoneOffset.UTC);
 
     var staleInProgressNullLastModified =
-        remittance("org1", "product1", BILLING_PROVIDER_AWS, 12.0, now);
-    staleInProgressNullLastModified.setStatus(RemittanceStatus.IN_PROGRESS);
+        persistRemittanceWithLastModified("org1", RemittanceStatus.IN_PROGRESS, now, null);
     var freshInProgressOldRemittanceDate =
-        remittance("org2", "product1", BILLING_PROVIDER_AWS, 12.0, now.minusDays(10));
-    freshInProgressOldRemittanceDate.setStatus(RemittanceStatus.IN_PROGRESS);
+        persistRemittanceWithLastModified(
+            "org2", RemittanceStatus.IN_PROGRESS, now.minusDays(10), now.minusDays(2).toInstant());
     var staleLastModifiedFreshRemittanceDate =
-        remittance("org3", "product1", BILLING_PROVIDER_AWS, 12.0, now);
-    staleLastModifiedFreshRemittanceDate.setStatus(RemittanceStatus.IN_PROGRESS);
-
-    repository.persist(
-        List.of(
-            staleInProgressNullLastModified,
-            freshInProgressOldRemittanceDate,
-            staleLastModifiedFreshRemittanceDate));
-    repository.flush();
-    setLastModified(staleInProgressNullLastModified, null);
-    setLastModified(freshInProgressOldRemittanceDate, now.minusDays(2).toInstant());
-    setLastModified(staleLastModifiedFreshRemittanceDate, now.minusDays(10).toInstant());
-    entityManager.clear();
+        persistRemittanceWithLastModified(
+            "org3", RemittanceStatus.IN_PROGRESS, now, now.minusDays(10).toInstant());
 
     var staleInProgressCount =
         repository.updateStatusForStaleRemittances(
@@ -733,6 +708,16 @@ class BillableUsageRemittanceRepositoryTest {
         staleInProgressResults.stream()
             .anyMatch(
                 result -> result.getUuid().equals(freshInProgressOldRemittanceDate.getUuid())));
+  }
+
+  private BillableUsageRemittanceEntity persistRemittanceWithLastModified(
+      String orgId, RemittanceStatus status, OffsetDateTime remittanceDate, Instant lastModified) {
+    var entity = remittance(orgId, "product1", BILLING_PROVIDER_AWS, 12.0, remittanceDate);
+    entity.setStatus(status);
+    repository.persistAndFlush(entity);
+    setLastModified(entity, lastModified);
+    entityManager.clear();
+    return entity;
   }
 
   private void setLastModified(BillableUsageRemittanceEntity entity, Instant lastModified) {

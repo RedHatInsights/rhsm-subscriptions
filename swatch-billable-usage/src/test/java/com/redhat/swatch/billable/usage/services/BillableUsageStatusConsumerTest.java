@@ -22,9 +22,7 @@ package com.redhat.swatch.billable.usage.services;
 
 import static com.redhat.swatch.billable.usage.kafka.InMemoryMessageBrokerKafkaResource.IN_MEMORY_CONNECTOR;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 
 import com.redhat.swatch.billable.usage.configuration.Channels;
@@ -40,7 +38,6 @@ import io.smallrye.reactive.messaging.memory.InMemoryConnector;
 import io.smallrye.reactive.messaging.memory.InMemorySource;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -196,19 +193,6 @@ class BillableUsageStatusConsumerTest {
   }
 
   @Test
-  void testWhenHandlingStatusThenLastModifiedIsPopulated() {
-    var existingRemittance = givenExistingRemittance();
-    Instant createdAt = existingRemittance.getLastModified();
-    // Check last_modified was populated when creating the entity.
-    assertNotNull(createdAt);
-    // Check last_modified was updated when changing the entity.
-    var successMessage =
-        createBillableUsageAggregate(Status.SUCCEEDED, null, BILLED_ON, existingRemittance);
-    whenSendResponse(successMessage);
-    Awaitility.await().untilAsserted(() -> verifyRemittanceHasLastModifiedHigherThan(createdAt));
-  }
-
-  @Test
   void testWhenStatusIsNullThenRemittanceIsNotUpdated() {
     var existingRemittance = givenExistingPendingRemittance();
     var nullStatusMessage = createBillableUsageAggregate(null, null, BILLED_ON, existingRemittance);
@@ -316,17 +300,6 @@ class BillableUsageStatusConsumerTest {
               assertEquals(BILLED_ON, result.getBilledOn());
               assertNull(result.getErrorCode());
             });
-  }
-
-  @Transactional
-  void verifyRemittanceHasLastModifiedHigherThan(Instant createdAt) {
-    remittanceRepository.findAll().stream()
-        .forEach(
-            result ->
-                assertTrue(
-                    result.getLastModified().isAfter(createdAt),
-                    "Last modified '%s' was not updated. Previous value was: '%s'"
-                        .formatted(result.getLastModified(), createdAt)));
   }
 
   @Transactional

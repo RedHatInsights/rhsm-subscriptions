@@ -113,13 +113,11 @@ public class BillableUsageRemittanceRepository
       String licenseId) {
     List<UUID> uuidList = uuids.stream().map(UUID::fromString).toList();
     update(
-        "status = ?1, billedOn=?2, errorCode=?3, licenseId=?4, "
-            + "lastModified=?5 where uuid in (?6)",
+        "status = ?1, billedOn=?2, errorCode=?3, licenseId=?4 where uuid in (?5)",
         status,
         billedOn,
         errorCode,
         licenseId,
-        Instant.now(),
         uuidList);
   }
 
@@ -131,15 +129,13 @@ public class BillableUsageRemittanceRepository
       Set<String> billingAccountIds) {
     String query =
         "update BillableUsageRemittanceEntity bu "
-            + "set bu.remittedPendingValue=0.0, "
-            + "bu.lastModified = :lastModified "
+            + "set bu.remittedPendingValue=0.0 "
             + "where bu.productId = :productId and bu.remittancePendingDate between :start and :end";
 
     Map<String, Object> parameters = new HashMap<>();
     parameters.put("productId", productId);
     parameters.put("start", start);
     parameters.put("end", end);
-    parameters.put("lastModified", Instant.now());
 
     if (orgIds != null && !orgIds.isEmpty()) {
       query += " and bu.orgId in :orgIds";
@@ -165,15 +161,13 @@ public class BillableUsageRemittanceRepository
     query =
         "update BillableUsageRemittanceEntity bu "
             + "set bu.status = :newStatus, "
-            + "bu.errorCode = :errorCode, "
-            + "bu.lastModified = :lastModified "
+            + "bu.errorCode = :errorCode "
             + "where bu.status = :oldStatus "
             + "and bu.lastModified <= :cutoffDate";
     parameters.put("errorCode", errorCode);
     parameters.put("newStatus", newStatus);
     parameters.put("oldStatus", oldStatus);
     parameters.put("cutoffDate", cutoffDate);
-    parameters.put("lastModified", now);
 
     return update(query, parameters);
   }

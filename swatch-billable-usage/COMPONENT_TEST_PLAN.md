@@ -549,8 +549,9 @@ Java component tests in `ContractAdjustmentComponentTest` (`swatch-billable-usag
 - **Verification:**  
   - Remittance status = `SUCCEEDED`  
   - `billedOn` is set near the published timestamp  
+  - Database `last_modified` is populated on insert and advances after the status update
 - **Expected Result:**  
-  - Successful marketplace feedback updates remittance lifecycle fields
+  - Successful marketplace feedback updates remittance lifecycle fields and the database timestamp
 
 **billable-usage-status-TC004 - Update remittance with FAILED status**
 

@@ -45,7 +45,6 @@
     <rollback>
       <sql>DROP TRIGGER IF EXISTS trg_billable_usage_remittance_last_modified
         ON billable_usage_remittance;</sql>
-      <sql>DROP FUNCTION IF EXISTS swatch_billable_usage_update_last_modified_column();</sql>
     </rollback>
   </changeSet>
 
