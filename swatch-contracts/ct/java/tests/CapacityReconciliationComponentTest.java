@@ -177,7 +177,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
       var subscription =
           Subscription.buildOpenShiftSubscriptionUsingSku(
               orgId, Map.of(CORES, CORES_CAPACITY), testSku);
-      Response saveResponse = service.saveSubscriptions(false, subscription);
+      Response saveResponse = service.saveSubscriptions(subscription);
       assertThat(MSG_CREATE_SUBSCRIPTION_SUCCESS, saveResponse.statusCode(), is(HttpStatus.SC_OK));
     }
 
