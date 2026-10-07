@@ -32,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static utils.BillableUsageAggregateHelper.mergeHourlyAggregates;
 
 import api.BillableUsageSwatchService;
+import api.BillableUsageUnleashService;
 import api.ContractsWiremockService;
 import api.MessageValidators;
 import com.redhat.swatch.billable.usage.openapi.model.TallyRemittance;
@@ -39,6 +40,7 @@ import com.redhat.swatch.component.tests.api.ComponentTest;
 import com.redhat.swatch.component.tests.api.KafkaBridge;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
 import com.redhat.swatch.component.tests.api.Quarkus;
+import com.redhat.swatch.component.tests.api.Unleash;
 import com.redhat.swatch.component.tests.api.Wiremock;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
@@ -84,6 +86,10 @@ public class BaseBillableUsageComponentTest {
   @Quarkus(service = "swatch-billable-usage")
   static BillableUsageSwatchService service = new BillableUsageSwatchService();
 
+  @Unleash
+  static BillableUsageUnleashService unleash =
+      new BillableUsageUnleashService().withSwatchService(service);
+
   protected String orgId;
   protected String billingAccountId;
 
@@ -93,6 +99,7 @@ public class BaseBillableUsageComponentTest {
     billingAccountId = RandomUtils.generateRandom();
     // Drain suppressed windows left by prior tests on shared Kafka before producing new usages.
     service.flushBillableUsageAggregationTopic();
+    unleash.disableReadOnly();
   }
 
   protected BillableUsageAggregate whenHourlyAggregateContainsRemittances(

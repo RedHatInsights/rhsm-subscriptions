@@ -591,3 +591,36 @@ Java component tests in `ContractAdjustmentComponentTest` (`swatch-billable-usag
 - **Expected Result:**  
   - Malformed tally message does not crash the service
 
+
+## Service Read-only mode
+
+**read-only-TC001 - Feature flag on pauses the tally consumer; flag off resumes it**
+- **Description**: Enabling the Unleash read-only feature flag stops the
+  `tally-summary` consumer from processing. Disabling the same flag lets that
+  consumer process messages again.
+- **Setup**:
+  - Read-only feature flag is off
+  - Confirm a tally summary produces billable usage
+- **Action**:
+  - Turn the read-only feature flag on and wait for the service to apply it
+  - Publish a valid tally summary
+  - Confirm billable usage is not produced
+  - Turn the read-only feature flag off and wait for the service to apply it
+- **Verification**:
+  - While the flag is on: no billable usage for the published tally
+  - After the flag is off: billable usage appears for the pending tally
+- **Expected Result**:
+  - The tally consumer pauses when the feature flag is on and resumes when the
+    feature flag is off
+
+**read-only-TC002 - Info endpoint exposes read-only feature flag state**
+- **Description**: The management info feature-flag view includes
+  `swatch.swatch-billable-usage.enable-read-only` reflecting Unleash.
+- **Setup**:
+  - Enable the Unleash read-only feature flag
+- **Action**:
+  - GET the management info feature-flags endpoint
+- **Verification**:
+  - Flag name is present and enabled is true
+- **Expected Result**:
+  - Operators can confirm the read-only feature flag via the info API

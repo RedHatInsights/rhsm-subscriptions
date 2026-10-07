@@ -7,7 +7,7 @@
 Start the required containers:
 
 ```bash
-podman compose up -d kafka kafka-bridge kafka-setup wiremock db
+podman compose up -d kafka kafka-bridge kafka-setup unleash wiremock db
 ```
 
 ### 2. Run Component Tests

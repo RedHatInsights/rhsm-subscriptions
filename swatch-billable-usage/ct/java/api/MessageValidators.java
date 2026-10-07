@@ -23,9 +23,11 @@ package api;
 import com.redhat.swatch.component.tests.api.DefaultMessageValidator;
 import com.redhat.swatch.component.tests.api.MessageValidator;
 import java.util.Set;
+import java.util.UUID;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
+import org.candlepin.subscriptions.billable.usage.TallySummary;
 
 public class MessageValidators {
 
@@ -105,5 +107,12 @@ public class MessageValidators {
             key != null && orgId.equals(key.getOrgId()) && productIds.contains(key.getProductId()),
         BillableUsageAggregateKey.class,
         BillableUsageAggregate.class);
+  }
+
+  public static DefaultMessageValidator<BillableUsage> billableUsageMatchesTallyId(
+      TallySummary tallySummary) {
+    UUID tallyId = tallySummary.getTallySnapshots().getFirst().getId();
+    return new DefaultMessageValidator<>(
+        usage -> tallyId.equals(usage.getTallyId()), BillableUsage.class);
   }
 }
