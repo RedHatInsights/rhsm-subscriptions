@@ -358,6 +358,9 @@ class InternalBillableUsageControllerTest {
     int sentCount = 3;
     setupRemittances(sentCount, "org-sent-", RemittanceStatus.SENT);
 
+    // Flush so the database-generated last_modified values are set before making them stale.
+    remittanceRepo.flush();
+
     // Wait at least the stuck duration, so the previous remittances are now stale.
     Thread.sleep(stuckDurationInMillis);
 

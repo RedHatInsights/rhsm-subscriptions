@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+  <changeSet id="202609301200-001" author="vbusch" dbms="postgresql" runOnChange="true">
+    <comment>Keep the last_modified trigger function current when its SQL changes</comment>
+    <sqlFile path="db/procedures/swatch_billable_usage_update_last_modified_column.sql"
+             splitStatements="false"/>
+    <!-- No rollback provided as other changesets may rely on this stored procedure -->
+    <rollback/>
+  </changeSet>
+
+  <changeSet id="202609301200-002" author="vbusch" dbms="postgresql">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="billable_usage_remittance"/>
+      <columnExists tableName="billable_usage_remittance" columnName="updated_at"/>
+      <not>
+        <columnExists tableName="billable_usage_remittance" columnName="last_modified"/>
+      </not>
+    </preConditions>
+    <comment>Add last_modified for rolling update compatibility</comment>
+    <addColumn tableName="billable_usage_remittance">
+      <column name="last_modified" type="TIMESTAMP WITH TIME ZONE"/>
+    </addColumn>
+    <rollback>
+      <dropColumn tableName="billable_usage_remittance" columnName="last_modified"/>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202609301200-003" author="vbusch" dbms="postgresql" runInTransaction="true">
+    <preConditions onFail="MARK_RAN">
+      <columnExists tableName="billable_usage_remittance" columnName="updated_at"/>
+      <columnExists tableName="billable_usage_remittance" columnName="last_modified"/>
+    </preConditions>
+    <comment>Backfill last_modified and install the trigger</comment>
+    <sql>UPDATE billable_usage_remittance
+      SET last_modified = updated_at AT TIME ZONE 'UTC'
+      WHERE last_modified IS NULL AND updated_at IS NOT NULL;</sql>
+    <sql>CREATE TRIGGER trg_billable_usage_remittance_last_modified
+      BEFORE INSERT OR UPDATE ON billable_usage_remittance
+      FOR EACH ROW EXECUTE FUNCTION swatch_billable_usage_update_last_modified_column();</sql>
+    <rollback>
+      <sql>DROP TRIGGER IF EXISTS trg_billable_usage_remittance_last_modified
+        ON billable_usage_remittance;</sql>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202609301200-004" author="vbusch" dbms="postgresql">
+    <preConditions onFail="MARK_RAN">
+      <columnExists tableName="billable_usage_remittance" columnName="last_modified"/>
+    </preConditions>
+    <comment>Fill any last_modified values missed before the trigger was installed</comment>
+    <sql>UPDATE billable_usage_remittance
+      SET last_modified = CURRENT_TIMESTAMP
+      WHERE last_modified IS NULL;</sql>
+  </changeSet>
+
+  <changeSet id="202609301200-005" author="vbusch" dbms="postgresql" runInTransaction="false">
+    <preConditions onFail="MARK_RAN">
+      <columnExists tableName="billable_usage_remittance" columnName="last_modified"/>
+    </preConditions>
+    <comment>Create the last_modified index without blocking remittance writes</comment>
+    <sql>CREATE INDEX CONCURRENTLY IF NOT EXISTS billable_usage_remittance_last_modified_idx
+      ON billable_usage_remittance (last_modified);</sql>
+    <rollback>
+      <sql>DROP INDEX CONCURRENTLY IF EXISTS billable_usage_remittance_last_modified_idx;</sql>
+    </rollback>
+  </changeSet>
+
+</databaseChangeLog>

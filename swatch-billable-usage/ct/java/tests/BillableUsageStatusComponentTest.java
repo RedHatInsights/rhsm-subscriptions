@@ -33,21 +33,28 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import api.MessageValidators;
 import com.redhat.swatch.billable.usage.openapi.model.TallyRemittance;
 import com.redhat.swatch.component.tests.api.DefaultMessageValidator;
+import com.redhat.swatch.component.tests.api.SwatchDatabase;
 import com.redhat.swatch.component.tests.api.TestPlanName;
+import com.redhat.swatch.component.tests.api.db.DatabaseService;
 import domain.BillingProvider;
 import domain.ContractStub;
 import domain.RemittanceErrorCode;
 import domain.RemittanceStatus;
+import java.sql.SQLException;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.TallySummary;
 import org.junit.jupiter.api.Test;
 
 public class BillableUsageStatusComponentTest extends BaseBillableUsageComponentTest {
+
+  @SwatchDatabase static DatabaseService swatchDatabase = new DatabaseService();
 
   private static final double VALUE = 8.0;
   private static final double BILLING_FACTOR = ROSA.getBillingFactor(CORES);
@@ -102,6 +109,7 @@ public class BillableUsageStatusComponentTest extends BaseBillableUsageComponent
     // Given: a pending remittance exists
     BillableUsage billableUsage = givenPendingRemittanceExists();
     String tallyId = billableUsage.getTallyId().toString();
+    Instant createdAt = lastModified(billableUsage.getUuid());
     OffsetDateTime expectedBilledOnTime = OffsetDateTime.now(ZoneOffset.UTC);
 
     // When: status update with SUCCEEDED is published
@@ -118,6 +126,9 @@ public class BillableUsageStatusComponentTest extends BaseBillableUsageComponent
     assertNotNull(remittances, "Remittances should exist");
     assertFalse(remittances.isEmpty(), "Should have at least one remittance");
     thenBilledOnIsNear(remittances.getFirst(), expectedBilledOnTime);
+    assertTrue(
+        lastModified(billableUsage.getUuid()).isAfter(createdAt),
+        "Status update should advance the database-generated last_modified timestamp");
   }
 
   @Test
@@ -223,6 +234,23 @@ public class BillableUsageStatusComponentTest extends BaseBillableUsageComponent
     assertNotNull(remittances, "Remittances should exist for tally " + tallyId);
     assertFalse(remittances.isEmpty(), "Should have at least one remittance");
     return remittances.getFirst().getLicenseId();
+  }
+
+  private Instant lastModified(UUID remittanceUuid) {
+    try (var connection = swatchDatabase.getConnection();
+        var statement =
+            connection.prepareStatement(
+                "SELECT last_modified FROM billable_usage_remittance WHERE uuid = ?")) {
+      statement.setObject(1, remittanceUuid);
+      try (var result = statement.executeQuery()) {
+        assertTrue(result.next(), "Remittance should exist: " + remittanceUuid);
+        var timestamp = result.getTimestamp(1);
+        assertNotNull(timestamp, "last_modified should be populated on insert");
+        return timestamp.toInstant();
+      }
+    } catch (SQLException e) {
+      throw new AssertionError("Failed to read remittance last_modified", e);
+    }
   }
 
   private void thenBilledOnIsNear(TallyRemittance remittance, OffsetDateTime expectedTime) {

@@ -22,9 +22,7 @@ package com.redhat.swatch.billable.usage.services;
 
 import static com.redhat.swatch.billable.usage.kafka.InMemoryMessageBrokerKafkaResource.IN_MEMORY_CONNECTOR;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 
 import com.redhat.swatch.billable.usage.configuration.Channels;
@@ -195,19 +193,6 @@ class BillableUsageStatusConsumerTest {
   }
 
   @Test
-  void testWhenHandlingStatusThenUpdatedAtIsPopulated() {
-    var existingRemittance = givenExistingRemittance();
-    OffsetDateTime createdAt = existingRemittance.getUpdatedAt();
-    // check the updatedAt was updated when creating the entity
-    assertNotNull(createdAt);
-    // check the updatedAt was updated when updating an entity
-    var successMessage =
-        createBillableUsageAggregate(Status.SUCCEEDED, null, BILLED_ON, existingRemittance);
-    whenSendResponse(successMessage);
-    Awaitility.await().untilAsserted(() -> verifyRemittanceHasUpdatedAtHigherThan(createdAt));
-  }
-
-  @Test
   void testWhenStatusIsNullThenRemittanceIsNotUpdated() {
     var existingRemittance = givenExistingPendingRemittance();
     var nullStatusMessage = createBillableUsageAggregate(null, null, BILLED_ON, existingRemittance);
@@ -315,17 +300,6 @@ class BillableUsageStatusConsumerTest {
               assertEquals(BILLED_ON, result.getBilledOn());
               assertNull(result.getErrorCode());
             });
-  }
-
-  @Transactional
-  void verifyRemittanceHasUpdatedAtHigherThan(OffsetDateTime createdAt) {
-    remittanceRepository.findAll().stream()
-        .forEach(
-            result ->
-                assertTrue(
-                    result.getUpdatedAt().isAfter(createdAt),
-                    "Updated at '%s' was not updated. Previous value was: '%s'"
-                        .formatted(result.getUpdatedAt(), createdAt)));
   }
 
   @Transactional

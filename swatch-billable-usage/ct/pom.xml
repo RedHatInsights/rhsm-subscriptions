@@ -34,6 +34,10 @@
       <groupId>com.redhat.swatch</groupId>
       <artifactId>swatch-product-configuration</artifactId>
     </dependency>
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+    </dependency>
 
     <!-- Required so the Maven reactor compiles this dependency -->
     <dependency>
