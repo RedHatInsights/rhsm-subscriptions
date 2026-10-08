@@ -22,21 +22,10 @@ package api;
 
 import com.redhat.swatch.component.tests.api.UnleashService;
 
-public class ContractsUnleashService extends UnleashService {
+public class BillableUsageUnleashService extends UnleashService {
 
-  /** Matches {@code KesselRolesAugmentor.KESSEL_FLAG} in swatch-common-security. */
-  public static final String USE_KESSEL_RBAC = "swatch.common-security.use-kessel-rbac";
-
-  /** Matches {@code FeatureFlags.READ_ONLY_FLAG} in swatch-contracts. */
-  public static final String ENABLE_READ_ONLY = "swatch.swatch-contracts.enable-read-only";
-
-  public void enableKesselRbac() {
-    enableFlag(USE_KESSEL_RBAC);
-  }
-
-  public void disableKesselRbac() {
-    disableFlag(USE_KESSEL_RBAC);
-  }
+  /** Matches {@code FeatureFlags.READ_ONLY_FLAG} in swatch-billable-usage. */
+  public static final String ENABLE_READ_ONLY = "swatch.swatch-billable-usage.enable-read-only";
 
   public void enableReadOnly() {
     enableFlag(ENABLE_READ_ONLY);

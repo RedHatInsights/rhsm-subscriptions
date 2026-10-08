@@ -24,7 +24,6 @@ import static com.redhat.swatch.contract.config.Channels.CONTRACTS_FROM_GATEWAY;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.redhat.swatch.contract.config.FeatureFlags;
 import com.redhat.swatch.contract.model.PartnerEntitlementsRequest;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.service.ContractService;
@@ -38,7 +37,6 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 @Slf4j
 public class ContractsPartnerEntitlementMessageConsumer {
 
-  @Inject FeatureFlags featureFlags;
   @Inject ObjectMapper mapper;
   @Inject ContractService service;
 

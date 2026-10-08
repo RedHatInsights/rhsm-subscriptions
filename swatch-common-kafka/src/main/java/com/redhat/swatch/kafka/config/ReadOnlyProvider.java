@@ -18,31 +18,9 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package api;
+package com.redhat.swatch.kafka.config;
 
-import com.redhat.swatch.component.tests.api.UnleashService;
+public interface ReadOnlyProvider {
 
-public class ContractsUnleashService extends UnleashService {
-
-  /** Matches {@code KesselRolesAugmentor.KESSEL_FLAG} in swatch-common-security. */
-  public static final String USE_KESSEL_RBAC = "swatch.common-security.use-kessel-rbac";
-
-  /** Matches {@code FeatureFlags.READ_ONLY_FLAG} in swatch-contracts. */
-  public static final String ENABLE_READ_ONLY = "swatch.swatch-contracts.enable-read-only";
-
-  public void enableKesselRbac() {
-    enableFlag(USE_KESSEL_RBAC);
-  }
-
-  public void disableKesselRbac() {
-    disableFlag(USE_KESSEL_RBAC);
-  }
-
-  public void enableReadOnly() {
-    enableFlag(ENABLE_READ_ONLY);
-  }
-
-  public void disableReadOnly() {
-    disableFlag(ENABLE_READ_ONLY);
-  }
+  boolean isReadOnly();
 }

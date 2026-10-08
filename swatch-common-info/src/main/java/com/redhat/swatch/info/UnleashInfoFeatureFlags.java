@@ -58,7 +58,7 @@ public final class UnleashInfoFeatureFlags {
     return new InfoFeatureFlags().withFlags(flags);
   }
 
-  private static InfoFeatureFlag toFlag(
+  public static InfoFeatureFlag toFlag(
       Unleash unleash, String toggleName, Boolean defaultWhenUnavailable) {
     boolean enabled =
         defaultWhenUnavailable == null

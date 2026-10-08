@@ -2759,3 +2759,37 @@ role must not be accepted so `SWATCH_TEST_APIS_ENABLED` cannot bypass RBAC on th
 - **Expected Result**:
   - Request is denied (Quarkus returns 403 with an empty body on `@RolesAllowed` failure; IQE
     against Spring rhsm may include `Access Denied` in the JSON error title)
+
+## Service Read-only mode
+
+**read-only-TC001 - Feature flag on pauses the reference consumer; flag off resumes it**
+- **Description**: Enabling the Unleash read-only feature flag stops the
+  `contracts-from-gateway` consumer from processing. Disabling the same flag
+  lets that consumer process messages again.
+- **Setup**:
+  - Read-only feature flag is off
+  - Confirm a contract can be created via Kafka
+- **Action**:
+  - Turn the read-only feature flag on and wait for the service to apply it
+  - Publish a valid AWS partner entitlement message (distinct org / subscription)
+  - Confirm the contract is not created
+  - Turn the read-only feature flag off and wait for the service to apply it
+  - Publish a valid AWS partner entitlement message (or use the pending one)
+- **Verification**:
+  - While the flag is on: no contract via internal contracts API
+  - After the flag is off: contract appears via internal contracts API
+- **Expected Result**:
+  - The reference consumer pauses when the feature flag is on and resumes when
+    the feature flag is off
+
+**read-only-TC002 - Info endpoint exposes read-only feature flag state**
+- **Description**: The management info feature-flag view includes
+  `swatch.swatch-contracts.enable-read-only` reflecting Unleash.
+- **Setup**:
+  - Enable the Unleash read-only feature flag
+- **Action**:
+  - GET the management info feature-flags endpoint
+- **Verification**:
+  - Flag name is present and enabled is true
+- **Expected Result**:
+  - Operators can confirm the read-only feature flag via the info API

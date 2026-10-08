@@ -57,6 +57,10 @@
       <artifactId>quarkus-liquibase</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.quarkiverse.unleash</groupId>
+      <artifactId>quarkus-unleash</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.redhat.swatch.clients.quarkus</groupId>
       <artifactId>contracts-client</artifactId>
     </dependency>
@@ -83,6 +87,10 @@
     <dependency>
       <groupId>com.redhat.swatch</groupId>
       <artifactId>swatch-common-kafka</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-common-info</artifactId>
     </dependency>
     <dependency>
       <groupId>com.redhat.swatch</groupId>

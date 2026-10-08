@@ -18,17 +18,15 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.contract.config;
+package com.redhat.swatch.billable.usage.configuration;
 
-import static com.redhat.swatch.common.security.KesselRolesAugmentor.KESSEL_FLAG;
-import static com.redhat.swatch.info.UnleashInfoFeatureFlags.toFlag;
+import static com.redhat.swatch.info.UnleashInfoFeatureFlags.snapshot;
 
 import com.redhat.swatch.info.InfoFeatureFlagContributor;
 import com.redhat.swatch.info.model.InfoFeatureFlags;
 import com.redhat.swatch.kafka.config.ReadOnlyProvider;
 import io.getunleash.Unleash;
 import jakarta.enterprise.context.ApplicationScoped;
-import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -37,7 +35,7 @@ import lombok.extern.slf4j.Slf4j;
 @AllArgsConstructor
 public class FeatureFlags implements InfoFeatureFlagContributor, ReadOnlyProvider {
 
-  public static final String READ_ONLY_FLAG = "swatch.swatch-contracts.enable-read-only";
+  public static final String READ_ONLY_FLAG = "swatch.swatch-billable-usage.enable-read-only";
   protected static final boolean DEFAULT_READ_ONLY_FLAG_VALUE = false;
 
   private final Unleash unleash;
@@ -50,10 +48,6 @@ public class FeatureFlags implements InfoFeatureFlagContributor, ReadOnlyProvide
 
   @Override
   public InfoFeatureFlags getFeatureFlags() {
-    return new InfoFeatureFlags()
-        .withFlags(
-            List.of(
-                toFlag(unleash, KESSEL_FLAG, null),
-                toFlag(unleash, READ_ONLY_FLAG, DEFAULT_READ_ONLY_FLAG_VALUE)));
+    return snapshot(unleash, DEFAULT_READ_ONLY_FLAG_VALUE, READ_ONLY_FLAG);
   }
 }
