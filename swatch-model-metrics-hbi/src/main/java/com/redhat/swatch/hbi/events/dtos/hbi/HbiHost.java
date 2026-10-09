@@ -86,7 +86,7 @@ public class HbiHost {
   public List<HbiEventTags> tags;
 
   @JsonProperty("system_profile")
-  public Map<String, Object> systemProfile;
+  public HbiHostSystemProfile systemProfile;
 
   @JsonProperty("per_reporter_staleness")
   public Map<String, Object> perReporterStaleness;

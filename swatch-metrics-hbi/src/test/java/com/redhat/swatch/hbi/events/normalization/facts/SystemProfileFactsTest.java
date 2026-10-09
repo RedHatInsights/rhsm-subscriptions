@@ -22,13 +22,14 @@ package com.redhat.swatch.hbi.events.normalization.facts;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
-import java.util.HashMap;
-import java.util.Map;
+import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostSystemProfile;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
@@ -72,37 +73,33 @@ class SystemProfileFactsTest {
     Boolean expectedIs3rdPartyMigrated = true;
     Set<String> expectedProductIds = Set.of("60", "70");
 
-    Map<String, Object> systemProfileHbiFacts = new HashMap<>();
-    systemProfileHbiFacts.put(SystemProfileFacts.HOST_TYPE_FACT, expectedHostType);
-    systemProfileHbiFacts.put(SystemProfileFacts.HYPERVISOR_UUID_FACT, expectedHypervisorUuid);
-    systemProfileHbiFacts.put(
-        SystemProfileFacts.INFRASTRUCTURE_TYPE_FACT, expectedInfrastructureType);
-    systemProfileHbiFacts.put(SystemProfileFacts.CORES_PER_SOCKET_FACT, expectedCoresPerSocket);
-    systemProfileHbiFacts.put(SystemProfileFacts.SOCKETS_FACT, expectedSockets);
-    systemProfileHbiFacts.put(SystemProfileFacts.CPUS_FACT, expectedCpus);
-    systemProfileHbiFacts.put(SystemProfileFacts.THREADS_PER_CORE_FACT, expectedThreadsPerCore);
-    systemProfileHbiFacts.put(SystemProfileFacts.CLOUD_PROVIDER_FACT, expectedCloudProvider);
-    systemProfileHbiFacts.put(SystemProfileFacts.ARCH_FACT, expectedArch);
-    systemProfileHbiFacts.put(SystemProfileFacts.IS_MARKETPLACE_FACT, expectedIsMarketplace);
-    systemProfileHbiFacts.put(
-        SystemProfileFacts.CONVERSIONS_FACT,
-        Map.of(SystemProfileFacts.CONVERSIONS_ACTIVITY, expectedIs3rdPartyMigrated));
-    systemProfileHbiFacts.put(
-        SystemProfileFacts.INSTALLED_PRODUCTS_FACT,
+    HbiHostSystemProfile profile = new HbiHostSystemProfile();
+    profile.setHostType(expectedHostType);
+    profile.setHypervisorUuid(expectedHypervisorUuid);
+    profile.setInfrastructureType(expectedInfrastructureType);
+    profile.setCoresPerSocket(expectedCoresPerSocket);
+    profile.setSockets(expectedSockets);
+    profile.setCpus(expectedCpus);
+    profile.setThreadsPerCore(expectedThreadsPerCore);
+    profile.setCloudProvider(expectedCloudProvider);
+    profile.setArch(expectedArch);
+    profile.setIsMarketplace(expectedIsMarketplace);
+    profile.setInstalledProducts(
         expectedProductIds.stream()
             .map(
-                pid ->
-                    Map.of(
-                        SystemProfileFacts.INSTALLED_PRODUCT_ID_FACT,
-                        pid,
-                        // No constant for name since we don't use the name during extraction.
-                        // Just making the data consistent.
-                        "name",
-                        "Product " + pid))
+                id -> {
+                  HbiHostSystemProfile.InstalledProduct product =
+                      new HbiHostSystemProfile.InstalledProduct();
+                  product.setId(id);
+                  return product;
+                })
             .toList());
+    HbiHostSystemProfile.Conversion conversion = new HbiHostSystemProfile.Conversion();
+    conversion.setActivity(expectedIs3rdPartyMigrated);
+    profile.setConversions(conversion);
 
     HbiHost hbiHost = new HbiHost();
-    hbiHost.setSystemProfile(systemProfileHbiFacts);
+    hbiHost.setSystemProfile(profile);
 
     SystemProfileFacts facts = new SystemProfileFacts(hbiHost);
     assertEquals(expectedHostType, facts.getHostType());
@@ -117,5 +114,71 @@ class SystemProfileFactsTest {
     assertTrue(facts.getIsMarketplace());
     assertTrue(facts.getIs3rdPartyMigrated());
     assertEquals(expectedProductIds, facts.getProductIds());
+  }
+
+  @Test
+  void jacksonIgnoresExtraFieldsInSystemProfile() throws Exception {
+    String jsonWithExtraFields =
+        """
+        {
+          "arch": "x86_64",
+          "host_type": "virtualized",
+          "number_of_cpus": 8,
+          "cores_per_socket": 2,
+          "number_of_sockets": 4,
+          "threads_per_core": 1,
+          "is_marketplace": false,
+          "infrastructure_type": "virtual",
+          "cloud_provider": "aws",
+          "virtual_host_uuid": "abc-123",
+          "installed_products": [{"id": "479", "name": "RHEL"}],
+          "conversions": {"activity": true},
+          "rhsm": {"version": "1.0"},
+          "systemd": {"state": "running"},
+          "cpu_flags": ["avx", "sse4_2"],
+          "kernel_modules": ["virtio_blk"],
+          "running_processes": ["python3"],
+          "network_interfaces": [{"name": "eth0"}],
+          "extra_field_1": "should be ignored",
+          "extra_field_2": 12345,
+          "extra_field_3": ["ignored", "array"]
+        }
+        """;
+
+    ObjectMapper mapper = new ObjectMapper();
+    HbiHostSystemProfile profile =
+        mapper.readValue(jsonWithExtraFields, HbiHostSystemProfile.class);
+
+    assertEquals("x86_64", profile.getArch());
+    assertEquals("virtualized", profile.getHostType());
+    assertEquals(8, profile.getCpus());
+    assertEquals(2, profile.getCoresPerSocket());
+    assertEquals(4, profile.getSockets());
+    assertEquals(1, profile.getThreadsPerCore());
+    assertFalse(profile.getIsMarketplace());
+    assertEquals("virtual", profile.getInfrastructureType());
+    assertEquals("aws", profile.getCloudProvider());
+    assertEquals("abc-123", profile.getHypervisorUuid());
+    assertEquals(1, profile.getInstalledProducts().size());
+    assertEquals("479", profile.getInstalledProducts().get(0).getId());
+    assertNotNull(profile.getConversions());
+    assertTrue(profile.getConversions().getActivity());
+
+    HbiHost hbiHost = new HbiHost();
+    hbiHost.setSystemProfile(profile);
+
+    SystemProfileFacts facts = new SystemProfileFacts(hbiHost);
+    assertEquals("x86_64", facts.getArch());
+    assertEquals("virtualized", facts.getHostType());
+    assertEquals(8, facts.getCpus());
+    assertEquals(2, facts.getCoresPerSocket());
+    assertEquals(4, facts.getSockets());
+    assertEquals(1, facts.getThreadsPerCore());
+    assertFalse(facts.getIsMarketplace());
+    assertEquals("virtual", facts.getInfrastructureType());
+    assertEquals("aws", facts.getCloudProvider());
+    assertEquals("abc-123", facts.getHypervisorUuid());
+    assertEquals(Set.of("479"), facts.getProductIds());
+    assertTrue(facts.getIs3rdPartyMigrated());
   }
 }
