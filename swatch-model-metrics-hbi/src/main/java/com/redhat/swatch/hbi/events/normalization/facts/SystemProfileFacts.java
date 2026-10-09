@@ -21,12 +21,10 @@
 package com.redhat.swatch.hbi.events.normalization.facts;
 
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
-import java.util.ArrayList;
-import java.util.HashMap;
+import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostSystemProfile;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
@@ -64,40 +62,47 @@ public class SystemProfileFacts {
   private final Boolean is3rdPartyMigrated;
   private final Set<String> productIds;
 
-  @SuppressWarnings("unchecked")
   public SystemProfileFacts(HbiHost host) {
     if (Objects.isNull(host)) {
       throw new IllegalArgumentException(
           "HbiHost cannot be null when initializing system profile facts");
     }
 
-    Map<String, Object> systemProfile =
-        Optional.ofNullable(host.getSystemProfile()).orElse(new HashMap<>());
-    hostType = (String) systemProfile.get(HOST_TYPE_FACT);
-    hypervisorUuid = (String) systemProfile.get(HYPERVISOR_UUID_FACT);
-    infrastructureType = (String) systemProfile.get(INFRASTRUCTURE_TYPE_FACT);
-    coresPerSocket = (Integer) systemProfile.get(CORES_PER_SOCKET_FACT);
-    sockets = (Integer) systemProfile.get(SOCKETS_FACT);
-    cpus = (Integer) systemProfile.get(CPUS_FACT);
-    threadsPerCore = (Integer) systemProfile.get(THREADS_PER_CORE_FACT);
-    cloudProvider = (String) systemProfile.get(CLOUD_PROVIDER_FACT);
-    arch = (String) systemProfile.get(ARCH_FACT);
-    isMarketplace = (Boolean) systemProfile.getOrDefault(IS_MARKETPLACE_FACT, Boolean.FALSE);
-    productIds = getInstalledProductIds(systemProfile);
+    HbiHostSystemProfile systemProfile =
+        Objects.requireNonNullElse(host.getSystemProfile(), new HbiHostSystemProfile());
 
-    Map<String, Object> conversions =
-        (Map<String, Object>) systemProfile.getOrDefault(CONVERSIONS_FACT, new HashMap<>());
-    is3rdPartyMigrated = (Boolean) conversions.getOrDefault(CONVERSIONS_ACTIVITY, Boolean.FALSE);
+    hostType = systemProfile.getHostType();
+    hypervisorUuid = systemProfile.getHypervisorUuid();
+    infrastructureType = systemProfile.getInfrastructureType();
+    coresPerSocket = systemProfile.getCoresPerSocket();
+    sockets = systemProfile.getSockets();
+    cpus = systemProfile.getCpus();
+    threadsPerCore = systemProfile.getThreadsPerCore();
+    cloudProvider = systemProfile.getCloudProvider();
+    arch = systemProfile.getArch();
+    isMarketplace = systemProfile.getIsMarketplace();
+    productIds = getInstalledProductIds(systemProfile);
+    is3rdPartyMigrated = getConversionActivity(systemProfile);
   }
 
-  @SuppressWarnings("unchecked")
-  private Set<String> getInstalledProductIds(Map<String, Object> systemProfileRawFacts) {
-    List<Map<String, String>> installedProductMap =
-        (List<Map<String, String>>)
-            systemProfileRawFacts.getOrDefault(INSTALLED_PRODUCTS_FACT, new ArrayList<>());
-    return installedProductMap.stream()
-        .map(ip -> ip.getOrDefault(INSTALLED_PRODUCT_ID_FACT, ""))
+  private Set<String> getInstalledProductIds(HbiHostSystemProfile systemProfile) {
+    List<HbiHostSystemProfile.InstalledProduct> installedProducts =
+        systemProfile.getInstalledProducts();
+    if (Objects.isNull(installedProducts)) {
+      return Collections.emptySet();
+    }
+    return installedProducts.stream()
+        .map(HbiHostSystemProfile.InstalledProduct::getId)
+        .filter(Objects::nonNull)
         .filter(id -> !id.isEmpty())
         .collect(Collectors.toSet());
+  }
+
+  private Boolean getConversionActivity(HbiHostSystemProfile systemProfile) {
+    HbiHostSystemProfile.Conversion conversion = systemProfile.getConversions();
+    if (Objects.isNull(conversion) || Objects.isNull(conversion.getActivity())) {
+      return Boolean.FALSE;
+    }
+    return conversion.getActivity();
   }
 }
