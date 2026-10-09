@@ -39,6 +39,9 @@ public class FeatureFlags implements InfoFeatureFlagContributor, ReadOnlyProvide
 
   public static final String READ_ONLY_FLAG = "swatch.swatch-contracts.enable-read-only";
   protected static final boolean DEFAULT_READ_ONLY_FLAG_VALUE = false;
+  public static final String USE_SUBSCRIPTIONS_FLAG =
+      "swatch.swatch-contracts.use-subscriptions";
+  protected static final boolean DEFAULT_USE_SUBSCRIPTIONS_FLAG_VALUE = false;
 
   private final Unleash unleash;
 
@@ -48,12 +51,21 @@ public class FeatureFlags implements InfoFeatureFlagContributor, ReadOnlyProvide
     return unleash.isEnabled(READ_ONLY_FLAG, DEFAULT_READ_ONLY_FLAG_VALUE);
   }
 
+  /** Whether the service should use subscription data. */
+  public boolean useSubscriptions() {
+    return unleash.isEnabled(USE_SUBSCRIPTIONS_FLAG, DEFAULT_USE_SUBSCRIPTIONS_FLAG_VALUE);
+  }
+
   @Override
   public InfoFeatureFlags getFeatureFlags() {
     return new InfoFeatureFlags()
         .withFlags(
             List.of(
                 toFlag(unleash, KESSEL_FLAG, null),
-                toFlag(unleash, READ_ONLY_FLAG, DEFAULT_READ_ONLY_FLAG_VALUE)));
+                toFlag(unleash, READ_ONLY_FLAG, DEFAULT_READ_ONLY_FLAG_VALUE),
+                toFlag(
+                    unleash,
+                    USE_SUBSCRIPTIONS_FLAG,
+                    DEFAULT_USE_SUBSCRIPTIONS_FLAG_VALUE)));
   }
 }
