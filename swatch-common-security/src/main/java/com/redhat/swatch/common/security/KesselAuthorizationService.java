@@ -74,33 +74,43 @@ public class KesselAuthorizationService {
           }
         };
 
-    KesselMetricsRecorder metricsRecorder = new KesselMicrometerRecorder(meterRegistry);
-
-    client = new KesselAuthorizationClient(config, this::getDefaultWorkspaceId, metricsRecorder);
-    client.init();
-
+    OAuth2ClientCredentials oauth2Credentials = null;
     try {
-      initializeRbacAuth();
+      oauth2Credentials = initializeOAuth2Credentials();
+      if (oauth2Credentials != null) {
+        this.rbacAuth = new OAuth2AuthRequest(oauth2Credentials);
+      }
     } catch (Exception e) {
       log.warn(
-          "Failed to initialize RBAC OAuth2 client; workspace lookups will be unauthenticated", e);
+          "Failed to initialize OAuth2 credentials; Kessel gRPC will use TLS only, workspace"
+              + " lookups will be unauthenticated",
+          e);
     }
+
+    KesselMetricsRecorder metricsRecorder = new KesselMicrometerRecorder(meterRegistry);
+
+    client =
+        new KesselAuthorizationClient(
+            config, this::getDefaultWorkspaceId, metricsRecorder, oauth2Credentials);
+    client.init();
   }
 
-  private void initializeRbacAuth() throws Exception {
+  private OAuth2ClientCredentials initializeOAuth2Credentials() throws Exception {
     var issuerUrl = properties.authOidcIssuer().filter(s -> !s.isBlank());
     var clientId = properties.authClientId().filter(s -> !s.isBlank());
     var clientSecret = properties.authClientSecret().filter(s -> !s.isBlank());
     if (issuerUrl.isEmpty() || clientId.isEmpty() || clientSecret.isEmpty()) {
-      log.info("RBAC OAuth2 credentials not configured; workspace fetches will be unauthenticated");
-      return;
+      log.info(
+          "OAuth2 credentials not configured; Kessel gRPC will use TLS only, RBAC workspace"
+              + " fetches will be unauthenticated");
+      return null;
     }
     var discovery = OIDCDiscovery.fetchOIDCDiscovery(issuerUrl.get());
     var credentials =
         new OAuth2ClientCredentials(
             new ClientConfigAuth(clientId.get(), clientSecret.get(), discovery.tokenEndpoint()));
-    this.rbacAuth = new OAuth2AuthRequest(credentials);
-    log.info("RBAC OAuth2 client initialized for workspace lookups");
+    log.info("OAuth2 credentials initialized for Kessel gRPC and RBAC workspace lookups");
+    return credentials;
   }
 
   @PreDestroy
