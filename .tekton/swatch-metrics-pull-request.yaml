@@ -219,8 +219,6 @@ spec:
       - name: BUILD_ARGS
         value:
         - $(params.build-args[*])
-      - name: BUILD_ARGS_FILE
-        value: $(params.build-args-file)
       - name: PRIVILEGED_NESTED
         value: $(params.privileged-nested)
       - name: SOURCE_ARTIFACT
@@ -239,6 +237,9 @@ spec:
         value: $(params.rewrite-timestamp)
       - name: OMIT_HISTORY
         value: $(params.omit-history)
+      - name: BUILD_ARGS_FILES
+        value:
+        - $(params.build-args-file)
       runAfter:
       - prefetch-dependencies
       taskRef:
@@ -246,7 +247,7 @@ spec:
         - name: name
           value: buildah-oci-ta
         - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-buildah-oci-ta:0.12.3@sha256:3c57ec441d23c81d73df3b1f95cd5e800d53674fa0e8af784d81402e087e30bf
+          value: quay.io/konflux-ci/tekton-catalog/task-buildah-oci-ta:0.13.0@sha256:5962a3531a56ab393e6590c4ecedebd5d7ace3fe57f6cc37bec6b4ea838204cf
         - name: kind
           value: task
         resolver: bundles
