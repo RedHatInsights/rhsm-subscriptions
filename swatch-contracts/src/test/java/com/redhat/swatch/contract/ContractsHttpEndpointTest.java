@@ -32,7 +32,6 @@ import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlement
 import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.ContractRequest;
 import com.redhat.swatch.contract.openapi.model.ContractResponse;
-import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.service.AccountResetService;
 import com.redhat.swatch.contract.service.ContractService;
 import io.quarkus.test.InjectMock;
@@ -106,42 +105,6 @@ class ContractsHttpEndpointTest {
         .delete("/api/swatch-contracts/internal/contracts/123")
         .then()
         .statusCode(HttpStatus.SC_FORBIDDEN);
-  }
-
-  @Test
-  void createPartnerEntitlementContract() {
-    StatusResponse statusResponse = new StatusResponse();
-    statusResponse.setMessage("Contract created successfully");
-    when(contractService.createPartnerContract(any())).thenReturn(statusResponse);
-    String contract =
-        """
-                    {
-                      "action" : "contract-updated",
-                      "redHatSubscriptionNumber" : "12400374",
-                      "currentDimensions" : [ {
-                        "dimensionName" : "test_dim_1",
-                        "dimensionValue" : "5",
-                        "expirationDate" : "2023-02-15T00:00:00Z"
-                      }, {
-                        "dimensionName" : "test_dim_2",
-                        "dimensionValue" : "10",
-                        "expirationDate" : "2023-02-15T00:00:00Z"
-                      } ],
-                      "cloudIdentifiers" : {
-                        "awsCustomerId" : "EK57ooq39qs",
-                        "awsCustomerAccountId" : "896801664647",
-                        "productCode" : "ek1lel8qbwnqimt2wogc5nmey"
-                      }
-                    }
-                    """;
-    given()
-        .contentType(ContentType.JSON)
-        .body(contract)
-        .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
-        .when()
-        .post("/api/swatch-contracts/internal/rpc/partner/contracts")
-        .then()
-        .statusCode(HttpStatus.SC_OK);
   }
 
   @Test

@@ -25,7 +25,6 @@ import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.contract.config.ApplicationConfiguration;
 import com.redhat.swatch.contract.exception.ErrorCode;
 import com.redhat.swatch.contract.exception.ServiceException;
-import com.redhat.swatch.contract.model.PartnerEntitlementsRequest;
 import com.redhat.swatch.contract.model.SyncResult;
 import com.redhat.swatch.contract.openapi.model.AwsUsageContext;
 import com.redhat.swatch.contract.openapi.model.AzureUsageContext;
@@ -35,7 +34,6 @@ import com.redhat.swatch.contract.openapi.model.ContractResponse;
 import com.redhat.swatch.contract.openapi.model.MetricResponse;
 import com.redhat.swatch.contract.openapi.model.OfferingProductTags;
 import com.redhat.swatch.contract.openapi.model.OfferingResponse;
-import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.RpcResponse;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.openapi.model.Subscription;
@@ -177,13 +175,6 @@ public class ContractsResource implements DefaultApi {
   public StatusResponse syncSubscriptionsForContractsByOrg(String orgId)
       throws ProcessingException {
     return service.syncSubscriptionsForContractsByOrg(orgId);
-  }
-
-  @Override
-  @RolesAllowed({"test"})
-  public StatusResponse createPartnerEntitlementContract(PartnerEntitlementContract contract)
-      throws ProcessingException {
-    return service.createPartnerContract(PartnerEntitlementsRequest.from(contract));
   }
 
   @Override
