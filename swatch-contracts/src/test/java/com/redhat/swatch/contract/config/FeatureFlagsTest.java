@@ -23,6 +23,7 @@ package com.redhat.swatch.contract.config;
 import static com.redhat.swatch.common.security.KesselRolesAugmentor.KESSEL_FLAG;
 import static com.redhat.swatch.contract.config.FeatureFlags.DEFAULT_READ_ONLY_FLAG_VALUE;
 import static com.redhat.swatch.contract.config.FeatureFlags.READ_ONLY_FLAG;
+import static com.redhat.swatch.contract.config.FeatureFlags.USE_SUBSCRIPTIONS_FLAG;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -67,6 +68,7 @@ class FeatureFlagsTest {
   void infoContributorExposesReadOnlyFlag() {
     when(unleash.isEnabled(READ_ONLY_FLAG, DEFAULT_READ_ONLY_FLAG_VALUE)).thenReturn(true);
     when(unleash.getVariant(READ_ONLY_FLAG)).thenReturn(Variant.DISABLED_VARIANT);
+    when(unleash.getVariant(USE_SUBSCRIPTIONS_FLAG)).thenReturn(Variant.DISABLED_VARIANT);
 
     InfoFeatureFlags info = featureFlags.getFeatureFlags();
     InfoFeatureFlag flag =
