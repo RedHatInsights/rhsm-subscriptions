@@ -24,11 +24,14 @@ import static com.redhat.swatch.hbi.events.configuration.Channels.HBI_HOST_EVENT
 import static com.redhat.swatch.hbi.events.services.HbiEventConsumer.COUNTER_EVENTS_METRIC;
 import static com.redhat.swatch.hbi.events.services.HbiEventConsumer.TIMED_EVENTS_METRIC;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
@@ -599,6 +602,49 @@ class HbiEventConsumerTest {
             .findFirst();
 
     assertTrue(metric.isPresent());
+  }
+
+  @Test
+  void testSystemProfileDataIsParedDownInStoredHostData() throws Exception {
+    var hbiEvent =
+        hbiEventTestHelper.getCreateUpdateEvent(HbiEventTestData.getPhysicalRhelHostCreatedEvent());
+
+    hbiEventsIn.send(hbiEvent);
+
+    // Wait for processing using getAllOutboxRecords which is transactional
+    Awaitility.await().atMost(Duration.ofSeconds(1)).until(() -> getAllOutboxRecords().size() > 0);
+
+    // Retrieve and verify the stored data
+    verifySystemProfileDataIsParedDown(hbiEvent);
+  }
+
+  @Transactional
+  void verifySystemProfileDataIsParedDown(HbiHostCreateUpdateEvent hbiEvent) throws Exception {
+    var relationship =
+        repo.findByOrgIdAndInventoryId(hbiEvent.getHost().getOrgId(), hbiEvent.getHost().getId())
+            .orElseThrow();
+
+    // Inspect the stored JSON as a tree before deserializing to verify excluded fields are absent
+    JsonNode storedJsonTree = objectMapper.readTree(relationship.getLatestHbiEventData());
+    JsonNode systemProfileNode = storedJsonTree.get("system_profile");
+    assertNotNull(systemProfileNode);
+
+    // Verify excluded fields are NOT present in the stored JSON
+    assertFalse(systemProfileNode.has("tuned_profile"));
+    assertFalse(systemProfileNode.has("last_boot_time"));
+    assertFalse(systemProfileNode.has("kernel_modules"));
+    assertFalse(systemProfileNode.has("enabled_services"));
+    assertFalse(systemProfileNode.has("running_processes"));
+    assertFalse(systemProfileNode.has("installed_packages"));
+    assertFalse(systemProfileNode.has("network_interfaces"));
+
+    // Now deserialize and verify system_profile contains only selected fields
+    var storedHost = objectMapper.readValue(relationship.getLatestHbiEventData(), HbiHost.class);
+
+    assertNotNull(storedHost.getSystemProfile());
+    assertEquals("physical", storedHost.getSystemProfile().getInfrastructureType());
+    assertEquals(2, storedHost.getSystemProfile().getSockets());
+    assertEquals(1, storedHost.getSystemProfile().getCoresPerSocket());
   }
 
   @Transactional

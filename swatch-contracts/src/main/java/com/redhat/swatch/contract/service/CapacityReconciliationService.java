@@ -32,6 +32,7 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.smallrye.reactive.messaging.MutinyEmitter;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.control.ActivateRequestContext;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.util.HashSet;
@@ -93,7 +94,10 @@ public class CapacityReconciliationService {
   }
 
   /** Enqueue asynchronous capacity reconciliation for every subscription of the SKU. */
-  @Transactional
+  // Ensure Quarkus starts a new transaction
+  @Transactional(Transactional.TxType.REQUIRES_NEW)
+  // Ensures that the CDI RequestContext is active on this thread.
+  @ActivateRequestContext
   public void enqueueReconcileCapacityForOffering(String sku) {
     long subscriptionCount = subscriptionRepository.countByOfferingSku(sku);
     var pageSize = applicationConfiguration.getCapacityReconcilePageSize();

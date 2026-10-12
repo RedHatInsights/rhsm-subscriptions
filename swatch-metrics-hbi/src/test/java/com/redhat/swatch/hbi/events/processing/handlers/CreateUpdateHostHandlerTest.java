@@ -31,7 +31,6 @@ import com.redhat.swatch.hbi.events.TestingApplicationConfiguration;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.normalization.NormalizedEventType;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
-import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationship;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationshipRepository;
 import com.redhat.swatch.hbi.events.test.helpers.HbiEventTestData;
@@ -343,7 +342,7 @@ class CreateUpdateHostHandlerTest {
   }
 
   private void setHostType(HbiHostCreateUpdateEvent event, String hostType) {
-    event.getHost().getSystemProfile().put(SystemProfileFacts.HOST_TYPE_FACT, hostType);
+    event.getHost().getSystemProfile().setHostType(hostType);
   }
 
   private HbiHostRelationship withHypervisor(HbiHostCreateUpdateEvent hypervisorEvent) {

@@ -31,17 +31,15 @@ import com.redhat.swatch.common.model.Usage;
 import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostFacts;
+import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostSystemProfile;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SatelliteFacts;
-import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationship;
 import com.redhat.swatch.hbi.events.services.HbiHostRelationshipService;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -130,7 +128,7 @@ class FactNormalizerTest {
       HardwareMeasurementType expectedType,
       CloudProvider expectedProvider) {
     HbiHost hbiHost = hbiHost();
-    hbiHost.getSystemProfile().put(SystemProfileFacts.CLOUD_PROVIDER_FACT, cloudProviderFact);
+    hbiHost.getSystemProfile().setCloudProvider(cloudProviderFact);
 
     Host host = new Host(hbiHost);
     NormalizedFacts normalizedFacts = normalizer.normalize(host);
@@ -157,9 +155,7 @@ class FactNormalizerTest {
       String expectedHypervisorUuid) {
     HbiHost hbiHost = hbiHost();
     if (Objects.nonNull(systemProfileHypervisorUuid)) {
-      hbiHost
-          .getSystemProfile()
-          .put(SystemProfileFacts.HYPERVISOR_UUID_FACT, systemProfileHypervisorUuid);
+      hbiHost.getSystemProfile().setHypervisorUuid(systemProfileHypervisorUuid);
     }
 
     if (Objects.nonNull(satelliteHypervisorUuid)) {
@@ -196,8 +192,8 @@ class FactNormalizerTest {
   void testIsUnmappedGuestNormalization(boolean isHypervisorKnown) {
     final String expectedHypervisorUuid = UUID.randomUUID().toString();
     HbiHost hbiHost = hbiHost();
-    hbiHost.getSystemProfile().put(SystemProfileFacts.HYPERVISOR_UUID_FACT, expectedHypervisorUuid);
-    hbiHost.getSystemProfile().put(SystemProfileFacts.INFRASTRUCTURE_TYPE_FACT, "virtual");
+    hbiHost.getSystemProfile().setHypervisorUuid(expectedHypervisorUuid);
+    hbiHost.getSystemProfile().setInfrastructureType("virtual");
     when(hbiHostRelationshipService.findHypervisor(hbiHost.getOrgId(), expectedHypervisorUuid))
         .thenReturn(isHypervisorKnown ? Optional.of(new HbiHostRelationship()) : Optional.empty());
 
@@ -235,7 +231,7 @@ class FactNormalizerTest {
 
     HbiHost hbiHost = hbiHost();
     hbiHost.setFacts(hbiHostFacts);
-    hbiHost.getSystemProfile().put(SystemProfileFacts.INFRASTRUCTURE_TYPE_FACT, infrastructureType);
+    hbiHost.getSystemProfile().setInfrastructureType(infrastructureType);
 
     assertEquals(expectedToBeVirtual, normalizer.normalize(new Host(hbiHost)).isVirtual());
   }
@@ -261,10 +257,8 @@ class FactNormalizerTest {
       String sysProfileInfraType,
       HardwareType expectedHardwareType) {
     HbiHost hbiHost = hbiHost();
-    hbiHost.getSystemProfile().put(SystemProfileFacts.CLOUD_PROVIDER_FACT, sysProfileCloudProvider);
-    hbiHost
-        .getSystemProfile()
-        .put(SystemProfileFacts.INFRASTRUCTURE_TYPE_FACT, sysProfileInfraType);
+    hbiHost.getSystemProfile().setCloudProvider(sysProfileCloudProvider);
+    hbiHost.getSystemProfile().setInfrastructureType(sysProfileInfraType);
     assertEquals(expectedHardwareType, normalizer.normalize(new Host(hbiHost)).getHardwareType());
   }
 
@@ -440,18 +434,14 @@ class FactNormalizerTest {
     HbiHost hbiHost = hbiHost();
     assertFalse(normalizer.normalize(new Host(hbiHost)).is3rdPartyMigrated());
 
-    hbiHost
-        .getSystemProfile()
-        .put(
-            SystemProfileFacts.CONVERSIONS_FACT,
-            Map.of(SystemProfileFacts.CONVERSIONS_ACTIVITY, false));
+    // Null conversions
+    hbiHost.getSystemProfile().setConversions(null);
     assertFalse(normalizer.normalize(new Host(hbiHost)).is3rdPartyMigrated());
 
-    hbiHost
-        .getSystemProfile()
-        .put(
-            SystemProfileFacts.CONVERSIONS_FACT,
-            Map.of(SystemProfileFacts.CONVERSIONS_ACTIVITY, true));
+    // Conversions with activity
+    HbiHostSystemProfile.Conversion conversion = new HbiHostSystemProfile.Conversion();
+    conversion.setActivity(true);
+    hbiHost.getSystemProfile().setConversions(conversion);
     assertTrue(normalizer.normalize(new Host(hbiHost)).is3rdPartyMigrated());
   }
 
@@ -478,7 +468,7 @@ class FactNormalizerTest {
     hbiHost.insightsId = "insights_1234";
     hbiHost.subscriptionManagerId = "subscription_1234";
     hbiHost.displayName = "test_host";
-    hbiHost.setSystemProfile(new HashMap<>());
+    hbiHost.setSystemProfile(new HbiHostSystemProfile());
 
     List<HbiHostFacts> facts = new ArrayList<>();
     facts.add(rhsmHbiFacts());

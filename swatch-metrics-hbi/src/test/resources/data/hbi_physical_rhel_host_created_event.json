@@ -48,7 +48,10 @@
       "cores_per_socket": 1,
       "number_of_sockets": 2,
       "infrastructure_type": "physical",
-      "system_memory_bytes": 5120
+      "system_memory_bytes": 5120,
+      "kernel_modules": ["virtio_blk", "ext4"],
+      "running_processes": ["python3", "java"],
+      "network_interfaces": [{"name": "eth0", "mtu": 1500}]
     },
     "per_reporter_staleness": {
       "rhsm-conduit": {

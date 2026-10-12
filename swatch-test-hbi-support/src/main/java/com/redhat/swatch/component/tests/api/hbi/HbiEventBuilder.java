@@ -26,9 +26,9 @@ import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostDeleteEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostEventMetadata;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostFacts;
+import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostSystemProfile;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -172,8 +172,8 @@ public class HbiEventBuilder {
     list.add(entry);
   }
 
-  private Map<String, Object> buildSystemProfile(SystemProfileFacts sp) {
-    var profile = new LinkedHashMap<String, Object>();
+  private HbiHostSystemProfile buildSystemProfile(SystemProfileFacts sp) {
+    var profile = new HbiHostSystemProfile();
 
     // Re-apply derivation here because build() bypasses applyDerivedFacts()
     Integer cps = sp.getCoresPerSocket();
@@ -184,22 +184,16 @@ public class HbiEventBuilder {
       cps = sp.getNumberOfCpus() / sp.getNumberOfSockets();
     }
 
-    putIfPresent(profile, "host_type", sp.getHostType());
-    putIfPresent(profile, "virtual_host_uuid", sp.getHypervisorUuid());
-    putIfPresent(profile, "infrastructure_type", sp.getInfrastructureType());
-    putIfPresent(profile, "cores_per_socket", cps);
-    putIfPresent(profile, "number_of_sockets", sp.getNumberOfSockets());
-    putIfPresent(profile, "number_of_cpus", sp.getNumberOfCpus());
-    putIfPresent(profile, "threads_per_core", sp.getThreadsPerCore());
-    putIfPresent(profile, "cloud_provider", sp.getCloudProvider());
-    putIfPresent(profile, "arch", sp.getArch());
-    putIfPresent(profile, "is_marketplace", sp.getIsMarketplace());
+    profile.setHostType(sp.getHostType());
+    profile.setHypervisorUuid(sp.getHypervisorUuid());
+    profile.setInfrastructureType(sp.getInfrastructureType());
+    profile.setCoresPerSocket(cps);
+    profile.setSockets(sp.getNumberOfSockets());
+    profile.setCpus(sp.getNumberOfCpus());
+    profile.setThreadsPerCore(sp.getThreadsPerCore());
+    profile.setCloudProvider(sp.getCloudProvider());
+    profile.setArch(sp.getArch());
+    profile.setIsMarketplace(sp.getIsMarketplace());
     return profile;
-  }
-
-  private static void putIfPresent(Map<String, Object> map, String key, Object value) {
-    if (value != null) {
-      map.put(key, value);
-    }
   }
 }

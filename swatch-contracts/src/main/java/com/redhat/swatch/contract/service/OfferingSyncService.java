@@ -41,6 +41,9 @@ import io.smallrye.reactive.messaging.MutinyEmitter;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.PersistenceException;
+import jakarta.transaction.Status;
+import jakarta.transaction.Synchronization;
+import jakarta.transaction.TransactionSynchronizationRegistry;
 import jakarta.transaction.Transactional;
 import java.time.Duration;
 import java.util.HashSet;
@@ -69,6 +72,7 @@ public class OfferingSyncService {
   private final MutinyEmitter<OfferingSyncTask> offeringSyncTaskEmitter;
   private final ObjectMapper objectMapper;
   private final OfferingProductTagLookupService offeringProductTagLookupService;
+  private final TransactionSynchronizationRegistry txRegistry;
 
   @Inject
   public OfferingSyncService(
@@ -79,7 +83,8 @@ public class OfferingSyncService {
       MeterRegistry meterRegistry,
       @Channel(Channels.OFFERING_SYNC) MutinyEmitter<OfferingSyncTask> offeringSyncTaskEmitter,
       ObjectMapper objectMapper,
-      OfferingProductTagLookupService offeringProductTagLookupService) {
+      OfferingProductTagLookupService offeringProductTagLookupService,
+      TransactionSynchronizationRegistry txRegistry) {
     this.offeringRepository = offeringRepository;
     this.productDenylist = productDenylist;
     this.productService = productService;
@@ -89,6 +94,7 @@ public class OfferingSyncService {
     this.offeringSyncTaskEmitter = offeringSyncTaskEmitter;
     this.objectMapper = objectMapper;
     this.offeringProductTagLookupService = offeringProductTagLookupService;
+    this.txRegistry = txRegistry;
   }
 
   /**
@@ -175,12 +181,11 @@ public class OfferingSyncService {
       }
     }
 
-    // Existing capacities need to be updated if certain parts of the offering changed.
+    // if capacity is impacted, we need to enqueue the reconcile tasks after the
+    // offering update transaction is finished
     if (isCapacityImpacted) {
-      capacityReconciliationService.enqueueReconcileCapacityForOffering(newState.getSku());
-      log.info(
-          "SKU {} attribute change(s) impact capacity records, reconciliation scheduled",
-          newState.getSku());
+      txRegistry.registerInterposedSynchronization(
+          enqueueReconcileAfterOfferingIsUpdated(newState.getSku()));
     } else {
       log.info("SKU {} attribute change(s) did not impact capacity", newState.getSku());
     }
@@ -366,5 +371,27 @@ public class OfferingSyncService {
    */
   private void syncDerivedSku(String sku) {
     offeringRepository.findSkusForDerivedSkus(Set.of(sku)).forEach(this::enqueueOfferingSyncTask);
+  }
+
+  private Synchronization enqueueReconcileAfterOfferingIsUpdated(String sku) {
+    return new Synchronization() {
+      @Override
+      public void beforeCompletion() {}
+
+      @Override
+      public void afterCompletion(int status) {
+        if (status == Status.STATUS_COMMITTED) {
+          // Existing capacities need to be updated if certain parts of the offering changed.
+          capacityReconciliationService.enqueueReconcileCapacityForOffering(sku);
+          log.info(
+              "SKU {} attribute change(s) impact capacity records, reconciliation scheduled", sku);
+        } else {
+          log.warn(
+              "Offering update for sku '{}' failed with status '{}'. Subscriptions capacity won't be reconciled",
+              sku,
+              status);
+        }
+      }
+    };
   }
 }

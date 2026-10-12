@@ -29,7 +29,6 @@ import com.redhat.swatch.hbi.events.configuration.ApplicationConfiguration;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostDeleteEvent;
-import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
 import com.redhat.swatch.hbi.events.test.helpers.HbiEventTestData;
 import com.redhat.swatch.hbi.events.test.helpers.HbiEventTestHelper;
 import io.quarkus.test.junit.QuarkusTest;
@@ -51,8 +50,7 @@ class HbiEventProcessorTest {
   void processReturnsEmptyListOfEventsWhenHbiEventIsSkipped() {
     var hbiHostEvent =
         hbiEventHelper.getCreateUpdateEvent(HbiEventTestData.getPhysicalRhelHostCreatedEvent());
-    // Force the 'host_type' system profile fact to 'edge' so that it will be skipped.
-    hbiHostEvent.getHost().getSystemProfile().put(SystemProfileFacts.HOST_TYPE_FACT, "edge");
+    hbiHostEvent.getHost().getSystemProfile().setHostType("edge");
     assertTrue(processor.process(hbiHostEvent).isEmpty());
   }
 

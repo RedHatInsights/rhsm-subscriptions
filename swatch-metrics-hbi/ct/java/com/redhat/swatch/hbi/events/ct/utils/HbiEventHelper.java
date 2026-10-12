@@ -155,10 +155,7 @@ public class HbiEventHelper {
 
     // Ensure the guest references the hypervisor by subscription_manager_id
     if (guestEvent.getHost() != null && guestEvent.getHost().getSystemProfile() != null) {
-      guestEvent
-          .getHost()
-          .getSystemProfile()
-          .put("virtual_host_uuid", hypervisorSubscriptionManagerId);
+      guestEvent.getHost().getSystemProfile().setHypervisorUuid(hypervisorSubscriptionManagerId);
     }
 
     return List.of(hypervisorEvent, guestEvent);
