@@ -175,6 +175,10 @@ parameters:
     value: '3'
   - name: KAFKA_SUBSCRIPTIONS_EXPORT_PARTITIONS
     value: '3'
+  - name: KAFKA_USAGE_REPLICAS
+    value: '3'
+  - name: KAFKA_USAGE_PARTITIONS
+    value: '3'
   - name: ENABLE_SYNCHRONOUS_OPERATIONS
     value: 'false'
   - name: TALLY_MAX_HBI_ACCOUNT_SIZE
@@ -447,6 +451,9 @@ objects:
       - replicas: ${{KAFKA_SUBSCRIPTIONS_EXPORT_REPLICAS}}
         partitions: ${{KAFKA_SUBSCRIPTIONS_EXPORT_PARTITIONS}}
         topicName: platform.export.requests
+      - replicas: ${{KAFKA_USAGE_REPLICAS}}
+        partitions: ${{KAFKA_USAGE_PARTITIONS}}
+        topicName: platform.rhsm-subscriptions.usage
 
     database:
       sharedDbAppName: ${DB_POD}
