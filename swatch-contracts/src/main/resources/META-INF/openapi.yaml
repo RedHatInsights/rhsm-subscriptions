@@ -217,49 +217,6 @@ paths:
         - test: [ ]
         - service: [ ]
       operationId: deleteDataForOrg
-  '/api/swatch-contracts/internal/rpc/partner/contracts':
-    post:
-      operationId: createPartnerEntitlementContract
-      requestBody:
-        description: Create a contract record from partner entitlement.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PartnerEntitlementContract'
-            examples:
-              contract info:
-                value:
-                  action: contract-updated
-                  redHatSubscriptionNumber: '12400374'
-                  currentDimensions:
-                    -
-                      dimensionName: cpu-hours
-                      dimensionValue: '5'
-                      expirationDate: '2018-02-10T09:30Z'
-                    -
-                      dimensionName: instance-hours
-                      dimensionValue: '10'
-                      expirationDate: '2018-02-10T09:30Z'
-                  cloudIdentifiers:
-                    awsCustomerId: 'HSwCpt6sqkC'
-                    awsCustomerAccountId: '795061427196'
-                    productCode: '1234567890abcdefghijklmno'
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/StatusResponse'
-              examples:
-                status response:
-                  value:
-                    status: 'Success'
-                    message: "Contract created"
-          description: Success
-        default:
-          $ref: '#/components/responses/ErrorResponse'
-      security:
-        - test: []
   /api/swatch-contracts/internal/subscriptions:
     description: Save subscriptions manually. Supported only in dev-mode.
     post:
