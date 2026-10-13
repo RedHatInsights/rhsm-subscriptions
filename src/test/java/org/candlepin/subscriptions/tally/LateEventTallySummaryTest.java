@@ -66,6 +66,9 @@ class LateEventTallySummaryTest {
   private static final TallyMeasurementKey MEASUREMENT_KEY =
       new TallyMeasurementKey(
           HardwareMeasurementType.PHYSICAL, MetricIdUtils.getManagedNodes().getValue());
+  private static final TallyMeasurementKey COUNTER_MEASUREMENT_KEY =
+      new TallyMeasurementKey(
+          HardwareMeasurementType.PHYSICAL, MetricIdUtils.getInstanceHours().getValue());
 
   @Mock TallySnapshotRepository snapshotRepository;
   @Mock FeatureFlags featureFlags;
@@ -76,76 +79,15 @@ class LateEventTallySummaryTest {
   void latePreviousMonthUsageMustPublishCorrectedMonthlyTotal(boolean primaryRowSearch) {
     // SWATCH-5820: September usage is processed in October. Ten hours of 20 nodes
     // total 200. With contract coverage of 60, billing has already remitted 140.
-    ApplicationClock clock =
-        new ApplicationClock(
-            Clock.fixed(Instant.parse("2026-10-13T18:00:00Z"), ZoneOffset.UTC));
     List<TallySnapshot> storedSnapshots = new ArrayList<>();
     for (int day = 11; day <= 20; day++) {
       storedSnapshots.add(
           snapshot(OffsetDateTime.of(2026, 9, day, 13, 0, 0, 0, ZoneOffset.UTC), 20.0));
     }
 
-    when(featureFlags.isEnabled(FeatureFlags.ENABLE_PRIMARY_ROW_SEARCHES))
-        .thenReturn(primaryRowSearch);
-
-    // Model the repository's inclusive range sum over persisted hourly snapshots.
-    // Calculate from the fixture and the actual query bounds, rather than stub a
-    // predetermined currentTotal: the mapper chooses which hours billing can see.
-    Answer<Double> sumMeasurements =
-        invocation -> {
-          OffsetDateTime beginning = invocation.getArgument(7);
-          OffsetDateTime ending = invocation.getArgument(8);
-          return storedSnapshots.stream()
-              .filter(s -> !s.getSnapshotDate().isBefore(beginning))
-              .filter(s -> !s.getSnapshotDate().isAfter(ending))
-              .mapToDouble(s -> s.getTallyMeasurements().get(MEASUREMENT_KEY))
-              .sum();
-        };
-    if (primaryRowSearch) {
-      when(snapshotRepository.sumMeasurementValueForPeriodWithPrimary(
-              eq(ORG_ID),
-              eq(PRODUCT_ID),
-              eq(Granularity.HOURLY),
-              eq(ServiceLevel.PREMIUM),
-              eq(Usage.PRODUCTION),
-              eq(BillingProvider.AWS),
-              eq(BILLING_ACCOUNT_ID),
-              any(OffsetDateTime.class),
-              any(OffsetDateTime.class),
-              eq(MEASUREMENT_KEY)))
-          .thenAnswer(sumMeasurements);
-    } else {
-      when(snapshotRepository.sumMeasurementValueForPeriod(
-              eq(ORG_ID),
-              eq(PRODUCT_ID),
-              eq(Granularity.HOURLY),
-              eq(ServiceLevel.PREMIUM),
-              eq(Usage.PRODUCTION),
-              eq(BillingProvider.AWS),
-              eq(BILLING_ACCOUNT_ID),
-              any(OffsetDateTime.class),
-              any(OffsetDateTime.class),
-              eq(MEASUREMENT_KEY)))
-          .thenAnswer(sumMeasurements);
-    }
-
     List<TallySummary> published = new ArrayList<>();
-    doAnswer(
-            invocation -> {
-              published.add(invocation.getArgument(2));
-              return CompletableFuture.completedFuture(null);
-            })
-        .when(kafka)
-        .send(eq(TOPIC), eq(ORG_ID), any(TallySummary.class));
-
-    TallySummaryProperties properties = new TallySummaryProperties();
-    properties.setTopic(TOPIC);
     SnapshotSummaryProducer producer =
-        new SnapshotSummaryProducer(
-            kafka,
-            new RetryTemplate(),
-            properties,
-            new TallySummaryMapper(snapshotRepository, clock, featureFlags));
+        producerFor(storedSnapshots, published, primaryRowSearch, MEASUREMENT_KEY);
 
     producer.produceTallySummaryMessages(
         Map.of(ORG_ID, storedSnapshots),
@@ -180,6 +122,118 @@ class LateEventTallySummaryTest {
             + " the additional 40 nodes");
   }
 
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  void repeatedCounterSnapshotUpdatesUseLatestValueRatherThanSumOfPublications(
+      boolean primaryRowSearch) {
+    TallySnapshot previous =
+        snapshot(OffsetDateTime.parse("2026-09-20T12:00:00Z"), 30.0, COUNTER_MEASUREMENT_KEY);
+    TallySnapshot updated =
+        snapshot(OffsetDateTime.parse("2026-09-20T13:00:00Z"), 10.0, COUNTER_MEASUREMENT_KEY);
+    List<TallySnapshot> storedSnapshots = List.of(previous, updated);
+    List<TallySummary> published = new ArrayList<>();
+    SnapshotSummaryProducer producer =
+        producerFor(storedSnapshots, published, primaryRowSearch, COUNTER_MEASUREMENT_KEY);
+
+    // Multiple publications represent revisions of one counter interval. They
+    // are replacement values, not increments to add to previously emitted values.
+    // Include replay and a downward correction so retaining a maximum also fails.
+    double[] replacementValues = {10.0, 15.0, 20.0, 20.0, 5.0};
+    double[] expectedPeriodTotals = {40.0, 45.0, 50.0, 50.0, 35.0};
+    for (int i = 0; i < replacementValues.length; i++) {
+      updated.setMeasurement(
+          HardwareMeasurementType.PHYSICAL,
+          MetricIdUtils.getInstanceHours(),
+          replacementValues[i]);
+      published.clear();
+
+      producer.produceTallySummaryMessages(
+          Map.of(ORG_ID, List.of(updated)),
+          List.of(Granularity.HOURLY),
+          SnapshotSummaryProducer.HOURLY_SNAP_FILTER);
+
+      assertEquals(1, published.size());
+      var emittedSnapshot = published.getFirst().getTallySnapshots().getFirst();
+      assertEquals(updated.getId(), emittedSnapshot.getId(), "The snapshot identity is unchanged");
+      assertEquals(updated.getSnapshotDate(), emittedSnapshot.getSnapshotDate());
+      var measurement = emittedSnapshot.getTallyMeasurements().getFirst();
+      assertEquals(COUNTER_MEASUREMENT_KEY.getMetricId(), measurement.getMetricId());
+      assertEquals(replacementValues[i], measurement.getValue());
+      assertEquals(
+          expectedPeriodTotals[i],
+          measurement.getCurrentTotal(),
+          "The period total must include the earlier 30 plus only the latest snapshot value");
+    }
+  }
+
+  private SnapshotSummaryProducer producerFor(
+      List<TallySnapshot> storedSnapshots,
+      List<TallySummary> published,
+      boolean primaryRowSearch,
+      TallyMeasurementKey measurementKey) {
+    ApplicationClock clock =
+        new ApplicationClock(
+            Clock.fixed(Instant.parse("2026-10-13T18:00:00Z"), ZoneOffset.UTC));
+    when(featureFlags.isEnabled(FeatureFlags.ENABLE_PRIMARY_ROW_SEARCHES))
+        .thenReturn(primaryRowSearch);
+
+    // Model the repository's inclusive range sum over persisted snapshots using
+    // the actual query bounds, rather than stub a predetermined currentTotal.
+    Answer<Double> sumMeasurements =
+        invocation -> {
+          OffsetDateTime beginning = invocation.getArgument(7);
+          OffsetDateTime ending = invocation.getArgument(8);
+          return storedSnapshots.stream()
+              .filter(s -> !s.getSnapshotDate().isBefore(beginning))
+              .filter(s -> !s.getSnapshotDate().isAfter(ending))
+              .mapToDouble(s -> s.getTallyMeasurements().get(measurementKey))
+              .sum();
+        };
+    if (primaryRowSearch) {
+      when(snapshotRepository.sumMeasurementValueForPeriodWithPrimary(
+              eq(ORG_ID),
+              eq(PRODUCT_ID),
+              eq(Granularity.HOURLY),
+              eq(ServiceLevel.PREMIUM),
+              eq(Usage.PRODUCTION),
+              eq(BillingProvider.AWS),
+              eq(BILLING_ACCOUNT_ID),
+              any(OffsetDateTime.class),
+              any(OffsetDateTime.class),
+              eq(measurementKey)))
+          .thenAnswer(sumMeasurements);
+    } else {
+      when(snapshotRepository.sumMeasurementValueForPeriod(
+              eq(ORG_ID),
+              eq(PRODUCT_ID),
+              eq(Granularity.HOURLY),
+              eq(ServiceLevel.PREMIUM),
+              eq(Usage.PRODUCTION),
+              eq(BillingProvider.AWS),
+              eq(BILLING_ACCOUNT_ID),
+              any(OffsetDateTime.class),
+              any(OffsetDateTime.class),
+              eq(measurementKey)))
+          .thenAnswer(sumMeasurements);
+    }
+
+    doAnswer(
+            invocation -> {
+              published.add(invocation.getArgument(2));
+              return CompletableFuture.completedFuture(null);
+            })
+        .when(kafka)
+        .send(eq(TOPIC), eq(ORG_ID), any(TallySummary.class));
+
+    TallySummaryProperties properties = new TallySummaryProperties();
+    properties.setTopic(TOPIC);
+    return new SnapshotSummaryProducer(
+        kafka,
+        new RetryTemplate(),
+        properties,
+        new TallySummaryMapper(snapshotRepository, clock, featureFlags));
+  }
+
   private static double largestPublishedTotal(List<TallySummary> summaries) {
     return summaries.stream()
         .flatMap(summary -> summary.getTallySnapshots().stream())
@@ -191,6 +245,11 @@ class LateEventTallySummaryTest {
   }
 
   private static TallySnapshot snapshot(OffsetDateTime date, double value) {
+    return snapshot(date, value, MEASUREMENT_KEY);
+  }
+
+  private static TallySnapshot snapshot(
+      OffsetDateTime date, double value, TallyMeasurementKey measurementKey) {
     return TallySnapshot.builder()
         .id(UUID.randomUUID())
         .orgId(ORG_ID)
@@ -202,7 +261,7 @@ class LateEventTallySummaryTest {
         .billingProvider(BillingProvider.AWS)
         .billingAccountId(BILLING_ACCOUNT_ID)
         .isPrimary(true)
-        .tallyMeasurements(new java.util.HashMap<>(Map.of(MEASUREMENT_KEY, value)))
+        .tallyMeasurements(new java.util.HashMap<>(Map.of(measurementKey, value)))
         .build();
   }
 }
