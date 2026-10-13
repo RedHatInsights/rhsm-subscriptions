@@ -515,6 +515,21 @@ This test plan covers the core tally processing pipeline:
     - Host A guest report reflects the accurate number of guests, 0
     - Host B guest report reflects the accurate number of guests, 1
 
+**tally-hypervisor-TC012 - Sort hypervisors by number_of_guests ascending and descending**
+
+- **Description**: Verify instances API sorts hypervisor category by number_of_guests asc/desc
+- **Setup**:
+  - Three hypervisors with 1, 2, and 3 guests
+  - Socket/core pairs are 4/32, 2/16, and 1/8 respectively, inversely ordered to guest count
+- **Action**:
+  - Run nightly tally
+  - Query with sort=number_of_guests, dir=asc
+  - Query with sort=number_of_guests, dir=desc
+- **Verification**:
+  - Ascending guest counts are 1, 2, 3
+  - Descending guest counts are 3, 2, 1
+- **Expected Result**:
+  - Hypervisor sort by guest count works on instances report
   
 ## Data Persistence
 
