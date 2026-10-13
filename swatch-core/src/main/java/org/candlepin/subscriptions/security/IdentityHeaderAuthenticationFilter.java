@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.security;
 
 import static org.candlepin.subscriptions.security.SecurityConfiguration.SECURITY_STACKTRACE;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.core.Response;
 import java.io.IOException;
@@ -33,6 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.web.authentication.preauth.AbstractPreAuthenticatedProcessingFilter;
 import org.springframework.util.StringUtils;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Spring Security filter responsible for pulling the principal out of the x-rh-identity header.
@@ -47,9 +47,9 @@ public class IdentityHeaderAuthenticationFilter extends AbstractPreAuthenticated
   public static final String RH_IDENTITY_HEADER = "x-rh-identity";
   public static final String RH_PSK_HEADER = "x-rh-swatch-psk";
 
-  private final ObjectMapper mapper;
+  private final JsonMapper mapper;
 
-  public IdentityHeaderAuthenticationFilter(ObjectMapper mapper) {
+  public IdentityHeaderAuthenticationFilter(JsonMapper mapper) {
     this.mapper = mapper;
   }
 

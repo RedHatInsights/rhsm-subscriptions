@@ -21,10 +21,6 @@
 package org.candlepin.subscriptions.conduit.inventory;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.util.StdDateFormat;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.candlepin.subscriptions.conduit.inventory.kafka.CreateUpdateHostMessage;
 import org.candlepin.subscriptions.conduit.inventory.kafka.InventoryServiceKafkaConfigurator;
@@ -40,6 +36,11 @@ import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.retry.support.RetryTemplate;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.cfg.DateTimeFeature;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.util.StdDateFormat;
 
 /** Configures all beans required to connect to the inventory service's Kafka instance. */
 @EnableKafka
@@ -50,20 +51,16 @@ public class InventoryServiceConfiguration {
 
   @Bean
   @Qualifier("hbiObjectMapper")
-  ObjectMapper hbiObjectMapper(InventoryServiceProperties inventoryServiceProperties) {
-    ObjectMapper objectMapper = new ObjectMapper();
-    objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-    objectMapper.setDateFormat(new StdDateFormat().withColonInTimeZone(true));
-    objectMapper.configure(
-        SerializationFeature.INDENT_OUTPUT, inventoryServiceProperties.isPrettyPrintJson());
-    objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-    objectMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-    objectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-
-    // Tell the mapper to check the classpath for any serialization/deserialization modules
-    // such as the Java8 date/time module (JavaTimeModule).
-    objectMapper.findAndRegisterModules();
-    return objectMapper;
+  JsonMapper hbiObjectMapper(InventoryServiceProperties inventoryServiceProperties) {
+    return JsonMapper.builder()
+        .disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
+        .defaultDateFormat(new StdDateFormat().withColonInTimeZone(true).withZeroOffsetAsZ(false))
+        .configure(
+            SerializationFeature.INDENT_OUTPUT, inventoryServiceProperties.isPrettyPrintJson())
+        .changeDefaultPropertyInclusion(
+            inclusion -> inclusion.withValueInclusion(JsonInclude.Include.NON_EMPTY))
+        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+        .build();
   }
 
   @Bean
@@ -74,7 +71,7 @@ public class InventoryServiceConfiguration {
 
   @Bean
   public ProducerFactory<String, CreateUpdateHostMessage> inventoryServiceKafkaProducerFactory(
-      KafkaProperties kafkaProperties, @Qualifier("hbiObjectMapper") ObjectMapper mapper) {
+      KafkaProperties kafkaProperties, @Qualifier("hbiObjectMapper") JsonMapper mapper) {
     return kafkaConfigurator.defaultProducerFactory(kafkaProperties, mapper);
   }
 

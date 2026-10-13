@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.tally;
 
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
+import jakarta.validation.constraints.NotNull;
 import java.util.Comparator;
 import java.util.Objects;
 import java.util.Optional;
@@ -34,7 +35,6 @@ import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.inventory.db.InventoryRepository;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;

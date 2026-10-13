@@ -30,15 +30,15 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.util.LogbackMDCAdapter;
 import ch.qos.logback.core.read.ListAppender;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 class LoggingFileJsonLayoutTest {
 
-  private static final ObjectMapper MAPPER = new ObjectMapper();
+  private static final JsonMapper MAPPER = JsonMapper.builder().build();
 
   private LoggerContext context;
   private LoggingFileJsonLayout layout;
@@ -114,12 +114,6 @@ class LoggingFileJsonLayoutTest {
   }
 
   private static long countFields(JsonNode node) {
-    long count = 0;
-    var fields = node.fieldNames();
-    while (fields.hasNext()) {
-      fields.next();
-      count++;
-    }
-    return count;
+    return node.propertyNames().size();
   }
 }

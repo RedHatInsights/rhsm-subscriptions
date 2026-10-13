@@ -1,0 +1,52 @@
+{{>licenseInfo}}
+
+package {{invokerPackage}};
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import dev.resteasy.providers.jackson.JacksonFeature;
+import jakarta.ws.rs.core.Feature;
+import jakarta.ws.rs.core.FeatureContext;
+import jakarta.ws.rs.ext.ContextResolver;
+import java.text.DateFormat;
+import org.openapitools.jackson.nullable.JsonNullableJackson3Module;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.cfg.DateTimeFeature;
+import tools.jackson.databind.cfg.EnumFeature;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.util.StdDateFormat;
+
+/** Jackson 3 configuration for RESTEasy clients. */
+public class JSON implements ContextResolver<JsonMapper>, Feature {
+  private JsonMapper mapper;
+
+  public JSON() {
+    mapper = JsonMapper.builder()
+        .changeDefaultPropertyInclusion(inclusion -> inclusion.withValueInclusion(JsonInclude.Include.NON_NULL))
+        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+        .disable(DeserializationFeature.FAIL_ON_INVALID_SUBTYPE)
+        .disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
+        .enable(EnumFeature.WRITE_ENUMS_USING_TO_STRING)
+        .enable(EnumFeature.READ_ENUMS_USING_TO_STRING)
+        .defaultDateFormat(new StdDateFormat().withColonInTimeZone(true).withZeroOffsetAsZ(false))
+        .addModule(new JsonNullableJackson3Module())
+        .build();
+  }
+
+  public void setDateFormat(DateFormat dateFormat) {
+    mapper = mapper.rebuild().defaultDateFormat(dateFormat).build();
+  }
+
+  // The generated ApiClient registers this object with its own provider factory.
+  @Override
+  public boolean configure(FeatureContext context) {
+    if (!context.getConfiguration().isRegistered(JacksonFeature.class)) {
+      context.register(JacksonFeature.class);
+    }
+    return true;
+  }
+
+  @Override
+  public JsonMapper getContext(Class<?> type) {
+    return mapper;
+  }
+}

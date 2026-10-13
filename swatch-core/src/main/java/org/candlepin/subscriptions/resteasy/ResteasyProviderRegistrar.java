@@ -21,28 +21,30 @@
 package org.candlepin.subscriptions.resteasy;
 
 import com.redhat.swatch.traceresponse.TraceResponseFilter;
+import dev.resteasy.providers.jackson.JacksonFeature;
 import org.jboss.resteasy.plugins.providers.RegisterBuiltin;
 import org.jboss.resteasy.plugins.spring.SpringBeanProcessor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * This is a hack to force spring boot to register "built-in" providers consistently
+ * Registers RESTEasy providers for the Spring servlet integration.
  *
- * <p>Built-in are those that are sourced from libraries. Without this, the BootApplication is able
- * to find providers from libraries, but @SpringBootTest tests are not.
+ * <p>Register built-in providers consistently in application and test contexts. Jackson 3 is
+ * supplied by a separate Feature that must also be registered with our provider factory.
  */
 @Configuration
 public class ResteasyProviderRegistrar {
   @Bean
-  @ConditionalOnClass(name = "org.springframework.boot.test.context.SpringBootTest")
   public SpringBeanProcessor registerBuiltInProviders(
       @Qualifier("resteasySpringBeanProcessor") BeanFactoryPostProcessor postProcessor) {
     var springBeanProcessor = (SpringBeanProcessor) postProcessor;
     RegisterBuiltin.register(springBeanProcessor.getProviderFactory());
+    if (!springBeanProcessor.getProviderFactory().isRegistered(JacksonFeature.class)) {
+      springBeanProcessor.getProviderFactory().register(JacksonFeature.class);
+    }
     return springBeanProcessor;
   }
 

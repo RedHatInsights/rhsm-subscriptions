@@ -28,7 +28,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.kessel.KesselAuthorizationClient;
 import io.getunleash.Unleash;
 import java.util.List;
@@ -43,6 +42,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
+import tools.jackson.databind.json.JsonMapper;
 
 @ExtendWith(MockitoExtension.class)
 class IdentityHeaderAuthenticationDetailsServiceTest {
@@ -76,7 +76,7 @@ class IdentityHeaderAuthenticationDetailsServiceTest {
     return new PreAuthenticatedAuthenticationToken(principal, "N/A");
   }
 
-  private static final ObjectMapper mapper = new ObjectMapper();
+  private static final JsonMapper mapper = JsonMapper.builder().build();
 
   private InsightsUserPrincipal userPrincipal() {
     try {

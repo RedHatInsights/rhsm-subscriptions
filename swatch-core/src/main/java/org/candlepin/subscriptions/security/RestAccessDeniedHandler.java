@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.security;
 
 import static org.candlepin.subscriptions.security.SecurityConfiguration.SECURITY_STACKTRACE;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -39,6 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.web.access.AccessDeniedHandler;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Entry point to allow returning a JSON response. This handler is invoked when a client requests a
@@ -46,9 +46,9 @@ import org.springframework.security.web.access.AccessDeniedHandler;
  */
 public class RestAccessDeniedHandler implements AccessDeniedHandler {
   private static final Logger log = LoggerFactory.getLogger(RestAccessDeniedHandler.class);
-  private final ObjectMapper mapper;
+  private final JsonMapper mapper;
 
-  public RestAccessDeniedHandler(ObjectMapper mapper) {
+  public RestAccessDeniedHandler(JsonMapper mapper) {
     this.mapper = mapper;
   }
 

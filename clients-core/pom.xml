@@ -15,6 +15,10 @@
 
   <dependencies>
     <dependency>
+      <groupId>dev.resteasy.providers</groupId>
+      <artifactId>resteasy-jackson-provider</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.jboss.resteasy</groupId>
       <artifactId>resteasy-client</artifactId>
     </dependency>

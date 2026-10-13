@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.clowder;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import org.apache.commons.logging.Log;
 import org.springframework.boot.EnvironmentPostProcessor;
@@ -32,6 +31,8 @@ import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.util.StringUtils;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * An {@link org.springframework.boot.EnvironmentPostProcessor} that inserts a {@link
@@ -44,7 +45,7 @@ public class ClowderJsonEnvironmentPostProcessor implements EnvironmentPostProce
   // JSON_RESOURCE_LOCATION out of the config files
   private int order = Ordered.LOWEST_PRECEDENCE;
 
-  private final ObjectMapper objectMapper;
+  private final JsonMapper objectMapper;
 
   // This logger records messages and is then replayed through the DeferredLogs class in Spring.
   // As such, we have to use an Apache Commons Log class.
@@ -63,9 +64,9 @@ public class ClowderJsonEnvironmentPostProcessor implements EnvironmentPostProce
     this.logger = logFactory.getLog(ClowderJsonEnvironmentPostProcessor.class);
     /* If at some point we need to configure this objectMapper, it is possible by having the
      * ClowderJsonEnvironmentPostProcessor accept a ConfigurableBootstrapContext parameter. We
-     * can then configure the ObjectMapper in the BootstrapContext.
+     * can then configure the JsonMapper in the BootstrapContext.
      */
-    this.objectMapper = new ObjectMapper();
+    this.objectMapper = JsonMapper.builder().build();
   }
 
   @Override
@@ -87,7 +88,7 @@ public class ClowderJsonEnvironmentPostProcessor implements EnvironmentPostProce
       Resource resource = resourceLoader.getResource(clowderResourceLocation);
       logger.info("Reading Clowder configuration from " + resource.getURI());
       return new ClowderJson(resource.getInputStream(), objectMapper);
-    } catch (IOException e) {
+    } catch (IOException | JacksonException e) {
       throw new IllegalStateException("Could not read clowder config", e);
     }
   }

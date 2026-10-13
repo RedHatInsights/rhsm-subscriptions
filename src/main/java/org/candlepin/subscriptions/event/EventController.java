@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.event;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
@@ -54,6 +53,7 @@ import org.springframework.kafka.listener.BatchListenerFailedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import tools.jackson.databind.json.JsonMapper;
 
 /** Encapsulates interaction with event store. */
 @Service
@@ -62,7 +62,7 @@ public class EventController {
 
   protected static final String INGESTED_USAGE_METRIC = "swatch_metrics_ingested_usage_total";
   private final EventRecordRepository repo;
-  private final ObjectMapper objectMapper;
+  private final JsonMapper objectMapper;
   private final OptInController optInController;
   private final TransactionHandler transactionHandler;
   private final EventConflictResolver eventConflictResolver;
@@ -71,7 +71,7 @@ public class EventController {
 
   public EventController(
       EventRecordRepository repo,
-      ObjectMapper objectMapper,
+      JsonMapper objectMapper,
       OptInController optInController,
       TransactionHandler transactionHandler,
       EventConflictResolver eventConflictResolver,

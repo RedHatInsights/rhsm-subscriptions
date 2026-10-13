@@ -25,7 +25,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Calendar;
 import java.util.TimeZone;
 import org.candlepin.subscriptions.jackson.TestPojo;
@@ -37,6 +36,7 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import tools.jackson.databind.json.JsonMapper;
 
 @SpringBootTest
 @ActiveProfiles({"api", "test"})
@@ -45,7 +45,7 @@ class ObjectMapperContextResolverTest {
 
   @Autowired private ObjectMapperContextResolver resolver;
 
-  private ObjectMapper mapper;
+  private JsonMapper mapper;
 
   @BeforeAll
   void setupTests() {

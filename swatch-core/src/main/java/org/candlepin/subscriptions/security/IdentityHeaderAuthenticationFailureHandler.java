@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.security;
 
 import static org.candlepin.subscriptions.security.SecurityConfiguration.SECURITY_STACKTRACE;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.ws.rs.core.Response;
@@ -36,6 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+import tools.jackson.databind.json.JsonMapper;
 
 /** AuthenticationFailureHandler that returns a JSON response. */
 public class IdentityHeaderAuthenticationFailureHandler implements AuthenticationFailureHandler {
@@ -43,9 +43,9 @@ public class IdentityHeaderAuthenticationFailureHandler implements Authenticatio
   private static final Logger log =
       LoggerFactory.getLogger(IdentityHeaderAuthenticationFailureHandler.class);
 
-  private final ObjectMapper mapper;
+  private final JsonMapper mapper;
 
-  public IdentityHeaderAuthenticationFailureHandler(ObjectMapper mapper) {
+  public IdentityHeaderAuthenticationFailureHandler(JsonMapper mapper) {
     this.mapper = mapper;
   }
 

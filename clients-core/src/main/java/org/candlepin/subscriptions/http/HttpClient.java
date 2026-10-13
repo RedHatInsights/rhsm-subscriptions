@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.http;
 
+import dev.resteasy.providers.jackson.JacksonFeature;
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientBuilder;
 import java.io.IOException;
@@ -106,6 +107,9 @@ public class HttpClient {
 
     ClientConfiguration clientConfig =
         new ClientConfiguration(ResteasyProviderFactory.getInstance());
+    if (!clientConfig.isRegistered(JacksonFeature.class)) {
+      clientConfig.register(JacksonFeature.class);
+    }
     if (clientJson != null) {
       clientConfig.register(clientJson);
     }

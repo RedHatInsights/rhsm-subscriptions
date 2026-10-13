@@ -35,7 +35,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
-import org.springframework.kafka.support.serializer.JsonSerializer;
+import org.springframework.kafka.support.serializer.JacksonJsonSerializer;
 
 /**
  * Configuration for a component that produces task messages onto a kafka topic.
@@ -66,7 +66,7 @@ public class KafkaTaskProducerConfiguration {
   public static Map<String, Object> getProducerProperties(KafkaProperties kafkaProperties) {
     Map<String, Object> properties = kafkaProperties.buildProducerProperties();
     properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-    properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+    properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JacksonJsonSerializer.class);
     return properties;
   }
 

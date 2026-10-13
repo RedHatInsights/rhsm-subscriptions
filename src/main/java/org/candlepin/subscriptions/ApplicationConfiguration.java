@@ -21,18 +21,11 @@
 package org.candlepin.subscriptions;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
-import com.fasterxml.jackson.databind.util.StdDateFormat;
-import com.fasterxml.jackson.dataformat.csv.CsvMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationModule;
 import io.micrometer.core.aop.TimedAspect;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.annotation.Nullable;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import org.candlepin.subscriptions.actuator.CertInfoContributor;
 import org.candlepin.subscriptions.actuator.FeatureFlagsInfoContributor;
 import org.candlepin.subscriptions.clowder.KafkaSslBeanPostProcessor;
@@ -40,6 +33,7 @@ import org.candlepin.subscriptions.clowder.RdsSslBeanPostProcessor;
 import org.candlepin.subscriptions.configuration.FeatureFlags;
 import org.candlepin.subscriptions.configuration.UnleashConfiguration;
 import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
+import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.resource.ApiConfiguration;
 import org.candlepin.subscriptions.security.AuthProperties;
 import org.candlepin.subscriptions.security.SecurityConfiguration;
@@ -55,6 +49,14 @@ import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.annotation.JsonDeserialize;
+import tools.jackson.databind.cfg.DateTimeFeature;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.util.StdDateFormat;
+import tools.jackson.dataformat.csv.CsvMapper;
+import tools.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationModule;
 
 /**
  * Class to hold configuration beans common to all profiles and import all profile configurations
@@ -83,41 +85,35 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
 
   @Bean
   @Primary
-  ObjectMapper objectMapper(ApplicationProperties applicationProperties) {
-    ObjectMapper objectMapper = new ObjectMapper();
-    objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-    objectMapper.setDateFormat(new StdDateFormat().withColonInTimeZone(true));
-    objectMapper.configure(
-        SerializationFeature.INDENT_OUTPUT, applicationProperties.isPrettyPrintJson());
-    objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-    objectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-    objectMapper.setAnnotationIntrospector(new JacksonAnnotationIntrospector());
-
-    // Explicitly load the modules we need rather than use ObjectMapper.findAndRegisterModules in
-    // order to avoid com.fasterxml.jackson.module.scala.DefaultScalaModule, which was causing
-    // deserialization to ignore @JsonProperty on OpenApi classes.
-    objectMapper.registerModule(new JakartaXmlBindAnnotationModule());
-    objectMapper.registerModule(new JavaTimeModule());
-    objectMapper.registerModule(new Jdk8Module());
-
-    return objectMapper;
+  JsonMapper objectMapper(ApplicationProperties applicationProperties) {
+    return JsonMapper.builder()
+        .disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
+        .defaultDateFormat(new StdDateFormat().withColonInTimeZone(true).withZeroOffsetAsZ(false))
+        .configure(SerializationFeature.INDENT_OUTPUT, applicationProperties.isPrettyPrintJson())
+        .changeDefaultPropertyInclusion(
+            inclusion -> inclusion.withValueInclusion(JsonInclude.Include.NON_NULL))
+        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+        .addModule(new JakartaXmlBindAnnotationModule())
+        .addMixIn(Event.class, EventMixin.class)
+        .build();
   }
 
   @Bean
   CsvMapper csvMapper() {
-    CsvMapper csvMapper = new CsvMapper();
-    csvMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-    csvMapper.setDateFormat(new StdDateFormat().withColonInTimeZone(true));
-    csvMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-    csvMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-    csvMapper.setAnnotationIntrospector(new JacksonAnnotationIntrospector());
-    // Explicitly load the modules we need rather than use ObjectMapper.findAndRegisterModules in
-    // order to avoid com.fasterxml.jackson.module.scala.DefaultScalaModule, which was causing
-    // deserialization to ignore @JsonProperty on OpenApi classes.
-    csvMapper.registerModule(new JakartaXmlBindAnnotationModule());
-    csvMapper.registerModule(new JavaTimeModule());
-    csvMapper.registerModule(new Jdk8Module());
-    return csvMapper;
+    return CsvMapper.builder()
+        .disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
+        .defaultDateFormat(new StdDateFormat().withColonInTimeZone(true).withZeroOffsetAsZ(false))
+        .changeDefaultPropertyInclusion(
+            inclusion -> inclusion.withValueInclusion(JsonInclude.Include.NON_NULL))
+        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+        .addModule(new JakartaXmlBindAnnotationModule())
+        .build();
+  }
+
+  // The shared Event model uses Jackson 2's databind annotation for this ordered set.
+  abstract static class EventMixin {
+    @JsonDeserialize(as = LinkedHashSet.class)
+    abstract Set<String> getProductTag();
   }
 
   /* Do not declare a MethodValidationPostProcessor!

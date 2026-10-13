@@ -1,0 +1,5 @@
+# Jackson 3 includes java.time support; JSON.mustache configures its date format directly.
+# The RESTEasy generator's unused helpers still depend on Jackson 2.
+**/RFC3339DateFormat.java
+**/RFC3339InstantDeserializer.java
+**/RFC3339JavaTimeModule.java

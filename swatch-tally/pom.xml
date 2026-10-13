@@ -26,8 +26,8 @@
       <artifactId>spring-boot-devtools</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.jboss.resteasy</groupId>
-      <artifactId>resteasy-jackson2-provider</artifactId>
+      <groupId>dev.resteasy.providers</groupId>
+      <artifactId>resteasy-jackson-provider</artifactId>
       <scope>runtime</scope>
     </dependency>
     <dependency>
@@ -123,29 +123,22 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-jpa</artifactId>
     </dependency>
-    <!-- TODO This module is deprecated by design.  Move to Jackson 3 ASAP -->
-    <!-- See https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide#jackson-2-compatibility -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-jackson2</artifactId>
+      <artifactId>spring-boot-starter-jackson</artifactId>
     </dependency>
     <!-- TODO This module is deprecated by design.  Move to functionality in core Spring ASAP -->
     <dependency>
       <groupId>org.springframework.retry</groupId>
       <artifactId>spring-retry</artifactId>
     </dependency>
-    <!-- the following dep is necessary to avoid jackson kotlin warnings -->
-    <dependency>
-      <groupId>com.fasterxml.jackson.module</groupId>
-      <artifactId>jackson-module-kotlin</artifactId>
-    </dependency>
     <!-- used to deserialize subscription/product messages from UMB -->
     <dependency>
-      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <groupId>tools.jackson.dataformat</groupId>
       <artifactId>jackson-dataformat-xml</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.fasterxml.jackson.module</groupId>
+      <groupId>tools.jackson.module</groupId>
       <artifactId>jackson-module-jakarta-xmlbind-annotations</artifactId>
     </dependency>
     <dependency>
@@ -165,7 +158,7 @@
       <artifactId>commons-collections4</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <groupId>tools.jackson.dataformat</groupId>
       <artifactId>jackson-dataformat-csv</artifactId>
     </dependency>
     <dependency>

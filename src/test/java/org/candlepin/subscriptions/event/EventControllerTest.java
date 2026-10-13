@@ -30,7 +30,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.configuration.registry.MetricId;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -63,13 +62,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.kafka.listener.BatchListenerFailedException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import tools.jackson.databind.json.JsonMapper;
 
 @SpringBootTest
 @ExtendWith(MockitoExtension.class)
 @ActiveProfiles({"worker", "test"})
 class EventControllerTest {
   @Mock EntityManager mockEntityManager;
-  @Autowired ObjectMapper mapper;
+  @Autowired JsonMapper mapper;
   @MockitoBean private EventRecordRepository eventRecordRepository;
   @MockitoBean private OptInController optInController;
   @Captor private ArgumentCaptor<Collection<EventRecord>> eventsSaved;

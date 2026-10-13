@@ -47,8 +47,8 @@ public class ExportRequestHandler {
   private final RbacDelegate rbacDelegate;
   private final List<DataExporterService<?>> exporterServices;
   private final ConsoleCloudEventParser parser;
-  private final JsonExportFileWriter jsonExportFileWriter;
-  private final CsvExportFileWriter csvExportFileWriter;
+  private final ExportFileWriter jsonExportFileWriter;
+  private final ExportFileWriter csvExportFileWriter;
 
   public void handle(String exportEvent) throws ExportServiceException {
     log.debug("New event has been received: {}", exportEvent);

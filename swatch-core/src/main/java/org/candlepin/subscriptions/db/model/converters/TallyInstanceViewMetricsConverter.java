@@ -20,8 +20,6 @@
  */
 package org.candlepin.subscriptions.db.model.converters;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.configuration.registry.MetricId;
 import jakarta.persistence.AttributeConverter;
 import java.util.HashMap;
@@ -30,6 +28,8 @@ import java.util.Map;
 import java.util.Optional;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 @Component
 @AllArgsConstructor
@@ -39,7 +39,7 @@ public class TallyInstanceViewMetricsConverter
   private static final String METRIC_ID = "metric_id";
   private static final String VALUE = "value";
 
-  private final ObjectMapper objectMapper;
+  private final JsonMapper objectMapper;
 
   @Override
   public String convertToDatabaseColumn(Map<MetricId, Double> map) {
@@ -68,7 +68,7 @@ public class TallyInstanceViewMetricsConverter
                 }
               });
       return metrics;
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       throw new IllegalArgumentException("Error parsing metrics", e);
     }
   }

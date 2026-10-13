@@ -20,13 +20,9 @@
  */
 package org.candlepin.subscriptions.export;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.redhat.cloud.event.parser.ConsoleCloudEventParser;
-import com.redhat.swatch.export.CsvExportFileWriter;
 import com.redhat.swatch.export.DataExporterService;
 import com.redhat.swatch.export.ExportRequestHandler;
-import com.redhat.swatch.export.JsonExportFileWriter;
 import com.redhat.swatch.export.api.ExportDelegate;
 import com.redhat.swatch.export.api.RbacDelegate;
 import java.util.List;
@@ -44,6 +40,8 @@ import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.util.backoff.FixedBackOff;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.dataformat.csv.CsvMapper;
 
 @Configuration
 @Import({ExportClientConfiguration.class})
@@ -104,13 +102,14 @@ public class ExportConfiguration {
       ExportDelegate exportDelegate,
       RbacDelegate rbacDelegate,
       List<DataExporterService<?>> exporterServices,
-      ObjectMapper objectMapper,
+      JsonMapper objectMapper,
       CsvMapper csvMapper) {
     return new ExportRequestHandler(
         exportDelegate,
         rbacDelegate,
         exporterServices,
-        new ConsoleCloudEventParser(objectMapper),
+        // The event-schemas parser still requires Jackson 2 internally.
+        new ConsoleCloudEventParser(),
         new JsonExportFileWriter(objectMapper),
         new CsvExportFileWriter(csvMapper));
   }

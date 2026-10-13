@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.conduit.security;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import org.candlepin.subscriptions.rbac.RbacProperties;
 import org.candlepin.subscriptions.rbac.RbacService;
@@ -54,6 +53,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Configuration class for Spring Security.
@@ -118,7 +118,7 @@ public class ApiSecurityConfiguration {
 
   // NOTE: intentionally not annotated w/ @Bean; @Bean causes an extra use as an application filter
   public IdentityHeaderAuthenticationFilter identityHeaderAuthenticationFilter(
-      AuthenticationManager authenticationManager, ObjectMapper mapper) {
+      AuthenticationManager authenticationManager, JsonMapper mapper) {
     IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter(mapper);
     filter.setCheckForPrincipalChanges(true);
     filter.setAuthenticationManager(authenticationManager);
@@ -139,12 +139,12 @@ public class ApiSecurityConfiguration {
 
   @Bean
   public IdentityHeaderAuthenticationFailureHandler identityHeaderAuthenticationFailureHandler(
-      ObjectMapper mapper) {
+      JsonMapper mapper) {
     return new IdentityHeaderAuthenticationFailureHandler(mapper);
   }
 
   @Bean
-  public AccessDeniedHandler restAccessDeniedHandler(ObjectMapper mapper) {
+  public AccessDeniedHandler restAccessDeniedHandler(JsonMapper mapper) {
     return new RestAccessDeniedHandler(mapper);
   }
 
@@ -214,7 +214,7 @@ public class ApiSecurityConfiguration {
       AuthenticationManager authenticationManager,
       AccessDeniedHandler restAccessDeniedHandler,
       AuthenticationEntryPoint restAuthenticationEntryPoint,
-      ObjectMapper mapper)
+      JsonMapper mapper)
       throws Exception {
     http.addFilter(identityHeaderAuthenticationFilter(authenticationManager, mapper))
         .addFilterAfter(mdcFilter(), IdentityHeaderAuthenticationFilter.class)

@@ -20,11 +20,9 @@
  */
 package org.candlepin.subscriptions.tally.admin;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.annotation.Timed;
 import jakarta.transaction.Transactional;
+import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
@@ -51,11 +49,13 @@ import org.candlepin.subscriptions.tally.events.EventRecordsRetentionProperties;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.LogUtils;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.TaskRejectedException;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
 
 /** This resource is for exposing administrator REST endpoints for Tally. */
 @Component
@@ -77,7 +77,7 @@ public class InternalTallyResource implements InternalTallyApi {
   private final EventRecordRepository eventRecordRepository;
   private final EventRecordsRetentionProperties eventRecordsRetentionProperties;
   private final KafkaTemplate<String, Event> eventKafkaTemplate;
-  private final ObjectMapper objectMapper;
+  private final JsonMapper objectMapper;
   private final String eventTopic;
   private final IsPrimaryUpdateService isPrimaryUpdateService;
 
@@ -92,7 +92,7 @@ public class InternalTallyResource implements InternalTallyApi {
       SecurityProperties properties,
       EventRecordRepository eventRecordRepository,
       EventRecordsRetentionProperties eventRecordsRetentionProperties,
-      ObjectMapper objectMapper,
+      JsonMapper objectMapper,
       KafkaTemplate<String, Event> eventKafkaTemplate,
       IsPrimaryUpdateService isPrimaryUpdateService,
       @Qualifier("serviceInstanceTopicProperties")
@@ -248,7 +248,7 @@ public class InternalTallyResource implements InternalTallyApi {
                     messages.append(e.getMessage());
                   }
                 });
-      } catch (JsonProcessingException e) {
+      } catch (JacksonException e) {
         messages.append(e.getMessage());
       }
       response.setDetail(String.valueOf(messages));

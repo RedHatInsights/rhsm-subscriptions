@@ -25,21 +25,26 @@
     <dependency>
       <groupId>com.redhat.swatch</groupId>
       <artifactId>swatch-core</artifactId>
+      <exclusions>
+        <!-- Kessel SDK's Console/RBAC HTTP helpers require Jackson 2. Conduit does not use them. -->
+        <exclusion>
+          <groupId>com.fasterxml.jackson.core</groupId>
+          <artifactId>jackson-databind</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>com.redhat.swatch.clients.spring</groupId>
       <artifactId>rhsm-client</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.jboss.resteasy</groupId>
-      <artifactId>resteasy-jackson2-provider</artifactId>
+      <groupId>dev.resteasy.providers</groupId>
+      <artifactId>resteasy-jackson-provider</artifactId>
       <scope>runtime</scope>
     </dependency>
-    <!-- TODO This module is deprecated by design.  Move to Jackson 3 ASAP -->
-    <!-- See https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide#jackson-2-compatibility -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-jackson2</artifactId>
+      <artifactId>spring-boot-starter-jackson</artifactId>
     </dependency>
     <!-- TODO This module is deprecated by design.  Move to functionality in core Spring ASAP -->
     <dependency>
@@ -78,10 +83,6 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-kafka</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.module</groupId>
-      <artifactId>jackson-module-kotlin</artifactId>
     </dependency>
     <dependency>
       <groupId>io.micrometer</groupId>

@@ -20,28 +20,28 @@
  */
 package org.candlepin.subscriptions.resteasy;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.ws.rs.ext.ContextResolver;
 import jakarta.ws.rs.ext.Provider;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
- * A ContextResolver responsible for customizing the configuration of Jackson's ObjectMapper
- * instance. This is marked as a Provider so that RestEasy will use the configured ObjectMapper
- * provided by this instance.
+ * A ContextResolver responsible for customizing the configuration of Jackson's JsonMapper instance.
+ * This is marked as a Provider so that RestEasy will use the configured JsonMapper provided by this
+ * instance.
  */
 @Provider
 @Component
-public class ObjectMapperContextResolver implements ContextResolver<ObjectMapper> {
+public class ObjectMapperContextResolver implements ContextResolver<JsonMapper> {
 
-  private final ObjectMapper objectMapper;
+  private final JsonMapper objectMapper;
 
-  public ObjectMapperContextResolver(ObjectMapper mapper) {
+  public ObjectMapperContextResolver(JsonMapper mapper) {
     this.objectMapper = mapper;
   }
 
   @Override
-  public ObjectMapper getContext(Class<?> objectType) {
+  public JsonMapper getContext(Class<?> objectType) {
     return objectMapper;
   }
 }

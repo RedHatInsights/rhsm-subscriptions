@@ -100,9 +100,9 @@
         <version>${resteasy.version}</version>
       </dependency>
       <dependency>
-        <groupId>org.jboss.resteasy</groupId>
-        <artifactId>resteasy-jackson2-provider</artifactId>
-        <version>${resteasy.version}</version>
+        <groupId>dev.resteasy.providers</groupId>
+        <artifactId>resteasy-jackson-provider</artifactId>
+        <version>1.0.0.Final</version>
       </dependency>
       <dependency>
         <groupId>org.jboss.resteasy</groupId>
@@ -162,12 +162,6 @@
         <groupId>org.springframework.retry</groupId>
         <artifactId>spring-retry</artifactId>
         <version>2.0.13</version>
-      </dependency>
-      <!-- TODO This is deprecated.  Switch to Jackson 3 ASAP -->
-      <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-jackson2</artifactId>
-        <version>${spring.boot.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

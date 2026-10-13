@@ -20,6 +20,10 @@
 
   <dependencies>
     <dependency>
+      <groupId>tools.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.redhat.swatch</groupId>
       <artifactId>clients-core</artifactId>
     </dependency>

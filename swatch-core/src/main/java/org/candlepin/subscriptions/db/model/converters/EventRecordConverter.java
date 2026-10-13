@@ -20,25 +20,25 @@
  */
 package org.candlepin.subscriptions.db.model.converters;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.AttributeConverter;
 import lombok.AllArgsConstructor;
 import org.candlepin.subscriptions.json.Event;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 /** JPA AttributeConverter which uses Jackson to map to/from Event JSON. */
 @Component
 @AllArgsConstructor
 public class EventRecordConverter implements AttributeConverter<Event, String> {
 
-  private final ObjectMapper objectMapper;
+  private final JsonMapper objectMapper;
 
   @Override
   public String convertToDatabaseColumn(Event attribute) {
     try {
       return objectMapper.writeValueAsString(attribute);
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       throw new IllegalArgumentException("Error serializing event", e);
     }
   }
@@ -47,7 +47,7 @@ public class EventRecordConverter implements AttributeConverter<Event, String> {
   public Event convertToEntityAttribute(String dbData) {
     try {
       return objectMapper.readValue(dbData, Event.class);
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       throw new IllegalArgumentException("Error parsing event", e);
     }
   }

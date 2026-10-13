@@ -25,11 +25,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.time.OffsetDateTime;
 import java.util.Comparator;
 import java.util.List;
@@ -60,12 +55,15 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mapstruct.factory.Mappers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 @ExtendWith(MockitoExtension.class)
 class EventConflictResolverTest {
 
   private static final ApplicationClock CLOCK = new TestClockConfiguration().adjustableClock();
-  private static final ObjectMapper MAPPER;
+  private static final JsonMapper MAPPER;
   public static final String ROSA = "rosa";
   public static final String OSD = "OpenShift-dedicated-metrics";
   public static final String RHODS = "rhods";
@@ -73,10 +71,7 @@ class EventConflictResolverTest {
   public static final String INSTANCE_HOURS = "instance-hours";
 
   static {
-    MAPPER = new ObjectMapper();
-    MAPPER.registerModule(new Jdk8Module());
-    MAPPER.registerModule(new JavaTimeModule());
-    MAPPER.enable(SerializationFeature.INDENT_OUTPUT);
+    MAPPER = JsonMapper.builder().enable(SerializationFeature.INDENT_OUTPUT).build();
   }
 
   @Mock private EventRecordRepository repo;
@@ -662,7 +657,7 @@ class EventConflictResolverTest {
       String expectedOutput = MAPPER.writeValueAsString(expected);
       String actualOutput = MAPPER.writeValueAsString(allEvents);
       return String.format("Event: %s%swas not found in: %s", expectedOutput, "\n", actualOutput);
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       throw new RuntimeException(e);
     }
   }
@@ -672,7 +667,7 @@ class EventConflictResolverTest {
       String expectedOutput = MAPPER.writeValueAsString(expected);
       String actualOutput = MAPPER.writeValueAsString(actual);
       return String.format("Expected: %s%sbut was: %s", expectedOutput, "\n", actualOutput);
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       throw new RuntimeException(e);
     }
   }
