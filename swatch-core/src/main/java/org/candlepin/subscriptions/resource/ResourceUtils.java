@@ -28,7 +28,7 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
-import org.candlepin.subscriptions.security.InsightsUserPrincipal;
+import org.candlepin.subscriptions.security.OrgIdentityPrincipal;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -52,7 +52,8 @@ public class ResourceUtils {
   /**
    * Get the authenicated principal.
    *
-   * <p>Typically one of {@link InsightsUserPrincipal}, {@link
+   * <p>Typically one of {@link org.candlepin.subscriptions.security.InsightsUserPrincipal}, {@link
+   * org.candlepin.subscriptions.security.ServiceAccountPrincipal}, {@link
    * org.candlepin.subscriptions.security.RhAssociatePrincipal}, or {@link
    * org.candlepin.subscriptions.security.X509Principal}
    *
@@ -70,7 +71,7 @@ public class ResourceUtils {
    */
   public static String getOrgId() {
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-    InsightsUserPrincipal principal = (InsightsUserPrincipal) auth.getPrincipal();
+    OrgIdentityPrincipal principal = (OrgIdentityPrincipal) auth.getPrincipal();
     return principal.getOrgId();
   }
 

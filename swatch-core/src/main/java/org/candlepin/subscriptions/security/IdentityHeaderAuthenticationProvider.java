@@ -113,8 +113,8 @@ public class IdentityHeaderAuthenticationProvider implements AuthenticationProvi
 
     if (principal instanceof PskClientPrincipal) {
       return authenticatePsk(authentication, (PskClientPrincipal) principal);
-    } else if (principal instanceof InsightsUserPrincipal) {
-      validateUserPrincipal(authentication, (InsightsUserPrincipal) principal);
+    } else if (principal instanceof OrgIdentityPrincipal) {
+      validateOrgPrincipal(authentication, (OrgIdentityPrincipal) principal);
     }
 
     // load roles from the header and/or RBAC
@@ -150,8 +150,7 @@ public class IdentityHeaderAuthenticationProvider implements AuthenticationProvi
     return result;
   }
 
-  private void validateUserPrincipal(
-      Authentication authentication, InsightsUserPrincipal principal) {
+  private void validateOrgPrincipal(Authentication authentication, OrgIdentityPrincipal principal) {
     try {
       Assert.notNull(
           authentication.getPrincipal(), "No pre-authenticated principal found in request.");

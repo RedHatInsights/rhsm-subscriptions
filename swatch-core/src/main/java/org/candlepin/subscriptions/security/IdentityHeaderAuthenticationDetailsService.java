@@ -97,9 +97,9 @@ public class IdentityHeaderAuthenticationDetailsService
         props.isDevMode() ? Collections.emptyList() : getPermissions(null));
   }
 
-  private Collection<String> getUserRoles(InsightsUserPrincipal user) {
+  private Collection<String> getUserRoles(OrgIdentityPrincipal principal) {
     return roleProvider.getRoles(
-        props.isDevMode() ? Collections.emptyList() : getPermissions(user));
+        props.isDevMode() ? Collections.emptyList() : getPermissions(principal));
   }
 
   @Override
@@ -123,9 +123,9 @@ public class IdentityHeaderAuthenticationDetailsService
         props.isDevMode());
 
     Collection<String> userRoles;
-    if (principal instanceof InsightsUserPrincipal insightsUserPrincipal) {
-      userRoles = getUserRoles(insightsUserPrincipal);
-      log.debug("Resolved roles for orgId={}: {}", insightsUserPrincipal.getOrgId(), userRoles);
+    if (principal instanceof OrgIdentityPrincipal orgPrincipal) {
+      userRoles = getUserRoles(orgPrincipal);
+      log.debug("Resolved roles for orgId={}: {}", orgPrincipal.getOrgId(), userRoles);
     } else {
       userRoles = Collections.singleton("INTERNAL");
       log.debug(
@@ -143,13 +143,13 @@ public class IdentityHeaderAuthenticationDetailsService
     this.authMapper = authMapper;
   }
 
-  private List<String> getPermissions(InsightsUserPrincipal user) {
+  private List<String> getPermissions(OrgIdentityPrincipal principal) {
     if (isKesselEnabled()) {
-      if (user == null) {
+      if (principal == null) {
         log.warn("Kessel enabled but no InsightsUserPrincipal available; denying access");
         return Collections.emptyList();
       }
-      List<String> permissions = getKesselPermissions(user);
+      List<String> permissions = getKesselPermissions(principal);
       log.debug("Permissions from Kessel: {}", permissions);
       return permissions;
     }
@@ -176,22 +176,23 @@ public class IdentityHeaderAuthenticationDetailsService
     return enabled;
   }
 
-  private List<String> getKesselPermissions(InsightsUserPrincipal user) {
+  private List<String> getKesselPermissions(OrgIdentityPrincipal principal) {
     try {
-      return user.getKesselPrincipalId()
+      return principal
+          .getKesselPrincipalId()
           .map(
               principalId -> {
                 log.debug(
                     "Fetching Kessel permissions for orgId={}, principalId={}",
-                    user.getOrgId(),
+                    principal.getOrgId(),
                     principalId);
-                return kesselService.getPermissions(principalId, user.getOrgId());
+                return kesselService.getPermissions(principalId, principal.getOrgId());
               })
           .orElseGet(
               () -> {
                 log.warn(
                     "Cannot determine Kessel principal id for orgId={}; denying access",
-                    user.getOrgId());
+                    principal.getOrgId());
                 return Collections.emptyList();
               });
     } catch (Exception e) {

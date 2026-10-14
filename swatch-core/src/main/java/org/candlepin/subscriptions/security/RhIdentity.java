@@ -32,6 +32,7 @@ public class RhIdentity {
    * Abstraction over different auth types that may be present in x-rh-identity header.
    *
    * @see InsightsUserPrincipal
+   * @see ServiceAccountPrincipal
    * @see RhAssociatePrincipal
    * @see X509Principal
    */
@@ -41,7 +42,7 @@ public class RhIdentity {
       defaultImpl = InsightsUserPrincipal.class)
   @JsonSubTypes({
     @JsonSubTypes.Type(value = InsightsUserPrincipal.class, name = "User"),
-    @JsonSubTypes.Type(value = InsightsUserPrincipal.class, name = "ServiceAccount"),
+    @JsonSubTypes.Type(value = ServiceAccountPrincipal.class, name = "ServiceAccount"),
     @JsonSubTypes.Type(value = RhAssociatePrincipal.class, name = "Associate"),
     @JsonSubTypes.Type(value = X509Principal.class, name = "X509")
   })

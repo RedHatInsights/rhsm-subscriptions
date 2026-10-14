@@ -72,7 +72,7 @@ class IdentityHeaderAuthenticationDetailsServiceTest {
         securityProperties, rbacProperties, authMapper, rbacService, kessel, unleash);
   }
 
-  private PreAuthenticatedAuthenticationToken authWithPrincipal(InsightsUserPrincipal principal) {
+  private PreAuthenticatedAuthenticationToken authWithPrincipal(OrgIdentityPrincipal principal) {
     return new PreAuthenticatedAuthenticationToken(principal, "N/A");
   }
 
@@ -109,6 +109,25 @@ class IdentityHeaderAuthenticationDetailsServiceTest {
     }
   }
 
+  private ServiceAccountPrincipal serviceAccountPrincipal() {
+    try {
+      return mapper.readValue(
+          """
+          {
+            "type": "ServiceAccount",
+            "internal": {"org_id": "org123"},
+            "service_account": {
+              "client_id": "client123",
+              "user_id": "service-account-user123"
+            }
+          }
+          """,
+          ServiceAccountPrincipal.class);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   private boolean hasAuthority(UserDetails userDetails, String authority) {
     return userDetails.getAuthorities().stream()
         .map(GrantedAuthority::getAuthority)
@@ -126,6 +145,22 @@ class IdentityHeaderAuthenticationDetailsServiceTest {
     var result = service.loadUserDetails(authWithPrincipal(userPrincipal()));
 
     verify(kesselService).getPermissions("user123", "org123");
+    verify(rbacService, never()).getPermissions(any());
+    assertTrue(hasAuthority(result, "ROLE_SUBSCRIPTION_WATCH_REPORT_READER"));
+  }
+
+  @Test
+  void kesselEnabledResolvesServiceAccountPermissionsByServiceAccountUserId()
+      throws RbacApiException {
+    when(unleash.isEnabled(IdentityHeaderAuthenticationDetailsService.KESSEL_FLAG))
+        .thenReturn(true);
+    when(kesselService.getPermissions("service-account-user123", "org123"))
+        .thenReturn(List.of("subscriptions:reports:read"));
+
+    var service = createService(kesselService, unleash);
+    var result = service.loadUserDetails(authWithPrincipal(serviceAccountPrincipal()));
+
+    verify(kesselService).getPermissions("service-account-user123", "org123");
     verify(rbacService, never()).getPermissions(any());
     assertTrue(hasAuthority(result, "ROLE_SUBSCRIPTION_WATCH_REPORT_READER"));
   }

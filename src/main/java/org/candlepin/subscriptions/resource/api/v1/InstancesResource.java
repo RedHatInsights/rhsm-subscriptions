@@ -51,7 +51,7 @@ import org.candlepin.subscriptions.db.model.TallyInstanceView;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
-import org.candlepin.subscriptions.security.InsightsUserPrincipal;
+import org.candlepin.subscriptions.security.OrgIdentityPrincipal;
 import org.candlepin.subscriptions.security.auth.ReportingAccessOrInternalRequired;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.util.ApiModelMapperV1;
@@ -244,8 +244,8 @@ public class InstancesResource implements InstancesApi {
   public BillingAccountIdResponse fetchBillingAccountIdsForOrg(
       String orgId, String productTag, String billingProvider) {
     Object principal = ResourceUtils.getPrincipal();
-    if (principal instanceof InsightsUserPrincipal userPrincipal
-        && !userPrincipal.getOrgId().equals(orgId)) {
+    if (principal instanceof OrgIdentityPrincipal orgPrincipal
+        && !orgPrincipal.getOrgId().equals(orgId)) {
       throw new ForbiddenException("The user is not authorized to access this organization.");
     }
 

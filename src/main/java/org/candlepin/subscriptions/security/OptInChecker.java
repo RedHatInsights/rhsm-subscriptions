@@ -50,11 +50,11 @@ public class OptInChecker {
 
   public boolean checkAccess(Authentication authentication) {
     Object principal = authentication.getPrincipal();
-    if (RhAssociatePrincipal.class.isAssignableFrom(principal.getClass())) {
+    if (principal instanceof RhAssociatePrincipal) {
       log.debug("Opt-in check bypassed for RhAssociate principal");
       return true;
     }
-    if (!InsightsUserPrincipal.class.isAssignableFrom(principal.getClass())) {
+    if (!(principal instanceof OrgIdentityPrincipal)) {
       // Unrecognized principal.  Allow Spring Security to return Access Denied.
       log.debug(
           "Opt-in check denied for unrecognized principal type={}",
@@ -62,9 +62,8 @@ public class OptInChecker {
       return false;
     }
 
-    InsightsUserPrincipal insightsUserPrincipal =
-        (InsightsUserPrincipal) authentication.getPrincipal();
-    String orgId = insightsUserPrincipal.getOrgId();
+    OrgIdentityPrincipal orgPrincipal = (OrgIdentityPrincipal) authentication.getPrincipal();
+    String orgId = orgPrincipal.getOrgId();
     boolean optedIn = orgConfigRepository.existsByOrgId(orgId);
     log.debug("Opt-in check for orgId={}: optedIn={}", orgId, optedIn);
 

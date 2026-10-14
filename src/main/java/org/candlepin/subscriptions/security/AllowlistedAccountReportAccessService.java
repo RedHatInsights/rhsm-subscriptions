@@ -47,7 +47,7 @@ public class AllowlistedAccountReportAccessService {
   }
 
   public boolean providesAccessTo(Authentication auth) {
-    InsightsUserPrincipal principal = (InsightsUserPrincipal) auth.getPrincipal();
+    OrgIdentityPrincipal principal = (OrgIdentityPrincipal) auth.getPrincipal();
     boolean allowed = orgConfigRepository.existsByOrgId(principal.getOrgId());
     log.debug(
         "Report access allowlist check for orgId={}: allowed={}", principal.getOrgId(), allowed);
