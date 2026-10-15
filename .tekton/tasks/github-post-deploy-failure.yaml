@@ -26,6 +26,10 @@ spec:
     - name: COMMENT_TITLE
       type: string
       default: "Deploy Failed"
+    - name: BONFIRE_COMMAND_FILE
+      type: string
+      default: "bonfire-command.txt"
+      description: Path to the deployment command relative to the artifacts workspace
     - name: GITHUB_TOKEN_SECRET
       type: string
       default: "swatch-ci-github-token"
@@ -35,6 +39,8 @@ spec:
     - name: post-comment
       image: quay.io/konflux-ci/task-runner:v3
       env:
+        - name: BONFIRE_COMMAND_FILE
+          value: "$(params.BONFIRE_COMMAND_FILE)"
         - name: GITHUB_TOKEN
           valueFrom:
             secretKeyRef:
@@ -42,6 +48,7 @@ spec:
               key: github_token
       script: |
         #!/usr/bin/env python3
+        import html
         import json, os, sys, time, traceback, urllib.request, urllib.error
 
         GITHUB_TOKEN = os.environ["GITHUB_TOKEN"].strip()
@@ -130,10 +137,32 @@ spec:
         if len(log_text) > 60000:
             log_text = log_text[-60000:]
 
-        body = "\n".join([
+        lines = [
             MARKER,
             f"**{COMMENT_TITLE}** -- `{PIPELINE}`",
             "",
+        ]
+
+        bonfire_command_file = os.environ.get("BONFIRE_COMMAND_FILE", "").strip()
+        if bonfire_command_file:
+            command_path = os.path.join(WS, bonfire_command_file)
+            if os.path.isfile(command_path):
+                with open(command_path, encoding="utf-8") as command_file:
+                    bonfire_command = command_file.read().strip()
+                if bonfire_command:
+                    lines.extend([
+                        "<details>",
+                        "<summary>Bonfire command</summary>",
+                        "",
+                        f"<pre><code>{html.escape(bonfire_command)}</code></pre>",
+                        "",
+                        "</details>",
+                        "",
+                    ])
+            else:
+                print(f"Bonfire command file not found: {command_path}")
+
+        lines.extend([
             "<details>",
             f"<summary>Last {len(tail)} lines of deploy output</summary>",
             "",
@@ -142,6 +171,8 @@ spec:
             "```",
             "</details>",
         ])
+
+        body = "\n".join(lines)
 
         print()
         print(f"Comment body length: {len(body)} chars")
