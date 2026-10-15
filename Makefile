@@ -12,6 +12,7 @@ SHELL=/bin/bash
 	swatch-utilization \
 	swatch-api \
 	component-test \
+	run-migrations \
 	build \
 	format \
 	check \
@@ -146,6 +147,31 @@ component-test:
 	fi
 	$(call COMPONENT_TEST_PROXY,$(COMPONENT_NAME))
 
+# Services that run Liquibase in a ClowdApp initContainer (liquibase-only profile).
+MIGRATION_SERVICES := swatch-contracts swatch-billable-usage swatch-utilization
+MIGRATION_SERVICE := $(word 1,$(filter $(MIGRATION_SERVICES),$(MAKECMDGOALS)))
+
+# Run DB migrations then exit (local equivalent of the liquibase initContainer).
+# Usage: make run-migrations swatch-contracts
+# Optional: DATABASE_MIGRATION_TIMEOUT=10min make run-migrations swatch-contracts
+# package (-am) first so quarkus-run.jar exists; quarkus:run must be a separate
+# Maven invocation so -am does not try to resolve the quarkus plugin on the root POM.
+define RUN_MIGRATIONS
+	$(MVN) -pl $(1) -am package -DskipTests
+	QUARKUS_PROFILE=dev,liquibase-only \
+	QUARKUS_INIT_AND_EXIT=true \
+	DATABASE_MIGRATION_TIMEOUT=$(or $(DATABASE_MIGRATION_TIMEOUT),3min) \
+	$(MVN) -pl $(1) quarkus:run -DskipTests
+endef
+
+run-migrations:
+	@if [ -z "$(MIGRATION_SERVICE)" ]; then \
+		echo "Usage: make run-migrations <service>"; \
+		echo "Supported: $(MIGRATION_SERVICES)"; \
+		exit 1; \
+	fi
+	$(call RUN_MIGRATIONS,$(MIGRATION_SERVICE))
+
 swatch-tally:
 	$(call SPRING_PROXY,$@,8010)
 
@@ -204,4 +230,9 @@ status:
 # This must be at the end to override the real targets defined above
 ifneq ($(filter component-test,$(MAKECMDGOALS)),)
 $(foreach arg,$(filter-out component-test build,$(MAKECMDGOALS)),$(eval $(arg):;@:))
+endif
+
+# Same for run-migrations <service> so `make run-migrations swatch-contracts` does not also start the service
+ifneq ($(filter run-migrations,$(MAKECMDGOALS)),)
+$(foreach arg,$(filter $(MIGRATION_SERVICES),$(MAKECMDGOALS)),$(eval $(arg):;@:))
 endif

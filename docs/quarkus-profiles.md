@@ -74,6 +74,47 @@ Quarkus profiles allow different configurations to be applied based on the runti
 
 **Usage**: Set via deployment configurations in CI/CD pipelines
 
+### `liquibase-only` - Database migration profile
+
+**Purpose**: Run Liquibase schema migrations and then exit (no long-lived service). Used by
+ClowdApp **initContainers** for `swatch-contracts`, `swatch-billable-usage`, and
+`swatch-utilization` so health probes cannot interrupt a long migration.
+
+**Key Features**:
+- **`migrate-at-start=true`**: Only this profile (plus `dev` / `test` / `component-tests`) enables
+  Liquibase at startup; the default for deployed profiles is `false`
+- **PostgreSQL timeouts**: Sets `lock_timeout` and `statement_timeout` **per statement**
+  from `DATABASE_MIGRATION_TIMEOUT` (default `3min`) via
+  `quarkus.datasource.jdbc.new-connection-sql`. Keep below Clowder's
+  `progressDeadlineSeconds` (600s) so several heavy statements cannot exceed the
+  Deployment rollout deadline before PostgreSQL aborts cleanly.
+- **Compose with the environment profile**: Init containers set
+  `QUARKUS_PROFILE=${QUARKUS_PROFILE},liquibase-only` so stage/prod/ephemeral config still applies
+- **Exit after init**: Paired with `QUARKUS_INIT_AND_EXIT=true` so Quarkus runs initialization
+  (including Liquibase) and then stops before becoming a long-running server
+
+**Example Configuration**:
+```properties
+quarkus.liquibase.migrate-at-start=false
+%liquibase-only.quarkus.liquibase.migrate-at-start=true
+DATABASE_MIGRATION_TIMEOUT=3min
+%liquibase-only.quarkus.datasource.jdbc.new-connection-sql=SET lock_timeout = '${DATABASE_MIGRATION_TIMEOUT}'; SET statement_timeout = '${DATABASE_MIGRATION_TIMEOUT}'
+```
+
+**Usage (deploy)**: Set on the liquibase initContainer only (main container keeps
+`QUARKUS_PROFILE` without `liquibase-only`).
+
+**Usage (local)**:
+```bash
+make run-migrations swatch-contracts
+# packages the module (-am) then runs with liquibase-only + QUARKUS_INIT_AND_EXIT
+```
+
+**What `QUARKUS_INIT_AND_EXIT` does**: Quarkus still boots far enough to resolve config, open the
+datasource, and run Liquibase. It then aborts remaining startup steps (it does **not** stay up as
+an HTTP/Kafka service). Missing required config or an unreachable DB will still fail the process
+before or during migration—pair with `dev` locally so `%dev.*` defaults apply.
+
 ### `component-tests` - Component Tests Profile
 
 **Purpose**: Extra Quarkus config for OpenShift **component-test** deploys. Compose it with
@@ -175,10 +216,12 @@ Profiles can be combined using comma separation:
 ```bash
 QUARKUS_PROFILE=dev,kafka-queue
 QUARKUS_PROFILE=ephemeral,component-tests
+QUARKUS_PROFILE=prod,liquibase-only
 ```
 
 When multiple profiles are active, **the last profile has priority** for overlapping
-keys (Quarkus checks profiles from last to first).
+keys (Quarkus checks profiles from last to first). Put `liquibase-only` last so its
+`migrate-at-start` and JDBC timeout settings win over the environment profile.
 
 ## Common Configuration Patterns
 

@@ -63,6 +63,9 @@ parameters:
     value: latest
   - name: QUARKUS_PROFILE
     value: prod
+  # PostgreSQL lock_timeout / statement_timeout per statement for liquibase-only initContainer (e.g. 3min).
+  - name: DATABASE_MIGRATION_TIMEOUT
+    value: '3min'
   - name: SUBSCRIPTION_SYNC_ENABLED
     value: 'true'
   - name: SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN
@@ -299,6 +302,27 @@ objects:
             image: ${IMAGE}:${IMAGE_TAG}
             # Extra grace time so the otel sidecar can finish reading /logs/server.log and export to HEC before the shared volume is torn down.
             terminationGracePeriodSeconds: 90
+            # Run DB migrations in an initContainer (no liveness/readiness probes) so long
+            # migrations are not interrupted.
+            initContainers:
+              - name: liquibase
+                inheritEnv: true
+                env:
+                  - name: JAVA_DEBUG
+                    value: ${JAVA_DEBUG}
+                  - name: QUARKUS_PROFILE
+                    value: ${QUARKUS_PROFILE},liquibase-only
+                  - name: QUARKUS_INIT_AND_EXIT
+                    value: 'true'
+                  - name: DATABASE_MIGRATION_TIMEOUT
+                    value: ${DATABASE_MIGRATION_TIMEOUT}
+                resources:
+                  requests:
+                    cpu: ${CPU_REQUEST}
+                    memory: ${MEMORY_REQUEST}
+                  limits:
+                    cpu: ${CPU_LIMIT}
+                    memory: ${MEMORY_LIMIT}
             livenessProbe:
               failureThreshold: 3
               httpGet:
