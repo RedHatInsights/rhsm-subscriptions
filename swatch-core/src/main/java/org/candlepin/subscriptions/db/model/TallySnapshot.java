@@ -33,6 +33,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.MapKeyClass;
+import jakarta.persistence.NamedEntityGraph;
 import jakarta.persistence.Table;
 import java.io.Serializable;
 import java.time.OffsetDateTime;
@@ -54,6 +55,7 @@ import lombok.ToString;
 @Getter
 @Setter
 @Builder
+@NamedEntityGraph(name = "TallySnapshot.snapshotOnly")
 @Entity
 @Table(name = "tally_snapshots")
 public class TallySnapshot extends ModificationTrackedEntity implements Serializable {
