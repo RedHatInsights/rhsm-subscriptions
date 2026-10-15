@@ -153,7 +153,7 @@ spec:
   results:
     - name: ARTIFACTS_URL
       description: URL for the test artifacts
-      value: $(finally.upload-logs-to-s3.results.ARTIFACTS_URL)
+      value: $(finally.teardown.results.ARTIFACTS_URL)
 
   tasks:
     - name: extract-metadata
@@ -850,31 +850,44 @@ spec:
               fi
               echo "All steps passed."
 
-    - name: collect-logs
-      onError: continue
+    # Single finally task: Tekton forbids runAfter under spec.finally.
+    # Steps run in order so logs are collected and uploaded before NS release.
+    - name: teardown
       when:
         - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
           operator: in
-          values: [ "false" ]
+          values: ["false"]
       workspaces:
         - name: artifacts
           workspace: artifacts
       params:
         - name: NS
           value: "$(tasks.reserve-namespace.results.NS)"
+        - name: NS_REQUESTER
+          value: "$(context.pipelineRun.name)"
         - name: BONFIRE_IMAGE
           value: "$(params.BONFIRE_IMAGE)"
         - name: EPHEMERAL_ENV_PROVIDER_SECRET
           value: "$(params.EPHEMERAL_ENV_PROVIDER_SECRET)"
+        - name: AWS_SECRET
+          value: "$(params.AWS_SECRET)"
+        - name: ARTIFACTS_KEY
+          value: "$(context.pipelineRun.namespace)/$(context.pipelineRun.name)"
       taskSpec:
         params:
           - name: NS
+          - name: NS_REQUESTER
           - name: BONFIRE_IMAGE
           - name: EPHEMERAL_ENV_PROVIDER_SECRET
+          - name: AWS_SECRET
+          - name: ARTIFACTS_KEY
         workspaces:
           - name: artifacts
+        results:
+          - name: ARTIFACTS_URL
         steps:
-          - name: collect
+          - name: collect-logs
+            onError: continue
             image: "$(params.BONFIRE_IMAGE)"
             env:
               - name: OC_LOGIN_TOKEN
@@ -903,35 +916,8 @@ spec:
               echo "Artifacts collected:"
               ls -la "$ARTIFACTS_DIR"
 
-    - name: upload-logs-to-s3
-      onError: continue
-      runAfter:
-        - collect-logs
-      when:
-        - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
-          operator: in
-          values: [ "false" ]
-      workspaces:
-        - name: artifacts
-          workspace: artifacts
-      params:
-        - name: BONFIRE_IMAGE
-          value: "$(params.BONFIRE_IMAGE)"
-        - name: AWS_SECRET
-          value: "$(params.AWS_SECRET)"
-        - name: ARTIFACTS_KEY
-          value: "$(context.pipelineRun.namespace)/$(context.pipelineRun.name)"
-      taskSpec:
-        params:
-          - name: BONFIRE_IMAGE
-          - name: AWS_SECRET
-          - name: ARTIFACTS_KEY
-        workspaces:
-          - name: artifacts
-        results:
-          - name: ARTIFACTS_URL
-        steps:
-          - name: upload
+          - name: upload-logs-to-s3
+            onError: continue
             image: "$(params.BONFIRE_IMAGE)"
             env:
               - name: AWS_ACCESS_KEY_ID
@@ -964,30 +950,7 @@ spec:
               url="https://s3.console.aws.amazon.com/s3/buckets/${bucket}?region=${region}&prefix=${artifacts_key}/&showversions=false"
               echo -n "$url" | tee "$(results.ARTIFACTS_URL.path)"
 
-    - name: release-namespace
-      runAfter:
-        - upload-logs-to-s3
-      when:
-        - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
-          operator: in
-          values: ["false"]
-      params:
-        - name: NS
-          value: "$(tasks.reserve-namespace.results.NS)"
-        - name: NS_REQUESTER
-          value: "$(context.pipelineRun.name)"
-        - name: BONFIRE_IMAGE
-          value: "$(params.BONFIRE_IMAGE)"
-        - name: EPHEMERAL_ENV_PROVIDER_SECRET
-          value: "$(params.EPHEMERAL_ENV_PROVIDER_SECRET)"
-      taskSpec:
-        params:
-          - name: NS
-          - name: NS_REQUESTER
-          - name: BONFIRE_IMAGE
-          - name: EPHEMERAL_ENV_PROVIDER_SECRET
-        steps:
-          - name: release
+          - name: release-namespace
             image: "$(params.BONFIRE_IMAGE)"
             env:
               - name: OC_LOGIN_TOKEN
