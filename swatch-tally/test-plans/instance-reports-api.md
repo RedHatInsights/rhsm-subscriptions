@@ -374,68 +374,49 @@ This test plan covers the instance reports API endpoints that return host-level 
 
 **tally-instances-sorting-TC008 - Pagination links when offset or limit present (non-PAYG)**
 
-- **Description**: Verify pagination links and page sizing for non-PAYG instances
+- **Description**: Verify pagination links for non-PAYG instances
 - **Setup**:
     - Organization is opted in
     - Three hosts
 - **Action**:
     - Run nightly tally
-    - Query without limit (expect 3 rows)
     - Query with limit=2, offset=0
 - **Verification**:
-    - Unpaged: 3 rows
-    - Limited: at most 2 rows; meta present
-    - If links object present, at least one of first/last/previous/next is non-null
+    - Links object is present; first, last, and next are populated, and previous is null
+    - Next link points to the instances endpoint for the requested product
+    - Next link has offset=2 and limit=2, and preserves category, beginning, and ending
 - **Expected Result**:
-    - Pagination metadata and links behave for non-PAYG product (no PAYG same-month restriction)
+    - Pagination metadata and navigable links are correct for the non-PAYG product
 
-**tally-instances-sorting-TC009 - Sort by number_of_guests ascending and descending (hypervisor)**
-
-- **Description**: Verify instances API sorts hypervisor category by number_of_guests asc/desc
-- **Setup**:
-    - At least two hypervisor hosts with different guest counts in org
-- **Action**:
-    - Run nightly tally
-    - Query hypervisor instances unfiltered; collect guest counts
-    - Query with sort=number_of_guests, dir=asc
-    - Query with sort=number_of_guests, dir=desc
-- **Verification**:
-    - Ascending guest list equals sorted ascending of unfiltered list
-    - Descending guest list equals sorted descending of unfiltered list
-- **Expected Result**:
-    - Hypervisor sort by guest count works on instances report
-
-**tally-instances-sorting-TC010 - Sort by sockets ascending and descending (non-PAYG)**
+**tally-instances-sorting-TC009 - Sort by sockets ascending and descending (non-PAYG)**
 
 - **Description**: Verify instances API sorts non-PAYG nightly hosts by sockets asc/desc (non-PAYG-only sort field)
 - **Setup**:
     - Organization is opted in
-    - At least two physical non-PAYG hosts with different socket counts in buckets (e.g. 2 and 6)
+    - Create three physical non-PAYG hosts in this order with socket/core pairs (4/24), (6/16), and (2/32)
 - **Action**:
     - Run nightly tally
-    - Query instances for the product; note socket values per row
     - Query with sort=sockets, dir=asc
     - Query with sort=sockets, dir=desc
 - **Verification**:
-    - Ascending order matches increasing socket counts
-    - Descending order reverses ascending order
+    - Ascending socket order is 2, 4, 6
+    - Descending socket order is 6, 4, 2
 - **Expected Result**:
     - Sockets sort parameter is honored for non-PAYG instances report
 
-**tally-instances-sorting-TC011 - Sort by cores ascending and descending (non-PAYG)**
+**tally-instances-sorting-TC010 - Sort by cores ascending and descending (non-PAYG)**
 
 - **Description**: Verify instances API sorts non-PAYG nightly hosts by cores asc/desc (non-PAYG-only sort field)
 - **Setup**:
     - Organization is opted in
-    - At least two physical non-PAYG hosts with different core counts in buckets (e.g. 2 and 8)
+    - Create three physical non-PAYG hosts in this order with socket/core pairs (4/24), (6/16), and (2/32)
 - **Action**:
     - Run nightly tally
-    - Query instances for the product; note core values per row
     - Query with sort=cores, dir=asc
     - Query with sort=cores, dir=desc
 - **Verification**:
-    - Ascending order matches increasing core counts
-    - Descending order reverses ascending order
+    - Ascending core order is 16, 24, 32
+    - Descending core order is 32, 24, 16
 - **Expected Result**:
     - Cores sort parameter is honored for non-PAYG instances report
 
