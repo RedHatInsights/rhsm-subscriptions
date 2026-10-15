@@ -37,6 +37,7 @@ import java.util.function.DoubleBinaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
+import org.candlepin.subscriptions.configuration.FeatureFlags;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
@@ -66,12 +67,14 @@ public class CombiningRollupSnapshotStrategy {
 
   private final TallySnapshotRepository tallyRepo;
   private final ApplicationClock clock;
+  private final FeatureFlags featureFlags;
 
   @Autowired
   public CombiningRollupSnapshotStrategy(
-      TallySnapshotRepository tallyRepo, ApplicationClock clock) {
+      TallySnapshotRepository tallyRepo, ApplicationClock clock, FeatureFlags featureFlags) {
     this.tallyRepo = tallyRepo;
     this.clock = clock;
+    this.featureFlags = featureFlags;
   }
 
   /**
@@ -190,18 +193,31 @@ public class CombiningRollupSnapshotStrategy {
     }
   }
 
-  @SuppressWarnings("indentation")
   protected Map<String, List<TallySnapshot>> getCurrentSnapshotsByOrgId(
       String orgId,
       Collection<String> products,
       Granularity granularity,
       OffsetDateTime begin,
       OffsetDateTime end) {
-    try (Stream<TallySnapshot> snapStream =
-        tallyRepo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
-            orgId, products, granularity, begin, end)) {
-      return snapStream.collect(Collectors.groupingBy(TallySnapshot::getOrgId));
+    boolean useLegacyQuery =
+        featureFlags.isEnabled(FeatureFlags.USE_LEGACY_HOURLY_TALLY_SNAPSHOT_QUERY, false);
+    log.debug(
+        "Using {} snapshot lookup for {} hourly rollup",
+        useLegacyQuery ? "legacy" : "batched",
+        granularity);
+
+    if (useLegacyQuery) {
+      try (Stream<TallySnapshot> snapStream =
+          tallyRepo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
+              orgId, products, granularity, begin, end)) {
+        return snapStream.collect(Collectors.groupingBy(TallySnapshot::getOrgId));
+      }
     }
+
+    return tallyRepo
+        .findSnapshotsWithMeasurementsForRolling(orgId, products, granularity, begin, end)
+        .stream()
+        .collect(Collectors.groupingBy(TallySnapshot::getOrgId));
   }
 
   protected void populateSnapshotFromProductUsageCalculation(

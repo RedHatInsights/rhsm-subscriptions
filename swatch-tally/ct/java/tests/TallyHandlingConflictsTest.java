@@ -39,8 +39,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.candlepin.subscriptions.json.Event;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import utils.TallyTestProducts;
 
 public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
@@ -52,9 +55,12 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
     setup = setupTest();
   }
 
-  @Test
+  @ParameterizedTest(name = "useLegacyHourlySnapshotQuery={0}")
+  @ValueSource(booleans = {true, false})
   @TestPlanName("tally-conflicts-TC001")
-  public void testTallyCorrectlyHandlesPositiveMetricValueUpdates() {
+  public void testTallyCorrectlyHandlesPositiveMetricValueUpdates(
+      boolean useLegacyHourlySnapshotQuery) {
+    givenLegacyHourlyTallySnapshotQuery(useLegacyHourlySnapshotQuery);
     // Given: An initial event with a metric value and a subsequent event with a higher positive
     // value
     float initialValue = 10.0f;
@@ -87,6 +93,11 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
             updatedValue);
     assertEquals(
         updatedValue, after, 0.0001, "Updated tally should reflect the updated measurement");
+  }
+
+  @AfterEach
+  void resetLegacyHourlySnapshotQueryFlag() {
+    givenLegacyHourlyTallySnapshotQuery(false);
   }
 
   @Test
