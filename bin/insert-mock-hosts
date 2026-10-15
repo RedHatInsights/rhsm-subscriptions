@@ -91,7 +91,6 @@ class DatabaseContext:
             'facts': json.dumps({'rhsm': rhsm_facts}),
             'insights_id': insights_id,
             'subscription_manager_id': subscription_manager_id or str(uuid.uuid4()),
-            'stale_timestamp': '2030-01-01',
             'reporter': 'rhsm-conduit',
             'groups': '{}',
             'per_reporter_staleness': '{}',
