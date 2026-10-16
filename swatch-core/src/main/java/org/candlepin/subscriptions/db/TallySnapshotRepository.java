@@ -32,10 +32,14 @@ import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.MapJoin;
 import jakarta.persistence.criteria.Root;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
@@ -49,6 +53,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
@@ -113,6 +118,71 @@ public interface TallySnapshotRepository
       @Param("granularity") String granularity,
       @Param("cutoffDate") OffsetDateTime cutoffDate,
       @Param("limit") long limit);
+
+  /**
+   * The empty FETCH graph overrides the EAGER tallyMeasurements mapping; the wrapper fetches
+   * measurements separately in batches.
+   */
+  @EntityGraph(value = "TallySnapshot.snapshotOnly", type = EntityGraph.EntityGraphType.FETCH)
+  @Query(
+      value =
+          "SELECT t FROM TallySnapshot t where "
+              + "t.orgId = :orgId and "
+              + "t.productId in (:productIds) and "
+              + "t.granularity = :granularity and "
+              + "t.snapshotDate between :beginning and :ending "
+              + "order by t.snapshotDate")
+  Stream<TallySnapshot> findSnapshotsForRolling(
+      @Param("orgId") String orgId,
+      @Param("productIds") Collection<String> productIds,
+      @Param("granularity") Granularity granularity,
+      @Param("beginning") OffsetDateTime beginning,
+      @Param("ending") OffsetDateTime ending);
+
+  @Query(
+      "SELECT t FROM TallySnapshot t left join fetch t.tallyMeasurements "
+          + "where t.id in (:snapshotIds)")
+  List<TallySnapshot> findSnapshotsWithMeasurementsByIdIn(
+      @Param("snapshotIds") Collection<UUID> snapshotIds);
+
+  /**
+   * Loads snapshots for a rollup, then fetches their measurements in batches to avoid join-fetch
+   * fan-out. The second query does not preserve order, so results are restored to the first query's
+   * order.
+   */
+  default List<TallySnapshot> findSnapshotsWithMeasurementsForRolling(
+      String orgId,
+      Collection<String> productIds,
+      Granularity granularity,
+      OffsetDateTime beginning,
+      OffsetDateTime ending) {
+    final int batchSize = 1000;
+    List<TallySnapshot> snapshots;
+    try (Stream<TallySnapshot> snapStream =
+        findSnapshotsForRolling(orgId, productIds, granularity, beginning, ending)) {
+      snapshots = snapStream.collect(Collectors.toList());
+    }
+
+    List<TallySnapshot> snapshotsWithMeasurements = new ArrayList<>(snapshots.size());
+    for (int start = 0; start < snapshots.size(); start += batchSize) {
+      int endIndex = Math.min(start + batchSize, snapshots.size());
+      List<TallySnapshot> snapshotBatch = snapshots.subList(start, endIndex);
+      List<UUID> snapshotIds = snapshotBatch.stream().map(TallySnapshot::getId).toList();
+      Map<UUID, TallySnapshot> snapshotsById =
+          findSnapshotsWithMeasurementsByIdIn(snapshotIds).stream()
+              .collect(Collectors.toMap(TallySnapshot::getId, Function.identity()));
+
+      for (TallySnapshot snapshot : snapshotBatch) {
+        TallySnapshot snapshotWithMeasurements = snapshotsById.get(snapshot.getId());
+        if (snapshotWithMeasurements == null) {
+          throw new IllegalStateException(
+              "Snapshot " + snapshot.getId() + " was not returned when fetching measurements");
+        }
+        snapshotsWithMeasurements.add(snapshotWithMeasurements);
+      }
+    }
+    return snapshotsWithMeasurements;
+  }
 
   @Query(
       value =

@@ -27,6 +27,8 @@ public class TallyUnleashService extends UnleashService {
       "swatch.swatch-tally.enable-primary-row-searches";
   private static final String ENABLE_HTB_PRIMARY_ROW_SEARCHES =
       "swatch.swatch-tally.enable-host-tally-bucket-primary-row-searches";
+  private static final String USE_LEGACY_HOURLY_TALLY_SNAPSHOT_QUERY =
+      "swatch.swatch-tally.use-legacy-hourly-tally-snapshot-query";
 
   /** Matches {@code KesselRolesAugmentor.KESSEL_FLAG} in swatch-common-security. */
   private static final String USE_KESSEL_RBAC = "swatch.common-security.use-kessel-rbac";
@@ -44,6 +46,14 @@ public class TallyUnleashService extends UnleashService {
       enableFlag(ENABLE_HTB_PRIMARY_ROW_SEARCHES);
     } else {
       disableFlag(ENABLE_HTB_PRIMARY_ROW_SEARCHES);
+    }
+  }
+
+  public void setUseLegacyHourlyTallySnapshotQuery(boolean enabled) {
+    if (enabled) {
+      enableFlag(USE_LEGACY_HOURLY_TALLY_SNAPSHOT_QUERY);
+    } else {
+      disableFlag(USE_LEGACY_HOURLY_TALLY_SNAPSHOT_QUERY);
     }
   }
 

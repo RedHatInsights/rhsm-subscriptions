@@ -27,15 +27,22 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
@@ -44,6 +51,10 @@ import org.candlepin.subscriptions.db.model.TallyMeasurementAggregate;
 import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.tally.AccountUsageCalculation;
+import org.candlepin.subscriptions.tally.roller.BaseSnapshotRoller;
+import org.hibernate.SessionFactory;
+import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
@@ -70,6 +81,8 @@ class TallySnapshotRepositoryTest {
       OffsetDateTime.of(2099, 01, 01, 00, 00, 00, 00, ZoneOffset.UTC);
 
   @Autowired private TallySnapshotRepository repository;
+  @Autowired private EntityManager entityManager;
+  @Autowired private EntityManagerFactory entityManagerFactory;
 
   @Test
   void testSave() {
@@ -518,6 +531,139 @@ class TallySnapshotRepositoryTest {
         result
             .getMeasurement(HardwareMeasurementType.TOTAL, MetricIdUtils.getInstanceHours())
             .intValue());
+  }
+
+  @Test
+  void fetchingSnapshotWithMultipleMeasurementsReturnsOneSnapshot() {
+    TallySnapshot snapshot =
+        createUnpersisted("OrgFetchDedup", "ProductFetchDedup", Granularity.DAILY, 2, 3, 4, NOWISH);
+    repository.saveAndFlush(snapshot);
+    entityManager.clear();
+
+    List<TallySnapshot> found =
+        repository.findSnapshotsWithMeasurementsByIdIn(List.of(snapshot.getId()));
+
+    assertEquals(1, found.size());
+    assertEquals(3, found.get(0).getTallyMeasurements().size());
+  }
+
+  @Test
+  void legacyAndBatchedRollingQueriesReturnSameSnapshotsAndMeasurements() {
+    String orgId = "OrgQueryParity";
+    List<String> products = List.of("ParityProductLater", "ParityProductEarlier");
+    repository.saveAll(
+        List.of(
+            createUnpersisted(
+                orgId, "ParityProductLater", Granularity.DAILY, 5, 6, 7, NOWISH.plusDays(1)),
+            createUnpersisted(orgId, "ParityProductEarlier", Granularity.DAILY, 2, 3, 4, NOWISH)));
+    repository.flush();
+    entityManager.clear();
+
+    List<SnapshotResult> legacyResults;
+    try (var snapshots =
+        repository.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
+            orgId, products, Granularity.DAILY, LONG_AGO, FAR_FUTURE)) {
+      legacyResults = snapshots.map(TallySnapshotRepositoryTest::snapshotResult).toList();
+    }
+
+    entityManager.clear();
+    List<SnapshotResult> batchedResults =
+        repository
+            .findSnapshotsWithMeasurementsForRolling(
+                orgId, products, Granularity.DAILY, LONG_AGO, FAR_FUTURE)
+            .stream()
+            .map(TallySnapshotRepositoryTest::snapshotResult)
+            .toList();
+
+    assertEquals(2, legacyResults.size());
+    assertFalse(legacyResults.getFirst().measurements().isEmpty());
+    assertEquals(legacyResults, batchedResults);
+  }
+
+  @Test
+  void rollingLoadsMeasurementsInBatchesOf1000() {
+    String orgId = "OrgBatchFetch";
+    int snapshotCount = 1001;
+    List<String> products =
+        IntStream.range(0, snapshotCount).mapToObj(index -> "BatchProduct" + index).toList();
+    List<TallySnapshot> snapshots =
+        IntStream.range(0, products.size())
+            .mapToObj(
+                index ->
+                    createUnpersisted(
+                        orgId,
+                        products.get(index),
+                        Granularity.DAILY,
+                        index + 1,
+                        index + 2,
+                        index + 3,
+                        NOWISH.plusDays(index)))
+            .toList();
+    repository.saveAll(snapshots);
+    repository.flush();
+    entityManager.clear();
+
+    Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+    boolean statisticsWereEnabled = statistics.isStatisticsEnabled();
+    statistics.setStatisticsEnabled(true);
+    try {
+      statistics.clear();
+      List<TallySnapshot> found =
+          new TestSnapshotRoller(repository)
+              .loadSnapshots(orgId, products, Granularity.DAILY, LONG_AGO, FAR_FUTURE);
+
+      assertEquals(products.size(), found.size());
+      assertEquals(3, statistics.getPrepareStatementCount());
+
+      for (int index = 0; index < found.size(); index++) {
+        assertEquals(
+            index + 1,
+            found
+                .get(index)
+                .getMeasurement(HardwareMeasurementType.TOTAL, MetricIdUtils.getCores())
+                .intValue());
+      }
+
+      assertEquals(3, statistics.getPrepareStatementCount());
+    } finally {
+      statistics.setStatisticsEnabled(statisticsWereEnabled);
+    }
+  }
+
+  private static SnapshotResult snapshotResult(TallySnapshot snapshot) {
+    return new SnapshotResult(
+        snapshot.getId(),
+        snapshot.getProductId(),
+        snapshot.getGranularity(),
+        snapshot.getSnapshotDate(),
+        Map.copyOf(snapshot.getTallyMeasurements()));
+  }
+
+  private record SnapshotResult(
+      UUID id,
+      String productId,
+      Granularity granularity,
+      OffsetDateTime snapshotDate,
+      Map<TallyMeasurementKey, Double> measurements) {}
+
+  private static class TestSnapshotRoller extends BaseSnapshotRoller {
+    TestSnapshotRoller(TallySnapshotRepository repository) {
+      super(repository, (ApplicationClock) null);
+    }
+
+    @Override
+    public Collection<TallySnapshot> rollSnapshots(AccountUsageCalculation accountCalc) {
+      return List.of();
+    }
+
+    List<TallySnapshot> loadSnapshots(
+        String orgId,
+        Collection<String> products,
+        Granularity granularity,
+        OffsetDateTime begin,
+        OffsetDateTime end) {
+      return getCurrentSnapshotsByOrgId(orgId, products, granularity, begin, end);
+    }
   }
 
   @Test
