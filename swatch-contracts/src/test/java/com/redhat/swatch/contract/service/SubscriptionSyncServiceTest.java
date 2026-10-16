@@ -135,7 +135,6 @@ class SubscriptionSyncServiceTest {
     // This simulates a subscription that has been segmented due to quantity change
     var quantityChangedSub =
         SubscriptionEntity.builder()
-            .subscriptionId(initialSub.getSubscriptionId())
             .subscriptionNumber(initialSub.getSubscriptionNumber())
             .orgId(initialSub.getOrgId())
             .quantity(10) // same as DTO quantity
@@ -179,7 +178,6 @@ class SubscriptionSyncServiceTest {
 
     var firstQuantityChangedSub =
         SubscriptionEntity.builder()
-            .subscriptionId(initialSub.getSubscriptionId())
             .subscriptionNumber(initialSub.getSubscriptionNumber())
             .orgId(initialSub.getOrgId())
             .quantity(10) // same as DTO quantity
@@ -710,7 +708,7 @@ class SubscriptionSyncServiceTest {
     assertEquals("billingAccountId", incoming.getBillingAccountId());
     assertEquals(BillingProvider.AWS, incoming.getBillingProvider());
     assertEquals("p;c;s", incoming.getBillingProviderId());
-    assertEquals("456", incoming.getSubscriptionId());
+    assertEquals("subnum", incoming.getSubscriptionNumber());
   }
 
   @Test
@@ -730,12 +728,12 @@ class SubscriptionSyncServiceTest {
     subscriptionSyncService.syncSubscription(SKU, incoming, Optional.empty());
 
     verify(subscriptionSearchService).getSubscriptionBySubscriptionNumber("subnum");
-    assertNull(incoming.getSubscriptionId());
+    assertEquals("subnum", incoming.getSubscriptionNumber());
     assertNull(incoming.getBillingAccountId());
   }
 
   @Test
-  void testSubscriptionEnrichedFromDbWhenSubscriptionIdMissing() {
+  void testSubscriptionEnrichedFromDbWhenBillingFieldsMissing() {
     SubscriptionEntity incoming = createConvertedDtoSubscription("123", null, "890");
     SubscriptionEntity existing = createSubscription();
     existing.setBillingAccountId("billingAccountId");
@@ -753,12 +751,15 @@ class SubscriptionSyncServiceTest {
     assertEquals("billingAccountId", incoming.getBillingAccountId());
     assertEquals(BillingProvider.RED_HAT, incoming.getBillingProvider());
     assertEquals("billingProviderId", incoming.getBillingProviderId());
-    assertEquals("456", incoming.getSubscriptionId());
+    assertEquals("890", incoming.getSubscriptionNumber());
   }
 
   @Test
-  void testSubscriptionNotEnrichedWhenSubscriptionIdPresent() {
+  void testSubscriptionNotEnrichedWhenBillingFieldsPresent() {
     SubscriptionEntity incoming = createConvertedDtoSubscription("123", "456", "890");
+    incoming.setBillingAccountId("alreadySet");
+    incoming.setBillingProvider(BillingProvider.AWS);
+    incoming.setBillingProviderId("p;c;s");
     SubscriptionEntity existing = createSubscription();
     existing.setBillingAccountId("billingAccountId");
 
@@ -771,7 +772,7 @@ class SubscriptionSyncServiceTest {
 
     verifyNoInteractions(subscriptionSearchService);
     verify(subscriptionService).save(any(SubscriptionEntity.class));
-    assertNull(incoming.getBillingAccountId());
+    assertEquals("alreadySet", incoming.getBillingAccountId());
   }
 
   @Test
@@ -1032,7 +1033,7 @@ class SubscriptionSyncServiceTest {
   }
 
   private SubscriptionEntity createSubscription() {
-    return createSubscription("123", SKU, "456", "890");
+    return createSubscription("123", SKU, "456", "456");
   }
 
   private SubscriptionEntity createSubscription(
@@ -1040,8 +1041,7 @@ class SubscriptionSyncServiceTest {
     OfferingEntity offering = OfferingEntity.builder().sku(sku).build();
 
     return SubscriptionEntity.builder()
-        .subscriptionId(subId)
-        .subscriptionNumber(subNum)
+        .subscriptionNumber(subNum != null ? subNum : subId)
         .orgId(orgId)
         .quantity(4L)
         .offering(offering)
@@ -1058,8 +1058,7 @@ class SubscriptionSyncServiceTest {
   private SubscriptionEntity createConvertedDtoSubscription(
       String orgId, String subId, String subNum) {
     return SubscriptionEntity.builder()
-        .subscriptionId(subId)
-        .subscriptionNumber(subNum)
+        .subscriptionNumber(subNum != null ? subNum : subId)
         .orgId(orgId)
         .quantity(4L)
         // Converted DTOs will only ever have millisecond precision because that's what we get from
@@ -1070,8 +1069,7 @@ class SubscriptionSyncServiceTest {
   }
 
   private Subscription createDto(String subId, int quantity) {
-
-    return createDto(123, subId, "890", quantity);
+    return createDto(123, subId, subId, quantity);
   }
 
   private Subscription createDto(Integer orgId, String subId, String subNum, int quantity) {
@@ -1094,7 +1092,7 @@ class SubscriptionSyncServiceTest {
     OfferingEntity offering = OfferingEntity.builder().metered(false).build();
 
     return SubscriptionEntity.builder()
-        .subscriptionId(String.valueOf(subscription.getId()))
+        .subscriptionNumber(subscription.getSubscriptionNumber())
         .orgId(subscription.getWebCustomerId().toString())
         .quantity(subscription.getQuantity())
         .startDate(clock.dateFromMilliseconds(subscription.getEffectiveStartDate()))

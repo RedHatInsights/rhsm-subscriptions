@@ -179,7 +179,6 @@ public class SearchApiStubs {
    */
   private Map<String, Object> mapToApiModel(Subscription subscription) {
     var apiSubscription = new HashMap<String, Object>();
-    apiSubscription.put("id", subscription.getSubscriptionId());
     apiSubscription.put("subscriptionNumber", subscription.getSubscriptionNumber());
     if (subscription.getQuantity() != null) {
       apiSubscription.put("quantity", subscription.getQuantity());

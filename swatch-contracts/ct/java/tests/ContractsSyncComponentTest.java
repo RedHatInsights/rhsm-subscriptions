@@ -272,7 +272,6 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
         initialCapacity.getSubscriptions().size(),
         "Should have exactly one subscription before deletion");
     String subscriptionNumber = initialCapacity.getSubscriptions().get(0).getNumber();
-    String subscriptionId = contract.getSubscriptionId();
     double initialMeasurementTotal =
         initialCapacity.getMeasurements().stream().mapToDouble(Double::doubleValue).sum();
     assertTrue(initialMeasurementTotal > 0.0, "Initial capacity should be positive");
@@ -281,7 +280,8 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
     swatchDatabase.executeInTransaction(
         context ->
             context.executeUpdate(
-                "DELETE FROM subscription_measurements WHERE subscription_id = ?", subscriptionId));
+                "DELETE FROM subscription_measurements WHERE subscription_number = ?",
+                subscriptionNumber));
     AwaitilityUtils.until(
         () ->
             service
@@ -408,7 +408,7 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
 
     var subsAfterOrgSync = service.getSubscriptionsByOrgId(orgId);
     assertEquals(1, subsAfterOrgSync.size(), "Should have exactly one subscription after org sync");
-    String subIdAfterOrgSync = subsAfterOrgSync.get(0).getSubscriptionId();
+    String subNumberAfterOrgSync = subsAfterOrgSync.get(0).getSubscriptionNumber();
     int measurementCountAfterOrgSync = subsAfterOrgSync.get(0).getMetrics().size();
 
     // When: Run syncAllContracts on top of the already-synced state (async)
@@ -416,8 +416,8 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
 
     // Then: Wait for async processing, no additional records in any table
     thenSingleContractHasStableUuidAndMetrics(uuidAfterOrgSync, metricsCountAfterOrgSync);
-    thenSingleSubscriptionHasStableIdAndMeasurements(
-        subIdAfterOrgSync, measurementCountAfterOrgSync);
+    thenSingleSubscriptionHasStableNumberAndMeasurements(
+        subNumberAfterOrgSync, measurementCountAfterOrgSync);
   }
 
   @TestPlanName("contracts-sync-TC009")
@@ -850,7 +850,6 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
     Contract contractB =
         shared.toBuilder()
             .subscriptionNumber(subscriptionB)
-            .subscriptionId(subscriptionB)
             .licenseId(awsLicenseArn(subscriptionB))
             .build();
     stubContractsForOrgSync(contractA, contractB);
@@ -894,7 +893,6 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
     Contract contractB =
         shared.toBuilder()
             .subscriptionNumber(subscriptionB)
-            .subscriptionId(subscriptionB)
             .licenseId(awsLicenseArn(subscriptionB))
             .build();
     stubContractsForOrgSync(contractA, contractB);
@@ -1084,7 +1082,7 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
 
   protected void verifySubscriptionFields(
       Contract expected, com.redhat.swatch.contract.test.model.Subscription actual) {
-    assertNotNull(actual.getSubscriptionId(), "subscriptions.subscription_id must be set");
+    assertNotNull(actual.getSubscriptionNumber(), "subscriptions.subscription_number must be set");
     assertEquals(expected.getOrgId(), actual.getOrgId(), "subscriptions.org_id must match");
     assertEquals(expected.getOffering().getSku(), actual.getSku(), "subscriptions.sku must match");
     assertEquals(
@@ -1165,16 +1163,16 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
         });
   }
 
-  private void thenSingleSubscriptionHasStableIdAndMeasurements(
-      String subId, int expectedMeasurementsCount) {
+  private void thenSingleSubscriptionHasStableNumberAndMeasurements(
+      String subscriptionNumber, int expectedMeasurementsCount) {
     AwaitilityUtils.untilAsserted(
         () -> {
           var subs = service.getSubscriptionsByOrgId(orgId);
           assertEquals(1, subs.size(), "subscriptions: no duplicate rows");
           assertEquals(
-              subId,
-              subs.get(0).getSubscriptionId(),
-              "subscriptions: subscription_id must be stable");
+              subscriptionNumber,
+              subs.get(0).getSubscriptionNumber(),
+              "subscriptions: subscription_number must be stable");
           assertEquals(
               expectedMeasurementsCount,
               subs.get(0).getMetrics().size(),

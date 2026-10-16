@@ -28,6 +28,9 @@
                     HAVING COUNT(kcu.column_name) = 2
                 )
             </sqlCheck>
+            <not>
+                <tableExists tableName="DATABASECHANGELOGLOCK_SWATCH_CONTRACTS"/>
+            </not>
         </preConditions>
         <comment>Change primary key</comment>
         <dropPrimaryKey tableName="subscription" />
