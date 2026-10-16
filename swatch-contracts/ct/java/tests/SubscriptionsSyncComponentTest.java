@@ -84,7 +84,7 @@ public class SubscriptionsSyncComponentTest extends BaseContractComponentTest {
   void shouldSyncSubscriptionMessage() {
     Subscription subscription = givenSubscription();
     kafkaBridge.produceKafkaMessage(IT_SUBSCRIPTION_SYNC, buildKafkaMessage(subscription));
-    thenSubscriptionIsPresent(subscription.getSubscriptionNumber());
+    thenSubscriptionIsPresent(subscription.getSubscriptionId());
   }
 
   @TestPlanName("subscriptions-sync-TC003")
@@ -95,7 +95,7 @@ public class SubscriptionsSyncComponentTest extends BaseContractComponentTest {
     wiremock.forSearchApi().stubSearchSubscriptionsByOrgId(orgId);
     whenSubscriptionSyncRunsForOrg();
 
-    thenSubscriptionIsAbsent(subscription.getSubscriptionNumber());
+    thenSubscriptionIsAbsent(subscription.getSubscriptionId());
     thenSubscriptionAuditDeleteLog(SubscriptionDeleteReason.NOT_IN_UPSTREAM_RESPONSE);
   }
 
@@ -108,7 +108,7 @@ public class SubscriptionsSyncComponentTest extends BaseContractComponentTest {
     wiremock.forSearchApi().stubSearchSubscriptionsByOrgIdFailure(orgId, httpStatus);
     whenSubscriptionSyncRunsForOrg();
 
-    thenSubscriptionIsPresent(subscription.getSubscriptionNumber());
+    thenSubscriptionIsPresent(subscription.getSubscriptionId());
   }
 
   @TestPlanName("subscriptions-sync-TC005")
@@ -121,10 +121,10 @@ public class SubscriptionsSyncComponentTest extends BaseContractComponentTest {
 
     whenSubscriptionSyncRunsWithUpstream(replacementSubscription);
 
-    thenSubscriptionIsAbsent(expiredSubscription.getSubscriptionNumber());
-    thenSubscriptionIsPresent(replacementSubscription.getSubscriptionNumber());
+    thenSubscriptionIsAbsent(expiredSubscription.getSubscriptionId());
+    thenSubscriptionIsPresent(replacementSubscription.getSubscriptionId());
     thenSubscriptionAuditDeleteLog(SubscriptionDeleteReason.NOT_IN_UPSTREAM_RESPONSE);
-    thenSubscriptionAuditSaveLog(replacementSubscription.getSubscriptionNumber());
+    thenSubscriptionAuditSaveLog(replacementSubscription.getSubscriptionId());
     thenDailyCapacityShowsSocketsOnDaysInRange(REPORT_START, REPLACEMENT_START.minusDays(1), 0.0);
     thenDailyCapacityShowsSocketsOnDaysInRange(REPLACEMENT_START, REPORT_END, SOCKETS_CAPACITY);
   }
@@ -139,8 +139,8 @@ public class SubscriptionsSyncComponentTest extends BaseContractComponentTest {
 
     whenSubscriptionSyncRunsWithUpstream(expiredSubscription, replacementSubscription);
 
-    thenSubscriptionIsPresent(expiredSubscription.getSubscriptionNumber());
-    thenSubscriptionIsPresent(replacementSubscription.getSubscriptionNumber());
+    thenSubscriptionIsPresent(expiredSubscription.getSubscriptionId());
+    thenSubscriptionIsPresent(replacementSubscription.getSubscriptionId());
     thenDailyCapacityShowsSocketsOnDaysInRange(REPORT_START, EXPIRED_SEGMENT_END, SOCKETS_CAPACITY);
     thenDailyCapacityShowsSocketsOnDaysInRange(REPLACEMENT_START, REPORT_END, SOCKETS_CAPACITY);
   }
@@ -153,7 +153,7 @@ public class SubscriptionsSyncComponentTest extends BaseContractComponentTest {
 
     whenSubscriptionSyncRunsWithUpstream(upstreamWithNullStart);
 
-    thenSubscriptionIsAbsent(subscription.getSubscriptionNumber());
+    thenSubscriptionIsAbsent(subscription.getSubscriptionId());
     thenSubscriptionAuditDeleteLog(SubscriptionDeleteReason.FILTERED_NULL_START_DATE);
   }
 
@@ -171,7 +171,7 @@ public class SubscriptionsSyncComponentTest extends BaseContractComponentTest {
 
     whenSubscriptionSyncRunsWithUpstream(upstreamFarFutureStart);
 
-    thenSubscriptionIsAbsent(subscription.getSubscriptionNumber());
+    thenSubscriptionIsAbsent(subscription.getSubscriptionId());
     thenSubscriptionAuditDeleteLog(SubscriptionDeleteReason.FILTERED_START_TOO_FAR_IN_FUTURE);
   }
 
@@ -188,7 +188,7 @@ public class SubscriptionsSyncComponentTest extends BaseContractComponentTest {
 
     whenSubscriptionSyncRunsWithUpstream(upstreamExpiredEnd);
 
-    thenSubscriptionIsAbsent(subscription.getSubscriptionNumber());
+    thenSubscriptionIsAbsent(subscription.getSubscriptionId());
     thenSubscriptionAuditDeleteLog(SubscriptionDeleteReason.FILTERED_END_TOO_FAR_IN_PAST);
   }
 
@@ -227,11 +227,21 @@ public class SubscriptionsSyncComponentTest extends BaseContractComponentTest {
   private Subscription givenExistingSubscription(OffsetDateTime startDate, OffsetDateTime endDate) {
     String seed = RandomUtils.generateRandom();
     String sku = RandomUtils.generateRandom();
-    return givenExistingSubscriptionWithSku(sku, seed, startDate, endDate);
+    return givenExistingSubscriptionWithSku(sku, seed, seed, startDate, endDate);
   }
 
   private Subscription givenExistingSubscriptionWithSku(
-      String sku, String subscriptionNumber, OffsetDateTime startDate, OffsetDateTime endDate) {
+      String sku, OffsetDateTime startDate, OffsetDateTime endDate) {
+    String seed = RandomUtils.generateRandom();
+    return givenExistingSubscriptionWithSku(sku, seed, seed, startDate, endDate);
+  }
+
+  private Subscription givenExistingSubscriptionWithSku(
+      String sku,
+      String subscriptionId,
+      String subscriptionNumber,
+      OffsetDateTime startDate,
+      OffsetDateTime endDate) {
     wiremock
         .forProductAPI()
         .stubOfferingData(Offering.buildRhelOffering(sku, 4.0, SOCKETS_CAPACITY));
@@ -241,6 +251,7 @@ public class SubscriptionsSyncComponentTest extends BaseContractComponentTest {
     Subscription subscription =
         Subscription.buildRhelSubscriptionUsingSku(orgId, Map.of(SOCKETS, SOCKETS_CAPACITY), sku)
             .toBuilder()
+            .subscriptionId(subscriptionId)
             .subscriptionNumber(subscriptionNumber)
             .startDate(startDate)
             .endDate(endDate)
@@ -267,6 +278,7 @@ public class SubscriptionsSyncComponentTest extends BaseContractComponentTest {
     return Subscription.buildRhelSubscriptionUsingSku(
             orgId, Map.of(SOCKETS, SOCKETS_CAPACITY), replacementSku)
         .toBuilder()
+        .subscriptionId(seed)
         .subscriptionNumber(seed)
         .startDate(replacementStartDate)
         .endDate(replacementEnd)
@@ -290,24 +302,24 @@ public class SubscriptionsSyncComponentTest extends BaseContractComponentTest {
         null);
   }
 
-  private void thenSubscriptionIsPresent(String subscriptionNumber) {
+  private void thenSubscriptionIsPresent(String subscriptionId) {
     AwaitilityUtils.untilIsTrue(
         () ->
             service.getSubscriptionsByOrgId(orgId).stream()
-                .anyMatch(sub -> subscriptionNumber.equals(sub.getSubscriptionNumber())),
+                .anyMatch(sub -> subscriptionId.equals(sub.getSubscriptionId())),
         AwaitilitySettings.defaults()
             .withService(service)
-            .timeoutMessage("Subscription " + subscriptionNumber + " should remain in DB"));
+            .timeoutMessage("Subscription " + subscriptionId + " should remain in DB"));
   }
 
-  private void thenSubscriptionIsAbsent(String subscriptionNumber) {
+  private void thenSubscriptionIsAbsent(String subscriptionId) {
     AwaitilityUtils.untilIsTrue(
         () ->
             service.getSubscriptionsByOrgId(orgId).stream()
-                .noneMatch(sub -> subscriptionNumber.equals(sub.getSubscriptionNumber())),
+                .noneMatch(sub -> subscriptionId.equals(sub.getSubscriptionId())),
         AwaitilitySettings.defaults()
             .withService(service)
-            .timeoutMessage("Subscription " + subscriptionNumber + " should be removed from DB"));
+            .timeoutMessage("Subscription " + subscriptionId + " should be removed from DB"));
   }
 
   private void thenNoSubscriptionsForOrg() {
@@ -405,14 +417,11 @@ public class SubscriptionsSyncComponentTest extends BaseContractComponentTest {
     return snapshot.getValue().doubleValue();
   }
 
-  private void thenSubscriptionAuditSaveLog(String subscriptionNumber) {
+  private void thenSubscriptionAuditSaveLog(String subscriptionId) {
     service
         .logs()
         .assertContains(
-            "Subscription created/updated org_id="
-                + orgId
-                + " subscription_number="
-                + subscriptionNumber);
+            "Subscription created/updated org_id=" + orgId + " subscription_id=" + subscriptionId);
   }
 
   private Map<String, Object> buildKafkaMessage(Subscription subscription) {

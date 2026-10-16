@@ -194,6 +194,7 @@ public class BillingAccountIdsComponentTest extends BaseContractComponentTest {
         Subscription.builder()
             .orgId(orgId)
             .product(product)
+            .subscriptionId(RandomUtils.generateRandom())
             .subscriptionNumber(RandomUtils.generateRandom())
             .offering(offering)
             .subscriptionMeasurements(Map.of(CORES, 1.0))

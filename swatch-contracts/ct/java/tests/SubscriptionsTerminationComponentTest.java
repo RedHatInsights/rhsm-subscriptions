@@ -47,7 +47,7 @@ public class SubscriptionsTerminationComponentTest extends BaseContractComponent
 
     var terminatedSubscription =
         service.getSubscriptionsByOrgId(orgId).stream()
-            .filter(s -> subscription.getSubscriptionNumber().equals(s.getSubscriptionNumber()))
+            .filter(s -> subscription.getSubscriptionId().equals(s.getSubscriptionId()))
             .findFirst()
             .orElse(null);
     assertNotNull(
