@@ -37,7 +37,6 @@ import org.mapstruct.Named;
     uses = {MeasurementMetricIdTransformer.class})
 public interface SubscriptionEntityMapper {
 
-  @Mapping(target = "subscriptionId", ignore = true)
   @Mapping(target = "quantity", constant = "1L")
   @Mapping(
       target = "subscriptionMeasurements",

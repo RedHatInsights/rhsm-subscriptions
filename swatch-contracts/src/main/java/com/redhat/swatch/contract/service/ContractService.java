@@ -127,8 +127,7 @@ public class ContractService {
     }
 
     try {
-      var result =
-          upsertPartnerContracts(request.getPartnerEntitlement(), request.getSubscriptionId());
+      var result = upsertPartnerContracts(request.getPartnerEntitlement());
       response.setStatus(result.toStatus());
       if (result.isValid() && result.getEntity() != null) {
         response.setContract(contractDtoMapper.contractEntityToDto(result.getEntity()));
@@ -226,11 +225,11 @@ public class ContractService {
         return INVALID_MESSAGE_UNPROCESSED.toStatus();
       }
 
-      var subscriptionId =
-          lookupSubscriptionId(
-              Optional.ofNullable(findSubscriptionNumber(entitlement))
-                  .orElse(request.getRedHatSubscriptionNumber()));
-      return upsertPartnerContracts(entitlement, subscriptionId).toStatus();
+      String subscriptionNumber =
+          Optional.ofNullable(findSubscriptionNumber(entitlement))
+              .orElse(request.getRedHatSubscriptionNumber());
+      checkSubscriptionExists(subscriptionNumber);
+      return upsertPartnerContracts(entitlement).toStatus();
     } catch (ContractNotAssociatedToOrgException e) {
       return ContractMessageProcessingResult.RH_ORG_NOT_ASSOCIATED.toStatus();
     }
@@ -243,8 +242,7 @@ public class ContractService {
    * then the existing record is deleted.
    */
   @Transactional
-  public ContractMessageProcessingResult upsertPartnerContracts(
-      PartnerEntitlementV1 entitlement, String subscriptionId)
+  public ContractMessageProcessingResult upsertPartnerContracts(PartnerEntitlementV1 entitlement)
       throws ContractNotAssociatedToOrgException, ContractValidationFailedException {
     // lock by contract updates
     transactionalLocks.acquireLockBy(
@@ -271,7 +269,7 @@ public class ContractService {
     contractRecordsUpdated = mergeWithExistingContractRecords(entities, existingContractRecords);
 
     if (latestContract.getSubscriptionNumber() != null) {
-      subscriptionRecordsUpdated = mergeWithExistingSubscriptionRecords(entities, subscriptionId);
+      subscriptionRecordsUpdated = mergeWithExistingSubscriptionRecords(entities);
     }
 
     if (!contractRecordsUpdated && !subscriptionRecordsUpdated) {
@@ -357,16 +355,12 @@ public class ContractService {
    * Update subscription to match contracts from IT partner gateway
    *
    * @param contractEntities existing contract entities
-   * @param subscriptionId the subscription ID
    * @return true if records have been updated and false otherwise
    */
-  private boolean mergeWithExistingSubscriptionRecords(
-      List<ContractEntity> contractEntities, String subscriptionId) {
+  private boolean mergeWithExistingSubscriptionRecords(List<ContractEntity> contractEntities) {
 
     List<SubscriptionEntity> updatedSubscriptions =
-        contractEntities.stream()
-            .map(entity -> createSubscriptionForContract(entity, subscriptionId))
-            .toList();
+        contractEntities.stream().map(this::createSubscriptionForContract).toList();
 
     Set<SubscriptionEntity> subscriptionsToPersist = new HashSet<>();
 
@@ -551,8 +545,6 @@ public class ContractService {
 
     contractRepository
         .findContracts(ContractEntity.orgIdEquals(orgId))
-        // we only want to update existing subscriptions, so we don't need to provide the
-        // subscriptionId here.
         .forEach(this::syncSubscriptionForContract);
 
     statusResponse.setStatus(SUCCESS_MESSAGE);
@@ -622,8 +614,7 @@ public class ContractService {
 
   private void tryUpsertPartnerContract(PartnerEntitlementV1 entitlement) {
     try {
-      var subscriptionId = lookupSubscriptionId(findSubscriptionNumber(entitlement));
-      upsertPartnerContracts(entitlement, subscriptionId);
+      upsertPartnerContracts(entitlement);
     } catch (ContractNotAssociatedToOrgException | ContractValidationFailedException e) {
       log.error(
           "Error synchronising the contract {}. Caused by: {}", entitlement, e.getMessage(), e);
@@ -653,21 +644,17 @@ public class ContractService {
   private SubscriptionEntity createOrUpdateSubscription(ContractEntity contract) {
     Optional<SubscriptionEntity> existingSubscription = findFirstSubscriptionByContract(contract);
     if (existingSubscription.isEmpty()) {
-      return createSubscriptionForContract(contract, null);
+      return createSubscriptionForContract(contract);
     } else {
       updateSubscriptionForContract(existingSubscription.get(), contract);
       return existingSubscription.get();
     }
   }
 
-  private SubscriptionEntity createSubscriptionForContract(
-      ContractEntity contract, String subscriptionId) {
+  private SubscriptionEntity createSubscriptionForContract(ContractEntity contract) {
     var subscription = new SubscriptionEntity();
     subscription.setStartDate(contract.getStartDate());
     updateSubscriptionForContract(subscription, contract);
-    if (subscriptionId != null) {
-      subscription.setSubscriptionId(subscriptionId);
-    }
     return subscription;
   }
 
@@ -793,18 +780,24 @@ public class ContractService {
     return contractEntities;
   }
 
-  private String lookupSubscriptionId(String subscriptionNumber) {
+  private void checkSubscriptionExists(String subscriptionNumber) {
     if (subscriptionNumber == null) {
-      return null;
+      throw new ContractsException(
+          ErrorCode.CONTRACT_MISSING_SUBSCRIPTION_NUMBER,
+          "Unable to find subscription number for contract");
     }
 
     try {
-      return subscriptionSearchService
-          .getSubscriptionBySubscriptionNumber(subscriptionNumber)
-          .getId()
-          .toString();
+      var subscription =
+          subscriptionSearchService.getSubscriptionBySubscriptionNumber(subscriptionNumber);
+      if (subscription == null) {
+        throw new ContractsException(
+            ErrorCode.CONTRACT_DOES_NOT_EXIST, "Unable to lookup subscription for contract");
+      }
+    } catch (ContractsException e) {
+      throw e;
     } catch (Exception e) {
-      log.error("Error fetching subscription ID for contract", e);
+      log.error("Error fetching subscription for contract", e);
       throw new ContractsException(
           ErrorCode.CONTRACT_DOES_NOT_EXIST, "Unable to lookup subscription for contract");
     }
