@@ -144,7 +144,7 @@ public class TallySummaryMapper {
           snapshot.getBillingProvider(),
           snapshot.getBillingAccountId(),
           clock.startOfMonth(snapshot.getSnapshotDate()),
-          snapshot.getSnapshotDate(),
+          clock.endOfMonth(snapshot.getSnapshotDate()),
           measurementKey);
     } else {
       return snapshotRepository.sumMeasurementValueForPeriod(
@@ -156,7 +156,7 @@ public class TallySummaryMapper {
           snapshot.getBillingProvider(),
           snapshot.getBillingAccountId(),
           clock.startOfMonth(snapshot.getSnapshotDate()),
-          snapshot.getSnapshotDate(),
+          clock.endOfMonth(snapshot.getSnapshotDate()),
           measurementKey);
     }
   }

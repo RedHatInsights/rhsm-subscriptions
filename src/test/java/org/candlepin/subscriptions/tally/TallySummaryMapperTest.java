@@ -26,12 +26,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.configuration.util.MetricIdUtils;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.temporal.TemporalAdjusters;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +50,7 @@ import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.TallySummary;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -65,6 +69,18 @@ class TallySummaryMapperTest {
   @Mock FeatureFlags featureFlags;
   @InjectMocks TallySummaryMapper mapper;
   private Map<TallyMeasurementKey, Double> expectedTotalValues = new HashMap<>();
+
+  @BeforeEach
+  void setUpMonthEnd() {
+    lenient()
+        .when(clock.endOfMonth(any(OffsetDateTime.class)))
+        .thenAnswer(
+            invocation -> {
+              OffsetDateTime date = invocation.getArgument(0);
+              var lastDay = date.with(TemporalAdjusters.lastDayOfMonth());
+              return lastDay.with(LocalTime.MAX);
+            });
+  }
 
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
@@ -191,6 +207,8 @@ class TallySummaryMapperTest {
 
     var expectedMeasurements = expected.getTallyMeasurements();
     var mappedMeasurements = mapped.getTallyMeasurements();
+    var lastDay = expected.getSnapshotDate().with(TemporalAdjusters.lastDayOfMonth());
+    OffsetDateTime monthEnd = lastDay.with(LocalTime.MAX);
     assertEquals(expectedMeasurements.size(), mappedMeasurements.size());
 
     int sqlCallCount = 0;
@@ -223,7 +241,7 @@ class TallySummaryMapperTest {
                   eq(expected.getBillingProvider()),
                   eq(expected.getBillingAccountId()),
                   any(),
-                  eq(expected.getSnapshotDate()),
+                  eq(monthEnd),
                   eq(key));
         } else {
           verify(snapshotRepository)
@@ -236,13 +254,14 @@ class TallySummaryMapperTest {
                   eq(expected.getBillingProvider()),
                   eq(expected.getBillingAccountId()),
                   any(),
-                  eq(expected.getSnapshotDate()),
+                  eq(monthEnd),
                   eq(key));
         }
       }
     }
     // Only verify clock calls for metrics that actually make SQL queries
     verify(clock, times(sqlCallCount)).startOfMonth(expected.getSnapshotDate());
+    verify(clock, times(sqlCallCount)).endOfMonth(expected.getSnapshotDate());
   }
 
   TallySnapshot buildSnapshot(

@@ -65,5 +65,5 @@ properties:
           description: Measurement value.
           type: number
         currentTotal:
-          description: Sum of all measurements between the start of the month to the snapshot date.
+          description: Sum of all measurements between the start of the month to the end of the month.
           type: number
