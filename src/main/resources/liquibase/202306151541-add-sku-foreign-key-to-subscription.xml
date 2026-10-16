@@ -18,12 +18,6 @@
             referencedTableName="offering" referencedColumnNames="sku"/>
     </changeSet>
     <changeSet id="202306151541-02" author="awood">
-        <preConditions onFail="MARK_RAN">
-          <columnExists tableName="subscription" columnName="has_unlimited_usage"/>
-          <not>
-            <tableExists tableName="DATABASECHANGELOGLOCK_SWATCH_CONTRACTS"/>
-          </not>
-        </preConditions>
         <comment>This column is present in the offering table</comment>
         <dropColumn tableName="subscription" columnName="has_unlimited_usage"/>
     </changeSet>

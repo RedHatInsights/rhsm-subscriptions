@@ -66,8 +66,9 @@ public class SubscriptionService {
   public void save(SubscriptionEntity subscription) {
     subscription = persistAndMerge(subscription);
     log.info(
-        "Subscription created/updated org_id={} subscription_number={} start_date={} end_date={} billing_account_id={}",
+        "Subscription created/updated org_id={} subscription_id={} subscription_number={} start_date={} end_date={} billing_account_id={}",
         subscription.getOrgId(),
+        subscription.getSubscriptionId(),
         subscription.getSubscriptionNumber(),
         subscription.getStartDate(),
         subscription.getEndDate(),
@@ -78,8 +79,9 @@ public class SubscriptionService {
   public void terminate(SubscriptionEntity subscription) {
     subscription = persistAndMerge(subscription);
     log.info(
-        "Subscription terminated org_id={} subscription_number={} start_date={} end_date={} billing_account_id={}",
+        "Subscription terminated org_id={} subscription_id={} subscription_number={} start_date={} end_date={} billing_account_id={}",
         subscription.getOrgId(),
+        subscription.getSubscriptionId(),
         subscription.getSubscriptionNumber(),
         subscription.getStartDate(),
         subscription.getEndDate(),
@@ -91,8 +93,9 @@ public class SubscriptionService {
     Objects.requireNonNull(deleteReason, "deleteReason must not be null");
     subscriptionRepository.delete(subscription);
     log.info(
-        "Subscription deleted org_id={} subscription_number={} start_date={} end_date={} billing_account_id={} delete_reason={}",
+        "Subscription deleted org_id={} subscription_id={} subscription_number={} start_date={} end_date={} billing_account_id={} delete_reason={}",
         subscription.getOrgId(),
+        subscription.getSubscriptionId(),
         subscription.getSubscriptionNumber(),
         subscription.getStartDate(),
         subscription.getEndDate(),
@@ -108,7 +111,7 @@ public class SubscriptionService {
     }
 
     // merge is needed here because the existing subscription might not be found if we only use
-    // the subscription number (since primary keys are subscription number and start date).
+    // the subscription number (since primary keys are subscription ID and start date).
     // To be fixed in SWATCH-2801.
     return em.merge(subscription);
   }

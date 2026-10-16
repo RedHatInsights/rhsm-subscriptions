@@ -64,7 +64,7 @@ class SubscriptionListServiceTest {
     List<Subscription> result = subscriptionListService.getSubscriptionsByOrgId("org123");
 
     assertEquals(1, result.size());
-    assertEquals("sub123", result.get(0).getSubscriptionNumber());
+    assertEquals("sub123", result.get(0).getSubscriptionId());
     assertEquals("org123", result.get(0).getOrgId());
     assertEquals("TEST-SKU", result.get(0).getSku());
   }
@@ -106,8 +106,8 @@ class SubscriptionListServiceTest {
 
     assertEquals(2, result.size());
     assertTrue(result.stream().allMatch(s -> "org111".equals(s.getOrgId())));
-    assertTrue(result.stream().anyMatch(s -> "sub111".equals(s.getSubscriptionNumber())));
-    assertTrue(result.stream().anyMatch(s -> "sub333".equals(s.getSubscriptionNumber())));
+    assertTrue(result.stream().anyMatch(s -> "sub111".equals(s.getSubscriptionId())));
+    assertTrue(result.stream().anyMatch(s -> "sub333".equals(s.getSubscriptionId())));
   }
 
   @TestTransaction
@@ -139,15 +139,16 @@ class SubscriptionListServiceTest {
   }
 
   private SubscriptionEntity createSubscription(
-      String orgId, String subscriptionNumber, OfferingEntity offering) {
+      String orgId, String subscriptionId, OfferingEntity offering) {
     OffsetDateTime now = OffsetDateTime.now();
     SubscriptionEntity subscription = new SubscriptionEntity();
-    subscription.setSubscriptionNumber(subscriptionNumber);
+    subscription.setSubscriptionId(subscriptionId);
     subscription.setOrgId(orgId);
     subscription.setOffering(offering);
     subscription.setQuantity(10L);
     subscription.setStartDate(now);
     subscription.setEndDate(now.plusDays(365));
+    subscription.setSubscriptionNumber(subscriptionId + "-NUM");
     subscription.setBillingProvider(BillingProvider.RED_HAT);
     subscription.setBillingAccountId("account-" + orgId);
     subscription.setBillingProviderId("provider-" + orgId);

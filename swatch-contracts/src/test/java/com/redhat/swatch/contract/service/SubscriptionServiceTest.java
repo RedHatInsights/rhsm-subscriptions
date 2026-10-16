@@ -48,6 +48,7 @@ import org.junit.jupiter.api.Test;
 class SubscriptionServiceTest {
 
   private static final String ORG_ID = "org123";
+  private static final String SUBSCRIPTION_ID = "456";
   private static final String SUBSCRIPTION_NUMBER = "890";
   private static final String SKU = "RH000001";
 
@@ -88,7 +89,7 @@ class SubscriptionServiceTest {
     assertEquals(1, persisted.size());
     assertEquals(ORG_ID, persisted.getFirst().getOrgId());
     assertEquals("initial-acct", persisted.getFirst().getBillingAccountId());
-    assertLogContains("Subscription created/updated org_id=org123 subscription_number=890");
+    assertLogContains("Subscription created/updated org_id=org123 subscription_id=456");
   }
 
   @Test
@@ -107,7 +108,7 @@ class SubscriptionServiceTest {
     var reloaded = subscriptionRepository.findBySubscriptionNumber(SUBSCRIPTION_NUMBER).getFirst();
     assertEquals(16L, reloaded.getQuantity());
     assertEquals("managed-update", reloaded.getBillingAccountId());
-    assertLogContains("Subscription created/updated org_id=org123 subscription_number=890");
+    assertLogContains("Subscription created/updated org_id=org123 subscription_id=456");
   }
 
   @Test
@@ -129,7 +130,7 @@ class SubscriptionServiceTest {
     var reloaded = subscriptionRepository.findBySubscriptionNumber(SUBSCRIPTION_NUMBER).getFirst();
     assertEquals("detached-update", reloaded.getBillingAccountId());
     assertEquals(32L, reloaded.getQuantity());
-    assertLogContains("Subscription created/updated org_id=org123 subscription_number=890");
+    assertLogContains("Subscription created/updated org_id=org123 subscription_id=456");
   }
 
   @Test
@@ -150,7 +151,7 @@ class SubscriptionServiceTest {
     var reloaded = subscriptionRepository.findBySubscriptionNumber(SUBSCRIPTION_NUMBER).getFirst();
     assertEquals(terminationDate, reloaded.getEndDate());
     assertEquals(null, reloaded.getBillingAccountId());
-    assertLogContains("Subscription terminated org_id=org123 subscription_number=890");
+    assertLogContains("Subscription terminated org_id=org123 subscription_id=456");
   }
 
   @Test
@@ -171,7 +172,7 @@ class SubscriptionServiceTest {
 
     var reloaded = subscriptionRepository.findBySubscriptionNumber(SUBSCRIPTION_NUMBER).getFirst();
     assertEquals(terminationDate, reloaded.getEndDate());
-    assertLogContains("Subscription terminated org_id=org123 subscription_number=890");
+    assertLogContains("Subscription terminated org_id=org123 subscription_id=456");
   }
 
   @Test
@@ -186,8 +187,7 @@ class SubscriptionServiceTest {
 
     assertTrue(subscriptionRepository.findBySubscriptionNumber(SUBSCRIPTION_NUMBER).isEmpty());
     assertLogContains(
-        "Subscription deleted org_id=org123 subscription_number=890",
-        "delete_reason=PRODUCT_DENYLIST");
+        "Subscription deleted org_id=org123 subscription_id=456", "delete_reason=PRODUCT_DENYLIST");
   }
 
   @Test
@@ -223,7 +223,7 @@ class SubscriptionServiceTest {
     var result = subscriptionService.findByContract(contract);
 
     assertEquals(1, result.size());
-    assertEquals(SUBSCRIPTION_NUMBER, result.getFirst().getSubscriptionNumber());
+    assertEquals(SUBSCRIPTION_ID, result.getFirst().getSubscriptionId());
     assertEquals("contract-acct", result.getFirst().getBillingAccountId());
   }
 
@@ -231,12 +231,13 @@ class SubscriptionServiceTest {
   @TestTransaction
   void streamByOrgIdReturnsSubscriptionsForOrg() {
     subscriptionRepository.persistAndFlush(newSubscription("acct-1", 4L));
-    subscriptionRepository.persistAndFlush(newSubscriptionForOrg("other-org", "num-2", 2L));
+    subscriptionRepository.persistAndFlush(
+        newSubscriptionForOrg("other-org", "sub-2", "num-2", 2L));
 
     var result = subscriptionService.streamByOrgId(ORG_ID).toList();
 
     assertEquals(1, result.size());
-    assertEquals(SUBSCRIPTION_NUMBER, result.getFirst().getSubscriptionNumber());
+    assertEquals(SUBSCRIPTION_ID, result.getFirst().getSubscriptionId());
   }
 
   private OfferingEntity createOffering() {
@@ -249,6 +250,7 @@ class SubscriptionServiceTest {
 
   private SubscriptionEntity newSubscription(String billingAccountId, long quantity) {
     return SubscriptionEntity.builder()
+        .subscriptionId(SUBSCRIPTION_ID)
         .subscriptionNumber(SUBSCRIPTION_NUMBER)
         .orgId(ORG_ID)
         .offering(offeringRepository.findById(SKU))
@@ -261,8 +263,9 @@ class SubscriptionServiceTest {
   }
 
   private SubscriptionEntity newSubscriptionForOrg(
-      String orgId, String subscriptionNumber, long quantity) {
+      String orgId, String subscriptionId, String subscriptionNumber, long quantity) {
     return SubscriptionEntity.builder()
+        .subscriptionId(subscriptionId)
         .subscriptionNumber(subscriptionNumber)
         .orgId(orgId)
         .offering(offeringRepository.findById(SKU))

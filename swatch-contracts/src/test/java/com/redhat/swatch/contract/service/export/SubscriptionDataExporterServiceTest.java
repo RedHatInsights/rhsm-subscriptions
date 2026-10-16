@@ -357,6 +357,7 @@ class SubscriptionDataExporterServiceTest {
 
     var existing = subscriptions.get(0);
     SubscriptionEntity subscription = new SubscriptionEntity();
+    subscription.setSubscriptionId(existing.getSubscriptionId());
     subscription.setSubscriptionNumber(existing.getSubscriptionNumber());
     subscription.setStartDate(OffsetDateTime.parse("2024-05-23T11:48:15.888129Z"));
     subscription.setEndDate(OffsetDateTime.parse("2024-06-23T11:48:15.888129Z"));
@@ -478,7 +479,7 @@ class SubscriptionDataExporterServiceTest {
 
   private SubscriptionEntity buildSubscription(String orgId, String productId) {
     SubscriptionEntity subscription = new SubscriptionEntity();
-    subscription.setSubscriptionNumber(UUID.randomUUID().toString());
+    subscription.setSubscriptionId(UUID.randomUUID().toString());
     subscription.setSubscriptionNumber(UUID.randomUUID().toString());
     subscription.setStartDate(OffsetDateTime.parse("2024-04-23T11:48:15.888129Z"));
     subscription.setEndDate(OffsetDateTime.parse("2028-05-23T11:48:15.888129Z"));

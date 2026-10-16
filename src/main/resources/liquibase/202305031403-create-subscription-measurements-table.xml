@@ -21,9 +21,6 @@
       <not>
         <tableExists tableName="subscription_measurements"/>
       </not>
-      <not>
-        <tableExists tableName="DATABASECHANGELOGLOCK_SWATCH_CONTRACTS"/>
-      </not>
     </preConditions>
 
     <createTable tableName="subscription_measurements">
@@ -48,9 +45,6 @@
       <not>
         <columnExists tableName="subscription" columnName="has_unlimited_usage"/>
       </not>
-      <not>
-        <tableExists tableName="DATABASECHANGELOGLOCK_SWATCH_CONTRACTS"/>
-      </not>
     </preConditions>
     <addColumn tableName="subscription">
       <column name="has_unlimited_usage" type="BOOLEAN"/>
@@ -58,11 +52,6 @@
   </changeSet>
 
   <changeSet id="202305031403-03" author="awood">
-    <preConditions onFail="MARK_RAN">
-      <not>
-        <tableExists tableName="DATABASECHANGELOGLOCK_SWATCH_CONTRACTS"/>
-      </not>
-    </preConditions>
     <createTable tableName="subscription_product_ids">
       <column name="product_id" type="VARCHAR(32)"/>
       <column name="subscription_id" type="VARCHAR(255)"/>
@@ -81,11 +70,6 @@
   <!-- NB: All the changesets dealing with functions and triggers are scoped to postgresql.  We
   don't need them during unit tests -->
   <changeSet id="202305031403-04" author="awood" dbms="postgresql">
-    <preConditions onFail="MARK_RAN">
-      <not>
-        <tableExists tableName="DATABASECHANGELOGLOCK_SWATCH_CONTRACTS"/>
-      </not>
-    </preConditions>
     <createProcedure>
       CREATE OR REPLACE FUNCTION copy_subscription_capacity_sockets_and_cores() RETURNS trigger AS
       $$
@@ -131,11 +115,6 @@
   statements in a multi-statement changeset executed -->
 
   <changeSet id="202305031403-05" author="awood" dbms="postgresql">
-    <preConditions onFail="MARK_RAN">
-      <not>
-        <tableExists tableName="DATABASECHANGELOGLOCK_SWATCH_CONTRACTS"/>
-      </not>
-    </preConditions>
     <sql>
       CREATE TRIGGER subscription_measurements_insert BEFORE INSERT ON subscription_capacity FOR
         EACH ROW EXECUTE PROCEDURE copy_subscription_capacity_sockets_and_cores();
@@ -146,11 +125,6 @@
   </changeSet>
 
   <changeSet id="202305031403-06" author="awood" dbms="postgresql">
-    <preConditions onFail="MARK_RAN">
-      <not>
-        <tableExists tableName="DATABASECHANGELOGLOCK_SWATCH_CONTRACTS"/>
-      </not>
-    </preConditions>
     <sql>
       CREATE TRIGGER subscription_measurements_update BEFORE UPDATE ON subscription_capacity FOR
         EACH ROW EXECUTE PROCEDURE copy_subscription_capacity_sockets_and_cores();
@@ -161,11 +135,6 @@
   </changeSet>
 
   <changeSet id="202305031403-07" author="awood" dbms="postgresql">
-    <preConditions onFail="MARK_RAN">
-      <not>
-        <tableExists tableName="DATABASECHANGELOGLOCK_SWATCH_CONTRACTS"/>
-      </not>
-    </preConditions>
     <createProcedure>
       CREATE OR REPLACE FUNCTION copy_subscription_capacity_has_unlimited_usage() RETURNS trigger AS
       $$
@@ -184,11 +153,6 @@
   </changeSet>
 
   <changeSet id="202305031403-08" author="awood" dbms="postgresql">
-    <preConditions onFail="MARK_RAN">
-      <not>
-        <tableExists tableName="DATABASECHANGELOGLOCK_SWATCH_CONTRACTS"/>
-      </not>
-    </preConditions>
     <sql>
       CREATE TRIGGER subscription_insert BEFORE INSERT ON subscription_capacity FOR EACH
         ROW EXECUTE PROCEDURE copy_subscription_capacity_has_unlimited_usage();
@@ -199,11 +163,6 @@
   </changeSet>
 
   <changeSet id="202305031403-09" author="awood" dbms="postgresql">
-    <preConditions onFail="MARK_RAN">
-      <not>
-        <tableExists tableName="DATABASECHANGELOGLOCK_SWATCH_CONTRACTS"/>
-      </not>
-    </preConditions>
     <sql>
       CREATE TRIGGER subscription_update BEFORE UPDATE ON subscription_capacity FOR EACH
         ROW EXECUTE PROCEDURE copy_subscription_capacity_has_unlimited_usage();
@@ -214,11 +173,6 @@
   </changeSet>
 
   <changeSet id="202305031403-10" author="awood" dbms="postgresql">
-    <preConditions onFail="MARK_RAN">
-      <not>
-        <tableExists tableName="DATABASECHANGELOGLOCK_SWATCH_CONTRACTS"/>
-      </not>
-    </preConditions>
     <createProcedure>
       CREATE OR REPLACE FUNCTION copy_subscription_product_id() RETURNS trigger AS
       $$
@@ -235,11 +189,6 @@
   </changeSet>
 
   <changeSet id="202305031403-11" author="awood" dbms="postgresql">
-    <preConditions onFail="MARK_RAN">
-      <not>
-        <tableExists tableName="DATABASECHANGELOGLOCK_SWATCH_CONTRACTS"/>
-      </not>
-    </preConditions>
     <sql>
       CREATE TRIGGER subscription_product_id_insert BEFORE INSERT ON subscription_capacity FOR EACH
         ROW EXECUTE PROCEDURE copy_subscription_product_id();
@@ -250,11 +199,6 @@
   </changeSet>
 
   <changeSet id="202305031403-12" author="awood" dbms="postgresql">
-    <preConditions onFail="MARK_RAN">
-      <not>
-        <tableExists tableName="DATABASECHANGELOGLOCK_SWATCH_CONTRACTS"/>
-      </not>
-    </preConditions>
     <sql>
       CREATE TRIGGER subscription_product_id_update BEFORE UPDATE ON subscription_capacity FOR EACH
         ROW EXECUTE PROCEDURE copy_subscription_product_id();
@@ -265,20 +209,10 @@
   </changeSet>
 
   <changeSet id="202305031403-13" author="awood">
-    <preConditions onFail="MARK_RAN">
-      <not>
-        <tableExists tableName="DATABASECHANGELOGLOCK_SWATCH_CONTRACTS"/>
-      </not>
-    </preConditions>
     <customChange class="org.candlepin.subscriptions.liquibase.PopulateSubscriptionMeasurements"/>
   </changeSet>
 
   <changeSet id="202305031403-14" author="awood">
-    <preConditions onFail="MARK_RAN">
-      <not>
-        <tableExists tableName="DATABASECHANGELOGLOCK_SWATCH_CONTRACTS"/>
-      </not>
-    </preConditions>
     <sql>
       ${update_statement_for_has_unlimited_usage}
     </sql>
@@ -288,11 +222,6 @@
   </changeSet>
 
   <changeSet id="202305031403-15" author="awood">
-    <preConditions onFail="MARK_RAN">
-      <not>
-        <tableExists tableName="DATABASECHANGELOGLOCK_SWATCH_CONTRACTS"/>
-      </not>
-    </preConditions>
     <!-- This insert isn't going to pull over every record from subscription_capacity. Currently,
     there is no referential integrity between these two tables, so the fact that we are doing a
     join on subscription here is solely as an effort to avoid trying to insert records from
