@@ -130,7 +130,6 @@ public class OfferingContractComponentTest extends BaseContractComponentTest {
         .orgId(unlimitedOrgId)
         .product(domain.Product.RHEL)
         .offering(unlimitedOffering)
-        .subscriptionId(generateRandom())
         .subscriptionNumber(generateRandom())
         .startDate(java.time.OffsetDateTime.now().minusDays(1))
         .endDate(java.time.OffsetDateTime.now().plusDays(1))

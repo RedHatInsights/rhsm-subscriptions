@@ -34,7 +34,7 @@ public class SubscriptionRepository
         SubscriptionEntity, SubscriptionEntity.SubscriptionCompoundId> {
 
   private static final Sort DEFAULT_SORT =
-      Sort.by(SubscriptionEntity_.SUBSCRIPTION_ID)
+      Sort.by(SubscriptionEntity_.SUBSCRIPTION_NUMBER)
           .and(SubscriptionEntity_.START_DATE, Sort.Direction.Descending);
 
   private static final Sort BILLING_ACCCOUNT_SORT =

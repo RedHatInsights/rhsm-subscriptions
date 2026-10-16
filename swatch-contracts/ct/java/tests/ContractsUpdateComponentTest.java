@@ -458,9 +458,9 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
     assertEquals(1, subscriptions.size(), "Exactly one subscription should remain");
     var actual = subscriptions.getFirst();
     assertEquals(
-        expected.getSubscriptionId(),
-        actual.getSubscriptionId(),
-        "The persisted subscription ID should match");
+        expected.getSubscriptionNumber(),
+        actual.getSubscriptionNumber(),
+        "The persisted subscription number should match");
     assertDatesAreEqual(expected.getStartDate(), actual.getStartDate());
     assertDatesAreEqual(expected.getEndDate(), actual.getEndDate());
   }

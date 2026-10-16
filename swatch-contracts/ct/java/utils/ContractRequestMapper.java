@@ -71,9 +71,7 @@ public abstract class ContractRequestMapper {
   public ContractRequest build(Contract contract) {
     PartnerEntitlementV1 partnerEntitlement = buildPartnerEntitlement(contract);
 
-    return new ContractRequest()
-        .partnerEntitlement(partnerEntitlement)
-        .subscriptionId(contract.getSubscriptionId());
+    return new ContractRequest().partnerEntitlement(partnerEntitlement);
   }
 
   protected PartnerEntitlementV1 buildPartnerEntitlement(Contract contract) {

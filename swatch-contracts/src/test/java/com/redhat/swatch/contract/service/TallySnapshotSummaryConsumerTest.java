@@ -374,7 +374,7 @@ class TallySnapshotSummaryConsumerTest {
   }
 
   private SubscriptionCapacityView givenCapacityView(
-      String subscriptionId,
+      String subscriptionNumber,
       String orgId,
       String productTag,
       ServiceLevel serviceLevel,
@@ -385,8 +385,7 @@ class TallySnapshotSummaryConsumerTest {
       Boolean hasUnlimitedUsage) {
 
     SubscriptionCapacityView capacityView = new SubscriptionCapacityView();
-    capacityView.setSubscriptionId(subscriptionId);
-    capacityView.setSubscriptionNumber("SUB-" + subscriptionId);
+    capacityView.setSubscriptionNumber(subscriptionNumber);
     capacityView.setOrgId(orgId);
     capacityView.setProductTag(productTag);
     capacityView.setSku("RH00001");
@@ -425,7 +424,7 @@ class TallySnapshotSummaryConsumerTest {
       Boolean hasUnlimitedUsage) {
 
     SubscriptionCapacityView capacityView = new SubscriptionCapacityView();
-    capacityView.setSubscriptionId(subscriptionId);
+    capacityView.setSubscriptionNumber(subscriptionId);
     capacityView.setSubscriptionNumber("SUB-" + subscriptionId);
     capacityView.setOrgId(orgId);
     capacityView.setProductTag(productTag);
