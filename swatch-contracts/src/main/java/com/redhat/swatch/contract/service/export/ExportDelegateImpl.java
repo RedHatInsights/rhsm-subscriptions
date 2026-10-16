@@ -20,53 +20,106 @@
  */
 package com.redhat.swatch.contract.service.export;
 
+import static com.redhat.swatch.clowder.DependencyEndpointSelection.VERSION_V1;
+import static com.redhat.swatch.clowder.DependencyEndpointSelection.VERSION_V2;
 import static com.redhat.swatch.export.ExportRequestHandler.INTERNAL_ERROR;
 
 import com.redhat.swatch.clients.export.api.model.DownloadExportErrorRequest;
 import com.redhat.swatch.clients.export.api.resources.ApiException;
 import com.redhat.swatch.clients.export.api.resources.ExportApi;
+import com.redhat.swatch.clowder.DependencyEndpointResolver;
+import com.redhat.swatch.clowder.DependencyEndpointSelection;
+import com.redhat.swatch.clowder.DependencyEndpointUnavailable;
 import com.redhat.swatch.export.ExportServiceException;
 import com.redhat.swatch.export.ExportServiceRequest;
 import com.redhat.swatch.export.api.ExportDelegate;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Named;
 import java.io.File;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 @Slf4j
 @ApplicationScoped
 public class ExportDelegateImpl implements ExportDelegate {
-  @RestClient ExportApi exportApi;
+
+  private final DependencyEndpointResolver endpointResolver;
+  private final ExportServiceApiFactory apiFactory;
+
+  public ExportDelegateImpl(
+      @Named("export-service") DependencyEndpointResolver endpointResolver,
+      ExportServiceApiFactory apiFactory) {
+    this.endpointResolver = endpointResolver;
+    this.apiFactory = apiFactory;
+  }
 
   @Override
   public void sendExportError(ExportServiceRequest request, Integer error, String message)
       throws ExportServiceException {
-    try {
-      exportApi.downloadExportError(
-          request.getExportRequestUUID(),
-          request.getApplication(),
-          request.getRequest().getUUID(),
-          new DownloadExportErrorRequest().error(error).message(message));
-    } catch (ApiException e) {
-      log.error(
-          "Error marking the export as error for request {}", request.getExportRequestUUID(), e);
-      throw new ExportServiceException(
-          INTERNAL_ERROR, "Error marking the export as error with message: " + e.getMessage(), e);
-    }
+    invoke(
+        request.getExportRequestUUID(),
+        "Error marking the export as error",
+        api ->
+            api.downloadExportError(
+                request.getExportRequestUUID(),
+                request.getApplication(),
+                request.getRequest().getUUID(),
+                new DownloadExportErrorRequest().error(error).message(message)));
   }
 
   @Override
   public void upload(File file, ExportServiceRequest request) throws ExportServiceException {
+    invoke(
+        request.getExportRequestUUID(),
+        "Error sending upload request",
+        api ->
+            api.downloadExportUpload(
+                request.getExportRequestUUID(),
+                request.getApplication(),
+                request.getRequest().getUUID(),
+                file));
+  }
+
+  private void invoke(Object requestId, String failureMessage, ExportApiCall call)
+      throws ExportServiceException {
+    DependencyEndpointSelection selection = endpointResolver.current();
     try {
-      exportApi.downloadExportUpload(
-          request.getExportRequestUUID(),
-          request.getApplication(),
-          request.getRequest().getUUID(),
-          file);
-    } catch (ApiException e) {
-      log.error("Error sending the upload for request {}", request.getExportRequestUUID(), e);
-      throw new ExportServiceException(
-          INTERNAL_ERROR, "Error sending upload request with message: " + e.getMessage(), e);
+      call.execute(apiFactory.clientFor(selection));
+    } catch (ApiException | RuntimeException firstFailure) {
+      if (!DependencyEndpointUnavailable.isUnavailable(firstFailure)) {
+        throw toExportServiceException(requestId, failureMessage, firstFailure);
+      }
+      boolean switchedToV1 = endpointResolver.tryFallbackToV1();
+      DependencyEndpointSelection fallback = endpointResolver.current();
+      // Retry on V1 if this call switched, or another call already did.
+      if (!switchedToV1
+          && !(VERSION_V2.equals(selection.version()) && VERSION_V1.equals(fallback.version()))) {
+        throw toExportServiceException(requestId, failureMessage, firstFailure);
+      }
+      log.warn(
+          "export-service {} unavailable for request {}, falling back to {} ({})",
+          selection.version(),
+          requestId,
+          fallback.version(),
+          fallback.uri(),
+          firstFailure);
+      try {
+        call.execute(apiFactory.clientFor(fallback));
+      } catch (ApiException | RuntimeException secondFailure) {
+        throw toExportServiceException(requestId, failureMessage, secondFailure);
+      }
     }
+  }
+
+  private static ExportServiceException toExportServiceException(
+      Object requestId, String failureMessage, Throwable error) {
+    log.error("{} for request {}", failureMessage, requestId, error);
+    Exception cause = error instanceof Exception exception ? exception : new Exception(error);
+    return new ExportServiceException(
+        INTERNAL_ERROR, failureMessage + " with message: " + error.getMessage(), cause);
+  }
+
+  @FunctionalInterface
+  private interface ExportApiCall {
+    void execute(ExportApi api) throws ApiException;
   }
 }
