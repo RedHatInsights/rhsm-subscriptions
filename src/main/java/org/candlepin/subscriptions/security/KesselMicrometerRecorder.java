@@ -35,7 +35,9 @@ public class KesselMicrometerRecorder implements KesselMetricsRecorder {
 
   private static final String METRIC_CHECK_COUNT = "kessel.grpc.check.count";
   private static final String METRIC_CONNECTION_ERRORS = "kessel.grpc.connection.errors";
-  private static final String METRIC_AUTHORIZATION_DENIED = "kessel.authorization.denied";
+  private static final String METRIC_USER_PERMISSION_GRANTED = "kessel.user.permission.granted";
+  private static final String METRIC_USER_PERMISSION_DENIED = "kessel.user.permission.denied";
+  private static final String METRIC_CALLER_NOT_AUTHORIZED = "kessel.caller.not.authorized";
   private static final String METRIC_CHANNEL_INIT = "kessel.channel.init";
 
   private static final String TAG_RESULT = "result";
@@ -67,9 +69,27 @@ public class KesselMicrometerRecorder implements KesselMetricsRecorder {
   }
 
   @Override
-  public void recordAuthorizationDenied() {
-    Counter.builder(METRIC_AUTHORIZATION_DENIED)
-        .description("Kessel authorization denials (user lacks permission)")
+  public void recordUserPermissionGranted() {
+    Counter.builder(METRIC_USER_PERMISSION_GRANTED)
+        .description("Kessel permission checks where user was granted access (allowed=true)")
+        .register(registry)
+        .increment();
+  }
+
+  @Override
+  public void recordUserPermissionDenied() {
+    Counter.builder(METRIC_USER_PERMISSION_DENIED)
+        .description("Kessel permission checks where user was denied access (allowed=false)")
+        .register(registry)
+        .increment();
+  }
+
+  @Override
+  public void recordCallerNotAuthorized() {
+    Counter.builder(METRIC_CALLER_NOT_AUTHORIZED)
+        .description(
+            "Kessel Check requests rejected because SWATCH service is not authorized"
+                + " (PERMISSION_DENIED - OAuth2 failure)")
         .register(registry)
         .increment();
   }
