@@ -175,6 +175,7 @@ public class CapacityReportUnlimitedQuantityComponentTest extends BaseContractCo
         Subscription.builder()
             .orgId(orgId)
             .product(Product.RHEL)
+            .subscriptionId(generateRandom())
             .subscriptionNumber(generateRandom())
             .offering(offering)
             .subscriptionMeasurements(Map.of())

@@ -125,6 +125,7 @@ public class Contract extends Subscription {
         .orgId(orgId)
         .product(Product.ROSA)
         .offering(Offering.buildRosaOffering(Objects.requireNonNullElse(sku, seed)))
+        .subscriptionId(seed)
         .subscriptionNumber(seed)
         .quantity(1)
         .startDate(OffsetDateTime.now().minusDays(1))

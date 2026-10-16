@@ -330,7 +330,7 @@ parameters:
       select distinct
       subscription.org_id,
       subscription.sku,
-      subscription.subscription_number,
+      subscription.subscription_id,
       subscription.start_date,
       subscription.end_date,
       subscription.quantity,
@@ -340,8 +340,7 @@ parameters:
       subscription_measurements.value
       from subscription
       left join sku_product_tag on subscription.sku = sku_product_tag.sku
-      left join subscription_measurements on subscription.subscription_number = subscription_measurements.subscription_number
-        and subscription.start_date = subscription_measurements.start_date
+      left join subscription_measurements on subscription.subscription_id = subscription_measurements.subscription_id
       left join (values
         ('SOCKETS', 'Sockets'),
         ('CORES', 'Cores'),

@@ -80,7 +80,7 @@ class CapacityResourceV1Test {
 
   private static SubscriptionEntity datedSubscription(OffsetDateTime start, OffsetDateTime end) {
     return SubscriptionEntity.builder()
-        .subscriptionNumber("subscription123")
+        .subscriptionId("subscription123")
         .startDate(start)
         .endDate(end)
         .orgId("org123")
@@ -673,13 +673,13 @@ class CapacityResourceV1Test {
   void testReportByMetricIdShouldCalculateCapacityEvenWhenUnlimited() {
     var begin = min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1);
     var unlimited = datedSubscription(begin, max);
-    unlimited.setSubscriptionNumber("unlimited123");
+    unlimited.setSubscriptionId("unlimited123");
     var unlimitedOffering =
         OfferingEntity.builder().sku("unlimitedsku").hasUnlimitedUsage(true).build();
     unlimited.setOffering(unlimitedOffering);
 
     var limited = datedSubscription(begin, max);
-    limited.setSubscriptionNumber("limited123");
+    limited.setSubscriptionId("limited123");
 
     limited.setSubscriptionMeasurements(createMeasurement("PHYSICAL", METRIC_ID_CORES, 4.0));
 

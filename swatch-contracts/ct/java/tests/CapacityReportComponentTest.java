@@ -358,6 +358,7 @@ public class CapacityReportComponentTest extends BaseContractComponentTest {
         Subscription.builder()
             .orgId(orgId)
             .product(Product.OPENSHIFT)
+            .subscriptionId(RandomUtils.generateRandom())
             .subscriptionNumber(RandomUtils.generateRandom())
             .offering(Offering.buildOpenShiftOffering(sku, coresCapacity, null))
             .subscriptionMeasurements(Map.of(CORES, coresCapacity))

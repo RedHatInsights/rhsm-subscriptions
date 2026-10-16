@@ -220,7 +220,7 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
     kafkaBridge.asOfPartnerGateway().send(contract);
 
     // Then: wait for the service to consume the message
-    service.logs().assertContains("Error fetching subscription for contract");
+    service.logs().assertContains("Error fetching subscription ID for contract");
 
     // And: Verify the contract was NOT created due to missing required subscription data
     // Wait for message to be processed - contract should NOT be created
@@ -331,7 +331,7 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
   @TestPlanName("contracts-creation-TC014")
   @Test
   void shouldNotPersistContractWhenRequiredFieldsAreMissingViaApi() {
-    // Given: An incomplete contract request with no partner_entitlement
+    // Given: An incomplete contract request with no partner_entitlement or subscription_id
     ContractRequest incompleteRequest = new ContractRequest();
     // When: POST incomplete contract via internal API
     Response response = service.createContract(incompleteRequest);

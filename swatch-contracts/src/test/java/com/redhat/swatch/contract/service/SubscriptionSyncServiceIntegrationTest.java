@@ -65,6 +65,7 @@ import org.junit.jupiter.api.Test;
 class SubscriptionSyncServiceIntegrationTest {
 
   private static final String ORG_ID = "5528";
+  private static final String SUBSCRIPTION_ID = "5528";
   private static final String SUBSCRIPTION_NUMBER = "num5528";
   private static final String SKU = "RH05528";
   private static final int INITIAL_QUANTITY = 4;
@@ -183,6 +184,7 @@ class SubscriptionSyncServiceIntegrationTest {
 
   private Subscription upstreamSubscription(int quantity) {
     var dto = new Subscription();
+    dto.setId(Integer.parseInt(SUBSCRIPTION_ID));
     dto.setSubscriptionNumber(SUBSCRIPTION_NUMBER);
     dto.setQuantity(quantity);
     dto.setWebCustomerId(Integer.parseInt(ORG_ID));
@@ -238,6 +240,7 @@ class SubscriptionSyncServiceIntegrationTest {
 
   private SubscriptionEntity buildInitialSubscription(OfferingEntity offering) {
     return SubscriptionEntity.builder()
+        .subscriptionId(SUBSCRIPTION_ID)
         .subscriptionNumber(SUBSCRIPTION_NUMBER)
         .orgId(ORG_ID)
         .offering(offering)

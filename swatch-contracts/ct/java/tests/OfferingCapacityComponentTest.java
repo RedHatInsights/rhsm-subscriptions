@@ -261,6 +261,7 @@ public class OfferingCapacityComponentTest extends BaseContractComponentTest {
         Subscription.builder()
             .orgId(orgId)
             .product(product)
+            .subscriptionId(RandomUtils.generateRandom())
             .subscriptionNumber(RandomUtils.generateRandom())
             .offering(offering)
             .subscriptionMeasurements(measurements)
