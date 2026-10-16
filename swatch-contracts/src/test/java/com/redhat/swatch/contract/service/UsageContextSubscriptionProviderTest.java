@@ -91,7 +91,7 @@ class UsageContextSubscriptionProviderTest {
     givenNewSubscription();
     Optional<SubscriptionEntity> subscription = whenGetSubscriptions();
     assertTrue(subscription.isPresent());
-    assertEquals(sub1.getSubscriptionId(), subscription.get().getSubscriptionId());
+    assertEquals(sub1.getSubscriptionNumber(), subscription.get().getSubscriptionNumber());
     thenCounterIs(AMBIGUOUS_SUBSCRIPTIONS_COUNTER_NAME, 1.0);
   }
 
@@ -117,7 +117,7 @@ class UsageContextSubscriptionProviderTest {
     givenCriteriaWithEnding(endDate.plusMinutes(30));
     Optional<SubscriptionEntity> subscription = whenGetSubscriptions();
     assertTrue(subscription.isPresent());
-    assertEquals(sub2.getSubscriptionId(), subscription.get().getSubscriptionId());
+    assertEquals(sub2.getSubscriptionNumber(), subscription.get().getSubscriptionNumber());
   }
 
   SubscriptionEntity givenNewSubscription() {
@@ -131,8 +131,7 @@ class UsageContextSubscriptionProviderTest {
   @Transactional
   SubscriptionEntity givenNewSubscription(OffsetDateTime endDate) {
     SubscriptionEntity sub = new SubscriptionEntity();
-    sub.setSubscriptionId(UUID.randomUUID().toString());
-    sub.setSubscriptionNumber(sub.getSubscriptionId());
+    sub.setSubscriptionNumber(UUID.randomUUID().toString());
     sub.setBillingProvider(BILLING_PROVIDER);
     sub.setBillingProviderId(UUID.randomUUID().toString());
     sub.setBillingAccountId(BILLING_ACCOUNT_ID);

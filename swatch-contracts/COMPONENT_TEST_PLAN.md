@@ -46,7 +46,7 @@ Test cases should be testable locally and in an ephemeral environment.
 ## Contract Creation via Event messages
 
 **contracts-creation-TC001 - Process a valid PAYG contract with one valid dimension for AWS Marketplace**  
-- **Description**: Verify that an AWS PAYG contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
+- **Description**: Verify that an AWS PAYG contract can be successfully created with valid partner entitlement data, metrics, and subscription_number.  
 - **Setup**:
   - Kafka topic `contracts` is available  
   - Prepare a valid AWS partner entitlement message  
@@ -65,7 +65,7 @@ Test cases should be testable locally and in an ephemeral environment.
   - billing_account_id contains customerAwsAccountId
 
 **contracts-creation-TC002 - Process a valid PURE PAYG contract (without dimensions) for AWS Marketplace**  
-- **Description:** Verify that a contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
+- **Description:** Verify that a contract can be successfully created with valid partner entitlement data, metrics, and subscription_number.
 - **Setup:**
   - Kafka topic `contracts` is available  
   - Prepare a valid AWS partner entitlement message  
@@ -80,7 +80,7 @@ Test cases should be testable locally and in an ephemeral environment.
   - Contract object contains all expected fields (uuid, `subscription_number`, sku, `start_date`, `end_date`, org_id, `billing_provider`, etc.)
 
 **contracts-creation-TC003 - Process a valid PAYG contract with one valid dimension for the Azure Marketplace**  
-- **Description**: Verify that a contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
+- **Description**: Verify that a contract can be successfully created with valid partner entitlement data, metrics, and subscription_number.
 - **Setup**:
   - Kafka topic available  
   - Prepare a valid Azure partner entitlement message  
@@ -99,7 +99,7 @@ Test cases should be testable locally and in an ephemeral environment.
   - `billing_account_id` contains azureTenantId
 
 **contracts-creation-TC004 -** **Process a valid PURE PAYG contract (without dimensions) for the Azure Marketplace**  
-- **Description**: Verify that a contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
+- **Description**: Verify that a contract can be successfully created with valid partner entitlement data, metrics, and subscription_number.
 - **Setup**:
   - Kafka topic available  
   - Prepare a valid Azure partner entitlement message  
@@ -167,9 +167,9 @@ Test cases should be testable locally and in an ephemeral environment.
 ## Contract Creation via Internal API
 
 **contracts-creation-TC008** - **Create a valid PAYG contract with one valid dimension for AWS marketplace**  
-- **Description:** Verify that a contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
-- **Setup:** Ensure partner entitlement data, metrics, and subscription ID are available.  
-- **Action:** POST to `/api/swatch-contracts/internal/contracts` with a valid `ContractRequest` payload including partner_entitlement, metrics, and subscription_id.  
+- **Description:** Verify that a contract can be successfully created with valid partner entitlement data, metrics, and subscription number.  
+- **Setup:** Ensure partner entitlement data, metrics, and subscription number are available.  
+- **Action:** POST to `/api/swatch-contracts/internal/contracts` with a valid `ContractRequest` payload including partner_entitlement, metrics, and subscription_number.
 - **Verification:** Check response status and returned contract object.  
   - **Expected Result:**  
   - HTTP 200 response  
@@ -181,18 +181,18 @@ Test cases should be testable locally and in an ephemeral environment.
   - billing_account_id contains customerAwsAccountId
 
 **contracts-creation-TC009** - **Create a valid PURE PAYG contract (without dimensions) for AWS marketplace**  
-- **Description:** Verify that a contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
-- **Setup:** Ensure partner entitlement data, metrics, and subscription ID are available.  
-- **Action:** POST to `/api/swatch-contracts/internal/contracts` with a valid `ContractRequest` payload including partner_entitlement, metrics, and subscription_id.  
+- **Description:** Verify that a contract can be successfully created with valid partner entitlement data, metrics, and subscription_number.
+- **Setup:** Ensure partner entitlement data, metrics, and subscription number are available.  
+- **Action:** POST to `/api/swatch-contracts/internal/contracts` with a valid `ContractRequest` payload including partner_entitlement, metrics, and subscription_number.  
 - **Verification:** Check response status and returned contract object.  
 - **Expected Result:**  
   - HTTP 200 response  
   - Response contains status.status: "SUCCESS"  - Contract object contains all expected fields (uuid, `subscription_number`, sku, `start_date`, `end_date`, org_id, `billing_provider`, etc.)
 
 **contracts-creation-TC010** - **Create a valid PAYG contract with one valid dimension for the Azure marketplace**  
-- **Description:** Verify that a contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
-- **Setup:** Ensure partner entitlement data, metrics, and subscription ID are available.  
-- **Action:** POST to `/api/swatch-contracts/internal/contracts` with a valid `ContractRequest` payload including partner_entitlement, metrics, and subscription_id.  
+- **Description:** Verify that a contract can be successfully created with valid partner entitlement data, metrics, and subscription_number. 
+- **Setup:** Ensure partner entitlement data, metrics, and subscription number are available.  
+- **Action:** POST to `/api/swatch-contracts/internal/contracts` with a valid `ContractRequest` payload including partner_entitlement, metrics, and subscription_number.  
 - **Verification:** Check response status and returned contract object.  
 - **Expected Result:**  
   - HTTP 200 response  
@@ -204,9 +204,9 @@ Test cases should be testable locally and in an ephemeral environment.
   - billing_account_id populated correctly
 
 **contracts-creation-TC011** - **Create a valid PURE PAYG contract (without dimensions) for the Azure marketplace**  
-- **Description:** Verify that a contract can be successfully created with valid partner entitlement data, metrics, and subscription ID.  
-- **Setup:** Ensure partner entitlement data, metrics, and subscription ID are available.  
-- **Action:** POST to `/api/swatch-contracts/internal/contracts` with a valid `ContractRequest` payload including partner_entitlement, metrics, and subscription_id.  
+- **Description:** Verify that a contract can be successfully created with valid partner entitlement data, metrics, and subscription number.  
+- **Setup:** Ensure partner entitlement data, metrics, and subscription number are available.  
+- **Action:** POST to `/api/swatch-contracts/internal/contracts` with a valid `ContractRequest` payload including partner_entitlement, metrics, and subscription_number.  
 - **Verification:** Check response status and returned contract object.  
 - **Expected Result:**  
   - HTTP 200 response  
@@ -234,7 +234,7 @@ Test cases should be testable locally and in an ephemeral environment.
 **contracts-creation-TC014** - **Create contract with missing required fields shouldn't persist**  
 - **Description:** Verify validation for missing required fields.  
 - **Setup:** Prepare incomplete contract request.  
-- **Action:** POST contract missing partner_entitlement, or subscription_id.  
+- **Action:** POST contract missing partner_entitlement.  
 - **Verification:** Check error response.  
 - **Expected Result:**  
   - HTTP 400 Bad Request  
@@ -641,14 +641,14 @@ Component tests for GET `/api/swatch-contracts/internal/subscriptions/azureUsage
   - Stub Product API for an AWS ROSA offering (Cores: 8) and sync the offering. Do not stub Partner Gateway yet.
   - Create the contract via the internal API with `start_date` = start of today minus 30 days and `end_date` = start of today plus 5 days.
   - Record the contract UUID.
-  - Verify exactly one persisted subscription exists with those original dates and the same subscription ID.
+  - Verify exactly one persisted subscription exists with those original dates and the same subscription number.
   - Stub Partner Gateway's contract query (AWS customer account + vendor product code), Subscription Search by org, and Search by subscription number with the same entitlement and subscription identifiers, but `start_date` = start of today minus 1 day and `end_date` = start of today plus 10 days.
 - **Action**: Publish an `EnabledOrgsResponse` for the org to the `platform.rhsm-subscriptions.subscription-sync-task` Kafka topic so org subscription reconciliation runs.
 - **Verification**:
   - Wait until application logs contain `Finished syncing subscriptions for orgId` for that org.
   - Query contracts by org and verify exactly one contract remains with a different UUID and the same org, SKU, and subscription number.
   - Assert contract start and end dates match the updated entitlement.
-  - Query the database-backed internal subscriptions API by org and verify exactly one subscription remains with the original subscription ID.
+  - Query the database-backed internal subscriptions API by org and verify exactly one subscription remains with the original subscription number.
   - Assert persisted subscription `start_date` and `end_date` match the updated entitlement.
 - **Expected Result**: 
   - The original contract and subscription segment are removed. The replacement contract and subscription contain the new entitlement dates. Other contract fields (org, SKU, subscription number) are unchanged.
@@ -829,7 +829,7 @@ Component tests for GET `/api/swatch-contracts/internal/subscriptions/azureUsage
 - **Verification**: Re-query all four tables.
 - **Expected Result**:
   - Contract count, UUID, and metric count are unchanged
-  - Subscription count, subscription ID, and measurement count are unchanged
+  - Subscription count, subscription number, and measurement count are unchanged
 
 **contracts-sync-TC009 - Sync correctly populates all related data**
 - **Description**: Verify that after a sync, all contract and subscription data is fully populated and internally consistent — no missing fields, no mismatched identifiers between related tables.
@@ -1160,7 +1160,7 @@ This section verifies the automatic contract termination behavior when contracts
 
 **subscriptions-creation-TC009** - **Create a valid PAYG contract and verify the Contract/Subscription table**  
 - **Description:** Verify the contract/subscription after a contract/subscription creation.  
-- **Setup:** Ensure partner entitlement data, metrics, and subscription ID are available.  
+- **Setup:** Ensure partner entitlement data, metrics, and subscription number are available.  
 - **Action:** POST to `/api/swatch-contracts/internal/contracts`   
 - **Verification:** Check response status and returned contract/subscription object.  
 - **Expected Result:**  
@@ -1226,10 +1226,10 @@ This section verifies the automatic contract termination behavior when contracts
   - The stored subscription is still present and unchanged
 
 **subscriptions-sync-TC005 - Subscription missing from subscription search list**
-- **Description**: When IT subscription search returns only one subscription for the org, any DB row whose `subscription_id` is not in that response is removed. Covers partial upstream responses and renewal: only the replacement is returned, it has a different `subscription_id`, and its start date is after the expired row — so days in the report window before the replacement start lose the expired row’s capacity in the capacity API.
+- **Description**: When IT subscription search returns only one subscription for the org, any DB row whose `subscription_number` is not in that response is removed. Covers partial upstream responses and renewal: only the replacement is returned, it has a different `subscription_number`, and its start date is after the expired row — so days in the report window before the replacement start lose the expired row’s capacity in the capacity API.
 - **Setup**:
   - Subscription A stored for the org, recently expired but within the configured sync retention window
-  - Replacement subscription B (different subscription id) with a later start date
+  - Replacement subscription B (different subscription number) with a later start date
   - IT subscription search returns only B
   - Report window: last 30 days through today (daily granularity)
 - **Action**:
@@ -1265,7 +1265,7 @@ This section verifies the automatic contract termination behavior when contracts
 - **Description**: When IT subscription search returns a subscription with a null effective start date, the upstream DTO is filtered. An existing row for that id is deleted on reconcile with a specific filter reason.
 - **Setup**:
   - One active subscription stored for the org
-  - IT subscription search returns the same subscription id with no `effectiveStartDate`
+  - IT subscription search returns the same subscription number with no `effectiveStartDate`
 - **Action**:
   - Run subscription sync for the org
 - **Verification**:
@@ -1278,7 +1278,7 @@ This section verifies the automatic contract termination behavior when contracts
 - **Description**: When IT subscription search returns a subscription whose start date is beyond `SUBSCRIPTION_IGNORE_STARTING_LATER_THAN`, `shouldSyncSub` rejects the DTO. The subscription is not synced from upstream; an existing row for that id is deleted on reconcile.
 - **Setup**:
   - One active subscription stored for the org
-  - IT subscription search returns the same subscription id with a start date more than `SUBSCRIPTION_IGNORE_STARTING_LATER_THAN` in the future.
+  - IT subscription search returns the same subscription number with a start date more than `SUBSCRIPTION_IGNORE_STARTING_LATER_THAN` in the future.
 - **Action**:
   - Run subscription sync for the org
 - **Verification**:
@@ -1288,10 +1288,10 @@ This section verifies the automatic contract termination behavior when contracts
   - Application logs contain `Subscription deleted` with `delete_reason=FILTERED_START_TOO_FAR_IN_FUTURE`
 
 **subscriptions-sync-TC009 - Subscription filtered because upstream end date is too far in the past**
-- **Description**: When IT subscription search returns a subscription whose end date is before `SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN`, `shouldSyncSub` rejects the DTO. An existing row for that subscription id is deleted on reconcile.
+- **Description**: When IT subscription search returns a subscription whose end date is before `SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN`, `shouldSyncSub` rejects the DTO. An existing row for that subscription number is deleted on reconcile.
 - **Setup**:
   - One active subscription stored for the org
-  - IT subscription search returns the same subscription id with an end date more than `SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN` in the past
+  - IT subscription search returns the same subscription number with an end date more than `SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN` in the past
 - **Action**:
   - Run subscription sync for the org
 - **Verification**:

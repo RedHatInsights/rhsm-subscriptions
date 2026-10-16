@@ -114,18 +114,18 @@ public class SubscriptionSyncService {
       Optional<SubscriptionEntity> subscriptionOptional) {
     if (productDenylist.productIdMatches(sku)) {
       log.debug(
-          "Sku {} on denylist, skipping subscription sync for subscriptionId: {} in org: {} ",
+          "Sku {} on denylist, skipping subscription sync for subscriptionNumber: {} in org: {} ",
           sku,
-          newOrUpdated.getSubscriptionId(),
+          newOrUpdated.getSubscriptionNumber(),
           newOrUpdated.getOrgId());
       return;
     }
 
     if (!ensureOffering(sku, subscriptionOptional)) {
       log.debug(
-          "Sku {} unable to be synced, skipping subscription sync for subscriptionId: {} in org: {}",
+          "Sku {} unable to be synced, skipping subscription sync for subscriptionNumber: {} in org: {}",
           sku,
-          newOrUpdated.getSubscriptionId(),
+          newOrUpdated.getSubscriptionNumber(),
           newOrUpdated.getOrgId());
       return;
     }
@@ -161,7 +161,7 @@ public class SubscriptionSyncService {
       enrichMissingFields(newOrUpdated, subscriptionOptional);
     } catch (SubscriptionNotFoundException e) {
       log.warn(
-          "Subscription not found in subscription service; unable to save subscriptionNumber={} for orgId={} without a subscription ID",
+          "Subscription not found in subscription service; unable to enrich/save subscriptionNumber={} for orgId={}",
           newOrUpdated.getSubscriptionNumber(),
           newOrUpdated.getOrgId());
       return;
@@ -184,8 +184,8 @@ public class SubscriptionSyncService {
         // subscription on any attempt to sync, but for now we rely on UMB messages from the IT
         // Partner Entitlement service to update this record outside this process.
         log.info(
-            "Skipping sync of subscriptionId={} because it has contract-provided capacity",
-            existingSubscription.getSubscriptionId());
+            "Skipping sync of subscriptionNumber={} because it has contract-provided capacity",
+            existingSubscription.getSubscriptionNumber());
         return;
       }
       if (existingSubscription.equals(newOrUpdated)) {
@@ -205,7 +205,7 @@ public class SubscriptionSyncService {
         subscriptionService.terminate(existingSubscription);
         final SubscriptionEntity newSub =
             SubscriptionEntity.builder()
-                .subscriptionId(existingSubscription.getSubscriptionId())
+                .subscriptionNumber(newOrUpdated.getSubscriptionNumber())
                 .offering(existingSubscription.getOffering())
                 .orgId(existingSubscription.getOrgId())
                 .quantity(newOrUpdated.getQuantity())
@@ -213,7 +213,6 @@ public class SubscriptionSyncService {
                 .endDate(newOrUpdated.getEndDate())
                 .billingProviderId(newOrUpdated.getBillingProviderId())
                 .billingAccountId(newOrUpdated.getBillingAccountId())
-                .subscriptionNumber(newOrUpdated.getSubscriptionNumber())
                 .billingProvider(newOrUpdated.getBillingProvider())
                 .build();
         capacityReconciliationService.reconcileCapacityForSubscription(newSub);
@@ -243,8 +242,7 @@ public class SubscriptionSyncService {
         Objects.isNull(billingProvider) || !BillingProvider.EMPTY.equals(billingProvider);
     if (noBillingProvider && subscription.getOffering().isMetered()) {
       log.warn(
-          "PAYG eligible subscription with subscriptionId:{} and subscription_number:{} has no billing provider.",
-          subscription.getSubscriptionId(),
+          "PAYG eligible subscription with subscription_number:{} has no billing provider.",
           subscription.getSubscriptionNumber());
     }
   }
@@ -263,17 +261,17 @@ public class SubscriptionSyncService {
         optionalSubscription
             .map(existingSub -> BillingProvider.AZURE.equals(existingSub.getBillingProvider()))
             .orElse(false);
-    if (subscription.getSubscriptionId() != null && !isAzureSubscription) {
-      // Subscription object already has needed data
+    boolean billingComplete =
+        subscription.getBillingAccountId() != null
+            && subscription.getBillingProvider() != null
+            && subscription.getBillingProviderId() != null;
+    if (billingComplete && !isAzureSubscription) {
       return;
     }
     optionalSubscription
         .or(() -> fetchSubscription(subscription.getSubscriptionNumber()))
         .ifPresent(
             existingData -> {
-              if (subscription.getSubscriptionId() == null) {
-                subscription.setSubscriptionId(existingData.getSubscriptionId());
-              }
               if (subscription.getBillingAccountId() == null) {
                 subscription.setBillingAccountId(existingData.getBillingAccountId());
               }
@@ -287,11 +285,15 @@ public class SubscriptionSyncService {
   }
 
   private Optional<? extends SubscriptionEntity> fetchSubscription(String subscriptionNumber) {
+    if (StringUtils.isBlank(subscriptionNumber)) {
+      return Optional.empty();
+    }
+
     Subscription dto =
         subscriptionSearchService.getSubscriptionBySubscriptionNumber(subscriptionNumber);
-    if (StringUtils.isBlank(dto.getSubscriptionNumber())) {
+    if (dto == null || StringUtils.isBlank(dto.getSubscriptionNumber())) {
       log.warn(
-          "Skipping enrichment from IT Search; response missing subscriptionNumber"
+          "Skipping enrichment from IT Search; null/blank subscriptionNumber"
               + " for lookup subscriptionNumber={}",
           subscriptionNumber);
       return Optional.empty();
@@ -314,28 +316,32 @@ public class SubscriptionSyncService {
               subscription -> SubscriptionDtoUtil.extractBillingProviderId(subscription) != null);
     }
 
-    // Partition upstream IT Search DTOs by subscription id: sync vs delete (filtered out).
-    Map<String, Subscription> subIdsToSync = new HashMap<>();
-    Map<String, SubscriptionDeleteReason> subIdsToDelete = new HashMap<>();
+    // Partition upstream IT Search DTOs by subscription number: sync vs delete (filtered out).
+    Map<String, Subscription> subNumbersToSync = new HashMap<>();
+    Map<String, SubscriptionDeleteReason> subNumbersToDelete = new HashMap<>();
     dtos.forEach(
         dto -> {
-          String subId = dto.getId().toString();
+          if (StringUtils.isBlank(dto.getSubscriptionNumber())) {
+            log.warn("Skipping upstream subscription missing subscriptionNumber: {}", dto);
+            return;
+          }
+          String subNumber = dto.getSubscriptionNumber();
           var filteredByReason = shouldSyncSub(dto);
           if (filteredByReason.isPresent()) {
-            subIdsToDelete.putIfAbsent(subId, filteredByReason.get());
+            subNumbersToDelete.putIfAbsent(subNumber, filteredByReason.get());
           } else {
-            subIdsToSync.putIfAbsent(subId, dto);
+            subNumbersToSync.putIfAbsent(subNumber, dto);
           }
         });
 
-    if (subIdsToSync.isEmpty() && subIdsToDelete.isEmpty()) {
+    if (subNumbersToSync.isEmpty() && subNumbersToDelete.isEmpty()) {
       log.warn("No subscriptions found in upstream for orgId={}", orgId);
     }
 
     List<Map.Entry<SubscriptionEntity, SubscriptionDeleteReason>> subEntitiesForDeletion =
         new ArrayList<>();
 
-    Set<String> subscriptionIdsToSync = new HashSet<>(subIdsToSync.keySet());
+    Set<String> subscriptionNumbersToSync = new HashSet<>(subNumbersToSync.keySet());
 
     var batchSize = 1024;
     CustomBatchIterator.batchStreamOf(subscriptionService.streamByOrgId(orgId), batchSize)
@@ -344,17 +350,18 @@ public class SubscriptionSyncService {
               batch.forEach(
                   subEntity -> {
                     acquireSubscriptionLockBy(subEntity.getSubscriptionNumber());
-                    var subId = subEntity.getSubscriptionId();
-                    var dto = subIdsToSync.remove(subId);
+                    var subNumber = subEntity.getSubscriptionNumber();
+                    var dto = subNumbersToSync.remove(subNumber);
 
-                    if (subIdsToDelete.containsKey(subId)) {
-                      subEntitiesForDeletion.add(Map.entry(subEntity, subIdsToDelete.get(subId)));
+                    if (subNumbersToDelete.containsKey(subNumber)) {
+                      subEntitiesForDeletion.add(
+                          Map.entry(subEntity, subNumbersToDelete.get(subNumber)));
                       return;
                     }
 
                     // delete from swatch because it didn't appear in the latest list from the
                     // subscription service, or it's in the denylist
-                    if (!subscriptionIdsToSync.contains(subId)) {
+                    if (!subscriptionNumbersToSync.contains(subNumber)) {
                       subEntitiesForDeletion.add(
                           Map.entry(subEntity, SubscriptionDeleteReason.NOT_IN_UPSTREAM_RESPONSE));
                       return;
@@ -376,7 +383,7 @@ public class SubscriptionSyncService {
             });
 
     // These are additional subs that should be synced but weren't previously in the database
-    Stream<Subscription> stream = subIdsToSync.values().stream();
+    Stream<Subscription> stream = subNumbersToSync.values().stream();
 
     CustomBatchIterator.batchStreamOf(stream, batchSize)
         .forEach(
@@ -505,7 +512,6 @@ public class SubscriptionSyncService {
     }
     // Note that we are **not** setting the offering yet!
     return SubscriptionEntity.builder()
-        .subscriptionId(String.valueOf(subscription.getId()))
         .subscriptionNumber(subscription.getSubscriptionNumber())
         .offering(
             OfferingEntity.builder().sku(SubscriptionDtoUtil.extractSku(subscription)).build())
@@ -531,8 +537,8 @@ public class SubscriptionSyncService {
       entity.setSubscriptionNumber(newOrUpdated.getSubscriptionNumber());
     } else {
       log.warn(
-          "Refusing to overwrite subscriptionNumber with blank/null for" + " subscriptionId={}",
-          entity.getSubscriptionId());
+          "Refusing to overwrite subscriptionNumber with blank/null for subscriptionNumber={}",
+          entity.getSubscriptionNumber());
     }
     entity.setBillingProvider(newOrUpdated.getBillingProvider());
     entity.setBillingAccountId(newOrUpdated.getBillingAccountId());

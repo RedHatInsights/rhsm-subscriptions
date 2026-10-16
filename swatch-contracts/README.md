@@ -125,8 +125,7 @@ For testing purposes, we can use the POST endpoint `/api/swatch-contracts/intern
 
 ```json
 {
-  "partner_entitlement": <1>,
-  "subscription_id": <2>
+  "partner_entitlement": <1>
 }
 ```
 
@@ -149,7 +148,6 @@ For testing purposes, we can use the POST endpoint `/api/swatch-contracts/intern
 | contracts        | billing_provider     | <1>.sourcePartner                                                                                                                                                               |
 | contract_metrics | metric_id            | <1>.purchase.contracts[*].dimensions[*].name                                                                                                                                    |
 | contract_metrics | metric_value         | <1>.purchase.contracts[*].dimensions[*].value                                                                                                                                   |
-| subscription     | subscription_id      | <2>                                                                                                                                                                             |
 
 ### Complete Example
 
@@ -191,8 +189,7 @@ curl -v -X POST http://localhost:8000/api/swatch-contracts/internal/contracts \
       "sellerAccountId": "CCC",
       "customerAwsAccountId": "DDD"
     }
-  },
-  "subscription_id": "123456456"
+  }
 }
 EOF
 ```

@@ -57,7 +57,7 @@ import org.junit.jupiter.api.Test;
 @QuarkusTest
 @QuarkusTestResource(InMemoryMessageBrokerKafkaResource.class)
 class CapacityReconciliationServiceTest {
-  private static final String SUBSCRIPTION_ID = "456";
+  private static final String SUBSCRIPTION_NUMBER = "456";
   private static final String SKU = "MCT3718";
   private static final String ROSA = "rosa";
   private static final String RHEL = "RHEL";
@@ -254,7 +254,7 @@ class CapacityReconciliationServiceTest {
   private SubscriptionEntity createSubscription() {
     return SubscriptionEntity.builder()
         .orgId("123")
-        .subscriptionId(SUBSCRIPTION_ID)
+        .subscriptionNumber(SUBSCRIPTION_NUMBER)
         .quantity(10)
         .startDate(NOW)
         .endDate(NOW.plusDays(30))

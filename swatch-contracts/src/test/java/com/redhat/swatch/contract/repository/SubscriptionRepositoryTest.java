@@ -90,11 +90,9 @@ class SubscriptionRepositoryTest {
     var correctOrgId = createSubscription("org123");
 
     wrongOrgId.setSubscriptionNumber("sub123");
-    wrongOrgId.setSubscriptionId("sub123Id");
     wrongOrgId.getSubscriptionMeasurements().put(physicalCores, 1.0);
 
     correctOrgId.setSubscriptionNumber("sub123");
-    correctOrgId.setSubscriptionId("sub123Id");
     correctOrgId.getSubscriptionMeasurements().put(physicalCores, 42.0);
 
     subscriptionRepo.persist(wrongOrgId);
@@ -300,7 +298,7 @@ class SubscriptionRepositoryTest {
 
     // because of an issue with precision related to findActiveSubscription passing the entity
     // cache, we'll have to check fields
-    assertEquals(subscription.getSubscriptionId(), retrieved.getSubscriptionId());
+    assertEquals(subscription.getSubscriptionNumber(), retrieved.getSubscriptionNumber());
     assertEquals(subscription.getOffering().getSku(), retrieved.getOffering().getSku());
     assertEquals(subscription.getOrgId(), retrieved.getOrgId());
     assertEquals(subscription.getQuantity(), retrieved.getQuantity());
@@ -355,7 +353,7 @@ class SubscriptionRepositoryTest {
     var results = findByLicenseId("license-a");
 
     assertEquals(1, results.size());
-    assertEquals(matching.getSubscriptionId(), results.get(0).getSubscriptionId());
+    assertEquals(matching.getSubscriptionNumber(), results.get(0).getSubscriptionNumber());
   }
 
   @TestTransaction
@@ -989,12 +987,11 @@ class SubscriptionRepositoryTest {
     String subId = String.valueOf(new Random().nextInt());
     SubscriptionEntity subscription = new SubscriptionEntity();
     subscription.setBillingProviderId("bananas");
-    subscription.setSubscriptionId(subId);
+    subscription.setSubscriptionNumber(subId);
     subscription.setOrgId(orgId);
     subscription.setQuantity(4L);
     subscription.setStartDate(OffsetDateTime.now());
     subscription.setEndDate(OffsetDateTime.now().plusDays(30));
-    subscription.setSubscriptionNumber(subId + "1");
     subscription.setBillingProvider(BillingProvider.RED_HAT);
     subscription.setBillingAccountId(BILLING_ACCOUNT_ID);
 
@@ -1061,12 +1058,11 @@ class SubscriptionRepositoryTest {
 
     SubscriptionEntity subscription = new SubscriptionEntity();
     subscription.setBillingProviderId("bananas");
-    subscription.setSubscriptionId(subId);
+    subscription.setSubscriptionNumber(subId);
     subscription.setOrgId(orgId);
     subscription.setQuantity(4L);
     subscription.setStartDate(startDate);
     subscription.setEndDate(endDate);
-    subscription.setSubscriptionNumber(subId + "1");
     subscription.setBillingProvider(BillingProvider.RED_HAT);
     subscription.setBillingAccountId(billingAccountId);
 

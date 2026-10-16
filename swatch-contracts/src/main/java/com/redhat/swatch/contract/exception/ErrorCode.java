@@ -27,6 +27,7 @@ public enum ErrorCode {
   CONTRACT_EXISTS(
       1001, "There's already an active contract for that productId & subscriptionNumber"),
   CONTRACT_DOES_NOT_EXIST(1002, "Contract does not exist"),
+  CONTRACT_MISSING_SUBSCRIPTION_NUMBER(1003, "Subscription number is missing in contracts request"),
   SUBSCRIPTION_RECENTLY_TERMINATED(
       1005, "Subscription recently terminated. No active subscriptions."),
   SUBSCRIPTION_MISSING_BILLING_ACCOUNT_ID(1006, "Subscription missing billingAccountId"),

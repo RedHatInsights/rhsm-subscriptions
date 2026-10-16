@@ -49,12 +49,10 @@ import lombok.Setter;
 public class SubscriptionCapacityView implements Serializable {
 
   @Id
-  @Column(name = "subscription_id")
-  private String subscriptionId;
-
   @Column(name = "subscription_number")
   private String subscriptionNumber;
 
+  @Id
   @Column(name = "start_date")
   private OffsetDateTime startDate;
 
