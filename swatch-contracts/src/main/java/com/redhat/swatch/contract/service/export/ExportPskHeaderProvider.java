@@ -20,7 +20,6 @@
  */
 package com.redhat.swatch.contract.service.export;
 
-import io.quarkus.arc.Unremovable;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.client.ClientRequestContext;
 import jakarta.ws.rs.client.ClientRequestFilter;
@@ -31,14 +30,10 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
  * Resteasy client filter that adds x-rh-exports-psk to requests based on the value of the
  * SWATCH_EXPORT_PSK property/environment variable.
  *
- * <p>Use by configuring as a provider on a rest client instance, e.g. <code>
- * quarkus.rest-client."com.redhat.swatch.clients.export.api.resources.ExportApi".providers=com.redhat.swatch.contract.service.export.ExportPskHeaderProvider
- * </code>
+ * <p>Registered programmatically by {@link ExportServiceApiFactory} via {@link
+ * org.eclipse.microprofile.rest.client.RestClientBuilder#register(Object)}.
  */
 @Slf4j
-// NOTE: without @Unremovable quarkus attempts to optimize this bean out because it's only
-// referenced in application.properties
-@Unremovable
 @ApplicationScoped
 public class ExportPskHeaderProvider implements ClientRequestFilter {
 
