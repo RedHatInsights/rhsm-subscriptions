@@ -33,7 +33,7 @@ Test cases are organized by functional area for easier navigation and maintenanc
 
 **Functional Area:** Event ingestion, conflict resolution, data transformation, and summary message output
 
-**Test Coverage (38 tests):**
+**Test Coverage (40 tests):**
 - Tally Conflict Handling
 - Product Tag and Metric Filtering
 - Hypervisor Handling

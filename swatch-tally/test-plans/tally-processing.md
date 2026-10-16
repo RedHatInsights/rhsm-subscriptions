@@ -754,6 +754,35 @@ This test plan covers the core tally processing pipeline:
     - One summary per event hour
     - TOTAL measurements are excluded
 
+**tally-summary-payg-TC003 - Counter currentTotal spans the snapshot month**
+
+- **Description**: Verify an earlier hourly summary includes later hourly snapshots in the same month in its currentTotal
+- **Setup**:
+    - Organization is opted in
+    - Two ROSA Instance-hours events in distinct hours of the same month, with values 2 and 3
+- **Action**:
+    - Produce both events to Kafka and run hourly tally
+- **Verification**:
+    - Earlier summary value is 2 and currentTotal is 5
+    - Later summary value is 3 and currentTotal is 5
+- **Expected Result**:
+    - Hourly counter summaries use the full snapshot month for currentTotal
+
+**tally-summary-payg-TC004 - Late-arriving counter total spans the snapshot month**
+
+- **Description**: Verify a late-arriving hourly event includes existing snapshots before and after its timestamp in currentTotal
+- **Setup**:
+    - Organization is opted in
+    - Two ROSA Instance-hours events on the 15th and 20th of the previous month, with values 2 and 4
+- **Action**:
+    - Produce both events to Kafka and run hourly tally
+    - Produce a third event for the 17th with value 3 and run hourly tally again
+- **Verification**:
+    - Initial summary for the 20th has value 4 and currentTotal 6
+    - Newly emitted summary for the 17th has value 3 and currentTotal 9
+- **Expected Result**:
+    - A late-arriving hourly counter summary uses the full snapshot month for currentTotal
+
 ### Attribute partitioning
 
 **tally-summary-by-attributes-payg-TC001 - Hourly tally summary separates measurements by SLA**
