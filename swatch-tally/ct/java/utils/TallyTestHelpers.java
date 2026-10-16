@@ -405,6 +405,33 @@ public class TallyTestHelpers {
   }
 
   /**
+   * Runs nightly tally for an organization and waits for its daily Kafka summary messages.
+   *
+   * @param testOrgId the organization ID to tally
+   * @param productId the product ID to match
+   * @param metricId the metric ID to match
+   * @param expectedMessageCount the expected number of messages
+   * @param service the tally service
+   * @param kafkaBridge the Kafka bridge service
+   * @return list of matching daily TallySummary messages
+   */
+  public List<TallySummary> pollForNightlyTallyAndMessages(
+      String testOrgId,
+      String productId,
+      String metricId,
+      int expectedMessageCount,
+      TallySwatchService service,
+      KafkaBridgeService kafkaBridge) {
+    service.tallyOrg(testOrgId);
+
+    return kafkaBridge.waitForKafkaMessage(
+        TALLY,
+        MessageValidators.tallySummaryMatches(testOrgId, productId, metricId, Granularity.DAILY),
+        expectedMessageCount,
+        AwaitilitySettings.using(Duration.ofMillis(500), Duration.ofSeconds(10)));
+  }
+
+  /**
    * Sends instance-ingress PAYG events for an org, then polls hourly tally until ready succeeds.
    *
    * @param service tally HTTP client

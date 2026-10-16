@@ -592,41 +592,29 @@ This test plan covers the core tally processing pipeline:
 
 ### Message Verification
 
-**tally-summary-nonpayg-TC001 - Nightly tally emits daily granularity**
+**tally-summary-nonpayg-TC001 - Nightly tally emits daily granularity and no TOTAL measurements**
 
-- **Description**: Verify that nightly tally for traditional non-PAYG products produces summary messages with DAILY granularity
+- **Description**: Verify that nightly tally for traditional non-PAYG products produces summary messages with DAILY granularity and no TOTAL measurements
 - **Setup**:
     - Organization is opted in
-    - One physical RHEL host with 2 sockets seeded (shared non-PAYG fixture)
+    - Two physical RHEL hosts in the same default SLA/usage bucket, with 2 and 4 sockets
 - **Action**:
     - Trigger nightly tally (snapshots creation)
     - Wait for tally summary Kafka messages on tally topic
+    - Read DAILY tally summary from Kafka for sockets measurement
 - **Verification**:
-    - Tally summary messages are received
+    - One tally summary message is received for the shared SLA/usage bucket
     - Messages have DAILY granularity
     - Messages contain expected product (e.g. RHEL for x86) and metric (Sockets)
+    - No measurements have hardware type TOTAL
+    - All measurements are specific type (PHYSICAL)
 - **Expected Result**:
     - Nightly tally produces DAILY granularity summaries for non-PAYG products
     - Messages are published to tally topic
-
-**tally-summary-nonpayg-TC002 - Nightly tally has no TOTAL measurements**
-
-- **Description**: Verify that nightly tally DAILY snapshots for non-PAYG products do not emit TOTAL hardware measurement type
-- **Setup**:
-    - Organization is opted in
-    - One physical RHEL host with 2 sockets seeded (shared non-PAYG fixture)
-- **Action**:
-    - Trigger nightly tally
-    - Read DAILY tally summary from Kafka for sockets measurement
-- **Verification**:
-    - Summary messages are not empty
-    - No measurements have hardware type TOTAL
-    - All measurements are specific types (PHYSICAL, VIRTUAL, etc.)
-- **Expected Result**:
     - Nightly snapshots do not include TOTAL aggregations
     - Only granular measurement types are present
 
-**tally-summary-nonpayg-TC003 - Nightly gauge currentTotal equals value**
+**tally-summary-nonpayg-TC002 - Nightly gauge currentTotal equals value**
 
 - **Description**: Verify gauge metric sockets in DAILY summary has currentTotal equals value (not a cumulative SUM)
 - **Setup**:
@@ -642,7 +630,7 @@ This test plan covers the core tally processing pipeline:
 - **Expected Result**:
     - Sockets measurement should be a point-in-time total, not month-to-date accumulation in currentTotal
 
-**tally-summary-nonpayg-TC004 - Nightly gauge reflects current state not accumulation**
+**tally-summary-nonpayg-TC003 - Nightly gauge reflects current state not accumulation**
 
 - **Description**: Verify gauge sockets reflects current inventory state when a second host is added, not historical accumulation
 - **Setup**:
@@ -659,16 +647,16 @@ This test plan covers the core tally processing pipeline:
 - **Expected Result**:
     - Gauge shows current socket total across hosts, not sum of all prior daily snapshot values
 
-**tally-summary-nonpayg-TC005 - Nightly gauge drops when one host loses product buckets**
+**tally-summary-nonpayg-TC004 - Nightly gauge drops when one host loses product buckets**
 
-- **Description**: Verify nightly daily totals reflect current bucket state when one host no longer contributes RHEL for x86 buckets (decrement mirror of TC004)
+- **Description**: Verify nightly daily totals reflect current bucket state when one host no longer contributes RHEL for x86 buckets (decrement mirror of TC003)
 - **Setup**:
     - Organization is opted in
-    - Shared non-PAYG physical RHEL fixture (3 hosts, 12 sockets total)
+    - 3 non-PAYG physical RHEL hosts (mixed amount of sockets each, 12 total)
 - **Action**:
     - Run nightly tally
     - Query daily Sockets report (category=physical) and DAILY tally summary for RHEL for x86; record totals
-    - Remove all host_tally_buckets for RHEL for x86 on one host (e.g. Host B, 6 sockets) — CT may use DB helper; production path is inventory reconcile marking buckets stale
+    - Remove all host_tally_buckets for RHEL for x86 on one host (e.g. Host B, 6 sockets)
     - Run nightly tally again
     - Query daily report and DAILY summary again
 - **Verification**:
@@ -688,13 +676,14 @@ This test plan covers the core tally processing pipeline:
     - Organization is opted in
     - Host A: Premium SLA, 2 sockets
     - Host B: Standard SLA, 2 sockets
+    - Host C: Self-Support SLA, 2 sockets
 - **Action**:
     - Run nightly tally
     - Poll DAILY summaries for RHEL for x86
 - **Verification**:
-    - Snapshots exist for both Premium and Standard SLA values
+    - Snapshots exist for Premium, Standard, Self-Support SLA values
     - Per-SLA sums are each > 0
-    - Sum of Premium + Standard measurement values equals unfiltered total for the metric
+    - Per-SLA sums add up to unfiltered total for the sockets metric
 - **Expected Result**:
     - Nightly tally produces separate DAILY snapshot measurements per SLA attribute value
 
@@ -703,15 +692,16 @@ This test plan covers the core tally processing pipeline:
 - **Description**: Verify DAILY tally summary messages for traditional non-PAYG product separate measurement values by usage
 - **Setup**:
     - Organization is opted in
-    - Host A: Production usage
-    - Host B: Development/Test usage
+    - Host A: Production usage, 4 sockets
+    - Host B: Development/Test usage, 4 sockets
+    - Host C: Disaster Recovery usage, 4 sockets
 - **Action**:
     - Run nightly tally
     - Poll DAILY summaries for RHEL for x86
 - **Verification**:
-    - Snapshots contain both Production and Development/Test
+    - Snapshots contain Production, Development/Test, Disaster Recovery usage values
     - Per-usage sums > 0
-    - Per-usage sums add up to unfiltered total
+    - Per-usage sums add up to unfiltered total for the sockets metrics
 - **Expected Result**:
     - Nightly tally produces separate DAILY snapshot measurements per usage attribute value
 
@@ -735,7 +725,7 @@ This test plan covers the core tally processing pipeline:
     - Hourly tally does not produce DAILY granularity summaries for PAYG products
     - Only HOURLY summaries are emitted
 
-**tally-summary-payg-TC002 - Hourly tally emits hourly granularity**
+**tally-summary-payg-TC002 - Hourly tally emits hourly granularity with no TOTAL measurements**
 
 - **Description**: Verify that hourly tally for PAYG products produces summary messages with HOURLY granularity and no TOTAL measurements
 - **Setup**:
