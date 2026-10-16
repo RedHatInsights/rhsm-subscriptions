@@ -29,13 +29,11 @@ import com.redhat.swatch.tally.test.model.TallySummary;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
-import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-@Slf4j
-class TallySummaryPaygTest extends BaseTallyComponentTest {
+public class TallySummaryPaygTest extends BaseTallyComponentTest {
 
   @Test
   @TestPlanName("tally-summary-payg-TC001")
@@ -112,14 +110,16 @@ class TallySummaryPaygTest extends BaseTallyComponentTest {
             kafkaBridge);
 
     // Then: Should have 4 summaries and measurements should not be of type TOTAL
-    summaries.stream()
-        .flatMap(summary -> summary.getTallySnapshots().stream())
-        .flatMap(snapshot -> snapshot.getTallyMeasurements().stream())
-        .forEach(
-            measurement ->
-                Assertions.assertNotSame(
-                    "TOTAL",
-                    measurement.getHardwareMeasurementType().toUpperCase(),
-                    "Hourly measurements should not be of type TOTAL"));
+    var measurements =
+        summaries.stream()
+            .flatMap(summary -> summary.getTallySnapshots().stream())
+            .flatMap(snapshot -> snapshot.getTallyMeasurements().stream())
+            .toList();
+
+    Assertions.assertFalse(measurements.isEmpty(), "Expected hourly measurements");
+    Assertions.assertTrue(
+        measurements.stream()
+            .noneMatch(m -> "TOTAL".equalsIgnoreCase(m.getHardwareMeasurementType())),
+        "Hourly measurements should not be of type TOTAL");
   }
 }
