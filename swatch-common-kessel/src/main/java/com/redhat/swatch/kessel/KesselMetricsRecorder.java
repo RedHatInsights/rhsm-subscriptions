@@ -39,11 +39,34 @@ public interface KesselMetricsRecorder {
   void recordCheckRequest(boolean success);
 
   /**
-   * Record a gRPC connection error.
+   * Record a gRPC connection error (transient failures that may be retried).
    *
    * @param errorCode gRPC status code name (e.g., "UNAVAILABLE", "DEADLINE_EXCEEDED")
    */
   void recordConnectionError(String errorCode);
+
+  /**
+   * Record when a user permission check returned allowed=true.
+   *
+   * <p>This is a successful gRPC call where the user HAS the requested permission.
+   */
+  void recordUserPermissionGranted();
+
+  /**
+   * Record when a user permission check returned allowed=false.
+   *
+   * <p>This is a successful gRPC call where the user LACKS the requested permission. This is normal
+   * operation, NOT a system error.
+   */
+  void recordUserPermissionDenied();
+
+  /**
+   * Record when Kessel rejects the Check call with PERMISSION_DENIED.
+   *
+   * <p>This indicates the caller (SWATCH service) is not authorized to execute Check API. This is a
+   * system error - OAuth2 credentials are invalid/expired, NOT a user permission denial.
+   */
+  void recordCallerNotAuthorized();
 
   /**
    * Record a channel initialization event.
@@ -60,6 +83,15 @@ public interface KesselMetricsRecorder {
 
         @Override
         public void recordConnectionError(String errorCode) {}
+
+        @Override
+        public void recordUserPermissionGranted() {}
+
+        @Override
+        public void recordUserPermissionDenied() {}
+
+        @Override
+        public void recordCallerNotAuthorized() {}
 
         @Override
         public void recordChannelInit(String reason) {}

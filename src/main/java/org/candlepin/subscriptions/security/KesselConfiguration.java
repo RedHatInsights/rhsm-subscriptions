@@ -50,7 +50,8 @@ public class KesselConfiguration {
   @Bean(initMethod = "init", destroyMethod = "shutdown")
   public KesselAuthorizationClient kesselAuthorizationClient(
       KesselProperties props, MeterRegistry meterRegistry) {
-    var rbacAuth = initializeRbacAuth(props);
+    var oauth2Credentials = initializeOAuth2Credentials(props);
+    var rbacAuth = oauth2Credentials != null ? new OAuth2AuthRequest(oauth2Credentials) : null;
     var workspaceCache = new ConcurrentHashMap<String, String>();
     KesselMetricsRecorder metricsRecorder = new KesselMicrometerRecorder(meterRegistry);
     return new KesselAuthorizationClient(
@@ -71,10 +72,11 @@ public class KesselConfiguration {
                         "Failed to fetch default workspace for orgId=" + id, e);
                   }
                 }),
-        metricsRecorder);
+        metricsRecorder,
+        oauth2Credentials);
   }
 
-  private OAuth2AuthRequest initializeRbacAuth(KesselProperties props) {
+  private OAuth2ClientCredentials initializeOAuth2Credentials(KesselProperties props) {
     var issuerUrl = props.getAuthOidcIssuer();
     var clientId = props.getAuthClientId();
     var clientSecret = props.getAuthClientSecret();
@@ -84,7 +86,9 @@ public class KesselConfiguration {
         || clientId.isBlank()
         || clientSecret == null
         || clientSecret.isBlank()) {
-      log.info("RBAC OAuth2 credentials not configured; workspace fetches will be unauthenticated");
+      log.info(
+          "OAuth2 credentials not configured; Kessel gRPC will use TLS only, RBAC workspace"
+              + " fetches will be unauthenticated");
       return null;
     }
     try {
@@ -92,11 +96,13 @@ public class KesselConfiguration {
       var credentials =
           new OAuth2ClientCredentials(
               new ClientConfigAuth(clientId, clientSecret, discovery.tokenEndpoint()));
-      log.info("RBAC OAuth2 client initialized for workspace lookups");
-      return new OAuth2AuthRequest(credentials);
+      log.info("OAuth2 credentials initialized for Kessel gRPC and RBAC workspace lookups");
+      return credentials;
     } catch (Exception e) {
       log.warn(
-          "Failed to initialize RBAC OAuth2 client; workspace fetches will be unauthenticated", e);
+          "Failed to initialize OAuth2 credentials; Kessel gRPC will use TLS only, RBAC workspace"
+              + " fetches will be unauthenticated",
+          e);
       return null;
     }
   }

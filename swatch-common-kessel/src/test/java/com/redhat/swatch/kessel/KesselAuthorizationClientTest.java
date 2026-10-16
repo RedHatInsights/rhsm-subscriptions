@@ -26,7 +26,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -84,13 +86,14 @@ class KesselAuthorizationClientTest {
 
     client = new KesselAuthorizationClient(config, orgId -> "default");
     client.setStub(stub);
-    setChannel(channel);
+    setChannel(client, channel);
   }
 
-  private void setChannel(ManagedChannel ch) throws Exception {
+  private void setChannel(KesselAuthorizationClient targetClient, ManagedChannel ch)
+      throws Exception {
     Field channelField = KesselAuthorizationClient.class.getDeclaredField("channel");
     channelField.setAccessible(true);
-    channelField.set(client, ch);
+    channelField.set(targetClient, ch);
   }
 
   // --- Permission mapping tests ---
@@ -168,7 +171,7 @@ class KesselAuthorizationClientTest {
     var customClient = new KesselAuthorizationClient(config, orgId -> "workspace-" + orgId);
     customClient.setStub(stub);
     try {
-      setChannel(channel);
+      setChannel(customClient, channel);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -267,9 +270,9 @@ class KesselAuthorizationClientTest {
 
   @Test
   void initializeChannelSkipsIfAlreadyRecreatedByAnotherThread() throws Exception {
-    ManagedChannel newChannel = org.mockito.Mockito.mock(ManagedChannel.class, "newChannel");
+    ManagedChannel newChannel = mock(ManagedChannel.class, "newChannel");
 
-    setChannel(newChannel);
+    setChannel(client, newChannel);
 
     client.initializeChannel("test", channel);
 
@@ -280,5 +283,109 @@ class KesselAuthorizationClientTest {
         newChannel,
         currentChannel,
         "Channel should not have been replaced since brokenChannel != current channel");
+  }
+
+  // --- Metrics tests ---
+
+  @Test
+  void permissionDeniedRecordsCallerNotAuthorizedExactlyOnce() throws Exception {
+    var mockRecorder = mock(KesselMetricsRecorder.class);
+    var clientWithMetrics = new KesselAuthorizationClient(config, orgId -> "default", mockRecorder);
+    clientWithMetrics.setStub(stub);
+    setChannel(clientWithMetrics, channel);
+
+    when(stub.check(any(CheckRequest.class)))
+        .thenThrow(new StatusRuntimeException(Status.PERMISSION_DENIED));
+
+    clientWithMetrics.checkAccess("user123", "subscriptions:reports:read", ORG_ID);
+
+    // Verify recordCallerNotAuthorized called exactly ONCE (not twice)
+    verify(mockRecorder, times(1)).recordCallerNotAuthorized();
+  }
+
+  @Test
+  void userPermissionGrantedRecordsMetric() throws Exception {
+    var mockRecorder = mock(KesselMetricsRecorder.class);
+    var clientWithMetrics = new KesselAuthorizationClient(config, orgId -> "default", mockRecorder);
+    clientWithMetrics.setStub(stub);
+    setChannel(clientWithMetrics, channel);
+
+    when(stub.check(any(CheckRequest.class)))
+        .thenReturn(CheckResponse.newBuilder().setAllowed(Allowed.ALLOWED_TRUE).build());
+
+    assertTrue(clientWithMetrics.checkAccess("user123", "subscriptions:reports:read", ORG_ID));
+
+    verify(mockRecorder, times(1)).recordUserPermissionGranted();
+    verify(mockRecorder, times(0)).recordUserPermissionDenied();
+  }
+
+  @Test
+  void userPermissionDeniedRecordsMetric() throws Exception {
+    var mockRecorder = mock(KesselMetricsRecorder.class);
+    var clientWithMetrics = new KesselAuthorizationClient(config, orgId -> "default", mockRecorder);
+    clientWithMetrics.setStub(stub);
+    setChannel(clientWithMetrics, channel);
+
+    when(stub.check(any(CheckRequest.class)))
+        .thenReturn(CheckResponse.newBuilder().setAllowed(Allowed.ALLOWED_FALSE).build());
+
+    assertFalse(clientWithMetrics.checkAccess("user123", "subscriptions:reports:read", ORG_ID));
+
+    verify(mockRecorder, times(0)).recordUserPermissionGranted();
+    verify(mockRecorder, times(1)).recordUserPermissionDenied();
+  }
+
+  @Test
+  void metricsExceptionDoesNotBreakPermissionGranted() throws Exception {
+    var mockRecorder = mock(KesselMetricsRecorder.class);
+    doThrow(new RuntimeException("Metrics recorder failed"))
+        .when(mockRecorder)
+        .recordUserPermissionGranted();
+
+    var clientWithMetrics = new KesselAuthorizationClient(config, orgId -> "default", mockRecorder);
+    clientWithMetrics.setStub(stub);
+    setChannel(clientWithMetrics, channel);
+
+    when(stub.check(any(CheckRequest.class)))
+        .thenReturn(CheckResponse.newBuilder().setAllowed(Allowed.ALLOWED_TRUE).build());
+
+    // Should still return true even though metrics recording failed
+    assertTrue(clientWithMetrics.checkAccess("user123", "subscriptions:reports:read", ORG_ID));
+  }
+
+  @Test
+  void metricsExceptionDoesNotBreakPermissionDenied() throws Exception {
+    var mockRecorder = mock(KesselMetricsRecorder.class);
+    doThrow(new RuntimeException("Metrics recorder failed"))
+        .when(mockRecorder)
+        .recordUserPermissionDenied();
+
+    var clientWithMetrics = new KesselAuthorizationClient(config, orgId -> "default", mockRecorder);
+    clientWithMetrics.setStub(stub);
+    setChannel(clientWithMetrics, channel);
+
+    when(stub.check(any(CheckRequest.class)))
+        .thenReturn(CheckResponse.newBuilder().setAllowed(Allowed.ALLOWED_FALSE).build());
+
+    // Should still return false even though metrics recording failed
+    assertFalse(clientWithMetrics.checkAccess("user123", "subscriptions:reports:read", ORG_ID));
+  }
+
+  @Test
+  void metricsExceptionDoesNotBreakCallerNotAuthorized() throws Exception {
+    var mockRecorder = mock(KesselMetricsRecorder.class);
+    doThrow(new RuntimeException("Metrics recorder failed"))
+        .when(mockRecorder)
+        .recordCallerNotAuthorized();
+
+    var clientWithMetrics = new KesselAuthorizationClient(config, orgId -> "default", mockRecorder);
+    clientWithMetrics.setStub(stub);
+    setChannel(clientWithMetrics, channel);
+
+    when(stub.check(any(CheckRequest.class)))
+        .thenThrow(new StatusRuntimeException(Status.PERMISSION_DENIED));
+
+    // Should still return false even though metrics recording failed
+    assertFalse(clientWithMetrics.checkAccess("user123", "subscriptions:reports:read", ORG_ID));
   }
 }
