@@ -243,6 +243,7 @@ public class KesselAuthorizationClient {
       String relation,
       String workspaceId) {
     KesselTransientException lastTransientException = null;
+    boolean hasRetriedUnauthenticated = false;
 
     for (int attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       try {
@@ -251,6 +252,7 @@ public class KesselAuthorizationClient {
         boolean allowed = response.getAllowed() == Allowed.ALLOWED_TRUE;
 
         recordCheckMetric(true, METRICS_SUCCESS);
+        recordPermissionResult(allowed);
 
         log.debug(
             "Kessel {} subject={}/{} relation={} on workspace={} (permission={})",
@@ -262,7 +264,7 @@ public class KesselAuthorizationClient {
             permission);
         return allowed;
       } catch (StatusRuntimeException e) {
-        RuntimeException exception = handleGrpcException(e);
+        RuntimeException exception = handleGrpcException(e, hasRetriedUnauthenticated);
 
         // If non-transient, don't retry
         if (!(exception instanceof KesselTransientException)) {
@@ -270,16 +272,16 @@ public class KesselAuthorizationClient {
           return false;
         }
 
+        // Track UNAUTHENTICATED retry to prevent excessive channel recreation
+        if (e.getStatus().getCode() == Status.Code.UNAUTHENTICATED) {
+          hasRetriedUnauthenticated = true;
+        }
+
         lastTransientException = (KesselTransientException) exception;
 
         // Transient error - retry if not at max attempts
-        if (attempt < MAX_RETRIES) {
-          try {
-            Thread.sleep(RETRY_DELAY_MS);
-          } catch (InterruptedException ie) {
-            Thread.currentThread().interrupt();
-            break;
-          }
+        if (attempt < MAX_RETRIES && !sleepBeforeRetry()) {
+          break; // Interrupted - stop retrying
         }
       }
     }
@@ -299,8 +301,10 @@ public class KesselAuthorizationClient {
   /**
    * Handles non-transient gRPC errors by logging and recording appropriate metrics.
    *
-   * <p>PERMISSION_DENIED is treated as a successful gRPC call (Kessel responded) where the user was
-   * denied access. Other non-transient errors indicate actual failures.
+   * <p>PERMISSION_DENIED and persistent UNAUTHENTICATED (after retry) indicate the caller (SWATCH
+   * service) is not authorized to execute the Check API. This is a system error (OAuth2 failure),
+   * not a user permission denial. User permission denials are returned as successful responses with
+   * allowed=false.
    *
    * @param e the gRPC exception
    * @param subjectId the subject identifier
@@ -308,23 +312,42 @@ public class KesselAuthorizationClient {
    */
   private void handleNonTransientError(
       StatusRuntimeException e, String subjectId, String permission) {
-    if (e.getStatus().getCode() == Status.Code.PERMISSION_DENIED) {
-      log.debug(
-          "Kessel authorization denied (gRPC call succeeded, user lacks permission) for"
-              + " subject={}/{}, permission={}: {}",
-          KESSEL_DOMAIN,
-          subjectId,
-          permission,
-          e.getStatus());
-      recordCheckMetric(true, METRICS_SUCCESS);
-    } else {
-      log.warn(
-          "Kessel check failed with non-retryable error for subject={}/{}, permission={}: {}",
-          KESSEL_DOMAIN,
-          subjectId,
-          permission,
-          e.getStatus());
-      recordCheckMetric(false, METRICS_FAILURE_NON_TRANSIENT);
+    Status.Code code = e.getStatus().getCode();
+
+    switch (code) {
+      case PERMISSION_DENIED:
+        log.warn(
+            "Kessel Check caller not authorized (PERMISSION_DENIED - SWATCH OAuth2"
+                + " invalid/expired) for subject={}/{}, permission={}: {}",
+            KESSEL_DOMAIN,
+            subjectId,
+            permission,
+            e.getStatus());
+        recordCallerNotAuthorizedMetric();
+        recordCheckMetric(false, METRICS_FAILURE_NON_TRANSIENT);
+        break;
+
+      case UNAUTHENTICATED:
+        log.warn(
+            "Kessel Check caller not authorized (UNAUTHENTICATED persists - SWATCH OAuth2"
+                + " credentials broken) for subject={}/{}, permission={}: {}",
+            KESSEL_DOMAIN,
+            subjectId,
+            permission,
+            e.getStatus());
+        recordCallerNotAuthorizedMetric();
+        recordCheckMetric(false, METRICS_FAILURE_NON_TRANSIENT);
+        break;
+
+      default:
+        log.warn(
+            "Kessel check failed with non-retryable error for subject={}/{}, permission={}: {}",
+            KESSEL_DOMAIN,
+            subjectId,
+            permission,
+            e.getStatus());
+        recordCheckMetric(false, METRICS_FAILURE_NON_TRANSIENT);
+        break;
     }
   }
 
@@ -332,12 +355,16 @@ public class KesselAuthorizationClient {
    * Handles gRPC exceptions, distinguishing between transient and non-transient failures.
    *
    * <p>Transient failures (UNAVAILABLE, DEADLINE_EXCEEDED, etc.) are wrapped in {@link
-   * KesselTransientException} to trigger retry. UNAUTHENTICATED errors trigger channel recreation.
+   * KesselTransientException} to trigger retry. UNAUTHENTICATED errors trigger channel recreation
+   * on first occurrence; if UNAUTHENTICATED persists after one retry, treat as permanent OAuth2
+   * credential failure.
    *
    * @param e the gRPC exception
+   * @param hasRetriedUnauthenticated whether we've already retried UNAUTHENTICATED once
    * @return the exception to throw (either KesselTransientException or the original)
    */
-  private RuntimeException handleGrpcException(StatusRuntimeException e) {
+  private RuntimeException handleGrpcException(
+      StatusRuntimeException e, boolean hasRetriedUnauthenticated) {
     Status.Code code = e.getStatus().getCode();
 
     if (TRANSIENT_FAILURE_CODES.contains(code)) {
@@ -345,9 +372,17 @@ public class KesselAuthorizationClient {
     }
 
     if (code == Status.Code.UNAUTHENTICATED) {
+      if (hasRetriedUnauthenticated) {
+        // Second UNAUTHENTICATED - OAuth2 credentials are permanently broken (wrong secret,
+        // revoked client, etc.). Don't retry - fix credentials in config.
+        return e; // Non-transient - handleNonTransientError will log and record metrics
+      }
+
+      // First UNAUTHENTICATED - SWATCH's OAuth2 token likely expired. Recreate channel so SDK
+      // fetches fresh token, then retry once. If token refresh works, next attempt succeeds.
       log.warn(
-          "Kessel gRPC UNAUTHENTICATED (token likely expired, recreating channel with fresh"
-              + " credentials, will retry): {} - {}",
+          "Kessel gRPC UNAUTHENTICATED (SWATCH OAuth2 token likely expired, recreating channel to"
+              + " fetch fresh token, will retry once): {} - {}",
           code,
           e.getMessage());
       initializeChannel("unauthenticated", channel);
@@ -362,15 +397,7 @@ public class KesselAuthorizationClient {
       return new KesselTransientException(e);
     }
 
-    if (code == Status.Code.PERMISSION_DENIED) {
-      log.debug(
-          "Kessel gRPC PERMISSION_DENIED (not a connection failure, tracked separately): {} - {}",
-          code,
-          e.getMessage());
-      recordAuthorizationDeniedMetric();
-      return e;
-    }
-
+    // Non-transient error (PERMISSION_DENIED, NOT_FOUND, etc.)
     return e;
   }
 
@@ -441,12 +468,43 @@ public class KesselAuthorizationClient {
     }
   }
 
-  /** Record authorization denied metric */
-  private void recordAuthorizationDeniedMetric() {
+  /** Record user permission result (granted vs denied), catching recorder failures. */
+  private void recordPermissionResult(boolean allowed) {
     try {
-      metricsRecorder.recordAuthorizationDenied();
+      if (allowed) {
+        metricsRecorder.recordUserPermissionGranted();
+      } else {
+        metricsRecorder.recordUserPermissionDenied();
+      }
     } catch (Exception e) {
-      log.warn("Metrics recording error for kessel_authorization_denied_total: {}", e.getMessage());
+      log.warn(
+          "Metrics recording error for kessel_user_permission_{}: {}",
+          allowed ? "granted" : "denied",
+          e.getMessage());
+    }
+  }
+
+  /** Record caller not authorized metric, catching recorder failures. */
+  private void recordCallerNotAuthorizedMetric() {
+    try {
+      metricsRecorder.recordCallerNotAuthorized();
+    } catch (Exception e) {
+      log.warn("Metrics recording error for kessel_caller_not_authorized: {}", e.getMessage());
+    }
+  }
+
+  /**
+   * Sleep before retry, handling interruption.
+   *
+   * @return true if sleep completed normally, false if interrupted
+   */
+  private boolean sleepBeforeRetry() {
+    try {
+      Thread.sleep(RETRY_DELAY_MS);
+      return true;
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      return false;
     }
   }
 }
