@@ -65,6 +65,7 @@ class ContractServiceIntegrationTest {
   private static final String SKU = "RH0005528";
   private static final String PRODUCT_TAG = "rosa";
   private static final String SUBSCRIPTION_NUMBER = "num5528";
+  private static final String SUBSCRIPTION_ID = "5528";
 
   private static final OffsetDateTime DEFAULT_END_DATE =
       OffsetDateTime.now(ZoneOffset.UTC).plusYears(4).truncatedTo(ChronoUnit.MICROS);
@@ -182,6 +183,7 @@ class ContractServiceIntegrationTest {
     contract.setCloudIdentifiers(cloudIdentifiers);
 
     ContractRequest contractRequest = new ContractRequest();
+    contractRequest.setSubscriptionId(SUBSCRIPTION_ID);
     contractRequest.setPartnerEntitlement(entitlement);
     entitlement.setPartnerIdentities(partnerIdentity);
     entitlement.setPurchase(purchase);

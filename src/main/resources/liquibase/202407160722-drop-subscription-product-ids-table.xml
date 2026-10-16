@@ -8,12 +8,6 @@
 
 
   <changeSet id="202407160722-01" author="kflahert">
-    <preConditions onFail="MARK_RAN">
-      <tableExists tableName="subscription_product_ids"/>
-      <not>
-        <tableExists tableName="DATABASECHANGELOGLOCK_SWATCH_CONTRACTS"/>
-      </not>
-    </preConditions>
     <comment>Drop subscription_product_ids table</comment>
     <dropTable tableName="subscription_product_ids"/>
 

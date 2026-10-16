@@ -561,6 +561,7 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
     return Subscription.builder()
         .orgId(orgId)
         .product(Product.RHEL)
+        .subscriptionId(RandomUtils.generateRandom())
         .subscriptionNumber(RandomUtils.generateRandom())
         .offering(offering)
         .subscriptionMeasurements(capacity)
