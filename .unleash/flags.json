@@ -173,6 +173,22 @@
             ],
             "variants": [],
             "createdAt": "2026-06-02T20:00:00.000Z"
+        },
+        {
+            "name": "swatch.swatch-tally.enable-event-driven-tally",
+            "description": "Enable event-driven tally logic. When enabled, tally operations are triggered by events instead of scheduled jobs.",
+            "type": "operational",
+            "project": "default",
+            "enabled": false,
+            "stale": false,
+            "strategies": [
+                {
+                    "name": "default",
+                    "parameters": {}
+                }
+            ],
+            "variants": [],
+            "createdAt": "2026-10-16T19:00:00.000Z"
         }
     ],
     "strategies": [

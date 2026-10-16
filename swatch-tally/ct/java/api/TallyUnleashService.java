@@ -27,6 +27,8 @@ public class TallyUnleashService extends UnleashService {
       "swatch.swatch-tally.enable-primary-row-searches";
   private static final String ENABLE_HTB_PRIMARY_ROW_SEARCHES =
       "swatch.swatch-tally.enable-host-tally-bucket-primary-row-searches";
+  private static final String ENABLE_EVENT_DRIVEN_TALLY =
+      "swatch.swatch-tally.enable-event-driven-tally";
 
   /** Matches {@code KesselRolesAugmentor.KESSEL_FLAG} in swatch-common-security. */
   private static final String USE_KESSEL_RBAC = "swatch.common-security.use-kessel-rbac";
@@ -53,5 +55,13 @@ public class TallyUnleashService extends UnleashService {
 
   public void disableKesselRbac() {
     disableFlag(USE_KESSEL_RBAC);
+  }
+
+  public void enableEventDrivenTally() {
+    enableFlag(ENABLE_EVENT_DRIVEN_TALLY);
+  }
+
+  public void disableEventDrivenTally() {
+    disableFlag(ENABLE_EVENT_DRIVEN_TALLY);
   }
 }
