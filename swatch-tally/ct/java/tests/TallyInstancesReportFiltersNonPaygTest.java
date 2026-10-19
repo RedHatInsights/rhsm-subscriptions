@@ -604,40 +604,10 @@ public class TallyInstancesReportFiltersNonPaygTest extends BaseTallyComponentTe
     return params;
   }
 
-  private Map<String, Object> givenBaseParamsWithPagination(int limit, int offset) {
-    Map<String, Object> params = givenBaseParams();
-    params.put("limit", limit);
-    params.put("offset", offset);
-    return params;
-  }
-
-  private Map<String, Object> givenBaseParamsWithPaginationAndSort(
-      int limit, int offset, String sort, String dir) {
-    Map<String, Object> params = givenBaseParamsWithPagination(limit, offset);
-    params.put("sort", sort);
-    params.put("dir", dir);
-    return params;
-  }
-
-  private Map<String, Object> givenBaseParamsWithSort(String sort, String dir) {
-    Map<String, Object> params = givenBaseParams();
-    params.put("sort", sort);
-    params.put("dir", dir);
-    return params;
-  }
-
   private Map<String, Object> givenParamsWithCategory(String category) {
     Map<String, Object> params = new HashMap<>();
     params.put("category", category);
     params.put("metric_id", METRIC_ID.toLowerCase());
-    return params;
-  }
-
-  private Map<String, Object> givenParamsWithCategoryAndSort(
-      String category, String sort, String dir) {
-    Map<String, Object> params = givenParamsWithCategory(category);
-    params.put("sort", sort);
-    params.put("dir", dir);
     return params;
   }
 

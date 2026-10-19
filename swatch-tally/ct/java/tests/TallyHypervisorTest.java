@@ -36,6 +36,7 @@ import com.redhat.swatch.component.tests.logging.Log;
 import com.redhat.swatch.tally.test.model.InstanceData;
 import com.redhat.swatch.tally.test.model.InstanceResponse;
 import com.redhat.swatch.tally.test.model.ReportCategory;
+import com.redhat.swatch.tally.test.model.SortDirection;
 import com.redhat.swatch.tally.test.model.TallyReportDataPoint;
 import com.redhat.swatch.tally.test.model.TallySnapshot;
 import java.time.OffsetDateTime;
@@ -510,6 +511,31 @@ class TallyHypervisorTest extends BaseTallyComponentTest {
     assertEquals(1, hostBIRAfterUpdateCount);
   }
 
+  @ParameterizedTest(name = "Using primary bucket searches: {0}")
+  @ValueSource(booleans = {true, false})
+  @TestPlanName("tally-hypervisor-TC007")
+  void shouldReportHypervisorOnceWhenSlaAndUsageWildcarded(boolean usePrimaryBucketSearches) {
+    // Given: Hypervisor with overlapping guest SLA/usage and primary-bucket flag configured
+    givenPrimaryBucketSearchesEnabled(usePrimaryBucketSearches);
+    service.createOptInConfig(orgId);
+    SeededHost hypervisor = givenHypervisorWithOverlappingGuestSla();
+
+    // When: Fetching instances with category=hypervisor (SLA and usage wildcarded)
+    InstanceResponse response =
+        service.getInstancesByProduct(
+            orgId, RHEL_FOR_X86.productTag(), start, end, Map.of("category", "hypervisor"));
+
+    // Then: Hypervisor appears exactly once despite multiple primary HYPERVISOR buckets
+    long count =
+        response.getData() == null
+            ? 0
+            : response.getData().stream()
+                .filter(
+                    i -> hypervisor.subscriptionManagerId().equals(i.getSubscriptionManagerId()))
+                .count();
+    assertEquals(1, count, "Hypervisor must appear once in instances report");
+  }
+
   @Test
   @TestPlanName("tally-hypervisor-TC011")
   void testGuestMappingUpdateChangesInstanceGuestReport() {
@@ -603,32 +629,83 @@ class TallyHypervisorTest extends BaseTallyComponentTest {
         "Guest count should be 1 for Host B");
   }
 
-  @ParameterizedTest(name = "Using primary bucket searches: {0}")
-  @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-hypervisor-TC007")
-  void shouldReportHypervisorOnceWhenSlaAndUsageWildcarded(boolean usePrimaryBucketSearches) {
-    // Given: Hypervisor with overlapping guest SLA/usage and primary-bucket flag configured
-    givenPrimaryBucketSearchesEnabled(usePrimaryBucketSearches);
+  @Test
+  @TestPlanName("tally-hypervisor-TC012")
+  void shouldSortHypervisorsByNumberOfGuests() {
+    // Given: Three hypervisors with different guest counts.
     service.createOptInConfig(orgId);
-    SeededHost hypervisor = givenHypervisorWithOverlappingGuestSla();
+    givenHypervisorsWithDifferentGuestCounts();
 
-    // When: Fetching instances with category=hypervisor (SLA and usage wildcarded)
-    InstanceResponse response =
+    service.tallyOrg(orgId);
+
+    Map<String, Object> hypervisorFilter = Map.of("category", "hypervisor");
+
+    // When: Fetching hypervisors sorted by guest count in ascending order
+    Map<String, Object> ascendingParams = new HashMap<>(hypervisorFilter);
+    ascendingParams.put("sort", "number_of_guests");
+    ascendingParams.put("dir", SortDirection.ASC);
+    InstanceResponse ascending =
         service.getInstancesByProduct(
-            orgId, RHEL_FOR_X86.productTag(), start, end, Map.of("category", "hypervisor"));
+            orgId, RHEL_FOR_X86.productTag(), start, end, ascendingParams);
 
-    // Then: Hypervisor appears exactly once despite multiple primary HYPERVISOR buckets
-    long count =
-        response.getData() == null
-            ? 0
-            : response.getData().stream()
-                .filter(
-                    i -> hypervisor.subscriptionManagerId().equals(i.getSubscriptionManagerId()))
-                .count();
-    assertEquals(1, count, "Hypervisor must appear once in instances report");
+    // Then: Guest counts are sorted in ascending order
+    List<Integer> ascendingGuestCounts =
+        ascending.getData().stream().map(InstanceData::getNumberOfGuests).toList();
+    assertEquals(List.of(1, 2, 3), ascendingGuestCounts);
+
+    // When: Fetching hypervisors sorted by guest count in descending order
+    Map<String, Object> descendingParams = new HashMap<>(hypervisorFilter);
+    descendingParams.put("sort", "number_of_guests");
+    descendingParams.put("dir", SortDirection.DESC);
+    InstanceResponse descending =
+        service.getInstancesByProduct(
+            orgId, RHEL_FOR_X86.productTag(), start, end, descendingParams);
+
+    // Then: Guest counts are sorted in descending order
+    List<Integer> descendingGuestCounts =
+        descending.getData().stream().map(InstanceData::getNumberOfGuests).toList();
+    assertEquals(List.of(3, 2, 1), descendingGuestCounts);
   }
 
   // --- Given helper methods ---
+
+  private void givenHypervisorsWithDifferentGuestCounts() {
+    SeededHost hypervisorWithOneGuest =
+        hostManager
+            .createHost(orgId)
+            .displayName("hypervisor-c-one-guest")
+            .apply(HostTemplates.conduitReportedPhysicalRhel(4, 32))
+            .insert();
+    SeededHost hypervisorWithThreeGuests =
+        hostManager
+            .createHost(orgId)
+            .displayName("hypervisor-b-three-guests")
+            .apply(HostTemplates.conduitReportedPhysicalRhel(1, 8))
+            .insert();
+    SeededHost hypervisorWithTwoGuests =
+        hostManager
+            .createHost(orgId)
+            .displayName("hypervisor-a-two-guests")
+            .apply(HostTemplates.conduitReportedPhysicalRhel(2, 16))
+            .insert();
+
+    givenGuestsForHypervisor(hypervisorWithOneGuest, 1);
+    givenGuestsForHypervisor(hypervisorWithThreeGuests, 3);
+    givenGuestsForHypervisor(hypervisorWithTwoGuests, 2);
+  }
+
+  private void givenGuestsForHypervisor(SeededHost hypervisor, int guestCount) {
+    for (int i = 1; i <= guestCount; i++) {
+      hostManager
+          .createHost(orgId)
+          .displayName(
+              "guest-for-hypervisor-%s-%d".formatted(hypervisor.subscriptionManagerId(), i))
+          .apply(
+              HostTemplates.conduitReportedVirtualRhelGuest(
+                  hypervisor.subscriptionManagerId(), "Premium", "Production", 1, 2))
+          .insert();
+    }
+  }
 
   private SeededHost givenHypervisorWithOverlappingGuestSla() {
     // Hypervisor subscription_manager_id must be a UUID so guests can set virtual_host_uuid

@@ -153,7 +153,7 @@ spec:
   results:
     - name: ARTIFACTS_URL
       description: URL for the test artifacts
-      value: $(tasks.upload-logs-to-s3.results.ARTIFACTS_URL)
+      value: $(finally.teardown.results.ARTIFACTS_URL)
 
   tasks:
     - name: extract-metadata
@@ -552,6 +552,8 @@ spec:
           value: "Deploy Failed"
         - name: COMMENT_MARKER
           value: "<!-- swatch-iqe-test-results -->"
+        - name: BONFIRE_COMMAND_FILE
+          value: "$(tasks.deploy-application.results.BONFIRE_COMMAND_FILE)"
         - name: GITHUB_TOKEN_SECRET
           value: "$(params.GITHUB_TOKEN_SECRET)"
       taskRef:
@@ -729,64 +731,6 @@ spec:
               echo "IQE artifacts collected:"
               ls -la "$artifacts_dir"
 
-    - name: collect-logs
-      onError: continue
-      runAfter:
-        - collect-iqe-artifacts
-      when:
-        - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
-          operator: in
-          values: [ "false" ]
-        - input: "$(tasks.deploy-application.results.DEPLOY_SUCCEEDED)"
-          operator: in
-          values: ["true"]
-      workspaces:
-        - name: artifacts
-          workspace: artifacts
-      params:
-        - name: NS
-          value: "$(tasks.reserve-namespace.results.NS)"
-        - name: BONFIRE_IMAGE
-          value: "$(params.BONFIRE_IMAGE)"
-        - name: EPHEMERAL_ENV_PROVIDER_SECRET
-          value: "$(params.EPHEMERAL_ENV_PROVIDER_SECRET)"
-      taskSpec:
-        params:
-          - name: NS
-          - name: BONFIRE_IMAGE
-          - name: EPHEMERAL_ENV_PROVIDER_SECRET
-        workspaces:
-          - name: artifacts
-        steps:
-          - name: collect
-            image: "$(params.BONFIRE_IMAGE)"
-            env:
-              - name: OC_LOGIN_TOKEN
-                valueFrom:
-                  secretKeyRef:
-                    name: $(params.EPHEMERAL_ENV_PROVIDER_SECRET)
-                    key: token
-              - name: OC_LOGIN_SERVER
-                valueFrom:
-                  secretKeyRef:
-                    name: $(params.EPHEMERAL_ENV_PROVIDER_SECRET)
-                    key: url
-              - name: BONFIRE_BOT
-                value: "true"
-            script: |
-              #!/bin/bash
-              set -ex
-
-              echo "Connecting to the ephemeral namespace cluster"
-              login.sh
-
-              ARTIFACTS_DIR="$(workspaces.artifacts.path)"
-              echo "Collecting namespace logs into ${ARTIFACTS_DIR} (IQE junit/log/tar.gz already from collect-iqe-artifacts)"
-              collect-logs.sh "$(params.NS)" "$ARTIFACTS_DIR" || :
-
-              echo "Artifacts collected:"
-              ls -la "$ARTIFACTS_DIR"
-
     - name: post-pr-comment
       onError: continue
       runAfter:
@@ -833,70 +777,6 @@ spec:
             value: "$(params.PROJECT_TASKS_REVISION)"
           - name: pathInRepo
             value: .tekton/tasks/github-post-test-results.yaml
-
-    - name: upload-logs-to-s3
-      onError: continue
-      runAfter:
-        - collect-logs
-      when:
-        - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
-          operator: in
-          values: [ "false" ]
-        - input: "$(tasks.deploy-application.results.DEPLOY_SUCCEEDED)"
-          operator: in
-          values: ["true"]
-      workspaces:
-        - name: artifacts
-          workspace: artifacts
-      params:
-        - name: BONFIRE_IMAGE
-          value: "$(params.BONFIRE_IMAGE)"
-        - name: AWS_SECRET
-          value: "$(params.AWS_SECRET)"
-        - name: ARTIFACTS_KEY
-          value: "$(context.pipelineRun.namespace)/$(context.pipelineRun.name)"
-      taskSpec:
-        params:
-          - name: BONFIRE_IMAGE
-          - name: AWS_SECRET
-          - name: ARTIFACTS_KEY
-        workspaces:
-          - name: artifacts
-        results:
-          - name: ARTIFACTS_URL
-        steps:
-          - name: upload
-            image: "$(params.BONFIRE_IMAGE)"
-            env:
-              - name: AWS_ACCESS_KEY_ID
-                valueFrom:
-                  secretKeyRef:
-                    name: $(params.AWS_SECRET)
-                    key: aws_access_key_id
-              - name: AWS_SECRET_ACCESS_KEY
-                valueFrom:
-                  secretKeyRef:
-                    name: $(params.AWS_SECRET)
-                    key: aws_secret_access_key
-              - name: AWS_DEFAULT_REGION
-                value: us-east-1
-              - name: BUCKET
-                value: rh-artifacts-bucket
-              - name: ARTIFACTS_KEY
-                value: "$(params.ARTIFACTS_KEY)"
-            script: |
-              #!/bin/bash
-              set -ex
-
-              ARTIFACTS_DIR="$(workspaces.artifacts.path)"
-              mkdir -p "$ARTIFACTS_DIR"
-              bucket="${BUCKET:-rh-artifacts-bucket}"
-              artifacts_key="${ARTIFACTS_KEY:?ARTIFACTS_KEY required}"
-              region="${AWS_DEFAULT_REGION:-us-east-1}"
-              echo "Copying namespace and IQE logs to S3 from $ARTIFACTS_DIR"
-              aws s3 cp --recursive "$ARTIFACTS_DIR" "s3://${bucket}/${artifacts_key}" --quiet
-              url="https://s3.console.aws.amazon.com/s3/buckets/${bucket}?region=${region}&prefix=${artifacts_key}/&showversions=false"
-              echo -n "$url" | tee "$(results.ARTIFACTS_URL.path)"
 
     - name: upload-test-results-to-s3
       onError: continue
@@ -970,11 +850,16 @@ spec:
               fi
               echo "All steps passed."
 
-    - name: release-namespace
+    # Single finally task: Tekton forbids runAfter under spec.finally.
+    # Steps run in order so logs are collected and uploaded before NS release.
+    - name: teardown
       when:
         - input: "$(tasks.verify-snapshot-completeness.results.SKIP_TESTS)"
           operator: in
           values: ["false"]
+      workspaces:
+        - name: artifacts
+          workspace: artifacts
       params:
         - name: NS
           value: "$(tasks.reserve-namespace.results.NS)"
@@ -984,14 +869,88 @@ spec:
           value: "$(params.BONFIRE_IMAGE)"
         - name: EPHEMERAL_ENV_PROVIDER_SECRET
           value: "$(params.EPHEMERAL_ENV_PROVIDER_SECRET)"
+        - name: AWS_SECRET
+          value: "$(params.AWS_SECRET)"
+        - name: ARTIFACTS_KEY
+          value: "$(context.pipelineRun.namespace)/$(context.pipelineRun.name)"
       taskSpec:
         params:
           - name: NS
           - name: NS_REQUESTER
           - name: BONFIRE_IMAGE
           - name: EPHEMERAL_ENV_PROVIDER_SECRET
+          - name: AWS_SECRET
+          - name: ARTIFACTS_KEY
+        workspaces:
+          - name: artifacts
+        results:
+          - name: ARTIFACTS_URL
         steps:
-          - name: release
+          - name: collect-logs
+            onError: continue
+            image: "$(params.BONFIRE_IMAGE)"
+            env:
+              - name: OC_LOGIN_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: $(params.EPHEMERAL_ENV_PROVIDER_SECRET)
+                    key: token
+              - name: OC_LOGIN_SERVER
+                valueFrom:
+                  secretKeyRef:
+                    name: $(params.EPHEMERAL_ENV_PROVIDER_SECRET)
+                    key: url
+              - name: BONFIRE_BOT
+                value: "true"
+            script: |
+              #!/bin/bash
+              set -ex
+
+              echo "Connecting to the ephemeral namespace cluster"
+              login.sh
+
+              ARTIFACTS_DIR="$(workspaces.artifacts.path)"
+              echo "Collecting namespace logs into ${ARTIFACTS_DIR} (IQE junit/log/tar.gz already from collect-iqe-artifacts when deploy succeeded)"
+              collect-logs.sh "$(params.NS)" "$ARTIFACTS_DIR" || :
+
+              echo "Artifacts collected:"
+              ls -la "$ARTIFACTS_DIR"
+
+          - name: upload-logs-to-s3
+            onError: continue
+            image: "$(params.BONFIRE_IMAGE)"
+            env:
+              - name: AWS_ACCESS_KEY_ID
+                valueFrom:
+                  secretKeyRef:
+                    name: $(params.AWS_SECRET)
+                    key: aws_access_key_id
+              - name: AWS_SECRET_ACCESS_KEY
+                valueFrom:
+                  secretKeyRef:
+                    name: $(params.AWS_SECRET)
+                    key: aws_secret_access_key
+              - name: AWS_DEFAULT_REGION
+                value: us-east-1
+              - name: BUCKET
+                value: rh-artifacts-bucket
+              - name: ARTIFACTS_KEY
+                value: "$(params.ARTIFACTS_KEY)"
+            script: |
+              #!/bin/bash
+              set -ex
+
+              ARTIFACTS_DIR="$(workspaces.artifacts.path)"
+              mkdir -p "$ARTIFACTS_DIR"
+              bucket="${BUCKET:-rh-artifacts-bucket}"
+              artifacts_key="${ARTIFACTS_KEY:?ARTIFACTS_KEY required}"
+              region="${AWS_DEFAULT_REGION:-us-east-1}"
+              echo "Copying namespace and IQE logs to S3 from $ARTIFACTS_DIR"
+              aws s3 cp --recursive "$ARTIFACTS_DIR" "s3://${bucket}/${artifacts_key}" --quiet
+              url="https://s3.console.aws.amazon.com/s3/buckets/${bucket}?region=${region}&prefix=${artifacts_key}/&showversions=false"
+              echo -n "$url" | tee "$(results.ARTIFACTS_URL.path)"
+
+          - name: release-namespace
             image: "$(params.BONFIRE_IMAGE)"
             env:
               - name: OC_LOGIN_TOKEN

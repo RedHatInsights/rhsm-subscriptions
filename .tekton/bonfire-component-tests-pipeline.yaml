@@ -462,6 +462,8 @@ spec:
           value: "Deploy Failed: $(params.COMPONENT_NAME)"
         - name: COMMENT_MARKER
           value: "<!-- swatch-ct-results:$(params.COMPONENT_NAME) -->"
+        - name: BONFIRE_COMMAND_FILE
+          value: "$(tasks.deploy-application.results.BONFIRE_COMMAND_FILE)"
         - name: GITHUB_TOKEN_SECRET
           value: "$(params.GITHUB_TOKEN_SECRET)"
       taskRef:
