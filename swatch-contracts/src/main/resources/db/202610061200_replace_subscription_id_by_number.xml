@@ -46,38 +46,65 @@
       <column name="subscription_number" type="varchar(255)"/>
     </addColumn>
 
-    <!--
-      PostgreSQL: hash-join UPDATE FROM (correlated subquery timed out on stage within
-      DATABASE_MIGRATION_TIMEOUT=3min). H2 keeps a correlated UPDATE.
-    -->
+    <!-- Drop measurements constraints/indexes before bulk DML (faster heap UPDATE/DELETE). -->
+    <dropForeignKeyConstraint constraintName="subscription_fk" baseTableName="subscription_measurements"/>
+    <dropPrimaryKey tableName="subscription_measurements" constraintName="subscription_measurements_pk"/>
+    <dropIndex tableName="subscription_measurements" indexName="subscription_id_idx"/>
+
+    <!-- Dedupe subscription first (keep highest subscription_id per number+start_date). -->
+    <sql dbms="postgresql">
+      DELETE FROM subscription
+      WHERE (subscription_id, start_date) IN (
+        SELECT subscription_id, start_date
+        FROM (
+          SELECT subscription_id, start_date,
+                 ROW_NUMBER() OVER (
+                   PARTITION BY subscription_number, start_date
+                   ORDER BY subscription_id DESC
+                 ) AS rn
+          FROM subscription
+          WHERE subscription_number IS NOT NULL AND BTRIM(subscription_number) &lt;&gt; ''
+        ) t
+        WHERE t.rn > 1
+      );
+    </sql>
+    <!-- Drop subscriptions that cannot become the new PK. -->
+    <sql dbms="postgresql">
+      DELETE FROM subscription
+      WHERE subscription_number IS NULL OR BTRIM(subscription_number) = '';
+    </sql>
+    <!-- Backfill measurements without measurement PK/FK/index overhead. -->
     <sql dbms="postgresql">
       UPDATE subscription_measurements sm
       SET subscription_number = s.subscription_number
       FROM subscription s
       WHERE sm.subscription_id = s.subscription_id
         AND sm.start_date = s.start_date;
-
+    </sql>
+    <!-- Orphans / losers / blanks are NULL after C (parent already deduped). -->
+    <sql dbms="postgresql">
       DELETE FROM subscription_measurements
       WHERE subscription_number IS NULL OR BTRIM(subscription_number) = '';
-
-      DELETE FROM subscription_measurements sm
-      USING subscription s
-      WHERE sm.subscription_id = s.subscription_id
-        AND sm.start_date = s.start_date
-        AND EXISTS (
-          SELECT 1 FROM subscription keeper
-          WHERE keeper.subscription_number = s.subscription_number
-            AND keeper.start_date = s.start_date
-            AND keeper.subscription_id > s.subscription_id
-        );
-
-      DELETE FROM subscription s
-      USING subscription keeper
-      WHERE keeper.subscription_number = s.subscription_number
-        AND keeper.start_date = s.start_date
-        AND keeper.subscription_id > s.subscription_id;
     </sql>
     <sql dbms="h2">
+      DELETE FROM subscription
+      WHERE (subscription_id, start_date) IN (
+        SELECT subscription_id, start_date
+        FROM (
+          SELECT subscription_id, start_date,
+                 ROW_NUMBER() OVER (
+                   PARTITION BY subscription_number, start_date
+                   ORDER BY subscription_id DESC
+                 ) AS rn
+          FROM subscription
+          WHERE subscription_number IS NOT NULL AND TRIM(subscription_number) &lt;&gt; ''
+        ) t
+        WHERE t.rn &gt; 1
+      );
+
+      DELETE FROM subscription
+      WHERE subscription_number IS NULL OR TRIM(subscription_number) = '';
+
       UPDATE subscription_measurements sm
       SET subscription_number = (
         SELECT s.subscription_number FROM subscription s
@@ -85,40 +112,16 @@
       );
 
       DELETE FROM subscription_measurements
-      WHERE subscription_number IS NULL OR TRIM(subscription_number) = ''
-         OR EXISTS (
-           SELECT 1 FROM subscription s
-           WHERE s.subscription_id = subscription_measurements.subscription_id
-             AND s.start_date = subscription_measurements.start_date
-             AND EXISTS (
-               SELECT 1 FROM subscription keeper
-               WHERE keeper.subscription_number = s.subscription_number
-                 AND keeper.start_date = s.start_date
-                 AND keeper.subscription_id > s.subscription_id
-             )
-         );
-
-      DELETE FROM subscription
-      WHERE EXISTS (
-        SELECT 1 FROM subscription keeper
-        WHERE keeper.subscription_number = subscription.subscription_number
-          AND keeper.start_date = subscription.start_date
-          AND keeper.subscription_id > subscription.subscription_id
-      );
+      WHERE subscription_number IS NULL OR TRIM(subscription_number) = '';
     </sql>
 
-    <addNotNullConstraint tableName="subscription_measurements" columnName="subscription_number"/>
-
-    <!-- Delete existing constraints -->
-    <dropForeignKeyConstraint constraintName="subscription_fk" baseTableName="subscription_measurements"/>
-    <dropPrimaryKey tableName="subscription_measurements" constraintName="subscription_measurements_pk"/>
     <dropPrimaryKey tableName="subscription" constraintName="subscription_pkey"/>
-    <dropIndex tableName="subscription_measurements" indexName="subscription_id_idx"/>
-
-    <!-- Add new constraints -->
     <addPrimaryKey tableName="subscription"
       columnNames="subscription_number, start_date"
       constraintName="subscription_pkey"/>
+
+    <addNotNullConstraint tableName="subscription_measurements" columnName="subscription_number"/>
+
     <addPrimaryKey tableName="subscription_measurements"
       columnNames="subscription_number, start_date, metric_id, measurement_type"
       constraintName="subscription_measurements_pk"/>
