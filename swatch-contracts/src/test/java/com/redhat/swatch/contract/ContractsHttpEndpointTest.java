@@ -74,7 +74,6 @@ class ContractsHttpEndpointTest {
     when(contractService.createContract(any())).thenReturn(response);
     ContractRequest request = new ContractRequest();
     request.setPartnerEntitlement(new PartnerEntitlementV1());
-    request.setSubscriptionId("any");
     given()
         .contentType(ContentType.JSON)
         .body(request)

@@ -35,7 +35,6 @@ public final class SubscriptionRequestMapper {
     }
 
     Subscription request = new Subscription();
-    request.setId(Integer.valueOf(subscription.getSubscriptionId()));
     request.setSubscriptionNumber(subscription.getSubscriptionNumber());
     request.setWebCustomerId(Integer.valueOf(subscription.getOrgId()));
     if (subscription.getStartDate() != null) {
@@ -59,9 +58,6 @@ public final class SubscriptionRequestMapper {
       if (subscription.getBillingAccountId() != null) {
         externalRef.setAccountID(subscription.getBillingAccountId());
         externalRef.setCustomerAccountID(subscription.getBillingAccountId());
-      }
-      if (subscription.getSubscriptionId() != null) {
-        externalRef.setSubscriptionID(subscription.getSubscriptionId());
       }
 
       // For AWS contracts, populate the required fields for external reference
