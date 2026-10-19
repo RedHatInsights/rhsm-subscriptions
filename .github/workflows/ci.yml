@@ -4,9 +4,7 @@ on:
   push:
     branches: [main, hotfix]
   pull_request:
-    branches: [main, hotfix]
     types: [opened, synchronize, reopened]
-  merge_group:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
