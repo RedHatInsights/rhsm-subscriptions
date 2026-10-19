@@ -8,7 +8,7 @@ metadata:
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/cancel-in-progress: "true"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" || (event == "push" && target_branch.startsWith("gh-readonly-queue/"))
+    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request"
   creationTimestamp:
   labels:
     appstudio.openshift.io/application: rhsm-subscriptions
