@@ -88,8 +88,8 @@ public class KesselMicrometerRecorder implements KesselMetricsRecorder {
   public void recordCallerNotAuthorized() {
     Counter.builder(METRIC_CALLER_NOT_AUTHORIZED)
         .description(
-            "Kessel Check requests rejected because SWATCH service is not authorized"
-                + " (PERMISSION_DENIED - OAuth2 failure)")
+            "Kessel Check requests rejected due to caller authorization failure"
+                + " (PERMISSION_DENIED: not authorized, or persistent UNAUTHENTICATED: OAuth2 failure)")
         .register(registry)
         .increment();
   }

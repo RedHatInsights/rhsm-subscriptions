@@ -27,6 +27,7 @@ import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.project_kessel.api.auth.OAuth2ClientCredentials;
@@ -101,8 +102,9 @@ public class KesselAuthorizationClient {
       WorkspaceResolver workspaceResolver,
       KesselMetricsRecorder metricsRecorder,
       OAuth2ClientCredentials oauth2Credentials) {
-    this.config = config;
-    this.workspaceResolver = workspaceResolver;
+    this.config = Objects.requireNonNull(config, "config cannot be null");
+    this.workspaceResolver =
+        Objects.requireNonNull(workspaceResolver, "workspaceResolver cannot be null");
     this.metricsRecorder = metricsRecorder != null ? metricsRecorder : KesselMetricsRecorder.NOOP;
     this.oauth2Credentials = oauth2Credentials;
   }
@@ -250,20 +252,20 @@ public class KesselAuthorizationClient {
       try {
         CheckResponse response =
             getClient().withDeadlineAfter(config.timeoutMs(), TimeUnit.MILLISECONDS).check(request);
-        boolean allowed = response.getAllowed() == Allowed.ALLOWED_TRUE;
+        boolean isAllowed = response.getAllowed() == Allowed.ALLOWED_TRUE;
 
         recordCheckMetric(true, METRICS_SUCCESS);
-        recordPermissionResult(allowed);
+        recordPermissionResult(isAllowed);
 
         log.debug(
             "Kessel {} subject={}/{} relation={} on workspace={} (permission={})",
-            allowed ? "allowed" : "denied",
+            isAllowed ? "allowed" : "denied",
             KESSEL_DOMAIN,
             subjectId,
             relation,
             workspaceId,
             permission);
-        return allowed;
+        return isAllowed;
       } catch (StatusRuntimeException e) {
         RuntimeException exception =
             handleGrpcException(e, hasRetriedUnauthenticated, attemptChannel);
@@ -481,9 +483,9 @@ public class KesselAuthorizationClient {
   }
 
   /** Record user permission result (granted vs denied), catching recorder failures. */
-  private void recordPermissionResult(boolean allowed) {
+  private void recordPermissionResult(boolean isAllowed) {
     try {
-      if (allowed) {
+      if (isAllowed) {
         metricsRecorder.recordUserPermissionGranted();
       } else {
         metricsRecorder.recordUserPermissionDenied();
@@ -491,7 +493,7 @@ public class KesselAuthorizationClient {
     } catch (Exception e) {
       log.warn(
           "Metrics recording error for kessel_user_permission_{}: {}",
-          allowed ? "granted" : "denied",
+          isAllowed ? "granted" : "denied",
           e.getMessage());
     }
   }

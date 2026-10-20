@@ -61,10 +61,11 @@ public interface KesselMetricsRecorder {
   void recordUserPermissionDenied();
 
   /**
-   * Record when Kessel rejects the Check call with PERMISSION_DENIED.
+   * Record when Kessel rejects the Check call due to caller authorization failure.
    *
-   * <p>This indicates the caller (SWATCH service) is not authorized to execute Check API. This is a
-   * system error - OAuth2 credentials are invalid/expired, NOT a user permission denial.
+   * <p>Recorded for PERMISSION_DENIED (caller not authorized to execute Check API) or persistent
+   * UNAUTHENTICATED (OAuth2 credentials invalid/expired after retry). This is a system error
+   * indicating the SWATCH service cannot authenticate to Kessel, NOT a user permission denial.
    */
   void recordCallerNotAuthorized();
 
