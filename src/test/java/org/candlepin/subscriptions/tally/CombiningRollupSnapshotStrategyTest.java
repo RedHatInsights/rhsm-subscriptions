@@ -381,10 +381,11 @@ class CombiningRollupSnapshotStrategyTest {
     existingHourlySnapshot3.setId(UUID.randomUUID());
     existingHourlySnapshot3.setBillingProvider(BillingProvider.AWS);
 
-    when(repo.findSnapshotsWithMeasurementsForRolling(
-            any(), any(), eq(Granularity.HOURLY), any(), any()))
-        .thenReturn(
-            List.of(existingHourlySnapshot1, existingHourlySnapshot2, existingHourlySnapshot3));
+    givenSnapshots(
+        Granularity.HOURLY,
+        existingHourlySnapshot1,
+        existingHourlySnapshot2,
+        existingHourlySnapshot3);
 
     TallySnapshot existingDailySnapshot1 =
         createTallySnapshot(Granularity.DAILY, "2021-02-25T00:00:00Z", 4.0);
@@ -440,6 +441,12 @@ class CombiningRollupSnapshotStrategyTest {
     assertThat(
         talliesSaved,
         containsInAnyOrder(expectedHourly1, expectedHourly2, expectedDaily1, expectedDaily2));
+    assertThat(
+        talliesSaved.stream()
+            .filter(s -> s.getGranularity() == Granularity.HOURLY)
+            .map(TallySnapshot::getId)
+            .toList(),
+        containsInAnyOrder(existingHourlySnapshot1.getId(), existingHourlySnapshot2.getId()));
   }
 
   @Test
@@ -489,7 +496,7 @@ class CombiningRollupSnapshotStrategyTest {
   void testExistingOlderFinestGranularitySnapshotMeasurementsPreserved() {
     TallySnapshot existingSnapshot =
         createTallySnapshot(Granularity.HOURLY, "2022-10-24T12:00:00Z", 4.0);
-    givenSnapshots(existingSnapshot);
+    givenSnapshots(Granularity.HOURLY, existingSnapshot);
     combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
         "org123",
         new DateRange(
@@ -509,7 +516,7 @@ class CombiningRollupSnapshotStrategyTest {
   void testExistingNewerFinestGranularitySnapshotMeasurementsPreserved() {
     TallySnapshot existingSnapshot =
         createTallySnapshot(Granularity.HOURLY, "2022-10-24T14:00:00Z", 4.0);
-    givenSnapshots(existingSnapshot);
+    givenSnapshots(Granularity.HOURLY, existingSnapshot);
     combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
         "org123",
         new DateRange(
@@ -529,7 +536,7 @@ class CombiningRollupSnapshotStrategyTest {
   void testFinestGranularitySnapshotUnmodifiedWhenUsageNotPresent() {
     TallySnapshot existingSnapshot =
         createTallySnapshot(Granularity.HOURLY, "2022-10-24T13:00:00Z", 4.0);
-    givenSnapshots(existingSnapshot);
+    givenSnapshots(Granularity.HOURLY, existingSnapshot);
     when(repo.save(any())).then(invocation -> invocation.getArgument(0));
     Map<String, List<TallySnapshot>> snaps =
         combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
