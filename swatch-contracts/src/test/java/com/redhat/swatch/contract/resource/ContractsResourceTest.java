@@ -490,7 +490,7 @@ class ContractsResourceTest {
   @ValueSource(strings = {"   "})
   void shouldFailWhenAwsUsageContextHasBlankBillingAccountId(String billingAccountId) {
     SubscriptionEntity sub = new SubscriptionEntity();
-    sub.setSubscriptionId("sub-blank-billing-account");
+    sub.setSubscriptionNumber("sub-blank-billing-account");
     sub.setBillingProviderId("foo1;foo2;foo3");
     sub.setBillingAccountId(billingAccountId);
     sub.setEndDate(defaultEndDate);

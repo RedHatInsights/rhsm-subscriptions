@@ -112,7 +112,6 @@ class ContractServiceTest extends BaseUnitTest {
   private static final String SKU = "RH000000";
   private static final String PRODUCT_TAG = "rosa";
   private static final String SUBSCRIPTION_NUMBER = "13294886";
-  private static final String SUBSCRIPTION_ID = "123456";
 
   /** Matches WireMockResource AWS partnerSubscriptions stub used by createPartnerContract. */
   private static final String PARTNER_API_AWS_SUBSCRIPTION_NUMBER = "123456";
@@ -290,7 +289,7 @@ class ContractServiceTest extends BaseUnitTest {
     PartnerEntitlementV1 contract = givenContractWithoutRequiredData();
     assertThrows(
         ContractValidationFailedException.class,
-        () -> contractService.upsertPartnerContracts(contract, null));
+        () -> contractService.upsertPartnerContracts(contract));
   }
 
   @Test
@@ -957,7 +956,6 @@ class ContractServiceTest extends BaseUnitTest {
   @Transactional
   SubscriptionEntity givenExistingSubscription(String billingProviderId, OffsetDateTime startDate) {
     SubscriptionEntity subscription = new SubscriptionEntity();
-    subscription.setSubscriptionId(SUBSCRIPTION_ID);
     subscription.setSubscriptionNumber(SUBSCRIPTION_NUMBER);
     subscription.setStartDate(startDate);
     subscription.setBillingProviderId(billingProviderId);
@@ -1077,7 +1075,6 @@ class ContractServiceTest extends BaseUnitTest {
     contract.setCloudIdentifiers(cloudIdentifiers);
 
     ContractRequest contractRequest = new ContractRequest();
-    contractRequest.setSubscriptionId(SUBSCRIPTION_ID);
     contractRequest.setPartnerEntitlement(entitlement);
     entitlement.setPartnerIdentities(partnerIdentity);
     entitlement.setPurchase(purchase);
@@ -1206,8 +1203,7 @@ class ContractServiceTest extends BaseUnitTest {
 
   private static ArgumentMatcher<SubscriptionEntity> sameSubscription(SubscriptionEntity expected) {
     return actual ->
-        actual.getSubscriptionNumber().equals(expected.getSubscriptionNumber())
-            && Objects.equals(actual.getSubscriptionId(), expected.getSubscriptionId())
+        Objects.equals(actual.getSubscriptionNumber(), expected.getSubscriptionNumber())
             && Objects.equals(actual.getStartDate(), expected.getStartDate());
   }
 

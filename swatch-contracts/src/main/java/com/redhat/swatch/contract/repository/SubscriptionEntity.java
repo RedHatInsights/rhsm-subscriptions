@@ -64,9 +64,6 @@ import lombok.ToString;
 public class SubscriptionEntity extends ModificationTrackedEntity {
 
   @Id
-  @Column(name = "subscription_id")
-  private String subscriptionId;
-
   @Column(name = "subscription_number", nullable = false)
   private String subscriptionNumber;
 
@@ -101,7 +98,7 @@ public class SubscriptionEntity extends ModificationTrackedEntity {
   @CollectionTable(
       name = "subscription_measurements",
       joinColumns = {
-        @JoinColumn(name = "subscription_id", referencedColumnName = "subscription_id"),
+        @JoinColumn(name = "subscription_number", referencedColumnName = "subscription_number"),
         @JoinColumn(name = "start_date", referencedColumnName = "start_date")
       })
   @Column(name = "value")
@@ -125,8 +122,7 @@ public class SubscriptionEntity extends ModificationTrackedEntity {
       return false;
     }
 
-    return Objects.equals(subscriptionId, sub.getSubscriptionId())
-        && Objects.equals(subscriptionNumber, sub.getSubscriptionNumber())
+    return Objects.equals(subscriptionNumber, sub.getSubscriptionNumber())
         && Objects.equals(orgId, sub.getOrgId())
         && Objects.equals(quantity, sub.getQuantity())
         && Objects.equals(startDate, sub.getStartDate())
@@ -140,7 +136,6 @@ public class SubscriptionEntity extends ModificationTrackedEntity {
   @Override
   public int hashCode() {
     return Objects.hash(
-        subscriptionId,
         subscriptionNumber,
         orgId,
         quantity,
@@ -157,11 +152,11 @@ public class SubscriptionEntity extends ModificationTrackedEntity {
   @Setter
   @ToString
   public static class SubscriptionCompoundId implements Serializable {
-    private String subscriptionId;
+    private String subscriptionNumber;
     private OffsetDateTime startDate;
 
-    public SubscriptionCompoundId(String subscriptionId, OffsetDateTime startDate) {
-      this.subscriptionId = subscriptionId;
+    public SubscriptionCompoundId(String subscriptionNumber, OffsetDateTime startDate) {
+      this.subscriptionNumber = subscriptionNumber;
       this.startDate = startDate;
     }
 
@@ -178,13 +173,13 @@ public class SubscriptionEntity extends ModificationTrackedEntity {
         return false;
       }
 
-      return Objects.equals(subscriptionId, subscription.getSubscriptionId())
+      return Objects.equals(subscriptionNumber, subscription.getSubscriptionNumber())
           && Objects.equals(startDate, subscription.getStartDate());
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(subscriptionId, startDate);
+      return Objects.hash(subscriptionNumber, startDate);
     }
   }
 
@@ -370,8 +365,8 @@ public class SubscriptionEntity extends ModificationTrackedEntity {
           .where(
               builder.and(
                   builder.equal(
-                      subRoot.get(SubscriptionEntity_.subscriptionId),
-                      root.get(SubscriptionEntity_.subscriptionId)),
+                      subRoot.get(SubscriptionEntity_.subscriptionNumber),
+                      root.get(SubscriptionEntity_.subscriptionNumber)),
                   builder.equal(
                       subRoot.get(SubscriptionEntity_.orgId),
                       root.get(SubscriptionEntity_.orgId))));

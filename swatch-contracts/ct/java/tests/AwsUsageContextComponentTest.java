@@ -156,13 +156,11 @@ public class AwsUsageContextComponentTest extends BaseContractComponentTest {
     Contract contractA =
         baseContract.toBuilder()
             .subscriptionNumber(subscriptionA)
-            .subscriptionId(subscriptionA)
             .licenseId(awsLicenseArn(subscriptionA))
             .build();
     Contract contractB =
         baseContract.toBuilder()
             .subscriptionNumber(subscriptionB)
-            .subscriptionId(subscriptionB)
             .licenseId(awsLicenseArn(subscriptionB))
             .build();
     givenContractIsCreated(contractA);

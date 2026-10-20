@@ -156,15 +156,10 @@ public class ContractsRetrievalComponentTest extends BaseContractComponentTest {
     Contract withLicense =
         shared.toBuilder()
             .subscriptionNumber(subscriptionWithLicense)
-            .subscriptionId(subscriptionWithLicense)
             .licenseId(awsLicenseArn(subscriptionWithLicense))
             .build();
     Contract withoutLicense =
-        shared.toBuilder()
-            .subscriptionNumber(subscriptionWithoutLicense)
-            .subscriptionId(subscriptionWithoutLicense)
-            .licenseId(null)
-            .build();
+        shared.toBuilder().subscriptionNumber(subscriptionWithoutLicense).licenseId(null).build();
     givenContractIsCreated(withLicense);
     givenContractIsCreated(withoutLicense);
 
@@ -251,7 +246,6 @@ public class ContractsRetrievalComponentTest extends BaseContractComponentTest {
         .orgId(orgId)
         .product(product)
         .offering(Offering.buildRosaOffering(seed))
-        .subscriptionId(seed)
         .subscriptionNumber(seed)
         .startDate(OffsetDateTime.now().minusDays(1))
         .endDate(OffsetDateTime.now().plusDays(1));

@@ -54,7 +54,7 @@ public class TallySummaryMessagesByAttributesPaygTest extends BaseTallyComponent
 
   @Test
   @TestPlanName("tally-summary-by-attributes-payg-TC001")
-  public void testTallySummarySeparatesMeasurementsBySla() {
+  public void testTallyHourlySummarySeparatesMeasurementsBySla() {
     // Given: Events for each SLA type and one event with no SLA
     // (Empty SLA events default to PREMIUM during processing)
     OffsetDateTime now = OffsetDateTime.now();
@@ -82,7 +82,7 @@ public class TallySummaryMessagesByAttributesPaygTest extends BaseTallyComponent
 
   @Test
   @TestPlanName("tally-summary-by-attributes-payg-TC002")
-  public void testTallySummarySeparatesMeasurementsByUsage() {
+  public void testTallyHourlySummarySeparatesMeasurementsByUsage() {
     // Given: Events for each Usage type and one event with no Usage
     // (Empty usage events default to PRODUCTION during processing)
     OffsetDateTime now = OffsetDateTime.now();
@@ -110,7 +110,7 @@ public class TallySummaryMessagesByAttributesPaygTest extends BaseTallyComponent
 
   @Test
   @TestPlanName("tally-summary-by-attributes-payg-TC003")
-  public void testTallySummarySeparatesMeasurementsByBillingAccountId() {
+  public void testTallyHourlySummarySeparatesMeasurementsByBillingAccountId() {
     // Given: Events for two different billing account IDs
     OffsetDateTime now = OffsetDateTime.now();
     publishBillingAccountEvent(now, billingAccountIds.get(0), 10.0f);
@@ -143,7 +143,7 @@ public class TallySummaryMessagesByAttributesPaygTest extends BaseTallyComponent
 
   @Test
   @TestPlanName("tally-summary-by-attributes-payg-TC004")
-  public void testTallySummaryMeasurementsWhenSingleHostChangesBillingAccountId() {
+  public void testTallyHourlySummaryMeasurementsWhenSingleHostChangesBillingAccountId() {
     // Given: Same instance sends events under two different billing account IDs
     OffsetDateTime now = OffsetDateTime.now();
     String instanceId = UUID.randomUUID().toString();
@@ -187,7 +187,7 @@ public class TallySummaryMessagesByAttributesPaygTest extends BaseTallyComponent
 
   @Test
   @TestPlanName("tally-summary-by-attributes-payg-TC005")
-  public void testTallySummarySeparatesMeasurementsByBillingProvider() {
+  public void testTallyHourlySummarySeparatesMeasurementsByBillingProvider() {
     // Given: Events for two different billing providers
     OffsetDateTime now = OffsetDateTime.now();
     publishBillingProviderEvent(now, billingProviders.get(0), 10.0f);

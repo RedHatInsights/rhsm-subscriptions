@@ -36,7 +36,6 @@ import lombok.experimental.SuperBuilder;
 public class Subscription {
   private final String orgId;
   private final Product product;
-  private final String subscriptionId;
   private final String subscriptionNumber;
   private final Offering offering;
   private final OffsetDateTime startDate;
@@ -71,7 +70,6 @@ public class Subscription {
                 Objects.requireNonNullElse(sku, seed),
                 capacity.getOrDefault(MetricIdUtils.getCores(), null),
                 capacity.getOrDefault(MetricIdUtils.getSockets(), null)))
-        .subscriptionId(seed)
         .subscriptionNumber(seed)
         .startDate(OffsetDateTime.now().minusDays(1))
         .endDate(OffsetDateTime.now().plusDays(1))
@@ -94,7 +92,6 @@ public class Subscription {
                 Objects.requireNonNullElse(sku, seed),
                 capacity.getOrDefault(MetricIdUtils.getCores(), null),
                 capacity.getOrDefault(MetricIdUtils.getSockets(), null)))
-        .subscriptionId(seed)
         .subscriptionNumber(seed)
         .startDate(OffsetDateTime.now().minusDays(1))
         .endDate(OffsetDateTime.now().plusDays(1))

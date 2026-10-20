@@ -25,9 +25,13 @@ public interface FeatureFlags {
   String ENABLE_PRIMARY_ROW_SEARCHES = "swatch.swatch-tally.enable-primary-row-searches";
   String ENABLE_HTB_PRIMARY_ROW_SEARCHES =
       "swatch.swatch-tally.enable-host-tally-bucket-primary-row-searches";
+  String ENABLE_EVENT_DRIVEN_TALLY = "swatch.swatch-tally.enable-event-driven-tally";
   String USE_KESSEL_RBAC = "swatch.common-security.use-kessel-rbac";
   String[] FLAG_LIST = {
-    ENABLE_PRIMARY_ROW_SEARCHES, ENABLE_HTB_PRIMARY_ROW_SEARCHES, USE_KESSEL_RBAC
+    ENABLE_PRIMARY_ROW_SEARCHES,
+    ENABLE_HTB_PRIMARY_ROW_SEARCHES,
+    ENABLE_EVENT_DRIVEN_TALLY,
+    USE_KESSEL_RBAC
   };
 
   boolean isEnabled(String featureName);

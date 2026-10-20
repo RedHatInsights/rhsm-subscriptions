@@ -7,6 +7,11 @@
 
 
   <changeSet id="202405081325-1" author="kflahert" dbms="postgresql">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <tableExists tableName="DATABASECHANGELOGLOCK_SWATCH_CONTRACTS"/>
+      </not>
+    </preConditions>
     <comment>Delete duplicated subscriptions for AWS</comment>
     <sql>
       SELECT * INTO SUBSCRIPTION_MEASUREMENTS_BACKUP FROM SUBSCRIPTION_MEASUREMENTS measurement
