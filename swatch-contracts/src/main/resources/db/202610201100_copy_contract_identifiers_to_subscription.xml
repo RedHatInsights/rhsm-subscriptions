@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+  <changeSet id="202610201100-01" author="vbusch">
+    <preConditions onFail="HALT">
+      <!--
+        Several contracts can share a subscription number and start date. Match on the shared
+        subscription attributes so duplicate keys with different attributes do not make the
+        backfill ambiguous. Identical values and a null plus populated license are safe to merge.
+      -->
+      <sqlCheck expectedResult="0">
+        SELECT COUNT(*)
+        FROM (
+          SELECT s.subscription_number, s.start_date, s.org_id, s.sku,
+                 s.billing_provider, s.billing_provider_id, s.billing_account_id
+          FROM subscription s
+          JOIN contracts c
+            ON c.subscription_number = s.subscription_number
+            AND c.start_date = s.start_date
+            AND c.org_id IS NOT DISTINCT FROM s.org_id
+            AND c.sku IS NOT DISTINCT FROM s.sku
+            AND c.billing_provider IS NOT DISTINCT FROM s.billing_provider
+            AND c.billing_provider_id IS NOT DISTINCT FROM s.billing_provider_id
+            AND c.billing_account_id IS NOT DISTINCT FROM s.billing_account_id
+          GROUP BY s.subscription_number, s.start_date, s.org_id, s.sku,
+                   s.billing_provider, s.billing_provider_id, s.billing_account_id
+          HAVING COUNT(DISTINCT c.vendor_product_code) > 1
+              OR COUNT(DISTINCT c.license_id) > 1
+        ) ambiguous_matches
+      </sqlCheck>
+    </preConditions>
+
+    <addColumn tableName="subscription">
+      <column name="vendor_product_code" type="VARCHAR"/>
+      <column name="license_id" type="VARCHAR"/>
+    </addColumn>
+
+    <sql>
+      UPDATE subscription s
+      SET (vendor_product_code, license_id) = (
+        SELECT MAX(c.vendor_product_code), MAX(c.license_id)
+        FROM contracts c
+        WHERE c.subscription_number = s.subscription_number
+          AND c.start_date = s.start_date
+          AND c.org_id IS NOT DISTINCT FROM s.org_id
+          AND c.sku IS NOT DISTINCT FROM s.sku
+          AND c.billing_provider IS NOT DISTINCT FROM s.billing_provider
+          AND c.billing_provider_id IS NOT DISTINCT FROM s.billing_provider_id
+          AND c.billing_account_id IS NOT DISTINCT FROM s.billing_account_id
+      )
+      WHERE EXISTS (
+        SELECT 1
+        FROM contracts c
+        WHERE c.subscription_number = s.subscription_number
+          AND c.start_date = s.start_date
+          AND c.org_id IS NOT DISTINCT FROM s.org_id
+          AND c.sku IS NOT DISTINCT FROM s.sku
+          AND c.billing_provider IS NOT DISTINCT FROM s.billing_provider
+          AND c.billing_provider_id IS NOT DISTINCT FROM s.billing_provider_id
+          AND c.billing_account_id IS NOT DISTINCT FROM s.billing_account_id
+      )
+    </sql>
+
+    <rollback>
+      <dropColumn tableName="subscription" columnName="license_id"/>
+      <dropColumn tableName="subscription" columnName="vendor_product_code"/>
+    </rollback>
+  </changeSet>
+</databaseChangeLog>

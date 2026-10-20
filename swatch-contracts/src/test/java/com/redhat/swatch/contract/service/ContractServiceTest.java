@@ -150,6 +150,8 @@ class ContractServiceTest extends BaseUnitTest {
   @Test
   void testSaveContracts() {
     ContractRequest request = givenContractRequest();
+    String licenseId = "arn:aws:license-manager:us-east-1:000000000000:license:test";
+    request.getPartnerEntitlement().getPartnerIdentities().setLicenseArn(licenseId);
     Contract response = contractService.createContract(request).getContract();
 
     ContractEntity entity = contractRepository.findById(UUID.fromString(response.getUuid()));
@@ -157,6 +159,11 @@ class ContractServiceTest extends BaseUnitTest {
         request.getPartnerEntitlement().getRhEntitlements().get(0).getSku(),
         entity.getOffering().getSku());
     assertEquals(response.getUuid(), entity.getUuid().toString());
+    SubscriptionEntity subscription = subscriptionService.findByContract(entity).getFirst();
+    assertEquals(
+        request.getPartnerEntitlement().getPurchase().getVendorProductCode(),
+        subscription.getVendorProductCode());
+    assertEquals(licenseId, subscription.getLicenseId());
     verify(subscriptionService).save(any(SubscriptionEntity.class));
     verify(measurementMetricIdTransformer).mapContractMetricsToSubscriptionMeasurements(any());
   }
@@ -785,10 +792,23 @@ class ContractServiceTest extends BaseUnitTest {
   }
 
   @Test
+  @Transactional
   void testSyncSubscriptionsForContractsByOrg() {
     ContractEntity contract = givenExistingContract();
+    contract.setVendorProductCode("updated-vendor-product-code");
+    contract.setLicenseId("updated-license-id");
+    contractRepository.persist(contract);
+
     var expectedSubscription = subscriptionService.findByContract(contract).getFirst();
+    expectedSubscription.setVendorProductCode(null);
+    expectedSubscription.setLicenseId(null);
+
     contractService.syncSubscriptionsForContractsByOrg(ORG_ID);
+
+    var syncedSubscriptions = subscriptionService.findByContract(contract);
+    SubscriptionEntity syncedSubscription = syncedSubscriptions.getFirst();
+    assertEquals("updated-vendor-product-code", syncedSubscription.getVendorProductCode());
+    assertEquals("updated-license-id", syncedSubscription.getLicenseId());
     verify(subscriptionService).save(argThat(sameSubscription(expectedSubscription)));
   }
 

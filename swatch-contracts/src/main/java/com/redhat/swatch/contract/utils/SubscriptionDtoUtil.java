@@ -83,6 +83,15 @@ public class SubscriptionDtoUtil {
     return subId != null && !subId.isEmpty() ? subId : null;
   }
 
+  public static String extractVendorProductCode(Subscription subscription) {
+    Map<String, ExternalReference> externalRefs = subscription.getExternalReferences();
+    if (externalRefs == null) {
+      return null;
+    }
+    ExternalReference awsMarketplace = externalRefs.get(AWS_MARKETPLACE);
+    return awsMarketplace == null ? null : awsMarketplace.getProductCode();
+  }
+
   public static BillingProvider populateBillingProvider(Subscription subscription) {
     if (subscription.getExternalReferences() != null) {
       if (subscription.getExternalReferences().containsKey(IBMMARKETPLACE)) {

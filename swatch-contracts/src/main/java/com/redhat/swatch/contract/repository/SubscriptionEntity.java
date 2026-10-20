@@ -93,6 +93,12 @@ public class SubscriptionEntity extends ModificationTrackedEntity {
   @Column(name = "billing_provider")
   private BillingProvider billingProvider;
 
+  @Column(name = "vendor_product_code")
+  private String vendorProductCode;
+
+  @Column(name = "license_id")
+  private String licenseId;
+
   @Builder.Default
   @ElementCollection
   @CollectionTable(
@@ -129,6 +135,8 @@ public class SubscriptionEntity extends ModificationTrackedEntity {
         && Objects.equals(endDate, sub.getEndDate())
         && Objects.equals(billingProviderId, sub.getBillingProviderId())
         && Objects.equals(billingAccountId, sub.getBillingAccountId())
+        && Objects.equals(vendorProductCode, sub.getVendorProductCode())
+        && Objects.equals(licenseId, sub.getLicenseId())
         && Objects.equals(billingProvider, sub.getBillingProvider())
         && Objects.equals(offering, sub.getOffering());
   }
@@ -143,6 +151,8 @@ public class SubscriptionEntity extends ModificationTrackedEntity {
         endDate,
         billingProviderId,
         billingAccountId,
+        vendorProductCode,
+        licenseId,
         billingProvider,
         offering);
   }

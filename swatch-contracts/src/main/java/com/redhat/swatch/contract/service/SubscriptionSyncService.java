@@ -203,6 +203,8 @@ public class SubscriptionSyncService {
       if (existingSubscription.quantityHasChanged(newOrUpdated.getQuantity())) {
         existingSubscription.endSubscription();
         subscriptionService.terminate(existingSubscription);
+        // The Search API may provide vendorProductCode; licenseId comes from contract sync.
+        // Preserve stored values when this sync source omits them.
         final SubscriptionEntity newSub =
             SubscriptionEntity.builder()
                 .subscriptionNumber(newOrUpdated.getSubscriptionNumber())
@@ -214,6 +216,11 @@ public class SubscriptionSyncService {
                 .billingProviderId(newOrUpdated.getBillingProviderId())
                 .billingAccountId(newOrUpdated.getBillingAccountId())
                 .billingProvider(newOrUpdated.getBillingProvider())
+                .vendorProductCode(
+                    StringUtils.isNotBlank(newOrUpdated.getVendorProductCode())
+                        ? newOrUpdated.getVendorProductCode()
+                        : existingSubscription.getVendorProductCode())
+                .licenseId(existingSubscription.getLicenseId())
                 .build();
         capacityReconciliationService.reconcileCapacityForSubscription(newSub);
         subscriptionService.save(newSub);
@@ -280,6 +287,10 @@ public class SubscriptionSyncService {
               }
               if (subscription.getBillingProviderId() == null) {
                 subscription.setBillingProviderId(existingData.getBillingProviderId());
+              }
+              if (StringUtils.isBlank(subscription.getVendorProductCode())
+                  && StringUtils.isNotBlank(existingData.getVendorProductCode())) {
+                subscription.setVendorProductCode(existingData.getVendorProductCode());
               }
             });
   }
@@ -522,6 +533,7 @@ public class SubscriptionSyncService {
         .billingProviderId(SubscriptionDtoUtil.extractBillingProviderId(subscription))
         .billingProvider(SubscriptionDtoUtil.populateBillingProvider(subscription))
         .billingAccountId(SubscriptionDtoUtil.extractBillingAccountId(subscription))
+        .vendorProductCode(SubscriptionDtoUtil.extractVendorProductCode(subscription))
         .build();
   }
 
@@ -543,6 +555,9 @@ public class SubscriptionSyncService {
     entity.setBillingProvider(newOrUpdated.getBillingProvider());
     entity.setBillingAccountId(newOrUpdated.getBillingAccountId());
     entity.setBillingProviderId(newOrUpdated.getBillingProviderId());
+    if (StringUtils.isNotBlank(newOrUpdated.getVendorProductCode())) {
+      entity.setVendorProductCode(newOrUpdated.getVendorProductCode());
+    }
     entity.setOrgId(newOrUpdated.getOrgId());
     // recalculate the subscription measurements and product IDs in case those have changed
     capacityReconciliationService.reconcileCapacityForSubscription(entity);
