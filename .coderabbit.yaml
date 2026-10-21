@@ -1,6 +1,15 @@
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 # See https://docs.coderabbit.ai/reference/configuration for all fields and default values
 language: en
+
+# Inherit Kessel integration review rules from the Kessel team's centralized config.
+# See: https://inscope.corp.redhat.com/docs/default/component/kessel-internal-docs/using-kessel/coderabbit-reviews/
+inheritance: true
+remote_config:
+  repository: "project-kessel/docs"
+  ref: "main"
+  path: ".coderabbit.yaml"
+
 reviews:
   request_changes_workflow: false
   high_level_summary: true
