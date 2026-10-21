@@ -33,7 +33,7 @@ Test cases are organized by functional area for easier navigation and maintenanc
 
 **Functional Area:** Event ingestion, conflict resolution, data transformation, and summary message output
 
-**Test Coverage (38 tests):**
+**Test Coverage (41 tests):**
 - Tally Conflict Handling
 - Product Tag and Metric Filtering
 - Hypervisor Handling
@@ -130,10 +130,10 @@ Each test file should correspond to a specific test case section in the function
 
 ## Quick Reference
 
-**Total Test Coverage:** 162 tests across 5 functional areas
+**Total Test Coverage:** 165 tests across 5 functional areas
 
 **By Test Count:**
-- Tally Processing Pipeline: 38 tests
+- Tally Processing Pipeline: 41 tests
 - Tally Reports API: 42 tests
 - Instance Reports API: 40 tests
 - RBAC Authorization: 38 tests

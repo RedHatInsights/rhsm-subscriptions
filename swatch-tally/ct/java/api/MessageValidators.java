@@ -21,13 +21,39 @@
 package api;
 
 import com.redhat.swatch.component.tests.api.DefaultMessageValidator;
+import com.redhat.swatch.tally.test.model.TallySnapshot;
 import com.redhat.swatch.tally.test.model.TallySnapshot.Granularity;
 import com.redhat.swatch.tally.test.model.TallySummary;
+import java.time.OffsetDateTime;
+import java.util.function.Predicate;
 
 public class MessageValidators {
 
   public static DefaultMessageValidator<TallySummary> tallySummaryMatches(
       String orgId, String productId, String metricId, Granularity granularity) {
+    return tallySummaryMatches(orgId, productId, metricId, granularity, snapshot -> true);
+  }
+
+  public static DefaultMessageValidator<TallySummary> tallySummaryMatchesHour(
+      String orgId,
+      String productId,
+      String metricId,
+      Granularity granularity,
+      OffsetDateTime hour) {
+    return tallySummaryMatches(
+        orgId,
+        productId,
+        metricId,
+        granularity,
+        snapshot -> hour.isEqual(snapshot.getSnapshotDate()));
+  }
+
+  private static DefaultMessageValidator<TallySummary> tallySummaryMatches(
+      String orgId,
+      String productId,
+      String metricId,
+      Granularity granularity,
+      Predicate<TallySnapshot> snapshotMatches) {
     return new DefaultMessageValidator<>(
         summary ->
             orgId.equals(summary.getOrgId())
@@ -37,6 +63,7 @@ public class MessageValidators {
                         snapshot ->
                             productId.equalsIgnoreCase(snapshot.getProductId())
                                 && granularity.equals(snapshot.getGranularity())
+                                && snapshotMatches.test(snapshot)
                                 && snapshot.getTallyMeasurements() != null
                                 && snapshot.getTallyMeasurements().stream()
                                     .anyMatch(
