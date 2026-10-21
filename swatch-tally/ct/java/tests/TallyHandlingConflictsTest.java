@@ -31,11 +31,14 @@ import static utils.TallyTestProducts.ROSA;
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
+import com.redhat.swatch.tally.test.model.TallyReportData;
+import com.redhat.swatch.tally.test.model.TallyReportDataPoint;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.candlepin.subscriptions.json.Event;
@@ -55,6 +58,11 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
     setup = setupTest();
   }
 
+  @AfterEach
+  void resetLegacyHourlySnapshotQueryFlag() {
+    givenLegacyHourlyTallySnapshotQuery(false);
+  }
+
   @ParameterizedTest(name = "useLegacyHourlySnapshotQuery={0}")
   @ValueSource(booleans = {true, false})
   @TestPlanName("tally-conflicts-TC001")
@@ -66,24 +74,29 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
     float initialValue = 10.0f;
     float updatedValue = 25.0f;
     String metricId = RHEL_FOR_X86_ELS_PAYG.metricIds().get(0);
+    String productTag = RHEL_FOR_X86_ELS_PAYG.productTag();
+
+    OffsetDateTime dailyBeginning = setup.start.truncatedTo(ChronoUnit.DAYS);
+    OffsetDateTime dailyEnding = dailyBeginning.plusDays(1).minusNanos(1);
 
     createEventForProduct(setup.start, RHEL_FOR_X86_ELS_PAYG, metricId, initialValue);
     service.performHourlyTallyForOrg(setup.orgId);
-    double before =
+
+    double beforeHourly =
         awaitHourlyTallySum(
-            setup.orgId,
-            RHEL_FOR_X86_ELS_PAYG.productTag(),
-            metricId,
-            setup.start,
-            setup.start.plusHours(1),
-            initialValue);
+            setup.orgId, productTag, metricId, setup.start, setup.start.plusHours(1), initialValue);
+    assertEquals(initialValue, beforeHourly, 0.0001, "Initial hourly tally should be 10");
+
+    double beforeDaily =
+        getDailyTallySum(setup.orgId, productTag, metricId, dailyBeginning, dailyEnding);
+    assertEquals(initialValue, beforeDaily, 0.0001, "Initial daily rollup should be 10");
 
     // When: An update event with same instanceId and timestamp hour but different positive value
     createEventForProduct(setup.start, RHEL_FOR_X86_ELS_PAYG, metricId, updatedValue);
     service.performHourlyTallyForOrg(setup.orgId);
 
     // Then: Tally should reflect the updated positive measurement
-    double after =
+    double afterHourly =
         awaitHourlyTallySum(
             setup.orgId,
             RHEL_FOR_X86_ELS_PAYG.productTag(),
@@ -92,12 +105,14 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
             setup.start.plusHours(1),
             updatedValue);
     assertEquals(
-        updatedValue, after, 0.0001, "Updated tally should reflect the updated measurement");
-  }
+        updatedValue,
+        afterHourly,
+        0.0001,
+        "Updated hourly tally should reflect the updated measurement");
 
-  @AfterEach
-  void resetLegacyHourlySnapshotQueryFlag() {
-    givenLegacyHourlyTallySnapshotQuery(false);
+    double afterDaily =
+        getDailyTallySum(setup.orgId, productTag, metricId, dailyBeginning, dailyEnding);
+    assertEquals(updatedValue, afterDaily, 0.0001, "Daily rollup should reflect the updated value");
   }
 
   @Test
@@ -382,6 +397,27 @@ public class TallyHandlingConflictsTest extends BaseTallyComponentTest {
   }
 
   // --- Then helper methods ---
+
+  private double getDailyTallySum(
+      String orgId,
+      String productTag,
+      String metricId,
+      OffsetDateTime beginning,
+      OffsetDateTime ending) {
+    Map<String, ?> queryParams =
+        Map.of(
+            "granularity", "Daily",
+            "beginning", beginning.toString(),
+            "ending", ending.toString());
+
+    TallyReportData response = service.getTallyReportData(orgId, productTag, metricId, queryParams);
+
+    if (response.getData() == null) {
+      return 0.0;
+    }
+
+    return response.getData().stream().mapToInt(TallyReportDataPoint::getValue).sum();
+  }
 
   private void awaitInstancesCount(
       String productTag,
