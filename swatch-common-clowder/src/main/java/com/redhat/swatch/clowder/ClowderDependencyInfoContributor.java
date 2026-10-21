@@ -69,14 +69,24 @@ public class ClowderDependencyInfoContributor implements InfoContributor {
     if (selection.uri() != null) {
       info.put("uri", redactUserInfo(selection.uri()));
     }
+    DependencyEndpoint endpoint = selection.endpoint();
+    if (endpoint != null && endpoint.authenticated() != null) {
+      info.put("authenticated", endpoint.authenticated());
+    }
     return info;
   }
 
   static String redactUserInfo(String raw) {
     try {
       URI uri = URI.create(raw);
-      if (uri.getUserInfo() == null) {
+      String rawAuthority = uri.getRawAuthority();
+      boolean hasUserInfo =
+          uri.getUserInfo() != null || (rawAuthority != null && rawAuthority.indexOf('@') >= 0);
+      if (!hasUserInfo) {
         return raw;
+      }
+      if (uri.getHost() == null) {
+        return "[redacted]";
       }
       return new URI(
               uri.getScheme(),

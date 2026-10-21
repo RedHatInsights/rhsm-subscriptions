@@ -65,6 +65,13 @@ class ClowderDependencyInfoContributorTest {
     assertEquals(MODE_AUTO, exportService.get("mode"));
     assertEquals(VERSION_V2, exportService.get("version"));
     assertEquals("https://v2.example:8443/export?x=1#frag", exportService.get("uri"));
-    assertEquals(3, exportService.size());
+    assertEquals(true, exportService.get("authenticated"));
+    assertEquals(4, exportService.size());
+  }
+
+  @Test
+  void redactsUriWhenAuthorityHasCredentialsButNoHost() {
+    assertEquals(
+        "[redacted]", ClowderDependencyInfoContributor.redactUserInfo("http://user:pass@/path"));
   }
 }
