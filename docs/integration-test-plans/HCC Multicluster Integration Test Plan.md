@@ -141,3 +141,16 @@ V1 and V2 are different top-level keys in the Clowder `cdappconfig` JSON. V1 use
 3. **Action:** Query `/info` to confirm the dependency URI is resolved, then trigger a representative authorized call.
 4. **Verification:** The dependency call fails because both configured endpoints are unreachable.
 5. **Expected Result:** The service cannot complete the dependency call when neither V1 nor V2 is usable.
+
+## multicluster-TC009 - When V2 returns 401 or 403, the client falls back to V1
+
+1. **Description:** V2 is reachable but rejects the call with HTTP 401 or 403. The client falls back to V1 and emits an ERROR log for alerting.
+2. **Setup:**
+   - Metadata: V1 and valid V2 present (distinct hosts). Mode is `auto`.
+   - V2 responds with 401 Unauthorized or 403 Forbidden. V1 is reachable and accepts the call.
+3. **Action:** Trigger a representative authorized call that hits V2 first, then query `/info`.
+4. **Verification:**
+   - Logs include ERROR `export-service V2 auth failure` (alert signal). Connectivity fallbacks stay WARN.
+   - The service's `/info` response reports the V1 URI after fallback.
+   - The call succeeds through V1.
+5. **Expected Result:** Auth failures (401/403) from V2 trigger process-lifetime V1 fallback without masking the structural failure. Other 4xx responses do not fall back.

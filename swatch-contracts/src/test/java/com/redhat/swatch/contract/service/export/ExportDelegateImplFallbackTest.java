@@ -31,12 +31,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.redhat.cloud.event.apps.exportservice.v1.ResourceRequestClass;
+import com.redhat.swatch.clients.export.api.resources.ApiException;
 import com.redhat.swatch.clients.export.api.resources.ExportApi;
 import com.redhat.swatch.clowder.DependencyEndpoint;
 import com.redhat.swatch.clowder.DependencyEndpointResolver;
 import com.redhat.swatch.clowder.DependencyEndpointSelection;
 import com.redhat.swatch.export.ExportServiceRequest;
 import jakarta.ws.rs.ProcessingException;
+import jakarta.ws.rs.core.Response;
 import java.io.File;
 import java.net.ConnectException;
 import java.util.UUID;
@@ -73,6 +75,69 @@ class ExportDelegateImplFallbackTest {
   /** multicluster-TC004 - When V2 is unavailable, the client falls back to V1. */
   @Test
   void fallsBackToV1WhenV2IsUnreachable() throws Exception {
+    givenV2ThenV1();
+    doThrow(new ProcessingException(new ConnectException("refused")))
+        .when(v2Api)
+        .downloadExportUpload(any(), any(), any(), any());
+
+    File file = File.createTempFile("export-fallback", ".json");
+    file.deleteOnExit();
+
+    assertDoesNotThrow(() -> exportDelegate.upload(file, request));
+    verify(v1Api).downloadExportUpload(EXPORT_ID, "subscriptions", RESOURCE_ID, file);
+  }
+
+  /** When V2 returns 401/403, the client falls back to V1. */
+  @Test
+  void fallsBackToV1WhenV2ReturnsUnauthorized() throws Exception {
+    givenV2ThenV1();
+    doThrow(new ApiException(Response.status(Response.Status.UNAUTHORIZED).build()))
+        .when(v2Api)
+        .downloadExportUpload(any(), any(), any(), any());
+
+    File file = File.createTempFile("export-auth-fallback", ".json");
+    file.deleteOnExit();
+
+    assertDoesNotThrow(() -> exportDelegate.upload(file, request));
+    verify(v1Api).downloadExportUpload(EXPORT_ID, "subscriptions", RESOURCE_ID, file);
+  }
+
+  @Test
+  void fallsBackToV1WhenV2ReturnsForbidden() throws Exception {
+    givenV2ThenV1();
+    doThrow(new ApiException(Response.status(Response.Status.FORBIDDEN).build()))
+        .when(v2Api)
+        .downloadExportUpload(any(), any(), any(), any());
+
+    File file = File.createTempFile("export-authz-fallback", ".json");
+    file.deleteOnExit();
+
+    assertDoesNotThrow(() -> exportDelegate.upload(file, request));
+    verify(v1Api).downloadExportUpload(EXPORT_ID, "subscriptions", RESOURCE_ID, file);
+  }
+
+  @Test
+  void doesNotFallbackOnOtherClientErrors() throws Exception {
+    DependencyEndpointSelection v2 =
+        new DependencyEndpointSelection(
+            MODE_AUTO, VERSION_V2, DependencyEndpoint.of("https://v2.example", "", "", "", true));
+    when(endpointResolver.current()).thenReturn(v2);
+    when(apiFactory.clientFor(v2)).thenReturn(v2Api);
+    doThrow(new ApiException(Response.status(Response.Status.BAD_REQUEST).build()))
+        .when(v2Api)
+        .downloadExportUpload(any(), any(), any(), any());
+
+    File file = File.createTempFile("export-no-auth-fallback", ".json");
+    file.deleteOnExit();
+
+    org.junit.jupiter.api.Assertions.assertThrows(
+        com.redhat.swatch.export.ExportServiceException.class,
+        () -> exportDelegate.upload(file, request));
+    verify(endpointResolver, never()).tryFallbackToV1();
+    verify(v1Api, never()).downloadExportUpload(any(), any(), any(), any());
+  }
+
+  private void givenV2ThenV1() {
     DependencyEndpointSelection v2 =
         new DependencyEndpointSelection(
             MODE_AUTO, VERSION_V2, DependencyEndpoint.of("https://v2.example", "", "", "", true));
@@ -83,15 +148,6 @@ class ExportDelegateImplFallbackTest {
     when(endpointResolver.tryFallbackToV1()).thenReturn(true);
     when(apiFactory.clientFor(v2)).thenReturn(v2Api);
     when(apiFactory.clientFor(v1)).thenReturn(v1Api);
-    doThrow(new ProcessingException(new ConnectException("refused")))
-        .when(v2Api)
-        .downloadExportUpload(any(), any(), any(), any());
-
-    File file = File.createTempFile("export-fallback", ".json");
-    file.deleteOnExit();
-
-    assertDoesNotThrow(() -> exportDelegate.upload(file, request));
-    verify(v1Api).downloadExportUpload(EXPORT_ID, "subscriptions", RESOURCE_ID, file);
   }
 
   /** multicluster-TC008 - When both configured endpoints are unreachable, dependency calls fail. */
