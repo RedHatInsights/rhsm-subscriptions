@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -157,6 +158,12 @@ public interface TallySnapshotRepository
       OffsetDateTime beginning,
       OffsetDateTime ending) {
     final int batchSize = 1000;
+
+    // No need to perform the query if the productId collection is empty.
+    if (Objects.isNull(productIds) || productIds.isEmpty()) {
+      return new ArrayList<>();
+    }
+
     List<TallySnapshot> snapshots;
     try (Stream<TallySnapshot> snapStream =
         findSnapshotsForRolling(orgId, productIds, granularity, beginning, ending)) {
