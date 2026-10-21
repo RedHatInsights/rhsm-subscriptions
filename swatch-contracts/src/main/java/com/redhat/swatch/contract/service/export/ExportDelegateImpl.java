@@ -35,6 +35,7 @@ import com.redhat.swatch.export.ExportServiceRequest;
 import com.redhat.swatch.export.api.ExportDelegate;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Named;
+import jakarta.ws.rs.core.Response;
 import java.io.File;
 import lombok.extern.slf4j.Slf4j;
 
@@ -85,9 +86,10 @@ public class ExportDelegateImpl implements ExportDelegate {
     try {
       call.execute(apiFactory.clientFor(selection));
     } catch (ApiException | RuntimeException firstFailure) {
-      if (!DependencyEndpointUnavailable.isUnavailable(firstFailure)) {
+      if (!shouldFallbackToV1(firstFailure)) {
         throw toExportServiceException(requestId, failureMessage, firstFailure);
       }
+      boolean authFailure = isAuthFailure(firstFailure);
       boolean switchedToV1 = endpointResolver.tryFallbackToV1();
       DependencyEndpointSelection fallback = endpointResolver.current();
       // Retry on V1 if this call switched, or another call already did.
@@ -95,19 +97,51 @@ public class ExportDelegateImpl implements ExportDelegate {
           && !(VERSION_V2.equals(selection.version()) && VERSION_V1.equals(fallback.version()))) {
         throw toExportServiceException(requestId, failureMessage, firstFailure);
       }
-      log.warn(
-          "export-service {} unavailable for request {}, falling back to {} ({})",
-          selection.version(),
-          requestId,
-          fallback.version(),
-          fallback.uri(),
-          firstFailure);
+      if (authFailure) {
+        // ERROR is the alert signal for V2 auth path structural failure (not a silent fallback).
+        log.error(
+            "export-service V2 auth failure for request {}, falling back to V1 ({})",
+            requestId,
+            fallback.uri(),
+            firstFailure);
+      } else {
+        log.warn(
+            "export-service {} unavailable for request {}, falling back to {} ({})",
+            selection.version(),
+            requestId,
+            fallback.version(),
+            fallback.uri(),
+            firstFailure);
+      }
       try {
         call.execute(apiFactory.clientFor(fallback));
       } catch (ApiException | RuntimeException secondFailure) {
         throw toExportServiceException(requestId, failureMessage, secondFailure);
       }
     }
+  }
+
+  /** Connectivity failures or HTTP 401/403 from V2 allow a one-time V1 retry. */
+  static boolean shouldFallbackToV1(Throwable error) {
+    return DependencyEndpointUnavailable.isUnavailable(error) || isAuthFailure(error);
+  }
+
+  private static boolean isAuthFailure(Throwable error) {
+    Throwable current = error;
+    while (current != null) {
+      if (current instanceof ApiException apiException) {
+        Response response = apiException.getResponse();
+        if (response != null) {
+          int status = response.getStatus();
+          if (status == Response.Status.UNAUTHORIZED.getStatusCode()
+              || status == Response.Status.FORBIDDEN.getStatusCode()) {
+            return true;
+          }
+        }
+      }
+      current = current.getCause();
+    }
+    return false;
   }
 
   private static ExportServiceException toExportServiceException(
