@@ -124,34 +124,6 @@ class SubscriptionSyncServiceTest {
 
   /** Test for SWATCH-2579 */
   @Test
-  void shouldPreferIncomingVendorProductCodeOnQuantityChange() {
-    OfferingEntity offering = OfferingEntity.builder().sku(SKU).build();
-    when(offeringRepository.findByIdOptional(SKU)).thenReturn(Optional.of(offering));
-    when(offeringRepository.findById(SKU)).thenReturn(offering);
-    when(denylist.productIdMatches(any())).thenReturn(false);
-    var dto = createDto("456", 10);
-    dto.putExternalReferencesItem(
-        SubscriptionDtoUtil.AWS_MARKETPLACE,
-        new ExternalReference()
-            .productCode("new-vendor-product-code")
-            .customerID("customer")
-            .sellerAccount("seller")
-            .customerAccountID("account"));
-    var existing = createSubscription();
-    existing.setVendorProductCode("old-vendor-product-code");
-    when(subscriptionService.findBySubscriptionNumber(dto.getSubscriptionNumber()))
-        .thenReturn(List.of(existing));
-
-    subscriptionSyncService.syncSubscription(dto);
-
-    ArgumentCaptor<SubscriptionEntity> savedSubscriptionCaptor =
-        ArgumentCaptor.forClass(SubscriptionEntity.class);
-    verify(subscriptionService).save(savedSubscriptionCaptor.capture());
-    assertEquals(
-        "new-vendor-product-code", savedSubscriptionCaptor.getValue().getVendorProductCode());
-  }
-
-  @Test
   void shouldSegmentSubscriptionOnQuantityChangeOnlyOnce() {
     var initialSub = createSubscription();
     // Change quantity from 4 to 10
@@ -281,7 +253,8 @@ class SubscriptionSyncServiceTest {
     ArgumentCaptor<SubscriptionEntity> savedSubscriptionCaptor =
         ArgumentCaptor.forClass(SubscriptionEntity.class);
     verify(subscriptionService, Mockito.times(1)).save(savedSubscriptionCaptor.capture());
-    assertEquals("vendor-product-code", savedSubscriptionCaptor.getValue().getVendorProductCode());
+    assertNull(savedSubscriptionCaptor.getValue().getVendorProductCode());
+    assertNull(savedSubscriptionCaptor.getValue().getLicenseId());
     verify(capacityReconciliationService)
         .reconcileCapacityForSubscription(any(SubscriptionEntity.class));
   }
@@ -577,38 +550,6 @@ class SubscriptionSyncServiceTest {
   }
 
   @Test
-  void shouldEnrichOutboxSubscriptionVendorProductCodeFromSearchApi() {
-    OfferingEntity offering = OfferingEntity.builder().sku(SKU).build();
-    when(offeringRepository.findByIdOptional(SKU)).thenReturn(Optional.of(offering));
-    when(offeringRepository.findById(SKU)).thenReturn(offering);
-    when(denylist.productIdMatches(any())).thenReturn(false);
-    when(subscriptionService.findBySubscriptionNumber("1234")).thenReturn(List.of());
-
-    var searchDto = createDto(123, "100", "1234", 10);
-    searchDto.putExternalReferencesItem(
-        SubscriptionDtoUtil.AWS_MARKETPLACE,
-        new ExternalReference().productCode("vendor-product-code"));
-    when(subscriptionSearchService.getSubscriptionBySubscriptionNumber("1234"))
-        .thenReturn(searchDto);
-
-    var payload =
-        new SubscriptionOutboxPayload()
-            .subscriptionNumber("1234")
-            .customerId("org123")
-            .quantity(10)
-            .effectiveStartDate(1704067200000L)
-            .effectiveEndDate(1735689600000L)
-            .product(new SubscriptionOutboxProduct().sku(SKU));
-
-    subscriptionSyncService.saveSubscription(payload);
-
-    ArgumentCaptor<SubscriptionEntity> savedSubscriptionCaptor =
-        ArgumentCaptor.forClass(SubscriptionEntity.class);
-    verify(subscriptionService).save(savedSubscriptionCaptor.capture());
-    assertEquals("vendor-product-code", savedSubscriptionCaptor.getValue().getVendorProductCode());
-  }
-
-  @Test
   void shouldFallBackToNowWhenTerminatedChildAndNullEndDate() {
     OfferingEntity offering = OfferingEntity.builder().sku(SKU).build();
     when(offeringRepository.findByIdOptional(SKU)).thenReturn(Optional.of(offering));
@@ -788,7 +729,7 @@ class SubscriptionSyncServiceTest {
     assertEquals(BillingProvider.AWS, incoming.getBillingProvider());
     assertEquals("p;c;s", incoming.getBillingProviderId());
     assertEquals("subnum", incoming.getSubscriptionNumber());
-    assertEquals("p", incoming.getVendorProductCode());
+    assertNull(incoming.getVendorProductCode());
   }
 
   @Test
@@ -816,6 +757,7 @@ class SubscriptionSyncServiceTest {
   void testSubscriptionEnrichedFromDbWhenBillingFieldsMissing() {
     SubscriptionEntity incoming = createConvertedDtoSubscription("123", null, "890");
     SubscriptionEntity existing = createSubscription();
+    existing.setVendorProductCode("old-vendor-product-code");
     existing.setBillingAccountId("billingAccountId");
     existing.setBillingProvider(BillingProvider.RED_HAT);
     existing.setBillingProviderId("billingProviderId");
@@ -832,6 +774,8 @@ class SubscriptionSyncServiceTest {
     assertEquals(BillingProvider.RED_HAT, incoming.getBillingProvider());
     assertEquals("billingProviderId", incoming.getBillingProviderId());
     assertEquals("890", incoming.getSubscriptionNumber());
+    assertNull(incoming.getVendorProductCode());
+    assertEquals("old-vendor-product-code", existing.getVendorProductCode());
   }
 
   @Test
@@ -882,24 +826,6 @@ class SubscriptionSyncServiceTest {
     assertEquals("newBillingAccountId", existing.getBillingAccountId());
     assertEquals("vendor-product-code", existing.getVendorProductCode());
     assertEquals("license-id", existing.getLicenseId());
-  }
-
-  @Test
-  void testVendorProductCodeUpdatedWhenSearchDtoProvidesIt() {
-    SubscriptionEntity incoming = createConvertedDtoSubscription("123", "456", "890");
-    incoming.setVendorProductCode("new-vendor-product-code");
-    SubscriptionEntity existing = createSubscription();
-    existing.setVendorProductCode("old-vendor-product-code");
-
-    when(denylist.productIdMatches(any())).thenReturn(false);
-    OfferingEntity offering = OfferingEntity.builder().sku(SKU).build();
-    when(offeringRepository.findByIdOptional(SKU)).thenReturn(Optional.of(offering));
-    when(offeringRepository.findById(SKU)).thenReturn(offering);
-
-    subscriptionSyncService.syncSubscription(SKU, incoming, Optional.of(existing));
-
-    assertEquals("new-vendor-product-code", existing.getVendorProductCode());
-    verify(subscriptionService).save(existing);
   }
 
   @Test
@@ -1201,7 +1127,6 @@ class SubscriptionSyncServiceTest {
         .endDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate()))
         .billingProviderId(SubscriptionDtoUtil.extractBillingProviderId(subscription))
         .billingProvider(SubscriptionDtoUtil.populateBillingProvider(subscription))
-        .vendorProductCode(SubscriptionDtoUtil.extractVendorProductCode(subscription))
         .offering(offering)
         .build();
   }

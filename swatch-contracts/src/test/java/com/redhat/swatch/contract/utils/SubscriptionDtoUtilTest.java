@@ -21,7 +21,6 @@
 package com.redhat.swatch.contract.utils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.redhat.swatch.clients.subscription.api.model.ExternalReference;
@@ -83,25 +82,6 @@ class SubscriptionDtoUtilTest {
     assertEquals(
         "testProduct456;testCustomer123;testSellerAccount789",
         SubscriptionDtoUtil.extractBillingProviderId(dto));
-  }
-
-  @Test
-  void testExtractVendorProductCodeAWSMarketplace() {
-    var dto = new Subscription();
-    dto.putExternalReferencesItem(
-        SubscriptionDtoUtil.AWS_MARKETPLACE, new ExternalReference().productCode("testProduct456"));
-
-    assertEquals("testProduct456", SubscriptionDtoUtil.extractVendorProductCode(dto));
-  }
-
-  @Test
-  void testExtractVendorProductCodeIgnoresNonAwsReferences() {
-    var dto = new Subscription();
-    dto.putExternalReferencesItem(
-        SubscriptionDtoUtil.IBMMARKETPLACE,
-        new ExternalReference().productCode("unrelatedProduct"));
-
-    assertNull(SubscriptionDtoUtil.extractVendorProductCode(dto));
   }
 
   @Test

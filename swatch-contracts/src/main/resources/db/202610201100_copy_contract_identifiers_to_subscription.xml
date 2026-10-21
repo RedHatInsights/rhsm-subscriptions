@@ -5,68 +5,54 @@
   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
   <changeSet id="202610201100-01" author="vbusch">
-    <preConditions onFail="HALT">
-      <!--
-        Several contracts can share a subscription number and start date. Match on the shared
-        subscription attributes so duplicate keys with different attributes do not make the
-        backfill ambiguous. Identical values and a null plus populated license are safe to merge.
-      -->
-      <sqlCheck expectedResult="0">
-        SELECT COUNT(*)
-        FROM (
-          SELECT s.subscription_number, s.start_date, s.org_id, s.sku,
-                 s.billing_provider, s.billing_provider_id, s.billing_account_id
-          FROM subscription s
-          JOIN contracts c
-            ON c.subscription_number = s.subscription_number
-            AND c.start_date = s.start_date
-            AND c.org_id IS NOT DISTINCT FROM s.org_id
-            AND c.sku IS NOT DISTINCT FROM s.sku
-            AND c.billing_provider IS NOT DISTINCT FROM s.billing_provider
-            AND c.billing_provider_id IS NOT DISTINCT FROM s.billing_provider_id
-            AND c.billing_account_id IS NOT DISTINCT FROM s.billing_account_id
-          GROUP BY s.subscription_number, s.start_date, s.org_id, s.sku,
-                   s.billing_provider, s.billing_provider_id, s.billing_account_id
-          HAVING COUNT(DISTINCT c.vendor_product_code) > 1
-              OR COUNT(DISTINCT c.license_id) > 1
-        ) ambiguous_matches
-      </sqlCheck>
-    </preConditions>
+    <comment>Add the contract identifier columns to subscription</comment>
 
     <addColumn tableName="subscription">
       <column name="vendor_product_code" type="VARCHAR"/>
       <column name="license_id" type="VARCHAR"/>
     </addColumn>
 
-    <sql>
-      UPDATE subscription s
-      SET (vendor_product_code, license_id) = (
-        SELECT MAX(c.vendor_product_code), MAX(c.license_id)
-        FROM contracts c
-        WHERE c.subscription_number = s.subscription_number
-          AND c.start_date = s.start_date
-          AND c.org_id IS NOT DISTINCT FROM s.org_id
-          AND c.sku IS NOT DISTINCT FROM s.sku
-          AND c.billing_provider IS NOT DISTINCT FROM s.billing_provider
-          AND c.billing_provider_id IS NOT DISTINCT FROM s.billing_provider_id
-          AND c.billing_account_id IS NOT DISTINCT FROM s.billing_account_id
-      )
-      WHERE EXISTS (
-        SELECT 1
-        FROM contracts c
-        WHERE c.subscription_number = s.subscription_number
-          AND c.start_date = s.start_date
-          AND c.org_id IS NOT DISTINCT FROM s.org_id
-          AND c.sku IS NOT DISTINCT FROM s.sku
-          AND c.billing_provider IS NOT DISTINCT FROM s.billing_provider
-          AND c.billing_provider_id IS NOT DISTINCT FROM s.billing_provider_id
-          AND c.billing_account_id IS NOT DISTINCT FROM s.billing_account_id
-      )
-    </sql>
-
     <rollback>
       <dropColumn tableName="subscription" columnName="license_id"/>
       <dropColumn tableName="subscription" columnName="vendor_product_code"/>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202610201100-02" author="vbusch" dbms="postgresql">
+    <comment>Backfill the contract identifiers onto unambiguously matching subscription segments</comment>
+
+    <sql>
+      UPDATE subscription s
+      SET vendor_product_code = m.vendor_product_code,
+          license_id = m.license_id
+      FROM (
+        SELECT seg.subscription_number,
+               seg.start_date,
+               MAX(c.vendor_product_code) AS vendor_product_code,
+               MAX(c.license_id) AS license_id
+        FROM subscription seg
+        JOIN contracts c
+          ON c.subscription_number = seg.subscription_number
+          AND c.start_date &lt;= seg.start_date
+          AND (c.end_date IS NULL OR seg.start_date &lt; c.end_date)
+          AND c.org_id IS NOT DISTINCT FROM seg.org_id
+          AND c.sku IS NOT DISTINCT FROM seg.sku
+          AND (seg.billing_provider IS NULL
+               OR c.billing_provider IS NOT DISTINCT FROM seg.billing_provider)
+          AND (seg.billing_provider_id IS NULL
+               OR c.billing_provider_id IS NOT DISTINCT FROM seg.billing_provider_id)
+          AND (seg.billing_account_id IS NULL
+               OR c.billing_account_id IS NOT DISTINCT FROM seg.billing_account_id)
+        GROUP BY seg.subscription_number, seg.start_date
+        HAVING COUNT(DISTINCT c.vendor_product_code) &lt;= 1
+           AND COUNT(DISTINCT c.license_id) &lt;= 1
+      ) m
+      WHERE s.subscription_number = m.subscription_number
+        AND s.start_date = m.start_date
+    </sql>
+
+    <rollback>
+      <empty/>
     </rollback>
   </changeSet>
 </databaseChangeLog>

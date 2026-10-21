@@ -203,8 +203,6 @@ public class SubscriptionSyncService {
       if (existingSubscription.quantityHasChanged(newOrUpdated.getQuantity())) {
         existingSubscription.endSubscription();
         subscriptionService.terminate(existingSubscription);
-        // The Search API may provide vendorProductCode; licenseId comes from contract sync.
-        // Preserve stored values when this sync source omits them.
         final SubscriptionEntity newSub =
             SubscriptionEntity.builder()
                 .subscriptionNumber(newOrUpdated.getSubscriptionNumber())
@@ -216,10 +214,7 @@ public class SubscriptionSyncService {
                 .billingProviderId(newOrUpdated.getBillingProviderId())
                 .billingAccountId(newOrUpdated.getBillingAccountId())
                 .billingProvider(newOrUpdated.getBillingProvider())
-                .vendorProductCode(
-                    StringUtils.isNotBlank(newOrUpdated.getVendorProductCode())
-                        ? newOrUpdated.getVendorProductCode()
-                        : existingSubscription.getVendorProductCode())
+                .vendorProductCode(existingSubscription.getVendorProductCode())
                 .licenseId(existingSubscription.getLicenseId())
                 .build();
         capacityReconciliationService.reconcileCapacityForSubscription(newSub);
@@ -255,8 +250,16 @@ public class SubscriptionSyncService {
   }
 
   /**
-   * Populate a subscription entity with data from the DB if it exists, otherwise enrich with data
-   * from RH IT Subscription Service.
+   * Populate missing billing fields from the DB if it exists, otherwise from RH IT Subscription
+   * Service.
+   *
+   * <p>vendorProductCode and licenseId are deliberately not enriched here. The subscription outbox
+   * payload carries neither field, and IT Search only exposes a product code under its
+   * awsMarketplace external reference: there is no Azure equivalent, and no licenseId at all. A
+   * null from either source therefore means "not provided", never "cleared", so contract sync stays
+   * the only writer. For AWS the product code would be redundant anyway, since {@link
+   * SubscriptionDtoUtil#extractBillingProviderId} already stores it as the first segment of
+   * billingProviderId.
    *
    * @param subscription entity to populate with existing data
    * @param optionalSubscription data from the DB, if present
@@ -287,10 +290,6 @@ public class SubscriptionSyncService {
               }
               if (subscription.getBillingProviderId() == null) {
                 subscription.setBillingProviderId(existingData.getBillingProviderId());
-              }
-              if (StringUtils.isBlank(subscription.getVendorProductCode())
-                  && StringUtils.isNotBlank(existingData.getVendorProductCode())) {
-                subscription.setVendorProductCode(existingData.getVendorProductCode());
               }
             });
   }
@@ -533,7 +532,6 @@ public class SubscriptionSyncService {
         .billingProviderId(SubscriptionDtoUtil.extractBillingProviderId(subscription))
         .billingProvider(SubscriptionDtoUtil.populateBillingProvider(subscription))
         .billingAccountId(SubscriptionDtoUtil.extractBillingAccountId(subscription))
-        .vendorProductCode(SubscriptionDtoUtil.extractVendorProductCode(subscription))
         .build();
   }
 
@@ -555,9 +553,6 @@ public class SubscriptionSyncService {
     entity.setBillingProvider(newOrUpdated.getBillingProvider());
     entity.setBillingAccountId(newOrUpdated.getBillingAccountId());
     entity.setBillingProviderId(newOrUpdated.getBillingProviderId());
-    if (StringUtils.isNotBlank(newOrUpdated.getVendorProductCode())) {
-      entity.setVendorProductCode(newOrUpdated.getVendorProductCode());
-    }
     entity.setOrgId(newOrUpdated.getOrgId());
     // recalculate the subscription measurements and product IDs in case those have changed
     capacityReconciliationService.reconcileCapacityForSubscription(entity);
