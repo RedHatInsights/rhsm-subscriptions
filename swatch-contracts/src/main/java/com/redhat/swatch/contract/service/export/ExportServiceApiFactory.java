@@ -35,13 +35,19 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
 
-/** Builds and caches {@link ExportApi} clients for resolved V1/V2 export-service endpoints. */
+/**
+ * Builds and caches {@link ExportApi} clients for resolved export-service endpoints.
+ *
+ * <p>Request auth is handled by {@link ExportAuthHeaderProvider} from {@code
+ * EXPORT_SERVICE_AUTHENTICATED}, independent of V1/V2 URI selection. Bearer auth requires an HTTPS
+ * endpoint URI so the token is not sent in cleartext.
+ */
 @Slf4j
 @ApplicationScoped
 @RequiredArgsConstructor
 public class ExportServiceApiFactory {
 
-  private final ExportPskHeaderProvider pskHeaderProvider;
+  private final ExportAuthHeaderProvider authHeaderProvider;
   private final ConcurrentMap<DependencyEndpointSelection, ExportApi> clients =
       new ConcurrentHashMap<>();
 
@@ -53,10 +59,14 @@ public class ExportServiceApiFactory {
   }
 
   private ExportApi build(DependencyEndpointSelection selection) {
+    URI baseUri = URI.create(selection.uri());
+    if (authHeaderProvider.usesBearerAuth()) {
+      requireEncryptedTransport(baseUri);
+    }
     RestClientBuilder builder =
         RestClientBuilder.newBuilder()
-            .baseUri(URI.create(selection.uri()))
-            .register(pskHeaderProvider)
+            .baseUri(baseUri)
+            .register(authHeaderProvider)
             .register(ApiExceptionMapper.class);
     KeyStore trustStore = loadTrustStore(selection);
     if (trustStore != null) {
@@ -64,6 +74,14 @@ public class ExportServiceApiFactory {
     }
     log.info("Built export-service client version={} uri={}", selection.version(), selection.uri());
     return builder.build(ExportApi.class);
+  }
+
+  static void requireEncryptedTransport(URI uri) {
+    if (!"https".equalsIgnoreCase(uri.getScheme())) {
+      throw new IllegalStateException(
+          "export-service authenticated endpoint requires HTTPS transport, got scheme="
+              + uri.getScheme());
+    }
   }
 
   private static KeyStore loadTrustStore(DependencyEndpointSelection selection) {
