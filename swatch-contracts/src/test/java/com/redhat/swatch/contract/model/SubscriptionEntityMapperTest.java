@@ -54,6 +54,8 @@ class SubscriptionEntityMapperTest {
     contract.setBillingProvider("aws");
     contract.setBillingAccountId("12345678");
     contract.setOrgId("org123");
+    contract.setVendorProductCode("vendor-product-code");
+    contract.setLicenseId("license-id");
     contract.addMetric(
         ContractMetricEntity.builder().metricId("control_plane").value(42.0).build());
 
@@ -65,6 +67,8 @@ class SubscriptionEntityMapperTest {
     assertEquals(contract.getBillingProvider(), subscription.getBillingProvider().getValue());
     assertEquals(contract.getBillingAccountId(), subscription.getBillingAccountId());
     assertEquals(contract.getOrgId(), subscription.getOrgId());
+    assertEquals(contract.getVendorProductCode(), subscription.getVendorProductCode());
+    assertEquals(contract.getLicenseId(), subscription.getLicenseId());
     var measurement =
         subscription.getSubscriptionMeasurements().entrySet().stream().findFirst().orElseThrow();
     assertEquals("Instance-hours", measurement.getKey().getMetricId());

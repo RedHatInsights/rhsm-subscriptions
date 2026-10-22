@@ -214,6 +214,8 @@ public class SubscriptionSyncService {
                 .billingProviderId(newOrUpdated.getBillingProviderId())
                 .billingAccountId(newOrUpdated.getBillingAccountId())
                 .billingProvider(newOrUpdated.getBillingProvider())
+                .vendorProductCode(existingSubscription.getVendorProductCode())
+                .licenseId(existingSubscription.getLicenseId())
                 .build();
         capacityReconciliationService.reconcileCapacityForSubscription(newSub);
         subscriptionService.save(newSub);
@@ -248,8 +250,16 @@ public class SubscriptionSyncService {
   }
 
   /**
-   * Populate a subscription entity with data from the DB if it exists, otherwise enrich with data
-   * from RH IT Subscription Service.
+   * Populate missing billing fields from the DB if it exists, otherwise from RH IT Subscription
+   * Service.
+   *
+   * <p>vendorProductCode and licenseId are deliberately not enriched here. The subscription outbox
+   * payload carries neither field, and IT Search only exposes a product code under its
+   * awsMarketplace external reference: there is no Azure equivalent, and no licenseId at all. A
+   * null from either source therefore means "not provided", never "cleared", so contract sync stays
+   * the only writer. For AWS the product code would be redundant anyway, since {@link
+   * SubscriptionDtoUtil#extractBillingProviderId} already stores it as the first segment of
+   * billingProviderId.
    *
    * @param subscription entity to populate with existing data
    * @param optionalSubscription data from the DB, if present

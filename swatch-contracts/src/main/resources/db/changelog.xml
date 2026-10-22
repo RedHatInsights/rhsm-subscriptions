@@ -30,4 +30,5 @@
   <include file="db/202610011000_remove_null_subscription_numbers.xml"/>
   <include file="db/202610011100_remove_product_id_from_contracts.xml"/>
   <include file="db/202610061200_replace_subscription_id_by_number.xml"/>
+  <include file="db/202610201100_copy_contract_identifiers_to_subscription.xml"/>
 </databaseChangeLog>

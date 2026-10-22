@@ -38,6 +38,8 @@ import org.mapstruct.Named;
 public interface SubscriptionEntityMapper {
 
   @Mapping(target = "quantity", constant = "1L")
+  @Mapping(target = "vendorProductCode", source = "vendorProductCode")
+  @Mapping(target = "licenseId", source = "licenseId")
   @Mapping(
       target = "subscriptionMeasurements",
       source = ".",
