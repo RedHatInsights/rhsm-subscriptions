@@ -23,6 +23,7 @@ package com.redhat.swatch.contract.resource;
 import com.redhat.swatch.clients.product.api.resources.ApiException;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.contract.config.ApplicationConfiguration;
+import com.redhat.swatch.contract.config.FeatureFlags;
 import com.redhat.swatch.contract.exception.ErrorCode;
 import com.redhat.swatch.contract.exception.ServiceException;
 import com.redhat.swatch.contract.model.SyncResult;
@@ -51,6 +52,7 @@ import com.redhat.swatch.contract.service.ContractSyncService;
 import com.redhat.swatch.contract.service.EnabledOrgsProducer;
 import com.redhat.swatch.contract.service.OfferingProductTagLookupService;
 import com.redhat.swatch.contract.service.OfferingSyncService;
+import com.redhat.swatch.contract.service.SubscriptionContractService;
 import com.redhat.swatch.contract.service.SubscriptionListService;
 import com.redhat.swatch.contract.service.SubscriptionSyncService;
 import com.redhat.swatch.contract.service.UsageContextSubscriptionProvider;
@@ -95,6 +97,8 @@ public class ContractsResource implements DefaultApi {
   private final UsageContextSubscriptionProvider usageContextSubscriptionProvider;
   private final MetricMapper metricMapper;
   private final ContractSyncService contractSyncService;
+  private final SubscriptionContractService subscriptionContractService;
+  private final FeatureFlags featureFlags;
 
   /**
    * Create contract record in database from provided contract dto payload
@@ -143,6 +147,12 @@ public class ContractsResource implements DefaultApi {
       String billingAccountId,
       OffsetDateTime timestamp)
       throws ProcessingException {
+    if (featureFlags.useSubscriptions()) {
+      log.debug("Serving contracts for org {} from the subscriptions tables", orgId);
+      return subscriptionContractService.getContracts(
+          orgId, productTag, billingProvider, billingAccountId, vendorProductCode, timestamp);
+    }
+
     return service.getContracts(
         orgId, productTag, billingProvider, billingAccountId, vendorProductCode, timestamp);
   }
