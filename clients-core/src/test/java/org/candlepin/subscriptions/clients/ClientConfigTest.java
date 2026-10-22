@@ -18,25 +18,27 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.clients.export.api.client;
+package org.candlepin.subscriptions.clients;
 
-import com.redhat.swatch.clients.export.api.model.DownloadExportErrorRequest;
-import com.redhat.swatch.clients.export.api.resources.ExportApi;
-import java.io.File;
-import java.util.UUID;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class StubExportApi extends ExportApi {
-  @Override
-  public void downloadExportError(
-      UUID id,
-      String application,
-      UUID resource,
-      DownloadExportErrorRequest downloadExportErrorRequest) {
-    // do nothing on purpose.
-  }
+import org.junit.jupiter.api.Test;
 
-  @Override
-  public void downloadExportUpload(UUID id, String application, UUID resource, File body) {
-    // do nothing on purpose.
+class ClientConfigTest {
+
+  private static final ClientConnection PRIMARY =
+      new ClientConnection("v2", "https://v2.example", null, null, null, true);
+  private static final ClientConnection FALLBACK =
+      new ClientConnection("v1", "http://v1.example", null, null, null, null);
+
+  @Test
+  void startsOnPrimary() {
+    ClientConfig config = new ClientConfig("export-service", "psk", PRIMARY, FALLBACK, null);
+
+    assertEquals("export-service", config.getName());
+    assertEquals("psk", config.getPsk());
+    assertEquals(PRIMARY, config.current());
+    assertEquals(PRIMARY, config.primary());
+    assertEquals(FALLBACK, config.fallback());
   }
 }

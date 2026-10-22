@@ -28,6 +28,7 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMoc
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
+import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder;
 import com.github.tomakehurst.wiremock.matching.UrlPathPattern;
 import java.util.UUID;
 
@@ -70,6 +71,19 @@ public class ExportServiceWiremock {
 
   public void verifyDownloadExportUpload(UUID id, String application, UUID resource) {
     wireMockServer.verify(postRequestedFor(downloadExportErrorUpload(id, application, resource)));
+  }
+
+  public void verify(RequestPatternBuilder requestPattern) {
+    wireMockServer.verify(requestPattern);
+  }
+
+  public void verify(int count, RequestPatternBuilder requestPattern) {
+    wireMockServer.verify(count, requestPattern);
+  }
+
+  public RequestPatternBuilder downloadExportErrorRequested(
+      UUID id, String application, UUID resource) {
+    return postRequestedFor(downloadExportErrorRequest(id, application, resource));
   }
 
   private UrlPathPattern downloadExportErrorRequest(UUID id, String application, UUID resource) {

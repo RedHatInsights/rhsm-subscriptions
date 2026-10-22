@@ -107,6 +107,9 @@ parameters:
   # TODO after enable individual functionality (see ENT-4487)
   - name: DEV_MODE
     value: 'false'
+  # Clowder private endpoint selection for export-service: auto | v1 | v2
+  - name: CLOWDER_SERVICE_ENDPOINT_MODE
+    value: 'auto'
   - name: ENABLE_ACCOUNT_RESET
     value: 'false'
   - name: LOGGING_SOURCE
@@ -631,6 +634,8 @@ objects:
                 secretKeyRef:
                   name: export-psk
                   key: export_psk
+            - name: CLOWDER_SERVICE_ENDPOINT_MODE
+              value: ${CLOWDER_SERVICE_ENDPOINT_MODE}
             - name: PROM_URL
               value: ${PROM_URL}
             - name: OPENSHIFT_BILLING_MODEL_FILTER

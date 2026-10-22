@@ -49,7 +49,8 @@ public interface ExtendWithExportServiceWireMock {
 
   @DynamicPropertySource
   static void registerExportApiProperties(DynamicPropertyRegistry registry) {
-    registry.add("rhsm-subscriptions.export-service.url", EXPORT_SERVICE_WIRE_MOCK_SERVER::baseUrl);
+    registry.add(
+        "rhsm-subscriptions.export-service.fallback.url", EXPORT_SERVICE_WIRE_MOCK_SERVER::baseUrl);
   }
 
   default void verifyNoRequestsWereSentToExportServiceWithError(

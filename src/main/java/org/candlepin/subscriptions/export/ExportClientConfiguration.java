@@ -20,7 +20,11 @@
  */
 package org.candlepin.subscriptions.export;
 
-import com.redhat.swatch.clients.export.api.client.ExportApiClientFactory;
+import java.io.IOException;
+import org.candlepin.subscriptions.clients.ClientConfig;
+import org.candlepin.subscriptions.clients.ClientConfigBuilder;
+import org.candlepin.subscriptions.clients.ClientConnection;
+import org.candlepin.subscriptions.clients.TokenProvider;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
@@ -30,6 +34,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.core.io.Resource;
 
 /**
  * Configuration that should be imported for any component that needs to be able to use Subscription
@@ -47,37 +52,85 @@ import org.springframework.context.annotation.FilterType;
     })
 public class ExportClientConfiguration {
 
+  public static final String EXPORT_API_CLIENT = "exportServiceClientConfig";
   public static final String EXPORT_API_QUALIFIER = "exportApiProperties";
+  public static final String EXPORT_API_FALLBACK_QUALIFIER = "exportApiFallbackProperties";
 
   /**
-   * Load values from the application properties file prefixed with
-   * "rhsm-subscriptions.export-service". For example,
-   * "rhsm-subscriptions.export-service.keystore-password=password" will be injected into the
-   * keystorePassword field. The hyphen is not necessary but it improves readability. Rather than
-   * use the ConfigurationProperties annotation on the class itself and the
-   * EnableConfigurationProperties annotation on ApplicationConfiguration, we construct and bind
-   * values to the class here so that our sub-projects will not need to have Spring Boot on the
-   * class path (since it's Spring Boot that provides those annotations).
+   * Primary (Clowder V2) connection plus shared {@code psk} / {@code endpoint-mode}, bound from
+   * {@code rhsm-subscriptions.export-service.*}.
    *
-   * @return an X509ApiClientFactoryConfiguration populated with values from the various property
-   *     sources.
+   * @return export-service properties bound from the property sources
    */
   @Bean(name = EXPORT_API_QUALIFIER)
   @ConfigurationProperties(prefix = "rhsm-subscriptions.export-service")
-  public HttpClientProperties exportApiProperties() {
+  public ExportConnectionProperties exportServiceConnectionProperties() {
+    return new ExportConnectionProperties();
+  }
+
+  /**
+   * Clowder fallback connection settings under {@code
+   * rhsm-subscriptions.export-service.fallback.*}.
+   *
+   * @return fallback HTTP client properties bound from the property sources
+   */
+  @Bean(name = EXPORT_API_FALLBACK_QUALIFIER)
+  @ConfigurationProperties(prefix = "rhsm-subscriptions.export-service.fallback")
+  public HttpClientProperties exportServiceFallbackConnectionProperties() {
     return new HttpClientProperties();
+  }
+
+  @Bean(name = EXPORT_API_CLIENT)
+  ClientConfig exportServiceConfig(
+      @Qualifier(EXPORT_API_QUALIFIER) ExportConnectionProperties primaryProperties,
+      @Qualifier(EXPORT_API_FALLBACK_QUALIFIER) HttpClientProperties fallbackProperties) {
+    ClientConnection fallback =
+        new ClientConnection(
+            "v1",
+            fallbackProperties.getUrl(),
+            resourcePath(fallbackProperties.getTruststore()),
+            fallbackProperties.getTruststorePassword(),
+            fallbackProperties.getTruststoreType(),
+            null);
+    ClientConnection primary =
+        new ClientConnection(
+            "v2",
+            primaryProperties.getUri(),
+            resourcePath(primaryProperties.getTruststore()),
+            primaryProperties.getTruststorePassword(),
+            primaryProperties.getTruststoreType(),
+            primaryProperties.getAuthenticated());
+    return ClientConfigBuilder.with("export-service", primaryProperties.getPsk(), primary, fallback)
+        .readTimeout(primaryProperties.getReadTimeout())
+        .build(primaryProperties.getEndpointMode());
   }
 
   /**
    * Build the BeanFactory implementation ourselves since the docs say "Implementations are not
    * supposed to rely on annotation-driven injection or other reflective facilities."
    *
-   * @param properties containing the configuration needed by the factory
-   * @return a configured ExportApiFactory
+   * @param clientConfig client config
+   * @param tokenProvider OAuth2 token provider
+   * @return a configured ExportApi FactoryBean
    */
   @Bean
   public ExportApiClientFactory exportClientApiFactory(
-      @Qualifier(EXPORT_API_QUALIFIER) HttpClientProperties properties) {
-    return new ExportApiClientFactory(properties);
+      @Qualifier(EXPORT_API_CLIENT) ClientConfig clientConfig, TokenProvider tokenProvider) {
+    return new ExportApiClientFactory(clientConfig, tokenProvider);
+  }
+
+  private static String resourcePath(Resource resource) {
+    if (resource == null || !resource.exists()) {
+      return null;
+    }
+    try {
+      return resource.getURL().toString();
+    } catch (IOException e) {
+      try {
+        return resource.getFile().getAbsolutePath();
+      } catch (IOException nested) {
+        return null;
+      }
+    }
   }
 }

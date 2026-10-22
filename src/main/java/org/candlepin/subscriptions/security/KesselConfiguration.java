@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.security;
 import com.redhat.swatch.kessel.KesselAuthorizationClient;
 import com.redhat.swatch.kessel.KesselMetricsRecorder;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import org.candlepin.subscriptions.rbac.KesselProperties;
 import org.project_kessel.api.auth.ClientConfigAuth;
@@ -47,11 +48,49 @@ public class KesselConfiguration {
     return new KesselProperties();
   }
 
+  /**
+   * @return shared OIDC client-credentials wiring for service-to-service Bearer auth.
+   */
+  @Bean
+  public OAuth2ClientCredentials oauth2ClientCredentials(KesselProperties props) {
+    var issuerUrl = props.getAuthOidcIssuer();
+    var clientId = props.getAuthClientId();
+    var clientSecret = props.getAuthClientSecret();
+    if (issuerUrl == null
+        || issuerUrl.isBlank()
+        || clientId == null
+        || clientId.isBlank()
+        || clientSecret == null
+        || clientSecret.isBlank()) {
+      log.info(
+          "OAuth2 client credentials not configured; authenticated S2S calls and Kessel gRPC OAuth"
+              + " will be unavailable");
+      return null;
+    }
+    try {
+      var discovery = OIDCDiscovery.fetchOIDCDiscovery(issuerUrl);
+      var credentials =
+          new OAuth2ClientCredentials(
+              new ClientConfigAuth(clientId, clientSecret, discovery.tokenEndpoint()));
+      log.info(
+          "OAuth2 client credentials initialized (OIDC issuer); shared by export-service, RBAC, and"
+              + " Kessel gRPC");
+      return credentials;
+    } catch (Exception e) {
+      log.warn(
+          "Failed to initialize OAuth2 client credentials; authenticated S2S calls and Kessel gRPC"
+              + " OAuth will be unavailable",
+          e);
+      return null;
+    }
+  }
+
   @Bean(initMethod = "init", destroyMethod = "shutdown")
   public KesselAuthorizationClient kesselAuthorizationClient(
-      KesselProperties props, MeterRegistry meterRegistry) {
-    var oauth2Credentials = initializeOAuth2Credentials(props);
-    var rbacAuth = oauth2Credentials != null ? new OAuth2AuthRequest(oauth2Credentials) : null;
+      KesselProperties props,
+      MeterRegistry meterRegistry,
+      Optional<OAuth2ClientCredentials> oauth2Credentials) {
+    var rbacAuth = oauth2Credentials.map(OAuth2AuthRequest::new).orElse(null);
     var workspaceCache = new ConcurrentHashMap<String, String>();
     KesselMetricsRecorder metricsRecorder = new KesselMicrometerRecorder(meterRegistry);
     return new KesselAuthorizationClient(
@@ -73,37 +112,6 @@ public class KesselConfiguration {
                   }
                 }),
         metricsRecorder,
-        oauth2Credentials);
-  }
-
-  private OAuth2ClientCredentials initializeOAuth2Credentials(KesselProperties props) {
-    var issuerUrl = props.getAuthOidcIssuer();
-    var clientId = props.getAuthClientId();
-    var clientSecret = props.getAuthClientSecret();
-    if (issuerUrl == null
-        || issuerUrl.isBlank()
-        || clientId == null
-        || clientId.isBlank()
-        || clientSecret == null
-        || clientSecret.isBlank()) {
-      log.info(
-          "OAuth2 credentials not configured; Kessel gRPC will use TLS only, RBAC workspace"
-              + " fetches will be unauthenticated");
-      return null;
-    }
-    try {
-      var discovery = OIDCDiscovery.fetchOIDCDiscovery(issuerUrl);
-      var credentials =
-          new OAuth2ClientCredentials(
-              new ClientConfigAuth(clientId, clientSecret, discovery.tokenEndpoint()));
-      log.info("OAuth2 credentials initialized for Kessel gRPC and RBAC workspace lookups");
-      return credentials;
-    } catch (Exception e) {
-      log.warn(
-          "Failed to initialize OAuth2 credentials; Kessel gRPC will use TLS only, RBAC workspace"
-              + " fetches will be unauthenticated",
-          e);
-      return null;
-    }
+        oauth2Credentials.orElse(null));
   }
 }

@@ -33,6 +33,27 @@
             "tlsPort": 0
         }
     ],
+    "dependencyEndpoints": {
+        "v2": {
+            "rbac": {
+                "service": {
+                    "uri": "https://rbac.remote.example:443/base",
+                    "authenticated": true
+                }
+            }
+        }
+    },
+    "privateDependencyEndpoints": {
+        "v2": {
+            "export-service": {
+                "service": {
+                    "uri": "https://export-service.remote.example:443",
+                    "authenticated": true,
+                    "ca_certificate": "src/test/resources/ca-test.pem"
+                }
+            }
+        }
+    },
     "featureFlags": {
         "hostname": "env-rhsm-featureflags.rhsm.svc",
         "port": 4242

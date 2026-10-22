@@ -20,13 +20,16 @@
  */
 package org.candlepin.subscriptions.clowder;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import java.io.IOException;
+import java.net.URI;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.regex.Pattern;
@@ -60,6 +63,11 @@ import org.springframework.web.context.support.StandardServletEnvironment;
  *       are special synthetic properties that are generated based on the clowder.tlsCAPath
  *   <li>clowder.privateEndpoints.&lt;privateEndpoints[?].app(*)&gt;-&lt;privateEndpoints[?].name(*)&gt;(url|trust-store-path|trust-store-password|trust-store-type).
  *       For example: "clowder.privateEndpoints.index-service.url"
+ *   <li>clowder.dependencyEndpoints.v2.&lt;app&gt;.&lt;deployment&gt;.(uri|authenticated|ca-certificate|trust-store-path|trust-store-password|trust-store-type)
+ *       and the private variant {@code clowder.privateDependencyEndpoints.v2...} mirror the Clowder
+ *       JSON path under {@code *.v2} (URI-based). Trust-store properties are synthesized from
+ *       {@code ca_certificate} when present. Missing V2 entries return {@code null} so property
+ *       defaults and parallel V1 keys continue to work.
  *   <li>When there is no matching rule from above, we navigate from (*) and extract the string
  *       value directly from the clowder config file. For example: "clowder.database.name".
  * </ul>
@@ -79,9 +87,19 @@ public class ClowderJsonPropertySource extends PropertySource<ClowderJson>
   private static final String KAFKA_TOPICS = "kafka.topics";
   private static final String ENDPOINTS = "endpoints";
   private static final String PRIVATE_ENDPOINTS = "privateEndpoints";
+  private static final String DEPENDENCY_ENDPOINTS = "dependencyEndpoints";
+  private static final String PRIVATE_DEPENDENCY_ENDPOINTS = "privateDependencyEndpoints";
   private static final String FEATURE_FLAGS = "featureFlags";
   private static final String ENDPOINT_TLS_PORT_PROPERTY = "tlsPort";
   private static final Integer PORT_NOT_SET = 0;
+  private static final Set<String> DEPENDENCY_ENDPOINT_PARAMETERS =
+      Set.of(
+          "uri",
+          "authenticated",
+          "ca-certificate",
+          "trust-store-path",
+          "trust-store-password",
+          "trust-store-type");
 
   /**
    * Custom rules for kafka broker property binding where the key is the suffix of the clowder
@@ -126,6 +144,10 @@ public class ClowderJsonPropertySource extends PropertySource<ClowderJson>
           this::getKafkaBrokerProperty,
           KAFKA_TOPICS,
           this::getKafkaTopicProperty,
+          PRIVATE_DEPENDENCY_ENDPOINTS,
+          this::getPrivateDependencyEndpointProperty,
+          DEPENDENCY_ENDPOINTS,
+          this::getDependencyEndpointProperty,
           ENDPOINTS,
           this::getEndpointProperty,
           PRIVATE_ENDPOINTS,
@@ -144,6 +166,8 @@ public class ClowderJsonPropertySource extends PropertySource<ClowderJson>
               StandardServletEnvironment.SERVLET_CONFIG_PROPERTY_SOURCE_NAME));
 
   private ClowderTrustStoreConfiguration trustStoreConfiguration;
+  private final Map<String, ClowderTrustStoreConfiguration> dependencyTrustStores =
+      new ConcurrentHashMap<>();
 
   public ClowderJsonPropertySource(ClowderJson source) {
     super(PROPERTY_SOURCE_NAME, source);
@@ -276,6 +300,114 @@ public class ClowderJsonPropertySource extends PropertySource<ClowderJson>
     }
 
     return null;
+  }
+
+  private Object getDependencyEndpointProperty(String name) {
+    return resolveDependencyEndpointProperty(name, DEPENDENCY_ENDPOINTS);
+  }
+
+  private Object getPrivateDependencyEndpointProperty(String name) {
+    return resolveDependencyEndpointProperty(name, PRIVATE_DEPENDENCY_ENDPOINTS);
+  }
+
+  /**
+   * Resolves Clowder V2 dependency-endpoint properties. Missing V2 metadata returns {@code null} so
+   * expression defaults and parallel V1 keys work. Applications own V1 vs V2 selection.
+   */
+  private Object resolveDependencyEndpointProperty(String name, String rootKey) {
+    if (!name.startsWith(rootKey + ".")) {
+      return null;
+    }
+    String[] path = name.substring(rootKey.length() + 1).split("\\.", -1);
+    // Property path mirrors JSON: <rootKey>.v2.<app>.<deployment>.<parameter>
+    if (path.length != 4 || !"v2".equals(path[0])) {
+      throw new IllegalArgumentException(
+          "Expected clowder." + rootKey + ".v2.<app>.<deployment>.<parameter>");
+    }
+    String app = path[1];
+    String deployment = path[2];
+    String parameter = path[3];
+    if (!DEPENDENCY_ENDPOINT_PARAMETERS.contains(parameter)) {
+      log.warn("Dependency endpoint requested an unknown parameter: '{}'", CLOWDER + name);
+      return null;
+    }
+
+    JsonNode v2 = source.getNode(rootKey + ".v2");
+    if (v2 == null || !v2.isObject()) {
+      return null;
+    }
+    JsonNode endpoint = v2.path(app).path(deployment);
+    if (endpoint.isMissingNode() || endpoint.isNull() || !endpoint.isObject()) {
+      return null;
+    }
+
+    JsonNode uriNode = endpoint.get("uri");
+    if (uriNode == null || uriNode.isNull() || uriNode.asText().isBlank()) {
+      return null;
+    }
+    String uri = uriNode.asText();
+    validateDependencyEndpointUri(uri, app, deployment);
+
+    JsonNode authenticatedNode = endpoint.get("authenticated");
+    if (authenticatedNode == null || authenticatedNode.isNull()) {
+      throw new IllegalStateException(
+          "Missing V2 authenticated flag for " + app + "/" + deployment);
+    }
+    boolean authenticated = authenticatedNode.asBoolean();
+
+    JsonNode caNode = endpoint.get("ca_certificate");
+    String caCertificate =
+        caNode == null || caNode.isNull() || caNode.asText().isBlank() ? null : caNode.asText();
+
+    return switch (parameter) {
+      case "uri" -> uri;
+      case "authenticated" -> Boolean.toString(authenticated);
+      case "ca-certificate" -> caCertificate;
+      case "trust-store-path" -> dependencyTrustStorePath(caCertificate);
+      case "trust-store-password" -> dependencyTrustStorePassword(caCertificate);
+      case "trust-store-type" ->
+          caCertificate == null ? null : ClowderTrustStoreConfiguration.CLOWDER_ENDPOINT_STORE_TYPE;
+      default -> null;
+    };
+  }
+
+  private static void validateDependencyEndpointUri(String uri, String app, String deployment) {
+    URI parsed;
+    try {
+      parsed = URI.create(uri);
+    } catch (IllegalArgumentException e) {
+      throw new IllegalStateException("Invalid V2 URI for " + app + "/" + deployment, e);
+    }
+    String scheme = parsed.getScheme();
+    if (!("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme))
+        || parsed.getHost() == null
+        || parsed.getUserInfo() != null
+        || parsed.getFragment() != null) {
+      throw new IllegalStateException(
+          "Expected an HTTP(S) V2 URI without credentials or fragment for "
+              + app
+              + "/"
+              + deployment);
+    }
+  }
+
+  private String dependencyTrustStorePath(String caCertificate) {
+    if (caCertificate == null) {
+      return null;
+    }
+    return "file:" + dependencyTrustStore(caCertificate).getPath();
+  }
+
+  private String dependencyTrustStorePassword(String caCertificate) {
+    if (caCertificate == null) {
+      return null;
+    }
+    return dependencyTrustStore(caCertificate).getPassword();
+  }
+
+  private ClowderTrustStoreConfiguration dependencyTrustStore(String caCertificate) {
+    return dependencyTrustStores.computeIfAbsent(
+        caCertificate, ClowderTrustStoreConfiguration::new);
   }
 
   public static Object kafkaBrokerToBootstrapServer(List<Map<String, Object>> brokerConfig) {
