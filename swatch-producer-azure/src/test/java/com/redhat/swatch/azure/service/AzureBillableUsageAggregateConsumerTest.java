@@ -26,6 +26,7 @@ import static com.redhat.swatch.azure.service.AzureBillableUsageAggregateConsume
 import static com.redhat.swatch.azure.test.resources.InMemoryMessageBrokerKafkaResource.IN_MEMORY_CONNECTOR;
 import static com.redhat.swatch.configuration.registry.SubscriptionDefinition.getBillingFactor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.azure.test.resources.InMemoryMessageBrokerKafkaResource;
@@ -34,6 +35,7 @@ import com.redhat.swatch.azure.test.resources.WireMockResource;
 import com.redhat.swatch.clients.contracts.api.model.AzureUsageContext;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
+import com.redhat.swatch.logging.LoggingFileJsonFormatter;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.quarkus.test.common.QuarkusTestResource;
@@ -43,20 +45,26 @@ import io.smallrye.reactive.messaging.memory.InMemorySink;
 import io.smallrye.reactive.messaging.memory.InMemorySource;
 import jakarta.inject.Inject;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
+import java.util.stream.IntStream;
 import org.apache.http.HttpStatus;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
+import org.jboss.logmanager.ExtLogRecord;
 import org.jboss.logmanager.LogContext;
+import org.jboss.logmanager.Logger;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -73,7 +81,10 @@ class AzureBillableUsageAggregateConsumerTest {
   private static final String PRODUCT_ID = "rosa";
   private static final String BILLING_ACCOUNT_ID = "abc";
   private static final BigDecimal EXPECTED_VALUE = BigDecimal.valueOf(500.0);
+  private static final int MAX_LOG_EVENT_BYTES = 60 * 1024;
   private static final LoggerCaptor LOGGER_CAPTOR = new LoggerCaptor();
+  private static Logger capturedLogger;
+  private static boolean previousUseParentHandlers;
 
   @Inject
   @Connector(IN_MEMORY_CONNECTOR)
@@ -89,9 +100,17 @@ class AzureBillableUsageAggregateConsumerTest {
 
   @BeforeAll
   static void configureLogging() {
-    LogContext.getLogContext()
-        .getLogger(AzureBillableUsageAggregateConsumer.class.getName())
-        .addHandler(LOGGER_CAPTOR);
+    capturedLogger =
+        LogContext.getLogContext().getLogger(AzureBillableUsageAggregateConsumer.class.getName());
+    previousUseParentHandlers = capturedLogger.getUseParentHandlers();
+    capturedLogger.addHandler(LOGGER_CAPTOR);
+    capturedLogger.setUseParentHandlers(false);
+  }
+
+  @AfterAll
+  static void restoreLogging() {
+    capturedLogger.removeHandler(LOGGER_CAPTOR);
+    capturedLogger.setUseParentHandlers(previousUseParentHandlers);
   }
 
   @BeforeEach
@@ -115,6 +134,49 @@ class AzureBillableUsageAggregateConsumerTest {
   }
 
   @Test
+  void shouldChunkAllRemittanceUuidsInAzureSuccessLogs() {
+    givenValidUsage();
+    List<String> uuids = createUuids(3000);
+    usage.setRemittanceUuids(uuids);
+    var snapshotStart = OffsetDateTime.parse("2026-05-01T00:00Z");
+    IntStream.range(0, 3000)
+        .forEach(index -> usage.getSnapshotDates().add(snapshotStart.plusHours(index)));
+    givenAzureContextForUsage();
+    givenAzureMarketplaceReturnsOk();
+
+    whenSendUsage();
+
+    thenUsageIsSentToAzure();
+    Awaitility.await()
+        .untilAsserted(
+            () -> {
+              assertChunkedUuidLogs(uuids, logGroupContaining("Received billable usage message"));
+              assertChunkedUuidLogs(
+                  uuids, logGroupContaining("Processing billable usage message:"));
+              assertChunkedUuidLogs(uuids, logGroupContaining("Sending usage request to Azure:"));
+              assertChunkedUuidLogs(uuids, logGroupContaining("Sent usage request to Azure:"));
+              assertEquals(
+                  1L,
+                  LOGGER_CAPTOR.records.stream()
+                      .filter(
+                          record ->
+                              record
+                                  .getMessage()
+                                  .startsWith("Sent usage request to Azure: result="))
+                      .count());
+              for (var date : usage.getSnapshotDates()) {
+                assertEquals(
+                    1L,
+                    logGroupContaining("Sent usage request to Azure:").stream()
+                        .filter(message -> message.contains(date.toString()))
+                        .count());
+              }
+              assertEquals(1, status.received().size());
+            });
+    thenMeteredTotalMetricIsPopulated();
+  }
+
+  @Test
   void testAzureMarketplaceReturnsForbiddenThenExceptionIsThrown() {
     givenValidUsage();
     givenAzureContextForUsage();
@@ -126,10 +188,14 @@ class AzureBillableUsageAggregateConsumerTest {
   @Test
   void testAzureMarketplaceReturnsInvalidRequestThenWarningLogIsPrinted() {
     givenValidUsage();
+    List<String> uuids = createUuids(1001);
+    usage.setRemittanceUuids(uuids);
     givenAzureContextForUsage();
     givenAzureMarketplaceReturnsInvalidRequest();
     whenSendUsage();
     thenWarningLogWithMessage("status: Error");
+    Awaitility.await()
+        .untilAsserted(() -> assertChunkedUuidLogs(uuids, logGroupContaining("status: Error")));
   }
 
   @Test
@@ -221,6 +287,56 @@ class AzureBillableUsageAggregateConsumerTest {
                             r -> r.getLevel().equals(level) && r.getMessage().contains(str))));
   }
 
+  private List<String> logGroupContaining(String text) {
+    List<String> messages = new ArrayList<>();
+    boolean inGroup = false;
+    for (var record : LOGGER_CAPTOR.records) {
+      String message = record.getMessage();
+      if (!message.startsWith("Billable usage aggregate continuation:")) {
+        inGroup = message.contains(text);
+      }
+      if (inGroup) {
+        messages.add(message);
+      }
+    }
+    return messages;
+  }
+
+  private static void assertChunkedUuidLogs(List<String> uuids, List<String> messages) {
+    int expectedChunkCount = (uuids.size() + 499) / 500;
+    assertEquals(expectedChunkCount, messages.size());
+
+    for (int index = 0; index < messages.size(); index++) {
+      String message = messages.get(index);
+      if (index == 0) {
+        assertFalse(message.startsWith("Billable usage aggregate continuation:"));
+        assertFalse(message.contains("(chunk "));
+      } else {
+        assertTrue(message.startsWith("Billable usage aggregate continuation:"));
+        assertTrue(message.contains("(chunk " + (index + 1) + "/" + expectedChunkCount + ")"));
+      }
+      var record =
+          LOGGER_CAPTOR.records.stream()
+              .filter(log -> message.equals(log.getMessage()))
+              .findFirst()
+              .orElseThrow();
+      assertTrue(
+          new LoggingFileJsonFormatter()
+                  .format(ExtLogRecord.wrap(record))
+                  .getBytes(StandardCharsets.UTF_8)
+                  .length
+              <= MAX_LOG_EVENT_BYTES);
+    }
+
+    for (String uuid : uuids) {
+      assertEquals(1, messages.stream().filter(message -> message.contains(uuid)).count());
+    }
+  }
+
+  private static List<String> createUuids(int count) {
+    return IntStream.range(0, count).mapToObj(index -> UUID.randomUUID().toString()).toList();
+  }
+
   private void thenMeteredTotalMetricIsPopulated() {
     Awaitility.await()
         .untilAsserted(
@@ -251,7 +367,7 @@ class AzureBillableUsageAggregateConsumerTest {
 
   public static class LoggerCaptor extends Handler {
 
-    private final List<LogRecord> records = new ArrayList<>();
+    private final List<LogRecord> records = new CopyOnWriteArrayList<>();
 
     @Override
     public void publish(LogRecord trace) {

@@ -29,10 +29,12 @@ import com.redhat.swatch.billable.usage.data.RemittanceStatus;
 import com.redhat.swatch.billable.usage.exceptions.ErrorCode;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
+import java.util.ArrayList;
 import java.util.Objects;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
+import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateLogger;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 
 @Slf4j
@@ -46,8 +48,8 @@ public class BillableUsageStatusConsumer {
   @Transactional
   public void process(BillableUsageAggregate billableUsageAggregate) {
     if (Objects.isNull(billableUsageAggregate.getStatus())) {
-      log.error(
-          "Billable Usage Status update received with no status, {}:", billableUsageAggregate);
+      BillableUsageAggregateLogger.error(
+          log, "Billable Usage Status update received with no status, {}:", billableUsageAggregate);
       return;
     }
 
@@ -55,7 +57,8 @@ public class BillableUsageStatusConsumer {
   }
 
   private void updateStatus(BillableUsageAggregate billableUsageAggregate) {
-    log.info("Updating status for aggregate: {}", billableUsageAggregate);
+    BillableUsageAggregateLogger.info(
+        log, "Updating status for aggregate: {}", billableUsageAggregate);
     var status = RemittanceStatus.fromString(billableUsageAggregate.getStatus().value());
     var errorCode =
         ofNullable(billableUsageAggregate.getErrorCode())
@@ -66,7 +69,7 @@ public class BillableUsageStatusConsumer {
         remittanceRepository.findByIdInAndStatusNotPending(
             billableUsageAggregate.getRemittanceUuids());
 
-    var remittanceUuidsToUpdate = billableUsageAggregate.getRemittanceUuids();
+    var remittanceUuidsToUpdate = new ArrayList<>(billableUsageAggregate.getRemittanceUuids());
 
     finalizedRemittances.forEach(
         remittance -> {
@@ -80,7 +83,8 @@ public class BillableUsageStatusConsumer {
         });
 
     if (remittanceUuidsToUpdate.isEmpty()) {
-      log.info("No remittances to update for aggregate {}", billableUsageAggregate);
+      BillableUsageAggregateLogger.info(
+          log, "No remittances to update for aggregate {}", billableUsageAggregate);
       return;
     }
 

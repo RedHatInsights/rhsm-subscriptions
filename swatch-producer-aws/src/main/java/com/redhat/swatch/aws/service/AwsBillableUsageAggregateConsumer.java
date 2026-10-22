@@ -58,6 +58,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
+import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateLogger;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
@@ -109,7 +110,8 @@ public class AwsBillableUsageAggregateConsumer {
   @Incoming("billable-usage-hourly-aggregate-in")
   @Blocking
   public void process(BillableUsageAggregate billableUsageAggregate) {
-    log.info("Picked up billable usage message {} to process", billableUsageAggregate);
+    BillableUsageAggregateLogger.info(
+        log, "Picked up billable usage message {} to process", billableUsageAggregate);
     if (billableUsageAggregate == null || billableUsageAggregate.getAggregateKey() == null) {
       log.warn("Skipping null billable usage: deserialization failure?");
       return;
@@ -126,21 +128,24 @@ public class AwsBillableUsageAggregateConsumer {
 
     Optional<Metric> metric = lookupMetric(billableUsageAggregate.getAggregateKey());
     if (metric.isEmpty()) {
-      log.warn(
+      BillableUsageAggregateLogger.warn(
+          log,
           "Skipping billable usage because the metric is not supported: {}",
           billableUsageAggregate);
       emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.UNSUPPORTED_METRIC);
       return;
     }
 
-    log.info("Processing billable usage message: {}", billableUsageAggregate);
+    BillableUsageAggregateLogger.info(
+        log, "Processing billable usage message: {}", billableUsageAggregate);
 
     AwsUsageContext context;
     try {
       context = lookupAwsUsageContext(billableUsageAggregate);
     } catch (SubscriptionCanNotBeDeterminedException e) {
       if (!isUsageDateValid(Clock.systemUTC(), billableUsageAggregate)) {
-        log.warn(
+        BillableUsageAggregateLogger.warn(
+            log,
             "Skipping billable usage aggregate {} because the subscription was not found and the snapshot '{}' is past the aws time window of '{}'",
             billableUsageAggregate,
             billableUsageAggregate.getWindowTimestamp(),
@@ -148,7 +153,8 @@ public class AwsBillableUsageAggregateConsumer {
             e);
         emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.INACTIVE);
       } else {
-        log.warn("Subscription not found for aggregate={}", billableUsageAggregate, e);
+        BillableUsageAggregateLogger.warn(
+            log, "Subscription not found for aggregate={}", billableUsageAggregate, e);
         emitErrorStatusOnUsage(
             billableUsageAggregate, BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND);
       }
@@ -156,15 +162,18 @@ public class AwsBillableUsageAggregateConsumer {
     } catch (SubscriptionRecentlyTerminatedException e) {
       emitErrorStatusOnUsage(
           billableUsageAggregate, BillableUsage.ErrorCode.SUBSCRIPTION_TERMINATED);
-      log.info("Subscription recently terminated for aggregate={}", billableUsageAggregate, e);
+      BillableUsageAggregateLogger.info(
+          log, "Subscription recently terminated for aggregate={}", billableUsageAggregate, e);
       return;
     } catch (SubscriptionMissingBillingAccountIdException e) {
       emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.USAGE_CONTEXT_LOOKUP);
-      log.warn("Subscription missing billingAccountId for aggregate={}", billableUsageAggregate, e);
+      BillableUsageAggregateLogger.warn(
+          log, "Subscription missing billingAccountId for aggregate={}", billableUsageAggregate, e);
       return;
     } catch (AwsUsageContextLookupException e) {
       emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.USAGE_CONTEXT_LOOKUP);
-      log.error("Error looking up aws usage context for aggregate={}", billableUsageAggregate, e);
+      BillableUsageAggregateLogger.error(
+          log, "Error looking up aws usage context for aggregate={}", billableUsageAggregate, e);
       return;
     }
 
@@ -173,7 +182,8 @@ public class AwsBillableUsageAggregateConsumer {
       emitSuccessfulStatusOnUsage(billableUsageAggregate);
     } catch (UsageTimestampOutOfBoundsException e) {
       emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.REDUNDANT);
-      log.warn(
+      BillableUsageAggregateLogger.warn(
+          log,
           "{} aggregate={}, rhSubscriptionNumber={} awsCustomerId={} awsProductCode={} subscriptionStartDate={}",
           e.getMessage(),
           billableUsageAggregate,
@@ -185,7 +195,8 @@ public class AwsBillableUsageAggregateConsumer {
     } catch (AwsUsageNotAcceptedException e) {
       emitErrorStatusOnUsage(
           billableUsageAggregate, errorCodeForAwsUsageResult(e.getResultStatus()));
-      log.warn(
+      BillableUsageAggregateLogger.warn(
+          log,
           "AWS usage not accepted for rhSubscriptionNumber={} aggregate={} awsCustomerId={} awsProductCode={} resultStatus={}",
           context.getRhSubscriptionNumber(),
           billableUsageAggregate,
@@ -195,7 +206,8 @@ public class AwsBillableUsageAggregateConsumer {
     } catch (AwsThrottlingException e) {
       emitErrorStatusOnUsage(
           billableUsageAggregate, BillableUsage.ErrorCode.MARKETPLACE_RATE_LIMIT);
-      log.error(
+      BillableUsageAggregateLogger.error(
+          log,
           "Error sending aws usage due to rate limit for rhSubscriptionNumber={} aggregate={} awsCustomerId={} awsProductCode={}",
           context.getRhSubscriptionNumber(),
           billableUsageAggregate,
@@ -204,7 +216,8 @@ public class AwsBillableUsageAggregateConsumer {
           e);
     } catch (Exception e) {
       emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.UNKNOWN);
-      log.error(
+      BillableUsageAggregateLogger.error(
+          log,
           "Error sending aws usage for rhSubscriptionNumber={} aggregate={} awsCustomerId={} awsProductCode={}",
           context.getRhSubscriptionNumber(),
           billableUsageAggregate,
@@ -258,13 +271,15 @@ public class AwsBillableUsageAggregateConsumer {
         buildBatchMeterUsageRequest(context, billableUsageAggregate, metric);
 
     if (isDryRun.isPresent() && Boolean.TRUE.equals(isDryRun.get())) {
-      log.info(
+      BillableUsageAggregateLogger.info(
+          log,
           "[DRY RUN] Sending usage request to AWS: {}, aggregate={}",
           request,
           billableUsageAggregate);
       return;
     } else {
-      log.info("Sending usage request to AWS: {}, aggregate={}", request, billableUsageAggregate);
+      BillableUsageAggregateLogger.info(
+          log, "Sending usage request to AWS: {}, aggregate={}", request, billableUsageAggregate);
     }
 
     try {
@@ -278,11 +293,15 @@ public class AwsBillableUsageAggregateConsumer {
       }
       for (var result : response.results()) {
         if (result.status() == UsageRecordResultStatus.SUCCESS) {
-          log.info(
-              "Sent usage request to AWS: result={}, aggregate={}", result, billableUsageAggregate);
+          BillableUsageAggregateLogger.info(
+              log,
+              "Sent usage request to AWS: result={}, aggregate={}",
+              result,
+              billableUsageAggregate);
           acceptedCounter.increment();
         } else {
-          log.warn(
+          BillableUsageAggregateLogger.warn(
+              log,
               "AWS BatchMeterUsage returned non-Success status for aggregate={}, result={}",
               billableUsageAggregate,
               result);
@@ -297,7 +316,8 @@ public class AwsBillableUsageAggregateConsumer {
       rejectedCounter.increment(request.usageRecords().size());
       throw new AwsUnprocessedRecordsException(request.usageRecords().size(), e);
     } catch (AwsMissingCredentialsException e) {
-      log.warn(
+      BillableUsageAggregateLogger.warn(
+          log,
           "{} for aggregate={}, awsCustomerId={}",
           e.getMessage(),
           billableUsageAggregate,
