@@ -30,11 +30,6 @@
       <groupId>com.redhat.swatch.clients.spring</groupId>
       <artifactId>rhsm-client</artifactId>
     </dependency>
-    <dependency>
-      <groupId>org.jboss.resteasy</groupId>
-      <artifactId>resteasy-jackson2-provider</artifactId>
-      <scope>runtime</scope>
-    </dependency>
     <!-- TODO This module is deprecated by design.  Move to Jackson 3 ASAP -->
     <!-- See https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide#jackson-2-compatibility -->
     <dependency>
@@ -70,6 +65,11 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-webmvc</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>2.15.1</version>
     </dependency>
     <dependency>
       <groupId>org.springframework</groupId>

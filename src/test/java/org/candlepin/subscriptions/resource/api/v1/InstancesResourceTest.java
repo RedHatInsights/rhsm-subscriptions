@@ -33,8 +33,6 @@ import static org.mockito.Mockito.when;
 import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import jakarta.transaction.Transactional;
-import jakarta.ws.rs.BadRequestException;
-import jakarta.ws.rs.ForbiddenException;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -71,10 +69,12 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.web.server.ResponseStatusException;
 
 @SpringBootTest
 @ActiveProfiles({"api", "test"})
@@ -371,9 +371,11 @@ class InstancesResourceTest {
 
     // ROSA is a PAYG product
     resource.validateBeginningAndEndingDates(ROSA, dayInJanuary, laterDayInJanuary);
-    assertThrows(
-        BadRequestException.class,
-        () -> resource.validateBeginningAndEndingDates(ROSA, dayInJanuary, dayInFebruary));
+    var exception =
+        assertThrows(
+            ResponseStatusException.class,
+            () -> resource.validateBeginningAndEndingDates(ROSA, dayInJanuary, dayInFebruary));
+    assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
   }
 
   @WithMockRedHatPrincipal("123456")
@@ -630,24 +632,25 @@ class InstancesResourceTest {
   @WithMockRedHatPrincipal("123456")
   @Test
   void testGetInstancesByProductThrowsExceptionForUnknownMetricId() {
-    assertThrows(
-        BadRequestException.class,
-        () ->
-            resource.getInstancesByProduct(
-                ROSA,
-                null,
-                null,
-                ServiceLevelType.PREMIUM,
-                UsageType.PRODUCTION,
-                "NotAMetricId",
-                BillingProviderType.RED_HAT,
-                null,
-                null,
-                null,
-                null,
-                null,
-                SORT_BY_DISPLAY_NAME,
-                null));
+    var exception =
+        assertThrows(
+            ResponseStatusException.class,
+            () ->
+                resource.getInstancesByProduct(
+                    ROSA,
+                    null,
+                    null,
+                    ServiceLevelType.PREMIUM,
+                    UsageType.PRODUCTION,
+                    "NotAMetricId",
+                    BillingProviderType.RED_HAT,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    SORT_BY_DISPLAY_NAME,
+                    null));
   }
 
   @Test
@@ -834,9 +837,11 @@ class InstancesResourceTest {
   @Test
   @WithMockRedHatPrincipal(value = "123456")
   void testAccessDeniedNotMatchingOrg() {
-    assertThrows(
-        ForbiddenException.class,
-        () -> whenFetchBillingAccountIdsForOrg("owner789", RHEL_FOR_ARM, BillingProvider.AWS));
+    var exception =
+        assertThrows(
+            ResponseStatusException.class,
+            () -> whenFetchBillingAccountIdsForOrg("owner789", RHEL_FOR_ARM, BillingProvider.AWS));
+    assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
   }
 
   @Test

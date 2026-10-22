@@ -21,13 +21,20 @@
 package com.redhat.swatch.contracts.spring.client;
 
 import com.redhat.swatch.contracts.spring.client.auth.ApiKeyAuth;
-import jakarta.ws.rs.core.GenericType;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
 
 @Slf4j
 public class IdentityHeaderApiClient extends ApiClient {
@@ -49,26 +56,41 @@ public class IdentityHeaderApiClient extends ApiClient {
             .collect(Collectors.toSet());
   }
 
+  public IdentityHeaderApiClient(IdentityHeaderProvider headerProvider, RestTemplate restTemplate) {
+    super(restTemplate);
+    this.headerProvider = headerProvider;
+
+    this.applicableAuthNames =
+        getAuthentications().entrySet().stream()
+            .filter(
+                e ->
+                    e.getValue() instanceof ApiKeyAuth
+                        && "x-rh-identity".equals(((ApiKeyAuth) e.getValue()).getParamName()))
+            .map(Entry::getKey)
+            .collect(Collectors.toSet());
+  }
+
   @Override
-  public <T> T invokeAPI(
+  public <T> ResponseEntity<T> invokeAPI(
       String path,
-      String method,
-      List<Pair> queryParams,
+      HttpMethod method,
+      Map<String, Object> pathParams,
+      MultiValueMap<String, String> queryParams,
       Object body,
-      Map<String, String> headerParams,
-      Map<String, String> cookieParams,
-      Map<String, Object> formParams,
-      String accept,
-      String contentType,
+      HttpHeaders headerParams,
+      MultiValueMap<String, String> cookieParams,
+      MultiValueMap<String, Object> formParams,
+      List<MediaType> accept,
+      MediaType contentType,
       String[] authNames,
-      GenericType<T> returnType)
-      throws ApiException {
+      ParameterizedTypeReference<T> returnType)
+      throws RestClientException {
 
     for (String authName : authNames) {
       if (this.applicableAuthNames.contains(authName)
           && getAuthentication(authName) instanceof ApiKeyAuth) {
         // Forward the existing identity if it is required.
-        headerParams.put("x-rh-identity", this.headerProvider.get());
+        headerParams.set("x-rh-identity", this.headerProvider.get());
         break;
       }
     }
@@ -76,6 +98,7 @@ public class IdentityHeaderApiClient extends ApiClient {
     return super.invokeAPI(
         path,
         method,
+        pathParams,
         queryParams,
         body,
         headerParams,

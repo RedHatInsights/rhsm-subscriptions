@@ -25,7 +25,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.annotation.Timed;
 import jakarta.transaction.Transactional;
-import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -54,8 +53,10 @@ import org.candlepin.subscriptions.util.LogUtils;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.TaskRejectedException;
+import org.springframework.http.HttpStatus;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.web.server.ResponseStatusException;
 
 /** This resource is for exposing administrator REST endpoints for Tally. */
 @Component
@@ -277,7 +278,8 @@ public class InternalTallyResource implements InternalTallyApi {
     log.info("Tally for org {} triggered over API by {}", orgId, principal);
     if (ResourceUtils.sanitizeBoolean(xRhSwatchSynchronousRequest, false)) {
       if (!applicationProperties.isEnableSynchronousOperations()) {
-        throw new BadRequestException("Synchronous tally operations are not enabled.");
+        throw new ResponseStatusException(
+            HttpStatus.BAD_REQUEST, "Synchronous tally operations are not enabled.");
       }
       log.info("Synchronous tally requested for orgId {}", orgId);
       internalTallyDataController.tallyOrgSync(orgId);

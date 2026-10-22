@@ -21,7 +21,6 @@
     <!-- Dependencies -->
     <quarkus.platform.version>3.40.1.1</quarkus.platform.version>
     <spring.boot.version>4.1.1</spring.boot.version>
-    <resteasy.version>7.0.5.Final</resteasy.version>
     <!-- Only use as provided in the common dependencies.
     Spring and Quarkus already provides the compatible Jackson versions -->
     <jackson.version>2.22.4</jackson.version>
@@ -167,11 +166,6 @@
       <dependency>
         <groupId>com.redhat.swatch</groupId>
         <artifactId>swatch-model-metrics-hbi</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.redhat.swatch</groupId>
-        <artifactId>swatch-common-resteasy</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -572,8 +566,6 @@
         <module>swatch-common-export</module>
         <module>swatch-common-kessel</module>
         <module>swatch-common-config-workaround</module>
-        <module>swatch-common-resteasy</module>
-        <module>swatch-common-resteasy-client</module>
         <module>swatch-common-panache</module>
         <module>swatch-common-kafka</module>
         <module>swatch-common-smallrye-fault-tolerance</module>

@@ -42,8 +42,7 @@ public class StubRhsmApi extends RhsmApi {
 
   @Override
   public OrgInventory getConsumersForOrg(
-      String xRhsmApiAccountID, Integer limit, String offset, String lastCheckinAfter)
-      throws ApiException {
+      String xRhsmApiAccountID, Integer limit, String offset, String lastCheckinAfter) {
 
     if (xRhsmApiAccountID.equals("slowOrg123")) {
       try {

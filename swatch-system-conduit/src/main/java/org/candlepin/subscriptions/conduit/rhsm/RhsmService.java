@@ -30,7 +30,6 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import org.candlepin.subscriptions.conduit.inventory.InventoryServiceProperties;
-import org.candlepin.subscriptions.conduit.rhsm.client.ApiException;
 import org.candlepin.subscriptions.conduit.rhsm.client.RhsmApiProperties;
 import org.candlepin.subscriptions.conduit.rhsm.client.model.OrgInventory;
 import org.candlepin.subscriptions.conduit.rhsm.client.resources.RhsmApi;
@@ -95,8 +94,7 @@ public class RhsmService {
               regexp =
                   "^([12]\\d{3}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])T(0[0-9]|1[0-9]|2[0-4]):"
                       + "(0[0-9]|[1-5][0-9]):(0[0-9]|[1-5][0-9]))Z$")
-          String lastCheckinTime)
-      throws ApiException {
+          String lastCheckinTime) {
     return retryTemplate.execute(
         context -> {
           try {

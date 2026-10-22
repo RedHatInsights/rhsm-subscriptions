@@ -22,118 +22,122 @@ package org.candlepin.subscriptions.resteasy;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 
-import jakarta.ws.rs.NotAcceptableException;
-import jakarta.ws.rs.NotSupportedException;
-import jakarta.ws.rs.container.ContainerRequestContext;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.MultivaluedHashMap;
-import jakarta.ws.rs.core.MultivaluedMap;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
-import org.jboss.resteasy.util.MediaTypeHelper;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
+@ExtendWith(MockitoExtension.class)
 class ContentNegotiationRequestFilterTest {
 
-  @Test
-  void acceptHeaderMustContainVendorSpecificJsonHeaderWithNoParameters() throws Exception {
-    List<MediaType> types = MediaTypeHelper.parseHeader("application/vnd.api+json");
-    assertEquals(1, types.size());
+  private ContentNegotiationRequestFilter filter;
 
-    MultivaluedMap<String, String> headers = new MultivaluedHashMap<>();
-    headers.put("content-type", Collections.emptyList());
+  @Mock private HttpServletRequest request;
 
-    ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
-    when(requestContext.getHeaderString("Accept")).thenReturn(types.get(0).toString());
-    when(requestContext.getAcceptableMediaTypes()).thenReturn(types);
-    when(requestContext.getHeaders()).thenReturn(headers);
+  @Mock private HttpServletResponse response;
 
-    ContentNegotiationRequestFilter filter = new ContentNegotiationRequestFilter();
-    filter.filter(requestContext);
+  @Mock private FilterChain filterChain;
+
+  @BeforeEach
+  void setUp() {
+    filter = new ContentNegotiationRequestFilter();
   }
 
   @Test
-  void notAcceptableThrownWhenAcceptHeaderContainsJsonMediaTypeWithParams() {
-    List<MediaType> types = MediaTypeHelper.parseHeader("application/vnd.api+json;version=1.0");
-    assertEquals(1, types.size());
+  void testAcceptHeaderWithoutParameters() throws Exception {
+    Mockito.when(request.getHeader("Accept")).thenReturn("application/vnd.api+json");
+    Mockito.when(request.getHeader("Content-Type")).thenReturn(null);
 
-    MultivaluedMap<String, String> headers = new MultivaluedHashMap<>();
-    headers.put("content-type", Collections.emptyList());
+    filter.doFilterInternal(request, response, filterChain);
 
-    ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
-    when(requestContext.getHeaderString("Accept")).thenReturn(types.get(0).toString());
-    when(requestContext.getAcceptableMediaTypes()).thenReturn(types);
-    when(requestContext.getHeaders()).thenReturn(headers);
-
-    ContentNegotiationRequestFilter filter = new ContentNegotiationRequestFilter();
-    assertThrows(
-        NotAcceptableException.class,
-        () -> {
-          filter.filter(requestContext);
-        });
+    verify(filterChain).doFilter(request, response);
   }
 
   @Test
-  void notAcceptableNotThrownWhenAcceptHeaderOneValidJsonMediaTypeWithoutParams() throws Exception {
-    List<MediaType> types =
-        MediaTypeHelper.parseHeader(
-            "application/vnd.api+json;version=1.0,application/vnd.api+json,application/vnd.api+json;v=2");
-    assertEquals(3, types.size());
+  void testAcceptHeaderWithParameters() {
+    Mockito.when(request.getHeader("Accept")).thenReturn("application/vnd.api+json;charset=utf-8");
+    Mockito.lenient().when(request.getHeader("Content-Type")).thenReturn(null);
 
-    MultivaluedMap<String, String> headers = new MultivaluedHashMap<>();
-    headers.put("content-type", Collections.emptyList());
+    var exception =
+        assertThrows(
+            ResponseStatusException.class,
+            () -> filter.doFilterInternal(request, response, filterChain));
 
-    ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
-    when(requestContext.getHeaderString("Accept")).thenReturn(types.get(0).toString());
-    when(requestContext.getAcceptableMediaTypes()).thenReturn(types);
-    when(requestContext.getHeaders()).thenReturn(headers);
-
-    ContentNegotiationRequestFilter filter = new ContentNegotiationRequestFilter();
-    filter.filter(requestContext);
+    assertEquals(HttpStatus.NOT_ACCEPTABLE, exception.getStatusCode());
   }
 
   @Test
-  void contentTypeHeaderCanNotSpecifyAnyMediaTypeParameters() {
-    List<MediaType> types = MediaTypeHelper.parseHeader("application/vnd.api+json;version=1.0");
-    assertEquals(1, types.size());
+  void testAcceptHeaderWithMixedParameters() throws Exception {
+    Mockito.when(request.getHeader("Accept"))
+        .thenReturn("application/vnd.api+json, application/vnd.api+json;charset=utf-8");
+    Mockito.when(request.getHeader("Content-Type")).thenReturn(null);
 
-    MultivaluedMap<String, String> headers = new MultivaluedHashMap<>();
-    headers.put(
-        "content-type", types.stream().map(MediaType::toString).collect(Collectors.toList()));
+    filter.doFilterInternal(request, response, filterChain);
 
-    ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
-    when(requestContext.getHeaderString("Accept")).thenReturn(null);
-    when(requestContext.getAcceptableMediaTypes()).thenReturn(Collections.EMPTY_LIST);
-    when(requestContext.getHeaders()).thenReturn(headers);
-
-    ContentNegotiationRequestFilter filter = new ContentNegotiationRequestFilter();
-    assertThrows(
-        NotSupportedException.class,
-        () -> {
-          filter.filter(requestContext);
-        });
+    verify(filterChain).doFilter(request, response);
   }
 
   @Test
-  void nonMatchingContentTypesCanHaveParamteters() throws Exception {
-    List<MediaType> types = MediaTypeHelper.parseHeader("application/foobar;version=1.0");
-    assertEquals(1, types.size());
-    assertEquals(1, types.get(0).getParameters().size());
+  void testContentTypeWithoutParameters() throws Exception {
+    Mockito.when(request.getHeader("Accept")).thenReturn(null);
+    Mockito.when(request.getHeader("Content-Type")).thenReturn("application/vnd.api+json");
 
-    MultivaluedMap<String, String> headers = new MultivaluedHashMap<>();
-    headers.put(
-        "content-type", types.stream().map(MediaType::toString).collect(Collectors.toList()));
+    filter.doFilterInternal(request, response, filterChain);
 
-    ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
-    when(requestContext.getHeaderString("Accept")).thenReturn(null);
-    when(requestContext.getAcceptableMediaTypes()).thenReturn(Collections.EMPTY_LIST);
-    when(requestContext.getHeaders()).thenReturn(headers);
+    verify(filterChain).doFilter(request, response);
+  }
 
-    ContentNegotiationRequestFilter filter = new ContentNegotiationRequestFilter();
-    filter.filter(requestContext);
+  @Test
+  void testContentTypeWithParameters() {
+    Mockito.when(request.getHeader("Accept")).thenReturn(null);
+    Mockito.when(request.getHeader("Content-Type"))
+        .thenReturn("application/vnd.api+json;charset=utf-8");
+
+    var exception =
+        assertThrows(
+            ResponseStatusException.class,
+            () -> filter.doFilterInternal(request, response, filterChain));
+
+    assertEquals(HttpStatus.UNSUPPORTED_MEDIA_TYPE, exception.getStatusCode());
+  }
+
+  @Test
+  void testNonJsonApiMediaType() throws Exception {
+    Mockito.when(request.getHeader("Accept")).thenReturn("application/json");
+    Mockito.when(request.getHeader("Content-Type")).thenReturn("application/json");
+
+    filter.doFilterInternal(request, response, filterChain);
+
+    verify(filterChain).doFilter(request, response);
+  }
+
+  @Test
+  void testNoHeaders() throws Exception {
+    Mockito.when(request.getHeader("Accept")).thenReturn(null);
+    Mockito.when(request.getHeader("Content-Type")).thenReturn(null);
+
+    filter.doFilterInternal(request, response, filterChain);
+
+    verify(filterChain).doFilter(request, response);
+  }
+
+  @Test
+  void testMalformedAcceptHeader() throws Exception {
+    Mockito.when(request.getHeader("Accept")).thenReturn("invalid-media-type");
+    Mockito.when(request.getHeader("Content-Type")).thenReturn(null);
+
+    // Should not throw - malformed headers are ignored
+    filter.doFilterInternal(request, response, filterChain);
+
+    verify(filterChain).doFilter(request, response);
   }
 }

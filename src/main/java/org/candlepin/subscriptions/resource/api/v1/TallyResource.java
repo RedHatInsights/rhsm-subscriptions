@@ -25,9 +25,7 @@ import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinitionGranularity;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.contracts.spring.api.model.CapacitySnapshotByMetricId;
-import jakarta.ws.rs.BadRequestException;
-import jakarta.ws.rs.core.Context;
-import jakarta.ws.rs.core.UriInfo;
+import jakarta.servlet.http.HttpServletRequest;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -74,7 +72,9 @@ import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+import org.springframework.web.server.ResponseStatusException;
 
 /** Tally API implementation. */
 @Component
@@ -93,8 +93,7 @@ public class TallyResource implements TallyApi {
   private final ApplicationClock clock;
   private final ContractsCapacityController capacityController;
   private final FeatureFlags featureFlags;
-
-  @Context private UriInfo uriInfo;
+  private final HttpServletRequest request;
 
   @Autowired
   public TallyResource(
@@ -103,13 +102,15 @@ public class TallyResource implements TallyApi {
       PageLinkCreator pageLinkCreator,
       ApplicationClock clock,
       ContractsCapacityController capacityController,
-      FeatureFlags featureFlags) {
+      FeatureFlags featureFlags,
+      HttpServletRequest request) {
     this.mapper = mapper;
     this.repository = repository;
     this.pageLinkCreator = pageLinkCreator;
     this.clock = clock;
     this.capacityController = capacityController;
     this.featureFlags = featureFlags;
+    this.request = request;
   }
 
   @Override
@@ -131,7 +132,8 @@ public class TallyResource implements TallyApi {
       BillingCategory billingCategory) {
 
     if (Objects.nonNull(billingCategory) && !Boolean.TRUE.equals(useRunningTotalsFormat)) {
-      throw new BadRequestException(
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST,
           "When `billing_category` is specified, `use_running_totals_format` must be `true`.");
     }
 
@@ -196,7 +198,7 @@ public class TallyResource implements TallyApi {
     // Only set page links if we are paging (not filling).
     if (reportCriteria.getPageable() != null) {
       report.setLinks(
-          mapper.map(pageLinkCreator.getPaginationLinks(uriInfo, queryResult.pageForLinks())));
+          mapper.map(pageLinkCreator.getPaginationLinks(request, queryResult.pageForLinks())));
     }
 
     if (Boolean.TRUE.equals(useRunningTotalsFormat)) {
@@ -296,7 +298,8 @@ public class TallyResource implements TallyApi {
       // Combined with our logging configuration, this tells the OnMdcEvaluator class to suppress
       // the stacktrace
       MDC.put("INVALID_GRANULARITY", Boolean.TRUE.toString());
-      throw new BadRequestException(
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST,
           String.format(
               "%s does not support any granularity finer than %s",
               productId, granularityFromValue.getValue()));

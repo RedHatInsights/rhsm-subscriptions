@@ -20,25 +20,26 @@
  */
 package org.candlepin.subscriptions.resteasy;
 
-import jakarta.ws.rs.NotAcceptableException;
-import jakarta.ws.rs.NotSupportedException;
-import jakarta.ws.rs.container.ContainerRequestContext;
-import jakarta.ws.rs.container.ContainerRequestFilter;
-import jakarta.ws.rs.container.PreMatching;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.ext.Provider;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * A request filter that ensures that the server follows the content negotiation rules outlined by
  * jsonapi.org ( https://jsonapi.org/format/#content-negotiation-servers ).
  */
 @Component
-@Provider
-@PreMatching
-public class ContentNegotiationRequestFilter implements ContainerRequestFilter {
+public class ContentNegotiationRequestFilter extends OncePerRequestFilter {
 
   private static final String APPLICATION_TYPE = "application";
   private static final String VENDOR_JSON_SUBTYPE = "vnd.api+json";
@@ -46,12 +47,15 @@ public class ContentNegotiationRequestFilter implements ContainerRequestFilter {
       String.format("%s/%s", APPLICATION_TYPE, VENDOR_JSON_SUBTYPE);
 
   @Override
-  public void filter(ContainerRequestContext requestContext) {
-    validateApiJsonMediaType(requestContext);
-    validateApiJsonContentType(requestContext);
+  protected void doFilterInternal(
+      HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+      throws ServletException, IOException {
+    validateApiJsonMediaType(request);
+    validateApiJsonContentType(request);
+    filterChain.doFilter(request, response);
   }
 
-  private void validateApiJsonMediaType(ContainerRequestContext requestContext) {
+  private void validateApiJsonMediaType(HttpServletRequest request) {
     /*
      * IMPL NOTE:
      *
@@ -61,7 +65,7 @@ public class ContentNegotiationRequestFilter implements ContainerRequestFilter {
      * contains the JSON:API media type and all instances of that media type are modified with
      * media type parameters.
      */
-    List<MediaType> matched = findMatchedAcceptedMediaTypes(requestContext);
+    List<MediaType> matched = findMatchedAcceptedMediaTypes(request);
 
     // If no accepted media types match, let the default negotiation happen.
     if (matched.isEmpty()) {
@@ -70,13 +74,14 @@ public class ContentNegotiationRequestFilter implements ContainerRequestFilter {
 
     boolean validFound = matched.stream().anyMatch(x -> x.getParameters().isEmpty());
     if (!validFound) {
-      throw new NotAcceptableException(
+      throw new ResponseStatusException(
+          HttpStatus.NOT_ACCEPTABLE,
           String.format(
-              "Accept header '%s' can not contain media type parameters.", JSON_MEDIA_TYPE));
+              "Accept header ‘%s’ can not contain media type parameters.", JSON_MEDIA_TYPE));
     }
   }
 
-  private void validateApiJsonContentType(ContainerRequestContext requestContext) {
+  private void validateApiJsonContentType(HttpServletRequest request) {
     /*
      * IMPL NOTE:
      *
@@ -85,27 +90,35 @@ public class ContentNegotiationRequestFilter implements ContainerRequestFilter {
      * Servers MUST respond with a 415 Unsupported Media Type status code if a request specifies
      * the header Content-Type: application/vnd.api+json with any media type parameters.
      */
-    if (!requestContext.getHeaders().containsKey("content-type")) {
+    String contentTypeHeader = request.getHeader("Content-Type");
+    if (contentTypeHeader == null || contentTypeHeader.isEmpty()) {
       // Nothing to validate if content-type was not specified.
       return;
     }
 
-    String contentTypeHeader = requestContext.getHeaders().getFirst("content-type");
-    MediaType type =
-        contentTypeHeader != null && !contentTypeHeader.isEmpty()
-            ? MediaType.valueOf(contentTypeHeader)
-            : null;
+    MediaType type = MediaType.parseMediaType(contentTypeHeader);
 
-    if (type != null && matchesApplicationJsonApiType(type) && !type.getParameters().isEmpty()) {
-      throw new NotSupportedException(
-          String.format("Parameters not allowed for Content-Type '%s'", JSON_MEDIA_TYPE));
+    if (matchesApplicationJsonApiType(type) && !type.getParameters().isEmpty()) {
+      throw new ResponseStatusException(
+          HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+          String.format("Parameters not allowed for Content-Type ‘%s’", JSON_MEDIA_TYPE));
     }
   }
 
-  private List<MediaType> findMatchedAcceptedMediaTypes(ContainerRequestContext requestContext) {
-    return requestContext.getAcceptableMediaTypes().stream()
-        .filter(ContentNegotiationRequestFilter::matchesApplicationJsonApiType)
-        .collect(Collectors.toList());
+  private List<MediaType> findMatchedAcceptedMediaTypes(HttpServletRequest request) {
+    String acceptHeader = request.getHeader("Accept");
+    if (acceptHeader == null || acceptHeader.isEmpty()) {
+      return Collections.emptyList();
+    }
+
+    try {
+      return MediaType.parseMediaTypes(acceptHeader).stream()
+          .filter(ContentNegotiationRequestFilter::matchesApplicationJsonApiType)
+          .collect(Collectors.toList());
+    } catch (Exception e) {
+      // If Accept header is malformed, let default negotiation handle it
+      return Collections.emptyList();
+    }
   }
 
   private static boolean matchesApplicationJsonApiType(MediaType type) {

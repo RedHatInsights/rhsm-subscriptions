@@ -36,7 +36,6 @@ import io.github.resilience4j.bulkhead.BulkheadRegistry;
 import jakarta.validation.ConstraintViolationException;
 import java.util.Collections;
 import org.candlepin.subscriptions.conduit.inventory.InventoryServiceProperties;
-import org.candlepin.subscriptions.conduit.rhsm.client.ApiException;
 import org.candlepin.subscriptions.conduit.rhsm.client.RhsmApiProperties;
 import org.candlepin.subscriptions.conduit.rhsm.client.model.OrgInventory;
 import org.candlepin.subscriptions.conduit.rhsm.client.resources.RhsmApi;
@@ -79,7 +78,7 @@ class RhsmServiceTest {
   void testRhsmServiceRetry() throws Exception {
     when(rhsmApi.getConsumersForOrg(
             anyString(), any(Integer.class), nullable(String.class), anyString()))
-        .thenThrow(ApiException.class);
+        .thenThrow(Exception.class);
     var bulkheadConfig = BulkheadConfig.custom().maxConcurrentCalls(Integer.MAX_VALUE).build();
     var bulkheadRegistry = BulkheadRegistry.of(bulkheadConfig);
 
@@ -94,7 +93,7 @@ class RhsmServiceTest {
             bulkheadRegistry);
 
     assertThrows(
-        ApiException.class,
+        Exception.class,
         () -> mockBackedService.getPageOfConsumers("123", null, mockBackedService.formattedTime()));
 
     verify(rhsmApi, times(10))

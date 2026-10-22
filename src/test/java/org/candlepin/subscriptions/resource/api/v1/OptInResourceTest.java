@@ -20,10 +20,10 @@
  */
 package org.candlepin.subscriptions.resource.api.v1;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
-import jakarta.ws.rs.BadRequestException;
 import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.security.OptInController;
@@ -35,9 +35,11 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.web.server.ResponseStatusException;
 
 @SpringBootTest
 @ActiveProfiles({"api", "test"})
@@ -77,7 +79,8 @@ class OptInResourceTest {
   @Test
   @WithMockRedHatPrincipal(value = "123456", nullifyOrgId = true)
   void testMissingOrgOnDelete() {
-    assertThrows(BadRequestException.class, () -> resource.deleteOptInConfig());
+    var exception = assertThrows(ResponseStatusException.class, () -> resource.deleteOptInConfig());
+    assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
   }
 
   @Test
@@ -91,7 +94,8 @@ class OptInResourceTest {
   @Test
   @WithMockRedHatPrincipal(value = "123456", nullifyOrgId = true)
   void testMissingOrgOnGet() {
-    assertThrows(BadRequestException.class, () -> resource.getOptInConfig());
+    var exception = assertThrows(ResponseStatusException.class, () -> resource.getOptInConfig());
+    assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
   }
 
   @Test
@@ -105,7 +109,8 @@ class OptInResourceTest {
   @Test
   @WithMockRedHatPrincipal(value = "123456", nullifyOrgId = true)
   void testMissingOrgOnPut() {
-    assertThrows(BadRequestException.class, () -> resource.putOptInConfig());
+    var exception = assertThrows(ResponseStatusException.class, () -> resource.putOptInConfig());
+    assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
   }
 
   @Test

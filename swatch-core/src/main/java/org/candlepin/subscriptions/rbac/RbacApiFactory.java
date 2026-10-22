@@ -21,9 +21,10 @@
 package org.candlepin.subscriptions.rbac;
 
 import lombok.extern.slf4j.Slf4j;
-import org.candlepin.subscriptions.http.HttpClient;
+import org.candlepin.subscriptions.http.SpringHttpClientBuilder;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.util.StringUtils;
+import org.springframework.web.client.RestTemplate;
 
 /**
  * Factory that produces inventory service clients using configuration. An AuthApiClient is used to
@@ -44,9 +45,8 @@ public class RbacApiFactory implements FactoryBean<RbacApi> {
       return new StubRbacApi(properties);
     }
 
-    ApiClient client = new RbacApiClient();
-    client.setHttpClient(
-        HttpClient.buildHttpClient(properties, client.getJSON(), client.isDebugging()));
+    RestTemplate restTemplate = SpringHttpClientBuilder.buildRestTemplate(properties);
+    ApiClient client = new RbacApiClient(restTemplate);
 
     var url = properties.getUrl();
     if (StringUtils.hasText(url)) {

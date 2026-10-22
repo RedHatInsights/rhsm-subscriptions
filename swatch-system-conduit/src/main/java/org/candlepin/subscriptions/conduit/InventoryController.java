@@ -50,7 +50,6 @@ import org.candlepin.subscriptions.conduit.inventory.ProviderFact;
 import org.candlepin.subscriptions.conduit.job.OrgSyncTaskManager;
 import org.candlepin.subscriptions.conduit.json.inventory.HbiNetworkInterface;
 import org.candlepin.subscriptions.conduit.rhsm.RhsmService;
-import org.candlepin.subscriptions.conduit.rhsm.client.ApiException;
 import org.candlepin.subscriptions.conduit.rhsm.client.model.Consumer;
 import org.candlepin.subscriptions.conduit.rhsm.client.model.InstalledProducts;
 import org.candlepin.subscriptions.conduit.rhsm.client.model.Pagination;
@@ -617,12 +616,14 @@ public class InventoryController {
       String orgId, String offset) throws ExternalServiceException {
     try {
       return rhsmService.getPageOfConsumers(orgId, offset, rhsmService.formattedTime());
-    } catch (ApiException e) {
-      if (400 == e.getCode()) {
+    } catch (org.springframework.web.client.HttpClientErrorException e) {
+      if (400 == e.getStatusCode().value()) {
         String message =
             String.format("RHSM API could not find orgId=%s while updating inventory.", orgId);
         throw new ExternalServiceException(RHSM_SERVICE_UNKNOWN_ORG_ERROR, message, e);
       }
+      throw new ExternalServiceException(RHSM_SERVICE_UNKNOWN_ORG_ERROR, e.getMessage(), e);
+    } catch (Exception e) {
       throw new ExternalServiceException(RHSM_SERVICE_UNKNOWN_ORG_ERROR, e.getMessage(), e);
     }
   }

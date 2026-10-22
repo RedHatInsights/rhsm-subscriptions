@@ -27,7 +27,6 @@ import com.redhat.swatch.clients.export.api.model.DownloadExportErrorRequest;
 import com.redhat.swatch.clients.export.api.resources.ExportApi;
 import com.redhat.swatch.clients.export.resources.ExportServiceWiremock;
 import java.io.File;
-import java.io.IOException;
 import java.util.UUID;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.junit.jupiter.api.AfterEach;
@@ -90,7 +89,7 @@ class ExportApiClientFactoryTest {
       client.downloadExportError(
           EXPORT_ID, APPLICATION_NAME, RESOURCE_ID, new DownloadExportErrorRequest());
       server.verifyDownloadExportError(EXPORT_ID, APPLICATION_NAME, RESOURCE_ID);
-    } catch (ApiException e) {
+    } catch (Exception e) {
       fail(e);
     }
   }
@@ -100,7 +99,7 @@ class ExportApiClientFactoryTest {
       client.downloadExportUpload(
           EXPORT_ID, APPLICATION_NAME, RESOURCE_ID, File.createTempFile("test", ".json"));
       server.verifyDownloadExportUpload(EXPORT_ID, APPLICATION_NAME, RESOURCE_ID);
-    } catch (ApiException | IOException e) {
+    } catch (Exception e) {
       fail(e);
     }
   }

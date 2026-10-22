@@ -78,10 +78,6 @@
     </dependency>
     <dependency>
       <groupId>com.redhat.swatch</groupId>
-      <artifactId>swatch-common-resteasy</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.redhat.swatch</groupId>
       <artifactId>swatch-common-panache</artifactId>
     </dependency>
     <dependency>

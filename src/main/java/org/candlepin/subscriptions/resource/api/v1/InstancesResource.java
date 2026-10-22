@@ -26,10 +26,7 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
-import jakarta.ws.rs.BadRequestException;
-import jakarta.ws.rs.ForbiddenException;
-import jakarta.ws.rs.core.Context;
-import jakarta.ws.rs.core.UriInfo;
+import jakarta.servlet.http.HttpServletRequest;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -72,8 +69,10 @@ import org.candlepin.subscriptions.utilization.api.v1.model.UsageType;
 import org.candlepin.subscriptions.utilization.api.v1.resources.InstancesApi;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 /** Instance API implementation. */
 @Component
@@ -90,18 +89,19 @@ public class InstancesResource implements InstancesApi {
   private final TallyInstanceViewRepository repository;
   private final HostRepository hostRepository;
   private final PageLinkCreator pageLinkCreator;
-
-  @Context UriInfo uriInfo;
+  private final HttpServletRequest request;
 
   public InstancesResource(
       ApiModelMapperV1 mapper,
       TallyInstanceViewRepository tallyInstanceViewRepository,
       HostRepository hostRepository,
-      PageLinkCreator pageLinkCreator) {
+      PageLinkCreator pageLinkCreator,
+      HttpServletRequest request) {
     this.mapper = mapper;
     this.repository = tallyInstanceViewRepository;
     this.hostRepository = hostRepository;
     this.pageLinkCreator = pageLinkCreator;
+    this.request = request;
   }
 
   @Override
@@ -112,7 +112,7 @@ public class InstancesResource implements InstancesApi {
     Page<Host> guests = hostRepository.getGuestHostsByHypervisorInstanceId(orgId, instanceId, page);
     PageLinks links;
     if (offset != null || limit != null) {
-      links = mapper.map(pageLinkCreator.getPaginationLinks(uriInfo, guests));
+      links = mapper.map(pageLinkCreator.getPaginationLinks(request, guests));
     } else {
       links = null;
     }
@@ -154,7 +154,7 @@ public class InstancesResource implements InstancesApi {
                   try {
                     return MetricId.fromString(m);
                   } catch (IllegalArgumentException ex) {
-                    throw new BadRequestException(ex);
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
                   }
                 })
             .findFirst();
@@ -219,7 +219,7 @@ public class InstancesResource implements InstancesApi {
 
     PageLinks links;
     if (offset != null || limit != null) {
-      links = mapper.map(pageLinkCreator.getPaginationLinks(uriInfo, instances));
+      links = mapper.map(pageLinkCreator.getPaginationLinks(request, instances));
     } else {
       links = null;
     }
@@ -246,7 +246,8 @@ public class InstancesResource implements InstancesApi {
     Object principal = ResourceUtils.getPrincipal();
     if (principal instanceof InsightsUserPrincipal userPrincipal
         && !userPrincipal.getOrgId().equals(orgId)) {
-      throw new ForbiddenException("The user is not authorized to access this organization.");
+      throw new ResponseStatusException(
+          HttpStatus.FORBIDDEN, "The user is not authorized to access this organization.");
     }
 
     List<BillingAccountIdInfo> billingAccountIds = new ArrayList<>();
@@ -284,7 +285,8 @@ public class InstancesResource implements InstancesApi {
 
     // See SWATCH-745 for the reasoning on the same month restriction
     if (!isDateRangePossible || (isPAYG && !isBothDatesFromSameMonth)) {
-      throw new BadRequestException(
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST,
           "Invalid date range (PAYG products must be within the same month");
     }
   }

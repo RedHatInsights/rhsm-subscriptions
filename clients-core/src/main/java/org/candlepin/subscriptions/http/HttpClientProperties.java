@@ -21,11 +21,9 @@
 package org.candlepin.subscriptions.http;
 
 import java.time.Duration;
-import javax.net.ssl.HostnameVerifier;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
-import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 import org.candlepin.subscriptions.util.TlsProperties;
 
 /** HTTP service client configuration. */
@@ -52,12 +50,6 @@ public class HttpClientProperties extends TlsProperties {
 
   /** Max time to keep a connection open */
   private Duration connectionTtl = Duration.ofMinutes(5);
-
-  /**
-   * -- SETTER -- Allow setting the HostnameVerifier implementation. NoopHostnameVerifier could be
-   * used in testing, for example
-   */
-  @ToString.Exclude private HostnameVerifier hostnameVerifier = new DefaultHostnameVerifier();
 
   /** PSK used to access the API. */
   @ToString.Exclude private String psk;

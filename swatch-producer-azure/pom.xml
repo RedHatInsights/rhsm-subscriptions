@@ -65,10 +65,6 @@
       <artifactId>swatch-common-config-workaround</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.redhat.swatch</groupId>
-      <artifactId>swatch-common-resteasy</artifactId>
-    </dependency>
-    <dependency>
       <groupId>com.redhat.cloud.common</groupId>
       <artifactId>clowder-quarkus-config-source</artifactId>
     </dependency>

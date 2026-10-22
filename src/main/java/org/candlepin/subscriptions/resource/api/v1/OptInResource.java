@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.resource.api.v1;
 
-import jakarta.ws.rs.BadRequestException;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.security.OptInController;
@@ -28,7 +27,9 @@ import org.candlepin.subscriptions.security.auth.SubscriptionWatchAdminOnly;
 import org.candlepin.subscriptions.utilization.api.v1.model.OptInConfig;
 import org.candlepin.subscriptions.utilization.api.v1.resources.OptInApi;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+import org.springframework.web.server.ResponseStatusException;
 
 /** Defines the API for opting an account and its org into the sync/reporting functionality. */
 @Component
@@ -64,7 +65,7 @@ public class OptInResource implements OptInApi {
   private String validateOrgId() {
     String orgId = ResourceUtils.getOrgId();
     if (orgId == null) {
-      throw new BadRequestException("Must specify an org ID.");
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Must specify an org ID.");
     }
     return orgId;
   }

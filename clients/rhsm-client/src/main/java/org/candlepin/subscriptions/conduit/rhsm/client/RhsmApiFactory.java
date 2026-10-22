@@ -22,9 +22,10 @@ package org.candlepin.subscriptions.conduit.rhsm.client;
 
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.conduit.rhsm.client.resources.RhsmApi;
-import org.candlepin.subscriptions.http.HttpClient;
+import org.candlepin.subscriptions.http.SpringHttpClientBuilder;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.util.StringUtils;
+import org.springframework.web.client.RestTemplate;
 
 /**
  * Builds an RhsmApi, which may be a stub, or a normal client, with or without cert auth depending
@@ -46,9 +47,8 @@ public class RhsmApiFactory implements FactoryBean<RhsmApi> {
       return new StubRhsmApi();
     }
 
-    ApiClient client = Configuration.getDefaultApiClient();
-    client.setHttpClient(
-        HttpClient.buildHttpClient(properties, client.getJSON(), client.isDebugging()));
+    RestTemplate restTemplate = SpringHttpClientBuilder.buildRestTemplate(properties);
+    ApiClient client = new ApiClient(restTemplate);
 
     var url = properties.getUrl();
     if (StringUtils.hasText(url)) {

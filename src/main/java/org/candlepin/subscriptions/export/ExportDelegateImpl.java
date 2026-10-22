@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.export;
 
 import static com.redhat.swatch.export.ExportRequestHandler.INTERNAL_ERROR;
 
-import com.redhat.swatch.clients.export.api.client.ApiException;
 import com.redhat.swatch.clients.export.api.model.DownloadExportErrorRequest;
 import com.redhat.swatch.clients.export.api.resources.ExportApi;
 import com.redhat.swatch.export.ExportServiceException;
@@ -48,7 +47,7 @@ public class ExportDelegateImpl implements ExportDelegate {
           request.getApplication(),
           request.getRequest().getUUID(),
           new DownloadExportErrorRequest().error(error).message(message));
-    } catch (ApiException e) {
+    } catch (Exception e) {
       log.error(
           "Error marking the export as error for request {}", request.getExportRequestUUID(), e);
       throw new ExportServiceException(
@@ -64,7 +63,7 @@ public class ExportDelegateImpl implements ExportDelegate {
           request.getApplication(),
           request.getRequest().getUUID(),
           file);
-    } catch (ApiException e) {
+    } catch (Exception e) {
       log.error("Error sending the upload for request {}", request.getExportRequestUUID(), e);
       throw new ExportServiceException(
           INTERNAL_ERROR, "Error sending upload request with message: " + e.getMessage(), e);

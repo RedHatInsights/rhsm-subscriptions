@@ -25,7 +25,6 @@ import static org.mockito.Mockito.verify;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.contracts.spring.api.resources.CapacityApi;
-import com.redhat.swatch.contracts.spring.client.ApiException;
 import java.time.OffsetDateTime;
 import org.candlepin.subscriptions.contracts.ContractsCapacityController;
 import org.candlepin.subscriptions.utilization.api.v1.model.GranularityType;
@@ -45,7 +44,7 @@ class ContractsCapacityControllerTest {
   @InjectMocks ContractsCapacityController controller;
 
   @Test
-  void testGetCapacityReportsByMetricId() throws ApiException {
+  void testGetCapacityReportsByMetricId() throws Exception {
     ProductId product = ProductId.fromString("rosa");
     MetricId metric = MetricId.fromString("cores");
     OffsetDateTime now = OffsetDateTime.now();

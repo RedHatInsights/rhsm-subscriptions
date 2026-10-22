@@ -21,47 +21,56 @@
 package org.candlepin.subscriptions.resteasy;
 
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.container.ContainerRequestContext;
-import jakarta.ws.rs.container.ContainerRequestFilter;
-import jakarta.ws.rs.container.ResourceInfo;
-import jakarta.ws.rs.core.Context;
-import jakarta.ws.rs.core.UriInfo;
-import jakarta.ws.rs.ext.Provider;
-import java.io.IOException;
-import java.nio.file.Paths;
+import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.method.HandlerMethod;
+import org.springframework.web.servlet.HandlerInterceptor;
+import org.springframework.web.servlet.HandlerMapping;
 
 /**
- * Stores the resource method's URI as a request attribute.
+ * Stores the resource method's URI pattern as a request attribute for observability.
  *
  * @see ResteasyRequestObservationConvention
  */
 @Component
-@Provider
-public class ResteasyUriExtractionFilter implements ContainerRequestFilter {
+public class ResteasyUriExtractionFilter implements HandlerInterceptor {
   public static final String JAXRS_URI = "JAXRS_URI";
   private static final Logger log = LoggerFactory.getLogger(ResteasyUriExtractionFilter.class);
 
-  @Context HttpServletRequest request;
-
-  @Context ResourceInfo resourceInfo;
-
-  @Context UriInfo uriInfo;
-
   @Override
-  public void filter(ContainerRequestContext requestContext) throws IOException {
-    String path = uriInfo.getAbsolutePath().getPath();
+  public boolean preHandle(
+      HttpServletRequest request, HttpServletResponse response, Object handler) {
     try {
-      String applicationPath = uriInfo.getBaseUri().getPath();
-      String classPath = resourceInfo.getResourceClass().getAnnotation(Path.class).value();
-      String methodPath = resourceInfo.getResourceMethod().getAnnotation(Path.class).value();
-      path = Paths.get(applicationPath, classPath, methodPath).toString();
+      // Spring MVC provides the best matching pattern
+      String pattern =
+          (String) request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);
+
+      // Fallback: try to extract from handler method annotations
+      if (pattern == null && handler instanceof HandlerMethod handlerMethod) {
+        RequestMapping classMapping =
+            handlerMethod.getBeanType().getAnnotation(RequestMapping.class);
+        RequestMapping methodMapping = handlerMethod.getMethodAnnotation(RequestMapping.class);
+
+        if (classMapping != null && methodMapping != null) {
+          String classPath = classMapping.value().length > 0 ? classMapping.value()[0] : "";
+          String methodPath = methodMapping.value().length > 0 ? methodMapping.value()[0] : "";
+          pattern = classPath + methodPath;
+        }
+      }
+
+      // Final fallback: use request URI
+      if (pattern == null) {
+        pattern = request.getRequestURI();
+      }
+
+      request.setAttribute(JAXRS_URI, pattern);
     } catch (Exception e) {
-      log.debug("Unable to determine templated resource path, falling back to absolute path", e);
+      log.debug("Unable to determine templated resource path, using request URI", e);
+      request.setAttribute(JAXRS_URI, request.getRequestURI());
     }
-    request.setAttribute(JAXRS_URI, path);
+    return true;
   }
 }

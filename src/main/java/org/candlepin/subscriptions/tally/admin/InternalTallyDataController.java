@@ -24,7 +24,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
-import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -40,7 +39,9 @@ import org.candlepin.subscriptions.tally.AccountResetService;
 import org.candlepin.subscriptions.tally.TallySnapshotController;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
 import org.candlepin.subscriptions.utilization.api.v1.model.OptInConfig;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+import org.springframework.web.server.ResponseStatusException;
 
 @Component
 @Slf4j
@@ -96,7 +97,7 @@ public class InternalTallyDataController {
               .toList();
     } catch (Exception e) {
       log.warn("Error parsing request body");
-      throw new BadRequestException(e.getMessage());
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
     }
 
     try {

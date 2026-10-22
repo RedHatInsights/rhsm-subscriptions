@@ -38,7 +38,6 @@ import com.redhat.swatch.configuration.util.MetricIdUtils;
 import com.redhat.swatch.contracts.spring.api.model.CapacityReportByMetricId;
 import com.redhat.swatch.contracts.spring.api.model.CapacityReportByMetricIdMeta;
 import com.redhat.swatch.contracts.spring.api.model.CapacitySnapshotByMetricId;
-import jakarta.ws.rs.BadRequestException;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -88,8 +87,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.web.server.ResponseStatusException;
 
 @SuppressWarnings("linelength")
 @SpringBootTest
@@ -861,50 +862,54 @@ class TallyResourceTest {
     void testBadRequestWhenBillingCategorySpecifiedWhenRunningTotalsParamIsNull() {
       OffsetDateTime beginning = OffsetDateTime.parse("2021-10-01T00:00Z");
       OffsetDateTime ending = OffsetDateTime.parse("2021-10-30T00:00Z");
-      assertThrows(
-          BadRequestException.class,
-          () -> {
-            resource.getTallyReportData(
-                RHEL_FOR_X86,
-                METRIC_ID_CORES,
-                GranularityType.DAILY,
-                beginning,
-                ending,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                BillingCategory.ON_DEMAND);
-          });
+      var exception =
+          assertThrows(
+              ResponseStatusException.class,
+              () -> {
+                resource.getTallyReportData(
+                    RHEL_FOR_X86,
+                    METRIC_ID_CORES,
+                    GranularityType.DAILY,
+                    beginning,
+                    ending,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    BillingCategory.ON_DEMAND);
+              });
+      assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
     }
 
     @Test
     void testBadRequestWhenBillingCategorySpecifiedWhenRunningTotalsParamIsFalse() {
       OffsetDateTime beginning = OffsetDateTime.parse("2021-10-01T00:00Z");
       OffsetDateTime ending = OffsetDateTime.parse("2021-10-30T00:00Z");
-      assertThrows(
-          BadRequestException.class,
-          () -> {
-            resource.getTallyReportData(
-                RHEL_FOR_X86,
-                METRIC_ID_CORES,
-                GranularityType.DAILY,
-                beginning,
-                ending,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                false,
-                BillingCategory.ON_DEMAND);
-          });
+      var exception =
+          assertThrows(
+              ResponseStatusException.class,
+              () -> {
+                resource.getTallyReportData(
+                    RHEL_FOR_X86,
+                    METRIC_ID_CORES,
+                    GranularityType.DAILY,
+                    beginning,
+                    ending,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    false,
+                    BillingCategory.ON_DEMAND);
+              });
+      assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
     }
 
     @Test
@@ -1570,50 +1575,54 @@ class TallyResourceTest {
     void testBadRequestWhenBillingCategorySpecifiedWhenRunningTotalsParamIsNull() {
       OffsetDateTime beginning = OffsetDateTime.parse("2021-10-01T00:00Z");
       OffsetDateTime ending = OffsetDateTime.parse("2021-10-30T00:00Z");
-      assertThrows(
-          BadRequestException.class,
-          () -> {
-            resource.getTallyReportData(
-                RHEL_FOR_X86,
-                METRIC_ID_CORES,
-                GranularityType.DAILY,
-                beginning,
-                ending,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                BillingCategory.ON_DEMAND);
-          });
+      var exception =
+          assertThrows(
+              ResponseStatusException.class,
+              () -> {
+                resource.getTallyReportData(
+                    RHEL_FOR_X86,
+                    METRIC_ID_CORES,
+                    GranularityType.DAILY,
+                    beginning,
+                    ending,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    BillingCategory.ON_DEMAND);
+              });
+      assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
     }
 
     @Test
     void testBadRequestWhenBillingCategorySpecifiedWhenRunningTotalsParamIsFalse() {
       OffsetDateTime beginning = OffsetDateTime.parse("2021-10-01T00:00Z");
       OffsetDateTime ending = OffsetDateTime.parse("2021-10-30T00:00Z");
-      assertThrows(
-          BadRequestException.class,
-          () -> {
-            resource.getTallyReportData(
-                RHEL_FOR_X86,
-                METRIC_ID_CORES,
-                GranularityType.DAILY,
-                beginning,
-                ending,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                false,
-                BillingCategory.ON_DEMAND);
-          });
+      var exception =
+          assertThrows(
+              ResponseStatusException.class,
+              () -> {
+                resource.getTallyReportData(
+                    RHEL_FOR_X86,
+                    METRIC_ID_CORES,
+                    GranularityType.DAILY,
+                    beginning,
+                    ending,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    false,
+                    BillingCategory.ON_DEMAND);
+              });
+      assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
     }
 
     @Test

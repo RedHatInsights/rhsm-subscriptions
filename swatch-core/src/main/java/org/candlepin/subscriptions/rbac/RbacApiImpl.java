@@ -37,8 +37,8 @@ public class RbacApiImpl implements RbacApi {
   public List<Access> getCurrentUserAccess(String applicationName) throws RbacApiException {
     try {
       return accessApi.getPrincipalAccess(applicationName, null, null, null, null).getData();
-    } catch (ApiException apie) {
-      throw new RbacApiException("Unable to get current user access.", apie);
+    } catch (Exception e) {
+      throw new RbacApiException("Unable to get current user access.", e);
     }
   }
 
@@ -46,8 +46,8 @@ public class RbacApiImpl implements RbacApi {
       throws RbacApiException {
     try {
       return accessApi.getPrincipalAccess(application, null, identityCode, null, null).getData();
-    } catch (ApiException apie) {
-      throw new RbacApiException("Unable to get current identity access.", apie);
+    } catch (Exception e) {
+      throw new RbacApiException("Unable to get current identity access.", e);
     }
   }
 }

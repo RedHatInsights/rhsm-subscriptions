@@ -20,62 +20,63 @@
  */
 package org.candlepin.subscriptions.resteasy;
 
-import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.UriInfo;
-import java.net.URI;
-import java.net.URISyntaxException;
-import org.candlepin.subscriptions.exception.ErrorCode;
-import org.candlepin.subscriptions.exception.SubscriptionsException;
+import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.UriComponentsBuilder;
 
 /** Utility to create page links for paginated APIs. */
 @Component
 public class PageLinkCreator {
+  private static final Logger log = LoggerFactory.getLogger(PageLinkCreator.class);
 
   /**
    * Create a PageLinks object with first, last, previous, next API links.
    *
-   * @param uriInfo pre-existing URI to be used as a template for the page links
+   * @param request the current HTTP request
    * @param page Spring Data JPA page object
-   * @return a populate PageLinks object
+   * @return a populated PageLinks object
    */
-  public PageLinks getPaginationLinks(UriInfo uriInfo, Page<?> page) {
+  public PageLinks getPaginationLinks(HttpServletRequest request, Page<?> page) {
     PageLinks links = new PageLinks();
     if (page.previousPageable() != Pageable.unpaged()) {
-      links.setPrevious(formatUri(uriWithOffset(uriInfo, page.previousPageable().getOffset())));
+      links.setPrevious(buildLinkWithOffset(request, page.previousPageable().getOffset()));
     }
     if (page.nextPageable() != Pageable.unpaged()) {
-      links.setNext(formatUri(uriWithOffset(uriInfo, page.nextPageable().getOffset())));
+      links.setNext(buildLinkWithOffset(request, page.nextPageable().getOffset()));
     }
-    links.setFirst(formatUri(uriWithOffset(uriInfo, 0)));
+    links.setFirst(buildLinkWithOffset(request, 0));
     int lastPage = page.getTotalPages() - 1;
     if (lastPage < 0) {
       lastPage = 0;
     }
     int lastOffset = (int) PageRequest.of(lastPage, page.getPageable().getPageSize()).getOffset();
-    links.setLast(formatUri(uriWithOffset(uriInfo, lastOffset)));
+    links.setLast(buildLinkWithOffset(request, lastOffset));
     return links;
   }
 
-  private URI uriWithOffset(UriInfo uriInfo, long newOffset) {
-    return uriInfo.getRequestUriBuilder().replaceQueryParam("offset", newOffset).build();
-  }
-
-  private String formatUri(URI uri) {
+  private String buildLinkWithOffset(HttpServletRequest request, long offset) {
     try {
-      URI serverUri =
-          new URI(
-              uri.getScheme(), uri.getUserInfo(), uri.getHost(), uri.getPort(), "/", null, null);
-      return String.format("/%s", serverUri.relativize(uri).toString());
-    } catch (URISyntaxException e) {
-      throw new SubscriptionsException(
-          ErrorCode.REQUEST_PROCESSING_ERROR,
-          Response.Status.INTERNAL_SERVER_ERROR,
-          "Unable to format URI",
-          e);
+      String requestUri = request.getRequestURI();
+      String queryString = request.getQueryString();
+
+      UriComponentsBuilder builder = UriComponentsBuilder.fromPath(requestUri);
+      if (queryString != null && !queryString.isEmpty()) {
+        builder.query(queryString);
+      }
+
+      // Replace or add offset parameter
+      builder.replaceQueryParam("offset", offset);
+
+      return builder.build().toUriString();
+    } catch (Exception e) {
+      log.error("Unable to format URI for pagination", e);
+      // Fallback to simple path with offset
+      return request.getRequestURI() + "?offset=" + offset;
     }
   }
 }

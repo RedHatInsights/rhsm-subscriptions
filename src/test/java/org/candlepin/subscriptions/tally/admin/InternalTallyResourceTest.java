@@ -39,7 +39,6 @@ import com.fasterxml.jackson.databind.util.StdDateFormat;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationModule;
-import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import org.candlepin.clock.ApplicationClock;
@@ -58,7 +57,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.web.server.ResponseStatusException;
 
 @ExtendWith(MockitoExtension.class)
 class InternalTallyResourceTest {
@@ -187,7 +188,9 @@ class InternalTallyResourceTest {
   @Test
   void testTallyOrgWhenSyncRequestAndNotConfigured() {
     appProps.setEnableSynchronousOperations(false);
-    assertThrows(BadRequestException.class, () -> resource.tallyOrg(ORG_ID, true));
+    var exception =
+        assertThrows(ResponseStatusException.class, () -> resource.tallyOrg(ORG_ID, true));
+    assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
   }
 
   @Test

@@ -24,8 +24,6 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.contracts.spring.api.model.CapacityReportByMetricId;
 import com.redhat.swatch.contracts.spring.api.resources.CapacityApi;
-import com.redhat.swatch.contracts.spring.client.ApiException;
-import jakarta.ws.rs.ProcessingException;
 import java.time.OffsetDateTime;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.exception.ErrorCode;
@@ -109,7 +107,7 @@ public class ContractsCapacityController {
           capacityCategory,
           capacitySla,
           capacityUsage);
-    } catch (ApiException | ProcessingException ex) {
+    } catch (Exception ex) {
       throw new ExternalServiceException(
           ErrorCode.CONTRACTS_SERVICE_ERROR,
           String.format(

@@ -24,10 +24,11 @@ import com.redhat.swatch.clients.export.api.client.auth.ApiKeyAuth;
 import com.redhat.swatch.clients.export.api.resources.ExportApi;
 import javax.naming.ConfigurationException;
 import lombok.extern.slf4j.Slf4j;
-import org.candlepin.subscriptions.http.HttpClient;
 import org.candlepin.subscriptions.http.HttpClientProperties;
+import org.candlepin.subscriptions.http.SpringHttpClientBuilder;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.util.StringUtils;
+import org.springframework.web.client.RestTemplate;
 
 @Slf4j
 public class ExportApiClientFactory implements FactoryBean<ExportApi> {
@@ -45,9 +46,8 @@ public class ExportApiClientFactory implements FactoryBean<ExportApi> {
       return new StubExportApi();
     }
 
-    ApiClient client = Configuration.getDefaultApiClient();
-    client.setHttpClient(
-        HttpClient.buildHttpClient(properties, client.getJSON(), client.isDebugging()));
+    RestTemplate restTemplate = SpringHttpClientBuilder.buildRestTemplate(properties);
+    ApiClient client = new ApiClient(restTemplate);
 
     var url = properties.getUrl();
     if (StringUtils.hasText(url)) {

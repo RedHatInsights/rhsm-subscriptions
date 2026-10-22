@@ -56,7 +56,6 @@ import org.candlepin.subscriptions.conduit.job.DatabaseOrgList;
 import org.candlepin.subscriptions.conduit.job.OrgSyncTaskManager;
 import org.candlepin.subscriptions.conduit.json.inventory.HbiNetworkInterface;
 import org.candlepin.subscriptions.conduit.rhsm.RhsmService;
-import org.candlepin.subscriptions.conduit.rhsm.client.ApiException;
 import org.candlepin.subscriptions.conduit.rhsm.client.RhsmApiProperties;
 import org.candlepin.subscriptions.conduit.rhsm.client.model.Consumer;
 import org.candlepin.subscriptions.conduit.rhsm.client.model.InstalledProducts;
@@ -98,7 +97,7 @@ class InventoryControllerTest {
   }
 
   @Test
-  void testHostAddedForEachConsumer() throws ApiException {
+  void testHostAddedForEachConsumer() {
     UUID uuid1 = UUID.randomUUID();
     UUID uuid2 = UUID.randomUUID();
     Consumer consumer1 = new Consumer();
@@ -131,7 +130,7 @@ class InventoryControllerTest {
   }
 
   @Test
-  void testHandlesEmptyList() throws ApiException {
+  void testHandlesEmptyList() {
     Pagination pagination = new Pagination().count(0L).limit(1L);
     when(rhsmService.getPageOfConsumers(eq("org123"), nullable(String.class), anyString()))
         .thenReturn(new OrgInventory().body(Collections.emptyList()).pagination(pagination));
@@ -150,7 +149,7 @@ class InventoryControllerTest {
   }
 
   @Test
-  void testHostSkippedWhenExceptionHappens() throws ApiException {
+  void testHostSkippedWhenExceptionHappens() {
     UUID uuid = UUID.randomUUID();
     Consumer consumer1 = Mockito.mock(Consumer.class);
     Consumer consumer2 = new Consumer();
@@ -172,7 +171,7 @@ class InventoryControllerTest {
   }
 
   @Test
-  void testSkipManifestConsumers() throws ApiException {
+  void testSkipManifestConsumers() {
     UUID uuid1 = UUID.randomUUID();
     Consumer consumer1 = new Consumer();
     Consumer candlepinConsumer = new Consumer();
@@ -679,7 +678,7 @@ class InventoryControllerTest {
   }
 
   @Test
-  void testUnparseableBiosUuidsAreIgnored() throws ApiException {
+  void testUnparseableBiosUuidsAreIgnored() {
     UUID uuid1 = UUID.randomUUID();
     UUID uuid2 = UUID.randomUUID();
     Consumer consumer1 = new Consumer();
@@ -725,7 +724,7 @@ class InventoryControllerTest {
   }
 
   @Test
-  void handlesNoRegisteredSystemsWithoutException() throws ApiException {
+  void handlesNoRegisteredSystemsWithoutException() {
     when(rhsmService.getPageOfConsumers(eq("456"), nullable(String.class), anyString()))
         .thenReturn(pageOf());
     controller.updateInventoryForOrg("456");
@@ -733,7 +732,7 @@ class InventoryControllerTest {
   }
 
   @Test
-  void queuesNextPage() throws ApiException {
+  void queuesNextPage() {
     // Add one to test for off-by-one bugs
     int size = rhsmApiProperties.getRequestBatchSize() * 3 + 1;
     assertThat(size, Matchers.greaterThan(0));
@@ -755,7 +754,7 @@ class InventoryControllerTest {
   }
 
   @Test
-  void doesNotFilterSystemsWithNoCheckin() throws ApiException {
+  void doesNotFilterSystemsWithNoCheckin() {
     Consumer consumer1 = new Consumer();
     consumer1.setOrgId("123");
     consumer1.setUuid(UUID.randomUUID().toString());
@@ -767,7 +766,7 @@ class InventoryControllerTest {
   }
 
   @Test
-  void testServiceLevelIsAdded() throws ApiException {
+  void testServiceLevelIsAdded() {
     UUID uuid = UUID.randomUUID();
     Consumer consumer = new Consumer();
     consumer.setUuid(uuid.toString());
@@ -900,7 +899,7 @@ class InventoryControllerTest {
   }
 
   @Test
-  void testOpenShiftClusterIdUsedAsDisplayName() throws ApiException {
+  void testOpenShiftClusterIdUsedAsDisplayName() {
     UUID uuid = UUID.randomUUID();
     Consumer consumer = new Consumer();
     consumer.setOrgId("123");
@@ -924,7 +923,7 @@ class InventoryControllerTest {
   }
 
   @Test
-  void testNameUsedAsDisplayNameWhenItIsNotOpenShiftCluster() throws ApiException {
+  void testNameUsedAsDisplayNameWhenItIsNotOpenShiftCluster() {
     UUID uuid = UUID.randomUUID();
     Consumer consumer = new Consumer();
     consumer.setName("TheName");
@@ -990,7 +989,7 @@ class InventoryControllerTest {
   }
 
   @Test
-  void testEmptyUuidNormalizedToNull() throws ApiException {
+  void testEmptyUuidNormalizedToNull() {
     Consumer consumer = new Consumer();
     UUID uuid = UUID.randomUUID();
     consumer.setUuid(uuid.toString());
@@ -1012,7 +1011,7 @@ class InventoryControllerTest {
   }
 
   @Test
-  void testSystemMemoryBytesOverMaxValueSetsToNull() throws ApiException {
+  void testSystemMemoryBytesOverMaxValueSetsToNull() {
     UUID uuid = UUID.randomUUID();
     BigDecimal memTotal =
         new BigDecimal((InventoryController.MAX_ALLOWED_SYSTEM_MEMORY_BYTES / 1020L) + 1000L);

@@ -84,58 +84,9 @@
         <version>2.3.0</version>
       </dependency>
       <dependency>
-        <!-- RESTEasy Spring integration (Servlet bridge classes are vendored in swatch-core) -->
-        <groupId>org.jboss.resteasy.spring</groupId>
-        <artifactId>resteasy-spring</artifactId>
-        <version>3.2.0.Final</version>
-      </dependency>
-      <dependency>
-        <groupId>org.jboss.resteasy</groupId>
-        <artifactId>resteasy-core</artifactId>
-        <version>${resteasy.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.jboss.resteasy</groupId>
-        <artifactId>resteasy-core-spi</artifactId>
-        <version>${resteasy.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.jboss.resteasy</groupId>
-        <artifactId>resteasy-jackson2-provider</artifactId>
-        <version>${resteasy.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.jboss.resteasy</groupId>
-        <artifactId>resteasy-client</artifactId>
-        <version>${resteasy.version}</version>
-        <exclusions>
-          <exclusion>
-            <groupId>org.jboss</groupId>
-            <artifactId>jandex</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>org.jboss.resteasy</groupId>
-        <artifactId>resteasy-multipart-provider</artifactId>
-        <version>${resteasy.version}</version>
-        <exclusions>
-          <exclusion>
-            <groupId>org.jboss</groupId>
-            <artifactId>jandex</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>org.jboss.resteasy</groupId>
-        <artifactId>resteasy-validator-provider</artifactId>
-        <version>${resteasy.version}</version>
-        <exclusions>
-          <exclusion>
-            <groupId>org.hibernate</groupId>
-            <artifactId>*</artifactId>
-          </exclusion>
-        </exclusions>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpclient</artifactId>
+        <version>4.5.14</version>
       </dependency>
       <dependency>
         <groupId>io.getunleash</groupId>

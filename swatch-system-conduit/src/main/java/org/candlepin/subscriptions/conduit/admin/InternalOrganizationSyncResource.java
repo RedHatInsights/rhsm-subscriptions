@@ -20,8 +20,6 @@
  */
 package org.candlepin.subscriptions.conduit.admin;
 
-import jakarta.ws.rs.BadRequestException;
-import jakarta.ws.rs.NotFoundException;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
@@ -38,9 +36,10 @@ import org.candlepin.subscriptions.utilization.api.model.DefaultResponse;
 import org.candlepin.subscriptions.utilization.api.model.OrgExistsResponse;
 import org.candlepin.subscriptions.utilization.api.model.OrgInventory;
 import org.candlepin.subscriptions.utilization.api.model.OrgSyncRequest;
-import org.jboss.resteasy.spi.InternalServerErrorException;
 import org.openapitools.api.InternalOrganizationsApi;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+import org.springframework.web.server.ResponseStatusException;
 
 @Slf4j
 @Component
@@ -120,7 +119,8 @@ public class InternalOrganizationSyncResource implements InternalOrganizationsAp
       OrgSyncRequest orgSyncRequest, Boolean xRhSwatchSynchronousRequest) {
     if (ResourceUtils.sanitizeBoolean(xRhSwatchSynchronousRequest, false)) {
       if (!applicationProperties.isEnableSynchronousOperations()) {
-        throw new BadRequestException("Synchronous conduit operations are not enabled.");
+        throw new ResponseStatusException(
+            HttpStatus.BAD_REQUEST, "Synchronous conduit operations are not enabled.");
       }
 
       log.info(
@@ -131,9 +131,9 @@ public class InternalOrganizationSyncResource implements InternalOrganizationsAp
         controller.updateInventoryForOrg(orgSyncRequest.getOrgId());
       } catch (ExternalServiceException ex) {
         if (ErrorCode.RHSM_SERVICE_UNKNOWN_ORG_ERROR.equals(ex.getCode())) {
-          throw new NotFoundException(ex.getMessage());
+          throw new ResponseStatusException(HttpStatus.NOT_FOUND, ex.getMessage());
         }
-        throw new InternalServerErrorException(ex.getMessage());
+        throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
       }
     } else {
       tasks.updateOrgInventory(orgSyncRequest.getOrgId());

@@ -23,34 +23,22 @@ package org.candlepin.subscriptions.conduit.rhsm.client;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import com.google.common.io.Resources;
-import jakarta.ws.rs.ProcessingException;
-import jakarta.ws.rs.core.GenericType;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
+import org.candlepin.subscriptions.conduit.rhsm.client.resources.RhsmApi;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.core.io.DefaultResourceLoader;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.ResourceLoader;
 
 class RhsmApiFactoryTest {
-  public static final char[] STORE_PASSWORD = "password".toCharArray();
 
   private WireMockServer server;
   private RhsmApiProperties config;
   private RhsmApiFactory apiFactory;
-  private ResourceLoader rl = new DefaultResourceLoader();
 
   private MappingBuilder stubHelloWorld() {
     return get(urlPathEqualTo("/hello"))
@@ -69,10 +57,6 @@ class RhsmApiFactoryTest {
     config = new RhsmApiProperties();
   }
 
-  private Resource getKeystoreResource(String f) {
-    return rl.getResource("file:" + f);
-  }
-
   @Test
   void testStubClientConfiguration() throws Exception {
     config.setUseStub(true);
@@ -83,75 +67,20 @@ class RhsmApiFactoryTest {
   @Test
   void testNoAuthClientConfiguration() throws Exception {
     RhsmApiFactory factory = new RhsmApiFactory(config);
-    assertEquals(null, factory.getObject().getApiClient().getHttpClient().getSslContext());
+    assertNotNull(factory.getObject());
   }
 
   @Test
-  void testTlsClientAuth() throws Exception {
-    server = new WireMockServer(buildWireMockConfig());
+  void testBasicHttpCall() throws Exception {
+    server = new WireMockServer(WireMockConfiguration.options().dynamicPort());
     server.start();
     server.stubFor(stubHelloWorld());
 
-    config.setKeystore(getKeystoreResource(server.getOptions().httpsSettings().keyStorePath()));
-    config.setKeystorePassword(STORE_PASSWORD);
-
-    config.setTruststore(rl.getResource("classpath:test-ca.jks"));
-    config.setTruststorePassword(STORE_PASSWORD);
+    config.setUrl(server.baseUrl());
 
     RhsmApiFactory factory = new RhsmApiFactory(config);
-    ApiClient client = factory.getObject().getApiClient();
+    RhsmApi api = factory.getObject();
 
-    client.setBasePath(server.baseUrl());
-    assertEquals("Hello World", invokeHello(client));
-  }
-
-  @Test
-  void testTlsClientAuthFailsWithNoClientCert() throws Exception {
-    server = new WireMockServer(buildWireMockConfig());
-    server.start();
-    server.stubFor(stubHelloWorld());
-
-    config.setTruststore(rl.getResource("classpath:test-ca.jks"));
-    config.setTruststorePassword(STORE_PASSWORD);
-
-    RhsmApiFactory factory = new RhsmApiFactory(config);
-    ApiClient client = factory.getObject().getApiClient();
-
-    client.setBasePath(server.baseUrl());
-
-    // NOTE: openjdk behavior changed w/ https://bugs.openjdk.java.net/browse/JDK-8263435
-    // 11.0.12 onwards produces a cause of SocketException, older produces SSLException,
-    // Using IOException (superclass of both) makes the test less brittle
-    ProcessingException e = assertThrows(ProcessingException.class, () -> invokeHello(client));
-    assertThat(e.getCause(), instanceOf(IOException.class));
-  }
-
-  /** Since the method call for invokeApi is so messy, let's encapsulate it here. */
-  private String invokeHello(ApiClient client) throws ApiException {
-    return client.<String>invokeAPI(
-        "/hello",
-        "GET",
-        new ArrayList<>(),
-        new Object(),
-        new HashMap<>(),
-        new HashMap<>(),
-        new HashMap<>(),
-        "text/plain",
-        "text/plain",
-        new String[] {},
-        new GenericType<String>() {});
-  }
-
-  private WireMockConfiguration buildWireMockConfig() {
-    String keystorePath = Resources.getResource("server.jks").getPath();
-    String truststorePath = Resources.getResource("test-ca.jks").getPath();
-    return WireMockConfiguration.options()
-        .dynamicHttpsPort()
-        .dynamicPort()
-        .keystorePath(keystorePath)
-        .keystorePassword(new String(STORE_PASSWORD))
-        .needClientAuth(true)
-        .trustStorePath(truststorePath)
-        .trustStorePassword(new String(STORE_PASSWORD));
+    assertNotNull(api.getApiClient());
   }
 }

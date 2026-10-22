@@ -24,12 +24,8 @@
       <artifactId>jakarta.annotation-api</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.jboss.resteasy</groupId>
-      <artifactId>resteasy-client</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.jboss.resteasy</groupId>
-      <artifactId>resteasy-multipart-provider</artifactId>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
@@ -67,12 +63,6 @@
       <artifactId>guava</artifactId>
       <scope>test</scope>
     </dependency>
-    <!-- Necessary to test the serialization of JSON payloads -->
-    <dependency>
-      <groupId>org.jboss.resteasy</groupId>
-      <artifactId>resteasy-jackson2-provider</artifactId>
-      <scope>test</scope>
-    </dependency>
   </dependencies>
 
   <build>
@@ -95,7 +85,7 @@
               <generateModelTests>false</generateModelTests>
               <configOptions>
                 <generatePom>false</generatePom>
-                <library>resteasy</library>
+                <library>resttemplate</library>
                 <java8>true</java8>
                 <dateLibrary>java8</dateLibrary>
                 <useJakartaEe>true</useJakartaEe>

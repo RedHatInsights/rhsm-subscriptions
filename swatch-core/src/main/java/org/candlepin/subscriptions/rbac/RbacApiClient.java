@@ -21,13 +21,21 @@
 package org.candlepin.subscriptions.rbac;
 
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.ws.rs.BadRequestException;
-import jakarta.ws.rs.core.GenericType;
 import java.util.List;
 import java.util.Map;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * An extension of the generated RBAC ApiClient that ensures that the appropriate identity header is
@@ -36,31 +44,42 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 public class RbacApiClient extends ApiClient {
   public static final String RH_IDENTITY_HEADER = "x-rh-identity";
 
+  public RbacApiClient() {
+    super();
+  }
+
+  public RbacApiClient(RestTemplate restTemplate) {
+    super(restTemplate);
+  }
+
   @Override
-  public <T> T invokeAPI(
+  public <T> ResponseEntity<T> invokeAPI(
       String path,
-      String method,
-      List<Pair> queryParams,
+      HttpMethod method,
+      Map<String, Object> pathParams,
+      MultiValueMap<String, String> queryParams,
       Object body,
-      Map<String, String> headerParams,
-      Map<String, String> cookieParams,
-      Map<String, Object> formParams,
-      String accept,
-      String contentType,
+      HttpHeaders headerParams,
+      MultiValueMap<String, String> cookieParams,
+      MultiValueMap<String, Object> formParams,
+      List<MediaType> accept,
+      MediaType contentType,
       String[] authNames,
-      GenericType<T> returnType)
-      throws ApiException {
+      ParameterizedTypeReference<T> returnType)
+      throws RestClientException {
 
     String idHeader = getIdentityHeader(headerParams);
     if (idHeader == null || idHeader.isEmpty()) {
-      throw new BadRequestException("Missing identity header while accessing RBAC service.");
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST, "Missing identity header while accessing RBAC service.");
     }
 
-    headerParams.put(RH_IDENTITY_HEADER, idHeader);
+    headerParams.set(RH_IDENTITY_HEADER, idHeader);
 
     return super.invokeAPI(
         path,
         method,
+        pathParams,
         queryParams,
         body,
         headerParams,
@@ -72,10 +91,10 @@ public class RbacApiClient extends ApiClient {
         returnType);
   }
 
-  protected static String getIdentityHeader(Map<String, String> headerParams) {
+  protected static String getIdentityHeader(HttpHeaders headerParams) {
     RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
     if (requestAttributes == null) {
-      return headerParams.get(RH_IDENTITY_HEADER);
+      return headerParams.getFirst(RH_IDENTITY_HEADER);
     }
     HttpServletRequest request = ((ServletRequestAttributes) requestAttributes).getRequest();
     return request.getHeader(RH_IDENTITY_HEADER);

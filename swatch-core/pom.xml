@@ -63,22 +63,9 @@
       <artifactId>swatch-common-clock</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.redhat.swatch</groupId>
-      <artifactId>swatch-common-resteasy</artifactId>
-    </dependency>
-    <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-configuration-processor</artifactId>
       <optional>true</optional>
-    </dependency>
-    <dependency>
-      <!-- RESTEasy Spring integration -->
-      <groupId>org.jboss.resteasy.spring</groupId>
-      <artifactId>resteasy-spring</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.jboss.resteasy</groupId>
-      <artifactId>resteasy-core</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -99,6 +86,14 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-jpa</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.xml.bind</groupId>
+      <artifactId>jakarta.xml.bind-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>commons-codec</groupId>
+      <artifactId>commons-codec</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>

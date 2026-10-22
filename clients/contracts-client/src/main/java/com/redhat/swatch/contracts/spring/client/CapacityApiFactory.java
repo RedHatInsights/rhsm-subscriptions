@@ -24,10 +24,11 @@ import com.redhat.swatch.contracts.spring.api.resources.CapacityApi;
 import com.redhat.swatch.contracts.spring.client.auth.ApiKeyAuth;
 import javax.naming.ConfigurationException;
 import lombok.extern.slf4j.Slf4j;
-import org.candlepin.subscriptions.http.HttpClient;
 import org.candlepin.subscriptions.http.HttpClientProperties;
+import org.candlepin.subscriptions.http.SpringHttpClientBuilder;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.util.StringUtils;
+import org.springframework.web.client.RestTemplate;
 
 @Slf4j
 public class CapacityApiFactory implements FactoryBean<CapacityApi> {
@@ -43,9 +44,8 @@ public class CapacityApiFactory implements FactoryBean<CapacityApi> {
 
   @Override
   public CapacityApi getObject() throws Exception {
-    ApiClient client = new IdentityHeaderApiClient(identityHeaderProvider);
-    client.setHttpClient(
-        HttpClient.buildHttpClient(properties, client.getJSON(), client.isDebugging()));
+    RestTemplate restTemplate = SpringHttpClientBuilder.buildRestTemplate(properties);
+    ApiClient client = new IdentityHeaderApiClient(identityHeaderProvider, restTemplate);
 
     var url = properties.getUrl();
     if (StringUtils.hasText(url)) {

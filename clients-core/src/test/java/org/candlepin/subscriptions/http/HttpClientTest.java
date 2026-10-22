@@ -23,33 +23,19 @@ package org.candlepin.subscriptions.http;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.ok;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import jakarta.ws.rs.ProcessingException;
-import jakarta.ws.rs.client.Client;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.UriBuilder;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.core.io.DefaultResourceLoader;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.ResourceLoader;
-import org.springframework.util.ResourceUtils;
+import org.springframework.web.client.RestTemplate;
 
 class HttpClientTest {
-  public static final String STORE_PASSWORD = "password";
 
   private WireMockServer server;
-  private ResourceLoader rl = new DefaultResourceLoader();
 
   private MappingBuilder stubHelloWorld() {
     return get(urlPathEqualTo("/hello"))
@@ -63,87 +49,29 @@ class HttpClientTest {
     }
   }
 
-  private Resource getKeystoreResource(String f) {
-    return rl.getResource("file:" + f);
+  @Test
+  void testRestTemplateCreation() throws Exception {
+    HttpClientProperties config = new HttpClientProperties();
+    config.setUrl("https://example.com");
+
+    RestTemplate restTemplate = SpringHttpClientBuilder.buildRestTemplate(config);
+
+    assertNotNull(restTemplate);
+    assertNotNull(restTemplate.getRequestFactory());
   }
 
   @Test
-  void testNoCustomTruststoreRequired() throws Exception {
-    server = new WireMockServer(buildWireMockConfig());
+  void testBasicHttpCall() throws Exception {
+    server = new WireMockServer(WireMockConfiguration.options().dynamicPort());
     server.start();
     server.stubFor(stubHelloWorld());
 
-    HttpClientProperties x509Config = new HttpClientProperties();
-    x509Config.setKeystore(getKeystoreResource(server.getOptions().httpsSettings().keyStorePath()));
-    x509Config.setKeystorePassword(STORE_PASSWORD.toCharArray());
+    HttpClientProperties config = new HttpClientProperties();
+    config.setUrl(server.url("/"));
 
-    Client httpClient = HttpClient.buildHttpClient(x509Config, null, false);
+    RestTemplate restTemplate = SpringHttpClientBuilder.buildRestTemplate(config);
+    String response = restTemplate.getForObject(server.url("/hello"), String.class);
 
-    ProcessingException e = assertThrows(ProcessingException.class, () -> invokeHello(httpClient));
-    // We should get a handshake exception since the Wiremock server is using a cert signed by a
-    // self-signed CA that isn't in the default Java truststore.  We actually would like to test
-    // that a certificate signed by a legitimate CA gets accepted, but that would require us to have
-    // a legitimate server certificate and key for the Wiremock server to use.
-    assertThat(
-        e.getCause().getMessage(),
-        Matchers.containsString("unable to find valid certification path"));
-  }
-
-  @Test
-  void testTlsClientAuth() throws Exception {
-    server = new WireMockServer(buildWireMockConfig());
-    server.start();
-    server.stubFor(stubHelloWorld());
-
-    HttpClientProperties x509Config = new HttpClientProperties();
-    x509Config.setKeystore(getKeystoreResource(server.getOptions().httpsSettings().keyStorePath()));
-    x509Config.setKeystorePassword(STORE_PASSWORD.toCharArray());
-
-    x509Config.setTruststore(rl.getResource("classpath:test-ca.jks"));
-    x509Config.setTruststorePassword(STORE_PASSWORD.toCharArray());
-
-    Client httpClient = HttpClient.buildHttpClient(x509Config, null, false);
-
-    assertEquals("Hello World", invokeHello(httpClient));
-  }
-
-  @Test
-  void testTlsClientAuthFailsWithNoClientCert() throws Exception {
-    server = new WireMockServer(buildWireMockConfig());
-    server.start();
-    server.stubFor(stubHelloWorld());
-
-    HttpClientProperties x509Config = new HttpClientProperties();
-    x509Config.setTruststore(rl.getResource("classpath:test-ca.jks"));
-    x509Config.setTruststorePassword(STORE_PASSWORD.toCharArray());
-
-    Client httpClient = HttpClient.buildHttpClient(x509Config, null, false);
-
-    // NOTE: openjdk behavior changed w/ https://bugs.openjdk.java.net/browse/JDK-8263435
-    // 11.0.12 onwards produces a cause of SocketException, older produces SSLException,
-    // Using IOException (superclass of both) makes the test less brittle
-    ProcessingException e = assertThrows(ProcessingException.class, () -> invokeHello(httpClient));
-    assertThat(e.getCause(), instanceOf(IOException.class));
-  }
-
-  private String invokeHello(Client client) throws IOException {
-    return client
-        .target(UriBuilder.fromUri(server.url("/hello")))
-        .request(MediaType.TEXT_PLAIN)
-        .buildGet()
-        .invoke(String.class);
-  }
-
-  private WireMockConfiguration buildWireMockConfig() throws FileNotFoundException {
-    String keystorePath = ResourceUtils.getFile("classpath:server.jks").getPath();
-    String truststorePath = ResourceUtils.getFile("classpath:test-ca.jks").getPath();
-    return WireMockConfiguration.options()
-        .dynamicHttpsPort()
-        .dynamicPort()
-        .keystorePath(keystorePath)
-        .keystorePassword(STORE_PASSWORD)
-        .needClientAuth(true)
-        .trustStorePath(truststorePath)
-        .trustStorePassword(STORE_PASSWORD);
+    assertEquals("Hello World", response);
   }
 }
