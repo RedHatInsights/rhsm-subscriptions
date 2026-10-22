@@ -108,18 +108,14 @@ public abstract class BaseSnapshotRoller {
     };
   }
 
-  @SuppressWarnings("indentation")
   protected List<TallySnapshot> getCurrentSnapshotsByOrgId(
       String orgId,
       Collection<String> products,
       Granularity granularity,
       OffsetDateTime begin,
       OffsetDateTime end) {
-    try (Stream<TallySnapshot> snapStream =
-        tallyRepo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
-            orgId, products, granularity, begin, end)) {
-      return snapStream.collect(Collectors.toList());
-    }
+    return tallyRepo.findSnapshotsWithMeasurementsForRolling(
+        orgId, products, granularity, begin, end);
   }
 
   protected Collection<TallySnapshot> updateSnapshots(

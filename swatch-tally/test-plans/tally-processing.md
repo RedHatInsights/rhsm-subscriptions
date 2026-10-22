@@ -19,9 +19,9 @@ This test plan covers the core tally processing pipeline:
 
 ## Tally Conflict Handling
 
-**tally-conflicts-TC001 - Positive metric value updates**
+**tally-conflicts-TC001 - Positive metric value updates refresh hourly and daily granularity tally reports**
 
-- **Description**: Verify that tally replaces existing metric values when a new event with a higher positive value is received for the same instance and timestamp hour
+- **Description**: Verify that hourly tally replaces the existing metric value when a new event with a higher positive value is received for the same instance and timestamp hour, and that the daily rollup reflects the updated value
 - **Setup**:
     - Organization is opted in
     - Initial event with metric value 10.0 for a specific instance and hour
@@ -30,12 +30,13 @@ This test plan covers the core tally processing pipeline:
     - Send updated event with metric value 25.0 for same instance and hour
     - Perform hourly tally
 - **Verification**:
-    - Initial tally sum equals 10.0
-    - Updated tally sum equals 25.0
-    - Tally reflects the most recent positive measurement value
+    - Initial hourly tally sum equals 10.0
+    - Updated hourly tally sum equals 25.0
+    - Daily tally rollup after the update equals 25.0
+    - Hourly and daily tally reports reflect the most recent positive measurement value
 - **Expected Result**:
-    - Service updates the tally to reflect the new positive metric value
-    - Previous value is replaced, not accumulated
+    - Service updates the hourly tally and its daily rollup to reflect the new positive metric value
+    - Previous value is replaced, not accumulated into the hourly tally or daily rollup
 
 **tally-conflicts-TC002 - Negative metric value rejection**
 

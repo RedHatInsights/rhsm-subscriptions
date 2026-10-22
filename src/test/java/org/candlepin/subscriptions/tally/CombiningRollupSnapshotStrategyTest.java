@@ -27,7 +27,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -43,7 +45,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import org.candlepin.subscriptions.configuration.FeatureFlags;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
@@ -53,14 +55,20 @@ import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.util.DateRange;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.Parameter;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+@ParameterizedClass(name = "useLegacySnapshotQuery={0}")
+@ValueSource(booleans = {true, false})
 @SpringBootTest
 @ActiveProfiles({"worker", "test"})
 class CombiningRollupSnapshotStrategyTest {
@@ -69,12 +77,17 @@ class CombiningRollupSnapshotStrategyTest {
 
   @Autowired CombiningRollupSnapshotStrategy combiningRollupSnapshotStrategy;
 
+  @Parameter boolean useLegacySnapshotQuery;
+
+  @MockitoBean FeatureFlags featureFlags;
   @MockitoBean TallySnapshotRepository repo;
 
   private Set<String> tagsWithPrometheusEnabled;
 
   @BeforeEach
   void setUp() {
+    when(featureFlags.isEnabled(FeatureFlags.USE_LEGACY_HOURLY_TALLY_SNAPSHOT_QUERY, false))
+        .thenReturn(useLegacySnapshotQuery);
     tagsWithPrometheusEnabled =
         SubscriptionDefinition.getSubscriptionDefinitions().stream()
             .filter(SubscriptionDefinition::isPrometheusEnabled)
@@ -85,9 +98,7 @@ class CombiningRollupSnapshotStrategyTest {
 
   @Test
   void testConsecutiveHoursAddedTogether() {
-    when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
-            any(), any(), any(), any(), any()))
-        .then(invocation -> Stream.empty());
+    givenSnapshots();
     UsageCalculation.Key usageKey =
         new UsageCalculation.Key(
             OPEN_SHIFT_HOURLY,
@@ -140,9 +151,7 @@ class CombiningRollupSnapshotStrategyTest {
     OffsetDateTime hourlyTimestamp2 = OffsetDateTime.parse("2021-02-26T11:00:00Z");
     OffsetDateTime dailyTimestamp1 = OffsetDateTime.parse("2021-02-25T00:00:00Z");
     OffsetDateTime dailyTimestamp2 = OffsetDateTime.parse("2021-02-26T00:00:00Z");
-    when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
-            any(), any(), any(), any(), any()))
-        .then(invocation -> Stream.empty());
+    givenSnapshots();
     UsageCalculation.Key usageKey =
         new UsageCalculation.Key(
             OPEN_SHIFT_HOURLY,
@@ -207,12 +216,8 @@ class CombiningRollupSnapshotStrategyTest {
     TallySnapshot noonSnapshot =
         createTallySnapshot(Granularity.HOURLY, "2021-02-25T12:00:00Z", 4.0);
     noonSnapshot.setId(UUID.randomUUID());
-    when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
-            any(), any(), eq(Granularity.HOURLY), any(), any()))
-        .thenReturn(Stream.of(noonSnapshot));
-    when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
-            any(), any(), eq(Granularity.DAILY), any(), any()))
-        .thenReturn(Stream.empty());
+    givenSnapshots(Granularity.HOURLY, noonSnapshot);
+    givenSnapshots(Granularity.DAILY);
     UsageCalculation.Key usageKey =
         new UsageCalculation.Key(
             OPEN_SHIFT_HOURLY,
@@ -259,12 +264,8 @@ class CombiningRollupSnapshotStrategyTest {
     TallySnapshot dailySnapshot =
         createTallySnapshot(Granularity.DAILY, "2021-02-25T00:00:00Z", 7.0);
     dailySnapshot.setId(UUID.randomUUID());
-    when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
-            any(), any(), eq(Granularity.HOURLY), any(), any()))
-        .thenReturn(Stream.empty());
-    when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
-            any(), any(), eq(Granularity.DAILY), any(), any()))
-        .thenReturn(Stream.of(dailySnapshot));
+    givenSnapshots(Granularity.HOURLY);
+    givenSnapshots(Granularity.DAILY, dailySnapshot);
     UsageCalculation.Key usageKey =
         new UsageCalculation.Key(
             OPEN_SHIFT_HOURLY,
@@ -317,13 +318,9 @@ class CombiningRollupSnapshotStrategyTest {
     TallySnapshot dailySnapshot =
         createTallySnapshot(Granularity.DAILY, "2021-02-25T00:00:00Z", 7.0);
 
-    when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
-            any(), any(), eq(Granularity.HOURLY), any(), any()))
-        .thenReturn(Stream.of(noonSnapshot, afternoonSnapshot));
+    givenSnapshots(Granularity.HOURLY, noonSnapshot, afternoonSnapshot);
 
-    when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
-            any(), any(), eq(Granularity.DAILY), any(), any()))
-        .thenReturn(Stream.of(dailySnapshot));
+    givenSnapshots(Granularity.DAILY, dailySnapshot);
 
     when(repo.save(any())).then(invocation -> invocation.getArgument(0));
 
@@ -384,10 +381,11 @@ class CombiningRollupSnapshotStrategyTest {
     existingHourlySnapshot3.setId(UUID.randomUUID());
     existingHourlySnapshot3.setBillingProvider(BillingProvider.AWS);
 
-    when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
-            any(), any(), eq(Granularity.HOURLY), any(), any()))
-        .thenReturn(
-            Stream.of(existingHourlySnapshot1, existingHourlySnapshot2, existingHourlySnapshot3));
+    givenSnapshots(
+        Granularity.HOURLY,
+        existingHourlySnapshot1,
+        existingHourlySnapshot2,
+        existingHourlySnapshot3);
 
     TallySnapshot existingDailySnapshot1 =
         createTallySnapshot(Granularity.DAILY, "2021-02-25T00:00:00Z", 4.0);
@@ -397,9 +395,7 @@ class CombiningRollupSnapshotStrategyTest {
         createTallySnapshot(Granularity.DAILY, "2021-02-25T00:00:00Z", 16.0);
     existingDailySnapshot2.setId(UUID.randomUUID());
     existingDailySnapshot2.setBillingProvider(BillingProvider.AWS);
-    when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
-            any(), any(), eq(Granularity.DAILY), any(), any()))
-        .thenReturn(Stream.of(existingDailySnapshot1, existingDailySnapshot2));
+    givenSnapshots(Granularity.DAILY, existingDailySnapshot1, existingDailySnapshot2);
 
     UsageCalculation.Key snapUsageKey1 =
         UsageCalculation.Key.fromTallySnapshot(existingHourlySnapshot1);
@@ -445,13 +441,17 @@ class CombiningRollupSnapshotStrategyTest {
     assertThat(
         talliesSaved,
         containsInAnyOrder(expectedHourly1, expectedHourly2, expectedDaily1, expectedDaily2));
+    assertThat(
+        talliesSaved.stream()
+            .filter(s -> s.getGranularity() == Granularity.HOURLY)
+            .map(TallySnapshot::getId)
+            .toList(),
+        containsInAnyOrder(existingHourlySnapshot1.getId(), existingHourlySnapshot2.getId()));
   }
 
   @Test
   void testFinestGranularitySnapshotFilteredByDateRange() {
-    when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
-            any(), any(), any(), any(), any()))
-        .then(invocation -> Stream.empty());
+    givenSnapshots();
     UsageCalculation.Key usageKey =
         new UsageCalculation.Key(
             OPEN_SHIFT_HOURLY,
@@ -496,9 +496,7 @@ class CombiningRollupSnapshotStrategyTest {
   void testExistingOlderFinestGranularitySnapshotMeasurementsPreserved() {
     TallySnapshot existingSnapshot =
         createTallySnapshot(Granularity.HOURLY, "2022-10-24T12:00:00Z", 4.0);
-    when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
-            any(), any(), any(), any(), any()))
-        .then(invocation -> Stream.of(existingSnapshot));
+    givenSnapshots(Granularity.HOURLY, existingSnapshot);
     combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
         "org123",
         new DateRange(
@@ -518,9 +516,7 @@ class CombiningRollupSnapshotStrategyTest {
   void testExistingNewerFinestGranularitySnapshotMeasurementsPreserved() {
     TallySnapshot existingSnapshot =
         createTallySnapshot(Granularity.HOURLY, "2022-10-24T14:00:00Z", 4.0);
-    when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
-            any(), any(), any(), any(), any()))
-        .then(invocation -> Stream.of(existingSnapshot));
+    givenSnapshots(Granularity.HOURLY, existingSnapshot);
     combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
         "org123",
         new DateRange(
@@ -540,9 +536,7 @@ class CombiningRollupSnapshotStrategyTest {
   void testFinestGranularitySnapshotUnmodifiedWhenUsageNotPresent() {
     TallySnapshot existingSnapshot =
         createTallySnapshot(Granularity.HOURLY, "2022-10-24T13:00:00Z", 4.0);
-    when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
-            any(), any(), any(), any(), any()))
-        .then(invocation -> Stream.of(existingSnapshot));
+    givenSnapshots(Granularity.HOURLY, existingSnapshot);
     when(repo.save(any())).then(invocation -> invocation.getArgument(0));
     Map<String, List<TallySnapshot>> snaps =
         combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
@@ -563,6 +557,49 @@ class CombiningRollupSnapshotStrategyTest {
     assertEquals(
         4.0,
         existingSnapshot.getMeasurement(HardwareMeasurementType.TOTAL, MetricIdUtils.getCores()));
+  }
+
+  private void givenSnapshots(TallySnapshot... snapshots) {
+    givenSnapshots(null, snapshots);
+  }
+
+  private void givenSnapshots(Granularity granularity, TallySnapshot... snapshots) {
+    List<TallySnapshot> result = List.of(snapshots);
+    if (useLegacySnapshotQuery) {
+      if (granularity == null) {
+        when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
+                any(), any(), any(), any(), any()))
+            .thenAnswer(invocation -> result.stream());
+      } else {
+        when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
+                any(), any(), eq(granularity), any(), any()))
+            .thenAnswer(invocation -> result.stream());
+      }
+    } else if (granularity == null) {
+      when(repo.findSnapshotsWithMeasurementsForRolling(any(), any(), any(), any(), any()))
+          .thenReturn(result);
+    } else {
+      when(repo.findSnapshotsWithMeasurementsForRolling(
+              any(), any(), eq(granularity), any(), any()))
+          .thenReturn(result);
+    }
+  }
+
+  @AfterEach
+  void verifyQueryModeSelectedTheExpectedRepositoryMethod() {
+    if (useLegacySnapshotQuery) {
+      verify(repo, atLeastOnce())
+          .findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
+              any(), any(), any(), any(), any());
+      verify(repo, never())
+          .findSnapshotsWithMeasurementsForRolling(any(), any(), any(), any(), any());
+    } else {
+      verify(repo, atLeastOnce())
+          .findSnapshotsWithMeasurementsForRolling(any(), any(), any(), any(), any());
+      verify(repo, never())
+          .findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
+              any(), any(), any(), any(), any());
+    }
   }
 
   private AccountUsageCalculation createAccountUsageCalculation(
@@ -604,9 +641,7 @@ class CombiningRollupSnapshotStrategyTest {
 
   @Test
   void testSnapshotMarkedAsPrimary() {
-    when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
-            any(), any(), any(), any(), any()))
-        .then(invocation -> Stream.empty());
+    givenSnapshots();
     when(repo.save(any())).then(invocation -> invocation.getArgument(0));
 
     // Use a PAYG product with all fields specified to create a primary record
@@ -646,9 +681,7 @@ class CombiningRollupSnapshotStrategyTest {
 
   @Test
   void testSnapshotNotMarkedAsPrimary() {
-    when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
-            any(), any(), any(), any(), any()))
-        .then(invocation -> Stream.empty());
+    givenSnapshots();
     when(repo.save(any())).then(invocation -> invocation.getArgument(0));
 
     // Use SLA _ANY to create a non-primary record
@@ -689,9 +722,7 @@ class CombiningRollupSnapshotStrategyTest {
 
   @Test
   void testRollupSnapshotMarkedAsPrimary() {
-    when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
-            any(), any(), any(), any(), any()))
-        .then(invocation -> Stream.empty());
+    givenSnapshots();
     when(repo.save(any())).then(invocation -> invocation.getArgument(0));
 
     // Use a PAYG product with all fields specified to create a primary record
@@ -734,9 +765,7 @@ class CombiningRollupSnapshotStrategyTest {
 
   @Test
   void testRollupSnapshotNotMarkedAsPrimary() {
-    when(repo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
-            any(), any(), any(), any(), any()))
-        .then(invocation -> Stream.empty());
+    givenSnapshots();
     when(repo.save(any())).then(invocation -> invocation.getArgument(0));
 
     // Use Usage _ANY to create a non-primary record

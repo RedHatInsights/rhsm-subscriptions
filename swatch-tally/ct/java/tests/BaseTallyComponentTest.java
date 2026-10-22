@@ -134,6 +134,10 @@ public class BaseTallyComponentTest {
     }
   }
 
+  protected void givenLegacyHourlyTallySnapshotQuery(boolean enabled) {
+    unleash.setUseLegacyHourlyTallySnapshotQuery(enabled);
+  }
+
   protected void givenPrimaryBucketSearchesEnabled(boolean enablePrimaryBucketSearches) {
     unleash.enableHostTallyBucketPrimaryRowSearches(enablePrimaryBucketSearches);
   }
