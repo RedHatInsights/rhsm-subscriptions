@@ -21,6 +21,7 @@
 package com.redhat.swatch.aws.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -47,6 +48,7 @@ import com.redhat.swatch.clients.contracts.api.resources.DefaultApi;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.Usage;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
+import com.redhat.swatch.logging.LoggingFileJsonFormatter;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -55,24 +57,38 @@ import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.core.Response;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.logging.Handler;
+import java.util.logging.LogRecord;
+import java.util.regex.Pattern;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
+import org.jboss.logmanager.ExtLogRecord;
+import org.jboss.logmanager.LogContext;
+import org.jboss.logmanager.Logger;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import software.amazon.awssdk.services.marketplacemetering.MarketplaceMeteringClient;
@@ -87,6 +103,10 @@ import software.amazon.awssdk.services.marketplacemetering.model.UsageRecordResu
 @QuarkusTest
 class AwsBillableUsageAggregateConsumerTest {
   private static final String PRODUCT_ID = "rosa";
+  private static final int MAX_LOG_EVENT_BYTES = 60 * 1024;
+  private static final LoggerCaptor LOGGER_CAPTOR = new LoggerCaptor();
+  private static Logger capturedLogger;
+  private static boolean previousUseParentHandlers;
 
   private static final Clock clock =
       Clock.fixed(Instant.parse("2023-10-02T12:30:00Z"), ZoneId.of("UTC"));
@@ -144,8 +164,24 @@ class AwsBillableUsageAggregateConsumerTest {
   @ConfigProperty(name = "AWS_MARKETPLACE_USAGE_WINDOW")
   Duration maxAgeDuration;
 
+  @BeforeAll
+  static void configureLogging() {
+    capturedLogger =
+        LogContext.getLogContext().getLogger(AwsBillableUsageAggregateConsumer.class.getName());
+    previousUseParentHandlers = capturedLogger.getUseParentHandlers();
+    capturedLogger.addHandler(LOGGER_CAPTOR);
+    capturedLogger.setUseParentHandlers(false);
+  }
+
+  @AfterAll
+  static void restoreLogging() {
+    capturedLogger.removeHandler(LOGGER_CAPTOR);
+    capturedLogger.setUseParentHandlers(previousUseParentHandlers);
+  }
+
   @BeforeEach
   void setup() {
+    LOGGER_CAPTOR.records.clear();
     acceptedCounter = meterRegistry.counter("swatch_aws_marketplace_batch_accepted_total");
     rejectedCounter = meterRegistry.counter("swatch_aws_marketplace_batch_rejected_total");
     ignoredCounter = meterRegistry.counter("swatch_aws_marketplace_batch_ignored_total");
@@ -348,6 +384,120 @@ class AwsBillableUsageAggregateConsumerTest {
     when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
     consumer.process(ROSA_INSTANCE_HOURS_RECORD);
     verify(meteringClient).batchMeterUsage(any(BatchMeterUsageRequest.class));
+  }
+
+  @ParameterizedTest
+  @CsvSource({"rosa,INSTANCE_HOURS", "ansible-aap-managed,MANAGED_NODES"})
+  void shouldChunkAllRemittanceUuidsInAwsSuccessLogs(String productId, String metricId)
+      throws ApiException {
+    var aggregate =
+        createAggregate(productId, metricId, OffsetDateTime.now(Clock.systemUTC()), 42.0);
+    aggregate.getAggregateKey().setOrgId("7259771");
+    List<String> uuids = createUuids(3000);
+    aggregate.setRemittanceUuids(uuids);
+    var snapshotStart = OffsetDateTime.parse("2026-05-01T00:00Z");
+    IntStream.range(0, 3000)
+        .forEach(index -> aggregate.getSnapshotDates().add(snapshotStart.plusHours(index)));
+    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any(), isNull()))
+        .thenReturn(MOCK_AWS_USAGE_CONTEXT);
+    when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
+    when(meteringClient.batchMeterUsage(any(BatchMeterUsageRequest.class)))
+        .thenAnswer(
+            invocation -> {
+              var request = invocation.getArgument(0, BatchMeterUsageRequest.class);
+              return BatchMeterUsageResponse.builder()
+                  .results(
+                      UsageRecordResult.builder()
+                          .usageRecord(request.usageRecords().getFirst())
+                          .status(UsageRecordResultStatus.SUCCESS)
+                          .build())
+                  .build();
+            });
+
+    var meteredSuccessCounter =
+        meterRegistry.counter(
+            AwsBillableUsageAggregateConsumer.METERED_TOTAL_METRIC,
+            "product",
+            productId,
+            "metric_id",
+            MetricId.fromString(metricId).getValue(),
+            "billing_provider",
+            "aws",
+            "status",
+            "succeeded",
+            "error_code",
+            "");
+    double priorAccepted = acceptedCounter.count();
+    double priorSuccess = meteredSuccessCounter.count();
+    consumer.process(aggregate);
+
+    verify(meteringClient).batchMeterUsage(any(BatchMeterUsageRequest.class));
+    verify(billableUsageStatusProducer).emitStatus(aggregate);
+    assertEquals(priorAccepted + 1, acceptedCounter.count());
+    assertEquals(priorSuccess + 42, meteredSuccessCounter.count());
+
+    assertChunkedUuidLogs(uuids, logGroupContaining("Picked up billable usage message"));
+    assertChunkedUuidLogs(uuids, logGroupContaining("Processing billable usage message:"));
+    assertChunkedUuidLogs(uuids, logGroupContaining("Sending usage request to AWS:"));
+    var successMessages = logGroupContaining("Sent usage request to AWS:");
+    assertChunkedUuidLogs(uuids, successMessages);
+    var quantityPattern = Pattern.compile("Quantity=(.*?),");
+    String primary = successMessages.getFirst();
+    assertTrue(primary.startsWith("Sent usage request to AWS: result="));
+    assertTrue(primary.contains(", aggregate=BillableUsageAggregate("));
+    assertTrue(primary.contains("orgId=7259771"));
+    assertTrue(primary.contains("metricId=" + metricId));
+    var quantity = quantityPattern.matcher(primary);
+    assertTrue(quantity.find(), primary);
+    assertEquals(42, Integer.parseInt(quantity.group(1)));
+    assertEquals(
+        1L,
+        LOGGER_CAPTOR.records.stream()
+            .map(LogRecord::getMessage)
+            .filter(message -> message.contains("Sent usage request to AWS"))
+            .filter(message -> message.contains("7259771") && message.contains(metricId))
+            .filter(message -> quantityPattern.matcher(message).find())
+            .count());
+    for (String continuation : successMessages.subList(1, successMessages.size())) {
+      assertTrue(continuation.contains("aggregateId=" + aggregate.getAggregateId()));
+      assertFalse(continuation.contains("Sent usage request to AWS"));
+      assertFalse(continuation.contains("Quantity="));
+      assertFalse(continuation.contains("result="));
+    }
+    for (var date : aggregate.getSnapshotDates()) {
+      assertEquals(
+          1L,
+          successMessages.stream().filter(message -> message.contains(date.toString())).count());
+    }
+  }
+
+  @Test
+  void shouldChunkAllRemittanceUuidsInAwsRejectedUsageLog() throws ApiException {
+    var aggregate =
+        createAggregate(
+            "rosa",
+            MetricIdUtils.getInstanceHours().toUpperCaseFormatted(),
+            OffsetDateTime.now(Clock.systemUTC()),
+            42.0);
+    List<String> uuids = createUuids(1001);
+    aggregate.setRemittanceUuids(uuids);
+    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any(), isNull()))
+        .thenReturn(MOCK_AWS_USAGE_CONTEXT);
+    when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
+    when(meteringClient.batchMeterUsage(any(BatchMeterUsageRequest.class)))
+        .thenReturn(
+            BatchMeterUsageResponse.builder()
+                .results(
+                    UsageRecordResult.builder()
+                        .usageRecord(UsageRecord.builder().build())
+                        .status(UsageRecordResultStatus.CUSTOMER_NOT_SUBSCRIBED)
+                        .build())
+                .build());
+
+    consumer.process(aggregate);
+
+    assertChunkedUuidLogs(
+        uuids, logGroupContaining("AWS BatchMeterUsage returned non-Success status"));
   }
 
   @Test
@@ -714,6 +864,56 @@ class AwsBillableUsageAggregateConsumerTest {
     return aggregate;
   }
 
+  private static List<String> logGroupContaining(String text) {
+    List<String> messages = new ArrayList<>();
+    boolean inGroup = false;
+    for (var record : LOGGER_CAPTOR.records) {
+      String message = record.getMessage();
+      if (!message.startsWith("Billable usage aggregate continuation:")) {
+        inGroup = message.contains(text);
+      }
+      if (inGroup) {
+        messages.add(message);
+      }
+    }
+    return messages;
+  }
+
+  private static void assertChunkedUuidLogs(List<String> uuids, List<String> messages) {
+    int expectedChunkCount = (uuids.size() + 499) / 500;
+    assertEquals(expectedChunkCount, messages.size());
+
+    for (int index = 0; index < messages.size(); index++) {
+      String message = messages.get(index);
+      if (index == 0) {
+        assertFalse(message.startsWith("Billable usage aggregate continuation:"));
+        assertFalse(message.contains("(chunk "));
+      } else {
+        assertTrue(message.startsWith("Billable usage aggregate continuation:"));
+        assertTrue(message.contains("(chunk " + (index + 1) + "/" + expectedChunkCount + ")"));
+      }
+      var record =
+          LOGGER_CAPTOR.records.stream()
+              .filter(log -> message.equals(log.getMessage()))
+              .findFirst()
+              .orElseThrow();
+      assertTrue(
+          new LoggingFileJsonFormatter()
+                  .format(ExtLogRecord.wrap(record))
+                  .getBytes(StandardCharsets.UTF_8)
+                  .length
+              <= MAX_LOG_EVENT_BYTES);
+    }
+
+    for (String uuid : uuids) {
+      assertEquals(1L, messages.stream().filter(message -> message.contains(uuid)).count());
+    }
+  }
+
+  private static List<String> createUuids(int count) {
+    return IntStream.range(0, count).mapToObj(index -> UUID.randomUUID().toString()).toList();
+  }
+
   private Optional<Meter> getMeteredTotalMetricForSucceeded(String metricId) {
     return meterRegistry.getMeters().stream()
         .filter(
@@ -746,5 +946,22 @@ class AwsBillableUsageAggregateConsumerTest {
                     && "failed".equals(m.getId().getTag("status"))
                     && errorCode.equals(m.getId().getTag("error_code")))
         .findFirst();
+  }
+
+  private static class LoggerCaptor extends Handler {
+    private final List<LogRecord> records = new CopyOnWriteArrayList<>();
+
+    @Override
+    public void publish(LogRecord record) {
+      records.add(record);
+    }
+
+    @Override
+    public void flush() {}
+
+    @Override
+    public void close() {
+      records.clear();
+    }
   }
 }
