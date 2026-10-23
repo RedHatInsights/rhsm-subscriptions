@@ -13,6 +13,8 @@ rhsm-subscriptions:
     platform: hsqldb
   account-batch-size: 2
   subscription-sync-enabled: true
+  export-service:
+    read-timeout: 500ms
   contracts:
     client:
       psk: placeholder

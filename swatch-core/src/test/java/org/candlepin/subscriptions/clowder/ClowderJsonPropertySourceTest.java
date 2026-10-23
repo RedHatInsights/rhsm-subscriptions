@@ -23,10 +23,13 @@ package org.candlepin.subscriptions.clowder;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
@@ -124,6 +127,13 @@ class ClowderJsonPropertySourceTest {
         "clowder.endpoints.index-service.trust-store-password|.+",
         "clowder.endpoints.index-service.trust-store-type|PKCS12",
         "clowder.privateEndpoints.export-service-service.url|http://export-service-service.svc:10000",
+        "clowder.dependencyEndpoints.v2.rbac.service.uri|https://rbac.remote.example:443/base",
+        "clowder.dependencyEndpoints.v2.rbac.service.authenticated|true",
+        "clowder.privateDependencyEndpoints.v2.export-service.service.uri|https://export-service.remote.example:443",
+        "clowder.privateDependencyEndpoints.v2.export-service.service.authenticated|true",
+        "clowder.privateDependencyEndpoints.v2.export-service.service.trust-store-path|file:/.*/truststore.*.trust",
+        "clowder.privateDependencyEndpoints.v2.export-service.service.trust-store-password|.+",
+        "clowder.privateDependencyEndpoints.v2.export-service.service.trust-store-type|PKCS12",
         "clowder.kafka.topics.\"platform.rhsm-subscriptions.tally\".name|platform.rhsm-subscriptions.tally-env-rhsm-rhsm",
         "clowder.kafka.topics.platform.rhsm-subscriptions.tasks.name|platform.rhsm-subscriptions.tasks-env-rhsm-rhsm"
       },
@@ -142,6 +152,51 @@ class ClowderJsonPropertySourceTest {
     var source = new ClowderJsonPropertySource(jsonFromResource(TEST_CLOWDER_CONFIG_JSON));
     var result = source.getProperty("clowder.endpoints.swatch-contracts-service.url");
     assertNull(result);
+  }
+
+  @Test
+  void testMissingDependencyEndpointReturnsNull() throws Exception {
+    var source = new ClowderJsonPropertySource(jsonFromResource(TEST_CLOWDER_CONFIG_JSON));
+    assertNull(source.getProperty("clowder.privateDependencyEndpoints.v2.missing-app.service.uri"));
+    assertNull(source.getProperty("clowder.dependencyEndpoints.v2.rbac.service.trust-store-path"));
+  }
+
+  @Test
+  void testDependencyEndpointWithoutAuthenticatedFailsClosed() throws Exception {
+    String json =
+        """
+        {
+          "privateDependencyEndpoints": {
+            "v2": {
+              "export-service": {
+                "service": {
+                  "uri": "https://export.example:443"
+                }
+              }
+            }
+          }
+        }
+        """;
+    var source =
+        new ClowderJsonPropertySource(
+            new ClowderJson(
+                new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)),
+                new ObjectMapper()));
+    assertThrows(
+        IllegalStateException.class,
+        () ->
+            source.getProperty("clowder.privateDependencyEndpoints.v2.export-service.service.uri"));
+  }
+
+  @Test
+  void testDependencyEndpointInvalidPathFails() throws Exception {
+    var source = new ClowderJsonPropertySource(jsonFromResource(TEST_CLOWDER_CONFIG_JSON));
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> source.getProperty("clowder.privateDependencyEndpoints.v2.export-service.uri"));
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> source.getProperty("clowder.privateDependencyEndpoints.export-service.service.uri"));
   }
 
   private void testServletPropertySource(String servletContextPropertySourceName) throws Exception {

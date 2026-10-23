@@ -1,0 +1,127 @@
+/*
+ * Copyright Red Hat, Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Red Hat trademarks are not licensed under GPLv3. No permission is
+ * granted to use or replicate Red Hat trademarks that are incorporated
+ * in this software or its documentation.
+ */
+package com.redhat.swatch.clients.export;
+
+import com.redhat.swatch.clients.export.api.client.ApiClient;
+import com.redhat.swatch.clients.export.api.client.ApiException;
+import com.redhat.swatch.clients.export.api.client.auth.ApiKeyAuth;
+import com.redhat.swatch.clients.export.api.model.DownloadExportErrorRequest;
+import com.redhat.swatch.clients.export.api.resources.ExportApi;
+import jakarta.ws.rs.client.Client;
+import jakarta.ws.rs.core.Response;
+import java.io.File;
+import java.util.Objects;
+import java.util.UUID;
+import org.candlepin.subscriptions.clients.AuthFailureException;
+import org.candlepin.subscriptions.clients.BearerAuthFilter;
+import org.candlepin.subscriptions.clients.ClientConfig;
+import org.candlepin.subscriptions.clients.ClientConnection;
+import org.candlepin.subscriptions.clients.ClientInfo;
+import org.candlepin.subscriptions.clients.ClientProxy;
+import org.candlepin.subscriptions.clients.TokenProvider;
+
+public class SwatchExportApi extends ExportApi implements ClientInfo {
+
+  private final ClientConfig config;
+  private final TokenProvider tokenProvider;
+  private final ClientProxy<ExportApi> proxy;
+
+  public SwatchExportApi(ClientConfig config, TokenProvider tokenProvider) {
+    this.config = Objects.requireNonNull(config, "config");
+    this.tokenProvider = Objects.requireNonNull(tokenProvider, "tokenProvider");
+    this.proxy = new ClientProxy<>(config, this::buildExportApi);
+  }
+
+  @Override
+  public ClientConfig getConfig() {
+    return config;
+  }
+
+  @Override
+  public void downloadExportError(
+      UUID id,
+      String application,
+      UUID resource,
+      DownloadExportErrorRequest downloadExportErrorRequest)
+      throws ApiException {
+    invoke(api -> api.downloadExportError(id, application, resource, downloadExportErrorRequest));
+  }
+
+  @Override
+  public void downloadExportUpload(UUID id, String application, UUID resource, File body)
+      throws ApiException {
+    invoke(api -> api.downloadExportUpload(id, application, resource, body));
+  }
+
+  private void invoke(ClientProxy.Call<ExportApi> call) throws ApiException {
+    try {
+      proxy.invoke(
+          api -> {
+            try {
+              call.run(api);
+            } catch (ApiException e) {
+              if (e.getCode() == Response.Status.UNAUTHORIZED.getStatusCode()
+                  || e.getCode() == Response.Status.FORBIDDEN.getStatusCode()) {
+                throw new AuthFailureException(e);
+              }
+              throw e;
+            }
+          });
+    } catch (ApiException e) {
+      throw e;
+    } catch (AuthFailureException e) {
+      if (e.getCause() instanceof ApiException apiException) {
+        throw apiException;
+      }
+      throw new ApiException(e);
+    } catch (Exception e) {
+      throw new ApiException(e);
+    }
+  }
+
+  /**
+   * Builds an {@link ExportApi} for {@code connection}.
+   *
+   * <p>Per Clowder V2: {@code authenticated=true} sends a Bearer token and omits PSK; {@code
+   * authenticated=false} or unset (V1) keeps the existing {@code x-rh-exports-psk} flow. Auth
+   * failures are not downgraded to the other mode.
+   */
+  private ExportApi buildExportApi(ClientConnection connection) {
+    ApiClient client = new ApiClient();
+    client.setBasePath(connection.uri());
+    Client httpClient = ClientProxy.buildHttpClient(connection, config.getReadTimeout());
+    client.setHttpClient(httpClient);
+
+    if (connection.isAuthenticated()) {
+      httpClient.register(new BearerAuthFilter(tokenProvider));
+    } else {
+      String psk = config.getPsk();
+      if (psk == null || psk.isBlank()) {
+        throw new IllegalStateException(
+            "Client '%s' missing 'psk' property".formatted(config.getName()));
+      }
+
+      ((ApiKeyAuth) client.getAuthentication("psk")).setApiKey(psk);
+    }
+
+    return new ExportApi(client);
+  }
+}

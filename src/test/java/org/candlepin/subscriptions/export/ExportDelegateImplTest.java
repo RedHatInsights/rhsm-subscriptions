@@ -31,12 +31,13 @@ import static org.mockito.Mockito.when;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.redhat.cloud.event.apps.exportservice.v1.ResourceRequestClass;
-import com.redhat.swatch.clients.export.api.client.ExportApiClientFactory;
+import com.redhat.swatch.clients.export.SwatchExportApi;
 import com.redhat.swatch.export.ExportServiceRequest;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.UUID;
-import org.candlepin.subscriptions.http.HttpClientProperties;
+import org.candlepin.subscriptions.clients.ClientConfig;
+import org.candlepin.subscriptions.clients.ClientConnection;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -68,10 +69,14 @@ class ExportDelegateImplTest {
     wireMockServer.start();
     wireMockServer.stubFor(post(urlPathMatching("/app/export/.*")).willReturn(ok()));
 
-    HttpClientProperties config = new HttpClientProperties();
-    config.setUrl(wireMockServer.baseUrl());
-    config.setPsk("placeholder");
-    exportDelegate = new ExportDelegateImpl(new ExportApiClientFactory(config).getObject());
+    ClientConfig config =
+        new ClientConfig(
+            "export-service",
+            "placeholder",
+            new ClientConnection("v1", wireMockServer.baseUrl(), null, null, null, null),
+            null,
+            null);
+    exportDelegate = new ExportDelegateImpl(new SwatchExportApi(config, () -> "unused"));
   }
 
   @AfterEach
