@@ -61,8 +61,10 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
@@ -73,6 +75,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import software.amazon.awssdk.services.marketplacemetering.MarketplaceMeteringClient;
@@ -348,6 +351,94 @@ class AwsBillableUsageAggregateConsumerTest {
     when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
     consumer.process(ROSA_INSTANCE_HOURS_RECORD);
     verify(meteringClient).batchMeterUsage(any(BatchMeterUsageRequest.class));
+  }
+
+  @ParameterizedTest
+  @CsvSource({"rosa,INSTANCE_HOURS", "ansible-aap-managed,MANAGED_NODES"})
+  void shouldMeterLargeAggregateOnceAndPreserveRemittanceUuids(String productId, String metricId)
+      throws ApiException {
+    var aggregate =
+        createAggregate(productId, metricId, OffsetDateTime.now(Clock.systemUTC()), 42.0);
+    List<String> uuids = createUuids(3000);
+    aggregate.setRemittanceUuids(uuids);
+    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any(), isNull()))
+        .thenReturn(MOCK_AWS_USAGE_CONTEXT);
+    when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
+    when(meteringClient.batchMeterUsage(any(BatchMeterUsageRequest.class)))
+        .thenAnswer(
+            invocation -> {
+              var request = invocation.getArgument(0, BatchMeterUsageRequest.class);
+              return BatchMeterUsageResponse.builder()
+                  .results(
+                      UsageRecordResult.builder()
+                          .usageRecord(request.usageRecords().getFirst())
+                          .status(UsageRecordResultStatus.SUCCESS)
+                          .build())
+                  .build();
+            });
+
+    var meteredSuccessCounter =
+        meterRegistry.counter(
+            AwsBillableUsageAggregateConsumer.METERED_TOTAL_METRIC,
+            "product",
+            productId,
+            "metric_id",
+            MetricId.fromString(metricId).getValue(),
+            "billing_provider",
+            "aws",
+            "status",
+            "succeeded",
+            "error_code",
+            "");
+    double priorAccepted = acceptedCounter.count();
+    double priorSuccess = meteredSuccessCounter.count();
+    consumer.process(aggregate);
+
+    var requestCaptor = ArgumentCaptor.forClass(BatchMeterUsageRequest.class);
+    verify(meteringClient).batchMeterUsage(requestCaptor.capture());
+    assertEquals(1, requestCaptor.getValue().usageRecords().size());
+    assertEquals(42, requestCaptor.getValue().usageRecords().getFirst().quantity());
+    verify(billableUsageStatusProducer).emitStatus(aggregate);
+    assertEquals(BillableUsage.Status.SUCCEEDED, aggregate.getStatus());
+    assertEquals(uuids, aggregate.getRemittanceUuids());
+    assertEquals(priorAccepted + 1, acceptedCounter.count());
+    assertEquals(priorSuccess + 42, meteredSuccessCounter.count());
+  }
+
+  @Test
+  void shouldPreserveRemittanceUuidsWhenLargeAggregateIsRejected() throws ApiException {
+    var aggregate =
+        createAggregate(
+            "rosa",
+            MetricIdUtils.getInstanceHours().toUpperCaseFormatted(),
+            OffsetDateTime.now(Clock.systemUTC()),
+            42.0);
+    List<String> uuids = createUuids(1001);
+    aggregate.setRemittanceUuids(uuids);
+    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any(), isNull()))
+        .thenReturn(MOCK_AWS_USAGE_CONTEXT);
+    when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
+    when(meteringClient.batchMeterUsage(any(BatchMeterUsageRequest.class)))
+        .thenReturn(
+            BatchMeterUsageResponse.builder()
+                .results(
+                    UsageRecordResult.builder()
+                        .usageRecord(UsageRecord.builder().build())
+                        .status(UsageRecordResultStatus.CUSTOMER_NOT_SUBSCRIBED)
+                        .build())
+                .build());
+
+    double priorRejected = rejectedCounter.count();
+
+    consumer.process(aggregate);
+
+    verify(meteringClient).batchMeterUsage(any(BatchMeterUsageRequest.class));
+    verify(billableUsageStatusProducer).emitStatus(aggregate);
+    assertEquals(BillableUsage.Status.FAILED, aggregate.getStatus());
+    assertEquals(
+        BillableUsage.ErrorCode.MARKETPLACE_CUSTOMER_NOT_SUBSCRIBED, aggregate.getErrorCode());
+    assertEquals(uuids, aggregate.getRemittanceUuids());
+    assertEquals(priorRejected + 1, rejectedCounter.count());
   }
 
   @Test
@@ -712,6 +803,10 @@ class AwsBillableUsageAggregateConsumerTest {
             "testBillingAccountId");
     aggregate.setAggregateKey(key);
     return aggregate;
+  }
+
+  private static List<String> createUuids(int count) {
+    return IntStream.range(0, count).mapToObj(index -> UUID.randomUUID().toString()).toList();
   }
 
   private Optional<Meter> getMeteredTotalMetricForSucceeded(String metricId) {

@@ -196,9 +196,30 @@ class BillableUsageStatusConsumerTest {
   void testWhenStatusIsNullThenRemittanceIsNotUpdated() {
     var existingRemittance = givenExistingPendingRemittance();
     var nullStatusMessage = createBillableUsageAggregate(null, null, BILLED_ON, existingRemittance);
+    List<String> uuids = List.copyOf(nullStatusMessage.getRemittanceUuids());
 
     whenSendResponse(nullStatusMessage);
     Awaitility.await().untilAsserted(this::verifyRemittanceStillPending);
+    assertEquals(uuids, nullStatusMessage.getRemittanceUuids());
+  }
+
+  @Test
+  void testFinalizedRemittanceIsNotUpdatedAndItsUuidRemainsInAggregate() {
+    var finalizedRemittance = givenFinalizedRemittance();
+    var aggregate =
+        createBillableUsageAggregate(Status.SUCCEEDED, null, BILLED_ON, finalizedRemittance);
+    List<String> uuids = List.copyOf(aggregate.getRemittanceUuids());
+
+    consumer.process(aggregate);
+
+    assertEquals(uuids, aggregate.getRemittanceUuids());
+    verifyRemittances(
+        uuids,
+        remittance -> {
+          assertEquals(RemittanceStatus.SUCCEEDED, remittance.getStatus());
+          assertNull(remittance.getBilledOn());
+          assertNull(remittance.getErrorCode());
+        });
   }
 
   @Test
@@ -274,6 +295,14 @@ class BillableUsageStatusConsumerTest {
     // Status must be explicitly PENDING so verifyRemittanceStillPending can assert it was not
     // changed.
     remittance.setStatus(RemittanceStatus.PENDING);
+    remittanceRepository.persist(remittance);
+    return remittance;
+  }
+
+  @Transactional
+  BillableUsageRemittanceEntity givenFinalizedRemittance() {
+    var remittance = buildBillableUsageRemittanceEntity();
+    remittance.setStatus(RemittanceStatus.SUCCEEDED);
     remittanceRepository.persist(remittance);
     return remittance;
   }

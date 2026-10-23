@@ -47,6 +47,7 @@ import org.apache.kafka.streams.state.WindowStore;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
+import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateLogger;
 
 @ApplicationScoped
 @Slf4j
@@ -114,7 +115,7 @@ public class StreamTopologyProducer {
 
   private void traceAggregate(
       Windowed<BillableUsageAggregateKey> key, BillableUsageAggregate aggregate) {
-    log.info("Sending aggregate to hourly topic: {}", aggregate);
+    BillableUsageAggregateLogger.info(log, aggregate, "Sending aggregate to hourly topic: %1$s");
     var aggregateKey = key.key();
     if (aggregateKey.getProductId() != null && aggregateKey.getMetricId() != null) {
       usageTotalAggregatedCounter

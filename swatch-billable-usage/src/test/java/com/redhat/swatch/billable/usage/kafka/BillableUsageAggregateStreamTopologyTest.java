@@ -47,6 +47,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.TestInputTopic;
@@ -139,6 +140,23 @@ class BillableUsageAggregateStreamTopologyTest {
     assertIterableEquals(remittanceUuidsOf(usage1, usage2, usage3), aggregate.getRemittanceUuids());
     assertNotNull(aggregate.getWindowTimestamp());
     assertUsageTotalAggregatedMetricIs(9.0);
+  }
+
+  @Test
+  void testAggregatePreservesAllRemittanceUuidsForManyUsages() {
+    List<BillableUsage> usages =
+        IntStream.range(0, 1001)
+            .mapToObj(index -> createBillableUsage(ACCOUNT_ID, 1, snapshotAtHour(1)))
+            .toList();
+    List<String> uuids = remittanceUuidsOf(usages.toArray(BillableUsage[]::new));
+
+    whenUsagesAreAggregated(usages.toArray(BillableUsage[]::new));
+
+    var aggregate = thenAggregateIsEmittedFor(usages.getFirst());
+    assertIterableEquals(uuids, aggregate.getRemittanceUuids());
+    assertEquals(usages.size(), aggregate.getTotalValue().intValueExact());
+    assertEquals(Set.of(snapshotAtHour(1)), aggregate.getSnapshotDates());
+    assertUsageTotalAggregatedMetricIs(usages.size());
   }
 
   @Test

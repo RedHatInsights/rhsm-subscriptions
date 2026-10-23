@@ -26,6 +26,7 @@ import static com.redhat.swatch.azure.service.AzureBillableUsageAggregateConsume
 import static com.redhat.swatch.azure.test.resources.InMemoryMessageBrokerKafkaResource.IN_MEMORY_CONNECTOR;
 import static com.redhat.swatch.configuration.registry.SubscriptionDefinition.getBillingFactor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.azure.test.resources.InMemoryMessageBrokerKafkaResource;
@@ -44,20 +45,15 @@ import io.smallrye.reactive.messaging.memory.InMemorySource;
 import jakarta.inject.Inject;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.logging.Handler;
-import java.util.logging.Level;
-import java.util.logging.LogRecord;
+import java.util.stream.IntStream;
 import org.apache.http.HttpStatus;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
-import org.jboss.logmanager.LogContext;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
@@ -73,7 +69,6 @@ class AzureBillableUsageAggregateConsumerTest {
   private static final String PRODUCT_ID = "rosa";
   private static final String BILLING_ACCOUNT_ID = "abc";
   private static final BigDecimal EXPECTED_VALUE = BigDecimal.valueOf(500.0);
-  private static final LoggerCaptor LOGGER_CAPTOR = new LoggerCaptor();
 
   @Inject
   @Connector(IN_MEMORY_CONNECTOR)
@@ -87,16 +82,8 @@ class AzureBillableUsageAggregateConsumerTest {
   BillableUsageAggregate usage;
   AzureUsageContext contextForUsage;
 
-  @BeforeAll
-  static void configureLogging() {
-    LogContext.getLogContext()
-        .getLogger(AzureBillableUsageAggregateConsumer.class.getName())
-        .addHandler(LOGGER_CAPTOR);
-  }
-
   @BeforeEach
   void setup() {
-    LOGGER_CAPTOR.clearRecords();
     source = connector.source(BILLABLE_USAGE_HOURLY_AGGREGATE);
     status = connector.sink(BILLABLE_USAGE_STATUS);
     status.clear();
@@ -109,42 +96,65 @@ class AzureBillableUsageAggregateConsumerTest {
     givenAzureContextForUsage();
     givenAzureMarketplaceReturnsOk();
     whenSendUsage();
-    thenInfoLogContainsClientId();
     thenUsageIsSentToAzure();
+    var actual = thenStatusIsEmitted();
+    assertEquals(BillableUsage.Status.SUCCEEDED, actual.getStatus());
+    assertNull(actual.getErrorCode());
     thenMeteredTotalMetricIsPopulated();
   }
 
   @Test
-  void testAzureMarketplaceReturnsForbiddenThenExceptionIsThrown() {
+  void testLargeAggregateIsSentToAzureAndPreservesRemittanceUuids() {
+    givenValidUsage();
+    List<String> uuids = createUuids(3000);
+    usage.setRemittanceUuids(uuids);
+    givenAzureContextForUsage();
+    givenAzureMarketplaceReturnsOk();
+
+    whenSendUsage();
+
+    thenUsageIsSentToAzure();
+    var actual = thenStatusIsEmitted();
+    assertEquals(BillableUsage.Status.SUCCEEDED, actual.getStatus());
+    assertNull(actual.getErrorCode());
+    assertEquals(uuids, actual.getRemittanceUuids());
+    assertEquals(EXPECTED_VALUE, actual.getTotalValue());
+    thenMeteredTotalMetricIsPopulated();
+  }
+
+  @Test
+  void testAzureMarketplaceReturnsForbiddenThenFailedStatusIsEmitted() {
     givenValidUsage();
     givenAzureContextForUsage();
     givenAzureMarketplaceReturnsForbidden();
     whenSendUsage();
-    thenErrorLogWithMessage("Error sending azure usage for aggregate");
+    var actual = thenStatusIsEmitted();
+    assertEquals(BillableUsage.Status.FAILED, actual.getStatus());
+    assertEquals(BillableUsage.ErrorCode.UNKNOWN, actual.getErrorCode());
+    thenUsageIsSentToAzure();
   }
 
   @Test
-  void testAzureMarketplaceReturnsInvalidRequestThenWarningLogIsPrinted() {
+  void testAzureMarketplaceReturnsInvalidRequestThenAggregateUuidsArePreserved() {
     givenValidUsage();
+    List<String> uuids = createUuids(1001);
+    usage.setRemittanceUuids(uuids);
     givenAzureContextForUsage();
     givenAzureMarketplaceReturnsInvalidRequest();
     whenSendUsage();
-    thenWarningLogWithMessage("status: Error");
+    var actual = thenStatusIsEmitted();
+    assertEquals(uuids, actual.getRemittanceUuids());
+    assertEquals(usage.getAggregateId(), actual.getAggregateId());
+    thenUsageIsSentToAzure();
   }
 
   @Test
   void testShouldSendErrorWhenMetricIsUnsupported() {
     givenUsageWithUnsupportedMetric();
     whenSendUsage();
-    Awaitility.await()
-        .untilAsserted(
-            () -> {
-              var received = status.received();
-              assertEquals(1, received.size());
-              var actual = received.get(0).getPayload();
-              assertEquals(BillableUsage.Status.FAILED, actual.getStatus());
-              assertEquals(BillableUsage.ErrorCode.UNSUPPORTED_METRIC, actual.getErrorCode());
-            });
+    var actual = thenStatusIsEmitted();
+    assertEquals(BillableUsage.Status.FAILED, actual.getStatus());
+    assertEquals(BillableUsage.ErrorCode.UNSUPPORTED_METRIC, actual.getErrorCode());
   }
 
   private void givenAzureMarketplaceReturnsForbidden() {
@@ -199,26 +209,13 @@ class AzureBillableUsageAggregateConsumerTest {
         .untilAsserted(() -> wireMockResource.verifyUsageIsSentToAzureMarketplace(contextForUsage));
   }
 
-  private void thenInfoLogContainsClientId() {
-    thenLogWithMessage(Level.INFO, contextForUsage.getClientId());
+  private BillableUsageAggregate thenStatusIsEmitted() {
+    Awaitility.await().untilAsserted(() -> assertEquals(1, status.received().size()));
+    return status.received().getFirst().getPayload();
   }
 
-  private void thenWarningLogWithMessage(String str) {
-    thenLogWithMessage(Level.WARNING, str);
-  }
-
-  private void thenErrorLogWithMessage(String str) {
-    thenLogWithMessage(Level.SEVERE, str);
-  }
-
-  private void thenLogWithMessage(Level level, String str) {
-    Awaitility.await()
-        .untilAsserted(
-            () ->
-                assertTrue(
-                    LOGGER_CAPTOR.records.stream()
-                        .anyMatch(
-                            r -> r.getLevel().equals(level) && r.getMessage().contains(str))));
+  private static List<String> createUuids(int count) {
+    return IntStream.range(0, count).mapToObj(index -> UUID.randomUUID().toString()).toList();
   }
 
   private void thenMeteredTotalMetricIsPopulated() {
@@ -247,29 +244,5 @@ class AzureBillableUsageAggregateConsumerTest {
                         .toString()
                         .equals(m.getId().getTag("billing_provider")))
         .findFirst();
-  }
-
-  public static class LoggerCaptor extends Handler {
-
-    private final List<LogRecord> records = new ArrayList<>();
-
-    @Override
-    public void publish(LogRecord trace) {
-      records.add(trace);
-    }
-
-    @Override
-    public void flush() {
-      // no need to flush any sink
-    }
-
-    @Override
-    public void close() throws SecurityException {
-      clearRecords();
-    }
-
-    public void clearRecords() {
-      records.clear();
-    }
   }
 }
