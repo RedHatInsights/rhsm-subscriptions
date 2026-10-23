@@ -144,6 +144,20 @@ public class ContractsSwatchService extends SwatchService {
   }
 
   public List<com.redhat.swatch.contract.test.model.Contract>
+      getContractsByOrgIdAndVendorProductCode(String orgId, String vendorProductCode) {
+    Objects.requireNonNull(orgId, "orgId must not be null");
+    Objects.requireNonNull(vendorProductCode, "vendorProductCode must not be null");
+    return getContracts(Map.of("org_id", orgId, "vendor_product_code", vendorProductCode));
+  }
+
+  public List<com.redhat.swatch.contract.test.model.Contract> getContractsByOrgIdAndProductTag(
+      String orgId, String productTag) {
+    Objects.requireNonNull(orgId, "orgId must not be null");
+    Objects.requireNonNull(productTag, "productTag must not be null");
+    return getContracts(Map.of("org_id", orgId, "product_tag", productTag));
+  }
+
+  public List<com.redhat.swatch.contract.test.model.Contract>
       getContractsByOrgIdAndBillingProviderAndTimestamp(
           String orgId, BillingProvider billingProvider, OffsetDateTime timestamp) {
     Objects.requireNonNull(orgId, "orgId must not be null");

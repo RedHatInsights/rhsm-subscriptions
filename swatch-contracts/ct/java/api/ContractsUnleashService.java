@@ -30,6 +30,9 @@ public class ContractsUnleashService extends UnleashService {
   /** Matches {@code FeatureFlags.READ_ONLY_FLAG} in swatch-contracts. */
   public static final String ENABLE_READ_ONLY = "swatch.swatch-contracts.enable-read-only";
 
+  /** Matches {@code FeatureFlags.USE_SUBSCRIPTIONS_FLAG} in swatch-contracts. */
+  public static final String USE_SUBSCRIPTIONS = "swatch.swatch-contracts.use-subscriptions";
+
   public void enableKesselRbac() {
     enableFlag(USE_KESSEL_RBAC);
   }
@@ -44,5 +47,13 @@ public class ContractsUnleashService extends UnleashService {
 
   public void disableReadOnly() {
     disableFlag(ENABLE_READ_ONLY);
+  }
+
+  public void enableUseSubscriptions() {
+    enableFlag(USE_SUBSCRIPTIONS);
+  }
+
+  public void disableUseSubscriptions() {
+    disableFlag(USE_SUBSCRIPTIONS);
   }
 }

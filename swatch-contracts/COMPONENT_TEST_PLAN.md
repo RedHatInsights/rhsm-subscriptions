@@ -328,6 +328,69 @@ Test cases should be testable locally and in an ephemeral environment.
   - Only the contract with the matching `billing_account_id` is returned  
   - Response includes the correct contract `uuid` and `billing_account_id`
 
+## Contract Retrieval from the Subscriptions Tables
+
+Component tests for GET `/api/swatch-contracts/internal/contracts` when the
+`swatch.swatch-contracts.use-subscriptions` Unleash feature flag selects the subscriptions tables
+instead of the contracts tables. Test class: `ContractsFromSubscriptionsComponentTest`.
+
+**contracts-from-subscriptions-TC001** - **Both data sources return an equivalent contract**
+- **Description:** With the flag off the contract comes from the contracts tables and with the flag
+  on it comes from the subscriptions tables; both responses describe the same contract.
+- **Setup:** Create an AWS ROSA contract with a `license_id` for the test org.
+- **Action:** GET contracts by `org_id` with the flag off, then enable the flag and GET again.
+- **Verification:** Compare every field of the two responses and the metric values.
+- **Expected Result:**
+  - Both responses contain exactly one contract
+  - `subscription_number`, `sku`, `org_id`, `start_date`, `end_date`, `billing_provider`,
+    `billing_provider_id`, `billing_account_id`, `product_tags`, `vendor_product_code` and
+    `license_id` match
+  - Metrics are reported in the AWS dimension with the billing factor applied
+
+**contracts-from-subscriptions-TC002** - **`uuid` is null when served from subscriptions**
+- **Description:** Subscriptions have no contract UUID, so the field is empty in that mode.
+- **Setup:** Create an AWS ROSA contract for the test org.
+- **Action:** GET contracts by `org_id` with the flag off, then enable the flag and GET again.
+- **Verification:** Check the `uuid` field in each response.
+- **Expected Result:**
+  - `uuid` is populated with the flag off
+  - `uuid` is null with the flag on
+
+**contracts-from-subscriptions-TC003** - **Data source is selected by the feature flag**
+- **Description:** A subscription that has no contract record proves which table is queried.
+- **Setup:** Save an AWS ROSA subscription directly, without creating a contract.
+- **Action:** GET contracts by `org_id` with the flag off, then enable the flag and GET again.
+- **Verification:** Check the returned contract list.
+- **Expected Result:**
+  - HTTP 200 with an empty array with the flag off
+  - The subscription is returned with the flag on
+
+**contracts-from-subscriptions-TC004** - **All query parameters apply in subscriptions mode**
+- **Description:** Verify `product_tag`, `billing_provider`, `billing_account_id`,
+  `vendor_product_code` and `timestamp` still filter when the flag is on.
+- **Setup:** Create an AWS ROSA contract and an Azure ROSA contract for the same org.
+- **Action:** Enable the flag and GET contracts with each filter.
+- **Verification:** Check the returned contract list per filter.
+- **Expected Result:**
+  - Each filter returns only the matching contracts
+
+**contracts-from-subscriptions-TC005** - **Timestamp filtering in subscriptions mode**
+- **Description:** Verify temporal filtering excludes subscriptions outside the requested instant.
+- **Setup:** Create an AWS ROSA contract active around the current date.
+- **Action:** Enable the flag and GET contracts with a timestamp well past the end date.
+- **Verification:** Check the returned contract list.
+- **Expected Result:**
+  - HTTP 200 with an empty array
+
+**contracts-from-subscriptions-TC006** - **No subscriptions for the org**
+- **Description:** Verify behavior when the org has no subscriptions at all.
+- **Setup:** Ensure no subscriptions exist for the test org.
+- **Action:** Enable the flag and GET contracts by `org_id`.
+- **Verification:** Check the returned contract list.
+- **Expected Result:**
+  - HTTP 200 with an empty array
+  - No errors
+
 ## Billing Account ID Retrieval
 
 Component tests for GET `/api/swatch-contracts/v1/subscriptions/billing_account_ids`. Test class:
