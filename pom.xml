@@ -48,6 +48,7 @@
     <kessel-sdk.version>1.11.0</kessel-sdk.version>
     <grpc.version>1.85.1</grpc.version>
     <oauth2-oidc-sdk.version>11.38.2</oauth2-oidc-sdk.version>
+    <snappy-java.version>1.1.10.11</snappy-java.version>
 
     <!-- Plugins -->
     <compiler-plugin.version>3.16.0</compiler-plugin.version>
@@ -323,6 +324,11 @@
         <groupId>com.redhat.cloud.common</groupId>
         <artifactId>insights-notification-schemas-java</artifactId>
         <version>${insights-notification-schemas-java.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.xerial.snappy</groupId>
+        <artifactId>snappy-java</artifactId>
+        <version>${snappy-java.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
