@@ -216,22 +216,42 @@ public class SubscriptionEntity extends ModificationTrackedEntity {
     };
   }
 
-  private static Specification<SubscriptionEntity> hasBillingProviderId() {
+  public static Specification<SubscriptionEntity> hasBillingProviderId() {
     return (root, query, builder) ->
         builder.and(
             builder.isNotNull(root.get(SubscriptionEntity_.billingProviderId)),
             builder.notEqual(root.get(SubscriptionEntity_.billingProviderId), ""));
   }
 
-  private static Specification<SubscriptionEntity> productTagEquals(String productTag) {
+  public static Specification<SubscriptionEntity> productTagEquals(String productTag) {
     return (root, query, builder) -> {
       var offeringRoot = root.get(SubscriptionEntity_.offering);
       return builder.isMember(productTag, offeringRoot.get(OfferingEntity_.productTags));
     };
   }
 
-  private static Specification<SubscriptionEntity> orgIdEquals(String orgId) {
+  public static Specification<SubscriptionEntity> orgIdEquals(String orgId) {
     return (root, query, builder) -> builder.equal(root.get(SubscriptionEntity_.orgId), orgId);
+  }
+
+  public static Specification<SubscriptionEntity> vendorProductCodeEquals(
+      String vendorProductCode) {
+    return (root, query, builder) ->
+        builder.equal(root.get(SubscriptionEntity_.vendorProductCode), vendorProductCode);
+  }
+
+  public static Specification<SubscriptionEntity> billingAccountIdEquals(String billingAccountId) {
+    return (root, query, builder) ->
+        builder.equal(root.get(SubscriptionEntity_.billingAccountId), billingAccountId);
+  }
+
+  public static Specification<SubscriptionEntity> activeOn(OffsetDateTime timestamp) {
+    return (root, query, builder) ->
+        builder.and(
+            builder.lessThanOrEqualTo(root.get(SubscriptionEntity_.startDate), timestamp),
+            builder.or(
+                builder.isNull(root.get(SubscriptionEntity_.endDate)),
+                builder.greaterThan(root.get(SubscriptionEntity_.endDate), timestamp)));
   }
 
   /**
@@ -306,7 +326,7 @@ public class SubscriptionEntity extends ModificationTrackedEntity {
     };
   }
 
-  private static Specification<SubscriptionEntity> billingProviderEquals(
+  public static Specification<SubscriptionEntity> billingProviderEquals(
       BillingProvider billingProvider) {
     return (root, query, builder) ->
         builder.equal(root.get(SubscriptionEntity_.billingProvider), billingProvider);

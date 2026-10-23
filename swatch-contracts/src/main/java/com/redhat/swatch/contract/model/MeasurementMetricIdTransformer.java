@@ -26,6 +26,7 @@ import com.redhat.swatch.contract.exception.ContractsException;
 import com.redhat.swatch.contract.exception.ErrorCode;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractMetricEntity;
+import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.repository.SubscriptionMeasurementKey;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.ProcessingException;
@@ -33,6 +34,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.mapstruct.Named;
@@ -135,6 +137,73 @@ public class MeasurementMetricIdTransformer {
       log.error("Error resolving dimensions for contract metrics", e);
       throw new ContractsException(ErrorCode.UNHANDLED_EXCEPTION, e.getMessage());
     }
+  }
+
+  public Map<String, Double> mapSubscriptionMeasurementsToContractMetrics(
+      SubscriptionEntity subscription) {
+    if (subscription.getOffering() == null
+        || subscription.getOffering().getProductTags() == null
+        || subscription.getOffering().getProductTags().isEmpty()) {
+      log.warn(
+          "Offering or product tags are not set for subscription {}. Skipping the translation of"
+              + " subscription measurements",
+          subscription.getSubscriptionNumber());
+      return Map.of();
+    }
+
+    if (subscription.getBillingProvider() == null) {
+      // in absence of billing provider, we map all the measurements as they are.
+      return sumMeasurementsByMetricId(subscription, metricId -> metricId, metricId -> 1.0);
+    }
+
+    String billingProvider = subscription.getBillingProvider().getValue();
+    Map<String, Metric> supportedMetricsById = new HashMap<>();
+    try {
+      for (String tag : subscription.getOffering().getProductTags()) {
+        for (var supportedMetric :
+            Variant.findByTag(tag).orElseThrow().getSubscription().getMetrics()) {
+          supportedMetricsById.put(supportedMetric.getId(), supportedMetric);
+        }
+      }
+
+      return sumMeasurementsByMetricId(
+          subscription,
+          metricId ->
+              Optional.ofNullable(supportedMetricsById.get(metricId))
+                  .map(metric -> getBillingProviderMetricIdentifier(billingProvider, metric))
+                  .orElse(null),
+          metricId ->
+              Optional.ofNullable(supportedMetricsById.get(metricId))
+                  .map(Metric::getBillingFactor)
+                  .orElse(1.0));
+    } catch (ProcessingException | NoSuchElementException | IllegalArgumentException e) {
+      log.error("Error looking up dimension for subscription measurements", e);
+      throw new ContractsException(ErrorCode.UNHANDLED_EXCEPTION, e.getMessage());
+    }
+  }
+
+  private Map<String, Double> sumMeasurementsByMetricId(
+      SubscriptionEntity subscription,
+      Function<String, String> dimensionResolver,
+      Function<String, Double> billingFactorResolver) {
+    Map<String, Double> metrics = new HashMap<>();
+    subscription
+        .getSubscriptionMeasurements()
+        .forEach(
+            (key, value) -> {
+              String dimension = dimensionResolver.apply(key.getMetricId());
+              if (dimension == null || value == null) {
+                log.debug(
+                    "Skipping measurement '{}' on subscription {}: no dimension configured",
+                    key.getMetricId(),
+                    subscription.getSubscriptionNumber());
+                return;
+              }
+              double billingFactor =
+                  Optional.ofNullable(billingFactorResolver.apply(key.getMetricId())).orElse(1.0);
+              metrics.merge(dimension, value * billingFactor, Double::sum);
+            });
+    return metrics;
   }
 
   private Map<SubscriptionMeasurementKey, Double> translateContractMetricToSubscriptionMeasurements(
