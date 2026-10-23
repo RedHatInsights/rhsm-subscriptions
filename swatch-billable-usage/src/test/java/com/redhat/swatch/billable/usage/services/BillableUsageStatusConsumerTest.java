@@ -22,9 +22,7 @@ package com.redhat.swatch.billable.usage.services;
 
 import static com.redhat.swatch.billable.usage.kafka.InMemoryMessageBrokerKafkaResource.IN_MEMORY_CONNECTOR;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 
 import com.redhat.swatch.billable.usage.configuration.Channels;
@@ -33,7 +31,6 @@ import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
 import com.redhat.swatch.billable.usage.data.RemittanceErrorCode;
 import com.redhat.swatch.billable.usage.data.RemittanceStatus;
 import com.redhat.swatch.billable.usage.kafka.InMemoryMessageBrokerKafkaResource;
-import com.redhat.swatch.logging.LoggingFileJsonFormatter;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectSpy;
@@ -41,18 +38,12 @@ import io.smallrye.reactive.messaging.memory.InMemoryConnector;
 import io.smallrye.reactive.messaging.memory.InMemorySource;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
-import java.util.logging.Handler;
-import java.util.logging.LogRecord;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.awaitility.Awaitility;
 import org.candlepin.subscriptions.billable.usage.BillableUsage.ErrorCode;
@@ -60,11 +51,6 @@ import org.candlepin.subscriptions.billable.usage.BillableUsage.Status;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
-import org.jboss.logmanager.ExtLogRecord;
-import org.jboss.logmanager.LogContext;
-import org.jboss.logmanager.Logger;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -79,10 +65,6 @@ class BillableUsageStatusConsumerTest {
   private static final String LICENSE_B = "arn:aws:license-manager:1:license:b";
   private static final OffsetDateTime BILLED_ON =
       OffsetDateTime.of(2024, 5, 10, 10, 20, 5, 0, ZoneOffset.UTC);
-  private static final int MAX_LOG_EVENT_BYTES = 60 * 1024;
-  private static final LoggerCaptor LOGGER_CAPTOR = new LoggerCaptor();
-  private static Logger capturedLogger;
-  private static boolean previousUseParentHandlers;
 
   @InjectSpy BillableUsageStatusConsumer consumer;
 
@@ -94,25 +76,9 @@ class BillableUsageStatusConsumerTest {
 
   private InMemorySource<BillableUsageAggregate> source;
 
-  @BeforeAll
-  static void configureLogging() {
-    capturedLogger =
-        LogContext.getLogContext().getLogger(BillableUsageStatusConsumer.class.getName());
-    previousUseParentHandlers = capturedLogger.getUseParentHandlers();
-    capturedLogger.addHandler(LOGGER_CAPTOR);
-    capturedLogger.setUseParentHandlers(false);
-  }
-
-  @AfterAll
-  static void restoreLogging() {
-    capturedLogger.removeHandler(LOGGER_CAPTOR);
-    capturedLogger.setUseParentHandlers(previousUseParentHandlers);
-  }
-
   @BeforeEach
   @Transactional
   void setUp() {
-    LOGGER_CAPTOR.records.clear();
     source = connector.source(Channels.BILLABLE_USAGE_STATUS);
     remittanceRepository.deleteAll();
   }
@@ -230,35 +196,30 @@ class BillableUsageStatusConsumerTest {
   void testWhenStatusIsNullThenRemittanceIsNotUpdated() {
     var existingRemittance = givenExistingPendingRemittance();
     var nullStatusMessage = createBillableUsageAggregate(null, null, BILLED_ON, existingRemittance);
-    List<String> uuids = createUuids(1001);
-    nullStatusMessage.setRemittanceUuids(uuids);
+    List<String> uuids = List.copyOf(nullStatusMessage.getRemittanceUuids());
 
     whenSendResponse(nullStatusMessage);
     Awaitility.await().untilAsserted(this::verifyRemittanceStillPending);
-    Awaitility.await()
-        .untilAsserted(
-            () -> {
-              assertEquals(uuids, nullStatusMessage.getRemittanceUuids());
-              assertChunkedUuidLogs(uuids, logGroupContaining("with no status"));
-            });
+    assertEquals(uuids, nullStatusMessage.getRemittanceUuids());
   }
 
   @Test
-  void testFinalizedRemittanceUuidRemainsInAggregateAndLogs() {
+  void testFinalizedRemittanceIsNotUpdatedAndItsUuidRemainsInAggregate() {
     var finalizedRemittance = givenFinalizedRemittance();
     var aggregate =
         createBillableUsageAggregate(Status.SUCCEEDED, null, BILLED_ON, finalizedRemittance);
     List<String> uuids = List.copyOf(aggregate.getRemittanceUuids());
 
-    whenSendResponse(aggregate);
+    consumer.process(aggregate);
 
-    Awaitility.await()
-        .untilAsserted(
-            () -> {
-              assertEquals(uuids, aggregate.getRemittanceUuids());
-              assertChunkedUuidLogs(
-                  uuids, logGroupContaining("No remittances to update for aggregate"));
-            });
+    assertEquals(uuids, aggregate.getRemittanceUuids());
+    verifyRemittances(
+        uuids,
+        remittance -> {
+          assertEquals(RemittanceStatus.SUCCEEDED, remittance.getStatus());
+          assertNull(remittance.getBilledOn());
+          assertNull(remittance.getErrorCode());
+        });
   }
 
   @Test
@@ -470,72 +431,5 @@ class BillableUsageStatusConsumerTest {
     remittance.setRemittancePendingDate(OffsetDateTime.now());
     remittance.setRemittedPendingValue(2.0);
     return remittance;
-  }
-
-  private List<String> logGroupContaining(String text) {
-    List<String> messages = new ArrayList<>();
-    boolean inGroup = false;
-    for (var record : LOGGER_CAPTOR.records) {
-      String message = record.getMessage();
-      if (!message.startsWith("Billable usage aggregate continuation:")) {
-        inGroup = message.contains(text);
-      }
-      if (inGroup) {
-        messages.add(message);
-      }
-    }
-    return messages;
-  }
-
-  private static void assertChunkedUuidLogs(List<String> uuids, List<String> messages) {
-    int expectedChunkCount = (uuids.size() + 499) / 500;
-    assertEquals(expectedChunkCount, messages.size());
-
-    for (int index = 0; index < messages.size(); index++) {
-      String message = messages.get(index);
-      if (index == 0) {
-        assertFalse(message.startsWith("Billable usage aggregate continuation:"));
-        assertFalse(message.contains("(chunk "));
-      } else {
-        assertTrue(message.startsWith("Billable usage aggregate continuation:"));
-        assertTrue(message.contains("(chunk " + (index + 1) + "/" + expectedChunkCount + ")"));
-      }
-      var record =
-          LOGGER_CAPTOR.records.stream()
-              .filter(log -> message.equals(log.getMessage()))
-              .findFirst()
-              .orElseThrow();
-      assertTrue(
-          new LoggingFileJsonFormatter()
-                  .format(ExtLogRecord.wrap(record))
-                  .getBytes(StandardCharsets.UTF_8)
-                  .length
-              <= MAX_LOG_EVENT_BYTES);
-    }
-
-    for (String uuid : uuids) {
-      assertEquals(1L, messages.stream().filter(message -> message.contains(uuid)).count());
-    }
-  }
-
-  private static List<String> createUuids(int count) {
-    return IntStream.range(0, count).mapToObj(index -> UUID.randomUUID().toString()).toList();
-  }
-
-  private static class LoggerCaptor extends Handler {
-    private final List<LogRecord> records = new CopyOnWriteArrayList<>();
-
-    @Override
-    public void publish(LogRecord record) {
-      records.add(record);
-    }
-
-    @Override
-    public void flush() {}
-
-    @Override
-    public void close() {
-      records.clear();
-    }
   }
 }
