@@ -39,6 +39,7 @@ import org.candlepin.subscriptions.json.EnabledOrgsRequest;
 import org.candlepin.subscriptions.json.EnabledOrgsResponse;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.TallySummary;
+import org.candlepin.subscriptions.json.UsageEvent;
 import org.candlepin.subscriptions.resteasy.ResteasyConfiguration;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.tally.facts.ProductNormalizer;
@@ -428,22 +429,23 @@ public class TallyWorkerConfiguration {
 
   @Bean
   @Qualifier("usageConsumerFactory")
-  ConsumerFactory<String, String> usageConsumerFactory(
+  ConsumerFactory<String, UsageEvent> usageConsumerFactory(
       KafkaProperties kafkaProperties,
+      ObjectMapper objectMapper,
       @Qualifier("usageTopicProperties") TaskQueueProperties taskQueueProperties) {
     var props = kafkaProperties.buildConsumerProperties();
     props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, taskQueueProperties.getMaxPollRecords());
-    return new DefaultKafkaConsumerFactory<>(
-        props, new StringDeserializer(), new StringDeserializer());
+    var jsonDeserializer = new JsonDeserializer<>(UsageEvent.class, objectMapper, false);
+    return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), jsonDeserializer);
   }
 
   @Bean
-  ConcurrentKafkaListenerContainerFactory<String, String> kafkaUsageListenerContainerFactory(
-      @Qualifier("usageConsumerFactory") ConsumerFactory<String, String> consumerFactory,
+  ConcurrentKafkaListenerContainerFactory<String, UsageEvent> kafkaUsageListenerContainerFactory(
+      @Qualifier("usageConsumerFactory") ConsumerFactory<String, UsageEvent> consumerFactory,
       KafkaProperties kafkaProperties,
       KafkaConsumerRegistry registry) {
 
-    var factory = new ConcurrentKafkaListenerContainerFactory<String, String>();
+    var factory = new ConcurrentKafkaListenerContainerFactory<String, UsageEvent>();
     factory.setConsumerFactory(consumerFactory);
     factory.setBatchListener(true);
     factory.setConcurrency(kafkaProperties.getListener().getConcurrency());

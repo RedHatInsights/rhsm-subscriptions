@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.tally.events;
 
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.json.UsageEvent;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.candlepin.subscriptions.util.SeekableKafkaConsumer;
@@ -46,8 +47,11 @@ public class UsageEventMessageConsumer extends SeekableKafkaConsumer {
       id = "#{__listener.groupId}",
       topics = "#{__listener.topic}",
       containerFactory = "kafkaUsageListenerContainerFactory")
-  public void receive(@Payload List<String> events) {
+  public void receive(@Payload List<UsageEvent> events) {
     log.info("Received {} usage event(s) from kafka", events.size());
-    log.debug("Usage event payloads: {}", events);
+    events.forEach(
+        event -> {
+          log.debug("Processing usage event with correlation_id: {}", event.getCorrelationId());
+        });
   }
 }

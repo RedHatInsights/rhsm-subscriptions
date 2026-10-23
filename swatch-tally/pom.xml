@@ -105,6 +105,10 @@
     </dependency>
     <dependency>
       <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-model-usage-events</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.redhat.swatch</groupId>
       <artifactId>api</artifactId>
     </dependency>
     <dependency>
