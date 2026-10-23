@@ -52,6 +52,7 @@ public class KesselAuthorizationService {
 
   private KesselAuthorizationClient client;
   private volatile OAuth2AuthRequest rbacAuth;
+  private volatile OAuth2ClientCredentials oauth2Credentials;
   private final ConcurrentHashMap<String, String> workspaceCache = new ConcurrentHashMap<>();
 
   @PostConstruct
@@ -74,12 +75,8 @@ public class KesselAuthorizationService {
           }
         };
 
-    OAuth2ClientCredentials oauth2Credentials = null;
     try {
-      oauth2Credentials = initializeOAuth2Credentials();
-      if (oauth2Credentials != null) {
-        this.rbacAuth = new OAuth2AuthRequest(oauth2Credentials);
-      }
+      applyOauth2Credentials(initializeOAuth2Credentials());
     } catch (Exception e) {
       log.warn(
           "Failed to initialize OAuth2 credentials; Kessel gRPC will use TLS only, workspace"
@@ -93,6 +90,19 @@ public class KesselAuthorizationService {
         new KesselAuthorizationClient(
             config, this::getDefaultWorkspaceId, metricsRecorder, oauth2Credentials);
     client.init();
+  }
+
+  private boolean isOauth2Configured() {
+    return properties.authOidcIssuer().filter(s -> !s.isBlank()).isPresent()
+        && properties.authClientId().filter(s -> !s.isBlank()).isPresent()
+        && properties.authClientSecret().filter(s -> !s.isBlank()).isPresent();
+  }
+
+  private void applyOauth2Credentials(OAuth2ClientCredentials credentials) {
+    this.oauth2Credentials = credentials;
+    if (credentials != null) {
+      this.rbacAuth = new OAuth2AuthRequest(credentials);
+    }
   }
 
   private OAuth2ClientCredentials initializeOAuth2Credentials() throws Exception {
@@ -111,6 +121,49 @@ public class KesselAuthorizationService {
             new ClientConfigAuth(clientId.get(), clientSecret.get(), discovery.tokenEndpoint()));
     log.info("OAuth2 credentials initialized for Kessel gRPC and RBAC workspace lookups");
     return credentials;
+  }
+
+  /**
+   * Retries OIDC discovery when startup init failed transiently but credentials are configured.
+   * Returns null when OAuth2 is not configured.
+   */
+  private synchronized OAuth2ClientCredentials retryOauth2CredentialsInit() {
+    if (oauth2Credentials != null) {
+      return oauth2Credentials;
+    }
+    if (!isOauth2Configured()) {
+      return null;
+    }
+    try {
+      applyOauth2Credentials(initializeOAuth2Credentials());
+      return oauth2Credentials;
+    } catch (Exception e) {
+      throw new IllegalStateException(
+          "Failed to initialize OAuth2 credentials; cannot mint access token", e);
+    }
+  }
+
+  /**
+   * Returns a cached OAuth2 access token for service-to-service calls (export-service, RBAC).
+   *
+   * <p>Uses the same Kessel OIDC client credentials as workspace lookups ({@code
+   * KESSEL_AUTH_OIDC_ISSUER} / client id / secret). Retries credential init when startup OIDC
+   * discovery failed but OAuth2 is configured. Does not fall back to PSK.
+   */
+  public String getAccessToken() {
+    OAuth2ClientCredentials credentials = oauth2Credentials;
+    if (credentials == null) {
+      credentials = retryOauth2CredentialsInit();
+    }
+    if (credentials == null) {
+      throw new IllegalStateException(
+          "Kessel OAuth2 credentials are not configured; cannot mint access token");
+    }
+    try {
+      return credentials.getToken().accessToken();
+    } catch (Exception e) {
+      throw new IllegalStateException("Failed to get OAuth2 access token", e);
+    }
   }
 
   @PreDestroy
