@@ -40,11 +40,9 @@ import org.jboss.logmanager.LogContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.slf4j.LoggerFactory;
 
-class BillableUsageAggregateLogTest {
+class BillableUsageAggregateTest {
 
-  private static final int MAX_LOG_EVENT_BYTES = 60 * 1024;
   private final LoggerCaptor loggerCaptor = new LoggerCaptor();
   private final org.jboss.logmanager.Logger logger =
       LogContext.getLogContext().getLogger(BillableUsageAggregate.class.getName());
@@ -124,7 +122,7 @@ class BillableUsageAggregateLogTest {
   }
 
   @Test
-  void shouldLogRepeatedUpdatesOnceAndPreserveCollectionsAtBoundary() {
+  void shouldLogEachUpdateOnceAndPreserveAggregateState() {
     List<String> uuids = createUuids(1001);
     var firstDate = OffsetDateTime.parse("2025-10-01T00:00:00Z");
     List<OffsetDateTime> dates =
@@ -155,14 +153,6 @@ class BillableUsageAggregateLogTest {
     assertEquals(uuids, aggregate.getRemittanceUuids());
     assertEquals(new HashSet<>(dates), aggregate.getSnapshotDates());
     assertEquals(uuids.size(), aggregate.getTotalValue().intValueExact());
-
-    loggerCaptor.records.clear();
-    BillableUsageAggregateLogger.info(
-        LoggerFactory.getLogger(BillableUsageAggregate.class),
-        "Sending aggregate to hourly topic: {}",
-        aggregate);
-
-    assertChunkedCollectionLogs(uuids, dates, loggerCaptor.records);
   }
 
   @Test
@@ -179,36 +169,6 @@ class BillableUsageAggregateLogTest {
     logger.setLevel(Level.WARNING);
     aggregate.updateFrom(usage);
     assertTrue(loggerCaptor.records.isEmpty());
-  }
-
-  private static void assertChunkedCollectionLogs(
-      List<String> uuids, List<OffsetDateTime> dates, List<LogRecord> records) {
-    int expectedChunkCount = (Math.max(uuids.size(), dates.size()) + 499) / 500;
-    assertEquals(expectedChunkCount, records.size());
-
-    for (int index = 0; index < records.size(); index++) {
-      var record = records.get(index);
-      String message = record.getMessage();
-      if (index == 0) {
-        assertTrue(
-            message.startsWith("Sending aggregate to hourly topic: BillableUsageAggregate("));
-        assertFalse(message.contains("(chunk "));
-      } else {
-        assertTrue(message.startsWith("Billable usage aggregate continuation:"));
-        assertFalse(message.contains("Sending aggregate to hourly topic:"));
-        assertTrue(message.contains("(chunk " + (index + 1) + "/" + expectedChunkCount + ")"));
-      }
-      assertTrue(serializedEventBytes(record) <= MAX_LOG_EVENT_BYTES);
-    }
-
-    List<String> messages = records.stream().map(LogRecord::getMessage).toList();
-    for (String uuid : uuids) {
-      assertEquals(1, messages.stream().filter(message -> message.contains(uuid)).count());
-    }
-    for (OffsetDateTime date : dates) {
-      assertEquals(
-          1, messages.stream().filter(message -> message.contains(date.toString())).count());
-    }
   }
 
   private static int serializedEventBytes(LogRecord record) {

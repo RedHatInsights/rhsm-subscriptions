@@ -42,6 +42,7 @@ import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.jboss.logmanager.ExtLogRecord;
 import org.jboss.logmanager.LogContext;
 import org.jboss.logmanager.MDC;
@@ -103,7 +104,7 @@ class BillableUsageAggregateLoggerTest {
     var dates = aggregate.getSnapshotDates();
 
     BillableUsageAggregateLogger.info(
-        LOG, "Sent usage request to AWS: Quantity=42, aggregate={}", aggregate);
+        LOG, aggregate, "Sent usage request to AWS: Quantity=42, aggregate=%1$s");
 
     assertEquals(21, records.size());
     assertCollectionsPreserved(aggregate);
@@ -119,10 +120,59 @@ class BillableUsageAggregateLoggerTest {
   void preservesCollectionsAtChunkBoundaries(int uuidCount, int dateCount) throws Exception {
     var aggregate = aggregate(uuidCount, dateCount);
 
-    BillableUsageAggregateLogger.info(LOG, "Sending usage, aggregate={}", aggregate);
+    BillableUsageAggregateLogger.info(LOG, aggregate, "Sending usage, aggregate=%1$s");
 
     assertEquals(Math.max(1, (Math.max(uuidCount, dateCount) + 499) / 500), records.size());
     assertCollectionsPreserved(aggregate);
+    assertBoundedEvents(aggregate);
+  }
+
+  @ParameterizedTest
+  @CsvSource({"0", "1", "500"})
+  void skipsAllChunkProcessingWhenCollectionsFit(int size) throws Exception {
+    var aggregate = aggregate(size, size);
+    var uuids = aggregate.getRemittanceUuids();
+    var dates = aggregate.getSnapshotDates().stream().map(String::valueOf).toList();
+    aggregate.setRemittanceUuids(
+        new ArrayList<>(uuids) {
+          @Override
+          public List<String> subList(int fromIndex, int toIndex) {
+            throw new AssertionError("Small UUID collections must not be sliced");
+          }
+        });
+    aggregate.setSnapshotDates(
+        new LinkedHashSet<>(aggregate.getSnapshotDates()) {
+          @Override
+          public Stream<OffsetDateTime> stream() {
+            throw new AssertionError("Small date collections must not be streamed for chunking");
+          }
+
+          @Override
+          public Object[] toArray() {
+            throw new AssertionError("Small date collections must not be copied for continuations");
+          }
+        });
+
+    BillableUsageAggregateLogger.info(LOG, aggregate, "Sending usage, aggregate=%1$s");
+
+    assertEquals(1, records.size());
+    assertEquals(uuids, collectionEntries("remittanceUuids"));
+    assertEquals(dates, collectionEntries("snapshotDates"));
+    assertBoundedEvents(aggregate);
+  }
+
+  @Test
+  void chunksSnapshotDatesEvenWhenUuidsAreNull() throws Exception {
+    var aggregate = aggregate(0, 501);
+    aggregate.setRemittanceUuids(null);
+
+    BillableUsageAggregateLogger.info(LOG, aggregate, "Sending usage, aggregate=%1$s");
+
+    assertEquals(2, records.size());
+    assertTrue(records.getFirst().getMessage().contains("remittanceUuids=null"));
+    assertEquals(
+        aggregate.getSnapshotDates().stream().map(String::valueOf).toList(),
+        collectionEntries("snapshotDates"));
     assertBoundedEvents(aggregate);
   }
 
@@ -132,7 +182,8 @@ class BillableUsageAggregateLoggerTest {
     String metadata = "x".repeat(4 * 1024);
     MDC.put("requestContext", metadata);
 
-    BillableUsageAggregateLogger.info(LOG, "Sending usage request to AWS, aggregate={}", aggregate);
+    BillableUsageAggregateLogger.info(
+        LOG, aggregate, "Sending usage request to AWS, aggregate=%1$s");
 
     assertEquals(3, records.size());
     assertCollectionsPreserved(aggregate);
@@ -150,10 +201,10 @@ class BillableUsageAggregateLoggerTest {
     aggregate.setErrorCode(BillableUsage.ErrorCode.INACTIVE);
     aggregate.setBilledOn(OffsetDateTime.parse("2026-10-01T01:00Z"));
     aggregate.setLicenseId("test-license");
-    Object[] arguments = {"UsageRecord(Quantity=42, Status=Success)", aggregate};
+    Object[] arguments = {"UsageRecord(Quantity=42, Status=Success)"};
 
     BillableUsageAggregateLogger.info(
-        LOG, "Sent usage request to AWS: result={}, aggregate={}", arguments);
+        LOG, aggregate, "Sent usage request to AWS: result=%2$s, aggregate=%1$s", arguments);
 
     String expected =
         "Sent usage request to AWS: result=UsageRecord(Quantity=42, Status=Success), "
@@ -173,7 +224,48 @@ class BillableUsageAggregateLoggerTest {
             + ", licenseId=test-license)";
     assertEquals(expected, records.getFirst().getMessage());
     assertEquals(size > 500 ? 2 : 1, records.size());
-    assertSame(aggregate, arguments[1]);
+    assertEquals("UsageRecord(Quantity=42, Status=Success)", arguments[0]);
+    assertCollectionsPreserved(aggregate);
+    assertBoundedEvents(aggregate);
+  }
+
+  @Test
+  void preservesFieldsAroundTheExplicitAggregateAndLiteralArgumentText() throws Exception {
+    var aggregate = aggregate(1001, 0);
+    String subscription = "subscription-{}-{aggregate}-%1$s";
+    String customer = "customer-{}-{aggregate}-%2$s";
+    var cause = new IllegalStateException("AWS metering failed");
+    Object[] arguments = {subscription, customer, cause};
+
+    BillableUsageAggregateLogger.error(
+        LOG, aggregate, "Subscription=%2$s (100%%), aggregate=%1$s, awsCustomerId=%3$s", arguments);
+
+    String primary = records.getFirst().getMessage();
+    assertTrue(
+        primary.startsWith(
+            "Subscription=" + subscription + " (100%), aggregate=BillableUsageAggregate("));
+    assertTrue(primary.endsWith("), awsCustomerId=" + customer));
+    assertSame(subscription, arguments[0]);
+    assertSame(customer, arguments[1]);
+    assertSame(cause, arguments[2]);
+    assertSame(cause, records.getFirst().getThrown());
+    records.stream().skip(1).forEach(record -> assertNull(record.getThrown()));
+    assertCollectionsPreserved(aggregate);
+    assertBoundedEvents(aggregate);
+  }
+
+  @Test
+  void preservesDebugPrimaryAndContinuationsWhenDebugIsEnabled() throws Exception {
+    logger.setLevel(org.jboss.logmanager.Level.DEBUG);
+    var aggregate = aggregate(1001, 0);
+
+    BillableUsageAggregateLogger.debug(LOG, aggregate, "Processing billable usage message: %1$s");
+
+    assertEquals(3, records.size());
+    assertTrue(
+        records.stream()
+            .allMatch(record -> record.getLevel().equals(org.jboss.logmanager.Level.DEBUG)));
+    assertTrue(records.getFirst().getMessage().startsWith("Processing billable usage message:"));
     assertCollectionsPreserved(aggregate);
     assertBoundedEvents(aggregate);
   }
@@ -183,7 +275,7 @@ class BillableUsageAggregateLoggerTest {
     logger.setLevel(Level.WARNING);
     var aggregate = aggregate(1001, 0);
 
-    BillableUsageAggregateLogger.warn(LOG, "Subscription not found for aggregate={}", aggregate);
+    BillableUsageAggregateLogger.warn(LOG, aggregate, "Subscription not found for aggregate=%1$s");
 
     assertEquals(3, records.size());
     assertTrue(
@@ -204,7 +296,7 @@ class BillableUsageAggregateLoggerTest {
     String response = "雪😀\"\\\n\t".repeat(1000);
 
     BillableUsageAggregateLogger.info(
-        LOG, "Sent usage request to AWS: result={}, aggregate={}", response, aggregate);
+        LOG, aggregate, "Sent usage request to AWS: result=%2$s, aggregate=%1$s", response);
 
     assertTrue(
         records
@@ -237,7 +329,10 @@ class BillableUsageAggregateLoggerTest {
     MDC.put("requestContext", "雪\"\\\n".repeat(250));
 
     BillableUsageAggregateLogger.info(
-        LOG, "Sent usage request to AWS: result={}, Quantity=42, aggregate={}", details, aggregate);
+        LOG,
+        aggregate,
+        "Sent usage request to AWS: result=%2$s, Quantity=42, aggregate=%1$s",
+        details);
 
     assertEquals(3, records.size());
     assertTrue(
@@ -263,7 +358,7 @@ class BillableUsageAggregateLoggerTest {
     var cause = new IllegalStateException("AWS metering failed");
 
     BillableUsageAggregateLogger.error(
-        LOG, "Error sending AWS usage, aggregate={}", aggregate, cause);
+        LOG, aggregate, "Error sending AWS usage, aggregate=%1$s", cause);
 
     assertEquals(6, records.size());
     assertSame(cause, records.getFirst().getThrown());
@@ -281,7 +376,7 @@ class BillableUsageAggregateLoggerTest {
 
   @Test
   void handlesNullAggregatesAndCollections() throws Exception {
-    BillableUsageAggregateLogger.info(LOG, "Received null aggregate={}", (Object) null);
+    BillableUsageAggregateLogger.info(LOG, null, "Received null aggregate=%1$s");
     assertEquals(1, records.size());
     assertTrue(records.getFirst().getMessage().contains("aggregate=null"));
 
@@ -290,7 +385,7 @@ class BillableUsageAggregateLoggerTest {
     aggregate.setRemittanceUuids(null);
     aggregate.setSnapshotDates(null);
 
-    BillableUsageAggregateLogger.warn(LOG, "Received empty aggregate={}", aggregate);
+    BillableUsageAggregateLogger.warn(LOG, aggregate, "Received empty aggregate=%1$s");
 
     assertEquals(1, records.size());
     assertTrue(records.getFirst().getMessage().contains("remittanceUuids=null"));
@@ -326,9 +421,10 @@ class BillableUsageAggregateLoggerTest {
           }
         };
 
-    BillableUsageAggregateLogger.info(LOG, "Info: {}, aggregate={}", argument, aggregate);
-    BillableUsageAggregateLogger.warn(LOG, "Warning: {}, aggregate={}", argument, aggregate);
-    BillableUsageAggregateLogger.error(LOG, "Error: {}, aggregate={}", argument, aggregate);
+    BillableUsageAggregateLogger.debug(LOG, aggregate, "Debug: %2$s, aggregate=%1$s", argument);
+    BillableUsageAggregateLogger.info(LOG, aggregate, "Info: %2$s, aggregate=%1$s", argument);
+    BillableUsageAggregateLogger.warn(LOG, aggregate, "Warning: %2$s, aggregate=%1$s", argument);
+    BillableUsageAggregateLogger.error(LOG, aggregate, "Error: %2$s, aggregate=%1$s", argument);
 
     assertTrue(records.isEmpty());
   }

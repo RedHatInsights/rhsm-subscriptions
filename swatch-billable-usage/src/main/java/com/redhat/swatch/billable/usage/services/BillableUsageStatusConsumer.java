@@ -49,7 +49,9 @@ public class BillableUsageStatusConsumer {
   public void process(BillableUsageAggregate billableUsageAggregate) {
     if (Objects.isNull(billableUsageAggregate.getStatus())) {
       BillableUsageAggregateLogger.error(
-          log, "Billable Usage Status update received with no status, {}:", billableUsageAggregate);
+          log,
+          billableUsageAggregate,
+          "Billable Usage Status update received with no status, %1$s:");
       return;
     }
 
@@ -58,7 +60,7 @@ public class BillableUsageStatusConsumer {
 
   private void updateStatus(BillableUsageAggregate billableUsageAggregate) {
     BillableUsageAggregateLogger.info(
-        log, "Updating status for aggregate: {}", billableUsageAggregate);
+        log, billableUsageAggregate, "Updating status for aggregate: %1$s");
     var status = RemittanceStatus.fromString(billableUsageAggregate.getStatus().value());
     var errorCode =
         ofNullable(billableUsageAggregate.getErrorCode())
@@ -84,7 +86,7 @@ public class BillableUsageStatusConsumer {
 
     if (remittanceUuidsToUpdate.isEmpty()) {
       BillableUsageAggregateLogger.info(
-          log, "No remittances to update for aggregate {}", billableUsageAggregate);
+          log, billableUsageAggregate, "No remittances to update for aggregate %1$s");
       return;
     }
 

@@ -100,7 +100,7 @@ public class AzureBillableUsageAggregateConsumer {
   @Blocking
   public void process(BillableUsageAggregate billableUsageAggregate) {
     BillableUsageAggregateLogger.info(
-        log, "Received billable usage message {}", billableUsageAggregate);
+        log, billableUsageAggregate, "Received billable usage message %1$s");
     if (billableUsageAggregate == null || billableUsageAggregate.getAggregateKey() == null) {
       log.warn("Skipping null billable usage: deserialization failure?");
       return;
@@ -119,14 +119,14 @@ public class AzureBillableUsageAggregateConsumer {
     if (metric.isEmpty() || metric.get().getAzureDimension() == null) {
       BillableUsageAggregateLogger.warn(
           log,
-          "Skipping billable usage because the metric is not supported: {}",
-          billableUsageAggregate);
+          billableUsageAggregate,
+          "Skipping billable usage because the metric is not supported: %1$s");
       emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.UNSUPPORTED_METRIC);
       return;
     }
 
     BillableUsageAggregateLogger.info(
-        log, "Processing billable usage message: {}", billableUsageAggregate);
+        log, billableUsageAggregate, "Processing billable usage message: %1$s");
 
     AzureUsageContext context;
     try {
@@ -136,23 +136,23 @@ public class AzureBillableUsageAggregateConsumer {
           billableUsageAggregate, BillableUsage.ErrorCode.SUBSCRIPTION_TERMINATED);
       BillableUsageAggregateLogger.info(
           log,
-          "Subscription recently terminated for billableUsageAggregate={}",
           billableUsageAggregate,
+          "Subscription recently terminated for billableUsageAggregate=%1$s",
           e);
       return;
     } catch (SubscriptionCanNotBeDeterminedException e) {
       if (!isUsageDateValid(billableUsageAggregate)) {
         BillableUsageAggregateLogger.warn(
             log,
-            "Skipping billable usage aggregate={} because the subscription was not found and the snapshot '{}' is past the azure time window of '{}'",
             billableUsageAggregate,
+            "Skipping billable usage aggregate=%1$s because the subscription was not found and the snapshot '%2$s' is past the azure time window of '%3$s'",
             billableUsageAggregate.getWindowTimestamp(),
             azureUsageWindow,
             e);
         emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.INACTIVE);
       } else {
         BillableUsageAggregateLogger.warn(
-            log, "Subscription not found for aggregate={}", billableUsageAggregate, e);
+            log, billableUsageAggregate, "Subscription not found for aggregate=%1$s", e);
         emitErrorStatusOnUsage(
             billableUsageAggregate, BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND);
       }
@@ -160,7 +160,7 @@ public class AzureBillableUsageAggregateConsumer {
     } catch (AzureUsageContextLookupException e) {
       emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.USAGE_CONTEXT_LOOKUP);
       BillableUsageAggregateLogger.error(
-          log, "Error looking up usage context for aggregate={}", billableUsageAggregate, e);
+          log, billableUsageAggregate, "Error looking up usage context for aggregate=%1$s", e);
       return;
     }
     try {
@@ -170,8 +170,8 @@ public class AzureBillableUsageAggregateConsumer {
       emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.UNKNOWN);
       BillableUsageAggregateLogger.error(
           log,
-          "Error sending azure usage for aggregate={}, azureResourceId={}",
           billableUsageAggregate,
+          "Error sending azure usage for aggregate=%1$s, azureResourceId=%2$s",
           context.getAzureResourceId(),
           e);
     }
@@ -192,16 +192,16 @@ public class AzureBillableUsageAggregateConsumer {
     if (isDryRun.isPresent() && Boolean.TRUE.equals(isDryRun.get())) {
       BillableUsageAggregateLogger.info(
           log,
-          "[DRY RUN] Sending usage request to Azure: {}, for aggregate={}",
-          usageEvent,
-          billableUsageAggregate);
+          billableUsageAggregate,
+          "[DRY RUN] Sending usage request to Azure: %2$s, for aggregate=%1$s",
+          usageEvent);
       return;
     } else {
       BillableUsageAggregateLogger.info(
           log,
-          "Sending usage request to Azure: {}, for aggregate={}",
-          usageEvent,
-          billableUsageAggregate);
+          billableUsageAggregate,
+          "Sending usage request to Azure: %2$s, for aggregate=%1$s",
+          usageEvent);
     }
 
     try {
@@ -209,13 +209,13 @@ public class AzureBillableUsageAggregateConsumer {
       log.debug("{}", response);
       if (response.getStatus() != UsageEventStatusEnum.ACCEPTED) {
         BillableUsageAggregateLogger.warn(
-            log, "{}, aggregate={}", response, billableUsageAggregate);
+            log, billableUsageAggregate, "%2$s, aggregate=%1$s", response);
       } else {
         BillableUsageAggregateLogger.info(
             log,
-            "Sent usage request to Azure: result={}, aggregate={}",
-            response,
-            billableUsageAggregate);
+            billableUsageAggregate,
+            "Sent usage request to Azure: result=%2$s, aggregate=%1$s",
+            response);
         acceptedCounter.increment();
       }
     } catch (AzureMarketplaceRequestFailedException e) {

@@ -23,7 +23,6 @@ package com.redhat.swatch.billable.usage.kafka;
 import static com.redhat.swatch.billable.usage.kafka.streams.StreamTopologyProducer.USAGE_TOTAL_AGGREGATED_METRIC;
 import static org.candlepin.subscriptions.billable.usage.BillableUsageAggregate.FLUSH_ORG;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -35,24 +34,18 @@ import com.redhat.swatch.billable.usage.kafka.streams.BillableUsageAggregationSt
 import com.redhat.swatch.billable.usage.kafka.streams.StreamTopologyProducer;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
-import com.redhat.swatch.logging.LoggingFileJsonFormatter;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.quarkus.kafka.client.serialization.ObjectMapperSerde;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.logging.Handler;
-import java.util.logging.Level;
-import java.util.logging.LogRecord;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -63,11 +56,6 @@ import org.apache.kafka.streams.TopologyTestDriver;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
-import org.jboss.logmanager.ExtLogRecord;
-import org.jboss.logmanager.LogContext;
-import org.jboss.logmanager.Logger;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -84,33 +72,14 @@ class BillableUsageAggregateStreamTopologyTest {
   private static final String ACCOUNT_ID = "testAccountId";
   private static final String LICENSE_A = "arn:aws:license-manager:us-east-1:1:license:a";
   private static final String LICENSE_B = "arn:aws:license-manager:us-east-1:1:license:b";
-  private static final int MAX_LOG_EVENT_BYTES = 60 * 1024;
-  private static final LoggerCaptor LOGGER_CAPTOR = new LoggerCaptor();
-  private static Logger capturedLogger;
-  private static boolean previousUseParentHandlers;
 
   private final MeterRegistry meterRegistry = new SimpleMeterRegistry();
   private TopologyTestDriver testDriver;
   private TestInputTopic<String, BillableUsage> inputTopic;
   private TestOutputTopic<BillableUsageAggregateKey, BillableUsageAggregate> outputTopic;
 
-  @BeforeAll
-  static void configureLogging() {
-    capturedLogger = LogContext.getLogContext().getLogger(StreamTopologyProducer.class.getName());
-    previousUseParentHandlers = capturedLogger.getUseParentHandlers();
-    capturedLogger.addHandler(LOGGER_CAPTOR);
-    capturedLogger.setUseParentHandlers(false);
-  }
-
-  @AfterAll
-  static void restoreLogging() {
-    capturedLogger.removeHandler(LOGGER_CAPTOR);
-    capturedLogger.setUseParentHandlers(previousUseParentHandlers);
-  }
-
   @BeforeEach
   void initializeTopology() {
-    LOGGER_CAPTOR.records.clear();
     meterRegistry.clear();
     BillableUsageAggregationStreamProperties properties =
         new BillableUsageAggregationStreamProperties();
@@ -174,27 +143,20 @@ class BillableUsageAggregateStreamTopologyTest {
   }
 
   @Test
-  void testAggregateTraceLogsAllRemittanceUuidsInBoundedChunks() {
+  void testAggregatePreservesAllRemittanceUuidsForManyUsages() {
     List<BillableUsage> usages =
         IntStream.range(0, 1001)
             .mapToObj(index -> createBillableUsage(ACCOUNT_ID, 1, snapshotAtHour(1)))
             .toList();
     List<String> uuids = remittanceUuidsOf(usages.toArray(BillableUsage[]::new));
-    var aggregateLogger =
-        LogContext.getLogContext().getLogger(BillableUsageAggregate.class.getName());
-    Level previousAggregateLogLevel = aggregateLogger.getLevel();
-    aggregateLogger.setLevel(Level.OFF);
 
-    try {
-      whenUsagesAreAggregated(usages.toArray(BillableUsage[]::new));
-      var aggregate = outputTopic.readValue();
+    whenUsagesAreAggregated(usages.toArray(BillableUsage[]::new));
 
-      assertIterableEquals(uuids, aggregate.getRemittanceUuids());
-      List<String> messages = logGroupContaining("Sending aggregate to hourly topic:");
-      assertChunkedUuidLogs(uuids, messages);
-    } finally {
-      aggregateLogger.setLevel(previousAggregateLogLevel);
-    }
+    var aggregate = thenAggregateIsEmittedFor(usages.getFirst());
+    assertIterableEquals(uuids, aggregate.getRemittanceUuids());
+    assertEquals(usages.size(), aggregate.getTotalValue().intValueExact());
+    assertEquals(Set.of(snapshotAtHour(1)), aggregate.getSnapshotDates());
+    assertUsageTotalAggregatedMetricIs(usages.size());
   }
 
   @Test
@@ -294,69 +256,6 @@ class BillableUsageAggregateStreamTopologyTest {
     return Arrays.stream(usages)
         .map(usage -> usage.getUuid().toString())
         .collect(Collectors.toList());
-  }
-
-  private static List<String> logGroupContaining(String text) {
-    List<String> messages = new ArrayList<>();
-    boolean inGroup = false;
-    for (var record : LOGGER_CAPTOR.records) {
-      String message = record.getMessage();
-      if (!message.startsWith("Billable usage aggregate continuation:")) {
-        inGroup = message.contains(text);
-      }
-      if (inGroup) {
-        messages.add(message);
-      }
-    }
-    return messages;
-  }
-
-  private static void assertChunkedUuidLogs(List<String> uuids, List<String> messages) {
-    int expectedChunkCount = (uuids.size() + 499) / 500;
-    assertEquals(expectedChunkCount, messages.size());
-
-    for (int index = 0; index < messages.size(); index++) {
-      String message = messages.get(index);
-      if (index == 0) {
-        assertFalse(message.startsWith("Billable usage aggregate continuation:"));
-        assertFalse(message.contains("(chunk "));
-      } else {
-        assertTrue(message.startsWith("Billable usage aggregate continuation:"));
-        assertTrue(message.contains("(chunk " + (index + 1) + "/" + expectedChunkCount + ")"));
-      }
-      var record =
-          LOGGER_CAPTOR.records.stream()
-              .filter(log -> message.equals(log.getMessage()))
-              .findFirst()
-              .orElseThrow();
-      assertTrue(
-          new LoggingFileJsonFormatter()
-                  .format(ExtLogRecord.wrap(record))
-                  .getBytes(StandardCharsets.UTF_8)
-                  .length
-              <= MAX_LOG_EVENT_BYTES);
-    }
-
-    for (String uuid : uuids) {
-      assertEquals(1L, messages.stream().filter(message -> message.contains(uuid)).count());
-    }
-  }
-
-  private static class LoggerCaptor extends Handler {
-    private final List<LogRecord> records = new ArrayList<>();
-
-    @Override
-    public void publish(LogRecord record) {
-      records.add(record);
-    }
-
-    @Override
-    public void flush() {}
-
-    @Override
-    public void close() {
-      records.clear();
-    }
   }
 
   private BillableUsage createBillableUsage(

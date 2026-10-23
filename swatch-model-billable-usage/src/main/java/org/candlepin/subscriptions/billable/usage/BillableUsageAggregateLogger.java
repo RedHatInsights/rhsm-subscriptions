@@ -21,56 +21,85 @@
 package org.candlepin.subscriptions.billable.usage;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.event.Level;
 import org.slf4j.helpers.MessageFormatter;
 
-/** Logs complete aggregate UUID/date collections in conservative, fixed-size chunks. */
+/**
+ * Logs complete aggregate UUID/date collections in conservative, fixed-size chunks. Message formats
+ * use {@link String#format(String, Object...)} syntax, with {@code %1$s} reserved for the
+ * aggregate.
+ */
 public final class BillableUsageAggregateLogger {
   // Verified against the production JSON formatter, leaving headroom for message/context/metadata.
   private static final int ENTRIES_PER_CHUNK = 500;
 
   private BillableUsageAggregateLogger() {}
 
-  public static void info(Logger logger, String message, Object... arguments) {
-    log(logger, Level.INFO, message, arguments);
+  public static void debug(
+      Logger logger, BillableUsageAggregate aggregate, String message, Object... arguments) {
+    log(logger, Level.DEBUG, aggregate, message, arguments);
   }
 
-  public static void warn(Logger logger, String message, Object... arguments) {
-    log(logger, Level.WARN, message, arguments);
+  public static void info(
+      Logger logger, BillableUsageAggregate aggregate, String message, Object... arguments) {
+    log(logger, Level.INFO, aggregate, message, arguments);
   }
 
-  public static void error(Logger logger, String message, Object... arguments) {
-    log(logger, Level.ERROR, message, arguments);
+  public static void warn(
+      Logger logger, BillableUsageAggregate aggregate, String message, Object... arguments) {
+    log(logger, Level.WARN, aggregate, message, arguments);
   }
 
-  private static void log(Logger logger, Level level, String pattern, Object[] arguments) {
+  public static void error(
+      Logger logger, BillableUsageAggregate aggregate, String message, Object... arguments) {
+    log(logger, Level.ERROR, aggregate, message, arguments);
+  }
+
+  private static void log(
+      Logger logger,
+      Level level,
+      BillableUsageAggregate aggregate,
+      String pattern,
+      Object[] arguments) {
     if (!logger.isEnabledForLevel(level)) {
       return;
     }
 
-    BillableUsageAggregate aggregate = null;
-    Object[] primaryArguments = arguments.clone();
-    for (int index = 0; index < arguments.length; index++) {
-      if (arguments[index] instanceof BillableUsageAggregate value) {
-        aggregate = value;
-        primaryArguments[index] = primaryAggregate(value);
-      }
-    }
-    var formatted = MessageFormatter.arrayFormat(pattern, primaryArguments);
-    logger.atLevel(level).setCause(formatted.getThrowable()).log(formatted.getMessage());
-
     List<String> uuids = aggregate == null ? null : aggregate.getRemittanceUuids();
+    var snapshotDates = aggregate == null ? null : aggregate.getSnapshotDates();
+    boolean needsChunking =
+        (uuids != null && uuids.size() > ENTRIES_PER_CHUNK)
+            || (snapshotDates != null && snapshotDates.size() > ENTRIES_PER_CHUNK);
+
+    Object[] primaryArguments = new Object[arguments.length + 1];
+    primaryArguments[0] =
+        aggregate == null
+            ? null
+            : formatAggregate(
+                aggregate,
+                needsChunking && snapshotDates != null
+                    ? snapshotDates.stream().limit(ENTRIES_PER_CHUNK).toList()
+                    : snapshotDates,
+                needsChunking && uuids != null ? slice(uuids, 0, ENTRIES_PER_CHUNK) : uuids);
+    System.arraycopy(arguments, 0, primaryArguments, 1, arguments.length);
+    logger
+        .atLevel(level)
+        .setCause(MessageFormatter.getThrowableCandidate(arguments))
+        .log(pattern.formatted(primaryArguments));
+
+    if (!needsChunking) {
+      return;
+    }
+
     if (uuids == null) {
       uuids = List.of();
     }
-    List<?> dates =
-        aggregate == null || aggregate.getSnapshotDates() == null
-            ? List.of()
-            : new ArrayList<>(aggregate.getSnapshotDates());
+    List<?> dates = snapshotDates == null ? List.of() : new ArrayList<>(snapshotDates);
     int size = Math.max(uuids.size(), dates.size());
-    int chunks = Math.max(1, (size + ENTRIES_PER_CHUNK - 1) / ENTRIES_PER_CHUNK);
+    int chunks = (size + ENTRIES_PER_CHUNK - 1) / ENTRIES_PER_CHUNK;
     for (int index = 1; index < chunks; index++) {
       int start = index * ENTRIES_PER_CHUNK;
       int end = start + ENTRIES_PER_CHUNK;
@@ -86,8 +115,9 @@ public final class BillableUsageAggregateLogger {
     }
   }
 
-  // Preserve the original Lombok field order and format, bounding only the two collections.
-  private static String primaryAggregate(BillableUsageAggregate aggregate) {
+  // Preserve the original Lombok field order and format, including both collections.
+  private static String formatAggregate(
+      BillableUsageAggregate aggregate, Collection<?> snapshotDates, List<?> remittanceUuids) {
     return "BillableUsageAggregate(totalValue="
         + aggregate.getTotalValue()
         + ", windowTimestamp="
@@ -97,9 +127,7 @@ public final class BillableUsageAggregateLogger {
         + ", aggregateKey="
         + aggregate.getAggregateKey()
         + ", snapshotDates="
-        + (aggregate.getSnapshotDates() == null
-            ? null
-            : aggregate.getSnapshotDates().stream().limit(ENTRIES_PER_CHUNK).toList())
+        + snapshotDates
         + ", status="
         + aggregate.getStatus()
         + ", errorCode="
@@ -107,9 +135,7 @@ public final class BillableUsageAggregateLogger {
         + ", billedOn="
         + aggregate.getBilledOn()
         + ", remittanceUuids="
-        + (aggregate.getRemittanceUuids() == null
-            ? null
-            : slice(aggregate.getRemittanceUuids(), 0, ENTRIES_PER_CHUNK))
+        + remittanceUuids
         + ", licenseId="
         + aggregate.getLicenseId()
         + ")";
