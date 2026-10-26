@@ -13,7 +13,10 @@ Read more about the prerequisites in [here](../../CONTRIBUTING.md#build).
 - Logging HEC: instructions [here](../../README.md#logging-hec).
 - Opentelemetry (OTEL) Exporter: instructions [here](../../README.md#opentelemetry-otel-exporter).
 - Wiremock (for prometheus): instructions [here](../../README.md#wiremock-service).
-- perform database migrations: `./mvnw -f swatch-database/pom.xml exec:java`
+- Database migrations run through each service's native Spring Boot or Quarkus Liquibase
+  integration when its migration init container or local service starts. For an explicit local
+  migration run for a supported Quarkus service, use `make run-migrations <service>`; see the
+  [Quarkus profiles guide](../quarkus-profiles.md).
 - build all the swatch services: `./mvnw clean install -DskipTests`
 
 ## Run SWATCH Services

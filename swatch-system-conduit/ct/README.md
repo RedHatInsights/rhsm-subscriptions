@@ -10,20 +10,14 @@ Start the required local services using Docker Compose:
 podman compose up -d kafka kafka-bridge kafka-setup wiremock db
 ```
 
-This will start all necessary dependencies (databases, Kafka, etc.) required for the component tests.
+This starts the local PostgreSQL provider, Kafka, and Wiremock used by the component tests.
 
-### 2. Run the database migrations
-
-```bash
-make run-migrations
-```
-
-### 3. Run Component Tests
+### 2. Run Component Tests
 
 Execute tests for a specific service. For example, to run tests for `swatch-system-conduit`:
 
 ```bash
-./mvnw clean install -Pcomponent-tests -pl swatch-system-conduit/ct
+./mvnw clean install -Pcomponent-tests -pl swatch-system-conduit/ct -am
 ```
 
 ## Running Tests Against OpenShift (Bonfire)

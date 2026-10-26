@@ -210,15 +210,19 @@ You can also run the hooks manually:
 -------------
 # DB migrations
 
-We use [liquibase](https://docs.liquibase.com/) to manage our DB schema.
+We use [Liquibase](https://docs.liquibase.com/) to manage database schemas. Each service owns its
+changelog and runs it through its framework's native integration: Spring Boot Liquibase or the
+Quarkus `quarkus-liquibase` extension. Add changesets to the owning service's changelog.
 
-* `mvn -f swatch-database/pom.xml exec:java` runs DB migrations
-
-You can use a prefix to target different subprojects when they have liquibase enabled:
+For local Quarkus services that support a separate migration run, use:
 
 ```shell
-mvn -f swatch-database/pom.xml exec:java
+make run-migrations <service>
 ```
+
+See the [Quarkus profiles guide](docs/quarkus-profiles.md) for the supported services and details.
+The old shared Liquibase CLI has been removed and the `swatch-database` deployment component remains
+the PostgreSQL provider.
 
 DB migrations should be written to roll back cleanly (exceptions should be discussed with the team).
 
