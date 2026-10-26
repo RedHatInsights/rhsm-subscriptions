@@ -20,10 +20,9 @@
  */
 package org.candlepin.subscriptions.configuration;
 
-import java.util.HashMap;
+import com.redhat.swatch.clients.ClientInfo;
+import com.redhat.swatch.clients.ClientsInfoContributor;
 import java.util.List;
-import java.util.Map;
-import org.candlepin.subscriptions.clients.ClientInfo;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.actuate.info.Info;
 import org.springframework.boot.actuate.info.InfoContributor;
@@ -31,8 +30,7 @@ import org.springframework.stereotype.Service;
 
 /** Exposes all {@link ClientInfo} descriptions on management {@code GET /info}. */
 @Service
-public class DependenciesInfoContributor implements InfoContributor {
-  public static final String INFO_SECTION = "dependencies";
+public class DependenciesInfoContributor extends ClientsInfoContributor implements InfoContributor {
 
   private final List<ClientInfo> clients;
 
@@ -41,12 +39,12 @@ public class DependenciesInfoContributor implements InfoContributor {
   }
 
   @Override
-  public void contribute(Info.Builder builder) {
-    Map<String, Object> detail = new HashMap<>();
-    for (ClientInfo client : clients) {
-      detail.put(client.name(), client.describe());
-    }
+  protected List<ClientInfo> getClients() {
+    return clients;
+  }
 
-    builder.withDetail(INFO_SECTION, detail);
+  @Override
+  public void contribute(Info.Builder builder) {
+    builder.withDetail(INFO_SECTION, toInfo());
   }
 }
