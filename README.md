@@ -229,33 +229,15 @@ Next, we start the swatch metrics app using: `SERVER_PORT=8002 QUARKUS_MANAGEMEN
 
 Finally, when syncing all the accounts by: `curl -v -H 'Origin: https://service.redhat.com' -X PUT http://localhost:8002/api/swatch-metrics/v1/internal/metering/sync`, we should see some events in the service logs and the Kafka topic.
 
-### Database
+### Database migrations
 
-Make sure your database is configured first.  You can do that using the
-swatch-database application.
-
-```
-./mvnw -f swatch-database/pom.xml exec:java
-```
-
-That command will call `liquibase update`.  If you have other Liquibase
-commands you can call them using `exec.args`.  E.g.
-
-```
-./mvnw -f swatch-database/pom.xml exec:java -Dexec.args=status
-```
-
-Be aware that we have several Liquibase managed applications.  We represent this
-with profiles in swatch-database.  If the profile name is given as the first
-argument, then all subsequent Liquibase commands will apply only to that
-profile.  E.g.
-
-```
-./mvnw -f swatch-database/pom.xml exec:java -Dexec.args="core rollbackCountSql --count=1"
-```
-
-will generate a rollback SQL script just for the changesets in the "core"
-profile.
+Each service owns its Liquibase changelog and runs it through its framework's native integration:
+Spring Boot services use Spring Boot Liquibase, and Quarkus services use the `quarkus-liquibase`
+extension. In deployment, the service image runs migrations in an init container before the service
+starts for services configured that way; others run Liquibase during normal framework startup.
+Locally, start the service with its configured development profile; Quarkus services that support a
+standalone migration run can use `make run-migrations <service>` (see the
+[Quarkus profiles guide](docs/quarkus-profiles.md)).
 
 ### Build and Run rhsm-subscriptions
 

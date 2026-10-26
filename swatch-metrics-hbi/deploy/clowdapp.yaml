@@ -77,7 +77,7 @@ parameters:
   - name: DB_POD
     value: swatch-database
   # Using a value of 'select 1' makes this job a no-op by default.
-  # When needed bump DB_CHANGELOG_CLEANUP_RUN_NUMBER, set DB_CHANGELOG_CLEANUP_SQL to 'delete from databasechangeloglock_swatch_contracts'
+  # When needed bump DB_CHANGELOG_CLEANUP_RUN_NUMBER, set DB_CHANGELOG_CLEANUP_SQL to 'delete from databasechangeloglock_swatch_metrics_hbi'
   - name: DB_CHANGELOG_CLEANUP_RUN_NUMBER
     value: '1'
   - name: DB_CHANGELOG_CLEANUP_SQL

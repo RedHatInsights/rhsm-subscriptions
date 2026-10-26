@@ -80,9 +80,15 @@ Quarkus profiles allow different configurations to be applied based on the runti
 ClowdApp **initContainers** for `swatch-contracts`, `swatch-billable-usage`, and
 `swatch-utilization` so health probes cannot interrupt a long migration.
 
+`swatch-metrics-hbi` uses the same native Quarkus Liquibase extension but currently has one exception:
+its unprofiled `quarkus.liquibase.migrate-at-start=true` setting runs migrations during normal startup,
+including in `prod`. It is planned to move this to an init-container pattern under
+[SWATCH-5868](https://redhat.atlassian.net/browse/SWATCH-5868).
+
 **Key Features**:
-- **`migrate-at-start=true`**: Only this profile (plus `dev` / `test` / `component-tests`) enables
-  Liquibase at startup; the default for deployed profiles is `false`
+- **`migrate-at-start=true`**: The `liquibase-only` profile (plus `dev` / `test` / `component-tests`)
+  enables migrations at startup for the listed init-container services. Deployed profiles
+  default to `false`, except for `swatch-metrics-hbi` as described in the exception above.
 - **PostgreSQL timeouts**: Sets `lock_timeout` and `statement_timeout` **per statement**
   from `DATABASE_MIGRATION_TIMEOUT` (default `3min`) via
   `quarkus.datasource.jdbc.new-connection-sql`. Keep below Clowder's
