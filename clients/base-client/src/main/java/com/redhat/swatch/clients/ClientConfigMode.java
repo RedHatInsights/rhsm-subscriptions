@@ -24,12 +24,4 @@ public enum ClientConfigMode {
   AUTO,
   V1,
   V2;
-
-  /** Parses Clowder/env mode ({@code auto}, {@code v1}, {@code v2}); blank → {@link #AUTO}. */
-  public static ClientConfigMode from(String mode) {
-    if (mode == null || mode.isBlank()) {
-      return AUTO;
-    }
-    return ClientConfigMode.valueOf(mode.trim().toUpperCase());
-  }
 }

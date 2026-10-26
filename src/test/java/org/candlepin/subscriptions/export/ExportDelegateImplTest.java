@@ -35,6 +35,7 @@ import com.redhat.swatch.clients.ClientConfig;
 import com.redhat.swatch.clients.ClientConnection;
 import com.redhat.swatch.clients.export.SwatchExportApi;
 import com.redhat.swatch.export.ExportServiceRequest;
+import com.redhat.swatch.export.api.ExportDelegateImpl;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.UUID;

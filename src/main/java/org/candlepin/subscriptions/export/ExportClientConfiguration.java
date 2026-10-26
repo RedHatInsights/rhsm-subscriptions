@@ -24,6 +24,9 @@ import com.redhat.swatch.clients.ClientConfig;
 import com.redhat.swatch.clients.ClientConfigBuilder;
 import com.redhat.swatch.clients.ClientConnection;
 import com.redhat.swatch.clients.TokenProvider;
+import com.redhat.swatch.clients.export.SwatchExportApi;
+import com.redhat.swatch.export.api.ExportDelegate;
+import com.redhat.swatch.export.api.ExportDelegateImpl;
 import java.io.IOException;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -132,5 +135,10 @@ public class ExportClientConfiguration {
         return null;
       }
     }
+  }
+
+  @Bean
+  public ExportDelegate exportDelegate(SwatchExportApi exportApi) {
+    return new ExportDelegateImpl(exportApi);
   }
 }

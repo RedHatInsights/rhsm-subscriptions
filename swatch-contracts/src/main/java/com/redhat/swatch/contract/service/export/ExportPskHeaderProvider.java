@@ -20,7 +20,6 @@
  */
 package com.redhat.swatch.contract.service.export;
 
-import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.client.ClientRequestContext;
 import jakarta.ws.rs.client.ClientRequestFilter;
 import lombok.extern.slf4j.Slf4j;
@@ -30,11 +29,10 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
  * Resteasy client filter that adds x-rh-exports-psk to requests based on the value of the
  * SWATCH_EXPORT_PSK property/environment variable.
  *
- * <p>Registered programmatically by {@link ExportServiceApiFactory} via {@link
- * org.eclipse.microprofile.rest.client.RestClientBuilder#register(Object)}.
+ * <p>Previously registered by ExportServiceApiFactory. PSK is now applied inside shared {@code
+ * SwatchExportApi}. Kept temporarily for reference; not a CDI bean.
  */
 @Slf4j
-@ApplicationScoped
 public class ExportPskHeaderProvider implements ClientRequestFilter {
 
   @ConfigProperty(name = "SWATCH_EXPORT_PSK", defaultValue = "placeholder")

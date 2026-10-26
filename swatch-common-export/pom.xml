@@ -31,6 +31,10 @@
 
   <dependencies>
     <dependency>
+      <groupId>com.redhat.swatch.clients</groupId>
+      <artifactId>export-client</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.redhat.cloud.event</groupId>
       <artifactId>event-schemas</artifactId>
     </dependency>

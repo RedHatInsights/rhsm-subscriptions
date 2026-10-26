@@ -51,8 +51,7 @@ class DependenciesInfoContributorTest {
 
     @SuppressWarnings("unchecked")
     Map<String, Object> section =
-        (Map<String, Object>)
-            builder.build().getDetails().get(ClientsInfoContributor.INFO_SECTION);
+        (Map<String, Object>) builder.build().getDetails().get(ClientsInfoContributor.INFO_SECTION);
     assertTrue(section.containsKey("export-service"));
 
     @SuppressWarnings("unchecked")
