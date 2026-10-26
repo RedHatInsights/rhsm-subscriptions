@@ -27,7 +27,10 @@ import com.redhat.swatch.contract.repository.BillingProvider;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractMetricEntity;
 import com.redhat.swatch.contract.repository.OfferingEntity;
+import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.repository.SubscriptionMeasurementKey;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
@@ -152,6 +155,89 @@ class MeasurementMetricIdTransformerTest {
         0,
         contract.getMetrics().size(),
         "All metrics should be removed when product tags are null");
+  }
+
+  @Test
+  void testMapsMetricIdBackToAwsDimension() {
+    var subscription = rosaSubscription(BillingProvider.AWS);
+    subscription.addSubscriptionMeasurement("Cores", MEASUREMENT_TYPE_DEFAULT, 400.0);
+    subscription.addSubscriptionMeasurement("Instance-hours", MEASUREMENT_TYPE_DEFAULT, 5.0);
+
+    var metrics = transformer.mapSubscriptionMeasurementsToContractMetrics(subscription);
+
+    // Cores has a 0.25 billing factor, Instance-hours has none
+    assertEquals(Map.of("four_vcpu_hour", 100.0, "control_plane", 5.0), metrics);
+  }
+
+  @Test
+  void testRoundTripsContractMetricsThroughSubscriptionMeasurements() {
+    var contract = new ContractEntity();
+    contract.setBillingProvider(BillingProvider.AWS.getValue());
+    contract.addMetric(contractMetric("four_vcpu_hour", 100.0));
+    contract.addMetric(contractMetric("control_plane", 5.0));
+    contract.setOffering(new OfferingEntity());
+    contract.getOffering().setProductTags(Set.of("rosa"));
+
+    var subscription = rosaSubscription(BillingProvider.AWS);
+    subscription.setSubscriptionMeasurements(
+        new HashMap<>(transformer.mapContractMetricsToSubscriptionMeasurements(contract)));
+
+    assertEquals(
+        Map.of("four_vcpu_hour", 100.0, "control_plane", 5.0),
+        transformer.mapSubscriptionMeasurementsToContractMetrics(subscription));
+  }
+
+  @Test
+  void testSumsMeasurementsThatCollapseOntoTheSameDimension() {
+    var subscription = rosaSubscription(BillingProvider.AWS);
+    subscription.addSubscriptionMeasurement("Cores", "PHYSICAL", 400.0);
+    subscription.addSubscriptionMeasurement("Cores", "HYPERVISOR", 200.0);
+
+    assertEquals(
+        Map.of("four_vcpu_hour", 150.0),
+        transformer.mapSubscriptionMeasurementsToContractMetrics(subscription),
+        "Measurements for the same metric must collapse into a single contract metric");
+  }
+
+  @Test
+  void testSkipsMeasurementsWithoutAConfiguredDimension() {
+    var subscription = rosaSubscription(BillingProvider.AWS);
+    subscription.addSubscriptionMeasurement("Cores", MEASUREMENT_TYPE_DEFAULT, 400.0);
+    subscription.addSubscriptionMeasurement("Unknown", MEASUREMENT_TYPE_DEFAULT, 1.0);
+
+    assertEquals(
+        Map.of("four_vcpu_hour", 100.0),
+        transformer.mapSubscriptionMeasurementsToContractMetrics(subscription));
+  }
+
+  @Test
+  void testNoReverseMappingAttemptedForMissingBillingProvider() {
+    var subscription = rosaSubscription(null);
+    subscription.addSubscriptionMeasurement("Cores", MEASUREMENT_TYPE_DEFAULT, 400.0);
+
+    assertEquals(
+        Map.of("Cores", 400.0),
+        transformer.mapSubscriptionMeasurementsToContractMetrics(subscription));
+  }
+
+  @Test
+  void testNoReverseMappingAttemptedWithoutProductTags() {
+    var subscription = new SubscriptionEntity();
+    subscription.setBillingProvider(BillingProvider.AWS);
+    subscription.setOffering(new OfferingEntity());
+    subscription.getOffering().setProductTags(Set.of());
+    subscription.addSubscriptionMeasurement("Cores", MEASUREMENT_TYPE_DEFAULT, 400.0);
+
+    assertEquals(Map.of(), transformer.mapSubscriptionMeasurementsToContractMetrics(subscription));
+  }
+
+  private SubscriptionEntity rosaSubscription(BillingProvider billingProvider) {
+    var subscription = new SubscriptionEntity();
+    subscription.setSubscriptionNumber("sub-1");
+    subscription.setBillingProvider(billingProvider);
+    subscription.setOffering(new OfferingEntity());
+    subscription.getOffering().setProductTags(Set.of("rosa"));
+    return subscription;
   }
 
   @Test
