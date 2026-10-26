@@ -18,32 +18,18 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.clients;
+package com.redhat.swatch.clients;
 
-/**
- * Endpoint settings for a single Clowder (or local) dependency target.
- *
- * @param id logical id (e.g. {@code v1}, {@code v2})
- * @param uri base URI
- * @param trustStorePath optional truststore path
- * @param trustStorePassword optional truststore password
- * @param trustStoreType optional truststore type
- * @param authenticated Clowder V2 auth mode: {@code true} → Bearer token (omit PSK); {@code false}
- *     or {@code null} → existing {@code x-rh-exports-psk} flow
- */
-public record ClientConnection(
-    String id,
-    String uri,
-    String trustStorePath,
-    char[] trustStorePassword,
-    String trustStoreType,
-    Boolean authenticated) {
+public enum ClientConfigMode {
+  AUTO,
+  V1,
+  V2;
 
-  public boolean hasUri() {
-    return uri != null && !uri.isBlank();
-  }
-
-  public boolean isAuthenticated() {
-    return Boolean.TRUE.equals(authenticated);
+  /** Parses Clowder/env mode ({@code auto}, {@code v1}, {@code v2}); blank → {@link #AUTO}. */
+  public static ClientConfigMode from(String mode) {
+    if (mode == null || mode.isBlank()) {
+      return AUTO;
+    }
+    return ClientConfigMode.valueOf(mode.trim().toUpperCase());
   }
 }

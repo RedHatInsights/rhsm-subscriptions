@@ -26,15 +26,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import com.redhat.swatch.clients.ClientConfig;
+import com.redhat.swatch.clients.ClientConnection;
+import com.redhat.swatch.clients.TokenProvider;
 import com.redhat.swatch.clients.export.api.client.ApiException;
 import com.redhat.swatch.clients.export.api.model.DownloadExportErrorRequest;
 import com.redhat.swatch.clients.export.resources.ExportServiceWiremock;
 import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
-import org.candlepin.subscriptions.clients.ClientConfig;
-import org.candlepin.subscriptions.clients.ClientConnection;
-import org.candlepin.subscriptions.clients.TokenProvider;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

@@ -20,10 +20,10 @@
  */
 package org.candlepin.subscriptions.export;
 
+import com.redhat.swatch.clients.ClientConfig;
+import com.redhat.swatch.clients.TokenProvider;
 import com.redhat.swatch.clients.export.SwatchExportApi;
 import java.util.Objects;
-import org.candlepin.subscriptions.clients.ClientConfig;
-import org.candlepin.subscriptions.clients.TokenProvider;
 import org.springframework.beans.factory.FactoryBean;
 
 public class ExportApiClientFactory implements FactoryBean<SwatchExportApi> {

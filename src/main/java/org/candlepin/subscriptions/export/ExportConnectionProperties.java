@@ -20,10 +20,10 @@
  */
 package org.candlepin.subscriptions.export;
 
+import com.redhat.swatch.clients.ClientConfigMode;
 import java.time.Duration;
 import lombok.Data;
 import lombok.ToString;
-import org.candlepin.subscriptions.clients.ClientConfigMode;
 import org.springframework.core.io.Resource;
 
 /**

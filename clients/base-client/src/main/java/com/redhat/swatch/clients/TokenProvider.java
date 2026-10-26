@@ -18,11 +18,17 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.clients;
+package com.redhat.swatch.clients;
 
-public class AuthFailureException extends Exception {
+/**
+ * Supplies an OAuth2 access token (OIDC client credentials) for authenticated service-to-service
+ * calls.
+ */
+@FunctionalInterface
+public interface TokenProvider {
 
-  public AuthFailureException(Throwable cause) {
-    super(cause);
-  }
+  /**
+   * @return access token value without the {@code Bearer} scheme prefix
+   */
+  String getAccessToken();
 }

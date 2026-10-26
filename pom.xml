@@ -115,6 +115,16 @@
         <version>${project.version}</version>
       </dependency>
       <dependency>
+        <groupId>com.redhat.swatch.clients</groupId>
+        <artifactId>base-client</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.redhat.swatch.clients</groupId>
+        <artifactId>export-client</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
         <groupId>com.redhat.swatch</groupId>
         <artifactId>swatch-component-tests-parent</artifactId>
         <version>${project.version}</version>

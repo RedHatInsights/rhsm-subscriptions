@@ -18,10 +18,11 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.clients;
+package com.redhat.swatch.clients;
 
-public enum ClientConfigMode {
-  AUTO,
-  V1,
-  V2;
+public class AuthFailureException extends Exception {
+
+  public AuthFailureException(Throwable cause) {
+    super(cause);
+  }
 }

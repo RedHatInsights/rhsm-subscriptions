@@ -20,11 +20,11 @@
  */
 package org.candlepin.subscriptions.export;
 
+import com.redhat.swatch.clients.ClientConfig;
+import com.redhat.swatch.clients.ClientConfigBuilder;
+import com.redhat.swatch.clients.ClientConnection;
+import com.redhat.swatch.clients.TokenProvider;
 import java.io.IOException;
-import org.candlepin.subscriptions.clients.ClientConfig;
-import org.candlepin.subscriptions.clients.ClientConfigBuilder;
-import org.candlepin.subscriptions.clients.ClientConnection;
-import org.candlepin.subscriptions.clients.TokenProvider;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;

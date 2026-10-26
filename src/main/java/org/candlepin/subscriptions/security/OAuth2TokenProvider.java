@@ -20,8 +20,8 @@
  */
 package org.candlepin.subscriptions.security;
 
+import com.redhat.swatch.clients.TokenProvider;
 import java.util.Optional;
-import org.candlepin.subscriptions.clients.TokenProvider;
 import org.project_kessel.api.auth.OAuth2ClientCredentials;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

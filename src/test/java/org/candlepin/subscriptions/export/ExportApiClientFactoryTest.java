@@ -23,11 +23,11 @@ package org.candlepin.subscriptions.export;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
+import com.redhat.swatch.clients.ClientConfig;
+import com.redhat.swatch.clients.ClientConnection;
+import com.redhat.swatch.clients.ClientInfo;
 import com.redhat.swatch.clients.export.SwatchExportApi;
 import com.redhat.swatch.clients.export.api.resources.ExportApi;
-import org.candlepin.subscriptions.clients.ClientConfig;
-import org.candlepin.subscriptions.clients.ClientConnection;
-import org.candlepin.subscriptions.clients.ClientInfo;
 import org.junit.jupiter.api.Test;
 
 class ExportApiClientFactoryTest {

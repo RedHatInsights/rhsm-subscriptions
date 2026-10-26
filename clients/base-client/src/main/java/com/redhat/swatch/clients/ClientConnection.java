@@ -18,17 +18,32 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.clients;
+package com.redhat.swatch.clients;
 
 /**
- * Supplies an OAuth2 access token (OIDC client credentials) for authenticated service-to-service
- * calls.
+ * Endpoint settings for a single Clowder (or local) dependency target.
+ *
+ * @param id logical id (e.g. {@code v1}, {@code v2})
+ * @param uri base URI
+ * @param trustStorePath optional truststore path
+ * @param trustStorePassword optional truststore password
+ * @param trustStoreType optional truststore type
+ * @param authenticated Clowder V2 auth mode: {@code true} → Bearer token (omit PSK); {@code false}
+ *     or {@code null} → existing {@code x-rh-exports-psk} flow
  */
-@FunctionalInterface
-public interface TokenProvider {
+public record ClientConnection(
+    String id,
+    String uri,
+    String trustStorePath,
+    char[] trustStorePassword,
+    String trustStoreType,
+    Boolean authenticated) {
 
-  /**
-   * @return access token value without the {@code Bearer} scheme prefix
-   */
-  String getAccessToken();
+  public boolean hasUri() {
+    return uri != null && !uri.isBlank();
+  }
+
+  public boolean isAuthenticated() {
+    return Boolean.TRUE.equals(authenticated);
+  }
 }
