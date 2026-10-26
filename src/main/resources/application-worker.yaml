@@ -97,9 +97,9 @@ rhsm-subscriptions:
     truststore-type: ${clowder.privateDependencyEndpoints.v2.export-service.service.trust-store-type:}
     fallback:
       url: ${clowder.privateEndpoints.export-service-service.url:http://localhost:10000}
-      truststore: ${clowder.privateEndpoints.export-service-service.trust-store-path}
-      truststore-password: ${clowder.privateEndpoints.export-service-service.trust-store-password}
-      truststore-type: ${clowder.privateEndpoints.export-service-service.trust-store-type}
+      truststore: ${clowder.privateEndpoints.export-service-service.trust-store-path:}
+      truststore-password: ${clowder.privateEndpoints.export-service-service.trust-store-password:}
+      truststore-type: ${clowder.privateEndpoints.export-service-service.trust-store-type:}
   export:
     tasks:
       topic: ${SUBSCRIPTION_EXPORT_TOPIC}
