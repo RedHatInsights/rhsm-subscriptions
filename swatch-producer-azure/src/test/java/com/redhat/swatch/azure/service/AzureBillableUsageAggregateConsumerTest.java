@@ -76,6 +76,7 @@ class AzureBillableUsageAggregateConsumerTest {
 
   @InjectWireMock WireMockResource wireMockResource;
   @Inject MeterRegistry meterRegistry;
+  @Inject AzureBillableUsageAggregateConsumer consumer;
 
   InMemorySource<BillableUsageAggregate> source;
   InMemorySink<BillableUsageAggregate> status;
@@ -88,6 +89,14 @@ class AzureBillableUsageAggregateConsumerTest {
     status = connector.sink(BILLABLE_USAGE_STATUS);
     status.clear();
     meterRegistry.clear();
+  }
+
+  @Test
+  void shouldSkipNullOrKeylessAggregates() {
+    consumer.process(null);
+    consumer.process(new BillableUsageAggregate());
+
+    assertTrue(status.received().isEmpty());
   }
 
   @Test

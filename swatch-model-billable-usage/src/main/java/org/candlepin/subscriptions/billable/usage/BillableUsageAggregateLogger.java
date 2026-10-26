@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.billable.usage;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import lombok.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.event.Level;
 import org.slf4j.helpers.MessageFormatter;
@@ -38,50 +39,60 @@ public final class BillableUsageAggregateLogger {
   private BillableUsageAggregateLogger() {}
 
   public static void debug(
-      Logger logger, BillableUsageAggregate aggregate, String message, Object... arguments) {
+      Logger logger,
+      @NonNull BillableUsageAggregate aggregate,
+      String message,
+      Object... arguments) {
     log(logger, Level.DEBUG, aggregate, message, arguments);
   }
 
   public static void info(
-      Logger logger, BillableUsageAggregate aggregate, String message, Object... arguments) {
+      Logger logger,
+      @NonNull BillableUsageAggregate aggregate,
+      String message,
+      Object... arguments) {
     log(logger, Level.INFO, aggregate, message, arguments);
   }
 
   public static void warn(
-      Logger logger, BillableUsageAggregate aggregate, String message, Object... arguments) {
+      Logger logger,
+      @NonNull BillableUsageAggregate aggregate,
+      String message,
+      Object... arguments) {
     log(logger, Level.WARN, aggregate, message, arguments);
   }
 
   public static void error(
-      Logger logger, BillableUsageAggregate aggregate, String message, Object... arguments) {
+      Logger logger,
+      @NonNull BillableUsageAggregate aggregate,
+      String message,
+      Object... arguments) {
     log(logger, Level.ERROR, aggregate, message, arguments);
   }
 
   private static void log(
       Logger logger,
       Level level,
-      BillableUsageAggregate aggregate,
+      @NonNull BillableUsageAggregate aggregate,
       String pattern,
       Object[] arguments) {
     if (!logger.isEnabledForLevel(level)) {
       return;
     }
 
-    List<String> uuids = aggregate == null ? null : aggregate.getRemittanceUuids();
-    var snapshotDates = aggregate == null ? null : aggregate.getSnapshotDates();
+    List<String> uuids = aggregate.getRemittanceUuids();
+    var snapshotDates = aggregate.getSnapshotDates();
     boolean needsChunking =
         (uuids != null && uuids.size() > ENTRIES_PER_CHUNK)
             || (snapshotDates != null && snapshotDates.size() > ENTRIES_PER_CHUNK);
 
     String primaryAggregate =
-        aggregate == null
-            ? null
-            : formatAggregate(
-                aggregate,
-                needsChunking && snapshotDates != null
-                    ? snapshotDates.stream().limit(ENTRIES_PER_CHUNK).toList()
-                    : snapshotDates,
-                needsChunking && uuids != null ? slice(uuids, 0, ENTRIES_PER_CHUNK) : uuids);
+        formatAggregate(
+            aggregate,
+            needsChunking && snapshotDates != null
+                ? snapshotDates.stream().limit(ENTRIES_PER_CHUNK).toList()
+                : snapshotDates,
+            needsChunking && uuids != null ? slice(uuids, 0, ENTRIES_PER_CHUNK) : uuids);
     var formatted = MessageFormatter.arrayFormat(pattern, arguments);
     logger
         .atLevel(level)

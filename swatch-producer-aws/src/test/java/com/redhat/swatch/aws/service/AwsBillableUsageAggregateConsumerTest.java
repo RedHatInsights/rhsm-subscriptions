@@ -187,6 +187,14 @@ class AwsBillableUsageAggregateConsumerTest {
   }
 
   @Test
+  void shouldSkipNullOrKeylessAggregates() {
+    consumer.process(null);
+    consumer.process(new BillableUsageAggregate());
+
+    verifyNoInteractions(contractsApi, clientFactory);
+  }
+
+  @Test
   void shouldSkipNonAwsSnapshots() {
     var aggregate =
         createAggregate(

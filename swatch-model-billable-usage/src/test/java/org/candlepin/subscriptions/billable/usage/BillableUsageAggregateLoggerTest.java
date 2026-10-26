@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -406,12 +407,24 @@ class BillableUsageAggregateLoggerTest {
   }
 
   @Test
-  void handlesNullAggregatesAndCollections() throws Exception {
-    BillableUsageAggregateLogger.info(LOG, null, "Received null");
-    assertEquals(1, records.size());
-    assertEquals("Received null, aggregate=null", records.getFirst().getMessage());
+  void rejectsNullAggregates() {
+    assertThrows(
+        NullPointerException.class,
+        () -> BillableUsageAggregateLogger.debug(LOG, null, "Received null"));
+    assertThrows(
+        NullPointerException.class,
+        () -> BillableUsageAggregateLogger.info(LOG, null, "Received null"));
+    assertThrows(
+        NullPointerException.class,
+        () -> BillableUsageAggregateLogger.warn(LOG, null, "Received null"));
+    assertThrows(
+        NullPointerException.class,
+        () -> BillableUsageAggregateLogger.error(LOG, null, "Received null"));
+    assertTrue(records.isEmpty());
+  }
 
-    records.clear();
+  @Test
+  void handlesNullCollections() throws Exception {
     var aggregate = aggregate(0, 0);
     aggregate.setRemittanceUuids(null);
     aggregate.setSnapshotDates(null);

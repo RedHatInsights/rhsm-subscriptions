@@ -110,12 +110,13 @@ public class AwsBillableUsageAggregateConsumer {
   @Incoming("billable-usage-hourly-aggregate-in")
   @Blocking
   public void process(BillableUsageAggregate billableUsageAggregate) {
-    BillableUsageAggregateLogger.info(
-        log, billableUsageAggregate, "Picked up billable usage message to process");
     if (billableUsageAggregate == null || billableUsageAggregate.getAggregateKey() == null) {
       log.warn("Skipping null billable usage: deserialization failure?");
       return;
     }
+
+    BillableUsageAggregateLogger.info(
+        log, billableUsageAggregate, "Picked up billable usage message to process");
 
     if (!isForAws(billableUsageAggregate.getAggregateKey())) {
       log.debug("Snapshot not applicable because billingProvider is not AWS");

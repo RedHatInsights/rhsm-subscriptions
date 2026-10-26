@@ -99,12 +99,13 @@ public class AzureBillableUsageAggregateConsumer {
   @Incoming(BILLABLE_USAGE_HOURLY_AGGREGATE)
   @Blocking
   public void process(BillableUsageAggregate billableUsageAggregate) {
-    BillableUsageAggregateLogger.info(
-        log, billableUsageAggregate, "Received billable usage message");
     if (billableUsageAggregate == null || billableUsageAggregate.getAggregateKey() == null) {
       log.warn("Skipping null billable usage: deserialization failure?");
       return;
     }
+
+    BillableUsageAggregateLogger.info(
+        log, billableUsageAggregate, "Received billable usage message");
 
     if (!isForAzure(billableUsageAggregate.getAggregateKey())) {
       log.debug("Snapshot not applicable because billingProvider is not Azure");
