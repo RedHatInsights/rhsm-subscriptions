@@ -60,11 +60,6 @@
       </dependency>
       <dependency>
         <groupId>com.redhat.swatch.clients.quarkus</groupId>
-        <artifactId>export-client</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.redhat.swatch.clients.quarkus</groupId>
         <artifactId>product-client</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -136,11 +131,6 @@
       <dependency>
         <groupId>com.redhat.swatch</groupId>
         <artifactId>swatch-common-info</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.redhat.swatch</groupId>
-        <artifactId>swatch-common-clowder</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

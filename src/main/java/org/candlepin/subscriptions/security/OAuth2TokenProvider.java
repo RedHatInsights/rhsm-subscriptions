@@ -20,31 +20,27 @@
  */
 package org.candlepin.subscriptions.security;
 
-import java.util.Optional;
-import org.candlepin.subscriptions.clients.TokenProvider;
-import org.project_kessel.api.auth.OAuth2ClientCredentials;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.redhat.swatch.clients.OidcTokenProvider;
+import com.redhat.swatch.clients.TokenProvider;
+import org.candlepin.subscriptions.rbac.KesselProperties;
 import org.springframework.stereotype.Service;
 
 /** OIDC client-credentials access-token source. */
 @Service
 public class OAuth2TokenProvider implements TokenProvider {
 
-  private final Optional<OAuth2ClientCredentials> credentials;
+  private final OidcTokenProvider delegate;
 
-  public OAuth2TokenProvider(@Autowired Optional<OAuth2ClientCredentials> credentials) {
-    this.credentials = credentials;
+  public OAuth2TokenProvider(KesselProperties properties) {
+    this.delegate =
+        new OidcTokenProvider(
+            properties.getAuthOidcIssuer(),
+            properties.getAuthClientId(),
+            properties.getAuthClientSecret());
   }
 
   @Override
   public String getAccessToken() {
-    if (credentials.isEmpty()) {
-      throw new IllegalStateException("OAuth2 client credentials are not configured");
-    }
-    try {
-      return credentials.get().getToken().accessToken();
-    } catch (Exception e) {
-      throw new IllegalStateException("Failed to obtain OAuth2 access token", e);
-    }
+    return delegate.getAccessToken();
   }
 }

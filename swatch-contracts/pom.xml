@@ -109,8 +109,16 @@
       <artifactId>product-client</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.redhat.swatch.clients.quarkus</groupId>
+      <groupId>com.redhat.swatch.clients</groupId>
       <artifactId>export-client</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.resteasy</groupId>
+      <artifactId>resteasy-client</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.resteasy</groupId>
+      <artifactId>resteasy-multipart-provider</artifactId>
     </dependency>
     <dependency>
       <groupId>com.redhat.swatch</groupId>
@@ -147,10 +155,6 @@
     <dependency>
       <groupId>com.redhat.swatch</groupId>
       <artifactId>swatch-common-info</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.redhat.swatch</groupId>
-      <artifactId>swatch-common-clowder</artifactId>
     </dependency>
     <dependency>
       <groupId>org.mapstruct</groupId>

@@ -20,6 +20,13 @@
  */
 package com.redhat.swatch.clients.export;
 
+import com.redhat.swatch.clients.AuthFailureException;
+import com.redhat.swatch.clients.BearerAuthFilter;
+import com.redhat.swatch.clients.ClientConfig;
+import com.redhat.swatch.clients.ClientConnection;
+import com.redhat.swatch.clients.ClientInfo;
+import com.redhat.swatch.clients.ClientProxy;
+import com.redhat.swatch.clients.TokenProvider;
 import com.redhat.swatch.clients.export.api.client.ApiClient;
 import com.redhat.swatch.clients.export.api.client.ApiException;
 import com.redhat.swatch.clients.export.api.client.auth.ApiKeyAuth;
@@ -30,13 +37,6 @@ import jakarta.ws.rs.core.Response;
 import java.io.File;
 import java.util.Objects;
 import java.util.UUID;
-import org.candlepin.subscriptions.clients.AuthFailureException;
-import org.candlepin.subscriptions.clients.BearerAuthFilter;
-import org.candlepin.subscriptions.clients.ClientConfig;
-import org.candlepin.subscriptions.clients.ClientConnection;
-import org.candlepin.subscriptions.clients.ClientInfo;
-import org.candlepin.subscriptions.clients.ClientProxy;
-import org.candlepin.subscriptions.clients.TokenProvider;
 
 public class SwatchExportApi extends ExportApi implements ClientInfo {
 

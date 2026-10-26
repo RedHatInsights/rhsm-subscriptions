@@ -28,6 +28,7 @@ import com.redhat.cloud.event.apps.exportservice.v1.ResourceRequestClass;
 import com.redhat.swatch.contract.test.resources.ExportServiceWireMockResource;
 import com.redhat.swatch.contract.test.resources.InjectWireMock;
 import com.redhat.swatch.export.ExportServiceRequest;
+import com.redhat.swatch.export.api.ExportDelegate;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
@@ -45,7 +46,7 @@ class ExportDelegateImplTest {
   private static final String APPLICATION = "subscriptions";
   private static final UUID RESOURCE_ID = UUID.randomUUID();
 
-  @Inject ExportDelegateImpl exportDelegate;
+  @Inject ExportDelegate exportDelegate;
   @InjectWireMock ExportServiceWireMockResource wireMockResource;
 
   private ExportServiceRequest request;

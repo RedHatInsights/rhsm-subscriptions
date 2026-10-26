@@ -31,13 +31,14 @@ import static org.mockito.Mockito.when;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.redhat.cloud.event.apps.exportservice.v1.ResourceRequestClass;
+import com.redhat.swatch.clients.ClientConfig;
+import com.redhat.swatch.clients.ClientConnection;
 import com.redhat.swatch.clients.export.SwatchExportApi;
 import com.redhat.swatch.export.ExportServiceRequest;
+import com.redhat.swatch.export.api.ExportDelegateImpl;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.UUID;
-import org.candlepin.subscriptions.clients.ClientConfig;
-import org.candlepin.subscriptions.clients.ClientConnection;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

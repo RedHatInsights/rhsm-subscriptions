@@ -5,51 +5,89 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>com.redhat.swatch</groupId>
-    <artifactId>swatch-spring-parent</artifactId>
+    <artifactId>clients-parent</artifactId>
     <version>1.1.0-SNAPSHOT</version>
-    <relativePath>../../swatch-spring-parent/pom.xml</relativePath>
+    <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <groupId>com.redhat.swatch.clients.spring</groupId>
+  <groupId>com.redhat.swatch.clients</groupId>
   <artifactId>export-client</artifactId>
-  <name>SWATCH - Clients - Spring Boot - Export Client</name>
+  <name>SWATCH - Clients - Export Client</name>
+
+
+  <dependencyManagement>
+    <dependencies>
+      <!-- Align Jackson provided compile deps; runtime comes from Spring/Quarkus. -->
+      <dependency>
+        <groupId>com.fasterxml.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>${jackson.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <dependencies>
     <dependency>
-      <groupId>com.redhat.swatch</groupId>
-      <artifactId>clients-core</artifactId>
+      <groupId>com.redhat.swatch.clients</groupId>
+      <artifactId>base-client</artifactId>
+      <version>${project.version}</version>
     </dependency>
+
+    <!-- Compile-only: Spring Boot / Quarkus services supply the runtime implementations. -->
     <dependency>
       <groupId>jakarta.annotation</groupId>
       <artifactId>jakarta.annotation-api</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.ws.rs</groupId>
+      <artifactId>jakarta.ws.rs-api</artifactId>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.jboss.resteasy</groupId>
       <artifactId>resteasy-client</artifactId>
+      <version>${resteasy.version}</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.jboss.resteasy</groupId>
       <artifactId>resteasy-multipart-provider</artifactId>
+      <version>${resteasy.version}</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-annotations</artifactId>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.datatype</groupId>
       <artifactId>jackson-datatype-jsr310</artifactId>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.openapitools</groupId>
       <artifactId>jackson-databind-nullable</artifactId>
+      <scope>provided</scope>
     </dependency>
+
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>${slf4j.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -57,20 +95,11 @@
       <artifactId>wiremock-standalone</artifactId>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>org.hamcrest</groupId>
-      <artifactId>hamcrest</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-      <scope>test</scope>
-    </dependency>
     <!-- Necessary to test the serialization of JSON payloads -->
     <dependency>
       <groupId>org.jboss.resteasy</groupId>
       <artifactId>resteasy-jackson2-provider</artifactId>
+      <version>${resteasy.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

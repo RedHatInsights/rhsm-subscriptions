@@ -24,9 +24,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.redhat.swatch.clients.ClientInfo;
+import com.redhat.swatch.clients.ClientsInfoContributor;
 import java.util.List;
 import java.util.Map;
-import org.candlepin.subscriptions.clients.ClientInfo;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.info.Info;
@@ -50,8 +51,7 @@ class DependenciesInfoContributorTest {
 
     @SuppressWarnings("unchecked")
     Map<String, Object> section =
-        (Map<String, Object>)
-            builder.build().getDetails().get(DependenciesInfoContributor.INFO_SECTION);
+        (Map<String, Object>) builder.build().getDetails().get(ClientsInfoContributor.INFO_SECTION);
     assertTrue(section.containsKey("export-service"));
 
     @SuppressWarnings("unchecked")

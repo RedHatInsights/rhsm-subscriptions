@@ -17,7 +17,6 @@
   <modules>
     <module>azure-marketplace-client</module>
     <module>contracts-client</module>
-    <module>export-client</module>
     <module>product-client</module>
     <module>prometheus-client</module>
     <module>rbac-client</module>
