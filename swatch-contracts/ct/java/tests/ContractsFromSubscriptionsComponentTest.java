@@ -30,6 +30,7 @@ import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import domain.BillingProvider;
 import domain.Contract;
+import domain.Offering;
 import domain.Product;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -40,6 +41,7 @@ import org.junit.jupiter.api.Test;
 public class ContractsFromSubscriptionsComponentTest extends BaseContractComponentTest {
 
   private static final double CORES_CAPACITY = 20.0;
+  private static final double SOCKETS_CAPACITY = 2.0;
 
   @AfterEach
   void resetUseSubscriptionsFlag() {
@@ -143,6 +145,22 @@ public class ContractsFromSubscriptionsComponentTest extends BaseContractCompone
     assertTrue(service.getContractsByOrgId(orgId).isEmpty());
   }
 
+  @TestPlanName("contracts-from-subscriptions-TC007")
+  @Test
+  void shouldExcludeMarketplaceSubscriptionForNonContractEnabledProduct() {
+    Contract rosaContract = givenExistingRosaContractWithLicense();
+    givenMarketplaceRhelSubscriptionIsCreated();
+
+    whenUseSubscriptionsIsEnabled();
+
+    var contracts = service.getContractsByOrgId(orgId);
+    assertEquals(
+        1,
+        contracts.size(),
+        "A marketplace subscription for a product that is not contract-enabled is not a contract");
+    assertEquals(rosaContract.getSubscriptionNumber(), contracts.get(0).getSubscriptionNumber());
+  }
+
   private Contract givenExistingRosaContractWithLicense() {
     String subscriptionNumber = RandomUtils.generateRandom();
     Contract contract =
@@ -153,6 +171,18 @@ public class ContractsFromSubscriptionsComponentTest extends BaseContractCompone
             .build();
     givenContractIsCreated(contract);
     return contract;
+  }
+
+  private Contract givenMarketplaceRhelSubscriptionIsCreated() {
+    Contract marketplaceRhel =
+        Contract.buildRosaContract(orgId, BillingProvider.AWS, Map.of(SOCKETS, SOCKETS_CAPACITY))
+            .toBuilder()
+            .product(Product.RHEL)
+            .offering(
+                Offering.buildRhelOffering(RandomUtils.generateRandom(), null, SOCKETS_CAPACITY))
+            .build();
+    givenSubscriptionIsCreated(marketplaceRhel);
+    return marketplaceRhel;
   }
 
   private void whenUseSubscriptionsIsEnabled() {

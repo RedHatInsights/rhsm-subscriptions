@@ -391,6 +391,18 @@ instead of the contracts tables. Test class: `ContractsFromSubscriptionsComponen
   - HTTP 200 with an empty array
   - No errors
 
+**contracts-from-subscriptions-TC007** - **Marketplace subscription for a non-contract-enabled product is excluded**
+- **Description:** Annual and prepaid marketplace subscriptions also carry a `billing_provider_id`,
+  but their products are not contract-enabled in swatch-product-configuration and they never have
+  a contract. They must not be reported as contracts.
+- **Setup:** Create an AWS ROSA contract, plus a marketplace RHEL subscription with marketplace
+  identifiers but no contract.
+- **Action:** Enable the flag and GET contracts by `org_id`.
+- **Verification:** Check the returned contract list.
+- **Expected Result:**
+  - Only the ROSA contract is returned
+  - The RHEL marketplace subscription is absent
+
 ## Billing Account ID Retrieval
 
 Component tests for GET `/api/swatch-contracts/v1/subscriptions/billing_account_ids`. Test class:

@@ -47,6 +47,11 @@ class SubscriptionContractServiceTest {
   private static final String OTHER_ORG_ID = "org456";
   private static final String SKU = "MW01485";
   private static final String PRODUCT_TAG = "rosa";
+
+  /** A marketplace product that is not contract-enabled in swatch-product-configuration. */
+  private static final String NON_CONTRACT_SKU = "RH00005";
+
+  private static final String NON_CONTRACT_PRODUCT_TAG = "RHEL for x86";
   private static final String VENDOR_PRODUCT_CODE = "6n58d3s3qpvk22dgew2gal7w3";
   private static final String BILLING_ACCOUNT_ID = "123456789101";
   private static final String LICENSE_ID = "arn:aws:license-manager:license";
@@ -120,6 +125,27 @@ class SubscriptionContractServiceTest {
     subscriptionRepository.persistAndFlush(nonContract);
 
     assertTrue(whenGetContracts(ORG_ID, null, null, null, null, null).isEmpty());
+  }
+
+  @TestTransaction
+  @Test
+  void testSkipsMarketplaceSubscriptionsForNonContractEnabledProducts() {
+    givenSubscription("sub-1", ORG_ID);
+    givenNonContractEnabledSubscription("sub-2", ORG_ID);
+
+    var contracts = whenGetContracts(ORG_ID, null, null, null, null, null);
+
+    assertEquals(1, contracts.size());
+    assertEquals("sub-1", contracts.get(0).getSubscriptionNumber());
+  }
+
+  @TestTransaction
+  @Test
+  void testSkipsNonContractEnabledProductEvenWhenFilteringByItsTag() {
+    givenNonContractEnabledSubscription("sub-2", ORG_ID);
+
+    assertTrue(
+        whenGetContracts(ORG_ID, NON_CONTRACT_PRODUCT_TAG, null, null, null, null).isEmpty());
   }
 
   @TestTransaction
@@ -228,14 +254,34 @@ class SubscriptionContractServiceTest {
     return subscription;
   }
 
+  private SubscriptionEntity givenNonContractEnabledSubscription(
+      String subscriptionNumber, String orgId) {
+    SubscriptionEntity subscription = new SubscriptionEntity();
+    subscription.setSubscriptionNumber(subscriptionNumber);
+    subscription.setOrgId(orgId);
+    subscription.setOffering(givenOffering(NON_CONTRACT_SKU, NON_CONTRACT_PRODUCT_TAG));
+    subscription.setQuantity(1L);
+    subscription.setStartDate(START);
+    subscription.setEndDate(END);
+    subscription.setBillingProvider(BillingProvider.AZURE);
+    subscription.setBillingProviderId("azure-resource-id");
+    subscription.setBillingAccountId(BILLING_ACCOUNT_ID);
+    subscriptionRepository.persistAndFlush(subscription);
+    return subscription;
+  }
+
   private OfferingEntity givenOffering() {
-    OfferingEntity existing = offeringRepository.findById(SKU);
+    return givenOffering(SKU, PRODUCT_TAG);
+  }
+
+  private OfferingEntity givenOffering(String sku, String productTag) {
+    OfferingEntity existing = offeringRepository.findById(sku);
     if (existing != null) {
       return existing;
     }
 
     OfferingEntity offering =
-        OfferingEntity.builder().sku(SKU).productTags(Set.of(PRODUCT_TAG)).build();
+        OfferingEntity.builder().sku(sku).productTags(Set.of(productTag)).build();
     offeringRepository.persistAndFlush(offering);
     return offering;
   }

@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.contract.service;
 
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.contract.model.MeasurementMetricIdTransformer;
 import com.redhat.swatch.contract.model.SubscriptionContractDtoMapper;
 import com.redhat.swatch.contract.openapi.model.Contract;
@@ -66,9 +67,9 @@ public class SubscriptionContractService {
       String vendorProductCode,
       OffsetDateTime timestamp) {
 
-    // The subscriptions tables also hold non-contract (for example annual) subscriptions, which the
-    // contracts tables never contain. Restrict to contract-backed subscriptions so that both modes
-    // return the same records.
+    // The subscriptions tables also hold subscriptions that are not contracts. Require a
+    // marketplace identity here, and drop anything whose offering is not contract-enabled after
+    // loading, see isContractEnabled below.
     Specification<SubscriptionEntity> specification =
         SubscriptionEntity.orgIdEquals(orgId).and(SubscriptionEntity.hasBillingProviderId());
 
@@ -94,8 +95,15 @@ public class SubscriptionContractService {
     }
 
     return subscriptionRepository.findBySpecification(specification).stream()
+        .filter(SubscriptionContractService::isContractEnabled)
         .map(this::toContract)
         .toList();
+  }
+
+  private static boolean isContractEnabled(SubscriptionEntity subscription) {
+    return subscription.getOffering() != null
+        && subscription.getOffering().getProductTags().stream()
+            .anyMatch(SubscriptionDefinition::isContractEnabled);
   }
 
   private Contract toContract(SubscriptionEntity subscription) {
