@@ -25,10 +25,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.redhat.swatch.component.tests.api.ComponentTest;
 import java.time.OffsetDateTime;
-import java.util.Arrays;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.json.Measurement;
@@ -40,7 +40,9 @@ import org.junit.jupiter.api.Test;
 class UsageEventSerializationComponentTest {
 
   private static final ObjectMapper objectMapper =
-      new ObjectMapper().registerModule(new JavaTimeModule());
+      new ObjectMapper()
+          .registerModule(new JavaTimeModule())
+          .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
   @Test
   void shouldSerializeUsageEvent() throws Exception {
@@ -50,11 +52,12 @@ class UsageEventSerializationComponentTest {
     event.setServiceType("RHEL System");
     event.setInstanceId("instance-123");
     event.setTimestamp(OffsetDateTime.now());
+    event.setProductTag("rhel-for-x86");
 
     Measurement measurement = new Measurement();
     measurement.setMetricId("Cores");
     measurement.setValue(4.0);
-    event.setMeasurements(Arrays.asList(measurement));
+    event.setMeasurement(measurement);
 
     String json = objectMapper.writeValueAsString(event);
     log.info("Serialized UsageEvent: {}", json);
@@ -64,8 +67,13 @@ class UsageEventSerializationComponentTest {
     assertTrue(json.contains("org_id"));
     assertTrue(json.contains("service_type"));
     assertTrue(json.contains("instance_id"));
-    assertTrue(json.contains("timestamp"));
-    assertTrue(json.contains("measurements"));
+    assertTrue(json.contains("product_tag"));
+    assertTrue(json.contains("measurement"));
+
+    // Verify timestamp is serialized as ISO-8601 string, not numeric timestamp
+    assertTrue(
+        json.matches(".*\"timestamp\"\\s*:\\s*\"\\d{4}-\\d{2}-\\d{2}T.*"),
+        "Timestamp should be serialized as ISO-8601 string");
   }
 
   @Test
@@ -78,12 +86,11 @@ class UsageEventSerializationComponentTest {
           "service_type": "RHEL System",
           "instance_id": "instance-123",
           "timestamp": "2024-08-29T12:00:00Z",
-          "measurements": [
-            {
-              "metric_id": "Cores",
-              "value": 4.0
-            }
-          ]
+          "product_tag": "rhel-for-x86",
+          "measurement": {
+            "metric_id": "Cores",
+            "value": 4.0
+          }
         }
         """;
 
@@ -95,10 +102,10 @@ class UsageEventSerializationComponentTest {
     assertEquals("RHEL System", event.getServiceType());
     assertEquals("instance-123", event.getInstanceId());
     assertNotNull(event.getTimestamp());
-    assertNotNull(event.getMeasurements());
-    assertEquals(1, event.getMeasurements().size());
+    assertEquals("rhel-for-x86", event.getProductTag());
+    assertNotNull(event.getMeasurement());
 
-    Measurement measurement = event.getMeasurements().get(0);
+    Measurement measurement = event.getMeasurement();
     assertEquals("Cores", measurement.getMetricId());
     assertEquals(4.0, measurement.getValue());
 
@@ -128,46 +135,5 @@ class UsageEventSerializationComponentTest {
     assertNotNull(event.getTimestamp());
 
     log.info("Successfully deserialized UsageEvent without measurements: {}", event);
-  }
-
-  @Test
-  void shouldHandleMultipleMeasurements() throws Exception {
-    String json =
-        """
-        {
-          "correlation_id": "550e8400-e29b-41d4-a716-446655440002",
-          "org_id": "12345",
-          "service_type": "OpenShift Cluster",
-          "instance_id": "cluster-456",
-          "timestamp": "2024-08-29T12:00:00Z",
-          "measurements": [
-            {
-              "metric_id": "Cores",
-              "value": 16.0
-            },
-            {
-              "metric_id": "Memory",
-              "value": 32.0
-            }
-          ]
-        }
-        """;
-
-    UsageEvent event = objectMapper.readValue(json, UsageEvent.class);
-
-    assertNotNull(event);
-    assertEquals("550e8400-e29b-41d4-a716-446655440002", event.getCorrelationId());
-    assertNotNull(event.getMeasurements());
-    assertEquals(2, event.getMeasurements().size());
-
-    Measurement cores = event.getMeasurements().get(0);
-    assertEquals("Cores", cores.getMetricId());
-    assertEquals(16.0, cores.getValue());
-
-    Measurement memory = event.getMeasurements().get(1);
-    assertEquals("Memory", memory.getMetricId());
-    assertEquals(32.0, memory.getValue());
-
-    log.info("Successfully deserialized UsageEvent with multiple measurements: {}", event);
   }
 }

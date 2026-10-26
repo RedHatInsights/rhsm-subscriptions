@@ -71,6 +71,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
+import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 import org.springframework.retry.annotation.EnableRetry;
@@ -428,6 +429,13 @@ public class TallyWorkerConfiguration {
   }
 
   @Bean
+  @Qualifier("usageDeadLetterTopicProperties")
+  @ConfigurationProperties(prefix = "rhsm-subscriptions.usage-dead-letter.outgoing")
+  public TaskQueueProperties usageDeadLetterTopicProperties() {
+    return new TaskQueueProperties();
+  }
+
+  @Bean
   @Qualifier("usageConsumerFactory")
   ConsumerFactory<String, UsageEvent> usageConsumerFactory(
       KafkaProperties kafkaProperties,
@@ -436,14 +444,50 @@ public class TallyWorkerConfiguration {
     var props = kafkaProperties.buildConsumerProperties();
     props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, taskQueueProperties.getMaxPollRecords());
     var jsonDeserializer = new JsonDeserializer<>(UsageEvent.class, objectMapper, false);
-    return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), jsonDeserializer);
+    var valueDeserializer = new ErrorHandlingDeserializer<>(jsonDeserializer);
+    return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), valueDeserializer);
+  }
+
+  @Bean
+  public ProducerFactory<String, String> usageDeadLetterProducerFactory(
+      KafkaProperties kafkaProperties, ObjectMapper objectMapper) {
+    DefaultKafkaProducerFactory<String, String> factory =
+        new DefaultKafkaProducerFactory<>(getProducerProperties(kafkaProperties));
+    factory.setValueSerializer(new JsonSerializer<>(objectMapper));
+    return factory;
+  }
+
+  @Bean
+  public KafkaTemplate<String, String> usageDeadLetterKafkaTemplate(
+      ProducerFactory<String, String> usageDeadLetterProducerFactory,
+      KafkaProperties kafkaProperties) {
+    KafkaTemplate<String, String> kafkaTemplate =
+        new KafkaTemplate<>(usageDeadLetterProducerFactory);
+    kafkaTemplate.setObservationEnabled(kafkaProperties.getTemplate().isObservationEnabled());
+    return kafkaTemplate;
+  }
+
+  @Bean
+  @Qualifier("usageDeadLetterKafkaErrorHandler")
+  public DefaultErrorHandler usageDeadLetterKafkaErrorHandler(
+      KafkaTemplate<String, String> usageDeadLetterKafkaTemplate,
+      @Qualifier("usageDeadLetterTopicProperties") TaskQueueProperties taskQueueProperties) {
+    DeadLetterPublishingRecoverer recoverer =
+        new DeadLetterPublishingRecoverer(
+            usageDeadLetterKafkaTemplate,
+            (r, e) -> new TopicPartition(taskQueueProperties.getTopic(), r.partition()));
+    return new DefaultErrorHandler(
+        recoverer,
+        new FixedBackOff(
+            taskQueueProperties.getRetryBackOffMillis(), taskQueueProperties.getRetryAttempts()));
   }
 
   @Bean
   ConcurrentKafkaListenerContainerFactory<String, UsageEvent> kafkaUsageListenerContainerFactory(
       @Qualifier("usageConsumerFactory") ConsumerFactory<String, UsageEvent> consumerFactory,
       KafkaProperties kafkaProperties,
-      KafkaConsumerRegistry registry) {
+      KafkaConsumerRegistry registry,
+      @Qualifier("usageDeadLetterKafkaErrorHandler") DefaultErrorHandler deadLetterErrorHandler) {
 
     var factory = new ConcurrentKafkaListenerContainerFactory<String, UsageEvent>();
     factory.setConsumerFactory(consumerFactory);
@@ -455,6 +499,7 @@ public class TallyWorkerConfiguration {
           .setIdleEventInterval(kafkaProperties.getListener().getIdleEventInterval().toMillis());
     }
     factory.getContainerProperties().setConsumerRebalanceListener(registry);
+    factory.setCommonErrorHandler(deadLetterErrorHandler);
     factory
         .getContainerProperties()
         .setObservationEnabled(kafkaProperties.getTemplate().isObservationEnabled());

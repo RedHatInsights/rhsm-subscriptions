@@ -5,13 +5,11 @@ properties:
   correlation_id:
     description: Unique identifier to help track and debug this event. Used for correlating related events.
     type: string
-    required: true
     examples:
       - 550e8400-e29b-41d4-a716-446655440000
   org_id:
     description: Organization identifier associated with this event.
     type: string
-    required: true
     examples:
       - '123456789'
   service_type:
@@ -19,7 +17,6 @@ properties:
       Identifier for the type of service being measured. (E.g. RHEL System, OpenShift Cluster). Used to match the event to the correct SWATCH product configuration.
       This should equal the 'serviceType' value of the matching product in swatch-product-configuration project subscription_configs.
     type: string
-    required: true
     examples:
       - RHEL System
       - rosa Instance
@@ -27,9 +24,7 @@ properties:
   instance_id:
     description: >
       Primary identifier for the instance of the service, according to the event producer. This needs to be unique to instance that created the event.
-      If display_name is not populated than then instance_id is used instead.
     type: string
-    required: true
     examples:
       - 1e69ce3d-e9f7-484f-98a3-ccb3c268ade7
       - i-1eavan31z971235
@@ -37,31 +32,43 @@ properties:
     description: Time that the event happened or the snapshot was captured.
     type: string
     format: date-time
-    required: true
     examples:
       - 2024-08-29T12:00:00Z
-  measurements:
-    description: Captures measurements for the service instance. These values are used for tallying an instance's usage.
-    type: array
-    items:
-      type: object
-      properties:
-        value:
-          description: Measurement value.
-          type: number
-          required: true
-        metric_id:
-          description: >
-            Metric ID for the measurement. This should equal the product's 'metrics->id' values in swatch-product-configuration project subscription_configs.
-            Ex: A rosa instance can contain measurements for 'Cores' or 'Instance-hours' based on rosa.yaml in swatch-product-configuration.
-          type: string
-          required: true
-          examples:
-            - Cores
-            - Sockets
-            - vCPUs
-            - Instance-hours
-            - Managed-nodes
-            - Transfer-gibibytes
-            - Storage-gibibyte-months
-    required: false
+  product_tag:
+    description: >
+      Product tag that identifies the subscription product this event is associated with.
+      This should match the 'tag' value of the product in swatch-product-configuration project subscription_configs.
+    type: string
+    examples:
+      - rhel-for-x86
+      - rosa
+      - openshift-cluster
+  measurement:
+    description: Captures a measurement for the service instance. These values are used for tallying an instance's usage.
+    type: object
+    properties:
+      value:
+        description: Measurement value.
+        type: number
+      metric_id:
+        description: >
+          Metric ID for the measurement. This should equal the product's 'metrics->id' values in swatch-product-configuration project subscription_configs.
+          Ex: A rosa instance can contain measurements for 'Cores' or 'Instance-hours' based on rosa.yaml in swatch-product-configuration.
+        type: string
+        examples:
+          - Cores
+          - Sockets
+          - vCPUs
+          - Instance-hours
+          - Managed-nodes
+          - Transfer-gibibytes
+          - Storage-gibibyte-months
+    required:
+      - value
+      - metric_id
+required:
+  - correlation_id
+  - org_id
+  - service_type
+  - instance_id
+  - timestamp

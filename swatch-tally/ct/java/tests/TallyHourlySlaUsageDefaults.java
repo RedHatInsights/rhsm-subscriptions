@@ -55,9 +55,11 @@ public class TallyHourlySlaUsageDefaults extends BaseTallyComponentTest {
     String productTag = RHEL_FOR_X86_ELS_PAYG.productTag();
     String metricId = RHEL_FOR_X86_ELS_PAYG.metricIds().get(1);
     givenFeatureFlagIsConfigured(true);
+    service.createOptInConfig(orgId);
 
     // Given: A PAYG event with NO SLA/Usage specified
-    OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+    OffsetDateTime now =
+        OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(java.time.temporal.ChronoUnit.HOURS);
     String instanceId = RandomUtils.generateRandom();
     String eventId = UUID.randomUUID().toString();
 
@@ -66,7 +68,7 @@ public class TallyHourlySlaUsageDefaults extends BaseTallyComponentTest {
         helpers.createPaygEventWithTimestamp(
             orgId,
             instanceId,
-            now.minusHours(1).toString(),
+            now.toString(),
             eventId,
             metricId,
             2.0f,
@@ -75,15 +77,15 @@ public class TallyHourlySlaUsageDefaults extends BaseTallyComponentTest {
     event.setSla(null); // Clear SLA - should default to PREMIUM
     event.setUsage(null); // Clear Usage - should default to PRODUCTION
 
-    // When: Event is ingested
+    // When: Event is ingested and processed
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event);
 
-    // When: Hourly tally runs
-    service.performHourlyTallyForOrg(orgId);
+    // Ensure event is persisted and hourly tally runs
+    awaitHourlyTallySum(orgId, productTag, metricId, now, now.plusHours(1), 2.0);
 
     // Then: Tally report with Premium SLA filter should have data
-    OffsetDateTime beginning = now.minusHours(2);
-    OffsetDateTime ending = now.plusHours(1);
+    OffsetDateTime beginning = now;
+    OffsetDateTime ending = now.plusHours(2);
 
     var premiumReport =
         service.getTallyReportData(
@@ -159,9 +161,11 @@ public class TallyHourlySlaUsageDefaults extends BaseTallyComponentTest {
     String productTag = RHEL_FOR_X86_ELS_PAYG.productTag();
     String metricId = RHEL_FOR_X86_ELS_PAYG.metricIds().get(1);
     givenFeatureFlagIsConfigured(true);
+    service.createOptInConfig(orgId);
 
     // Given: A PAYG event with explicit SLA=Standard and Usage=Development/Test
-    OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+    OffsetDateTime now =
+        OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(java.time.temporal.ChronoUnit.HOURS);
     String instanceId = RandomUtils.generateRandom();
     String eventId = UUID.randomUUID().toString();
 
@@ -169,7 +173,7 @@ public class TallyHourlySlaUsageDefaults extends BaseTallyComponentTest {
         helpers.createPaygEventWithTimestamp(
             orgId,
             instanceId,
-            now.minusHours(1).toString(),
+            now.toString(),
             eventId,
             metricId,
             2.0f,
@@ -181,15 +185,15 @@ public class TallyHourlySlaUsageDefaults extends BaseTallyComponentTest {
             RHEL_FOR_X86_ELS_PAYG.productId(),
             productTag);
 
-    // When: Event is ingested
+    // When: Event is ingested and processed
     kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event);
 
-    // When: Hourly tally runs
-    service.performHourlyTallyForOrg(orgId);
+    // Ensure event is persisted and hourly tally runs
+    awaitHourlyTallySum(orgId, productTag, metricId, now, now.plusHours(1), 2.0);
 
     // Then: Tally report with Standard SLA filter should have data
-    OffsetDateTime beginning = now.minusHours(2);
-    OffsetDateTime ending = now.plusHours(1);
+    OffsetDateTime beginning = now;
+    OffsetDateTime ending = now.plusHours(2);
 
     var standardReport =
         service.getTallyReportData(

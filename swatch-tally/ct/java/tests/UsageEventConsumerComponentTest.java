@@ -66,7 +66,6 @@ class UsageEventConsumerComponentTest {
               .withInstanceId("cluster-" + i)
               .withTimestamp(now.plusHours(i))
               .withMeasurement("Cores", 8.0 + i)
-              .withMeasurement("Memory", 16.0 + i)
               .build();
 
       kafkaBridge.produceKafkaMessage(USAGE, event);

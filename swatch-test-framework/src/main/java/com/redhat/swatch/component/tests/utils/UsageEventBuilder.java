@@ -21,8 +21,6 @@
 package com.redhat.swatch.component.tests.utils;
 
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.UsageEvent;
@@ -33,11 +31,10 @@ public class UsageEventBuilder {
   private String serviceType;
   private String instanceId;
   private OffsetDateTime timestamp;
-  private List<Measurement> measurements;
+  private String productTag;
+  private Measurement measurement;
 
-  private UsageEventBuilder() {
-    this.measurements = new ArrayList<>();
-  }
+  private UsageEventBuilder() {}
 
   public static UsageEventBuilder createUsageEvent() {
     UsageEventBuilder builder = new UsageEventBuilder();
@@ -74,16 +71,21 @@ public class UsageEventBuilder {
     return this;
   }
 
+  public UsageEventBuilder withProductTag(String productTag) {
+    this.productTag = productTag;
+    return this;
+  }
+
   public UsageEventBuilder withMeasurement(String metricId, double value) {
     Measurement measurement = new Measurement();
     measurement.setMetricId(metricId);
     measurement.setValue(value);
-    this.measurements.add(measurement);
+    this.measurement = measurement;
     return this;
   }
 
-  public UsageEventBuilder withMeasurements(List<Measurement> measurements) {
-    this.measurements = measurements;
+  public UsageEventBuilder withMeasurement(Measurement measurement) {
+    this.measurement = measurement;
     return this;
   }
 
@@ -94,8 +96,11 @@ public class UsageEventBuilder {
     event.setServiceType(serviceType);
     event.setInstanceId(instanceId);
     event.setTimestamp(timestamp);
-    if (!measurements.isEmpty()) {
-      event.setMeasurements(measurements);
+    if (productTag != null) {
+      event.setProductTag(productTag);
+    }
+    if (measurement != null) {
+      event.setMeasurement(measurement);
     }
     return event;
   }

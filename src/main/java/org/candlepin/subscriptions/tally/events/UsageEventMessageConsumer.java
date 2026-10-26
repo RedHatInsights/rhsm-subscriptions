@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.tally.events;
 
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.candlepin.subscriptions.json.UsageEvent;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
@@ -29,7 +30,7 @@ import org.candlepin.subscriptions.util.SeekableKafkaConsumer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.kafka.listener.BatchListenerFailedException;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -47,11 +48,28 @@ public class UsageEventMessageConsumer extends SeekableKafkaConsumer {
       id = "#{__listener.groupId}",
       topics = "#{__listener.topic}",
       containerFactory = "kafkaUsageListenerContainerFactory")
-  public void receive(@Payload List<UsageEvent> events) {
-    log.info("Received {} usage event(s) from kafka", events.size());
-    events.forEach(
-        event -> {
-          log.debug("Processing usage event with correlation_id: {}", event.getCorrelationId());
-        });
+  public void receive(List<ConsumerRecord<String, UsageEvent>> records) {
+    log.info("Received {} usage event(s) from kafka", records.size());
+    for (int i = 0; i < records.size(); i++) {
+      ConsumerRecord<String, UsageEvent> record = records.get(i);
+      UsageEvent event = record.value();
+
+      if (event == null) {
+        // Check if this is a deserialization failure vs genuine tombstone
+        // ErrorHandlingDeserializer sets headers with prefix "spring.deserialization."
+        if (record.headers().lastHeader("spring.deserialization.exception") != null) {
+          log.error(
+              "Deserialization failure for record at offset {} on partition {}",
+              record.offset(),
+              record.partition());
+          // Throw to route to dead-letter topic via configured error handler
+          throw new BatchListenerFailedException(
+              "Deserialization failure - routing to dead-letter topic", i);
+        }
+        log.debug("Skipping tombstone usage event");
+        continue;
+      }
+      log.debug("Processing usage event with correlation_id: {}", event.getCorrelationId());
+    }
   }
 }
