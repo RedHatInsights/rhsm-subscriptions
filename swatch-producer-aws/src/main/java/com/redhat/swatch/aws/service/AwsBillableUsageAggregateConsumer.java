@@ -111,7 +111,7 @@ public class AwsBillableUsageAggregateConsumer {
   @Blocking
   public void process(BillableUsageAggregate billableUsageAggregate) {
     BillableUsageAggregateLogger.info(
-        log, billableUsageAggregate, "Picked up billable usage message %1$s to process");
+        log, billableUsageAggregate, "Picked up billable usage message to process");
     if (billableUsageAggregate == null || billableUsageAggregate.getAggregateKey() == null) {
       log.warn("Skipping null billable usage: deserialization failure?");
       return;
@@ -131,13 +131,13 @@ public class AwsBillableUsageAggregateConsumer {
       BillableUsageAggregateLogger.warn(
           log,
           billableUsageAggregate,
-          "Skipping billable usage because the metric is not supported: %1$s");
+          "Skipping billable usage because the metric is not supported");
       emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.UNSUPPORTED_METRIC);
       return;
     }
 
     BillableUsageAggregateLogger.debug(
-        log, billableUsageAggregate, "Processing billable usage message: %1$s");
+        log, billableUsageAggregate, "Processing billable usage message");
 
     AwsUsageContext context;
     try {
@@ -147,14 +147,14 @@ public class AwsBillableUsageAggregateConsumer {
         BillableUsageAggregateLogger.warn(
             log,
             billableUsageAggregate,
-            "Skipping billable usage aggregate %1$s because the subscription was not found and the snapshot '%2$s' is past the aws time window of '%3$s'",
+            "Skipping billable usage aggregate because the subscription was not found and the snapshot '{}' is past the aws time window of '{}'",
             billableUsageAggregate.getWindowTimestamp(),
             awsUsageWindow,
             e);
         emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.INACTIVE);
       } else {
         BillableUsageAggregateLogger.warn(
-            log, billableUsageAggregate, "Subscription not found for aggregate=%1$s", e);
+            log, billableUsageAggregate, "Subscription not found for aggregate", e);
         emitErrorStatusOnUsage(
             billableUsageAggregate, BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND);
       }
@@ -163,20 +163,17 @@ public class AwsBillableUsageAggregateConsumer {
       emitErrorStatusOnUsage(
           billableUsageAggregate, BillableUsage.ErrorCode.SUBSCRIPTION_TERMINATED);
       BillableUsageAggregateLogger.info(
-          log, billableUsageAggregate, "Subscription recently terminated for aggregate=%1$s", e);
+          log, billableUsageAggregate, "Subscription recently terminated for aggregate", e);
       return;
     } catch (SubscriptionMissingBillingAccountIdException e) {
       emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.USAGE_CONTEXT_LOOKUP);
       BillableUsageAggregateLogger.warn(
-          log,
-          billableUsageAggregate,
-          "Subscription missing billingAccountId for aggregate=%1$s",
-          e);
+          log, billableUsageAggregate, "Subscription missing billingAccountId for aggregate", e);
       return;
     } catch (AwsUsageContextLookupException e) {
       emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.USAGE_CONTEXT_LOOKUP);
       BillableUsageAggregateLogger.error(
-          log, billableUsageAggregate, "Error looking up aws usage context for aggregate=%1$s", e);
+          log, billableUsageAggregate, "Error looking up aws usage context for aggregate", e);
       return;
     }
 
@@ -188,7 +185,7 @@ public class AwsBillableUsageAggregateConsumer {
       BillableUsageAggregateLogger.warn(
           log,
           billableUsageAggregate,
-          "%2$s aggregate=%1$s, rhSubscriptionNumber=%3$s awsCustomerId=%4$s awsProductCode=%5$s subscriptionStartDate=%6$s",
+          "{} rhSubscriptionNumber={} awsCustomerId={} awsProductCode={} subscriptionStartDate={}",
           e.getMessage(),
           context.getRhSubscriptionNumber(),
           context.getCustomerId(),
@@ -201,7 +198,7 @@ public class AwsBillableUsageAggregateConsumer {
       BillableUsageAggregateLogger.warn(
           log,
           billableUsageAggregate,
-          "AWS usage not accepted for rhSubscriptionNumber=%2$s aggregate=%1$s awsCustomerId=%3$s awsProductCode=%4$s resultStatus=%5$s",
+          "AWS usage not accepted for rhSubscriptionNumber={} awsCustomerId={} awsProductCode={} resultStatus={}",
           context.getRhSubscriptionNumber(),
           context.getCustomerId(),
           context.getProductCode(),
@@ -212,7 +209,7 @@ public class AwsBillableUsageAggregateConsumer {
       BillableUsageAggregateLogger.error(
           log,
           billableUsageAggregate,
-          "Error sending aws usage due to rate limit for rhSubscriptionNumber=%2$s aggregate=%1$s awsCustomerId=%3$s awsProductCode=%4$s",
+          "Error sending aws usage due to rate limit for rhSubscriptionNumber={} awsCustomerId={} awsProductCode={}",
           context.getRhSubscriptionNumber(),
           context.getCustomerId(),
           context.getProductCode(),
@@ -222,7 +219,7 @@ public class AwsBillableUsageAggregateConsumer {
       BillableUsageAggregateLogger.error(
           log,
           billableUsageAggregate,
-          "Error sending aws usage for rhSubscriptionNumber=%2$s aggregate=%1$s awsCustomerId=%3$s awsProductCode=%4$s",
+          "Error sending aws usage for rhSubscriptionNumber={} awsCustomerId={} awsProductCode={}",
           context.getRhSubscriptionNumber(),
           context.getCustomerId(),
           context.getProductCode(),
@@ -275,17 +272,11 @@ public class AwsBillableUsageAggregateConsumer {
 
     if (isDryRun.isPresent() && Boolean.TRUE.equals(isDryRun.get())) {
       BillableUsageAggregateLogger.info(
-          log,
-          billableUsageAggregate,
-          "[DRY RUN] Sending usage request to AWS: %2$s, aggregate=%1$s",
-          request);
+          log, billableUsageAggregate, "[DRY RUN] Sending usage request to AWS: {}", request);
       return;
     } else {
       BillableUsageAggregateLogger.info(
-          log,
-          billableUsageAggregate,
-          "Sending usage request to AWS: %2$s, aggregate=%1$s",
-          request);
+          log, billableUsageAggregate, "Sending usage request to AWS: {}", request);
     }
 
     try {
@@ -300,16 +291,13 @@ public class AwsBillableUsageAggregateConsumer {
       for (var result : response.results()) {
         if (result.status() == UsageRecordResultStatus.SUCCESS) {
           BillableUsageAggregateLogger.info(
-              log,
-              billableUsageAggregate,
-              "Sent usage request to AWS: result=%2$s, aggregate=%1$s",
-              result);
+              log, billableUsageAggregate, "Sent usage request to AWS: result={}", result);
           acceptedCounter.increment();
         } else {
           BillableUsageAggregateLogger.warn(
               log,
               billableUsageAggregate,
-              "AWS BatchMeterUsage returned non-Success status for aggregate=%1$s, result=%2$s",
+              "AWS BatchMeterUsage returned non-Success status for aggregate, result={}",
               result);
           rejectedCounter.increment();
           throw new AwsUsageNotAcceptedException(result.status());
@@ -325,7 +313,7 @@ public class AwsBillableUsageAggregateConsumer {
       BillableUsageAggregateLogger.warn(
           log,
           billableUsageAggregate,
-          "%2$s for aggregate=%1$s, awsCustomerId=%3$s",
+          "{} for aggregate, awsCustomerId={}",
           e.getMessage(),
           context.getCustomerId());
     }

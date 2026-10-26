@@ -28,9 +28,8 @@ import org.slf4j.event.Level;
 import org.slf4j.helpers.MessageFormatter;
 
 /**
- * Logs complete aggregate UUID/date collections in conservative, fixed-size chunks. Message formats
- * use {@link String#format(String, Object...)} syntax, with {@code %1$s} reserved for the
- * aggregate.
+ * Appends the aggregate to an SLF4J-style message and logs complete UUID/date collections in
+ * conservative, fixed-size chunks.
  */
 public final class BillableUsageAggregateLogger {
   // Verified against the production JSON formatter, leaving headroom for message/context/metadata.
@@ -74,8 +73,7 @@ public final class BillableUsageAggregateLogger {
         (uuids != null && uuids.size() > ENTRIES_PER_CHUNK)
             || (snapshotDates != null && snapshotDates.size() > ENTRIES_PER_CHUNK);
 
-    Object[] primaryArguments = new Object[arguments.length + 1];
-    primaryArguments[0] =
+    String primaryAggregate =
         aggregate == null
             ? null
             : formatAggregate(
@@ -84,11 +82,11 @@ public final class BillableUsageAggregateLogger {
                     ? snapshotDates.stream().limit(ENTRIES_PER_CHUNK).toList()
                     : snapshotDates,
                 needsChunking && uuids != null ? slice(uuids, 0, ENTRIES_PER_CHUNK) : uuids);
-    System.arraycopy(arguments, 0, primaryArguments, 1, arguments.length);
+    var formatted = MessageFormatter.arrayFormat(pattern, arguments);
     logger
         .atLevel(level)
-        .setCause(MessageFormatter.getThrowableCandidate(arguments))
-        .log(pattern.formatted(primaryArguments));
+        .setCause(formatted.getThrowable())
+        .log(formatted.getMessage() + ", aggregate=" + primaryAggregate);
 
     if (!needsChunking) {
       return;

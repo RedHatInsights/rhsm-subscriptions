@@ -115,7 +115,7 @@ public class StreamTopologyProducer {
 
   private void traceAggregate(
       Windowed<BillableUsageAggregateKey> key, BillableUsageAggregate aggregate) {
-    BillableUsageAggregateLogger.info(log, aggregate, "Sending aggregate to hourly topic: %1$s");
+    BillableUsageAggregateLogger.info(log, aggregate, "Sending aggregate to hourly topic");
     var aggregateKey = key.key();
     if (aggregateKey.getProductId() != null && aggregateKey.getMetricId() != null) {
       usageTotalAggregatedCounter
