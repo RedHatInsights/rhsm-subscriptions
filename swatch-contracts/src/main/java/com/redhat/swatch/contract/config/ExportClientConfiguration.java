@@ -35,6 +35,7 @@ import com.redhat.swatch.clients.ClientConfig;
 import com.redhat.swatch.clients.ClientConfigBuilder;
 import com.redhat.swatch.clients.ClientConfigMode;
 import com.redhat.swatch.clients.ClientConnection;
+import com.redhat.swatch.clients.OidcTokenProvider;
 import com.redhat.swatch.clients.TokenProvider;
 import com.redhat.swatch.clients.export.SwatchExportApi;
 import com.redhat.swatch.common.security.KesselProperties;
@@ -51,17 +52,12 @@ import jakarta.enterprise.inject.Typed;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
-import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.project_kessel.api.auth.ClientConfigAuth;
-import org.project_kessel.api.auth.OAuth2ClientCredentials;
-import org.project_kessel.api.auth.OIDCDiscovery;
 
 /**
  * Quarkus wiring for the shared export-service client ({@link SwatchExportApi}). Logic lives in
  * {@code base-client} / {@code export-client}; this class only binds Clowder/OIDC config.
  */
-@Slf4j
 @ApplicationScoped
 public class ExportClientConfiguration {
 
@@ -133,17 +129,10 @@ public class ExportClientConfiguration {
   @Produces
   @ApplicationScoped
   TokenProvider exportServiceTokenProvider(KesselProperties kesselProperties) {
-    OAuth2ClientCredentials credentials = initializeOAuth2Credentials(kesselProperties);
-    return () -> {
-      if (credentials == null) {
-        throw new IllegalStateException("OAuth2 client credentials are not configured");
-      }
-      try {
-        return credentials.getToken().accessToken();
-      } catch (Exception e) {
-        throw new IllegalStateException("Failed to obtain OAuth2 access token", e);
-      }
-    };
+    return new OidcTokenProvider(
+        kesselProperties.authOidcIssuer().orElse(null),
+        kesselProperties.authClientId().orElse(null),
+        kesselProperties.authClientSecret().orElse(null));
   }
 
   @Produces
@@ -193,32 +182,6 @@ public class ExportClientConfiguration {
     csvMapper.registerModule(new JavaTimeModule());
     csvMapper.registerModule(new Jdk8Module());
     return csvMapper;
-  }
-
-  private static OAuth2ClientCredentials initializeOAuth2Credentials(KesselProperties properties) {
-    var issuerUrl = properties.authOidcIssuer().filter(s -> !s.isBlank());
-    var clientId = properties.authClientId().filter(s -> !s.isBlank());
-    var clientSecret = properties.authClientSecret().filter(s -> !s.isBlank());
-    if (issuerUrl.isEmpty() || clientId.isEmpty() || clientSecret.isEmpty()) {
-      log.info(
-          "OAuth2 client credentials not configured; authenticated export-service calls will be"
-              + " unavailable");
-      return null;
-    }
-    try {
-      var discovery = OIDCDiscovery.fetchOIDCDiscovery(issuerUrl.get());
-      var credentials =
-          new OAuth2ClientCredentials(
-              new ClientConfigAuth(clientId.get(), clientSecret.get(), discovery.tokenEndpoint()));
-      log.info("OAuth2 client credentials initialized for export-service Bearer auth");
-      return credentials;
-    } catch (Exception e) {
-      log.warn(
-          "Failed to initialize OAuth2 client credentials; authenticated export-service calls will"
-              + " be unavailable",
-          e);
-      return null;
-    }
   }
 
   private static Boolean parseAuthenticated(String raw) {
