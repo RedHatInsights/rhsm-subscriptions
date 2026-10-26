@@ -137,6 +137,35 @@ class ExportDelegateImplFallbackTest {
     verify(v1Api, never()).downloadExportUpload(any(), any(), any(), any());
   }
 
+  /** Token-service ConnectException must not trigger V1/PSK fallback (no auth-scheme downgrade). */
+  @Test
+  void doesNotFallbackWhenTokenServiceIsUnreachable() throws Exception {
+    DependencyEndpointSelection v2 =
+        new DependencyEndpointSelection(
+            MODE_AUTO, VERSION_V2, DependencyEndpoint.of("https://v2.example", "", "", "", true));
+    when(endpointResolver.current()).thenReturn(v2);
+    when(apiFactory.clientFor(v2)).thenReturn(v2Api);
+    // Same cause chain as ExportBearerHeaderProvider → getAccessToken() when OIDC is down.
+    doThrow(
+            new ProcessingException(
+                new ExportTokenAcquisitionException(
+                    "Failed to acquire export-service bearer token",
+                    new IllegalStateException(
+                        "Failed to get OAuth2 access token",
+                        new ConnectException("token endpoint refused")))))
+        .when(v2Api)
+        .downloadExportUpload(any(), any(), any(), any());
+
+    File file = File.createTempFile("export-token-no-fallback", ".json");
+    file.deleteOnExit();
+
+    org.junit.jupiter.api.Assertions.assertThrows(
+        com.redhat.swatch.export.ExportServiceException.class,
+        () -> exportDelegate.upload(file, request));
+    verify(endpointResolver, never()).tryFallbackToV1();
+    verify(v1Api, never()).downloadExportUpload(any(), any(), any(), any());
+  }
+
   private void givenV2ThenV1() {
     DependencyEndpointSelection v2 =
         new DependencyEndpointSelection(

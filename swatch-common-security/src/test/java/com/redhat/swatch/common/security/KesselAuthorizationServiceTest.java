@@ -22,6 +22,7 @@ package com.redhat.swatch.common.security;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -36,6 +37,7 @@ import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -241,5 +243,15 @@ class KesselAuthorizationServiceTest {
 
     assertEquals(List.of("subscriptions:reports:read"), permissions);
     verify(stub, times(1)).check(any(CheckRequest.class));
+  }
+
+  @Test
+  void getAccessTokenThrowsWhenOauth2NotConfigured() {
+    when(kesselProperties.authOidcIssuer()).thenReturn(Optional.empty());
+
+    var thrown = assertThrows(IllegalStateException.class, () -> service.getAccessToken());
+    assertEquals(
+        "Kessel OAuth2 credentials are not configured; cannot mint access token",
+        thrown.getMessage());
   }
 }

@@ -121,9 +121,26 @@ public class ExportDelegateImpl implements ExportDelegate {
     }
   }
 
-  /** Connectivity failures or HTTP 401/403 from V2 allow a one-time V1 retry. */
+  /**
+   * Connectivity failures or HTTP 401/403 from V2 allow a one-time V1 retry. Token-service failures
+   * must not: that would downgrade authenticated V2 (Bearer) to V1 (PSK).
+   */
   static boolean shouldFallbackToV1(Throwable error) {
+    if (isTokenAcquisitionFailure(error)) {
+      return false;
+    }
     return DependencyEndpointUnavailable.isUnavailable(error) || isAuthFailure(error);
+  }
+
+  private static boolean isTokenAcquisitionFailure(Throwable error) {
+    Throwable current = error;
+    while (current != null) {
+      if (current instanceof ExportTokenAcquisitionException) {
+        return true;
+      }
+      current = current.getCause();
+    }
+    return false;
   }
 
   private static boolean isAuthFailure(Throwable error) {

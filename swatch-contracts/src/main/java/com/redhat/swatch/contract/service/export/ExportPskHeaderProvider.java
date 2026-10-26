@@ -23,17 +23,15 @@ package com.redhat.swatch.contract.service.export;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.client.ClientRequestContext;
 import jakarta.ws.rs.client.ClientRequestFilter;
-import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 /**
- * Resteasy client filter that adds x-rh-exports-psk to requests based on the value of the
- * SWATCH_EXPORT_PSK property/environment variable.
+ * Adds {@code x-rh-exports-psk} from {@code SWATCH_EXPORT_PSK}.
  *
- * <p>Registered programmatically by {@link ExportServiceApiFactory} via {@link
- * org.eclipse.microprofile.rest.client.RestClientBuilder#register(Object)}.
+ * <p>Used when the selected endpoint is unauthenticated ({@code authenticated=false} or V1 {@code
+ * null}), matching Spring {@code SwatchExportApi}. Authenticated V2 selections register {@link
+ * ExportBearerHeaderProvider} instead.
  */
-@Slf4j
 @ApplicationScoped
 public class ExportPskHeaderProvider implements ClientRequestFilter {
 
@@ -42,6 +40,6 @@ public class ExportPskHeaderProvider implements ClientRequestFilter {
 
   @Override
   public void filter(ClientRequestContext requestContext) {
-    requestContext.getHeaders().add("x-rh-exports-psk", psk);
+    requestContext.getHeaders().putSingle("x-rh-exports-psk", psk);
   }
 }

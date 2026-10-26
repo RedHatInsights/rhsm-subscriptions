@@ -35,13 +35,20 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
 
-/** Builds and caches {@link ExportApi} clients for resolved V1/V2 export-service endpoints. */
+/**
+ * Builds and caches {@link ExportApi} clients for resolved export-service endpoints.
+ *
+ * <p>Per-connection auth matches Spring {@code SwatchExportApi} (SWATCH-5655): {@code
+ * authenticated=true} → Kessel Bearer and omit PSK; {@code authenticated=false} or unset (V1) →
+ * {@code x-rh-exports-psk} and omit Bearer. Auth failures are not downgraded between schemes.
+ */
 @Slf4j
 @ApplicationScoped
 @RequiredArgsConstructor
 public class ExportServiceApiFactory {
 
   private final ExportPskHeaderProvider pskHeaderProvider;
+  private final ExportBearerHeaderProvider bearerHeaderProvider;
   private final ConcurrentMap<DependencyEndpointSelection, ExportApi> clients =
       new ConcurrentHashMap<>();
 
@@ -52,17 +59,30 @@ public class ExportServiceApiFactory {
     return clients.computeIfAbsent(selection, this::build);
   }
 
+  /** {@code authenticated=true} → bearer. Otherwise ({@code false}, V1 {@code null}) → PSK. */
+  static boolean useBearerAuth(DependencyEndpointSelection selection) {
+    return selection != null
+        && selection.endpoint() != null
+        && Boolean.TRUE.equals(selection.endpoint().authenticated());
+  }
+
   private ExportApi build(DependencyEndpointSelection selection) {
+    boolean bearer = useBearerAuth(selection);
+    Object authFilter = bearer ? bearerHeaderProvider : pskHeaderProvider;
     RestClientBuilder builder =
         RestClientBuilder.newBuilder()
             .baseUri(URI.create(selection.uri()))
-            .register(pskHeaderProvider)
+            .register(authFilter)
             .register(ApiExceptionMapper.class);
     KeyStore trustStore = loadTrustStore(selection);
     if (trustStore != null) {
       builder.trustStore(trustStore);
     }
-    log.info("Built export-service client version={} uri={}", selection.version(), selection.uri());
+    log.info(
+        "Built export-service client version={} uri={} authenticated={}",
+        selection.version(),
+        selection.uri(),
+        selection.endpoint() == null ? null : selection.endpoint().authenticated());
     return builder.build(ExportApi.class);
   }
 
