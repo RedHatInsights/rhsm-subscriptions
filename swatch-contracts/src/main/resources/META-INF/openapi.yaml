@@ -1149,7 +1149,13 @@ components:
       type: object
       properties:
         uuid:
-          description: Randomly generated if not set
+          description: >-
+            Randomly generated if not set. Deprecated: this identifier only exists in the contracts
+            tables, which are being retired. It is null whenever a contract is served from the
+            subscriptions tables (feature flag swatch.swatch-contracts.use-subscriptions) and will
+            be removed with those tables. Identify a contract by subscription_number and start_date
+            instead.
+          deprecated: true
           type: string
           example: 8ece4096-bef6-4ad6-b0db-20c8e6b2a78c
         subscription_number:

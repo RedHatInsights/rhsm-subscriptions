@@ -21,6 +21,7 @@
 package com.redhat.swatch.contract.repository;
 
 import com.redhat.swatch.panache.PanacheSpecificationSupport;
+import com.redhat.swatch.panache.Specification;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import io.quarkus.panache.common.Sort;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -51,6 +52,10 @@ public class SubscriptionRepository
     PanacheQuery<SubscriptionEntity> query =
         find("subscriptionNumber = ?1", DEFAULT_SORT, subscriptionNumber);
     return query.list();
+  }
+
+  public List<SubscriptionEntity> findBySpecification(Specification<SubscriptionEntity> spec) {
+    return find(SubscriptionEntity.class, spec, DEFAULT_SORT);
   }
 
   public List<SubscriptionEntity> findByCriteria(DbReportCriteria criteria) {

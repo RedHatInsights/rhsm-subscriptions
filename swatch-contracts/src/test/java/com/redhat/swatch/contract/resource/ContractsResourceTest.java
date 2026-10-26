@@ -42,6 +42,7 @@ import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.clients.product.api.resources.ApiException;
 import com.redhat.swatch.contract.config.ApplicationConfiguration;
+import com.redhat.swatch.contract.config.FeatureFlags;
 import com.redhat.swatch.contract.exception.ErrorCode;
 import com.redhat.swatch.contract.model.SyncResult;
 import com.redhat.swatch.contract.openapi.model.AwsUsageContext;
@@ -60,6 +61,7 @@ import com.redhat.swatch.contract.service.ContractSyncService;
 import com.redhat.swatch.contract.service.EnabledOrgsProducer;
 import com.redhat.swatch.contract.service.OfferingProductTagLookupService;
 import com.redhat.swatch.contract.service.OfferingSyncService;
+import com.redhat.swatch.contract.service.SubscriptionContractService;
 import com.redhat.swatch.contract.service.SubscriptionListService;
 import com.redhat.swatch.contract.service.SubscriptionSyncService;
 import com.redhat.swatch.contract.test.resources.DisableRbacResource;
@@ -111,11 +113,50 @@ class ContractsResourceTest {
   @InjectMock SubscriptionSyncService subscriptionSyncService;
   @InjectMock SubscriptionListService subscriptionListService;
   @InjectMock SubscriptionRepository subscriptionRepository;
+  @InjectMock SubscriptionContractService subscriptionContractService;
+  @InjectMock FeatureFlags featureFlags;
   @Inject MeterRegistry meterRegistry;
 
   @BeforeEach
   void setup() {
     meterRegistry.clear();
+  }
+
+  @Test
+  void testGetContractUsesContractsTablesWhenUseSubscriptionsIsDisabled() {
+    when(featureFlags.useSubscriptions()).thenReturn(false);
+
+    whenGetContracts();
+
+    verify(contractService)
+        .getContracts(ORG_ID, ROSA, "aws", "billing123", "vendor123", defaultLookUpDate);
+    verify(subscriptionContractService, times(0))
+        .getContracts(any(), any(), any(), any(), any(), any());
+  }
+
+  @Test
+  void testGetContractUsesSubscriptionsTablesWhenUseSubscriptionsIsEnabled() {
+    when(featureFlags.useSubscriptions()).thenReturn(true);
+
+    whenGetContracts();
+
+    verify(subscriptionContractService)
+        .getContracts(ORG_ID, ROSA, "aws", "billing123", "vendor123", defaultLookUpDate);
+    verify(contractService, times(0)).getContracts(any(), any(), any(), any(), any(), any());
+  }
+
+  private void whenGetContracts() {
+    given()
+        .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
+        .queryParam("org_id", ORG_ID)
+        .queryParam("product_tag", ROSA)
+        .queryParam("vendor_product_code", "vendor123")
+        .queryParam("billing_provider", "aws")
+        .queryParam("billing_account_id", "billing123")
+        .queryParam("timestamp", defaultLookUpDate.toString())
+        .get("/api/swatch-contracts/internal/contracts")
+        .then()
+        .statusCode(HttpStatus.SC_OK);
   }
 
   @Test
