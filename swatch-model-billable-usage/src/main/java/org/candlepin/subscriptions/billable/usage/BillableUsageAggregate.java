@@ -50,11 +50,11 @@ public class BillableUsageAggregate {
   private OffsetDateTime windowTimestamp;
   private UUID aggregateId;
   private BillableUsageAggregateKey aggregateKey;
-  private Set<OffsetDateTime> snapshotDates = new HashSet<>();
+  @ToString.Exclude private Set<OffsetDateTime> snapshotDates = new HashSet<>();
   private BillableUsage.Status status;
   private BillableUsage.ErrorCode errorCode;
   private OffsetDateTime billedOn;
-  private List<String> remittanceUuids = new ArrayList<>();
+  @ToString.Exclude private List<String> remittanceUuids = new ArrayList<>();
   private String licenseId;
 
   public BillableUsageAggregate updateFrom(BillableUsage billableUsage) {
@@ -80,6 +80,7 @@ public class BillableUsageAggregate {
     }
     totalValue = totalValue.add(BigDecimal.valueOf(billableUsage.getValue()));
     snapshotDates.add(billableUsage.getSnapshotDate());
+    // Complete collections are logged at aggregate boundaries, not on every update.
     log.info(
         "Adding billableUsage: {} to aggregate with aggregateId: {}, "
             + "totalValue:{}, "
@@ -90,7 +91,7 @@ public class BillableUsageAggregate {
         aggregateId,
         totalValue,
         licenseId,
-        remittanceUuids,
+        billableUsage.getUuid() == null ? List.of() : List.of(billableUsage.getUuid()),
         windowTimestamp);
     return this;
   }

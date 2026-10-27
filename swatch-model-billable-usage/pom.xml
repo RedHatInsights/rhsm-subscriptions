@@ -36,6 +36,11 @@
       <artifactId>jackson-databind</artifactId>
     </dependency>
     <dependency>
+      <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-common-logging</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-junit</artifactId>
       <scope>test</scope>
