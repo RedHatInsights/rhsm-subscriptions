@@ -67,7 +67,7 @@ class ExportDelegateImplTest {
                 .stubRequestLoggingDisabled(true)
                 .maxLoggedResponseSize(1000));
     wireMockServer.start();
-    wireMockServer.stubFor(post(urlPathMatching("/app/export/.*")).willReturn(ok()));
+    wireMockServer.stubFor(post(urlPathMatching("/internal/export/.*")).willReturn(ok()));
 
     ClientConfig config =
         new ClientConfig(
@@ -108,7 +108,7 @@ class ExportDelegateImplTest {
     wireMockServer.verify(
         postRequestedFor(
             urlPathMatching(
-                "/app/export/v1/"
+                "/internal/export/v1/"
                     + EXPORT_ID
                     + "/"
                     + APPLICATION

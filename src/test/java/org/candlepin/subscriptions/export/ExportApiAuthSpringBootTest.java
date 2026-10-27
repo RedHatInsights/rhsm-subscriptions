@@ -131,7 +131,7 @@ class ExportApiAuthSpringBootTest {
     }
 
     protected static String errorPath() {
-      return "/app/export/v1/" + EXPORT_ID + "/" + APPLICATION + "/" + RESOURCE_ID + "/error";
+      return "/internal/export/v1/" + EXPORT_ID + "/" + APPLICATION + "/" + RESOURCE_ID + "/error";
     }
 
     protected static void registerExport(DynamicPropertyRegistry registry, String authenticated) {

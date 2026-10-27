@@ -44,13 +44,12 @@ public interface ExtendWithExportServiceWireMock {
   @BeforeEach
   default void resetExportServiceWireMock() {
     EXPORT_SERVICE_WIRE_MOCK_SERVER.resetAll();
-    EXPORT_SERVICE_WIRE_MOCK_SERVER.stubFor(post(urlPathMatching("/app/export/.*")));
+    EXPORT_SERVICE_WIRE_MOCK_SERVER.stubFor(post(urlPathMatching("/internal/export/.*")));
   }
 
   @DynamicPropertySource
   static void registerExportApiProperties(DynamicPropertyRegistry registry) {
     registry.add("rhsm-subscriptions.export-service.uri", EXPORT_SERVICE_WIRE_MOCK_SERVER::baseUrl);
-    registry.add("rhsm-subscriptions.export-service.authenticated", () -> "false");
   }
 
   default void verifyNoRequestsWereSentToExportServiceWithError(
@@ -79,7 +78,7 @@ public interface ExtendWithExportServiceWireMock {
                     postRequestedFor(
                             urlEqualTo(
                                 String.format(
-                                    "/app/export/v1/%s/subscriptions/%s/error",
+                                    "/internal/export/v1/%s/subscriptions/%s/error",
                                     request.getData().getResourceRequest().getExportRequestUUID(),
                                     request.getData().getResourceRequest().getUUID())))
                         .withRequestBody(containing(message))));
@@ -92,7 +91,7 @@ public interface ExtendWithExportServiceWireMock {
         postRequestedFor(
             urlEqualTo(
                 String.format(
-                    "/app/export/v1/%s/subscriptions/%s/upload",
+                    "/internal/export/v1/%s/subscriptions/%s/upload",
                     request.getData().getResourceRequest().getExportRequestUUID(),
                     request.getData().getResourceRequest().getUUID()))));
   }
@@ -106,7 +105,7 @@ public interface ExtendWithExportServiceWireMock {
                     postRequestedFor(
                             urlEqualTo(
                                 String.format(
-                                    "/app/export/v1/%s/subscriptions/%s/upload",
+                                    "/internal/export/v1/%s/subscriptions/%s/upload",
                                     request.getData().getResourceRequest().getExportRequestUUID(),
                                     request.getData().getResourceRequest().getUUID())))
                         .withRequestBody(equalTo(expected))));

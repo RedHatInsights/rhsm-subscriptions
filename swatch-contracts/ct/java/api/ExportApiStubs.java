@@ -26,8 +26,8 @@ import org.apache.http.HttpStatus;
 /** Wiremock stubs for Insights export-service upload and error callbacks. */
 public class ExportApiStubs {
 
-  private static final String UPLOAD_PATH = "/app/export/v1/.*/.*/.*/upload";
-  private static final String ERROR_PATH = "/app/export/v1/.*/.*/.*/error";
+  private static final String UPLOAD_PATH = "/internal/export/v1/.*/.*/.*/upload";
+  private static final String ERROR_PATH = "/internal/export/v1/.*/.*/.*/error";
 
   private final ContractsWiremockService wiremockService;
 

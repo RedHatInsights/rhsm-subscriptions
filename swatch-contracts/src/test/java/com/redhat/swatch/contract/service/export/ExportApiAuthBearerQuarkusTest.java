@@ -99,6 +99,6 @@ class ExportApiAuthBearerQuarkusTest {
   }
 
   private static String errorPath() {
-    return "/app/export/v1/" + EXPORT_ID + "/" + APPLICATION + "/" + RESOURCE_ID + "/error";
+    return "/internal/export/v1/" + EXPORT_ID + "/" + APPLICATION + "/" + RESOURCE_ID + "/error";
   }
 }

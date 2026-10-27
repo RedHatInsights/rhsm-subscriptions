@@ -54,7 +54,7 @@ public class ExportApiAuthWireMockResource implements QuarkusTestResourceLifecyc
                 .stubRequestLoggingDisabled(true)
                 .maxLoggedResponseSize(1000));
     wireMockServer.start();
-    wireMockServer.stubFor(post(urlPathMatching("/app/export/.*")).willReturn(ok()));
+    wireMockServer.stubFor(post(urlPathMatching("/internal/export/.*")).willReturn(ok()));
     String base = wireMockServer.baseUrl();
     return Map.of(
         "EXPORT_SERVICE_ENDPOINT",

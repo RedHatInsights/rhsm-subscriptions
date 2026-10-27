@@ -39,7 +39,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
-@QuarkusTestResource(ExportServiceWireMockResource.class)
+@QuarkusTestResource(value = ExportServiceWireMockResource.class, restrictToAnnotatedClass = true)
 class ExportDelegateImplTest {
 
   private static final UUID EXPORT_ID = UUID.randomUUID();

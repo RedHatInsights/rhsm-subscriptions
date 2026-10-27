@@ -76,7 +76,7 @@ public class ExportServiceWireMockResource implements QuarkusTestResourceLifecyc
 
   public void setup() {
     wireMockServer.resetAll();
-    wireMockServer.stubFor(post(urlPathMatching("/app/export/.*")));
+    wireMockServer.stubFor(post(urlPathMatching("/internal/export/.*")));
   }
 
   public void verifyNoRequestsWereSentToExportServiceWithError(
@@ -86,7 +86,7 @@ public class ExportServiceWireMockResource implements QuarkusTestResourceLifecyc
         postRequestedFor(
             urlEqualTo(
                 String.format(
-                    "/app/export/v1/%s/subscriptions/%s/error",
+                    "/internal/export/v1/%s/subscriptions/%s/error",
                     request.getData().getResourceRequest().getUUID(),
                     request.getData().getResourceRequest().getExportRequestUUID()))));
   }
@@ -100,7 +100,7 @@ public class ExportServiceWireMockResource implements QuarkusTestResourceLifecyc
                     postRequestedFor(
                             urlEqualTo(
                                 String.format(
-                                    "/app/export/v1/%s/subscriptions/%s/error",
+                                    "/internal/export/v1/%s/subscriptions/%s/error",
                                     request.getData().getResourceRequest().getExportRequestUUID(),
                                     request.getData().getResourceRequest().getUUID())))
                         .withRequestBody(containing(message))));
@@ -113,7 +113,7 @@ public class ExportServiceWireMockResource implements QuarkusTestResourceLifecyc
         postRequestedFor(
             urlEqualTo(
                 String.format(
-                    "/app/export/v1/%s/subscriptions/%s/upload",
+                    "/internal/export/v1/%s/subscriptions/%s/upload",
                     request.getData().getResourceRequest().getExportRequestUUID(),
                     request.getData().getResourceRequest().getUUID()))));
   }
@@ -127,7 +127,7 @@ public class ExportServiceWireMockResource implements QuarkusTestResourceLifecyc
                     postRequestedFor(
                             urlEqualTo(
                                 String.format(
-                                    "/app/export/v1/%s/subscriptions/%s/upload",
+                                    "/internal/export/v1/%s/subscriptions/%s/upload",
                                     request.getData().getResourceRequest().getExportRequestUUID(),
                                     request.getData().getResourceRequest().getUUID())))
                         .withHeader("x-rh-exports-psk", equalTo("placeholder"))
@@ -138,7 +138,7 @@ public class ExportServiceWireMockResource implements QuarkusTestResourceLifecyc
     wireMockServer.stubFor(
         post(urlMatching(
                 String.format(
-                    "/app/export/v1/%s/subscriptions/%s/.*",
+                    "/internal/export/v1/%s/subscriptions/%s/.*",
                     request.getData().getResourceRequest().getExportRequestUUID(),
                     request.getData().getResourceRequest().getUUID())))
             .willReturn(status(HttpResponseStatus.GATEWAY_TIMEOUT.code())));
@@ -151,7 +151,7 @@ public class ExportServiceWireMockResource implements QuarkusTestResourceLifecyc
                 wireMockServer.verify(
                     postRequestedFor(
                         urlPathMatching(
-                            "/app/export/v1/"
+                            "/internal/export/v1/"
                                 + exportId
                                 + "/"
                                 + application
