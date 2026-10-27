@@ -7,13 +7,17 @@
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
 
   <changeSet id="202205231334" author="lburnett">
-    <!-- 
-      Only create table if it doesn't exist. If swatch-billable-usage starts first,
-      it will create the table with the consolidated script.
+    <!--
+      Only create if the table is missing and swatch-billable-usage has not started
+      yet (no DATABASECHANGELOG_SWATCH_BILLABLE_USAGE). If billable-usage owns the
+      schema, its consolidated create already builds the full table.
     -->
     <preConditions onFail="MARK_RAN">
       <not>
         <tableExists tableName="billable_usage_remittance"/>
+      </not>
+      <not>
+        <tableExists tableName="databasechangelog_swatch_billable_usage"/>
       </not>
     </preConditions>
     <comment>Create billable_usage_remittance tracking table</comment>
