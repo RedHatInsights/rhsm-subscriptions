@@ -5,13 +5,17 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
   <changeSet id="202504291554-01" author="jcarvaja">
-    <!-- 
-      Only add updated_at column if it doesn't exist. If swatch-billable-usage starts first,
-      the consolidated script already includes this column.
+    <!--
+      Only add updated_at if it doesn't exist and swatch-billable-usage has not started
+      yet (no DATABASECHANGELOG_SWATCH_BILLABLE_USAGE). If billable-usage owns the schema,
+      skip so we do not re-add updated_at after the last_modified cutover.
     -->
     <preConditions onFail="MARK_RAN">
       <not>
         <columnExists tableName="billable_usage_remittance" columnName="updated_at"/>
+      </not>
+      <not>
+        <tableExists tableName="databasechangelog_swatch_billable_usage"/>
       </not>
     </preConditions>
     <comment>Add updated_at column to the billable_usage_remittance table.</comment>
