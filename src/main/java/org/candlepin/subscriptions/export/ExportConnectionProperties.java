@@ -20,22 +20,16 @@
  */
 package org.candlepin.subscriptions.export;
 
-import com.redhat.swatch.clients.ClientConfigMode;
 import java.time.Duration;
 import lombok.Data;
 import lombok.ToString;
 import org.springframework.core.io.Resource;
 
-/**
- * Bound from {@code rhsm-subscriptions.export-service.*} (primary Clowder V2 + shared settings).
- */
 @Data
 public class ExportConnectionProperties {
 
+  /** Used when {@link #authenticated} is false or unset. */
   @ToString.Exclude private String psk;
-
-  /** Clowder endpoint selection: {@code auto}, {@code v1}, or {@code v2}. */
-  private ClientConfigMode endpointMode = ClientConfigMode.AUTO;
 
   /** RESTEasy read timeout for export-service calls. */
   private Duration readTimeout = Duration.ofSeconds(120);

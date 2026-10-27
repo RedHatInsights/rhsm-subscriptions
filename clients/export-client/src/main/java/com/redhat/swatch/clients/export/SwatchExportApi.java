@@ -20,10 +20,8 @@
  */
 package com.redhat.swatch.clients.export;
 
-import com.redhat.swatch.clients.AuthFailureException;
 import com.redhat.swatch.clients.BearerAuthFilter;
 import com.redhat.swatch.clients.ClientConfig;
-import com.redhat.swatch.clients.ClientConnection;
 import com.redhat.swatch.clients.ClientInfo;
 import com.redhat.swatch.clients.ClientProxy;
 import com.redhat.swatch.clients.TokenProvider;
@@ -33,7 +31,6 @@ import com.redhat.swatch.clients.export.api.client.auth.ApiKeyAuth;
 import com.redhat.swatch.clients.export.api.model.DownloadExportErrorRequest;
 import com.redhat.swatch.clients.export.api.resources.ExportApi;
 import jakarta.ws.rs.client.Client;
-import jakarta.ws.rs.core.Response;
 import java.io.File;
 import java.util.Objects;
 import java.util.UUID;
@@ -73,44 +70,27 @@ public class SwatchExportApi extends ExportApi implements ClientInfo {
 
   private void invoke(ClientProxy.Call<ExportApi> call) throws ApiException {
     try {
-      proxy.invoke(
-          api -> {
-            try {
-              call.run(api);
-            } catch (ApiException e) {
-              if (e.getCode() == Response.Status.UNAUTHORIZED.getStatusCode()
-                  || e.getCode() == Response.Status.FORBIDDEN.getStatusCode()) {
-                throw new AuthFailureException(e);
-              }
-              throw e;
-            }
-          });
+      proxy.invoke(call);
     } catch (ApiException e) {
       throw e;
-    } catch (AuthFailureException e) {
-      if (e.getCause() instanceof ApiException apiException) {
-        throw apiException;
-      }
-      throw new ApiException(e);
     } catch (Exception e) {
       throw new ApiException(e);
     }
   }
 
   /**
-   * Builds an {@link ExportApi} for {@code connection}.
+   * Builds an {@link ExportApi} for {@code config}.
    *
-   * <p>Per Clowder V2: {@code authenticated=true} sends a Bearer token and omits PSK; {@code
-   * authenticated=false} or unset (V1) keeps the existing {@code x-rh-exports-psk} flow. Auth
-   * failures are not downgraded to the other mode.
+   * <p>{@code authenticated=true} sends a Bearer token and omits PSK; {@code authenticated=false}
+   * or unset keeps the {@code x-rh-exports-psk} flow.
    */
-  private ExportApi buildExportApi(ClientConnection connection) {
+  private ExportApi buildExportApi(ClientConfig config) {
     ApiClient client = new ApiClient();
-    client.setBasePath(connection.uri());
-    Client httpClient = ClientProxy.buildHttpClient(connection, config.getReadTimeout());
+    client.setBasePath(config.getUri());
+    Client httpClient = ClientProxy.buildHttpClient(config);
     client.setHttpClient(httpClient);
 
-    if (connection.isAuthenticated()) {
+    if (config.isAuthenticated()) {
       httpClient.register(new BearerAuthFilter(tokenProvider));
     } else {
       String psk = config.getPsk();

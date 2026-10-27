@@ -48,7 +48,14 @@ public class ExportServiceWireMockResource implements QuarkusTestResourceLifecyc
   public Map<String, String> start() {
     wireMockServer = startWireMockServer();
     setup();
-    return Map.of("EXPORT_SERVICE_ENDPOINT", wireMockServer.baseUrl());
+    String base = wireMockServer.baseUrl();
+    return Map.of(
+        "EXPORT_SERVICE_ENDPOINT",
+        base,
+        "EXPORT_SERVICE_AUTHENTICATED",
+        "false",
+        "SWATCH_EXPORT_PSK",
+        "placeholder");
   }
 
   @Override

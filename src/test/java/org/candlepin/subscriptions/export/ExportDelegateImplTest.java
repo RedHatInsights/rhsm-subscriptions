@@ -32,7 +32,6 @@ import static org.mockito.Mockito.when;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.redhat.cloud.event.apps.exportservice.v1.ResourceRequestClass;
 import com.redhat.swatch.clients.ClientConfig;
-import com.redhat.swatch.clients.ClientConnection;
 import com.redhat.swatch.clients.export.SwatchExportApi;
 import com.redhat.swatch.export.ExportServiceRequest;
 import com.redhat.swatch.export.api.ExportDelegateImpl;
@@ -74,7 +73,10 @@ class ExportDelegateImplTest {
         new ClientConfig(
             "export-service",
             "placeholder",
-            new ClientConnection("v1", wireMockServer.baseUrl(), null, null, null, null),
+            wireMockServer.baseUrl(),
+            false,
+            null,
+            null,
             null,
             null);
     exportDelegate = new ExportDelegateImpl(new SwatchExportApi(config, () -> "unused"));

@@ -32,9 +32,6 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationModule;
 import com.redhat.cloud.event.parser.ConsoleCloudEventParser;
 import com.redhat.swatch.clients.ClientConfig;
-import com.redhat.swatch.clients.ClientConfigBuilder;
-import com.redhat.swatch.clients.ClientConfigMode;
-import com.redhat.swatch.clients.ClientConnection;
 import com.redhat.swatch.clients.OidcTokenProvider;
 import com.redhat.swatch.clients.TokenProvider;
 import com.redhat.swatch.clients.export.SwatchExportApi;
@@ -63,9 +60,6 @@ public class ExportClientConfiguration {
 
   public static final String EXPORT_SERVICE = "export-service";
 
-  @ConfigProperty(name = "EXPORT_SERVICE_ENDPOINT_MODE", defaultValue = "auto")
-  ClientConfigMode mode;
-
   @ConfigProperty(name = "SWATCH_EXPORT_PSK", defaultValue = "placeholder")
   String psk;
 
@@ -73,57 +67,32 @@ public class ExportClientConfiguration {
   Duration readTimeout;
 
   @ConfigProperty(name = "EXPORT_SERVICE_ENDPOINT")
-  Optional<String> v1Uri;
+  Optional<String> uri;
 
-  @ConfigProperty(
-      name = "clowder.optional-private-endpoints.export-service-service.trust-store-path")
-  Optional<String> v1TrustStorePath;
+  @ConfigProperty(name = "EXPORT_SERVICE_AUTHENTICATED")
+  Optional<String> authenticated;
 
-  @ConfigProperty(
-      name = "clowder.optional-private-endpoints.export-service-service.trust-store-password")
-  Optional<String> v1TrustStorePassword;
+  @ConfigProperty(name = "EXPORT_SERVICE_TRUST_STORE_PATH")
+  Optional<String> trustStorePath;
 
-  @ConfigProperty(
-      name = "clowder.optional-private-endpoints.export-service-service.trust-store-type")
-  Optional<String> v1TrustStoreType;
+  @ConfigProperty(name = "EXPORT_SERVICE_TRUST_STORE_PASSWORD")
+  Optional<String> trustStorePassword;
 
-  @ConfigProperty(name = "EXPORT_SERVICE_V2_URI")
-  Optional<String> v2Uri;
-
-  @ConfigProperty(name = "EXPORT_SERVICE_V2_AUTHENTICATED")
-  Optional<String> v2Authenticated;
-
-  @ConfigProperty(name = "EXPORT_SERVICE_V2_TRUST_STORE_PATH")
-  Optional<String> v2TrustStorePath;
-
-  @ConfigProperty(name = "EXPORT_SERVICE_V2_TRUST_STORE_PASSWORD")
-  Optional<String> v2TrustStorePassword;
-
-  @ConfigProperty(name = "EXPORT_SERVICE_V2_TRUST_STORE_TYPE")
-  Optional<String> v2TrustStoreType;
+  @ConfigProperty(name = "EXPORT_SERVICE_TRUST_STORE_TYPE")
+  Optional<String> trustStoreType;
 
   @Produces
   @ApplicationScoped
   ClientConfig exportServiceClientConfig() {
-    ClientConnection primary =
-        new ClientConnection(
-            "v2",
-            v2Uri.orElse(null),
-            v2TrustStorePath.orElse(null),
-            toPasswordChars(v2TrustStorePassword.orElse(null)),
-            v2TrustStoreType.orElse(null),
-            parseAuthenticated(v2Authenticated.orElse(null)));
-    ClientConnection fallback =
-        new ClientConnection(
-            "v1",
-            v1Uri.orElse(null),
-            v1TrustStorePath.orElse(null),
-            toPasswordChars(v1TrustStorePassword.orElse(null)),
-            v1TrustStoreType.orElse(null),
-            null);
-    return ClientConfigBuilder.with(EXPORT_SERVICE, psk, primary, fallback)
-        .readTimeout(readTimeout)
-        .build(mode);
+    return new ClientConfig(
+        EXPORT_SERVICE,
+        psk,
+        uri.filter(value -> !value.isBlank()).orElse(null),
+        parseAuthenticated(authenticated.orElse(null)),
+        trustStorePath.orElse(null),
+        toPasswordChars(trustStorePassword.orElse(null)),
+        trustStoreType.orElse(null),
+        readTimeout);
   }
 
   @Produces

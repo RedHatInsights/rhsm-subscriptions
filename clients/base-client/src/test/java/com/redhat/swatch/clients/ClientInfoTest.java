@@ -28,35 +28,33 @@ import org.junit.jupiter.api.Test;
 
 class ClientInfoTest {
 
-  private static final ClientConnection FALLBACK =
-      new ClientConnection("v1", "http://v1.example", null, null, null, null);
-
   @Test
-  void describeIncludesAuthenticatedAndRedactsUserInfo() {
-    ClientConnection primary =
-        new ClientConnection(
-            "v2",
-            "https://user:secret@host.example:443/path",
-            "/tmp/ts",
-            "pw".toCharArray(),
-            "JKS",
-            true);
-    ClientConfig config = new ClientConfig("export-service", "psk", primary, FALLBACK, null);
-    ClientInfo info = () -> config;
+  void describeOmitsSecretsAndExposesUriAndAuthenticated() {
+    ClientConfig config =
+        new ClientConfig(
+            "export-service",
+            "psk",
+            "https://user:secret@export.example",
+            true,
+            "/tmp/trust.p12",
+            "password".toCharArray(),
+            "PKCS12",
+            null);
+    ClientInfo client =
+        new ClientInfo() {
+          @Override
+          public ClientConfig getConfig() {
+            return config;
+          }
+        };
 
-    Map<String, Object> description = info.describe();
-
-    assertEquals("export-service", info.name());
-    assertEquals("v2", description.get("current"));
-    @SuppressWarnings("unchecked")
-    Map<String, Object> primaryInfo = (Map<String, Object>) description.get("primary");
-    assertEquals("v2", primaryInfo.get("id"));
-    assertEquals("https://host.example:443/path", primaryInfo.get("uri"));
-    assertEquals(true, primaryInfo.get("authenticated"));
-    assertFalse(primaryInfo.containsKey("trustStorePassword"));
-    @SuppressWarnings("unchecked")
-    Map<String, Object> fallbackInfo = (Map<String, Object>) description.get("fallback");
-    assertEquals("v1", fallbackInfo.get("id"));
-    assertFalse(fallbackInfo.containsKey("authenticated"));
+    Map<String, Object> description = client.describe();
+    assertEquals("https://export.example", description.get("uri"));
+    assertEquals(true, description.get("authenticated"));
+    assertFalse(description.containsKey("psk"));
+    assertFalse(description.containsKey("trustStorePassword"));
+    assertFalse(description.containsKey("fallback"));
+    assertFalse(description.containsKey("primary"));
+    assertFalse(description.containsKey("current"));
   }
 }

@@ -27,7 +27,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import com.redhat.swatch.clients.ClientConfig;
-import com.redhat.swatch.clients.ClientConnection;
 import com.redhat.swatch.clients.TokenProvider;
 import com.redhat.swatch.clients.export.api.client.ApiException;
 import com.redhat.swatch.clients.export.api.model.DownloadExportErrorRequest;
@@ -61,7 +60,7 @@ class SwatchExportApiTest {
 
   @Test
   void testDownloadExportError() {
-    SwatchExportApi client = givenClient(null);
+    SwatchExportApi client = givenClient(false);
     server.stubDownloadExportError(EXPORT_ID, APPLICATION_NAME, RESOURCE_ID);
     try {
       client.downloadExportError(
@@ -74,7 +73,7 @@ class SwatchExportApiTest {
 
   @Test
   void testDownloadExportUpload() throws IOException {
-    SwatchExportApi client = givenClient(null);
+    SwatchExportApi client = givenClient(false);
     server.stubDownloadExportUpload(EXPORT_ID, APPLICATION_NAME, RESOURCE_ID);
     File file = File.createTempFile("export", ".json");
     file.deleteOnExit();
@@ -87,11 +86,11 @@ class SwatchExportApiTest {
   }
 
   @Test
-  void describeExposesCurrentEndpoint() {
-    SwatchExportApi client = givenClient(null);
+  void describeExposesEndpoint() {
+    SwatchExportApi client = givenClient(false);
     assertEquals("export-service", client.name());
     assertEquals("export-service", client.getConfig().getName());
-    assertEquals("v1", client.describe().get("current"));
+    assertEquals(server.baseUrl(), client.describe().get("uri"));
   }
 
   @Test
@@ -130,9 +129,8 @@ class SwatchExportApiTest {
 
   @Test
   void constructorRejectsNullTokenProvider() {
-    ClientConnection connection =
-        new ClientConnection("v2", server.baseUrl(), null, null, null, true);
-    ClientConfig config = new ClientConfig("export-service", PSK, connection, null, null);
+    ClientConfig config =
+        new ClientConfig("export-service", PSK, server.baseUrl(), true, null, null, null, null);
     assertThrows(NullPointerException.class, () -> new SwatchExportApi(config, null));
   }
 
@@ -157,10 +155,9 @@ class SwatchExportApiTest {
   }
 
   private SwatchExportApi givenClient(Boolean authenticated, TokenProvider tokens) {
-    String id = authenticated == null ? "v1" : "v2";
-    ClientConnection connection =
-        new ClientConnection(id, server.baseUrl(), null, null, null, authenticated);
-    ClientConfig config = new ClientConfig("export-service", PSK, connection, null, null);
+    ClientConfig config =
+        new ClientConfig(
+            "export-service", PSK, server.baseUrl(), authenticated, null, null, null, null);
     return new SwatchExportApi(config, tokens);
   }
 }

@@ -47,8 +47,8 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 /**
- * Integration coverage for Clowder V2 export-service auth selection. {@code authenticated} is
- * runtime metadata, so this uses {@link SpringBootTest} rather than component tests.
+ * Integration coverage for export-service auth selection. {@code authenticated} is runtime
+ * metadata, so this uses {@link SpringBootTest} rather than component tests.
  */
 class ExportApiAuthSpringBootTest {
 
@@ -63,8 +63,8 @@ class ExportApiAuthSpringBootTest {
   class AuthenticatedBearer extends AuthCase {
 
     @DynamicPropertySource
-    static void exportServiceV2Authenticated(DynamicPropertyRegistry registry) {
-      registerV2(registry, "true");
+    static void exportServiceAuthenticated(DynamicPropertyRegistry registry) {
+      registerExport(registry, "true");
     }
 
     @Test
@@ -95,8 +95,8 @@ class ExportApiAuthSpringBootTest {
   class UnauthenticatedPsk extends AuthCase {
 
     @DynamicPropertySource
-    static void exportServiceV2Unauthenticated(DynamicPropertyRegistry registry) {
-      registerV2(registry, "false");
+    static void exportServiceUnauthenticated(DynamicPropertyRegistry registry) {
+      registerExport(registry, "false");
     }
 
     @Test
@@ -134,14 +134,10 @@ class ExportApiAuthSpringBootTest {
       return "/app/export/v1/" + EXPORT_ID + "/" + APPLICATION + "/" + RESOURCE_ID + "/error";
     }
 
-    protected static void registerV2(DynamicPropertyRegistry registry, String authenticated) {
+    protected static void registerExport(DynamicPropertyRegistry registry, String authenticated) {
       registry.add(
           "rhsm-subscriptions.export-service.uri", EXPORT_SERVICE_WIRE_MOCK_SERVER::baseUrl);
       registry.add("rhsm-subscriptions.export-service.authenticated", () -> authenticated);
-      registry.add("rhsm-subscriptions.export-service.endpoint-mode", () -> "v2");
-      registry.add(
-          "rhsm-subscriptions.export-service.fallback.url",
-          EXPORT_SERVICE_WIRE_MOCK_SERVER::baseUrl);
     }
   }
 }

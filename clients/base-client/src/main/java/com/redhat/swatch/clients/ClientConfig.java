@@ -22,61 +22,45 @@ package com.redhat.swatch.clients;
 
 import java.time.Duration;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.Getter;
 
-/**
- * Sticky primary/fallback endpoint selection. Starts on {@code primary}; on connectivity failure
- * {@link #tryFallback()} switches once to {@code fallback} for the process lifetime.
- */
+/** Configuration for a single outbound service client. */
+@Getter
 public class ClientConfig {
-  @Getter private final String name;
-  @Getter private final String psk;
-  @Getter private final Duration readTimeout;
-  private final ClientConnection primary;
-  private final ClientConnection fallback;
-  private final AtomicBoolean usingFallback = new AtomicBoolean(false);
 
-  /**
-   * @param name dependency name
-   * @param psk shared PSK
-   * @param primary preferred endpoint
-   * @param fallback optional sticky fallback
-   * @param readTimeout optional RESTEasy read timeout for availability probes
-   */
+  private final String name;
+  private final String psk;
+  private final String uri;
+  private final Boolean authenticated;
+  private final String trustStorePath;
+  private final char[] trustStorePassword;
+  private final String trustStoreType;
+  private final Duration readTimeout;
+
   public ClientConfig(
       String name,
       String psk,
-      ClientConnection primary,
-      ClientConnection fallback,
+      String uri,
+      Boolean authenticated,
+      String trustStorePath,
+      char[] trustStorePassword,
+      String trustStoreType,
       Duration readTimeout) {
     this.name = Objects.requireNonNull(name, "name");
-    this.psk = Objects.requireNonNull(psk, "psk");
-    this.primary = Objects.requireNonNull(primary, "primary");
-    this.fallback = fallback;
+    this.psk = psk;
+    this.uri = uri;
+    this.authenticated = authenticated;
+    this.trustStorePath = trustStorePath;
+    this.trustStorePassword = trustStorePassword;
+    this.trustStoreType = trustStoreType;
     this.readTimeout = readTimeout;
   }
 
-  public ClientConnection current() {
-    return usingFallback.get() && fallback != null ? fallback : primary;
+  public boolean hasUri() {
+    return uri != null && !uri.isBlank();
   }
 
-  public ClientConnection primary() {
-    return primary;
-  }
-
-  public ClientConnection fallback() {
-    return fallback;
-  }
-
-  /**
-   * Advances sticky selection to {@code fallback} when one exists. Returns {@code true} only when
-   * this call performs the switch.
-   */
-  protected boolean tryFallback() {
-    if (fallback == null || !fallback.hasUri()) {
-      return false;
-    }
-    return usingFallback.compareAndSet(false, true);
+  public boolean isAuthenticated() {
+    return Boolean.TRUE.equals(authenticated);
   }
 }
