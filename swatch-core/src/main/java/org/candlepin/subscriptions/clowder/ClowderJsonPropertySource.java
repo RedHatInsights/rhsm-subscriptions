@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions.clowder;
 
+import static org.candlepin.subscriptions.clowder.ClowderTrustStoreConfiguration.CLOWDER_ENDPOINT_STORE_TYPE;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import java.io.IOException;
 import java.net.URI;
@@ -209,27 +211,19 @@ public class ClowderJsonPropertySource extends PropertySource<ClowderJson>
   }
 
   protected String getTruststorePath() {
-    if (trustStoreConfiguration == null) {
-      initializeTrustStoreConfiguration();
-    }
-
-    return trustStoreConfiguration.getPath();
+    return getClowderTrustStoreConfiguration()
+        .map(ClowderTrustStoreConfiguration::getPath)
+        .orElse(null);
   }
 
   protected String getTruststorePassword() {
-    if (trustStoreConfiguration == null) {
-      initializeTrustStoreConfiguration();
-    }
-
-    return trustStoreConfiguration.getPassword();
+    return getClowderTrustStoreConfiguration()
+        .map(ClowderTrustStoreConfiguration::getPassword)
+        .orElse(null);
   }
 
   protected String getTruststoreType() {
-    if (trustStoreConfiguration == null) {
-      initializeTrustStoreConfiguration();
-    }
-
-    return ClowderTrustStoreConfiguration.CLOWDER_ENDPOINT_STORE_TYPE;
+    return getClowderTrustStoreConfiguration().isPresent() ? CLOWDER_ENDPOINT_STORE_TYPE : null;
   }
 
   @Override
@@ -365,8 +359,7 @@ public class ClowderJsonPropertySource extends PropertySource<ClowderJson>
       case "ca-certificate" -> caCertificate;
       case "trust-store-path" -> dependencyTrustStorePath(caCertificate);
       case "trust-store-password" -> dependencyTrustStorePassword(caCertificate);
-      case "trust-store-type" ->
-          caCertificate == null ? null : ClowderTrustStoreConfiguration.CLOWDER_ENDPOINT_STORE_TYPE;
+      case "trust-store-type" -> caCertificate == null ? null : CLOWDER_ENDPOINT_STORE_TYPE;
       default -> null;
     };
   }
@@ -486,16 +479,6 @@ public class ClowderJsonPropertySource extends PropertySource<ClowderJson>
     return topicConfig.get("name");
   }
 
-  private void initializeTrustStoreConfiguration() {
-    Object tlsCAPath = source.getNodeAsString("tlsCAPath");
-    if (tlsCAPath instanceof String tlsCAPathAsString && !tlsCAPathAsString.isBlank()) {
-      trustStoreConfiguration = new ClowderTrustStoreConfiguration(tlsCAPathAsString);
-    } else {
-      throw new IllegalStateException(
-          "Requested tls port for endpoint but did not provide tlsCAPath");
-    }
-  }
-
   public static Object endpointToUrl(
       ClowderJsonPropertySource root, Map<String, Object> endpointConfig) {
     String protocol = "http";
@@ -518,29 +501,37 @@ public class ClowderJsonPropertySource extends PropertySource<ClowderJson>
 
   public static Object endpointToTrustStorePath(
       ClowderJsonPropertySource root, Map<String, Object> endpointConfig) {
-    if (endpointUsesTls(endpointConfig)) {
-      return "file:" + root.getTruststorePath();
+    if (!endpointUsesTls(endpointConfig)) {
+      return null;
     }
 
-    return null;
+    String path = root.getTruststorePath();
+    if (path == null) {
+      log.warn(
+          "Endpoint '{}' uses TLS but tlsCAPath is not configured; trust-store-path unavailable",
+          getEndpointName(endpointConfig));
+      return null;
+    }
+
+    return "file:" + path;
   }
 
   public static Object endpointToTrustStorePassword(
       ClowderJsonPropertySource root, Map<String, Object> endpointConfig) {
-    if (endpointUsesTls(endpointConfig)) {
-      return root.getTruststorePassword();
+    if (!endpointUsesTls(endpointConfig)) {
+      return null;
     }
 
-    return null;
+    return root.getTruststorePassword();
   }
 
   public static Object endpointToTrustStoreType(
       ClowderJsonPropertySource root, Map<String, Object> endpointConfig) {
-    if (endpointUsesTls(endpointConfig)) {
-      return root.getTruststoreType();
+    if (!endpointUsesTls(endpointConfig)) {
+      return null;
     }
 
-    return null;
+    return root.getTruststoreType();
   }
 
   public static boolean endpointUsesTls(Map<String, Object> endpointConfig) {
@@ -687,6 +678,17 @@ public class ClowderJsonPropertySource extends PropertySource<ClowderJson>
         .findFirst()
         .map(configFunction)
         .orElse(null);
+  }
+
+  private Optional<ClowderTrustStoreConfiguration> getClowderTrustStoreConfiguration() {
+    if (trustStoreConfiguration == null) {
+      Object tlsCAPath = source.getNodeAsString("tlsCAPath");
+      if (tlsCAPath instanceof String tlsCAPathAsString && !tlsCAPathAsString.isBlank()) {
+        trustStoreConfiguration = new ClowderTrustStoreConfiguration(tlsCAPathAsString);
+      }
+    }
+
+    return Optional.ofNullable(trustStoreConfiguration);
   }
 
   @SuppressWarnings("unchecked")

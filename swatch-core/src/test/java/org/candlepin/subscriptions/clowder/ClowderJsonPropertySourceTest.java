@@ -162,6 +162,38 @@ class ClowderJsonPropertySourceTest {
   }
 
   @Test
+  void testPrivateEndpointTlsWithoutTlsCaPathReturnsNullTruststore() throws Exception {
+    String json =
+        """
+        {
+          "privateEndpoints": [
+            {
+              "app": "export-service",
+              "hostname": "export-service.svc",
+              "name": "service",
+              "port": 10000,
+              "tlsPort": 10443
+            }
+          ]
+        }
+        """;
+    var source =
+        new ClowderJsonPropertySource(
+            new ClowderJson(
+                new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)),
+                new ObjectMapper()));
+    assertEquals(
+        "https://export-service.svc:10443",
+        source.getProperty("clowder.privateEndpoints.export-service-service.url"));
+    assertNull(
+        source.getProperty("clowder.privateEndpoints.export-service-service.trust-store-path"));
+    assertNull(
+        source.getProperty("clowder.privateEndpoints.export-service-service.trust-store-password"));
+    assertNull(
+        source.getProperty("clowder.privateEndpoints.export-service-service.trust-store-type"));
+  }
+
+  @Test
   void testDependencyEndpointWithoutAuthenticatedFailsClosed() throws Exception {
     String json =
         """
