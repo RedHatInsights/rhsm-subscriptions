@@ -45,7 +45,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * Quarkus wiring: Clowder V2 {@code authenticated=true} → Bearer token (mirrors Spring {@code
+ * Quarkus wiring: {@code authenticated=true} → Bearer (mirrors Spring {@code
  * ExportApiAuthSpringBootTest.AuthenticatedBearer}).
  */
 @QuarkusTest
@@ -99,6 +99,6 @@ class ExportApiAuthBearerQuarkusTest {
   }
 
   private static String errorPath() {
-    return "/app/export/v1/" + EXPORT_ID + "/" + APPLICATION + "/" + RESOURCE_ID + "/error";
+    return "/internal/export/v1/" + EXPORT_ID + "/" + APPLICATION + "/" + RESOURCE_ID + "/error";
   }
 }

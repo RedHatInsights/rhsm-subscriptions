@@ -40,7 +40,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 /**
- * Quarkus wiring: Clowder V2 {@code authenticated=false} → PSK (mirrors Spring {@code
+ * Quarkus wiring: {@code authenticated=false} → PSK (mirrors Spring {@code
  * ExportApiAuthSpringBootTest.UnauthenticatedPsk}).
  */
 @QuarkusTest
@@ -72,6 +72,6 @@ class ExportApiAuthPskQuarkusTest {
   }
 
   private static String errorPath() {
-    return "/app/export/v1/" + EXPORT_ID + "/" + APPLICATION + "/" + RESOURCE_ID + "/error";
+    return "/internal/export/v1/" + EXPORT_ID + "/" + APPLICATION + "/" + RESOURCE_ID + "/error";
   }
 }

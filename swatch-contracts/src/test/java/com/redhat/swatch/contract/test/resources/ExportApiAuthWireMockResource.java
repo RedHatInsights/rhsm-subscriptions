@@ -30,8 +30,8 @@ import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import java.util.Map;
 
 /**
- * WireMock + Clowder V2 export-service config for auth wiring tests. Init arg {@code authenticated}
- * selects Bearer ({@code true}) vs PSK ({@code false}).
+ * WireMock + export-service config for auth wiring tests. Init arg {@code authenticated} selects
+ * Bearer ({@code true}) vs PSK ({@code false}).
  */
 public class ExportApiAuthWireMockResource implements QuarkusTestResourceLifecycleManager {
 
@@ -54,17 +54,13 @@ public class ExportApiAuthWireMockResource implements QuarkusTestResourceLifecyc
                 .stubRequestLoggingDisabled(true)
                 .maxLoggedResponseSize(1000));
     wireMockServer.start();
-    wireMockServer.stubFor(post(urlPathMatching("/app/export/.*")).willReturn(ok()));
+    wireMockServer.stubFor(post(urlPathMatching("/internal/export/.*")).willReturn(ok()));
     String base = wireMockServer.baseUrl();
     return Map.of(
-        "EXPORT_SERVICE_ENDPOINT_MODE",
-        "v2",
-        "EXPORT_SERVICE_V2_URI",
-        base,
-        "EXPORT_SERVICE_V2_AUTHENTICATED",
-        authenticated,
         "EXPORT_SERVICE_ENDPOINT",
         base,
+        "EXPORT_SERVICE_AUTHENTICATED",
+        authenticated,
         "SWATCH_EXPORT_PSK",
         "placeholder");
   }

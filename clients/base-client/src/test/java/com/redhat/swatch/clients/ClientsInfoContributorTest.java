@@ -30,10 +30,10 @@ import org.junit.jupiter.api.Test;
 class ClientsInfoContributorTest {
 
   @Test
-  void toInfoMapsClientDescribePayloads() {
-    ClientConnection connection =
-        new ClientConnection("v1", "http://localhost:10000", null, null, null, null);
-    ClientConfig config = new ClientConfig("export-service", "psk", connection, null, null);
+  void contributesNamedClientDescriptions() {
+    ClientConfig config =
+        new ClientConfig(
+            "export-service", "psk", "http://localhost:10000", false, null, null, null, null);
     ClientInfo client =
         new ClientInfo() {
           @Override
@@ -41,7 +41,6 @@ class ClientsInfoContributorTest {
             return config;
           }
         };
-
     ClientsInfoContributor contributor =
         new ClientsInfoContributor() {
           @Override
@@ -50,11 +49,10 @@ class ClientsInfoContributorTest {
           }
         };
 
-    Map<String, Object> info = contributor.toInfo();
-    assertTrue(info.containsKey("export-service"));
-    assertEquals(ClientsInfoContributor.INFO_SECTION, "dependencies");
+    Map<String, Object> section = contributor.toInfo();
+    assertTrue(section.containsKey("export-service"));
     @SuppressWarnings("unchecked")
-    Map<String, Object> export = (Map<String, Object>) info.get("export-service");
-    assertEquals("v1", export.get("current"));
+    Map<String, Object> exportInfo = (Map<String, Object>) section.get("export-service");
+    assertEquals("http://localhost:10000", exportInfo.get("uri"));
   }
 }

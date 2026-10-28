@@ -24,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 import com.redhat.swatch.clients.ClientConfig;
-import com.redhat.swatch.clients.ClientConnection;
 import com.redhat.swatch.clients.ClientInfo;
 import com.redhat.swatch.clients.export.SwatchExportApi;
 import com.redhat.swatch.clients.export.api.resources.ExportApi;
@@ -34,14 +33,10 @@ class ExportApiClientFactoryTest {
 
   private static final ClientConfig CONFIG =
       new ClientConfig(
-          "export-service",
-          "psk",
-          new ClientConnection("v2", "https://v2.example", null, null, null, true),
-          new ClientConnection("v1", "http://v1.example", null, null, null, null),
-          null);
+          "export-service", "psk", "https://export.example", true, null, null, null, null);
 
   @Test
-  void getObjectReturnsStickyExportApi() {
+  void getObjectReturnsExportApi() {
     ExportApiClientFactory factory = new ExportApiClientFactory(CONFIG, () -> "token");
 
     ExportApi api = factory.getObject();

@@ -12,7 +12,7 @@ info:
   version: 1.0.0
 
 paths:
-  /app/export/v1/{id}/{application}/{resource}/upload:
+  /internal/export/v1/{id}/{application}/{resource}/upload:
     post:
       operationId: downloadExportUpload
       tags:
@@ -48,7 +48,7 @@ paths:
           description: OK
       security:
         - psk: []
-  /app/export/v1/{id}/{application}/{resource}/error:
+  /internal/export/v1/{id}/{application}/{resource}/error:
     post:
       operationId: downloadExportError
       tags:

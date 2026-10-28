@@ -32,7 +32,6 @@ import static org.mockito.Mockito.when;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.redhat.cloud.event.apps.exportservice.v1.ResourceRequestClass;
 import com.redhat.swatch.clients.ClientConfig;
-import com.redhat.swatch.clients.ClientConnection;
 import com.redhat.swatch.clients.export.SwatchExportApi;
 import com.redhat.swatch.export.ExportServiceRequest;
 import com.redhat.swatch.export.api.ExportDelegateImpl;
@@ -68,13 +67,16 @@ class ExportDelegateImplTest {
                 .stubRequestLoggingDisabled(true)
                 .maxLoggedResponseSize(1000));
     wireMockServer.start();
-    wireMockServer.stubFor(post(urlPathMatching("/app/export/.*")).willReturn(ok()));
+    wireMockServer.stubFor(post(urlPathMatching("/internal/export/.*")).willReturn(ok()));
 
     ClientConfig config =
         new ClientConfig(
             "export-service",
             "placeholder",
-            new ClientConnection("v1", wireMockServer.baseUrl(), null, null, null, null),
+            wireMockServer.baseUrl(),
+            false,
+            null,
+            null,
             null,
             null);
     exportDelegate = new ExportDelegateImpl(new SwatchExportApi(config, () -> "unused"));
@@ -106,7 +108,7 @@ class ExportDelegateImplTest {
     wireMockServer.verify(
         postRequestedFor(
             urlPathMatching(
-                "/app/export/v1/"
+                "/internal/export/v1/"
                     + EXPORT_ID
                     + "/"
                     + APPLICATION

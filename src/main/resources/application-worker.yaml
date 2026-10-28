@@ -88,18 +88,12 @@ rhsm-subscriptions:
   host-last-sync-threshold: ${HOST_LAST_SYNC_THRESHOLD:24h}
   export-service:
     psk: ${SWATCH_EXPORT_PSK:placeholder}
-    endpoint-mode: ${CLOWDER_SERVICE_ENDPOINT_MODE:auto}
     read-timeout: ${EXPORT_SERVICE_READ_TIMEOUT:120s}
-    uri: ${clowder.privateDependencyEndpoints.v2.export-service.service.uri:}
-    authenticated: ${clowder.privateDependencyEndpoints.v2.export-service.service.authenticated:}
-    truststore: ${clowder.privateDependencyEndpoints.v2.export-service.service.trust-store-path:}
-    truststore-password: ${clowder.privateDependencyEndpoints.v2.export-service.service.trust-store-password:}
-    truststore-type: ${clowder.privateDependencyEndpoints.v2.export-service.service.trust-store-type:}
-    fallback:
-      url: ${clowder.privateEndpoints.export-service-service.url:http://localhost:10000}
-      truststore: ${clowder.privateEndpoints.export-service-service.trust-store-path:}
-      truststore-password: ${clowder.privateEndpoints.export-service-service.trust-store-password:}
-      truststore-type: ${clowder.privateEndpoints.export-service-service.trust-store-type:}
+    uri: ${EXPORT_SERVICE_ENDPOINT:${clowder.privateDependencyEndpoints.v2.export-service.service.uri:http://localhost:10000}}
+    authenticated: ${EXPORT_SERVICE_AUTHENTICATED:${clowder.privateDependencyEndpoints.v2.export-service.service.authenticated:}}
+    truststore: ${EXPORT_SERVICE_TRUST_STORE_PATH:${clowder.privateDependencyEndpoints.v2.export-service.service.trust-store-path:}}
+    truststore-password: ${EXPORT_SERVICE_TRUST_STORE_PASSWORD:${clowder.privateDependencyEndpoints.v2.export-service.service.trust-store-password:}}
+    truststore-type: ${EXPORT_SERVICE_TRUST_STORE_TYPE:${clowder.privateDependencyEndpoints.v2.export-service.service.trust-store-type:}}
   export:
     tasks:
       topic: ${SUBSCRIPTION_EXPORT_TOPIC}

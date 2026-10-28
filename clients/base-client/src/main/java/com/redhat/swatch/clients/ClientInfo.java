@@ -35,23 +35,14 @@ public interface ClientInfo {
   }
 
   default Map<String, Object> describe() {
+    ClientConfig config = getConfig();
     Map<String, Object> info = new LinkedHashMap<>();
-    info.put("current", getConfig().current().id());
-    info.put("primary", describe(getConfig().primary()));
-    Optional.ofNullable(getConfig().fallback())
-        .ifPresent(fallback -> info.put("fallback", describe(fallback)));
-    return info;
-  }
-
-  private static Map<String, Object> describe(ClientConnection connection) {
-    Map<String, Object> map = new LinkedHashMap<>();
-    map.put("id", connection.id());
-    if (connection.hasUri()) {
-      map.put("uri", parseUri(connection.uri()));
+    if (config.hasUri()) {
+      info.put("uri", parseUri(config.getUri()));
     }
-    Optional.ofNullable(connection.authenticated())
-        .ifPresent(authenticated -> map.put("authenticated", authenticated));
-    return map;
+    Optional.ofNullable(config.getAuthenticated())
+        .ifPresent(authenticated -> info.put("authenticated", authenticated));
+    return info;
   }
 
   private static String parseUri(String raw) {

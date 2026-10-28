@@ -87,10 +87,12 @@ public class ExportServiceWiremock {
   }
 
   private UrlPathPattern downloadExportErrorRequest(UUID id, String application, UUID resource) {
-    return urlPathEqualTo("/app/export/v1/" + id + "/" + application + "/" + resource + "/error");
+    return urlPathEqualTo(
+        "/internal/export/v1/" + id + "/" + application + "/" + resource + "/error");
   }
 
   private UrlPathPattern downloadExportErrorUpload(UUID id, String application, UUID resource) {
-    return urlPathEqualTo("/app/export/v1/" + id + "/" + application + "/" + resource + "/upload");
+    return urlPathEqualTo(
+        "/internal/export/v1/" + id + "/" + application + "/" + resource + "/upload");
   }
 }

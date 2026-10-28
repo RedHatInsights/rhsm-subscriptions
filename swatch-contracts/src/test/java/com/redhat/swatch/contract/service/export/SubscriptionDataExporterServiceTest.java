@@ -83,7 +83,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 @QuarkusTest
-@QuarkusTestResource(ExportServiceWireMockResource.class)
+@QuarkusTestResource(value = ExportServiceWireMockResource.class, restrictToAnnotatedClass = true)
 @QuarkusTestResource(InMemoryMessageBrokerKafkaResource.class)
 class SubscriptionDataExporterServiceTest {
 

@@ -56,11 +56,7 @@ class DependenciesInfoContributorTest {
 
     @SuppressWarnings("unchecked")
     Map<String, Object> exportInfo = (Map<String, Object>) section.get("export-service");
-    assertEquals("v1", exportInfo.get("current"));
     assertFalse(exportInfo.containsKey("trustStorePassword"));
-
-    @SuppressWarnings("unchecked")
-    Map<String, Object> primary = (Map<String, Object>) exportInfo.get("primary");
-    assertEquals("http://localhost:10000", primary.get("uri"));
+    assertEquals("http://localhost:10000", exportInfo.get("uri"));
   }
 }

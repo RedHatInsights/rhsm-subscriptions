@@ -22,17 +22,12 @@ package com.redhat.swatch.clients;
 
 import jakarta.ws.rs.client.Client;
 import java.io.InputStream;
-import java.net.ConnectException;
-import java.net.NoRouteToHostException;
 import java.net.URI;
-import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyStore;
 import java.time.Duration;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import javax.net.ssl.SSLContext;
@@ -41,9 +36,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
 
 /**
- * Sticky-fallback invoker and client cache for a {@link ClientConfig}. Builds typed clients via a
- * service-specific factory; builds optional RESTEasy HTTP clients from {@link ClientConnection}
- * truststore settings.
+ * Lazy client holder for a {@link ClientConfig}. Builds a typed client via a service-specific
+ * factory; builds optional RESTEasy HTTP clients from truststore settings on the config.
  *
  * @param <CLIENT> generated (or hand-written) API client type
  */
@@ -51,10 +45,10 @@ import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
 public class ClientProxy<CLIENT> {
 
   private final ClientConfig config;
-  private final Function<ClientConnection, CLIENT> clientFactory;
-  private final ConcurrentMap<ClientConnection, CLIENT> clients = new ConcurrentHashMap<>();
+  private final Function<ClientConfig, CLIENT> clientFactory;
+  private volatile CLIENT client;
 
-  public ClientProxy(ClientConfig config, Function<ClientConnection, CLIENT> clientFactory) {
+  public ClientProxy(ClientConfig config, Function<ClientConfig, CLIENT> clientFactory) {
     this.config = Objects.requireNonNull(config, "config");
     this.clientFactory = Objects.requireNonNull(clientFactory, "clientFactory");
   }
@@ -63,61 +57,43 @@ public class ClientProxy<CLIENT> {
     return config;
   }
 
-  /**
-   * Runs {@code call} against the current endpoint. On connectivity or auth failure, falls back
-   * once when possible and retries.
-   */
+  /** Runs {@code call} against the configured endpoint. */
   public void invoke(Call<? super CLIENT> call) throws Exception {
-    ClientConnection selection = config.current();
-    try {
-      call.run(clientFor(selection));
-    } catch (Exception ex) {
-      if (!shouldFallback(ex)) {
-        throw ex;
-      }
-
-      boolean switched = config.tryFallback();
-      ClientConnection next = config.current();
-      // Retry if this call switched, or another call already advanced sticky selection.
-      if (!switched && selection.equals(next)) {
-        throw ex;
-      }
-
-      log.warn(
-          "{} {} unavailable, falling back to {}", config.getName(), selection.id(), next.id(), ex);
-      call.run(clientFor(next));
-    }
+    call.run(client());
   }
 
-  /** Returns a cached client for {@code connection}, creating one on first use. */
-  public CLIENT clientFor(ClientConnection connection) {
-    if (connection == null || !connection.hasUri()) {
-      throw new IllegalStateException(
-          "Client '%s' endpoint URI is not configured".formatted(config.getName()));
+  /** Returns the cached client, creating one on first use. */
+  public CLIENT client() {
+    CLIENT existing = client;
+    if (existing != null) {
+      return existing;
     }
-    return clients.computeIfAbsent(connection, this::buildClient);
-  }
-
-  private CLIENT buildClient(ClientConnection connection) {
-    log.info(
-        "Building {} client id={} authenticated={}",
-        config.getName(),
-        connection.id(),
-        connection.authenticated());
-    return clientFactory.apply(connection);
+    synchronized (this) {
+      if (client == null) {
+        if (!config.hasUri()) {
+          throw new IllegalStateException(
+              "Client '%s' endpoint URI is not configured".formatted(config.getName()));
+        }
+        log.info(
+            "Building {} client authenticated={}", config.getName(), config.getAuthenticated());
+        client = clientFactory.apply(config);
+      }
+      return client;
+    }
   }
 
   /**
-   * Builds a RESTEasy {@link Client}, applying the connection truststore when present so callers
-   * can register request filters (e.g. Bearer auth) on a real client instance.
+   * Builds a RESTEasy {@link Client}, applying the config truststore when present so callers can
+   * register request filters (e.g. Bearer auth) on a real client instance.
    */
-  public static Client buildHttpClient(ClientConnection connection, Duration readTimeout) {
+  public static Client buildHttpClient(ClientConfig config) {
     var httpClientBuilder = ResteasyClientBuilder.newBuilder();
+    Duration readTimeout = config.getReadTimeout();
     if (readTimeout != null && !readTimeout.isZero() && !readTimeout.isNegative()) {
       httpClientBuilder =
           httpClientBuilder.readTimeout(readTimeout.toMillis(), TimeUnit.MILLISECONDS);
     }
-    KeyStore trustStore = loadTrustStore(connection);
+    KeyStore trustStore = loadTrustStore(config);
     if (trustStore != null) {
       try {
         TrustManagerFactory trustManagerFactory =
@@ -134,19 +110,19 @@ public class ClientProxy<CLIENT> {
     return httpClientBuilder.build();
   }
 
-  private static KeyStore loadTrustStore(ClientConnection connection) {
-    String path = connection.trustStorePath();
+  private static KeyStore loadTrustStore(ClientConfig config) {
+    String path = config.getTrustStorePath();
     if (path == null || path.isBlank()) {
       return null;
     }
     String type =
-        connection.trustStoreType() == null || connection.trustStoreType().isBlank()
+        config.getTrustStoreType() == null || config.getTrustStoreType().isBlank()
             ? KeyStore.getDefaultType()
-            : connection.trustStoreType();
+            : config.getTrustStoreType();
     try {
       KeyStore keyStore = KeyStore.getInstance(type);
       try (InputStream input = Files.newInputStream(toPath(path))) {
-        char[] password = connection.trustStorePassword();
+        char[] password = config.getTrustStorePassword();
         keyStore.load(input, password == null || password.length == 0 ? null : password);
       }
       return keyStore;
@@ -162,21 +138,7 @@ public class ClientProxy<CLIENT> {
     return Path.of(path);
   }
 
-  private static boolean shouldFallback(Throwable error) {
-    Throwable current = error;
-    while (current != null) {
-      if (current instanceof ConnectException
-          || current instanceof UnknownHostException
-          || current instanceof NoRouteToHostException
-          || current instanceof AuthFailureException) {
-        return true;
-      }
-      current = current.getCause();
-    }
-    return false;
-  }
-
-  /** Operation against a client built for the current {@link ClientConnection}. */
+  /** Operation against the configured client. */
   @FunctionalInterface
   public interface Call<C> {
     void run(C client) throws Exception;

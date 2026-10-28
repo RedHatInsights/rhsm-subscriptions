@@ -21,14 +21,11 @@
 package org.candlepin.subscriptions.export;
 
 import com.redhat.swatch.clients.ClientConfig;
-import com.redhat.swatch.clients.ClientConfigBuilder;
-import com.redhat.swatch.clients.ClientConnection;
 import com.redhat.swatch.clients.TokenProvider;
 import com.redhat.swatch.clients.export.SwatchExportApi;
 import com.redhat.swatch.export.api.ExportDelegate;
 import com.redhat.swatch.export.api.ExportDelegateImpl;
 import java.io.IOException;
-import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
 import org.springframework.boot.context.TypeExcludeFilter;
@@ -57,11 +54,9 @@ public class ExportClientConfiguration {
 
   public static final String EXPORT_API_CLIENT = "exportServiceClientConfig";
   public static final String EXPORT_API_QUALIFIER = "exportApiProperties";
-  public static final String EXPORT_API_FALLBACK_QUALIFIER = "exportApiFallbackProperties";
 
   /**
-   * Primary (Clowder V2) connection plus shared {@code psk} / {@code endpoint-mode}, bound from
-   * {@code rhsm-subscriptions.export-service.*}.
+   * Clowder dependency connection bound from {@code rhsm-subscriptions.export-service.*}.
    *
    * @return export-service properties bound from the property sources
    */
@@ -71,41 +66,18 @@ public class ExportClientConfiguration {
     return new ExportConnectionProperties();
   }
 
-  /**
-   * Clowder fallback connection settings under {@code
-   * rhsm-subscriptions.export-service.fallback.*}.
-   *
-   * @return fallback HTTP client properties bound from the property sources
-   */
-  @Bean(name = EXPORT_API_FALLBACK_QUALIFIER)
-  @ConfigurationProperties(prefix = "rhsm-subscriptions.export-service.fallback")
-  public HttpClientProperties exportServiceFallbackConnectionProperties() {
-    return new HttpClientProperties();
-  }
-
   @Bean(name = EXPORT_API_CLIENT)
   ClientConfig exportServiceConfig(
-      @Qualifier(EXPORT_API_QUALIFIER) ExportConnectionProperties primaryProperties,
-      @Qualifier(EXPORT_API_FALLBACK_QUALIFIER) HttpClientProperties fallbackProperties) {
-    ClientConnection fallback =
-        new ClientConnection(
-            "v1",
-            fallbackProperties.getUrl(),
-            resourcePath(fallbackProperties.getTruststore()),
-            fallbackProperties.getTruststorePassword(),
-            fallbackProperties.getTruststoreType(),
-            null);
-    ClientConnection primary =
-        new ClientConnection(
-            "v2",
-            primaryProperties.getUri(),
-            resourcePath(primaryProperties.getTruststore()),
-            primaryProperties.getTruststorePassword(),
-            primaryProperties.getTruststoreType(),
-            primaryProperties.getAuthenticated());
-    return ClientConfigBuilder.with("export-service", primaryProperties.getPsk(), primary, fallback)
-        .readTimeout(primaryProperties.getReadTimeout())
-        .build(primaryProperties.getEndpointMode());
+      @Qualifier(EXPORT_API_QUALIFIER) ExportConnectionProperties properties) {
+    return new ClientConfig(
+        "export-service",
+        properties.getPsk(),
+        properties.getUri(),
+        properties.getAuthenticated(),
+        resourcePath(properties.getTruststore()),
+        properties.getTruststorePassword(),
+        properties.getTruststoreType(),
+        properties.getReadTimeout());
   }
 
   /**
