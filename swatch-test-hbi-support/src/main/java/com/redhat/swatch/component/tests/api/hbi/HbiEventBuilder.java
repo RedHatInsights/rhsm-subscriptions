@@ -194,6 +194,14 @@ public class HbiEventBuilder {
     profile.setCloudProvider(sp.getCloudProvider());
     profile.setArch(sp.getArch());
     profile.setIsMarketplace(sp.getIsMarketplace());
+
+    // Add conversions if present
+    if (sp.getConversionsActivity() != null) {
+      var conversion = new HbiHostSystemProfile.Conversion();
+      conversion.setActivity(sp.getConversionsActivity());
+      profile.setConversions(conversion);
+    }
+
     return profile;
   }
 }

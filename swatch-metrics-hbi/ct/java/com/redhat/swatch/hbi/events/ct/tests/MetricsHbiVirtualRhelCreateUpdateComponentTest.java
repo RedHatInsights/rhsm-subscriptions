@@ -180,4 +180,38 @@ class MetricsHbiVirtualRhelCreateUpdateComponentTest extends BaseSMHBIComponentT
     // Then: Corresponding SWatch event should be produced
     thenSwatchEventsAppear(MessageValidators.swatchEventEquals(swatchEvent));
   }
+
+  @TestPlanName("metrics-hbi-virtual-TC005")
+  @ParameterizedTest
+  @CsvSource({"created, INSTANCE_CREATED", "updated, INSTANCE_UPDATED"})
+  void shouldDefaultToThreadsPerCoreWhenNeitherThreadsPerCoreNorCpusSet(
+      String hbiEventType, NormalizedEventType swatchEventType) {
+    // Given: A virtual RHEL unmapped guest with neither threads per core nor CPUs set
+    HbiHostCreateUpdateEvent hbiEvent =
+        HbiEventHelper.getRhsmHostEvent(
+            hbiEventType,
+            null,
+            List.of("69"),
+            true,
+            "x86_64",
+            OffsetDateTime.now(ZoneOffset.UTC),
+            "Self-Support",
+            "Development/Test",
+            2,
+            2,
+            null, // No threads per core
+            null, // No CPUs
+            null);
+
+    Event swatchEvent =
+        SwatchEventHelper.createExpectedEvent(
+            hbiEvent, swatchEventType, List.of("69"), Set.of("RHEL for x86"), true, false);
+
+    // When: HBI event is produced to Kafka
+    kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hbiEvent);
+
+    // Then: Corresponding SWatch event should be produced with measurements based on default
+    // threads per core of 2.0
+    thenSwatchEventsAppear(MessageValidators.swatchEventEquals(swatchEvent));
+  }
 }

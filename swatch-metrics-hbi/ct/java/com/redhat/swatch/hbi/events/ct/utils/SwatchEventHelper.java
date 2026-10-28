@@ -29,6 +29,7 @@ import com.redhat.swatch.hbi.events.normalization.NormalizedEventType;
 import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -55,7 +56,8 @@ public class SwatchEventHelper {
       String hypervisorUuid,
       List<String> productIds,
       Set<String> tags,
-      List<Measurement> measurements) {
+      List<Measurement> measurements,
+      boolean conversion) {
     String instanceId = host.getProviderId();
     if (instanceId == null || instanceId.isBlank() || "null".equalsIgnoreCase(instanceId)) {
       instanceId = host.getId().toString();
@@ -83,6 +85,7 @@ public class SwatchEventHelper {
         .withIsVirtual(isVirtual)
         .withIsUnmappedGuest(isUnmappedGuest)
         .withIsHypervisor(isHypervisor)
+        .withConversion(conversion)
         .withMeasurements(measurements);
   }
 
@@ -90,6 +93,24 @@ public class SwatchEventHelper {
     return List.of(
         new Measurement().withMetricId("cores").withValue(cores),
         new Measurement().withMetricId("sockets").withValue(sockets));
+  }
+
+  /**
+   * Build measurements list, excluding suppressed metrics.
+   *
+   * @param cores cores value, or null to suppress
+   * @param sockets sockets value, or null to suppress
+   */
+  private static List<Measurement> buildMeasurementsWithSuppression(
+      Integer cores, Integer sockets) {
+    List<Measurement> measurements = new ArrayList<>();
+    if (cores != null) {
+      measurements.add(new Measurement().withMetricId("cores").withValue(cores.doubleValue()));
+    }
+    if (sockets != null) {
+      measurements.add(new Measurement().withMetricId("sockets").withValue(sockets.doubleValue()));
+    }
+    return measurements;
   }
 
   public static Event createExpectedEvent(
@@ -113,12 +134,37 @@ public class SwatchEventHelper {
     HardwareType hardwareType = determineHardwareType(hasCloudProvider, isVirtualHost);
 
     // 3) Measurements
-    int sockets =
+    Integer sockets =
         computeSockets(sys, isVirtualHost, hasCloudProvider, isUnmappedGuest, isHypervisor, tags);
-    int cores = computeCores(sys, isVirtualHost);
+    Integer cores = computeCores(sys, isVirtualHost);
+
+    // Apply marketplace normalization (forces cores and sockets to 0)
+    if (Boolean.TRUE.equals(sys.getIsMarketplace())) {
+      cores = 0;
+      sockets = 0;
+    }
+
+    // Apply system purpose units normalization (suppresses measurements)
+    String systemPurposeUnits = rhsm != null ? rhsm.getSystemPurposeUnits() : null;
+    if (systemPurposeUnits != null) {
+      switch (systemPurposeUnits) {
+        case "Sockets":
+          cores = null; // Suppress cores when units are set to Sockets
+          break;
+        case "Cores/vCPU":
+          sockets = null; // Suppress sockets when units are set to Cores/vCPU
+          break;
+        default:
+          // Other values don't affect measurements
+          break;
+      }
+    }
 
     // 4) Cloud provider
     CloudProvider cloudProvider = resolveCloudProvider(sys, hasCloudProvider);
+
+    // 5) Conversion (3rd party migration)
+    boolean conversion = Boolean.TRUE.equals(sys.getIs3rdPartyMigrated());
 
     return createSwatchEvent(
         hbiEvent.getHost(),
@@ -134,7 +180,8 @@ public class SwatchEventHelper {
         hypervisorUuid,
         productIds,
         tags,
-        buildMeasurements(cores, sockets));
+        buildMeasurementsWithSuppression(cores, sockets),
+        conversion);
   }
 
   public static Event createExpectedDeletedEvent(
@@ -174,6 +221,7 @@ public class SwatchEventHelper {
         computeSockets(sys, isVirtualHost, hasCloudProvider, isUnmappedGuest, isHypervisor, tags);
     int cores = computeCores(sys, isVirtualHost);
     CloudProvider cloudProvider = resolveCloudProvider(sys, hasCloudProvider);
+    boolean conversion = Boolean.TRUE.equals(sys.getIs3rdPartyMigrated());
 
     return createSwatchEvent(
         lastKnownHbiEvent.getHost(),
@@ -189,7 +237,8 @@ public class SwatchEventHelper {
         hypervisorUuid,
         productIds,
         tags,
-        buildMeasurements(cores, sockets));
+        buildMeasurements(cores, sockets),
+        conversion);
   }
 
   private static Event createExpectedDeletedEventFromUnseenHost(HbiHostDeleteEvent deleteEvent) {

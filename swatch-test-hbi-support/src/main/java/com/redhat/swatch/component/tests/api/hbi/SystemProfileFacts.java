@@ -40,6 +40,7 @@ public final class SystemProfileFacts {
   private final String cloudProvider;
   private final String arch;
   private final Boolean isMarketplace;
+  private final Boolean conversionsActivity;
 
   // Fully-qualified: a bare `@Builder` here would resolve to the nested Builder class below
   // instead of lombok.Builder, since a member type shadows a same-named import in its own body.
@@ -54,7 +55,8 @@ public final class SystemProfileFacts {
       Integer threadsPerCore,
       String cloudProvider,
       String arch,
-      Boolean isMarketplace) {
+      Boolean isMarketplace,
+      Boolean conversionsActivity) {
     this.hostType = hostType;
     this.hypervisorUuid = hypervisorUuid;
     this.infrastructureType = infrastructureType;
@@ -65,6 +67,7 @@ public final class SystemProfileFacts {
     this.cloudProvider = cloudProvider;
     this.arch = arch;
     this.isMarketplace = isMarketplace;
+    this.conversionsActivity = conversionsActivity;
   }
 
   public static Builder builder() {
