@@ -429,13 +429,6 @@ public class TallyWorkerConfiguration {
   }
 
   @Bean
-  @Qualifier("usageDeadLetterTopicProperties")
-  @ConfigurationProperties(prefix = "rhsm-subscriptions.usage-dead-letter.outgoing")
-  public TaskQueueProperties usageDeadLetterTopicProperties() {
-    return new TaskQueueProperties();
-  }
-
-  @Bean
   @Qualifier("usageConsumerFactory")
   ConsumerFactory<String, UsageEvent> usageConsumerFactory(
       KafkaProperties kafkaProperties,
@@ -449,45 +442,10 @@ public class TallyWorkerConfiguration {
   }
 
   @Bean
-  public ProducerFactory<String, String> usageDeadLetterProducerFactory(
-      KafkaProperties kafkaProperties, ObjectMapper objectMapper) {
-    DefaultKafkaProducerFactory<String, String> factory =
-        new DefaultKafkaProducerFactory<>(getProducerProperties(kafkaProperties));
-    factory.setValueSerializer(new JsonSerializer<>(objectMapper));
-    return factory;
-  }
-
-  @Bean
-  public KafkaTemplate<String, String> usageDeadLetterKafkaTemplate(
-      ProducerFactory<String, String> usageDeadLetterProducerFactory,
-      KafkaProperties kafkaProperties) {
-    KafkaTemplate<String, String> kafkaTemplate =
-        new KafkaTemplate<>(usageDeadLetterProducerFactory);
-    kafkaTemplate.setObservationEnabled(kafkaProperties.getTemplate().isObservationEnabled());
-    return kafkaTemplate;
-  }
-
-  @Bean
-  @Qualifier("usageDeadLetterKafkaErrorHandler")
-  public DefaultErrorHandler usageDeadLetterKafkaErrorHandler(
-      KafkaTemplate<String, String> usageDeadLetterKafkaTemplate,
-      @Qualifier("usageDeadLetterTopicProperties") TaskQueueProperties taskQueueProperties) {
-    DeadLetterPublishingRecoverer recoverer =
-        new DeadLetterPublishingRecoverer(
-            usageDeadLetterKafkaTemplate,
-            (r, e) -> new TopicPartition(taskQueueProperties.getTopic(), r.partition()));
-    return new DefaultErrorHandler(
-        recoverer,
-        new FixedBackOff(
-            taskQueueProperties.getRetryBackOffMillis(), taskQueueProperties.getRetryAttempts()));
-  }
-
-  @Bean
   ConcurrentKafkaListenerContainerFactory<String, UsageEvent> kafkaUsageListenerContainerFactory(
       @Qualifier("usageConsumerFactory") ConsumerFactory<String, UsageEvent> consumerFactory,
       KafkaProperties kafkaProperties,
-      KafkaConsumerRegistry registry,
-      @Qualifier("usageDeadLetterKafkaErrorHandler") DefaultErrorHandler deadLetterErrorHandler) {
+      KafkaConsumerRegistry registry) {
 
     var factory = new ConcurrentKafkaListenerContainerFactory<String, UsageEvent>();
     factory.setConsumerFactory(consumerFactory);
@@ -499,7 +457,6 @@ public class TallyWorkerConfiguration {
           .setIdleEventInterval(kafkaProperties.getListener().getIdleEventInterval().toMillis());
     }
     factory.getContainerProperties().setConsumerRebalanceListener(registry);
-    factory.setCommonErrorHandler(deadLetterErrorHandler);
     factory
         .getContainerProperties()
         .setObservationEnabled(kafkaProperties.getTemplate().isObservationEnabled());

@@ -39,6 +39,7 @@ import com.redhat.swatch.component.tests.api.Wiremock;
 import com.redhat.swatch.component.tests.api.db.DatabaseService;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
+import com.redhat.swatch.component.tests.utils.LogsVerifier;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.component.tests.utils.SwatchUtils;
 import com.redhat.swatch.tally.test.model.InstanceData;
@@ -87,6 +88,8 @@ public class BaseTallyComponentTest {
   @SpringBoot(service = "swatch-tally")
   static TallySwatchService service = new TallySwatchService();
 
+  static LogsVerifier logsVerifier;
+
   @Unleash
   static TallyUnleashService unleash = new TallyUnleashService().withSwatchService(service);
 
@@ -109,6 +112,7 @@ public class BaseTallyComponentTest {
     wiremock
         .forRbacAccessControl()
         .stubSubscriptionsAccess(identityHeader, SubscriptionsAccessLevel.GRANTED_ADMIN);
+    logsVerifier = new LogsVerifier(service);
   }
 
   /**

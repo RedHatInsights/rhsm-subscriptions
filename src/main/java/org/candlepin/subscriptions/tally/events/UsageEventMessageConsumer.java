@@ -30,7 +30,6 @@ import org.candlepin.subscriptions.util.SeekableKafkaConsumer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.listener.BatchListenerFailedException;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -50,26 +49,14 @@ public class UsageEventMessageConsumer extends SeekableKafkaConsumer {
       containerFactory = "kafkaUsageListenerContainerFactory")
   public void receive(List<ConsumerRecord<String, UsageEvent>> records) {
     log.info("Received {} usage event(s) from kafka", records.size());
-    for (int i = 0; i < records.size(); i++) {
-      ConsumerRecord<String, UsageEvent> record = records.get(i);
+    for (ConsumerRecord<String, UsageEvent> record : records) {
       UsageEvent event = record.value();
 
       if (event == null) {
-        // Check if this is a deserialization failure vs genuine tombstone
-        // ErrorHandlingDeserializer sets headers with prefix "spring.deserialization."
-        if (record.headers().lastHeader("spring.deserialization.exception") != null) {
-          log.error(
-              "Deserialization failure for record at offset {} on partition {}",
-              record.offset(),
-              record.partition());
-          // Throw to route to dead-letter topic via configured error handler
-          throw new BatchListenerFailedException(
-              "Deserialization failure - routing to dead-letter topic", i);
-        }
-        log.debug("Skipping tombstone usage event");
+        log.debug("Skipping null/tombstone usage event");
         continue;
       }
-      log.debug("Processing usage event with correlation_id: {}", event.getCorrelationId());
+      log.info("Processing usage event for org_id: {}", event.getOrgId());
     }
   }
 }

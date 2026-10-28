@@ -2,11 +2,6 @@ $schema: http://json-schema.org/draft-07/schema#
 title: UsageEvent
 description: Event that represents usage data for a service instance. Contains canonical facts, applicable measurements and timestamp.
 properties:
-  correlation_id:
-    description: Unique identifier to help track and debug this event. Used for correlating related events.
-    type: string
-    examples:
-      - 550e8400-e29b-41d4-a716-446655440000
   org_id:
     description: Organization identifier associated with this event.
     type: string
@@ -21,13 +16,26 @@ properties:
       - RHEL System
       - rosa Instance
       - OpenShift Cluster
-  instance_id:
-    description: >
-      Primary identifier for the instance of the service, according to the event producer. This needs to be unique to instance that created the event.
-    type: string
-    examples:
-      - 1e69ce3d-e9f7-484f-98a3-ccb3c268ade7
-      - i-1eavan31z971235
+  target_host:
+    description: Information about the target host for this usage event.
+    type: object
+    properties:
+      instance_id:
+        description: >
+          Primary identifier for the instance of the service, according to the event producer. This needs to be unique to instance that created the event.
+        type: string
+        examples:
+          - 1e69ce3d-e9f7-484f-98a3-ccb3c268ade7
+          - i-1eavan31z971235
+      display_name:
+        description: >
+          Display name for the target host. This is a human-readable identifier for the host.
+        type: string
+        examples:
+          - host.example.com
+          - my-instance
+    required:
+      - instance_id
   timestamp:
     description: Time that the event happened or the snapshot was captured.
     type: string
@@ -67,8 +75,7 @@ properties:
       - value
       - metric_id
 required:
-  - correlation_id
   - org_id
   - service_type
-  - instance_id
+  - target_host
   - timestamp

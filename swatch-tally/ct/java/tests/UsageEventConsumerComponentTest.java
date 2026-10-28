@@ -33,16 +33,17 @@ import org.junit.jupiter.api.Test;
 
 @Slf4j
 @ComponentTest(name = "swatch-tally")
-class UsageEventConsumerComponentTest {
+class UsageEventConsumerComponentTest extends BaseTallyComponentTest {
 
   @KafkaBridge
   static KafkaBridgeService kafkaBridge = new KafkaBridgeService().subscribeToTopic(USAGE);
 
   @Test
   void shouldConsumeUsageEventFromKafka() throws Exception {
+    String orgId = "test-org-123";
     UsageEvent event =
         UsageEventBuilder.createUsageEvent()
-            .withOrgId("test-org-123")
+            .withOrgId(orgId)
             .withServiceType("RHEL System")
             .withInstanceId("instance-001")
             .withTimestamp(OffsetDateTime.now())
@@ -52,16 +53,21 @@ class UsageEventConsumerComponentTest {
     log.info("Publishing UsageEvent to kafka: {}", event);
     kafkaBridge.produceKafkaMessage(USAGE, event);
     log.info("Successfully sent UsageEvent message to topic: {}", USAGE);
+
+    // Verify the message was consumed by checking logs
+    logsVerifier.assertContains("Received", "usage event(s) from kafka");
+    logsVerifier.assertContains("Processing usage event for org_id: " + orgId);
   }
 
   @Test
   void shouldConsumeMultipleUsageEvents() throws Exception {
+    String orgId = "test-org-456";
     OffsetDateTime now = OffsetDateTime.now();
 
     for (int i = 0; i < 3; i++) {
       UsageEvent event =
           UsageEventBuilder.createUsageEvent()
-              .withOrgId("test-org-456")
+              .withOrgId(orgId)
               .withServiceType("OpenShift Cluster")
               .withInstanceId("cluster-" + i)
               .withTimestamp(now.plusHours(i))
@@ -69,9 +75,13 @@ class UsageEventConsumerComponentTest {
               .build();
 
       kafkaBridge.produceKafkaMessage(USAGE, event);
-      log.info("Published UsageEvent {} with correlation_id: {}", i, event.getCorrelationId());
+      log.info("Published UsageEvent {} for org_id: {}", i, event.getOrgId());
     }
 
     log.info("Successfully sent 3 UsageEvent messages to topic: {}", USAGE);
+
+    // Verify at least one batch of messages was consumed
+    logsVerifier.assertContains("Received", "usage event(s) from kafka");
+    logsVerifier.assertContains("Processing usage event for org_id: " + orgId);
   }
 }
