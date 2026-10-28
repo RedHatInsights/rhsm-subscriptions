@@ -97,7 +97,19 @@ Authorization parity testing between RBACv1 and RBACv2/Kessel across all identit
 
 ---
 
-### 5. [System & Infrastructure](test-plans/system-infrastructure.md)
+### 5. [Usage Event Consumer](test-plans/usage-event-consumer.md)
+
+**Functional Area:** Kafka usage event consumption and message processing
+
+**Test Coverage (2 tests):**
+- Single usage event consumption
+- Multiple usage event consumption
+
+Event ingestion from Kafka topics with message deserialization and batch processing.
+
+---
+
+### 6. [System & Infrastructure](test-plans/system-infrastructure.md)
 
 **Functional Area:** System-level features, integrations, and health checks
 
@@ -130,13 +142,14 @@ Each test file should correspond to a specific test case section in the function
 
 ## Quick Reference
 
-**Total Test Coverage:** 165 tests across 5 functional areas
+**Total Test Coverage:** 167 tests across 6 functional areas
 
 **By Test Count:**
 - Tally Processing Pipeline: 41 tests
 - Tally Reports API: 42 tests
 - Instance Reports API: 40 tests
 - RBAC Authorization: 38 tests
+- Usage Event Consumer: 2 tests
 - System & Infrastructure: 4 tests
 
 **Test File Naming Convention:**

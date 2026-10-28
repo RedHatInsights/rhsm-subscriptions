@@ -25,6 +25,7 @@ import static com.redhat.swatch.component.tests.utils.Topics.USAGE;
 import com.redhat.swatch.component.tests.api.ComponentTest;
 import com.redhat.swatch.component.tests.api.KafkaBridge;
 import com.redhat.swatch.component.tests.api.KafkaBridgeService;
+import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.UsageEventBuilder;
 import java.time.OffsetDateTime;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +40,7 @@ class UsageEventConsumerComponentTest extends BaseTallyComponentTest {
   static KafkaBridgeService kafkaBridge = new KafkaBridgeService().subscribeToTopic(USAGE);
 
   @Test
+  @TestPlanName("usage-consumer-TC001")
   void shouldConsumeUsageEventFromKafka() throws Exception {
     String orgId = "test-org-123";
     UsageEvent event =
@@ -60,6 +62,7 @@ class UsageEventConsumerComponentTest extends BaseTallyComponentTest {
   }
 
   @Test
+  @TestPlanName("usage-consumer-TC002")
   void shouldConsumeMultipleUsageEvents() throws Exception {
     String orgId = "test-org-456";
     OffsetDateTime now = OffsetDateTime.now();
