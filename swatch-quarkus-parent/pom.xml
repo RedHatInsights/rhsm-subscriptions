@@ -21,6 +21,14 @@
   <dependencyManagement>
     <dependencies>
 
+      <dependency>
+        <groupId>com.aayushatharva.brotli4j</groupId>
+        <artifactId>brotli4j-bom</artifactId>
+        <version>1.24.0</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
       <!-- CVE-2026-89425 is fixed in jackson-core 2.22.3. -->
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
