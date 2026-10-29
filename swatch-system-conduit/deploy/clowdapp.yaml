@@ -293,12 +293,12 @@ objects:
             - name: OTEL_METRICS_EXPORTER
               value: ${OTEL_METRICS_EXPORTER}
           livenessProbe:
-            failureThreshold: 3
+            failureThreshold: 5
             httpGet:
               path: /health/liveness
               port: 9000
               scheme: HTTP
-            initialDelaySeconds: 15
+            initialDelaySeconds: 60
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
