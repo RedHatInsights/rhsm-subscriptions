@@ -212,7 +212,7 @@ public class ContractsWiremockService extends WiremockService {
                 "response",
                 Map.of("status", 500),
                 "priority",
-                9,
+                10,
                 "metadata",
                 getMetadataTags()))
         .when()

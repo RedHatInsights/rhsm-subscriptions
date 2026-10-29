@@ -1,6 +1,6 @@
 # Introduction
 
-The **swatch-billable-usage** service is a core billing component within the Subscription Watch (SWATCH) platform. It consumes tally summaries, applies contract coverage and billing factors, maintains a remittance ledger to prevent double-billing, emits billable usage events to Kafka, aggregates usage into hourly windows, and processes marketplace status feedback.
+The **swatch-billable-usage** service is a core billing component within the Subscription Watch (SWATCH) platform. It consumes tally summaries, applies contract coverage and billing factors, maintains remittance records to prevent double-billing, emits billable usage events to Kafka, aggregates usage into hourly windows, and processes marketplace status feedback.
 
 This document defines the **component-level test plan** for `swatch-billable-usage`.
 
@@ -177,29 +177,31 @@ Java component tests in `ContractCoverageComponentTest` (`swatch-billable-usage/
 
 **billable-usage-contract-coverage-TC002 - Contract fully covers usage (zero remittance)**
 
-- **Description:** Verify when contract value ≥ current_total, remittance value is 0.  
+- **Description:** Verify when contract value ≥ current_total, remittance value is 0 and prepaid usage is booked as `COVERED`.  
 - **Setup:**  
   - ROSA contract with metric value 10  
   - Tally `current_total` = 4
 - **Action:**  
   - Publish tally summary
 - **Verification:**  
-  - Remittance API returns `remittedValue` = 0
+  - Remittance API returns overage `remittedValue` = 0  
+  - Monthly remittance includes `COVERED` sum = 4
 - **Expected Result:**  
-  - Applicable usage floored at zero
+  - Applicable usage floored at zero; COVERED remittance records prepaid consumption
 
 **billable-usage-contract-coverage-TC003 - Contract partially covers usage**
 
-- **Description:** Verify only usage above contract amount is remitted.  
+- **Description:** Verify only usage above contract amount is remitted and prepaid capacity is booked as `COVERED`.  
 - **Setup:**  
   - ROSA contract metric value = 3 (billable units)  
   - Tally `current_total` = 4 Instance-hours
 - **Action:**  
   - Publish tally summary
 - **Verification:**  
-  - Remittance `remitted_pending_value` = 1 (delta after contract conversion)
+  - Remittance `remitted_pending_value` = 1 (delta after contract conversion)  
+  - Monthly `COVERED` sum = 3
 - **Expected Result:**  
-  - Contract subtracted before remittance delta calculation
+  - Contract subtracted before remittance delta calculation; COVERED records absorbed capacity
 
 **billable-usage-contract-coverage-TC004 - Contract with no metrics still allows billing**
 
@@ -359,7 +361,7 @@ Java component tests in `ContractCoverageComponentTest` (`swatch-billable-usage/
 
 **billable-usage-contract-coverage-TC015 - Monthly account remittance splits by licenseId**
 
-- **Description:** Verify aggregated `accountRemittances` returns one row per `licenseId` while the monthly total across rows is unchanged when a second licensed contract is introduced before a follow-up tally in the same accumulation period.  
+- **Description:** Verify aggregated `accountRemittances` returns one **remitted** row per `licenseId` while the monthly remitted total across rows is unchanged when a second licensed contract is introduced before a follow-up tally in the same accumulation period.  
 - **Setup:**  
   - One ROSA contract (`licenseA`) with coverage = 2 Instance-hours
 - **Action:**  
@@ -367,12 +369,39 @@ Java component tests in `ContractCoverageComponentTest` (`swatch-billable-usage/
   - Add a second ROSA contract (`licenseB`, newer agreement; combined coverage with `licenseA` = 4 Instance-hours)  
   - Publish second tally summary with `current_total` = 6 in the same accumulation period (additional overage 1 on `licenseB`)
 - **Verification:**  
-  - Monthly `accountRemittances` returns one row for `licenseA` with `remittedValue` = 1 after the first tally  
-  - Monthly `accountRemittances` returns two rows (one per `licenseId`) after the second tally  
-  - Each row has `remittedValue` = 1 for its license  
-  - Sum of monthly `remittedValue` = 2
+  - Monthly remitted `accountRemittances` returns one row for `licenseA` with `remittedValue` = 1 after the first tally  
+  - Monthly remitted `accountRemittances` returns two rows (one per `licenseId`) after the second tally  
+  - Each remitted row has `remittedValue` = 1 for its license  
+  - Sum of monthly remitted `remittedValue` = 2
 - **Expected Result:**  
   - Per-license monthly attribution without changing the total remitted amount
+
+**billable-usage-contract-coverage-TC016 - Monthly account remittance exposes COVERED status**
+
+- **Description:** Verify that when prepaid contract capacity fully covers usage, the monthly remittance API returns a row with `remittanceStatus=covered` for the consumed prepaid capacity.
+- **Setup:**
+  - ROSA contract with Instance-hours coverage 10 and a known `licenseId`
+  - Tally `current_total` = 4
+- **Action:**
+  - Publish tally summary
+- **Verification:**
+  - Monthly `accountRemittances` includes a row with `remittanceStatus=covered`, `remittedValue=4`, and the contract `licenseId`
+  - Remitted remittance sum is 0
+- **Expected Result:**
+  - `COVERED` status is visible via the admin remittance API
+
+**billable-usage-contract-coverage-TC017 - COVERED remittance grows while usage stays prepaid**
+
+- **Description:** Verify successive tallies under stable prepaid coverage raise the `COVERED` remittance total and never emit overage.
+- **Setup:**
+  - ROSA Instance-hours coverage 100 with a known `licenseId`
+- **Action:**
+  - Publish tally `current_total=40`, then `current_total=90`
+- **Verification:**
+  - After first tally: `COVERED` = 40, overage = 0
+  - After second tally: `COVERED` = 90, overage = 0
+- **Expected Result:**
+  - COVERED remittance tracks month-to-date prepaid usage without marketplace publish
 
 ---
 
@@ -429,8 +458,6 @@ These scenarios verify that contract coverage applies independently to managed a
 
 ## Contract Adjustment Remittance
 
-Java component tests in `ContractAdjustmentComponentTest` (`swatch-billable-usage/ct`); each test uses `@TestPlanName("billable-usage-contract-adjustment-TC00N")`. Mid-month contract changes are stubbed via Wiremock; expected remittance values use `BillableUsageRemittanceExpectations`.
-
 **billable-usage-contract-adjustment-TC001 - Remove contract mid-month**
 
 - **Description:** Verify removing a contract mid-month does not change remittance already recorded; additional usage after contract restore applies the adjustment formula.
@@ -463,6 +490,143 @@ Java component tests in `ContractAdjustmentComponentTest` (`swatch-billable-usag
   - Phase 4 remittance matches combined-contract adjustment formula
 - **Expected Result:**
   - Cores: initial 60, final 64; Instance-hours: initial 90, final 391
+
+**billable-usage-contract-adjustment-TC003 - Empty-metric newest contract remits only post-switch overage**
+
+- **Description:** When month-to-date usage was fully covered and the contracts API later returns only a newer contract with **empty metrics** (capacity 0), prior covered usage is not remitted again. Only the post-switch overage is remitted under the new `licenseId`.
+- **Setup:**
+  - ROSA Instance-hours only
+  - Phase 1 stub: prepaid license, coverage 1000 billable units
+  - Phase 2 stub: only `license-new` with empty metrics
+- **Action:**
+  - Phase 1: Publish tally `current_total=100` → overage remittance 0, `COVERED` 100
+  - Phase 2: Stub only the empty-metric new license
+  - Phase 3: Publish increment 5 with `current_total=105`
+- **Verification:**
+  - Remittance equals **5** under `license-new`
+  - Prior covered month-to-date (**100**) is not remitted
+- **Expected Result:**
+  - No full-month to date catch-up; only post-switch overage under the new license
+
+**billable-usage-contract-adjustment-TC004 - Restored coverage books COVERED again after overage**
+
+- **Description:** Same as TC003 through the empty-metric overage, then a later contract restores prepaid capacity. Further month-to-date growth under that coverage is booked as `COVERED`; prior overage remittance is unchanged.
+- **Setup:**
+  - ROSA Instance-hours only
+  - Phase 1 stub: prepaid license, coverage 1000 billable units
+  - Phase 2 stub: only `license-new` with empty metrics
+  - Phase 3 stub: `license-restored` with coverage 1000 billable units
+- **Action:**
+  - Phase 1: Publish tally `current_total=100` → overage 0, `COVERED` 100
+  - Phase 2: Stub only the empty-metric new license
+  - Phase 3: Publish increment 5 with `current_total=105` → overage **5** under `license-new`
+  - Phase 4: Stub restored coverage contract; publish increment 15 with `current_total=120`
+- **Verification:**
+  - After phase 3: overage **5** under `license-new`; `COVERED` sum remains **100**
+  - After phase 4: overage still **5**; `COVERED` sum is **115** (`min(120, coverage) − remitted`)
+- **Expected Result:**
+  - Restored live coverage books additional `COVERED` without rewriting prior overage
+
+**billable-usage-contract-adjustment-TC005 - Prior overage then empty metrics remits only delta**
+
+- **Description:** After overage was remitted under prepaid coverage, an empty-metric contract remits only usage above the existing COVERED remittance, not the full month-to-date.
+- **Setup:**
+  - ROSA Instance-hours only
+  - Phase 1 stub: prepaid license, coverage 50
+  - Phase 2 stub: only `license-new` with empty metrics
+- **Action:**
+  - Phase 1: Publish tally `current_total=80` → `COVERED` 50, overage 30
+  - Phase 2: Stub empty-metric license; publish `current_total=95`
+- **Verification:**
+  - Additional overage **15** under `license-new`
+  - `COVERED` sum remains **50**
+  - Total overage remittance **45**
+- **Expected Result:**
+  - Prepaid 50 is not republished; only the delta above COVERED is remitted
+
+**billable-usage-contract-adjustment-TC006 - Smaller replacement keeps prior COVERED remittance**
+
+- **Description:** When a smaller contract replaces a larger one, previously covered usage is not remitted; only usage above the prior COVERED remittance is billed.
+- **Setup:**
+  - ROSA Instance-hours only
+  - Phase 1 stub: prepaid license, coverage 100
+  - Phase 2 stub: `license-new`, coverage 40
+- **Action:**
+  - Phase 1: Publish tally `current_total=80` → `COVERED` 80, overage 0
+  - Phase 2: Stub smaller coverage; re-tally at `current_total=80`
+  - Phase 3: Publish `current_total=90`
+- **Verification:**
+  - After phase 2: overage still **0**; `COVERED` remains **80**
+  - After phase 3: overage **10** under `license-new`
+- **Expected Result:**
+  - Effective coverage uses `max(live coverage, prior COVERED)`; no catch-up of prepaid usage
+
+**billable-usage-contract-adjustment-TC007 - Post empty-metric catch-up remits only new overage**
+
+- **Description:** After an empty-metric switch remitted a small overage above COVERED, the next tally remits only the new month-to-date growth.
+- **Setup:**
+  - ROSA Instance-hours only
+  - Phase 1 stub: prepaid license, coverage 1000
+  - Phase 2 stub: only `license-new` with empty metrics
+- **Action:**
+  - Phase 1: Publish tally `current_total=80` → `COVERED` 80
+  - Phase 2: Stub empty-metric license; publish `current_total=85` → overage 5
+  - Phase 3: Publish `current_total=100`
+- **Verification:**
+  - After phase 2: overage **5** under `license-new`
+  - After phase 3: total overage **20**; additional send **15**
+  - `COVERED` sum remains **80**
+- **Expected Result:**
+  - Later tallies look like normal increments; prepaid stays in COVERED remittances
+
+**billable-usage-contract-adjustment-TC008 - Empty metrics with unchanged usage remits nothing**
+
+- **Description:** An empty-metric contract with no new consumption does not publish; restoring coverage later still remits nothing when usage is unchanged.
+- **Setup:**
+  - ROSA Instance-hours only
+  - Phase 1 stub: prepaid license, coverage 100
+  - Phase 2 stub: only `license-new` with empty metrics
+  - Phase 3 stub: `license-restored`, coverage 100
+- **Action:**
+  - Phase 1: Publish tally `current_total=80` → `COVERED` 80
+  - Phase 2: Stub empty-metric license; re-tally at `current_total=80`
+  - Phase 3: Stub restored coverage; re-tally at `current_total=80`
+- **Verification:**
+  - After phases 2 and 3: overage **0**; `COVERED` remains **80**
+- **Expected Result:**
+  - No catch-up when usage is unchanged under empty metrics or restored coverage
+
+**billable-usage-contract-adjustment-TC009 - Contracts API error leaves no COVERED remittance**
+
+- **Description:** A failed coverage call skips the tally with no COVERED remittance; a later empty-metric success remits full month-to-date.
+- **Setup:**
+  - ROSA Instance-hours only
+  - Phase 1 stub: contracts API returns 500
+  - Phase 2 stub: only `license-new` with empty metrics
+- **Action:**
+  - Phase 1: Publish tally `current_total=40` → skip
+  - Phase 2: Stub empty-metric license; publish `current_total=80`
+- **Verification:**
+  - After phase 1: overage **0**; no COVERED remittance
+  - After phase 2: overage **80** under `license-new`
+- **Expected Result:**
+  - No COVERED remittance is invented for usage never confirmed as covered
+
+**billable-usage-contract-adjustment-TC010 - Failed overage retry keeps COVERED**
+
+- **Description:** A FAILED overage remittance is excluded from already-remitted and retried; COVERED remittances are not published with that retry.
+- **Setup:**
+  - ROSA Instance-hours only
+  - Prepaid license, coverage 50
+- **Action:**
+  - Phase 1: Publish tally `current_total=80` → `COVERED` 50, overage 30
+  - Phase 2: Mark overage remittance FAILED via status topic
+  - Phase 3: Re-tally at `current_total=80`
+- **Verification:**
+  - After phase 3: another overage emit of **30**
+  - `COVERED` sum remains **50**
+- **Expected Result:**
+  - Overage is retried once; COVERED remittances stay unchanged
 
 ---
 
@@ -524,7 +688,7 @@ Java component tests in `ContractAdjustmentComponentTest` (`swatch-billable-usag
   - Both remittances reach `SUCCEEDED`  
   - Both remittances have `licenseId=B`  
 - **Expected Result:**  
-  - Remittance ledger matches the license actually used for AWS metering
+  - Remittance records match the license actually used for AWS metering
 
 **billable-usage-status-TC002 - Null status licenseId clears remittance license**
 

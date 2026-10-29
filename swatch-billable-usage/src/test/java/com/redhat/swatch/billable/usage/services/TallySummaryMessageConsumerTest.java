@@ -32,6 +32,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
+import com.redhat.swatch.billable.usage.data.RemittanceStatus;
 import com.redhat.swatch.billable.usage.kafka.InMemoryMessageBrokerKafkaResource;
 import com.redhat.swatch.billable.usage.model.TallyMeasurement;
 import com.redhat.swatch.billable.usage.model.TallySnapshot;
@@ -135,7 +136,8 @@ class TallySummaryMessageConsumerTest {
     whenSendSnapshots();
 
     // 48 because the contract limit was 32, so 80 - 32 = 48.
-    thenRemittanceIsCreatedWithPendingValue(48.0);
+    thenRemittanceIsCreatedWithStatus(RemittanceStatus.PENDING, 48.0);
+    thenRemittanceIsCreatedWithStatus(RemittanceStatus.COVERED, 32.0);
     thenRemittanceIsEmitted();
   }
 
@@ -203,15 +205,20 @@ class TallySummaryMessageConsumerTest {
     source.send(new TallySummary().withOrgId(ORG_ID).withTallySnapshots(snapshots));
   }
 
-  private void thenRemittanceIsCreatedWithPendingValue(double expected) {
-    Awaitility.await().untilAsserted(() -> verifyRemittanceIsCreatedWithPendingValue(expected));
+  private void thenRemittanceIsCreatedWithStatus(RemittanceStatus expectedStatus, double expected) {
+    Awaitility.await()
+        .untilAsserted(() -> verifyRemittanceIsCreatedWithStatus(expectedStatus, expected));
   }
 
   @Transactional
-  public void verifyRemittanceIsCreatedWithPendingValue(double expected) {
-    var remittances = usageRemittanceRepository.listAll();
+  public void verifyRemittanceIsCreatedWithStatus(
+      RemittanceStatus expectedStatus, double expected) {
+    var remittances =
+        usageRemittanceRepository.listAll().stream()
+            .filter(remittance -> remittance.getStatus() == expectedStatus)
+            .toList();
     assertEquals(1, remittances.size());
-    assertEquals(expected, remittances.get(0).getRemittedPendingValue());
+    assertEquals(expected, remittances.getFirst().getRemittedPendingValue());
   }
 
   private void thenSnapshotsAreConsumed() {

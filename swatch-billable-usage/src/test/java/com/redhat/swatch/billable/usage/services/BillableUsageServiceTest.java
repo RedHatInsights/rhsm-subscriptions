@@ -29,14 +29,18 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceEntity;
+import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceFilter;
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
 import com.redhat.swatch.billable.usage.data.RemittanceStatus;
+import com.redhat.swatch.billable.usage.data.RemittanceSummaryProjection;
 import com.redhat.swatch.clients.contracts.api.model.Contract;
 import com.redhat.swatch.clients.contracts.api.model.Metric;
 import com.redhat.swatch.clients.contracts.api.resources.ApiException;
@@ -354,10 +358,15 @@ class BillableUsageServiceTest {
         arguments(MetricIdUtils.getInstanceHours(), 90.0, 391.0));
   }
 
-  /** BillableUsage snapshotDate is overwritten during processing; reset for remittance lookup. */
   private double getAccountRemitted(BillableUsage usage) {
     usage.setSnapshotDate(CLOCK.startOfCurrentMonth());
-    return service.getTotalRemitted(usage);
+    return remittanceRepo
+        .getRemittanceSummaries(BillableUsageRemittanceFilter.totalRemittedFilter(usage))
+        .stream()
+        .filter(summary -> !RemittanceStatus.FAILED.equals(summary.getStatus()))
+        .filter(summary -> !RemittanceStatus.COVERED.equals(summary.getStatus()))
+        .mapToDouble(RemittanceSummaryProjection::getTotalRemittedPendingValue)
+        .sum();
   }
 
   // Simulates progression through contract billing.
@@ -581,22 +590,72 @@ class BillableUsageServiceTest {
   }
 
   @Test
-  // See SWATCH-2494
-  void testGetTotalRemittedConsidersAllStatuses() {
+  void testFailedAndCoveredExcludedFromAlreadyRemittedOverage() throws Exception {
     OffsetDateTime startOfUsage = CLOCK.startOfCurrentMonth().plusDays(4);
+    BillableUsage usage = givenInstanceHoursUsageForRosa(startOfUsage, 130.0, 130.0);
 
-    BillableUsage usage = givenInstanceHoursUsageForRosa(0.0);
     givenExistingRemittanceForUsage(usage, startOfUsage, 1.0, RemittanceStatus.SUCCEEDED);
     givenExistingRemittanceForUsage(usage, startOfUsage.plusDays(2), 5.0, RemittanceStatus.PENDING);
-
-    // failed remittances should be excluded
     givenExistingRemittanceForUsage(usage, startOfUsage.plusDays(4), 10.0, RemittanceStatus.FAILED);
     givenExistingRemittanceForUsage(usage, startOfUsage.plusDays(4), 30.0, RemittanceStatus.FAILED);
-    // null status should be included
+    givenExistingRemittanceForUsage(
+        usage, startOfUsage.plusDays(4), 100.0, RemittanceStatus.COVERED);
     givenExistingRemittanceForUsage(usage, startOfUsage.plusDays(4), 20.0, null);
 
-    var result = service.getTotalRemitted(usage);
-    assertEquals(26.0, result);
+    setSubscriptionDefinitionRegistry(mockSubscriptionDefinitionRegistry);
+    stubSubscriptionDefinition(usage.getProductId(), usage.getMetricId(), 1.0, true);
+    Contract zeroCapacity = contractWithCoverage(usage, 0);
+    zeroCapacity.setStartDate(startOfUsage.minusDays(1));
+    givenExistingContractForUsage(zeroCapacity, usage);
+
+    service.submitBillableUsage(usage);
+
+    thenRemittanceIsUpdated(usage, startOfUsage, 4.0, RemittanceStatus.PENDING);
+  }
+
+  @Test
+  void testCoveredPreventsCatchUpWhenLiveCoverageDrops() throws Exception {
+    OffsetDateTime usageDate = CLOCK.startOfCurrentMonth().plusDays(10);
+    BillableUsage usage = givenInstanceHoursUsageForRosa(usageDate, 105.0, 105.0);
+
+    givenExistingRemittanceForUsage(usage, usageDate.minusDays(5), 100.0, RemittanceStatus.COVERED);
+
+    setSubscriptionDefinitionRegistry(mockSubscriptionDefinitionRegistry);
+    stubSubscriptionDefinition(usage.getProductId(), usage.getMetricId(), 1.0, true);
+
+    Contract zeroCapacity = contractWithCoverage(usage, 0);
+    zeroCapacity.setStartDate(usageDate.minusHours(1));
+    zeroCapacity.setLicenseId("license-new");
+    givenExistingContractForUsage(zeroCapacity, usage);
+
+    service.submitBillableUsage(usage);
+
+    thenRemittanceIsUpdated(usage, usageDate, 5.0, RemittanceStatus.PENDING, "license-new");
+    thenUsageIsSent(usage, 5.0, "license-new");
+  }
+
+  @Test
+  void testCoveredBookedWhenTallyAlsoRemitsOverage() throws Exception {
+    OffsetDateTime usageDate = CLOCK.startOfCurrentMonth().plusDays(10);
+    BillableUsage usage = givenInstanceHoursUsageForRosa(usageDate, 130.0, 130.0);
+
+    givenExistingRemittanceForUsage(usage, usageDate.minusDays(5), 40.0, RemittanceStatus.COVERED);
+
+    setSubscriptionDefinitionRegistry(mockSubscriptionDefinitionRegistry);
+    stubSubscriptionDefinition(usage.getProductId(), usage.getMetricId(), 1.0, true);
+    givenExistingContractForUsage(contractWithCoverage(usage, 100), usage);
+
+    service.submitBillableUsage(usage);
+
+    // Overage 30 and prepaid slice under coverage: min(130,100) - 40 - 0 = 60 COVERED
+    thenRemittanceIsUpdated(usage, usageDate, 30.0, RemittanceStatus.PENDING);
+    verify(remittanceRepo, atLeastOnce())
+        .persistAndFlush(
+            argThat(
+                remittance ->
+                    RemittanceStatus.COVERED.equals(remittance.getStatus())
+                        && remittance.getRemittedPendingValue() == 60.0));
+    thenUsageIsSent(usage, 30.0);
   }
 
   static Stream<Arguments> remittanceBillingFactorParameters() {
@@ -834,7 +893,12 @@ class BillableUsageServiceTest {
     service.submitBillableUsage(usage);
 
     if (expectedRemitted == 0.0) {
-      verify(remittanceRepo, times(0)).persistAndFlush(any());
+      verify(remittanceRepo, never())
+          .persistAndFlush(
+              argThat(
+                  remittance ->
+                      remittance.getStatus() != RemittanceStatus.COVERED
+                          && remittance.getRemittedPendingValue() > 0));
     } else {
       thenRemittanceIsUpdated(usage, usageDate, expectedRemitted, null);
     }
@@ -931,10 +995,13 @@ class BillableUsageServiceTest {
       double expectedRemittedPendingValue,
       RemittanceStatus expectedStatus,
       String expectedLicenseId) {
-    verify(remittanceRepo)
+    verify(remittanceRepo, atLeastOnce())
         .persistAndFlush(
             argThat(
                 remittance -> {
+                  if (RemittanceStatus.COVERED.equals(remittance.getStatus())) {
+                    return false;
+                  }
                   assertEquals(usage.getTallyId(), remittance.getTallyId());
                   assertEquals(usage.getProductId(), remittance.getProductId());
                   assertEquals(
