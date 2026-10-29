@@ -27,6 +27,7 @@ import org.candlepin.subscriptions.json.TargetHost;
 import org.candlepin.subscriptions.json.UsageEvent;
 
 public class UsageEventBuilder {
+  private String eventRecordId;
   private String orgId;
   private String serviceType;
   private String instanceId;
@@ -39,11 +40,17 @@ public class UsageEventBuilder {
 
   public static UsageEventBuilder createUsageEvent() {
     UsageEventBuilder builder = new UsageEventBuilder();
+    builder.eventRecordId = UUID.randomUUID().toString();
     builder.orgId = RandomUtils.generateRandom();
     builder.serviceType = "RHEL System";
     builder.instanceId = UUID.randomUUID().toString();
     builder.timestamp = OffsetDateTime.now();
     return builder;
+  }
+
+  public UsageEventBuilder withEventRecordId(String eventRecordId) {
+    this.eventRecordId = eventRecordId;
+    return this;
   }
 
   public UsageEventBuilder withOrgId(String orgId) {
@@ -91,6 +98,9 @@ public class UsageEventBuilder {
 
   public UsageEvent build() {
     UsageEvent event = new UsageEvent();
+    if (eventRecordId != null) {
+      event.setEventRecordId(eventRecordId);
+    }
     event.setOrgId(orgId);
     event.setServiceType(serviceType);
 

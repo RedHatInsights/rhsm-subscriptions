@@ -2,6 +2,11 @@ $schema: http://json-schema.org/draft-07/schema#
 title: UsageEvent
 description: Event that represents usage data for a service instance. Contains canonical facts, applicable measurements and timestamp.
 properties:
+  event_record_id:
+    description: The ID of the event that caused this usage event to be spawned.
+    type: string
+    examples:
+      - 550e8400-e29b-41d4-a716-446655440000
   org_id:
     description: Organization identifier associated with this event.
     type: string
