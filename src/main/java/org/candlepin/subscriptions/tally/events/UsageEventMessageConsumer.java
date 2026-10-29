@@ -22,13 +22,14 @@ package org.candlepin.subscriptions.tally.events;
 
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.candlepin.subscriptions.json.UsageEvent;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.candlepin.subscriptions.util.SeekableKafkaConsumer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -46,8 +47,16 @@ public class UsageEventMessageConsumer extends SeekableKafkaConsumer {
       id = "#{__listener.groupId}",
       topics = "#{__listener.topic}",
       containerFactory = "kafkaUsageListenerContainerFactory")
-  public void receive(@Payload List<String> events) {
-    log.info("Received {} usage event(s) from kafka", events.size());
-    log.debug("Usage event payloads: {}", events);
+  public void receive(List<ConsumerRecord<String, UsageEvent>> records) {
+    log.info("Received {} usage event(s) from kafka", records.size());
+    for (ConsumerRecord<String, UsageEvent> record : records) {
+      UsageEvent event = record.value();
+
+      if (event == null) {
+        log.debug("Skipping null/tombstone usage event");
+        continue;
+      }
+      log.info("Processing usage event for org_id: {}", event.getOrgId());
+    }
   }
 }

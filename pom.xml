@@ -181,6 +181,11 @@
       </dependency>
       <dependency>
         <groupId>com.redhat.swatch</groupId>
+        <artifactId>swatch-model-usage-events</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.redhat.swatch</groupId>
         <artifactId>swatch-common-resteasy</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -592,6 +597,7 @@
         <module>swatch-model-events</module>
         <module>swatch-model-metrics-hbi</module>
         <module>swatch-model-billable-usage</module>
+        <module>swatch-model-usage-events</module>
         <!-- Services -->
         <module>swatch-tally</module>
         <module>swatch-system-conduit</module>

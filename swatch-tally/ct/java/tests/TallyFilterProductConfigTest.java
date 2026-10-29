@@ -413,7 +413,6 @@ public class TallyFilterProductConfigTest extends BaseTallyComponentTest {
     service.performHourlyTallyForOrg(setup.orgId);
 
     // Then: The PAYG product tag (rosa) should be derived from the role (moa)
-    // And: Only the supported metric (Cores) should be tallied, Sockets should be filtered out
     awaitHourlyTallySum(
         setup.orgId,
         expectedPaygoProductTag,
