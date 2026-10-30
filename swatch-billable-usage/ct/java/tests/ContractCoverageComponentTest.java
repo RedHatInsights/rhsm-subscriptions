@@ -73,7 +73,7 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
 
     whenRosaTallyIsPublished(CORES.toString(), 20.0, OffsetDateTime.now(ZoneOffset.UTC));
 
-    thenAccountRemittanceEquals(ROSA.getName(), CORES.toString(), 0.0);
+    thenAccountRemittedRemittanceEquals(ROSA.getName(), CORES.toString(), 0.0);
     thenNoBillableUsageKafkaMessage(ROSA.getName());
   }
 
@@ -87,7 +87,8 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
     whenRosaTallyIsPublished(
         INSTANCE_HOURS.toString(), currentTotal, OffsetDateTime.now(ZoneOffset.UTC));
 
-    thenAccountRemittanceEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 0.0);
+    thenAccountRemittedRemittanceEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 0.0);
+    thenAccountCoveredRemittanceSumEquals(ROSA.getName(), INSTANCE_HOURS.toString(), currentTotal);
   }
 
   @Test
@@ -103,6 +104,8 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
     String tallyId = tallySummary.getTallySnapshots().getFirst().getId().toString();
 
     thenTallyRemittancePendingValueEquals(tallyId, 1.0);
+    thenAccountCoveredRemittanceSumEquals(
+        ROSA.getName(), INSTANCE_HOURS.toString(), contractMetricValue);
   }
 
   @Test
@@ -157,7 +160,7 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
 
     whenRosaTallyIsPublished(CORES.toString(), currentTotal, OffsetDateTime.now(ZoneOffset.UTC));
 
-    thenAccountRemittanceEquals(ROSA.getName(), CORES.toString(), 0.0);
+    thenAccountRemittedRemittanceEquals(ROSA.getName(), CORES.toString(), 0.0);
   }
 
   @Test
@@ -167,7 +170,7 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
 
     whenRosaTallyIsPublished(CORES.toString(), 8.0, OffsetDateTime.now(ZoneOffset.UTC));
 
-    thenAccountRemittanceEquals(ROSA.getName(), CORES.toString(), 0.0);
+    thenAccountRemittedRemittanceEquals(ROSA.getName(), CORES.toString(), 0.0);
     thenNoBillableUsageKafkaMessage(ROSA.getName());
   }
 
@@ -192,7 +195,7 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
 
     whenRosaTallyIsPublished(INSTANCE_HOURS.toString(), 5.0, OffsetDateTime.now(ZoneOffset.UTC));
 
-    thenAccountRemittanceEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 0.0);
+    thenAccountRemittedRemittanceEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 0.0);
     // TODO(SWATCH-5443): restore once zero remitted value no longer emits BillableUsage to Kafka
     // thenNoBillableUsageKafkaMessage(ROSA.getName());
   }
@@ -222,7 +225,8 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
             INSTANCE_HOURS.toString(), 5.0, OffsetDateTime.now(ZoneOffset.UTC));
     String tallyId = tallySummary.getTallySnapshots().getFirst().getId().toString();
 
-    thenAccountRemittanceEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 1.0, newerLicense);
+    thenAccountRemittedRemittanceEquals(
+        ROSA.getName(), INSTANCE_HOURS.toString(), 1.0, newerLicense);
     thenTallyRemittancePendingValueAndLicenseEquals(tallyId, 1.0, newerLicense);
     thenBillableUsageKafkaMessageWithLicense(ROSA.getName(), 1.0, newerLicense);
   }
@@ -252,7 +256,7 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
             INSTANCE_HOURS.toString(), 5.0, OffsetDateTime.now(ZoneOffset.UTC));
     String tallyId = tallySummary.getTallySnapshots().getFirst().getId().toString();
 
-    thenAccountRemittanceEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 1.0, licensedId);
+    thenAccountRemittedRemittanceEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 1.0, licensedId);
     thenTallyRemittancePendingValueAndLicenseEquals(tallyId, 1.0, licensedId);
     thenBillableUsageKafkaMessageWithLicense(ROSA.getName(), 1.0, licensedId);
   }
@@ -282,7 +286,7 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
     TallySummary tallySummary = whenAnsibleTallyIsPublished(3.0, ANSIBLE_GRATIS_SNAPSHOT_DATE);
     String tallyId = tallySummary.getTallySnapshots().getFirst().getId().toString();
 
-    thenAccountRemittanceEquals(
+    thenAccountRemittedRemittanceEquals(
         ANSIBLE_AAP_MANAGED.getName(), MANAGED_NODES.toString(), 1.0, newestLicense);
     thenTallyRemittanceStatusLicenseAndValueEquals(
         tallyId, RemittanceStatus.PENDING, newestLicense, 1.0);
@@ -313,7 +317,7 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
     TallySummary tallySummary = whenAnsibleTallyIsPublished(3.0, snapshotDate);
     String tallyId = tallySummary.getTallySnapshots().getFirst().getId().toString();
 
-    thenAccountRemittanceEquals(
+    thenAccountRemittedRemittanceEquals(
         ANSIBLE_AAP_MANAGED.getName(), MANAGED_NODES.toString(), 1.0, newestLicense);
     thenTallyRemittanceStatusLicenseAndValueEquals(
         tallyId, RemittanceStatus.GRATIS, newestLicense, 1.0);
@@ -341,7 +345,7 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
             INSTANCE_HOURS.toString(), 5.0, OffsetDateTime.now(ZoneOffset.UTC));
     String tallyId = tallySummary.getTallySnapshots().getFirst().getId().toString();
 
-    thenAccountRemittanceEquals(
+    thenAccountRemittedRemittanceEquals(
         ROSA.getName(), INSTANCE_HOURS.toString(), 1.0, lexicographicallySmallerLicenseId);
     thenTallyRemittancePendingValueAndLicenseEquals(
         tallyId, 1.0, lexicographicallySmallerLicenseId);
@@ -364,8 +368,8 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
                 firstSnapshot.minusMonths(1), end, Map.of(awsDimension, 2.0), licenseA)));
 
     whenRosaTallyIsPublished(INSTANCE_HOURS.toString(), 3.0, firstSnapshot);
-    thenAccountRemittanceRowCount(ROSA.getName(), INSTANCE_HOURS.toString(), 1);
-    thenAccountRemittanceEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 1.0, licenseA);
+    thenAccountRemittedRemittanceRowCount(ROSA.getName(), INSTANCE_HOURS.toString(), 1);
+    thenAccountRemittedRemittanceEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 1.0, licenseA);
 
     givenContracts(
         ROSA.getName(),
@@ -377,10 +381,62 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
 
     whenRosaTallyIsPublished(INSTANCE_HOURS.toString(), 6.0, firstSnapshot.plusHours(1));
 
-    thenAccountRemittanceRowCount(ROSA.getName(), INSTANCE_HOURS.toString(), 2);
-    thenAccountRemittanceSumEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 2.0);
-    thenAccountRemittanceEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 1.0, licenseB);
-    thenAccountRemittanceEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 1.0, licenseA);
+    thenAccountRemittedRemittanceRowCount(ROSA.getName(), INSTANCE_HOURS.toString(), 2);
+    thenAccountRemittedRemittanceSumEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 2.0);
+    thenAccountRemittedRemittanceEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 1.0, licenseB);
+    thenAccountRemittedRemittanceEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 1.0, licenseA);
+  }
+
+  @Test
+  @TestPlanName("billable-usage-contract-coverage-TC016")
+  void shouldExposeCoveredStatusInMonthlyAccountRemittanceApi() {
+    String licenseId = "arn:aws:license-manager:1:license:prepaid";
+    double contractMetricValue = 10.0;
+    double currentTotal = 4.0;
+    givenContracts(
+        ROSA.getName(),
+        List.of(
+            new ContractStub(
+                OffsetDateTime.now(ZoneOffset.UTC).minusMonths(1),
+                OffsetDateTime.now(ZoneOffset.UTC).plusYears(1),
+                Map.of(ROSA.getMetric(INSTANCE_HOURS).getAwsDimension(), contractMetricValue),
+                licenseId)));
+
+    whenRosaTallyIsPublished(
+        INSTANCE_HOURS.toString(), currentTotal, OffsetDateTime.now(ZoneOffset.UTC));
+
+    thenAccountCoveredRemittanceEquals(
+        ROSA.getName(), INSTANCE_HOURS.toString(), currentTotal, licenseId);
+    thenAccountRemittedRemittanceEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 0.0);
+  }
+
+  @Test
+  @TestPlanName("billable-usage-contract-coverage-TC017")
+  void shouldGrowCoveredRemittanceWhileUsageStaysPrepaid() {
+    String licenseId = "arn:aws:license-manager:1:license:prepaid";
+    double contractMetricValue = 100.0;
+    double firstTotal = 40.0;
+    double secondTotal = 90.0;
+    givenContracts(
+        ROSA.getName(),
+        List.of(
+            new ContractStub(
+                OffsetDateTime.now(ZoneOffset.UTC).minusMonths(1),
+                OffsetDateTime.now(ZoneOffset.UTC).plusYears(1),
+                Map.of(ROSA.getMetric(INSTANCE_HOURS).getAwsDimension(), contractMetricValue),
+                licenseId)));
+
+    whenRosaTallyIsPublished(
+        INSTANCE_HOURS.toString(), firstTotal, OffsetDateTime.now(ZoneOffset.UTC).minusHours(2));
+    thenAccountCoveredRemittanceEquals(
+        ROSA.getName(), INSTANCE_HOURS.toString(), firstTotal, licenseId);
+    thenAccountRemittedRemittanceEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 0.0);
+
+    whenRosaTallyIsPublished(
+        INSTANCE_HOURS.toString(), secondTotal, OffsetDateTime.now(ZoneOffset.UTC).minusHours(1));
+    thenAccountCoveredRemittanceEquals(
+        ROSA.getName(), INSTANCE_HOURS.toString(), secondTotal, licenseId);
+    thenAccountRemittedRemittanceEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 0.0);
   }
 
   private void givenNoContractExistsForRosa() {
@@ -447,61 +503,37 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
     return tallySummary;
   }
 
-  private void thenAccountRemittanceEquals(
-      String productId, String metricId, double expectedRemittedValue) {
-    thenAccountRemittanceEquals(productId, metricId, expectedRemittedValue, null);
-  }
-
-  private void thenAccountRemittanceSumEquals(
-      String productId, String metricId, double expectedRemittedTotal) {
-    AwaitilityUtils.untilAsserted(
-        () -> {
-          List<MonthlyRemittance> remittances =
-              service.getRemittances(
-                  productId,
-                  orgId,
-                  metricId,
-                  BillingProvider.AWS.toTallyApiModel().value(),
-                  billingAccountId);
-          assertEquals(
-              expectedRemittedTotal,
-              remittances.stream().mapToDouble(MonthlyRemittance::getRemittedValue).sum(),
-              0.001,
-              "Account remittance total mismatch");
-        });
-  }
-
-  private void thenAccountRemittanceRowCount(
+  private void thenAccountRemittedRemittanceRowCount(
       String productId, String metricId, int expectedRowCount) {
     AwaitilityUtils.untilAsserted(
-        () -> {
-          List<MonthlyRemittance> remittances =
-              service.getRemittances(
-                  productId,
-                  orgId,
-                  metricId,
-                  BillingProvider.AWS.toTallyApiModel().value(),
-                  billingAccountId);
-          assertEquals(
-              expectedRowCount,
-              remittances.size(),
-              "Unexpected monthly account remittance row count");
-        });
+        () ->
+            assertEquals(
+                expectedRowCount,
+                remittedRemittances(productId, metricId).size(),
+                "Unexpected monthly overage remittance row count"));
   }
 
-  private void thenAccountRemittanceEquals(
+  private void thenAccountRemittedRemittanceEquals(
+      String productId, String metricId, double expectedRemittedValue) {
+    thenAccountRemittedRemittanceEquals(productId, metricId, expectedRemittedValue, null);
+  }
+
+  private void thenAccountRemittedRemittanceEquals(
       String productId, String metricId, double expectedRemittedValue, String expectedLicenseId) {
     AwaitilityUtils.untilAsserted(
         () -> {
-          List<MonthlyRemittance> remittances =
-              service.getRemittances(
-                  productId,
-                  orgId,
-                  metricId,
-                  BillingProvider.AWS.toTallyApiModel().value(),
-                  billingAccountId);
+          if (expectedRemittedValue == 0.0 && expectedLicenseId == null) {
+            assertEquals(
+                0.0,
+                remittedRemittances(productId, metricId).stream()
+                    .mapToDouble(MonthlyRemittance::getRemittedValue)
+                    .sum(),
+                0.001,
+                "Expected no overage remittance");
+            return;
+          }
           MonthlyRemittance remittance =
-              remittances.stream()
+              remittedRemittances(productId, metricId).stream()
                   .filter(row -> Objects.equals(expectedLicenseId, row.getLicenseId()))
                   .findFirst()
                   .orElseThrow(
@@ -518,16 +550,91 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
         });
   }
 
+  private void thenAccountCoveredRemittanceEquals(
+      String productId, String metricId, double expectedCoveredValue, String expectedLicenseId) {
+    AwaitilityUtils.untilAsserted(
+        () -> {
+          MonthlyRemittance remittance =
+              coveredRemittances(productId, metricId).stream()
+                  .filter(row -> Objects.equals(expectedLicenseId, row.getLicenseId()))
+                  .findFirst()
+                  .orElseThrow(
+                      () ->
+                          new AssertionError(
+                              "Expected COVERED monthly remittance for licenseId "
+                                  + expectedLicenseId));
+          assertEquals(
+              "covered", remittance.getRemittanceStatus(), "Expected remittanceStatus covered");
+          assertEquals(
+              expectedCoveredValue,
+              remittance.getRemittedValue(),
+              0.001,
+              "COVERED remittance value mismatch");
+          assertEquals(
+              expectedLicenseId,
+              remittance.getLicenseId(),
+              "COVERED remittance licenseId mismatch");
+        });
+  }
+
+  private void thenAccountRemittedRemittanceSumEquals(
+      String productId, String metricId, double expectedRemittedTotal) {
+    AwaitilityUtils.untilAsserted(
+        () -> {
+          assertEquals(
+              expectedRemittedTotal,
+              remittedRemittances(productId, metricId).stream()
+                  .mapToDouble(MonthlyRemittance::getRemittedValue)
+                  .sum(),
+              0.001,
+              "Account remittance total mismatch");
+        });
+  }
+
+  private void thenAccountCoveredRemittanceSumEquals(
+      String productId, String metricId, double expectedCoveredValue) {
+    AwaitilityUtils.untilAsserted(
+        () ->
+            assertEquals(
+                expectedCoveredValue,
+                coveredRemittances(productId, metricId).stream()
+                    .mapToDouble(MonthlyRemittance::getRemittedValue)
+                    .sum(),
+                0.001,
+                "COVERED remittance sum mismatch"));
+  }
+
+  private List<MonthlyRemittance> remittedRemittances(String productId, String metricId) {
+    return accountRemittances(productId, metricId).stream()
+        .filter(row -> !isCoveredStatus(row))
+        .toList();
+  }
+
+  private List<MonthlyRemittance> coveredRemittances(String productId, String metricId) {
+    return accountRemittances(productId, metricId).stream().filter(this::isCoveredStatus).toList();
+  }
+
+  private List<MonthlyRemittance> accountRemittances(String productId, String metricId) {
+    return service.getRemittances(
+        productId,
+        orgId,
+        metricId,
+        BillingProvider.AWS.toTallyApiModel().value(),
+        billingAccountId);
+  }
+
+  private boolean isCoveredStatus(MonthlyRemittance remittance) {
+    return "covered".equalsIgnoreCase(remittance.getRemittanceStatus());
+  }
+
   private void thenTallyRemittancePendingValueEquals(
       String tallyId, double expectedRemittedPendingValue) {
     AwaitilityUtils.untilAsserted(
         () -> {
-          List<TallyRemittance> remittances = service.getRemittancesByTally(tallyId);
-          assertNotNull(remittances, "Remittances should exist for tally " + tallyId);
-          assertEquals(1, remittances.size(), "Expected one remittance for tally " + tallyId);
+          TallyRemittance remittance = overageTallyRemittance(tallyId);
           assertEquals(
               expectedRemittedPendingValue,
-              remittances.get(0).getRemittedPendingValue(),
+              remittance.getRemittedPendingValue(),
               0.001,
               "Remitted pending value mismatch");
         });
@@ -536,12 +643,10 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
   private void thenTallyRemittanceStatusEquals(String tallyId, RemittanceStatus expectedStatus) {
     AwaitilityUtils.untilAsserted(
         () -> {
-          List<TallyRemittance> remittances = service.getRemittancesByTally(tallyId);
-          assertNotNull(remittances, "Remittances should exist for tally " + tallyId);
-          assertEquals(1, remittances.size(), "Expected one remittance for tally " + tallyId);
+          TallyRemittance remittance = overageTallyRemittance(tallyId);
           assertEquals(
               expectedStatus.name(),
-              remittances.get(0).getStatus(),
+              remittance.getStatus(),
               "Remittance status mismatch for tally " + tallyId);
         });
   }
@@ -579,27 +684,36 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
       double expectedRemittedPendingValue) {
     AwaitilityUtils.untilAsserted(
         () -> {
-          List<TallyRemittance> remittances = service.getRemittancesByTally(tallyId);
-          assertNotNull(remittances, "Remittances should exist for tally " + tallyId);
-          assertEquals(1, remittances.size(), "Expected one remittance for tally " + tallyId);
+          TallyRemittance remittance = overageTallyRemittance(tallyId);
           assertEquals(
               expectedRemittedPendingValue,
-              remittances.get(0).getRemittedPendingValue(),
+              remittance.getRemittedPendingValue(),
               0.001,
               "Remitted pending value mismatch");
           if (expectedStatus != null) {
             assertEquals(
                 expectedStatus.name(),
-                remittances.getFirst().getStatus(),
+                remittance.getStatus(),
                 "Remittance status mismatch for tally " + tallyId);
           }
-          String actualLicenseId = remittances.getFirst().getLicenseId();
+          String actualLicenseId = remittance.getLicenseId();
           if (expectedLicenseId == null) {
             assertNull(actualLicenseId, "Expected null licenseId");
           } else {
             assertEquals(expectedLicenseId, actualLicenseId, "Remittance licenseId mismatch");
           }
         });
+  }
+
+  private TallyRemittance overageTallyRemittance(String tallyId) {
+    List<TallyRemittance> remittances = service.getRemittancesByTally(tallyId);
+    assertNotNull(remittances, "Remittances should exist for tally " + tallyId);
+    List<TallyRemittance> overage =
+        remittances.stream()
+            .filter(row -> !RemittanceStatus.COVERED.name().equalsIgnoreCase(row.getStatus()))
+            .toList();
+    assertEquals(1, overage.size(), "Expected one overage remittance for tally " + tallyId);
+    return overage.getFirst();
   }
 
   private void thenBillableUsageKafkaMessageWithLicense(

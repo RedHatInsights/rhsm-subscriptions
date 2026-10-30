@@ -24,5 +24,6 @@ public enum RemittanceStatus {
   PENDING,
   GRATIS,
   SUCCEEDED,
-  FAILED;
+  FAILED,
+  COVERED;
 }
