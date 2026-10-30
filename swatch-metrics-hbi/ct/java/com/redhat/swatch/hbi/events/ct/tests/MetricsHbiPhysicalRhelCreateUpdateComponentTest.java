@@ -20,9 +20,16 @@
  */
 package com.redhat.swatch.hbi.events.ct.tests;
 
+import static com.redhat.swatch.hbi.events.ct.utils.SwatchEventHelper.getMeasurementValue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.api.hbi.RhsmFacts;
 import com.redhat.swatch.component.tests.api.hbi.SystemProfileFacts;
+import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
+import com.redhat.swatch.component.tests.utils.Topics;
 import com.redhat.swatch.hbi.events.ct.api.MessageValidators;
 import com.redhat.swatch.hbi.events.ct.utils.SwatchEventHelper;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
@@ -81,12 +88,33 @@ class MetricsHbiPhysicalRhelCreateUpdateComponentTest extends BaseSMHBIComponent
     // When: HBI event is produced to Kafka
     hostEvents.publish(hbiEvent);
 
-    // Then: Corresponding SWatch event should be produced
-    Event swatchEvent =
+    // Then: Wait for and capture the actual SWatch event from Kafka
+    String instanceId = hbiEvent.getHost().getId().toString();
+    List<Event> actualEvents =
+        kafkaBridge.waitForKafkaMessage(
+            Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
+            MessageValidators.swatchEventMatches(orgId, instanceId, swatchEventType.toString()),
+            1,
+            AwaitilitySettings.defaults().onConditionNotMet(service::flushOutboxSynchronously));
+
+    Event actualEvent = actualEvents.getFirst();
+
+    // Then: Assert specific measurement values on ACTUAL event from Kafka: cores=4, sockets=2
+    assertEquals(4.0, getMeasurementValue(actualEvent, "cores"), "cores should be 4.0");
+    assertEquals(2.0, getMeasurementValue(actualEvent, "sockets"), "sockets should be 2.0");
+    assertEquals(Event.Sla.SELF_SUPPORT, actualEvent.getSla(), "SLA should be Self-Support");
+    assertEquals(Event.Usage.DEVELOPMENT_TEST, actualEvent.getUsage(), "Usage should be Dev/Test");
+    assertTrue(actualEvent.getProductTag().contains("RHEL for x86"), "Should have x86 product tag");
+    assertEquals(
+        Event.HardwareType.PHYSICAL,
+        actualEvent.getHardwareType(),
+        "hardware type should be PHYSICAL");
+
+    // Then: Verify full event matches expected structure
+    Event expectedEvent =
         SwatchEventHelper.createExpectedEvent(
             hbiEvent, swatchEventType, List.of("69"), Set.of("RHEL for x86"), false, false);
-
-    thenSwatchEventsAppear(MessageValidators.swatchEventEquals(swatchEvent));
+    assertTrue(SwatchEventHelper.eventsMatch(expectedEvent, actualEvent));
   }
 
   @TestPlanName("metrics-hbi-physical-TC002")
@@ -119,12 +147,28 @@ class MetricsHbiPhysicalRhelCreateUpdateComponentTest extends BaseSMHBIComponent
     // When: HBI event is produced to Kafka
     hostEvents.publish(hbiEvent);
 
-    // Then: Corresponding SWatch event should be produced with sockets rounded up to 4
-    Event swatchEvent =
+    // Then: Wait for and capture the actual SWatch event from Kafka
+    String instanceId = hbiEvent.getHost().getId().toString();
+    List<Event> actualEvents =
+        kafkaBridge.waitForKafkaMessage(
+            Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
+            MessageValidators.swatchEventMatches(orgId, instanceId, swatchEventType.toString()),
+            1,
+            AwaitilitySettings.defaults().onConditionNotMet(service::flushOutboxSynchronously));
+
+    Event actualEvent = actualEvents.getFirst();
+
+    // Then: Assert specific measurement values on ACTUAL event from Kafka:
+    // cores=6 (2 cores_per_socket x 3 number_of_sockets separate from socket normalization to 4),
+    // sockets=4
+    assertEquals(6.0, getMeasurementValue(actualEvent, "cores"), "cores should be 6.0");
+    assertEquals(4.0, getMeasurementValue(actualEvent, "sockets"), "sockets should be 4.0");
+
+    // Then: Verify full event matches expected structure
+    Event expectedEvent =
         SwatchEventHelper.createExpectedEvent(
             hbiEvent, swatchEventType, List.of("69"), Set.of("RHEL for x86"), false, false);
-
-    thenSwatchEventsAppear(MessageValidators.swatchEventEquals(swatchEvent));
+    assertTrue(SwatchEventHelper.eventsMatch(expectedEvent, actualEvent));
   }
 
   @TestPlanName("metrics-hbi-physical-TC003")
@@ -161,8 +205,29 @@ class MetricsHbiPhysicalRhelCreateUpdateComponentTest extends BaseSMHBIComponent
     // When: HBI event is produced to Kafka
     hostEvents.publish(hbiEvent);
 
-    // Then: Corresponding SWatch event should be produced with rhel-for-x86-els-converted tag
-    Event swatchEvent =
+    // Then: Wait for and capture the actual SWatch event from Kafka
+    String instanceId = hbiEvent.getHost().getId().toString();
+    List<Event> actualEvents =
+        kafkaBridge.waitForKafkaMessage(
+            Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
+            MessageValidators.swatchEventMatches(orgId, instanceId, swatchEventType.toString()),
+            1,
+            AwaitilitySettings.defaults().onConditionNotMet(service::flushOutboxSynchronously));
+
+    Event actualEvent = actualEvents.getFirst();
+
+    // Then: Assert specific measurement values on ACTUAL event from Kafka: cores=4, sockets=2,
+    // productTag=converted
+    assertEquals(4.0, getMeasurementValue(actualEvent, "cores"), "cores should be 4.0");
+    assertEquals(2.0, getMeasurementValue(actualEvent, "sockets"), "sockets should be 2.0");
+    assertTrue(
+        actualEvent.getProductTag().contains("rhel-for-x86-els-converted"),
+        "Should have converted product tag");
+    assertEquals(
+        Boolean.TRUE, actualEvent.getConversion(), "Event should be marked as a conversion");
+
+    // Then: Verify full event matches expected structure
+    Event expectedEvent =
         SwatchEventHelper.createExpectedEvent(
             hbiEvent,
             swatchEventType,
@@ -170,8 +235,7 @@ class MetricsHbiPhysicalRhelCreateUpdateComponentTest extends BaseSMHBIComponent
             Set.of("rhel-for-x86-els-converted"),
             false,
             false);
-
-    thenSwatchEventsAppear(MessageValidators.swatchEventEquals(swatchEvent));
+    assertTrue(SwatchEventHelper.eventsMatch(expectedEvent, actualEvent));
   }
 
   @TestPlanName("metrics-hbi-physical-TC004")
@@ -207,12 +271,26 @@ class MetricsHbiPhysicalRhelCreateUpdateComponentTest extends BaseSMHBIComponent
     // When: HBI event is produced to Kafka
     hostEvents.publish(hbiEvent);
 
-    // Then: Corresponding SWatch event should be produced with cores and sockets forced to 0
-    Event swatchEvent =
+    // Then: Wait for and capture the actual SWatch event from Kafka
+    String instanceId = hbiEvent.getHost().getId().toString();
+    List<Event> actualEvents =
+        kafkaBridge.waitForKafkaMessage(
+            Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
+            MessageValidators.swatchEventMatches(orgId, instanceId, swatchEventType.toString()),
+            1,
+            AwaitilitySettings.defaults().onConditionNotMet(service::flushOutboxSynchronously));
+
+    Event actualEvent = actualEvents.getFirst();
+
+    // Then: Assert specific measurement values on ACTUAL event from Kafka: cores=0, sockets=0
+    assertEquals(0.0, getMeasurementValue(actualEvent, "cores"), "cores should be 0.0");
+    assertEquals(0.0, getMeasurementValue(actualEvent, "sockets"), "sockets should be 0.0");
+
+    // Then: Verify full event matches expected structure
+    Event expectedEvent =
         SwatchEventHelper.createExpectedEvent(
             hbiEvent, swatchEventType, List.of("69"), Set.of("RHEL for x86"), false, false);
-
-    thenSwatchEventsAppear(MessageValidators.swatchEventEquals(swatchEvent));
+    assertTrue(SwatchEventHelper.eventsMatch(expectedEvent, actualEvent));
   }
 
   @TestPlanName("metrics-hbi-physical-TC005")
@@ -247,12 +325,26 @@ class MetricsHbiPhysicalRhelCreateUpdateComponentTest extends BaseSMHBIComponent
     // When: HBI event is produced to Kafka
     hostEvents.publish(hbiEvent);
 
-    // Then: Corresponding SWatch event should be produced with only socket measurements
-    Event swatchEvent =
+    // Then: Wait for and capture the actual SWatch event from Kafka
+    String instanceId = hbiEvent.getHost().getId().toString();
+    List<Event> actualEvents =
+        kafkaBridge.waitForKafkaMessage(
+            Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
+            MessageValidators.swatchEventMatches(orgId, instanceId, swatchEventType.toString()),
+            1,
+            AwaitilitySettings.defaults().onConditionNotMet(service::flushOutboxSynchronously));
+
+    Event actualEvent = actualEvents.getFirst();
+
+    // Then: Assert specific measurement values on ACTUAL event from Kafka: cores omitted, sockets=2
+    assertNull(getMeasurementValue(actualEvent, "cores"), "cores should be omitted");
+    assertEquals(2.0, getMeasurementValue(actualEvent, "sockets"), "sockets should be 2.0");
+
+    // Then: Verify full event matches expected structure
+    Event expectedEvent =
         SwatchEventHelper.createExpectedEvent(
             hbiEvent, swatchEventType, List.of("69"), Set.of("RHEL for x86"), false, false);
-
-    thenSwatchEventsAppear(MessageValidators.swatchEventEquals(swatchEvent));
+    assertTrue(SwatchEventHelper.eventsMatch(expectedEvent, actualEvent));
   }
 
   @TestPlanName("metrics-hbi-physical-TC006")
@@ -287,11 +379,25 @@ class MetricsHbiPhysicalRhelCreateUpdateComponentTest extends BaseSMHBIComponent
     // When: HBI event is produced to Kafka
     hostEvents.publish(hbiEvent);
 
-    // Then: Corresponding SWatch event should be produced with only cores measurements
-    Event swatchEvent =
+    // Then: Wait for and capture the actual SWatch event from Kafka
+    String instanceId = hbiEvent.getHost().getId().toString();
+    List<Event> actualEvents =
+        kafkaBridge.waitForKafkaMessage(
+            Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
+            MessageValidators.swatchEventMatches(orgId, instanceId, swatchEventType.toString()),
+            1,
+            AwaitilitySettings.defaults().onConditionNotMet(service::flushOutboxSynchronously));
+
+    Event actualEvent = actualEvents.getFirst();
+
+    // Then: Assert specific measurement values on ACTUAL event from Kafka: cores=8, sockets omitted
+    assertEquals(8.0, getMeasurementValue(actualEvent, "cores"), "cores should be 8.0");
+    assertNull(getMeasurementValue(actualEvent, "sockets"), "sockets should be omitted");
+
+    // Then: Verify full event matches expected structure
+    Event expectedEvent =
         SwatchEventHelper.createExpectedEvent(
             hbiEvent, swatchEventType, List.of("69"), Set.of("RHEL for x86"), false, false);
-
-    thenSwatchEventsAppear(MessageValidators.swatchEventEquals(swatchEvent));
+    assertTrue(SwatchEventHelper.eventsMatch(expectedEvent, actualEvent));
   }
 }
