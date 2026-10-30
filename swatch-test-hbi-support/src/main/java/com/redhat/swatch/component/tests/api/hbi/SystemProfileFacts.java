@@ -20,12 +20,14 @@
  */
 package com.redhat.swatch.component.tests.api.hbi;
 
+import java.util.Set;
 import lombok.Getter;
+import lombok.Singular;
 
 /**
- * System-profile fields reported by HBI, persisted to {@code hbi.system_profiles_static} (not part
- * of the JSON {@code facts} blob). Mirrors the fields read by {@code SystemProfileFacts} in {@code
- * swatch-model-metrics-hbi}.
+ * System-profile fields reported by HBI. Database-backed fields are persisted to {@code
+ * hbi.system_profiles_static}; installed product IDs are included in generated HBI event payloads.
+ * Mirrors the fields read by {@code SystemProfileFacts} in {@code swatch-model-metrics-hbi}.
  */
 @Getter
 public final class SystemProfileFacts {
@@ -41,6 +43,7 @@ public final class SystemProfileFacts {
   private final String arch;
   private final Boolean isMarketplace;
   private final Boolean conversionsActivity;
+  private final Set<String> installedProductIds;
 
   // Fully-qualified: a bare `@Builder` here would resolve to the nested Builder class below
   // instead of lombok.Builder, since a member type shadows a same-named import in its own body.
@@ -56,7 +59,8 @@ public final class SystemProfileFacts {
       String cloudProvider,
       String arch,
       Boolean isMarketplace,
-      Boolean conversionsActivity) {
+      Boolean conversionsActivity,
+      @Singular("installedProductId") Set<String> installedProductIds) {
     this.hostType = hostType;
     this.hypervisorUuid = hypervisorUuid;
     this.infrastructureType = infrastructureType;
@@ -68,6 +72,7 @@ public final class SystemProfileFacts {
     this.arch = arch;
     this.isMarketplace = isMarketplace;
     this.conversionsActivity = conversionsActivity;
+    this.installedProductIds = installedProductIds;
   }
 
   public static Builder builder() {

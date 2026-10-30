@@ -105,6 +105,22 @@ class ProductNormalizerTest {
     assertTrue(productNormalizer.getProductIds().isEmpty());
   }
 
+  @Test
+  void appliesQpcProductsWithUnrecognizedSystemProfileArch() {
+    Set<String> rhInstalledProducts = Set.of("RHEL");
+    ProductNormalizer productNormalizer =
+        new ProductNormalizer(
+            systemProfileFacts("s390x", false, Set.of()),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.of(qpcFacts(rhInstalledProducts)),
+            false);
+
+    assertThat(
+        productNormalizer.getProductTags(), Matchers.equalTo(Set.of("RHEL Ungrouped", "RHEL")));
+    assertTrue(productNormalizer.getProductIds().isEmpty());
+  }
+
   private static Stream<Arguments> provideArchCombinations() {
 
     return Stream.of(

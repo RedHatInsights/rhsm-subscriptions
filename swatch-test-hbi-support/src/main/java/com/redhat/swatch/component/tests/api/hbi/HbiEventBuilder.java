@@ -202,6 +202,17 @@ public class HbiEventBuilder {
       profile.setConversions(conversion);
     }
 
+    if (sp.getInstalledProductIds() != null && !sp.getInstalledProductIds().isEmpty()) {
+      profile.setInstalledProducts(
+          sp.getInstalledProductIds().stream()
+              .map(
+                  id -> {
+                    var installedProduct = new HbiHostSystemProfile.InstalledProduct();
+                    installedProduct.setId(id);
+                    return installedProduct;
+                  })
+              .toList());
+    }
     return profile;
   }
 }

@@ -22,6 +22,7 @@ package com.redhat.swatch.hbi.events.normalization;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
@@ -359,6 +360,12 @@ class FactNormalizerTest {
         normalizer.normalize(new Host(hbiHost)).getUsage());
   }
 
+  @Test
+  void testUnsupportedSatelliteUsageIsIgnoredWhenRhsmUsageIsAbsent() {
+    assertNull(
+        normalizeWithSatelliteFact(SatelliteFacts.USAGE_FACT, "Unsupported Usage").getUsage());
+  }
+
   static Stream<Arguments> slaParams() {
     return Stream.of(
         Arguments.of(OffsetDateTime.now().toString(), null, null, null),
@@ -407,6 +414,24 @@ class FactNormalizerTest {
     assertEquals(
         Objects.nonNull(expectedSla) ? expectedSla.getValue() : null,
         normalizer.normalize(new Host(hbiHost)).getSla());
+  }
+
+  @Test
+  void testUnsupportedSatelliteSlaIsIgnoredWhenRhsmSlaIsAbsent() {
+    assertNull(normalizeWithSatelliteFact(SatelliteFacts.SLA_FACT, "Unsupported SLA").getSla());
+  }
+
+  private NormalizedFacts normalizeWithSatelliteFact(String factName, String value) {
+    List<HbiHostFacts> hbiHostFacts = new ArrayList<>();
+    hbiHostFacts.add(rhsmHbiFacts());
+
+    HbiHostFacts satelliteFacts = satelliteFacts();
+    satelliteFacts.getFacts().put(factName, value);
+    hbiHostFacts.add(satelliteFacts);
+
+    HbiHost hbiHost = hbiHost();
+    hbiHost.setFacts(hbiHostFacts);
+    return normalizer.normalize(new Host(hbiHost));
   }
 
   @Test
