@@ -268,28 +268,31 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
   @TestPlanName("billable-usage-contract-adjustment-TC006")
   void shouldHoldCoveredWhenReplacementCoverageSmaller() {
     OffsetDateTime now = OffsetDateTime.now();
-    double currentTotal = 90.0;
+    double monthToDateUnderLargeContract = 80.0;
 
     // large contract
     double largeCoverage = 100.0;
     givenRosaInstanceHoursContractWithLicense(
         PREPAID_LICENSE, largeCoverage, now.minusDays(10), now.plusDays(10));
-    whenUsageIsTallied(INSTANCE_HOURS_METRIC, currentTotal, currentTotal);
+    whenUsageIsTallied(
+        INSTANCE_HOURS_METRIC, monthToDateUnderLargeContract, monthToDateUnderLargeContract);
     thenAccountRemittanceEquals(INSTANCE_HOURS_METRIC, 0.0);
-    thenAccountCoveredRemittanceEquals(INSTANCE_HOURS_METRIC, currentTotal);
+    thenAccountCoveredRemittanceEquals(INSTANCE_HOURS_METRIC, monthToDateUnderLargeContract);
 
     // small contract - no increment
     double smallCoverage = 40.0;
     givenRosaInstanceHoursContractWithLicense(
         NEW_LICENSE, smallCoverage, now.minusHours(2), now.plusDays(10));
-    whenUsageIsTallied(INSTANCE_HOURS_METRIC, 0.0, currentTotal);
+    whenUsageIsTallied(INSTANCE_HOURS_METRIC, 0.0, monthToDateUnderLargeContract);
     thenAccountRemittanceEquals(INSTANCE_HOURS_METRIC, 0.0);
-    thenAccountCoveredRemittanceEquals(INSTANCE_HOURS_METRIC, currentTotal);
+    thenAccountCoveredRemittanceEquals(INSTANCE_HOURS_METRIC, monthToDateUnderLargeContract);
 
+    // growth fits under the new live coverage → COVERED, not marketplace remittance
     double deltaCurrentTotal = 10.0;
-    whenUsageIsTallied(INSTANCE_HOURS_METRIC, deltaCurrentTotal, currentTotal + deltaCurrentTotal);
-    thenAccountRemittanceEquals(INSTANCE_HOURS_METRIC, deltaCurrentTotal, NEW_LICENSE);
-    thenAccountCoveredRemittanceEquals(INSTANCE_HOURS_METRIC, currentTotal);
+    double monthToDateAfterGrowth = monthToDateUnderLargeContract + deltaCurrentTotal;
+    whenUsageIsTallied(INSTANCE_HOURS_METRIC, deltaCurrentTotal, monthToDateAfterGrowth);
+    thenAccountRemittanceEquals(INSTANCE_HOURS_METRIC, 0.0);
+    thenAccountCoveredRemittanceEquals(INSTANCE_HOURS_METRIC, monthToDateAfterGrowth);
   }
 
   @Test

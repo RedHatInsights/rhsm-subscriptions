@@ -165,7 +165,7 @@ class ContractCoverageServiceTest {
 
     ContractCoverage coverage = contractCoverageService.getContractCoverage(usage);
     assertEquals(100, coverage.getTotal());
-    assertEquals(newer.getLicenseId(), coverage.getLicenseId());
+    assertEquals(newer.getLicenseId(), coverage.getSelectedLicenseId());
   }
 
   @Test
@@ -180,7 +180,7 @@ class ContractCoverageServiceTest {
 
     ContractCoverage coverage = contractCoverageService.getContractCoverage(usage);
     assertEquals(100, coverage.getTotal());
-    assertNull(coverage.getLicenseId());
+    assertNull(coverage.getSelectedLicenseId());
   }
 
   @Test
@@ -202,7 +202,7 @@ class ContractCoverageServiceTest {
 
     ContractCoverage coverage = contractCoverageService.getContractCoverage(usage);
     assertEquals(100, coverage.getTotal());
-    assertEquals(licensed.getLicenseId(), coverage.getLicenseId());
+    assertEquals(licensed.getLicenseId(), coverage.getSelectedLicenseId());
   }
 
   @Test
@@ -228,7 +228,7 @@ class ContractCoverageServiceTest {
 
     ContractCoverage coverage = contractCoverageService.getContractCoverage(usage);
     assertEquals(100, coverage.getTotal());
-    assertEquals(smallerLicense, coverage.getLicenseId());
+    assertEquals(smallerLicense, coverage.getSelectedLicenseId());
   }
 
   @Test
@@ -250,7 +250,7 @@ class ContractCoverageServiceTest {
 
     ContractCoverage coverage = contractCoverageService.getContractCoverage(usage);
     assertEquals(100, coverage.getTotal());
-    assertEquals(licensed.getLicenseId(), coverage.getLicenseId());
+    assertEquals(licensed.getLicenseId(), coverage.getSelectedLicenseId());
   }
 
   @Test
@@ -291,7 +291,7 @@ class ContractCoverageServiceTest {
     ContractCoverage coverage = contractCoverageService.getContractCoverage(usage);
     assertTrue(coverage.isGratis());
     assertEquals(50, coverage.getTotal());
-    assertEquals(licenseId, coverage.getLicenseId());
+    assertEquals(licenseId, coverage.getSelectedLicenseId());
   }
 
   @Test
@@ -324,7 +324,7 @@ class ContractCoverageServiceTest {
     ContractCoverage coverage = contractCoverageService.getContractCoverage(usage);
     assertFalse(coverage.isGratis());
     assertEquals(250, coverage.getTotal());
-    assertEquals(midMonth.getLicenseId(), coverage.getLicenseId());
+    assertEquals(midMonth.getLicenseId(), coverage.getSelectedLicenseId());
   }
 
   @Test
@@ -346,7 +346,7 @@ class ContractCoverageServiceTest {
     ContractCoverage contractCoverage = contractCoverageService.getContractCoverage(usage);
     assertTrue(contractCoverage.isGratis());
     assertEquals(125, contractCoverage.getTotal());
-    assertEquals(anotherGratisContract.getLicenseId(), contractCoverage.getLicenseId());
+    assertEquals(anotherGratisContract.getLicenseId(), contractCoverage.getSelectedLicenseId());
   }
 
   @Test

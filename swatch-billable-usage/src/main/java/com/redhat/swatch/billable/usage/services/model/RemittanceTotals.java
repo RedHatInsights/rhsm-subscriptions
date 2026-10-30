@@ -20,4 +20,12 @@
  */
 package com.redhat.swatch.billable.usage.services.model;
 
-public record RemittanceTotals(double remitted, double covered) {}
+import java.util.Objects;
+import java.util.Set;
+
+public record RemittanceTotals(double remitted, double covered, Set<String> coveredLicenseIds) {
+
+  public RemittanceTotals {
+    coveredLicenseIds = Set.copyOf(Objects.requireNonNull(coveredLicenseIds));
+  }
+}

@@ -618,7 +618,8 @@ class BillableUsageServiceTest {
     OffsetDateTime usageDate = CLOCK.startOfCurrentMonth().plusDays(10);
     BillableUsage usage = givenInstanceHoursUsageForRosa(usageDate, 105.0, 105.0);
 
-    givenExistingRemittanceForUsage(usage, usageDate.minusDays(5), 100.0, RemittanceStatus.COVERED);
+    givenExistingRemittanceForUsage(
+        usage, usageDate.minusDays(5), 100.0, RemittanceStatus.COVERED, "license-old");
 
     setSubscriptionDefinitionRegistry(mockSubscriptionDefinitionRegistry);
     stubSubscriptionDefinition(usage.getProductId(), usage.getMetricId(), 1.0, true);
@@ -635,27 +636,80 @@ class BillableUsageServiceTest {
   }
 
   @Test
+  void testSmallerLiveCoverageAbsorbsGrowthAbovePriorCovered() throws Exception {
+    OffsetDateTime usageDate = CLOCK.startOfCurrentMonth().plusDays(10);
+    BillableUsage usage = givenInstanceHoursUsageForRosa(usageDate, 90.0, 90.0);
+
+    givenExistingRemittanceForUsage(
+        usage, usageDate.minusDays(5), 80.0, RemittanceStatus.COVERED, "license-old");
+
+    setSubscriptionDefinitionRegistry(mockSubscriptionDefinitionRegistry);
+    stubSubscriptionDefinition(usage.getProductId(), usage.getMetricId(), 1.0, true);
+
+    Contract smallerCoverage = contractWithCoverage(usage, 40);
+    smallerCoverage.setStartDate(usageDate.minusHours(1));
+    smallerCoverage.setLicenseId("license-new");
+    givenExistingContractForUsage(smallerCoverage, usage);
+
+    service.submitBillableUsage(usage);
+
+    thenUsageIsSent(usage, 0.0);
+    verify(remittanceRepo, atLeastOnce())
+        .persistAndFlush(
+            argThat(
+                remittance ->
+                    RemittanceStatus.COVERED.equals(remittance.getStatus())
+                        && remittance.getRemittedPendingValue() == 10.0
+                        && "license-new".equals(remittance.getLicenseId())));
+  }
+
+  @Test
+  void testSameLicenseCapacityDropDoesNotStackFreshCoverage() throws Exception {
+    OffsetDateTime usageDate = CLOCK.startOfCurrentMonth().plusDays(10);
+    BillableUsage usage = givenInstanceHoursUsageForRosa(usageDate, 90.0, 90.0);
+
+    givenExistingRemittanceForUsage(
+        usage, usageDate.minusDays(5), 80.0, RemittanceStatus.COVERED, "license-same");
+
+    setSubscriptionDefinitionRegistry(mockSubscriptionDefinitionRegistry);
+    stubSubscriptionDefinition(usage.getProductId(), usage.getMetricId(), 1.0, true);
+
+    Contract reducedCoverage = contractWithCoverage(usage, 40);
+    reducedCoverage.setStartDate(usageDate.minusDays(10));
+    reducedCoverage.setLicenseId("license-same");
+    givenExistingContractForUsage(reducedCoverage, usage);
+
+    service.submitBillableUsage(usage);
+
+    thenRemittanceIsUpdated(usage, usageDate, 10.0, RemittanceStatus.PENDING, "license-same");
+    thenUsageIsSent(usage, 10.0, "license-same");
+  }
+
+  @Test
   void testCoveredBookedWhenTallyAlsoRemitsOverage() throws Exception {
     OffsetDateTime usageDate = CLOCK.startOfCurrentMonth().plusDays(10);
     BillableUsage usage = givenInstanceHoursUsageForRosa(usageDate, 130.0, 130.0);
 
-    givenExistingRemittanceForUsage(usage, usageDate.minusDays(5), 40.0, RemittanceStatus.COVERED);
+    givenExistingRemittanceForUsage(
+        usage, usageDate.minusDays(5), 40.0, RemittanceStatus.COVERED, "license-same");
 
     setSubscriptionDefinitionRegistry(mockSubscriptionDefinitionRegistry);
     stubSubscriptionDefinition(usage.getProductId(), usage.getMetricId(), 1.0, true);
-    givenExistingContractForUsage(contractWithCoverage(usage, 100), usage);
+    Contract live = contractWithCoverage(usage, 100);
+    live.setLicenseId("license-same");
+    givenExistingContractForUsage(live, usage);
 
     service.submitBillableUsage(usage);
 
     // Overage 30 and prepaid slice under coverage: min(130,100) - 40 - 0 = 60 COVERED
-    thenRemittanceIsUpdated(usage, usageDate, 30.0, RemittanceStatus.PENDING);
+    thenRemittanceIsUpdated(usage, usageDate, 30.0, RemittanceStatus.PENDING, "license-same");
     verify(remittanceRepo, atLeastOnce())
         .persistAndFlush(
             argThat(
                 remittance ->
                     RemittanceStatus.COVERED.equals(remittance.getStatus())
                         && remittance.getRemittedPendingValue() == 60.0));
-    thenUsageIsSent(usage, 30.0);
+    thenUsageIsSent(usage, 30.0, "license-same");
   }
 
   static Stream<Arguments> remittanceBillingFactorParameters() {
@@ -817,6 +871,17 @@ class BillableUsageServiceTest {
       OffsetDateTime remittancePendingDate,
       double remittedPendingValue,
       RemittanceStatus status) {
+    givenExistingRemittanceForUsage(
+        usage, remittancePendingDate, remittedPendingValue, status, null);
+  }
+
+  @Transactional
+  void givenExistingRemittanceForUsage(
+      BillableUsage usage,
+      OffsetDateTime remittancePendingDate,
+      double remittedPendingValue,
+      RemittanceStatus status,
+      String licenseId) {
     var newRemittance =
         BillableUsageRemittanceEntity.builder()
             .orgId(usage.getOrgId())
@@ -829,6 +894,7 @@ class BillableUsageServiceTest {
             .usage(usage.getUsage().value())
             .remittancePendingDate(remittancePendingDate)
             .tallyId(usage.getTallyId())
+            .licenseId(licenseId)
             .status(status)
             .build();
     // Remitted value should be set to usages metric_value rather than billing_value

@@ -544,9 +544,9 @@ These scenarios verify that contract coverage applies independently to managed a
 - **Expected Result:**
   - Prepaid 50 is not republished; only the delta above COVERED is remitted
 
-**billable-usage-contract-adjustment-TC006 - Smaller replacement keeps prior COVERED remittance**
+**billable-usage-contract-adjustment-TC006 - Smaller replacement covers growth under new live capacity**
 
-- **Description:** When a smaller contract replaces a larger one, previously covered usage is not remitted; only usage above the prior COVERED remittance is billed.
+- **Description:** When a smaller contract replaces a larger one, previously covered usage is not remitted (no catch-up). Further month-to-date growth that still fits under the new live coverage is booked as additional `COVERED` (not marketplace overage).
 - **Setup:**
   - ROSA Instance-hours only
   - Phase 1 stub: prepaid license, coverage 100
@@ -557,9 +557,9 @@ These scenarios verify that contract coverage applies independently to managed a
   - Phase 3: Publish `current_total=90`
 - **Verification:**
   - After phase 2: overage still **0**; `COVERED` remains **80**
-  - After phase 3: overage **10** under `license-new`
+  - After phase 3: overage still **0**; `COVERED` total **90** (delta **10** under `license-new`)
 - **Expected Result:**
-  - Effective coverage uses `max(live coverage, prior COVERED)`; no catch-up of prepaid usage
+  - Prior `COVERED` is under the prepaid license; live contracts use `license-new` only (disjoint license sets), so live capacity stacks on the historical watermark and absorbs growth up to 40 without remittance
 
 **billable-usage-contract-adjustment-TC007 - Post empty-metric catch-up remits only new overage**
 

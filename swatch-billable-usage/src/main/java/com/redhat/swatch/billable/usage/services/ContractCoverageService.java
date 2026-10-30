@@ -27,7 +27,9 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.time.OffsetDateTime;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
@@ -55,14 +57,19 @@ public class ContractCoverageService {
     double total = 0.0;
     String licenseId = null;
     OffsetDateTime newestStartDate = null;
+    Set<String> currentLicenseIds = new LinkedHashSet<>();
 
     List<Contract> contracts = contractsController.getValidContracts(usage);
     for (Contract contract : contracts) {
       total += getValueByContractMetricId(contract, contractMetricId);
       isGratis &= isContractCompatibleWithGratis(contract, usage);
+      String contractLicenseId = contract.getLicenseId();
+      if (contractLicenseId != null && !contractLicenseId.isBlank()) {
+        currentLicenseIds.add(contractLicenseId);
+      }
       if (isNewerOverageLicense(contract, newestStartDate, licenseId)) {
         newestStartDate = contract.getStartDate();
-        licenseId = contract.getLicenseId();
+        licenseId = contractLicenseId;
       }
     }
 
@@ -75,7 +82,8 @@ public class ContractCoverageService {
             .metricId(contractMetricId)
             .gratis(isGratis)
             .total(total)
-            .licenseId(licenseId)
+            .selectedLicenseId(licenseId)
+            .currentLicenseIds(Set.copyOf(currentLicenseIds))
             .build();
     log.debug("Total contract coverage is {} for usage {} ", coverage, usage);
     return coverage;
