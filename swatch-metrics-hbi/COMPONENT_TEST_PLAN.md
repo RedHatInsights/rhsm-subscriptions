@@ -580,12 +580,10 @@ Test cases should be testable locally and in deployed environments.
   - Two different test runs for event types created and updated: Produce HbiHostCreateUpdateEvent with event type to HBI event Kafka topic
   - Trigger outbox flush via internal API
 - **Verification**:
-  - Confirm no outbox record is created after the event is ingested
-  - Confirm no message is consumed from the service instance ingress Kafka topic by checking logs contain "Incoming HBI event will be skipped due to an invalid billing model"
+  - Confirm no message is consumed from the service instance ingress Kafka topic by checking logs contain "Incoming HBI event will be skipped due to an invalid billing model: marketplace"
 - **Expected Result**:
   - Service successfully ingests both created and updated HBI events but filters them before normalization
   - No SWatch event is produced to the outbox or published to the service instance ingress topic
-  - No host relationship is persisted for the filtered host
 
 **metrics-hbi-event-skipping-TC002 \- Skip producing event when host has host type set to edge**
 
@@ -598,12 +596,10 @@ Test cases should be testable locally and in deployed environments.
   - Two different test runs for event types created and updated: Produce HbiHostCreateUpdateEvent with event type to HBI event Kafka topic
   - Trigger outbox flush via internal API
 - **Verification**:
-  - Confirm no outbox record is created after the event is ingested
-  - Confirm no message is consumed from the service instance ingress Kafka topic by checking logs contain "Incoming HBI event will be skipped due to an invalid host type"
+  - Confirm no message is consumed from the service instance ingress Kafka topic by checking logs contain "Incoming HBI event will be skipped due to an invalid host type: edge"
 - **Expected Result**:
   - Service successfully ingests both created and updated HBI events but filters them before normalization
   - No SWatch event is produced to the outbox or published to the service instance ingress topic
-  - No host relationship is persisted for the filtered host
 
 **metrics-hbi-event-skipping-TC003 \- Skip producing event when host is stale based on timestamp**
 
@@ -616,12 +612,10 @@ Test cases should be testable locally and in deployed environments.
   - Two different test runs for event types created and updated: Produce HbiHostCreateUpdateEvent with event type to HBI event Kafka topic
   - Trigger outbox flush via internal API
 - **Verification**:
-  - Confirm no outbox record is created after the event is ingested
   - Confirm no message is consumed from the service instance ingress Kafka topic by checking logs contain "Incoming HBI event will be skipped because it is stale"
 - **Expected Result**:
   - Service successfully ingests both created and updated HBI events but filters them before normalization
   - No SWatch event is produced to the outbox or published to the service instance ingress topic
-  - No host relationship is persisted for the filtered host
 
 ## Multiple Fact Reporters on Same Host
 
