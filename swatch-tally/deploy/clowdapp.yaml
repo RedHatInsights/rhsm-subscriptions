@@ -407,6 +407,43 @@ parameters:
       FROM instance_measurements
       WHERE last_modified >= date_trunc('day', now() at time zone 'utc' - interval '2 day')
     chunksize: 50000
+  - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/events
+    query: >-
+      SELECT
+        e.event_id,
+        e.org_id,
+        e.event_type,
+        e.event_source,
+        e.instance_id,
+        e.timestamp,
+        e.record_date,
+        e.metering_batch_id,
+        e.data->>'service_type' AS service_type,
+        e.data->>'display_name' AS display_name,
+        e.data->>'inventory_id' AS inventory_id,
+        e.data->>'insights_id' AS insights_id,
+        e.data->>'subscription_manager_id' AS subscription_manager_id,
+        e.data->>'hardware_type' AS hardware_type,
+        e.data->>'hypervisor_uuid' AS hypervisor_uuid,
+        e.data->>'sla' AS sla,
+        e.data->>'usage' AS usage,
+        e.data->>'billing_provider' AS billing_provider,
+        e.data->>'billing_account_id' AS billing_account_id,
+        e.data->>'azure_tenant_id' AS azure_tenant_id,
+        e.data->>'azure_resource_id' AS azure_resource_id,
+        e.data->>'azure_subscription_id' AS azure_subscription_id,
+        e.data->>'amendment_type' AS amendment_type,
+        (e.data->>'conversion')::boolean AS conversion,
+        (e.data->>'isHypervisor')::boolean AS is_hypervisor,
+        (e.data->>'isVirtual')::boolean AS is_virtual,
+        (e.data->>'isUnmappedGuest')::boolean AS is_unmapped_guest,
+        e.data->>'lastSeen' AS last_seen,
+        array_to_string(ARRAY(SELECT jsonb_array_elements_text(e.data->'product_tag')), ',') AS product_tag,
+        m.value->>'metric_id' AS metric_id,
+        (m.value->>'value')::numeric AS measurement_value
+      FROM events e
+      LEFT JOIN LATERAL jsonb_array_elements(e.data->'measurements') AS m(value) ON true
+    chunksize: 50000
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
