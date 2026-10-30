@@ -20,6 +20,11 @@
  */
 package com.redhat.swatch.hbi.events.ct.utils;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.redhat.swatch.component.tests.utils.JsonUtils;
 import com.redhat.swatch.hbi.events.HbiEventConstants;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
@@ -30,9 +35,12 @@ import com.redhat.swatch.hbi.events.normalization.facts.RhsmFacts;
 import com.redhat.swatch.hbi.events.normalization.facts.SystemProfileFacts;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.CloudProvider;
 import org.candlepin.subscriptions.json.Event.HardwareType;
@@ -360,5 +368,111 @@ public class SwatchEventHelper {
       return CloudProvider.AZURE;
     }
     return null;
+  }
+
+  /**
+   * Extract a measurement value from a SWatch event by metric ID.
+   *
+   * @param event the SWatch event
+   * @param metricId the metric ID (e.g., "cores", "sockets")
+   * @return the measurement value, or null if not found
+   */
+  public static Double getMeasurementValue(Event event, String metricId) {
+    if (event.getMeasurements() == null) {
+      return null;
+    }
+    return event.getMeasurements().stream()
+        .filter(m -> metricId.equals(m.getMetricId()))
+        .findFirst()
+        .map(Measurement::getValue)
+        .orElse(null);
+  }
+
+  /**
+   * Compare two SWatch events for equality using normalization logic. This method normalizes both
+   * events by removing volatile fields (timestamp, expiration, lastSeen), removing null-valued
+   * fields, and sorting arrays where order is not semantically relevant.
+   *
+   * @param expected the expected event
+   * @param actual the actual event
+   * @return true if events match after normalization
+   */
+  public static boolean eventsMatch(Event expected, Event actual) {
+    try {
+      ObjectMapper mapper = JsonUtils.getObjectMapper();
+      ObjectNode expectedNode = mapper.valueToTree(expected).deepCopy();
+      ObjectNode actualNode = mapper.valueToTree(actual).deepCopy();
+
+      normalizeSwatchEventNode(expectedNode);
+      normalizeSwatchEventNode(actualNode);
+
+      return expectedNode.equals(actualNode);
+    } catch (Exception e) {
+      return false;
+    }
+  }
+
+  private static void normalizeSwatchEventNode(ObjectNode node) {
+    // Drop volatile fields
+    node.remove("timestamp");
+    node.remove("expiration");
+    node.remove("last_seen");
+    node.remove("lastSeen");
+
+    // Remove null-valued fields
+    List<String> toRemove = new ArrayList<>();
+    for (Iterator<String> it = node.fieldNames(); it.hasNext(); ) {
+      String f = it.next();
+      JsonNode v = node.get(f);
+      if (v == null || v.isNull()) {
+        toRemove.add(f);
+      }
+    }
+    node.remove(toRemove);
+
+    // Sort arrays where order is not semantically relevant
+    sortTextArray(node, "product_ids");
+    sortTextArray(node, "productIds");
+    sortTextArray(node, "product_tag");
+    sortTextArray(node, "productTag");
+    sortMeasurements(node, "measurements");
+  }
+
+  private static void sortTextArray(ObjectNode node, String fieldName) {
+    JsonNode n = node.get(fieldName);
+    if (n != null && n.isArray()) {
+      List<JsonNode> items = new ArrayList<>();
+      n.forEach(items::add);
+      items.sort(Comparator.comparing(JsonNode::asText));
+      ArrayNode newArr = node.arrayNode();
+      for (JsonNode it : items) {
+        newArr.add(it);
+      }
+      node.set(fieldName, newArr);
+    }
+  }
+
+  private static void sortMeasurements(ObjectNode node, String fieldName) {
+    JsonNode n = node.get(fieldName);
+    if (n != null && n.isArray()) {
+      List<JsonNode> items = new ArrayList<>();
+      n.forEach(items::add);
+      Function<JsonNode, String> key =
+          m -> {
+            if (m.has("metric_id")) {
+              return m.get("metric_id").asText();
+            }
+            if (m.has("metricId")) {
+              return m.get("metricId").asText();
+            }
+            return m.toString();
+          };
+      items.sort(Comparator.comparing(key));
+      ArrayNode newArr = node.arrayNode();
+      for (JsonNode it : items) {
+        newArr.add(it);
+      }
+      node.set(fieldName, newArr);
+    }
   }
 }
