@@ -68,4 +68,8 @@ public class BaseSMHBIComponentTest {
           AwaitilitySettings.defaults().onConditionNotMet(service::flushOutboxSynchronously));
     }
   }
+
+  protected int countLogsContaining(String text) {
+    return (int) service.getLogs().stream().filter(line -> line.contains(text)).count();
+  }
 }
