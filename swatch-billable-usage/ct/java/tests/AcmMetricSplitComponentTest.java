@@ -24,8 +24,8 @@ import static api.BillableUsageTestHelper.createPhysicalMeasurement;
 import static api.BillableUsageTestHelper.createTallySummary;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
+import static domain.RemittanceStatus.COVERED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import api.MessageValidators;
@@ -226,7 +226,10 @@ public class AcmMetricSplitComponentTest extends BaseBillableUsageComponentTest 
       String tallyId, Map<String, Double> expectedByMetric, BillingProvider billingProvider) {
     AwaitilityUtils.untilAsserted(
         () -> {
-          List<TallyRemittance> remittances = service.getRemittancesByTally(tallyId);
+          List<TallyRemittance> remittances =
+              service.getRemittancesByTally(tallyId).stream()
+                  .filter(row -> !COVERED.name().equalsIgnoreCase(row.getStatus()))
+                  .toList();
           assertNotNull(remittances, "Remittances should exist for tally");
           assertEquals(
               expectedByMetric.size(), remittances.size(), "Tally remittance row count mismatch");
@@ -254,19 +257,19 @@ public class AcmMetricSplitComponentTest extends BaseBillableUsageComponentTest 
       String metricId, BillingProvider billingProvider, double expectedRemittedValue) {
     AwaitilityUtils.untilAsserted(
         () -> {
-          List<MonthlyRemittance> remittances =
-              service.getRemittances(
-                  RHACM.getName(),
-                  orgId,
-                  metricId,
-                  billingProvider.toTallyApiModel().value(),
-                  billingAccountId);
-          assertFalse(remittances.isEmpty(), "Expected account remittance");
-          assertEquals(
-              expectedRemittedValue,
-              remittances.get(0).getRemittedValue(),
-              0.001,
-              "Account remittance value mismatch");
+          double actual =
+              service
+                  .getRemittances(
+                      RHACM.getName(),
+                      orgId,
+                      metricId,
+                      billingProvider.toTallyApiModel().value(),
+                      billingAccountId)
+                  .stream()
+                  .filter(row -> !COVERED.name().equalsIgnoreCase(row.getRemittanceStatus()))
+                  .mapToDouble(MonthlyRemittance::getRemittedValue)
+                  .sum();
+          assertEquals(expectedRemittedValue, actual, 0.001, "Account remittance value mismatch");
         });
   }
 }

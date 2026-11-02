@@ -31,10 +31,9 @@ import com.redhat.swatch.billable.usage.exceptions.ContractCoverageException;
 import com.redhat.swatch.billable.usage.exceptions.ContractMissingException;
 import com.redhat.swatch.billable.usage.exceptions.ErrorCode;
 import com.redhat.swatch.billable.usage.services.model.BillableUsageCalculation;
-import com.redhat.swatch.billable.usage.services.model.BillingUnit;
 import com.redhat.swatch.billable.usage.services.model.ContractCoverage;
-import com.redhat.swatch.billable.usage.services.model.MetricUnit;
 import com.redhat.swatch.billable.usage.services.model.Quantity;
+import com.redhat.swatch.billable.usage.services.model.RemittanceTotals;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import io.micrometer.core.instrument.Counter;
@@ -44,6 +43,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.billable.usage.AccumulationPeriodFormatter;
@@ -54,10 +55,12 @@ import org.candlepin.subscriptions.billable.usage.BillableUsage.Status;
 @ApplicationScoped
 public class BillableUsageService {
 
-  private static final ContractCoverage DEFAULT_CONTRACT_COVERAGE =
-      ContractCoverage.builder().total(0).gratis(false).build();
+  public static final String NO_LICENSE_ID = "";
   protected static final String COVERED_USAGE_METRIC = "swatch_contract_usage_total";
   protected static final String BILLABLE_USAGE_METRIC = "swatch_billable_usage_total";
+  private static final ContractCoverage DEFAULT_CONTRACT_COVERAGE =
+      ContractCoverage.builder().total(0).gratis(false).build();
+
   private final ApplicationClock clock;
   private final BillingProducer billingProducer;
   private final BillableUsageRemittanceRepository billableUsageRemittanceRepository;
@@ -113,23 +116,20 @@ public class BillableUsageService {
       log.debug("Adjusting usage based on contracted amount of {}", contractCoverage.getTotal());
     }
 
-    Quantity<BillingUnit> contractAmount = Quantity.fromValue(usage, contractCoverage.getTotal());
-    double applicableUsage =
-        Quantity.of(usage.getCurrentTotal())
-            .subtract(contractAmount)
-            .positiveOrZero() // ignore usage less than the contract amount
-            .getValue();
-
-    var totalRemitted = getTotalRemitted(usage);
+    RemittanceTotals alreadyRemittanceTotals = getRemittanceTotals(usage);
     BillableUsageCalculation usageCalc =
-        calculateBillableUsage(applicableUsage, usage, totalRemitted);
+        BillableUsageCalculation.calculate(
+            usage, contractCoverage, alreadyRemittanceTotals, clock.now());
 
     log.debug(
-        "Processing monthly billable usage: Usage: {}, Applicable: {}, Current total: {}, Current remittance: {}, New billable: {}",
+        "Processing monthly billable usage: Usage: {}, Applicable remitted: {}, Current total: {}, Live coverage: {}, Already covered: {}, Current remittance: {}, Covered delta by license: {}, New billable: {}",
         usage,
-        applicableUsage,
+        usageCalc.getRemittedValue(),
         usage.getCurrentTotal(),
-        totalRemitted,
+        contractCoverage.getTotal(),
+        alreadyRemittanceTotals.covered(),
+        alreadyRemittanceTotals.remitted(),
+        usageCalc.getCoveredDeltaByLicense(),
         usageCalc);
 
     // Update the reported usage value to the newly calculated one.
@@ -142,6 +142,8 @@ public class BillableUsageService {
     } else {
       log.debug("Nothing to remit. Remittance record will not be created.");
     }
+
+    createCoveredRemittances(usage, usageCalc.getCoveredDeltaByLicense());
 
     // There were issues with transmitting usage to AWS since the cost event timestamps were in the
     // past. This modification allows us to send usage to AWS if we get it during the current hour
@@ -184,56 +186,23 @@ public class BillableUsageService {
     }
   }
 
-  protected double getTotalRemitted(BillableUsage billableUsage) {
+  private RemittanceTotals getRemittanceTotals(BillableUsage billableUsage) {
     var filter = BillableUsageRemittanceFilter.totalRemittedFilter(billableUsage);
-    return billableUsageRemittanceRepository.getRemittanceSummaries(filter).stream()
-        .map(RemittanceSummaryProjection::getTotalRemittedPendingValue)
-        .reduce(Double::sum)
-        .orElse(0.0);
-  }
+    double remitted = 0.0;
+    Map<String, Double> coveredByLicense = new HashMap<>();
+    for (RemittanceSummaryProjection summary :
+        billableUsageRemittanceRepository.getRemittanceSummaries(filter)) {
+      double value = summary.getTotalRemittedPendingValue();
+      if (RemittanceStatus.COVERED.equals(summary.getStatus())) {
+        String licenseId = summary.getLicenseId();
+        String key = licenseId == null || licenseId.isBlank() ? NO_LICENSE_ID : licenseId;
+        coveredByLicense.merge(key, value, Double::sum);
+      } else if (!RemittanceStatus.FAILED.equals(summary.getStatus())) {
+        remitted += value;
+      }
+    }
 
-  /**
-   * Find the latest remitted value and billing factor used for that remittance in the database.
-   * Convert it to use the billing factor that's currently listed in the
-   * swatch-product-configuration library. This might be a no-op if the factor hasn't changed.
-   * BillableUsage should be the difference between the current usage and the previous usage at the
-   * newest swatch-product-configuration library billing factor. Integer-only billing is then
-   * applied before remitting. calculations that are need to bill any unbilled amount and to record
-   * any unbilled amount
-   *
-   * @param applicableUsage The total amount of measured usage used during the calculation.
-   * @param usage The specific event within a given month to determine what need to be billed
-   * @param remittanceTotal The previous record amount for remitted amount
-   * @return calculations that are need to bill any un-billed amount and to record any un-billed
-   *     amount
-   */
-  private BillableUsageCalculation calculateBillableUsage(
-      double applicableUsage, BillableUsage usage, double remittanceTotal) {
-    Quantity<MetricUnit> totalUsage = Quantity.of(applicableUsage);
-    var billingUnit = new BillingUnit(usage);
-    Quantity<MetricUnit> currentRemittance = Quantity.of(remittanceTotal);
-    Quantity<BillingUnit> billableValue =
-        totalUsage
-            .subtract(currentRemittance)
-            .to(billingUnit)
-            // only emit integers for billing
-            .ceil()
-            // Message could have been received out of order via another process
-            // or usage is credited, nothing to bill in either case.
-            .positiveOrZero();
-
-    log.debug(
-        "Running total: {}, already remitted: {}, to be remitted: {}",
-        totalUsage,
-        currentRemittance,
-        billableValue);
-
-    return BillableUsageCalculation.builder()
-        .billableValue(billableValue.getValue())
-        .remittedValue(billableValue.to(new MetricUnit()).getValue())
-        .remittanceDate(clock.now())
-        .billingFactor(billingUnit.getBillingFactor())
-        .build();
+    return new RemittanceTotals(remitted, coveredByLicense);
   }
 
   private void createRemittance(
@@ -250,7 +219,7 @@ public class BillableUsageService {
             .usage(usage.getUsage().value())
             .remittancePendingDate(clock.now())
             .tallyId(usage.getTallyId())
-            .licenseId(contractCoverage.getLicenseId())
+            .licenseId(contractCoverage.getSelectedLicenseId())
             .status(
                 contractCoverage.isGratis() ? RemittanceStatus.GRATIS : RemittanceStatus.PENDING)
             .build();
@@ -264,7 +233,40 @@ public class BillableUsageService {
     usage.setStatus(
         contractCoverage.isGratis() ? BillableUsage.Status.GRATIS : BillableUsage.Status.PENDING);
     usage.setUuid(newRemittance.getUuid());
-    usage.setLicenseId(contractCoverage.getLicenseId());
+    usage.setLicenseId(contractCoverage.getSelectedLicenseId());
+  }
+
+  private void createCoveredRemittances(
+      BillableUsage usage, Map<String, Double> coveredDeltaByLicense) {
+    coveredDeltaByLicense.forEach(
+        (licenseId, coveredValue) -> {
+          if (coveredValue != null && coveredValue > 0) {
+            String persistLicenseId = NO_LICENSE_ID.equals(licenseId) ? null : licenseId;
+            persistCoveredRemittance(usage, persistLicenseId, coveredValue);
+          }
+        });
+  }
+
+  private void persistCoveredRemittance(
+      BillableUsage usage, String licenseId, double coveredValue) {
+    var coveredRemittance =
+        BillableUsageRemittanceEntity.builder()
+            .orgId(usage.getOrgId())
+            .billingAccountId(usage.getBillingAccountId())
+            .billingProvider(usage.getBillingProvider().value())
+            .accumulationPeriod(AccumulationPeriodFormatter.toMonthId(usage.getSnapshotDate()))
+            .metricId(MetricId.fromString(usage.getMetricId()).getValue())
+            .productId(usage.getProductId())
+            .sla(usage.getSla().value())
+            .usage(usage.getUsage().value())
+            .remittancePendingDate(clock.now())
+            .tallyId(usage.getTallyId())
+            .licenseId(licenseId)
+            .status(RemittanceStatus.COVERED)
+            .build();
+    coveredRemittance.setRemittedPendingValue(coveredValue);
+    log.debug("Creating covered remittance: {}", coveredRemittance);
+    billableUsageRemittanceRepository.persist(coveredRemittance);
   }
 
   private void updateBillableUsageMeter(BillableUsage usage, BillableUsageCalculation usageCalc) {

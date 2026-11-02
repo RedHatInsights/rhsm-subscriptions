@@ -44,7 +44,7 @@ public class ContractAllocationAuditService {
   static final Comparator<Contract> ALLOCATION_ORDER =
       Comparator.comparing(Contract::getEndDate, Comparator.nullsLast(Comparator.naturalOrder()))
           .thenComparing(Contract::getStartDate, Comparator.nullsLast(Comparator.reverseOrder()))
-          .thenComparing(Contract::getLicenseId, Comparator.naturalOrder());
+          .thenComparing(Contract::getLicenseId, Comparator.nullsLast(Comparator.naturalOrder()));
 
   AllocationResult allocate(
       List<Contract> contracts, String contractMetricId, double monthToDateUsage) {

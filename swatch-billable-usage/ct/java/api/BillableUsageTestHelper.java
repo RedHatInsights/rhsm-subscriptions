@@ -138,6 +138,24 @@ public final class BillableUsageTestHelper {
         createPhysicalMeasurement(metricId, value, currentTotal));
   }
 
+  public static TallySummary createTallySummaryWithCurrentTotal(
+      String orgId,
+      String productId,
+      String metricId,
+      double value,
+      double currentTotal,
+      BillingProvider billingProvider,
+      String billingAccountId,
+      OffsetDateTime snapshotDate) {
+    return createTallySummary(
+        orgId,
+        productId,
+        billingProvider,
+        billingAccountId,
+        snapshotDate,
+        createPhysicalMeasurement(metricId, value, currentTotal));
+  }
+
   public static TallyMeasurement createPhysicalMeasurement(String metricId, double value) {
     return createPhysicalMeasurement(metricId, value, value);
   }

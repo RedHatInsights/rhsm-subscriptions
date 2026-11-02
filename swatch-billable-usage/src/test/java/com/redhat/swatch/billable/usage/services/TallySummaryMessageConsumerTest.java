@@ -22,6 +22,8 @@ package com.redhat.swatch.billable.usage.services;
 
 import static com.redhat.swatch.billable.usage.configuration.Channels.BILLABLE_USAGE_OUT;
 import static com.redhat.swatch.billable.usage.configuration.Channels.TALLY_SUMMARY;
+import static com.redhat.swatch.billable.usage.data.RemittanceStatus.COVERED;
+import static com.redhat.swatch.billable.usage.data.RemittanceStatus.PENDING;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -32,6 +34,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.billable.usage.data.BillableUsageRemittanceRepository;
+import com.redhat.swatch.billable.usage.data.RemittanceStatus;
 import com.redhat.swatch.billable.usage.kafka.InMemoryMessageBrokerKafkaResource;
 import com.redhat.swatch.billable.usage.model.TallyMeasurement;
 import com.redhat.swatch.billable.usage.model.TallySnapshot;
@@ -135,8 +138,20 @@ class TallySummaryMessageConsumerTest {
     whenSendSnapshots();
 
     // 48 because the contract limit was 32, so 80 - 32 = 48.
-    thenRemittanceIsCreatedWithPendingValue(48.0);
+    thenRemittanceIsCreatedWithStatus(PENDING, 48.0);
+    thenRemittanceIsCreatedWithStatus(COVERED, 32.0);
     thenRemittanceIsEmitted();
+  }
+
+  @Transactional
+  public void verifyRemittanceIsCreatedWithStatus(
+      RemittanceStatus expectedStatus, double expected) {
+    var remittances =
+        usageRemittanceRepository.listAll().stream()
+            .filter(remittance -> remittance.getStatus() == expectedStatus)
+            .toList();
+    assertEquals(1, remittances.size());
+    assertEquals(expected, remittances.getFirst().getRemittedPendingValue());
   }
 
   private void givenSnapshotWithMetric(String metricId) {
@@ -203,15 +218,9 @@ class TallySummaryMessageConsumerTest {
     source.send(new TallySummary().withOrgId(ORG_ID).withTallySnapshots(snapshots));
   }
 
-  private void thenRemittanceIsCreatedWithPendingValue(double expected) {
-    Awaitility.await().untilAsserted(() -> verifyRemittanceIsCreatedWithPendingValue(expected));
-  }
-
-  @Transactional
-  public void verifyRemittanceIsCreatedWithPendingValue(double expected) {
-    var remittances = usageRemittanceRepository.listAll();
-    assertEquals(1, remittances.size());
-    assertEquals(expected, remittances.get(0).getRemittedPendingValue());
+  private void thenRemittanceIsCreatedWithStatus(RemittanceStatus expectedStatus, double expected) {
+    Awaitility.await()
+        .untilAsserted(() -> verifyRemittanceIsCreatedWithStatus(expectedStatus, expected));
   }
 
   private void thenSnapshotsAreConsumed() {

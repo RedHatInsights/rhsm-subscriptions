@@ -20,6 +20,9 @@
  */
 package com.redhat.swatch.billable.usage.services.model;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.SequencedMap;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -29,12 +32,16 @@ public class ContractCoverage {
   private final String metricId;
   private final boolean gratis;
   private final double total;
-  private final String licenseId;
+  private final String selectedLicenseId;
+
+  @Builder.Default
+  private final SequencedMap<String, Double> capacityByLicense =
+      Collections.unmodifiableSequencedMap(new LinkedHashMap<>());
 
   @Override
   public String toString() {
     return String.format(
-        "Coverage for metric '%s': %s%s licenseId=%s",
-        metricId, total, gratis ? "(Gratis)" : "", licenseId);
+        "Coverage for metric '%s': %s%s selectedLicenseId=%s capacityByLicense=%s",
+        metricId, total, gratis ? "(Gratis)" : "", selectedLicenseId, capacityByLicense);
   }
 }

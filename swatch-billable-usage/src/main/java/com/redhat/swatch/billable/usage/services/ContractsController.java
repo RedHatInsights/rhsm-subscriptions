@@ -69,12 +69,17 @@ public class ContractsController {
           ex);
     }
 
-    if (contracts == null || contracts.isEmpty()) {
-      throw new ContractMissingException(
-          String.format("No contract info found for usage! %s", usage));
+    if (contracts == null) {
+      throw missingContractException(usage);
     }
 
-    return contracts.stream().filter(contract -> isValidContract(contract, usage)).toList();
+    List<Contract> validContracts =
+        contracts.stream().filter(contract -> isValidContract(contract, usage)).toList();
+    if (validContracts.isEmpty()) {
+      throw missingContractException(usage);
+    }
+
+    return validContracts;
   }
 
   private boolean isValidContract(Contract contract, BillableUsage usage) {
@@ -83,5 +88,10 @@ public class ContractsController {
         Objects.isNull(contract.getEndDate())
             || usage.getSnapshotDate().isBefore(contract.getEndDate());
     return isWithinStart && isWithinEnd;
+  }
+
+  private static ContractMissingException missingContractException(BillableUsage usage) {
+    return new ContractMissingException(
+        String.format("No contract info found for usage! %s", usage));
   }
 }
