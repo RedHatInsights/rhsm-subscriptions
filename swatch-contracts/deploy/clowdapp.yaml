@@ -57,10 +57,8 @@ parameters:
   - name: DB_CHANGELOG_CLEANUP_DISABLED
     description: When true, skip db-changelog cleanup jobs
     value: 'false'
-  - name: EGRESS_IMAGE
-    value: quay.io/redhat-services-prod/rh-subs-watch-tenant/rhsm-subscriptions-egress
-  - name: EGRESS_IMAGE_TAG
-    value: latest
+  - name: SQL_EXECUTE_IMAGE
+    value: registry.redhat.io/rhel10/postgresql-16:1793579315
   - name: QUARKUS_PROFILE
     value: prod
   # PostgreSQL lock_timeout / statement_timeout per statement for liquibase-only initContainer (e.g. 3min).
@@ -656,7 +654,7 @@ objects:
           disabled: ${{DB_CHANGELOG_CLEANUP_DISABLED}}
           restartPolicy: Never
           podSpec:
-            image: ${EGRESS_IMAGE}:${EGRESS_IMAGE_TAG}
+            image: ${SQL_EXECUTE_IMAGE}
             name: db-changelog-cleanup
             command: ["/bin/sh", "-c"]
             args:
