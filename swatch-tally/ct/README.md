@@ -57,4 +57,4 @@ Execute tests for a specific service against the OpenShift environment. For exam
 ./mvnw clean install -Pcomponent-tests -pl swatch-tally/ct -am -Dswatch.component-tests.global.target=openshift
 ```
 
-The key difference is the addition of the `-Dswatch.component-tests.global.target=openshift` parameter, which tells the test framework to target the OpenShift deployment instead of local containers
+The key difference is the addition of the `-Dswatch.component-tests.global.target=openshift` parameter, which tells the test framework to target the OpenShift deployment instead of local containers.
