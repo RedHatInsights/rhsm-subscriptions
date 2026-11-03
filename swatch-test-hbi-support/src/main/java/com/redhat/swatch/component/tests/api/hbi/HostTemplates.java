@@ -119,4 +119,50 @@ public final class HostTemplates {
                     .threadsPerCore(2)
                     .build());
   }
+
+  /** Physical RHEL host with Self-Support SLA and Development/Test usage. */
+  public static Function<HostBuilder, HostBuilder> conduitPhysicalRhelSelfSupportDevTest(
+      int sockets, int cores) {
+    return builder ->
+        builder
+            .subscriptionManagerId(UUID.randomUUID().toString())
+            .rhsmFacts(
+                RhsmFacts.builder()
+                    .defaultFacts()
+                    .sla("Self-Support")
+                    .usage("Development/Test")
+                    .product("69")
+                    .build())
+            .systemProfileFacts(
+                SystemProfileFacts.builder()
+                    .infrastructureType(INFRA_PHYSICAL)
+                    .arch("x86_64")
+                    .numberOfSockets(sockets)
+                    .numberOfCpus(cores)
+                    .build());
+  }
+
+  /** Virtual RHEL guest with Self-Support SLA and Development/Test usage */
+  public static Function<HostBuilder, HostBuilder> conduitVirtualRhelGuestSelfSupportDevTest(
+      int coresPerSocket, int sockets, String hypervisorUuid) {
+    return builder ->
+        builder
+            .subscriptionManagerId(UUID.randomUUID().toString())
+            .rhsmFacts(
+                RhsmFacts.builder()
+                    .defaultFacts()
+                    .sla("Self-Support")
+                    .usage("Development/Test")
+                    .isVirtual(true)
+                    .product("69")
+                    .build())
+            .systemProfileFacts(
+                SystemProfileFacts.builder()
+                    .infrastructureType(INFRA_VIRTUAL)
+                    .arch("x86_64")
+                    .coresPerSocket(coresPerSocket)
+                    .numberOfSockets(sockets)
+                    .hypervisorUuid(hypervisorUuid)
+                    .build());
+  }
 }

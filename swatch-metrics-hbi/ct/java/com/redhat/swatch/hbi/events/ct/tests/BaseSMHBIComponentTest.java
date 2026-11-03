@@ -20,6 +20,8 @@
  */
 package com.redhat.swatch.hbi.events.ct.tests;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import com.redhat.swatch.component.tests.api.ComponentTest;
 import com.redhat.swatch.component.tests.api.DefaultMessageValidator;
 import com.redhat.swatch.component.tests.api.KafkaBridge;
@@ -32,6 +34,8 @@ import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.component.tests.utils.Topics;
 import com.redhat.swatch.hbi.events.ct.api.SwatchMetricsHbiRestService;
+import java.util.ArrayList;
+import java.util.List;
 import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.BeforeEach;
 
@@ -59,14 +63,20 @@ public class BaseSMHBIComponentTest {
   }
 
   @SafeVarargs
-  protected final void thenSwatchEventsAppear(DefaultMessageValidator<Event>... expectedMessages) {
+  protected final List<Event> thenSwatchEventsAppear(
+      DefaultMessageValidator<Event>... expectedMessages) {
+    List<Event> allEvents = new ArrayList<>();
     for (var expectedMessage : expectedMessages) {
-      kafkaBridge.waitForKafkaMessage(
-          Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
-          expectedMessage,
-          1,
-          AwaitilitySettings.defaults().onConditionNotMet(service::flushOutboxSynchronously));
+      List<Event> events =
+          kafkaBridge.waitForKafkaMessage(
+              Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
+              expectedMessage,
+              1,
+              AwaitilitySettings.defaults().onConditionNotMet(service::flushOutboxSynchronously));
+      assertEquals(1, events.size(), "Expected exactly 1 matching event");
+      allEvents.addAll(events);
     }
+    return allEvents;
   }
 
   protected int countLogsContaining(String text) {

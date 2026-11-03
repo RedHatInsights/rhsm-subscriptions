@@ -25,10 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
-import com.redhat.swatch.component.tests.api.hbi.RhsmFacts;
-import com.redhat.swatch.component.tests.api.hbi.SystemProfileFacts;
-import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
-import com.redhat.swatch.component.tests.utils.Topics;
+import com.redhat.swatch.component.tests.api.hbi.HostTemplates;
 import com.redhat.swatch.hbi.events.ct.api.MessageValidators;
 import com.redhat.swatch.hbi.events.ct.utils.SwatchEventHelper;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
@@ -37,7 +34,6 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -66,24 +62,15 @@ class MetricsHbiVirtualRhelCreateUpdateComponentTest extends BaseSMHBIComponentT
     HbiHostCreateUpdateEvent hbiEvent =
         hostEvents
             .createHost(orgId)
-            .subscriptionManagerId(UUID.randomUUID().toString())
-            .rhsmFacts(
-                RhsmFacts.builder()
-                    .defaultFacts()
-                    .sla("Self-Support")
-                    .usage("Development/Test")
-                    .isVirtual(true)
-                    .product("69")
-                    .build())
-            .systemProfileFacts(
-                SystemProfileFacts.builder()
-                    .infrastructureType("virtual")
-                    .arch("x86_64")
-                    .coresPerSocket(2)
-                    .numberOfSockets(2)
-                    .threadsPerCore(4)
-                    .hypervisorUuid("non-existent-hypervisor-uuid")
-                    .build())
+            .apply(
+                HostTemplates.conduitVirtualRhelGuestSelfSupportDevTest(
+                    2, 2, "non-existent-hypervisor-uuid"))
+            .apply(
+                b ->
+                    b.systemProfileFacts(
+                        b.getSystemProfileFacts().toBuilder()
+                            .threadsPerCore(4) // Extend template: add threadsPerCore for this test
+                            .build()))
             .toEvent()
             .type(hbiEventType)
             .timestamp(OffsetDateTime.now(ZoneOffset.UTC))
@@ -92,15 +79,12 @@ class MetricsHbiVirtualRhelCreateUpdateComponentTest extends BaseSMHBIComponentT
     // When: HBI event is produced to Kafka
     hostEvents.publish(hbiEvent);
 
-    // Then: Wait for the actual SWatch event from Kafka using minimal key-based matcher
+    // Then: Wait for and capture the actual SWatch event from Kafka
     String instanceId = hbiEvent.getHost().getId().toString();
     List<Event> actualEvents =
-        kafkaBridge.waitForKafkaMessage(
-            Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
-            MessageValidators.swatchEventMatches(orgId, instanceId, swatchEventType.toString()),
-            1,
-            AwaitilitySettings.defaults().onConditionNotMet(service::flushOutboxSynchronously));
-
+        thenSwatchEventsAppear(
+            MessageValidators.swatchEventMatches(orgId, instanceId, swatchEventType.toString()));
+    assertEquals(1, actualEvents.size(), "Expected exactly 1 event");
     Event actualEvent = actualEvents.getFirst();
 
     // Then: Assert specific measurement values on ACTUAL event from Kafka: cores=1, sockets=1
@@ -129,24 +113,15 @@ class MetricsHbiVirtualRhelCreateUpdateComponentTest extends BaseSMHBIComponentT
     HbiHostCreateUpdateEvent hbiEvent =
         hostEvents
             .createHost(orgId)
-            .subscriptionManagerId(UUID.randomUUID().toString())
-            .rhsmFacts(
-                RhsmFacts.builder()
-                    .defaultFacts()
-                    .sla("Self-Support")
-                    .usage("Development/Test")
-                    .isVirtual(true)
-                    .product("69")
-                    .build())
-            .systemProfileFacts(
-                SystemProfileFacts.builder()
-                    .infrastructureType("virtual")
-                    .arch("x86_64")
-                    .coresPerSocket(2)
-                    .numberOfSockets(2)
-                    .numberOfCpus(4)
-                    .hypervisorUuid("non-existent-hypervisor-uuid")
-                    .build())
+            .apply(
+                HostTemplates.conduitVirtualRhelGuestSelfSupportDevTest(
+                    2, 2, "non-existent-hypervisor-uuid"))
+            .apply(
+                b ->
+                    b.systemProfileFacts(
+                        b.getSystemProfileFacts().toBuilder()
+                            .numberOfCpus(4) // Extend template: add numberOfCpus for this test
+                            .build()))
             .toEvent()
             .type(hbiEventType)
             .timestamp(OffsetDateTime.now(ZoneOffset.UTC))
@@ -155,15 +130,12 @@ class MetricsHbiVirtualRhelCreateUpdateComponentTest extends BaseSMHBIComponentT
     // When: HBI event is produced to Kafka
     hostEvents.publish(hbiEvent);
 
-    // Then: Wait for the actual SWatch event from Kafka using minimal key-based matcher
+    // Then: Wait for and capture the actual SWatch event from Kafka
     String instanceId = hbiEvent.getHost().getId().toString();
     List<Event> actualEvents =
-        kafkaBridge.waitForKafkaMessage(
-            Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
-            MessageValidators.swatchEventMatches(orgId, instanceId, swatchEventType.toString()),
-            1,
-            AwaitilitySettings.defaults().onConditionNotMet(service::flushOutboxSynchronously));
-
+        thenSwatchEventsAppear(
+            MessageValidators.swatchEventMatches(orgId, instanceId, swatchEventType.toString()));
+    assertEquals(1, actualEvents.size(), "Expected exactly 1 event");
     Event actualEvent = actualEvents.getFirst();
 
     // Then: Assert specific measurement values on ACTUAL event from Kafka: cores=4, sockets=1
@@ -192,22 +164,20 @@ class MetricsHbiVirtualRhelCreateUpdateComponentTest extends BaseSMHBIComponentT
     HbiHostCreateUpdateEvent hbiEvent =
         hostEvents
             .createHost(orgId)
-            .subscriptionManagerId(UUID.randomUUID().toString())
-            .rhsmFacts(
-                RhsmFacts.builder()
-                    .defaultFacts()
-                    .sla("Self-Support")
-                    .usage("Development/Test")
-                    .isVirtual(true)
-                    .product("419")
-                    .build())
-            .systemProfileFacts(
-                SystemProfileFacts.builder()
-                    .infrastructureType("virtual")
-                    .arch("arm")
-                    .coresPerSocket(2)
-                    .numberOfSockets(2)
-                    .build())
+            .apply(HostTemplates.conduitVirtualRhelGuestSelfSupportDevTest(2, 2, null))
+            .apply(
+                b ->
+                    b.rhsmFacts(
+                        b.rhsmFacts().toBuilder()
+                            .product("419") // Override: ARM product instead of x86
+                            .build()))
+            .apply(
+                b ->
+                    b.systemProfileFacts(
+                        b.getSystemProfileFacts().toBuilder()
+                            .arch("arm") // Extend template: change to ARM architecture
+                            .hypervisorUuid(null) // Clear hypervisorUuid (not a guest)
+                            .build()))
             .toEvent()
             .type(hbiEventType)
             .timestamp(OffsetDateTime.now(ZoneOffset.UTC))
@@ -219,12 +189,9 @@ class MetricsHbiVirtualRhelCreateUpdateComponentTest extends BaseSMHBIComponentT
     // Then: Wait for and capture the actual SWatch event from Kafka
     String instanceId = hbiEvent.getHost().getId().toString();
     List<Event> actualEvents =
-        kafkaBridge.waitForKafkaMessage(
-            Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
-            MessageValidators.swatchEventMatches(orgId, instanceId, swatchEventType.toString()),
-            1,
-            AwaitilitySettings.defaults().onConditionNotMet(service::flushOutboxSynchronously));
-
+        thenSwatchEventsAppear(
+            MessageValidators.swatchEventMatches(orgId, instanceId, swatchEventType.toString()));
+    assertEquals(1, actualEvents.size(), "Expected exactly 1 event");
     Event actualEvent = actualEvents.getFirst();
 
     // Then: Assert specific measurement values on ACTUAL event from Kafka: cores=4 (physical calc:
@@ -258,24 +225,15 @@ class MetricsHbiVirtualRhelCreateUpdateComponentTest extends BaseSMHBIComponentT
     HbiHostCreateUpdateEvent hbiEvent =
         hostEvents
             .createHost(orgId)
-            .subscriptionManagerId(UUID.randomUUID().toString())
-            .rhsmFacts(
-                RhsmFacts.builder()
-                    .defaultFacts()
-                    .sla("Self-Support")
-                    .usage("Development/Test")
-                    .isVirtual(true)
-                    .product("69")
-                    .build())
-            .systemProfileFacts(
-                SystemProfileFacts.builder()
-                    .infrastructureType("virtual")
-                    .arch("x86_64")
-                    .coresPerSocket(8)
-                    .numberOfSockets(4)
-                    .numberOfCpus(4)
-                    .cloudProvider("aws")
-                    .build())
+            .apply(HostTemplates.conduitVirtualRhelGuestSelfSupportDevTest(8, 4, null))
+            .apply(
+                b ->
+                    b.systemProfileFacts(
+                        b.getSystemProfileFacts().toBuilder()
+                            .numberOfCpus(4) // Extend template: add numberOfCpus
+                            .cloudProvider("aws") // Extend template: add cloud provider
+                            .hypervisorUuid(null) // Clear hypervisorUuid for cloud host
+                            .build()))
             .toEvent()
             .type(hbiEventType)
             .timestamp(OffsetDateTime.now(ZoneOffset.UTC))
@@ -287,12 +245,9 @@ class MetricsHbiVirtualRhelCreateUpdateComponentTest extends BaseSMHBIComponentT
     // Then: Wait for and capture the actual SWatch event from Kafka
     String instanceId = hbiEvent.getHost().getId().toString();
     List<Event> actualEvents =
-        kafkaBridge.waitForKafkaMessage(
-            Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
-            MessageValidators.swatchEventMatches(orgId, instanceId, swatchEventType.toString()),
-            1,
-            AwaitilitySettings.defaults().onConditionNotMet(service::flushOutboxSynchronously));
-
+        thenSwatchEventsAppear(
+            MessageValidators.swatchEventMatches(orgId, instanceId, swatchEventType.toString()));
+    assertEquals(1, actualEvents.size(), "Expected exactly 1 event");
     Event actualEvent = actualEvents.getFirst();
 
     // Then: Assert specific measurement values on ACTUAL event from Kafka: sockets=1 (cloud
@@ -322,24 +277,11 @@ class MetricsHbiVirtualRhelCreateUpdateComponentTest extends BaseSMHBIComponentT
     HbiHostCreateUpdateEvent hbiEvent =
         hostEvents
             .createHost(orgId)
-            .subscriptionManagerId(UUID.randomUUID().toString())
-            .rhsmFacts(
-                RhsmFacts.builder()
-                    .defaultFacts()
-                    .sla("Self-Support")
-                    .usage("Development/Test")
-                    .isVirtual(true)
-                    .product("69")
-                    .build())
-            .systemProfileFacts(
-                SystemProfileFacts.builder()
-                    .infrastructureType("virtual")
-                    .arch("x86_64")
-                    .coresPerSocket(2)
-                    .numberOfSockets(2)
-                    // Note: threadsPerCore is NOT set, numberOfCpus is NOT set
-                    .hypervisorUuid("non-existent-hypervisor-uuid")
-                    .build())
+            .apply(
+                HostTemplates.conduitVirtualRhelGuestSelfSupportDevTest(
+                    2, 2, "non-existent-hypervisor-uuid"))
+            // Template already has the right systemProfileFacts for this test (no threadsPerCore,
+            // no numberOfCpus)
             .toEvent()
             .type(hbiEventType)
             .timestamp(OffsetDateTime.now(ZoneOffset.UTC))
@@ -351,12 +293,9 @@ class MetricsHbiVirtualRhelCreateUpdateComponentTest extends BaseSMHBIComponentT
     // Then: Wait for and capture the actual SWatch event from Kafka
     String instanceId = hbiEvent.getHost().getId().toString();
     List<Event> actualEvents =
-        kafkaBridge.waitForKafkaMessage(
-            Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
-            MessageValidators.swatchEventMatches(orgId, instanceId, swatchEventType.toString()),
-            1,
-            AwaitilitySettings.defaults().onConditionNotMet(service::flushOutboxSynchronously));
-
+        thenSwatchEventsAppear(
+            MessageValidators.swatchEventMatches(orgId, instanceId, swatchEventType.toString()));
+    assertEquals(1, actualEvents.size(), "Expected exactly 1 event");
     Event actualEvent = actualEvents.getFirst();
 
     // Then: Assert specific measurement values on ACTUAL event from Kafka

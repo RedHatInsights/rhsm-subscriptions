@@ -28,8 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.component.tests.api.DefaultMessageValidator;
 import com.redhat.swatch.component.tests.api.TestPlanName;
-import com.redhat.swatch.component.tests.api.hbi.RhsmFacts;
-import com.redhat.swatch.component.tests.api.hbi.SystemProfileFacts;
+import com.redhat.swatch.component.tests.api.hbi.HostTemplates;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.Topics;
 import com.redhat.swatch.hbi.events.ct.api.MessageValidators;
@@ -65,41 +64,8 @@ class MetricsHbiDeleteComponentTest extends BaseSMHBIComponentTest {
   void shouldProduceDeleteEventForPhysicalRhsmHost() {
     // Given: An existing physical RHEL host
     String insightsId = UUID.randomUUID().toString();
-    HbiHostCreateUpdateEvent createEvent =
-        hostEvents
-            .createHost(orgId)
-            .subscriptionManagerId(UUID.randomUUID().toString())
-            .insightsId(insightsId)
-            .rhsmFacts(
-                RhsmFacts.builder()
-                    .defaultFacts()
-                    .sla("Self-Support")
-                    .usage("Development/Test")
-                    .product("69")
-                    .build())
-            .systemProfileFacts(
-                SystemProfileFacts.builder()
-                    .infrastructureType("physical")
-                    .arch("x86_64")
-                    .coresPerSocket(2)
-                    .numberOfSockets(2)
-                    .build())
-            .toEvent()
-            .type("created")
-            .timestamp(OffsetDateTime.now(ZoneOffset.UTC))
-            .buildCreateUpdate();
-
-    // When: Create event is published to establish the host
-    hostEvents.publish(createEvent);
-
-    // Then: Wait for create event to confirm host exists
+    HbiHostCreateUpdateEvent createEvent = givenExistingPhysicalHost(insightsId);
     String instanceId = createEvent.getHost().getId().toString();
-    kafkaBridge.waitForKafkaMessage(
-        Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
-        MessageValidators.swatchEventMatches(
-            orgId, instanceId, NormalizedEventType.INSTANCE_CREATED.toString()),
-        1,
-        AwaitilitySettings.defaults().onConditionNotMet(service::flushOutboxSynchronously));
 
     // Given: Delete event for the physical host
     HbiHostDeleteEvent deleteEvent =
@@ -120,6 +86,7 @@ class MetricsHbiDeleteComponentTest extends BaseSMHBIComponentTest {
                 orgId, instanceId, NormalizedEventType.INSTANCE_DELETED.toString()),
             1,
             AwaitilitySettings.defaults().onConditionNotMet(service::flushOutboxSynchronously));
+    assertEquals(1, deleteEvents.size(), "Expected exactly 1 event");
     Event actualDeleteEvent = deleteEvents.getFirst();
 
     // Then: Assert specific fields on delete event
@@ -150,83 +117,13 @@ class MetricsHbiDeleteComponentTest extends BaseSMHBIComponentTest {
     String hypervisorSubManId = UUID.randomUUID().toString();
     String hypervisorInsightsId = UUID.randomUUID().toString();
 
-    HbiHostCreateUpdateEvent hypervisorEvent =
-        hostEvents
-            .createHost(orgId)
-            .subscriptionManagerId(hypervisorSubManId)
-            .insightsId(hypervisorInsightsId)
-            .rhsmFacts(
-                RhsmFacts.builder()
-                    .defaultFacts()
-                    .sla("Self-Support")
-                    .usage("Development/Test")
-                    .product("69")
-                    .build())
-            .systemProfileFacts(
-                SystemProfileFacts.builder()
-                    .infrastructureType("physical")
-                    .arch("x86_64")
-                    .coresPerSocket(1)
-                    .numberOfSockets(2)
-                    .build())
-            .toEvent()
-            .type("created")
-            .timestamp(OffsetDateTime.now(ZoneOffset.UTC))
-            .buildCreateUpdate();
+    HbiHostCreateUpdateEvent[] events =
+        givenExistingHypervisorAndGuest(hypervisorSubManId, hypervisorInsightsId, null);
+    HbiHostCreateUpdateEvent hypervisorEvent = events[0];
+    HbiHostCreateUpdateEvent guestEvent = events[1];
 
-    HbiHostCreateUpdateEvent guestEvent =
-        hostEvents
-            .createHost(orgId)
-            .subscriptionManagerId(UUID.randomUUID().toString())
-            .rhsmFacts(
-                RhsmFacts.builder()
-                    .defaultFacts()
-                    .sla("Self-Support")
-                    .usage("Development/Test")
-                    .isVirtual(true)
-                    .product("69")
-                    .build())
-            .systemProfileFacts(
-                SystemProfileFacts.builder()
-                    .infrastructureType("virtual")
-                    .arch("x86_64")
-                    .coresPerSocket(1)
-                    .numberOfSockets(3)
-                    .hypervisorUuid(hypervisorSubManId)
-                    .build())
-            .toEvent()
-            .type("created")
-            .timestamp(OffsetDateTime.now(ZoneOffset.UTC))
-            .buildCreateUpdate();
-
-    // When: Hypervisor and guest events are published
-    hostEvents.publish(hypervisorEvent);
-    hostEvents.publish(guestEvent);
-
-    // Then: Wait for the 3 create events (hypervisor, guest, hypervisor transition)
     String hypervisorInstanceId = hypervisorEvent.getHost().getId().toString();
     String guestInstanceId = guestEvent.getHost().getId().toString();
-
-    kafkaBridge.waitForKafkaMessage(
-        Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
-        MessageValidators.swatchEventMatches(
-            orgId, hypervisorInstanceId, NormalizedEventType.INSTANCE_CREATED.toString()),
-        1,
-        AwaitilitySettings.defaults().onConditionNotMet(service::flushOutboxSynchronously));
-
-    kafkaBridge.waitForKafkaMessage(
-        Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
-        MessageValidators.swatchEventMatches(
-            orgId, guestInstanceId, NormalizedEventType.INSTANCE_CREATED.toString()),
-        1,
-        AwaitilitySettings.defaults().onConditionNotMet(service::flushOutboxSynchronously));
-
-    kafkaBridge.waitForKafkaMessage(
-        Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
-        MessageValidators.swatchEventMatches(
-            orgId, hypervisorInstanceId, NormalizedEventType.INSTANCE_UPDATED.toString()),
-        1,
-        AwaitilitySettings.defaults().onConditionNotMet(service::flushOutboxSynchronously));
 
     // Given: Delete event for the hypervisor
     HbiHostDeleteEvent deleteEvent =
@@ -247,6 +144,7 @@ class MetricsHbiDeleteComponentTest extends BaseSMHBIComponentTest {
                 orgId, hypervisorInstanceId, NormalizedEventType.INSTANCE_DELETED.toString()),
             1,
             AwaitilitySettings.defaults().onConditionNotMet(service::flushOutboxSynchronously));
+    assertEquals(1, hypervisorDeleteEvents.size(), "Expected exactly 1 event");
     Event actualHypervisorDeleteEvent = hypervisorDeleteEvents.getFirst();
 
     // Then: Assert specific fields on hypervisor delete event
@@ -265,6 +163,7 @@ class MetricsHbiDeleteComponentTest extends BaseSMHBIComponentTest {
                 orgId, guestInstanceId, NormalizedEventType.INSTANCE_UPDATED.toString()),
             1,
             AwaitilitySettings.defaults().onConditionNotMet(service::flushOutboxSynchronously));
+    assertEquals(1, guestUpdateEvents.size(), "Expected exactly 1 event");
     Event actualGuestUpdateEvent = guestUpdateEvents.getFirst();
 
     // Then: Assert specific fields on guest update event
@@ -301,83 +200,13 @@ class MetricsHbiDeleteComponentTest extends BaseSMHBIComponentTest {
     String hypervisorSubManId = UUID.randomUUID().toString();
     String guestInsightsId = UUID.randomUUID().toString();
 
-    HbiHostCreateUpdateEvent hypervisorEvent =
-        hostEvents
-            .createHost(orgId)
-            .subscriptionManagerId(hypervisorSubManId)
-            .rhsmFacts(
-                RhsmFacts.builder()
-                    .defaultFacts()
-                    .sla("Self-Support")
-                    .usage("Development/Test")
-                    .product("69")
-                    .build())
-            .systemProfileFacts(
-                SystemProfileFacts.builder()
-                    .infrastructureType("physical")
-                    .arch("x86_64")
-                    .coresPerSocket(1)
-                    .numberOfSockets(2)
-                    .build())
-            .toEvent()
-            .type("created")
-            .timestamp(OffsetDateTime.now(ZoneOffset.UTC))
-            .buildCreateUpdate();
+    HbiHostCreateUpdateEvent[] events =
+        givenExistingHypervisorAndGuest(hypervisorSubManId, null, guestInsightsId);
+    HbiHostCreateUpdateEvent hypervisorEvent = events[0];
+    HbiHostCreateUpdateEvent guestEvent = events[1];
 
-    HbiHostCreateUpdateEvent guestEvent =
-        hostEvents
-            .createHost(orgId)
-            .subscriptionManagerId(UUID.randomUUID().toString())
-            .insightsId(guestInsightsId)
-            .rhsmFacts(
-                RhsmFacts.builder()
-                    .defaultFacts()
-                    .sla("Self-Support")
-                    .usage("Development/Test")
-                    .isVirtual(true)
-                    .product("69")
-                    .build())
-            .systemProfileFacts(
-                SystemProfileFacts.builder()
-                    .infrastructureType("virtual")
-                    .arch("x86_64")
-                    .coresPerSocket(1)
-                    .numberOfSockets(3)
-                    .hypervisorUuid(hypervisorSubManId)
-                    .build())
-            .toEvent()
-            .type("created")
-            .timestamp(OffsetDateTime.now(ZoneOffset.UTC))
-            .buildCreateUpdate();
-
-    // When: Hypervisor and guest events are published
-    hostEvents.publish(hypervisorEvent);
-    hostEvents.publish(guestEvent);
-
-    // Then: Wait for the 3 create events (hypervisor, guest, hypervisor transition)
     String hypervisorInstanceId = hypervisorEvent.getHost().getId().toString();
     String guestInstanceId = guestEvent.getHost().getId().toString();
-
-    kafkaBridge.waitForKafkaMessage(
-        Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
-        MessageValidators.swatchEventMatches(
-            orgId, hypervisorInstanceId, NormalizedEventType.INSTANCE_CREATED.toString()),
-        1,
-        AwaitilitySettings.defaults().onConditionNotMet(service::flushOutboxSynchronously));
-
-    kafkaBridge.waitForKafkaMessage(
-        Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
-        MessageValidators.swatchEventMatches(
-            orgId, guestInstanceId, NormalizedEventType.INSTANCE_CREATED.toString()),
-        1,
-        AwaitilitySettings.defaults().onConditionNotMet(service::flushOutboxSynchronously));
-
-    kafkaBridge.waitForKafkaMessage(
-        Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
-        MessageValidators.swatchEventMatches(
-            orgId, hypervisorInstanceId, NormalizedEventType.INSTANCE_UPDATED.toString()),
-        1,
-        AwaitilitySettings.defaults().onConditionNotMet(service::flushOutboxSynchronously));
 
     // Given: Delete event for the guest
     HbiHostDeleteEvent deleteEvent =
@@ -398,6 +227,7 @@ class MetricsHbiDeleteComponentTest extends BaseSMHBIComponentTest {
                 orgId, guestInstanceId, NormalizedEventType.INSTANCE_DELETED.toString()),
             1,
             AwaitilitySettings.defaults().onConditionNotMet(service::flushOutboxSynchronously));
+    assertEquals(1, guestDeleteEvents.size(), "Expected exactly 1 event");
     Event actualGuestDeleteEvent = guestDeleteEvents.getFirst();
 
     // Then: Assert specific fields on guest delete event
@@ -424,6 +254,7 @@ class MetricsHbiDeleteComponentTest extends BaseSMHBIComponentTest {
                 Event.class),
             1,
             AwaitilitySettings.defaults().onConditionNotMet(service::flushOutboxSynchronously));
+    assertEquals(1, hypervisorUpdateEvents.size(), "Expected exactly 1 event");
     Event actualHypervisorUpdateEvent = hypervisorUpdateEvents.getFirst();
 
     // Then: Assert specific fields on hypervisor update event
@@ -475,6 +306,7 @@ class MetricsHbiDeleteComponentTest extends BaseSMHBIComponentTest {
                 orgId, unseenHostId, NormalizedEventType.INSTANCE_DELETED.toString()),
             1,
             AwaitilitySettings.defaults().onConditionNotMet(service::flushOutboxSynchronously));
+    assertEquals(1, deleteEvents.size(), "Expected exactly 1 event");
     Event actualDeleteEvent = deleteEvents.getFirst();
 
     // Then: Assert specific fields on unseen host delete event
@@ -501,5 +333,90 @@ class MetricsHbiDeleteComponentTest extends BaseSMHBIComponentTest {
     assertTrue(
         SwatchEventHelper.eventsMatch(expectedDeleteEvent, actualDeleteEvent),
         "Unseen host delete event should match expected minimal structure");
+  }
+
+  // ===== Helper Methods =====
+
+  /**
+   * Create and publish a physical RHEL host, then wait for the create event to confirm it exists.
+   *
+   * @param insightsId the insightsId to use for the host
+   * @return the HBI create event that was published
+   */
+  private HbiHostCreateUpdateEvent givenExistingPhysicalHost(String insightsId) {
+    HbiHostCreateUpdateEvent createEvent =
+        hostEvents
+            .createHost(orgId)
+            .apply(HostTemplates.conduitPhysicalRhelSelfSupportDevTest(2, 4))
+            .insightsId(insightsId)
+            .toEvent()
+            .type("created")
+            .timestamp(OffsetDateTime.now(ZoneOffset.UTC))
+            .buildCreateUpdate();
+
+    hostEvents.publish(createEvent);
+
+    // Wait for create event to confirm host exists
+    String instanceId = createEvent.getHost().getId().toString();
+    thenSwatchEventsAppear(
+        MessageValidators.swatchEventMatches(
+            orgId, instanceId, NormalizedEventType.INSTANCE_CREATED.toString()));
+
+    return createEvent;
+  }
+
+  /**
+   * Create and publish a hypervisor and mapped guest, then wait for all 3 create/update events
+   * (hypervisor create, guest create, hypervisor transition to isHypervisor=true).
+   *
+   * @param hypervisorSubManId the subscription manager ID for the hypervisor
+   * @param hypervisorInsightsId optional insightsId for the hypervisor (can be null)
+   * @param guestInsightsId optional insightsId for the guest (can be null)
+   * @return array with [0]=hypervisor event, [1]=guest event
+   */
+  private HbiHostCreateUpdateEvent[] givenExistingHypervisorAndGuest(
+      String hypervisorSubManId, String hypervisorInsightsId, String guestInsightsId) {
+
+    HbiHostCreateUpdateEvent hypervisorEvent =
+        hostEvents
+            .createHost(orgId)
+            .apply(HostTemplates.conduitPhysicalRhelSelfSupportDevTest(2, 2))
+            .subscriptionManagerId(hypervisorSubManId)
+            .insightsId(hypervisorInsightsId)
+            .toEvent()
+            .type("created")
+            .timestamp(OffsetDateTime.now(ZoneOffset.UTC))
+            .buildCreateUpdate();
+
+    hostEvents.publish(hypervisorEvent);
+    String hypervisorInstanceId = hypervisorEvent.getHost().getId().toString();
+
+    thenSwatchEventsAppear(
+        MessageValidators.swatchEventMatches(
+            orgId, hypervisorInstanceId, NormalizedEventType.INSTANCE_CREATED.toString()));
+
+    HbiHostCreateUpdateEvent guestEvent =
+        hostEvents
+            .createHost(orgId)
+            .apply(
+                HostTemplates.conduitVirtualRhelGuestSelfSupportDevTest(1, 3, hypervisorSubManId))
+            .insightsId(guestInsightsId)
+            .toEvent()
+            .type("created")
+            .timestamp(OffsetDateTime.now(ZoneOffset.UTC))
+            .buildCreateUpdate();
+
+    hostEvents.publish(guestEvent);
+
+    // Wait for the create/update events (guest, hypervisor transition)
+    String guestInstanceId = guestEvent.getHost().getId().toString();
+
+    thenSwatchEventsAppear(
+        MessageValidators.swatchEventMatches(
+            orgId, guestInstanceId, NormalizedEventType.INSTANCE_CREATED.toString()),
+        MessageValidators.swatchEventMatches(
+            orgId, hypervisorInstanceId, NormalizedEventType.INSTANCE_UPDATED.toString()));
+
+    return new HbiHostCreateUpdateEvent[] {hypervisorEvent, guestEvent};
   }
 }
