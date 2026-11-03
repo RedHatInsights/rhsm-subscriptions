@@ -35,25 +35,28 @@ spec:
     - name: COMPONENT_NAME
       value: "rhsm"
     - name: COMPONENTS_W_RESOURCES
-      value: "app:rhsm app:export-service"
+      value: "app:rhsm app:export-service app:rbac app:kessel"
     
     # Deployment configuration
-    ## Workaround to reduce the footprint of the ephemeral environment for rbac. To be fixed in SWATCH-4504.
+    ## Full rbac deployment is required for Kessel tests.
     ## Workaround to reduce the footprint of the ephemeral environment for host-inventory. To be fixed in SWATCH-5159.
     ## Workaround to not deploy swatch-tally-ct-hbi in an ephemeral environment. To be fixed in SWATCH-5160.
     - name: EXTRA_DEPLOY_ARGS
       value: >-
+        rbac
         --timeout 1800
         --exclude-components puptoo,ingress,storage-broker,swatch-tally-ct-hbi
         --remove-dependencies host-inventory/ingress
         --remove-dependencies host-inventory/puptoo
+        -p rbac/REPLICATION_TO_RELATION_ENABLED=true
+        -p rbac/V2_MIGRATION_APP_EXCLUDE_LIST=approval
+        -p rbac/ROLE_CREATE_ALLOW_LIST=subscriptions,remediations,inventory,policies,advisor,vulnerability,compliance,automation-analytics,notifications,patch,integrations,ros,staleness,config-manager,idmsvc
         -p rbac/CELERY_INITIAL_DELAY_SEC=10
         -p rbac/MAX_SEED_THREADS=8
         -p rbac/MIN_POSTGRES_EXPORTER_REPLICAS=0
         -p rbac/NOTIFICATIONS_ENABLED=False
         -p rbac/NOTIFICATIONS_RH_ENABLED=False
-        -p rbac/KAFKA_ENABLED=False
-        -p rbac/RBAC_KAFKA_CONSUMER_REPLICAS=0
+        -p rbac/KAFKA_ENABLED=True
         -p host-inventory/GUNICORN_WORKERS=1
         -p host-inventory/GUNICORN_THREADS=1
         -p host-inventory/REPLICAS_EXPORT_SVC=0
@@ -62,7 +65,7 @@ spec:
         -p host-inventory/REPLICAS_HOST_APP_DATA=0
         --set-image-tag quay.io/redhat-services-prod/project-kessel-tenant/kessel-kafka-connect=latest
     - name: DEPLOY_OPTIONAL_DEPS_METHOD
-      value: "none"
+      value: "hybrid"
     - name: DEPLOY_FRONTENDS
       value: "false"
     - name: DEPLOY_TIMEOUT
