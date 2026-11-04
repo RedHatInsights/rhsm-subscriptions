@@ -1,0 +1,14 @@
+{
+  "aggregateId": "38959044-976c-4cb4-ae2e-a24116872f3c",
+  "aggregateKey": {
+    "orgId": "example-org",
+    "productId": "example-product",
+    "metricId": "Instance-hours",
+    "billingProvider": "gcp",
+    "billingAccountId": "example-billing-account"
+  },
+  "windowTimestamp": "2026-11-04T13:00:00Z",
+  "snapshotDates": ["2026-11-04T12:00:00Z"],
+  "totalValue": 150,
+  "remittanceUuids": ["28db606a-ae86-4211-af7e-e1befa0c293d"]
+}

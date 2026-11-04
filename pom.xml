@@ -607,6 +607,7 @@
         <module>swatch-metrics-hbi</module>
         <module>swatch-producer-aws</module>
         <module>swatch-producer-azure</module>
+        <module>swatch-producer-gcp</module>
         <module>swatch-utilization</module>
       </modules>
     </profile>
