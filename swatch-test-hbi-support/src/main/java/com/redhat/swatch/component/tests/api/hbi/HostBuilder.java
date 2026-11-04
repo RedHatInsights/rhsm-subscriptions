@@ -121,6 +121,11 @@ public class HostBuilder {
     return this;
   }
 
+  public HostBuilder insightsId(String insightsId) {
+    host.insightsId(insightsId);
+    return this;
+  }
+
   public HostBuilder providerId(String providerId) {
     host.providerId(providerId);
     return this;
