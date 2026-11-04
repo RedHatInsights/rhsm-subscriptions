@@ -1182,7 +1182,7 @@ data:
                 "uid": "${datasource}"
               },
               "editorMode": "code",
-              "expr": "sum by (service) (\n  label_replace(\n    increase(otelcol_exporter_send_failed_log_records_total{exporter=\"splunk_hec/logs\"}[10m]),\n    \"service\",\n    \"$1\",\n    \"pod\",\n    \"^(.*)-[a-z0-9]+-[a-z0-9]+$\"\n  )\n)",
+              "expr": "sum by (service) (\n  label_replace(\n    increase(otelcol_exporter_send_failed_log_records{exporter=\"splunk_hec/logs\"}[10m]),\n    \"service\",\n    \"$1\",\n    \"pod\",\n    \"^(.*)-[a-z0-9]+-[a-z0-9]+$\"\n  )\n)",
               "range": true,
               "refId": "A"
             }
@@ -1278,7 +1278,7 @@ data:
                 "uid": "${datasource}"
               },
               "editorMode": "code",
-              "expr": "sum by (service) (\n  label_replace(\n    increase(otelcol_exporter_sent_log_records_total{exporter=\"splunk_hec/logs\"}[10m]),\n    \"service\",\n    \"$1\",\n    \"pod\",\n    \"^(.*)-[a-z0-9]+-[a-z0-9]+$\"\n  )\n)",
+              "expr": "sum by (service) (\n  label_replace(\n    increase(otelcol_exporter_sent_log_records{exporter=\"splunk_hec/logs\"}[10m]),\n    \"service\",\n    \"$1\",\n    \"pod\",\n    \"^(.*)-[a-z0-9]+-[a-z0-9]+$\"\n  )\n)",
               "range": true,
               "refId": "A"
             }
