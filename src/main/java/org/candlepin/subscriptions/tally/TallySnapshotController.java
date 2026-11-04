@@ -253,16 +253,21 @@ public class TallySnapshotController {
   }
 
   private AccountUsageCalculation performTally(String orgId) {
-    retryTemplate.execute(context -> {
-      usageCollector.reconcileSystemDataWithHbi(
-          orgId,
-          SubscriptionDefinition.filterVariants(variant ->
-                  variant.getSubscription() != null && !variant.getSubscription().isPaygEligible())
-              .stream()
-              .map(Variant::getTag)
-              .collect(Collectors.toUnmodifiableSet()));
-      return null;
-    });
+    if (featureFlags.isEnabled(FeatureFlags.DISABLE_NIGHTLY_TALLY_HOST_UPDATE, false)) {
+      log.debug("Skipping nightly tally host update for orgId={} due to feature flag", orgId);
+    } else {
+      retryTemplate.execute(context -> {
+        usageCollector.reconcileSystemDataWithHbi(
+            orgId,
+            SubscriptionDefinition.filterVariants(variant ->
+                    variant.getSubscription() != null
+                        && !variant.getSubscription().isPaygEligible())
+                .stream()
+                .map(Variant::getTag)
+                .collect(Collectors.toUnmodifiableSet()));
+        return null;
+      });
+    }
     return usageCollector.tally(orgId);
   }
 
