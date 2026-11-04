@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.CloudProvider;
 import org.candlepin.subscriptions.json.Event.HardwareType;
@@ -48,6 +49,7 @@ import org.candlepin.subscriptions.json.Event.Sla;
 import org.candlepin.subscriptions.json.Event.Usage;
 import org.candlepin.subscriptions.json.Measurement;
 
+@Slf4j
 public class SwatchEventHelper {
 
   public static Event createSwatchEvent(
@@ -104,6 +106,7 @@ public class SwatchEventHelper {
     try {
       return Sla.fromValue(value);
     } catch (IllegalArgumentException e) {
+      log.debug("Unparsable SLA specified when creating Swatch event: {}", value);
       return null;
     }
   }
@@ -115,6 +118,7 @@ public class SwatchEventHelper {
     try {
       return Usage.fromValue(value);
     } catch (IllegalArgumentException e) {
+      log.debug("Unparsable Usage specified when creating Swatch event: {}", value);
       return null;
     }
   }
