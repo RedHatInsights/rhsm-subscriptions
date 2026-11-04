@@ -937,3 +937,62 @@ This test plan covers the core tally processing pipeline:
     - Tally report filtered by usage=Production returns no data points with hasData=true
 - **Expected Result**:
     - Event with explicit SLA/Usage is tallied with those values, not defaults
+
+## Feature Flag: DISABLE_HOURLY_HOST_UPDATE
+
+**unleash-disable-hourly-host-update-TC001 - DISABLE_HOURLY_HOST_UPDATE flag defaults to false and toggles properly**
+
+- **Description**: Verify the DISABLE_HOURLY_HOST_UPDATE unleash flag defaults to false and can be toggled properly
+- **Setup**: Access the Unleash feature flag 'swatch.swatch-tally.disable-hourly-host-update'
+- **Action**:
+    - Verify default state (flag should be false)
+    - Enable the flag (set to true)
+    - Disable the flag again (set to false)
+- **Verification**:
+    - Flag is false by default (host updates enabled)
+    - Flag can be enabled to true (host updates disabled)
+    - Flag can be toggled back to false (host updates enabled)
+- **Expected Result**:
+    - Flag defaults to false, can be toggled to true, and back to false as required
+
+**tally-summary-disable-host-update-TC001 - Tally summary correct with DISABLE_HOURLY_HOST_UPDATE flag state**
+
+- **Description**: Verify tally summary produces correct data regardless of DISABLE_HOURLY_HOST_UPDATE flag state (parameterized test: flag disabled and enabled)
+- **Setup**: Set DISABLE_HOURLY_HOST_UPDATE flag to either false (enabled) or true (disabled). Publish a PAYG event with specific metric value
+- **Action**: Perform hourly tally and poll for tally summaries
+- **Verification**:
+    - Tally summary contains correct orgId, product ID, metric ID, and granularity
+    - Tally measurement value matches the event value
+    - SLA, usage, and billing account attributes are preserved correctly
+    - Summary data is consistent regardless of flag state
+- **Expected Result**:
+    - Tally summary data is correct and unaffected by the host update flag state
+
+**tally-summary-disable-host-update-TC002 - Multiple tally summaries correct with flag toggled**
+
+- **Description**: Verify tally summaries for the different hours remain correct when flag is toggled between runs
+- **Setup**:
+    - Publish event with flag disabled
+    - Toggle flag to enabled and publish another event in different hour
+- **Action**: Perform hourly tally after each event and poll for tally summaries
+- **Verification**:
+    - First summary (flag disabled) has correct value and attributes
+    - Second summary (flag enabled) has correct value and attributes
+    - Both summaries contain correct billing account IDs and billing providers
+    - Flag toggling does not corrupt or lose data
+- **Expected Result**:
+    - Multiple summaries remain correct regardless of flag state changes between runs
+
+**tally-summary-disable-host-update-TC003 - Tally summary aggregation correct with flag enabled**
+
+- **Description**: Verify multiple events for the same hour aggregate correctly when flag is enabled
+- **Setup**:
+    - Set DISABLE_HOURLY_HOST_UPDATE flag to true
+    - Publish 3 events with different instances but same SLA, usage, and billing attributes
+- **Action**: Perform hourly tally and poll for tally summaries
+- **Verification**:
+    - Aggregated summary shows sum of all event values (3 instances × metric value)
+    - Single summary message is returned for the aggregated data
+    - SLA, usage, and billing account metadata is correct
+- **Expected Result**:
+    - Multiple events aggregate correctly to a single summary with the sum of all metric values

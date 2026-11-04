@@ -29,12 +29,14 @@ public interface FeatureFlags {
   String USE_KESSEL_RBAC = "swatch.common-security.use-kessel-rbac";
   String USE_LEGACY_HOURLY_TALLY_SNAPSHOT_QUERY =
       "swatch.swatch-tally.use-legacy-hourly-tally-snapshot-query";
+  String DISABLE_HOURLY_HOST_UPDATE = "swatch.swatch-tally.disable-hourly-host-update";
   String[] FLAG_LIST = {
     ENABLE_PRIMARY_ROW_SEARCHES,
     ENABLE_HTB_PRIMARY_ROW_SEARCHES,
     ENABLE_EVENT_DRIVEN_TALLY,
     USE_KESSEL_RBAC,
-    USE_LEGACY_HOURLY_TALLY_SNAPSHOT_QUERY
+    USE_LEGACY_HOURLY_TALLY_SNAPSHOT_QUERY,
+    DISABLE_HOURLY_HOST_UPDATE
   };
 
   boolean isEnabled(String featureName);
