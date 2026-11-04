@@ -37,6 +37,7 @@ import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.configuration.FeatureFlags;
 import org.candlepin.subscriptions.db.TallyStateRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
@@ -68,6 +69,7 @@ public class TallySnapshotController {
   private final TallyStateRepository tallyStateRepository;
   private final ApplicationClock clock;
   private final MeterRegistry meterRegistry;
+  private final FeatureFlags featureFlags;
 
   @Autowired
   public TallySnapshotController(
@@ -81,7 +83,8 @@ public class TallySnapshotController {
       SnapshotSummaryProducer summaryProducer,
       TallyStateRepository tallyStateRepository,
       MeterRegistry meterRegistry,
-      ApplicationClock clock) {
+      ApplicationClock clock,
+      FeatureFlags featureFlags) {
     this.appProps = appProps;
     this.usageCollector = usageCollector;
     this.eventController = eventController;
@@ -93,6 +96,7 @@ public class TallySnapshotController {
     this.tallyStateRepository = tallyStateRepository;
     this.clock = clock;
     this.meterRegistry = meterRegistry;
+    this.featureFlags = featureFlags;
   }
 
   @Timed("rhsm-subscriptions.snapshots.single")
@@ -245,16 +249,21 @@ public class TallySnapshotController {
   }
 
   private AccountUsageCalculation performTally(String orgId) {
-    retryTemplate.execute(context -> {
-      usageCollector.reconcileSystemDataWithHbi(
-          orgId,
-          SubscriptionDefinition.filterVariants(variant ->
-                  variant.getSubscription() != null && !variant.getSubscription().isPaygEligible())
-              .stream()
-              .map(Variant::getTag)
-              .collect(Collectors.toUnmodifiableSet()));
-      return null;
-    });
+    if (featureFlags.isEnabled(FeatureFlags.DISABLE_NIGHTLY_TALLY_HOST_UPDATE, false)) {
+      log.debug("Skipping nightly tally host update for orgId={} due to feature flag", orgId);
+    } else {
+      retryTemplate.execute(context -> {
+        usageCollector.reconcileSystemDataWithHbi(
+            orgId,
+            SubscriptionDefinition.filterVariants(variant ->
+                    variant.getSubscription() != null
+                        && !variant.getSubscription().isPaygEligible())
+                .stream()
+                .map(Variant::getTag)
+                .collect(Collectors.toUnmodifiableSet()));
+        return null;
+      });
+    }
     return usageCollector.tally(orgId);
   }
 
