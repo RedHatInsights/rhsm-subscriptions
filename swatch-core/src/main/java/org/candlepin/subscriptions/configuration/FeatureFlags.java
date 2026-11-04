@@ -26,6 +26,8 @@ public interface FeatureFlags {
   String ENABLE_HTB_PRIMARY_ROW_SEARCHES =
       "swatch.swatch-tally.enable-host-tally-bucket-primary-row-searches";
   String ENABLE_EVENT_DRIVEN_TALLY = "swatch.swatch-tally.enable-event-driven-tally";
+  String DISABLE_NIGHTLY_TALLY_HOST_UPDATE =
+      "swatch.swatch-tally.disable-nightly-tally-host-update";
   String USE_KESSEL_RBAC = "swatch.common-security.use-kessel-rbac";
   String USE_LEGACY_HOURLY_TALLY_SNAPSHOT_QUERY =
       "swatch.swatch-tally.use-legacy-hourly-tally-snapshot-query";
@@ -34,6 +36,7 @@ public interface FeatureFlags {
     ENABLE_PRIMARY_ROW_SEARCHES,
     ENABLE_HTB_PRIMARY_ROW_SEARCHES,
     ENABLE_EVENT_DRIVEN_TALLY,
+    DISABLE_NIGHTLY_TALLY_HOST_UPDATE,
     USE_KESSEL_RBAC,
     USE_LEGACY_HOURLY_TALLY_SNAPSHOT_QUERY,
     DISABLE_HOURLY_HOST_UPDATE
