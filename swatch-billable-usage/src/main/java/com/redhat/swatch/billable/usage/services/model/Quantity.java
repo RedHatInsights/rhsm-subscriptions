@@ -93,4 +93,8 @@ public class Quantity<U extends Unit> {
       BillableUsageRemittanceEntity remittance, Double billingFactor) {
     return new Quantity<>(remittance.getRemittedPendingValue(), new RemittanceUnit(billingFactor));
   }
+
+  public static double nonNegativeDifference(Double left, double right) {
+    return Quantity.of(left).subtract(Quantity.of(right)).positiveOrZero().getValue();
+  }
 }

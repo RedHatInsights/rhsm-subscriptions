@@ -37,7 +37,8 @@ public enum RemittanceStatus {
   UNKNOWN("unknown"),
   SUCCEEDED("succeeded"),
   IN_PROGRESS("in_progress"),
-  SENT("sent");
+  SENT("sent"),
+  COVERED("covered");
 
   private static final Map<String, RemittanceStatus> VALUE_ENUM_MAP =
       Arrays.stream(RemittanceStatus.values())

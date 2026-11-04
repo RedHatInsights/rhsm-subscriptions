@@ -219,6 +219,24 @@ class ContractsControllerTest {
     assertEquals(String.format("No contract info found for usage! %s", usage), e.getMessage());
   }
 
+  @Test
+  void throwsContractMissingExceptionWhenAllContractsOutsideSnapshotWindow() throws Exception {
+    BillableUsage usage = defaultUsage();
+    givenContractEnabled(usage);
+
+    Contract expired = contractFromUsage(usage);
+    expired.setStartDate(clock.startOfCurrentMonth().minusMonths(2));
+    expired.setEndDate(clock.endOfMonth(expired.getStartDate().plusMonths(1)));
+    expired.addMetricsItem(new Metric().metricId(CONTRACT_METRIC_ID).value(10));
+
+    when(contractsApi.getContract(any(), any(), any(), any(), any(), any()))
+        .thenReturn(List.of(expired));
+
+    ContractMissingException e =
+        assertThrows(ContractMissingException.class, () -> controller.getValidContracts(usage));
+    assertEquals(String.format("No contract info found for usage! %s", usage), e.getMessage());
+  }
+
   private BillableUsage defaultUsage() {
     return new BillableUsage()
         .withOrgId("org123")

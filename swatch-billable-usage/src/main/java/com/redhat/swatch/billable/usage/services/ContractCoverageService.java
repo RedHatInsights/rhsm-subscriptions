@@ -20,6 +20,8 @@
  */
 package com.redhat.swatch.billable.usage.services;
 
+import static com.redhat.swatch.billable.usage.services.BillableUsageService.NO_LICENSE_ID;
+
 import com.redhat.swatch.billable.usage.exceptions.ContractMissingException;
 import com.redhat.swatch.billable.usage.services.model.ContractCoverage;
 import com.redhat.swatch.clients.contracts.api.model.Contract;
@@ -27,7 +29,11 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.time.OffsetDateTime;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Optional;
+import java.util.SequencedMap;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
@@ -53,17 +59,20 @@ public class ContractCoverageService {
     String contractMetricId = getContractMetricId(usage);
     boolean isGratis = isGratisContract(usage);
     double total = 0.0;
-    String licenseId = null;
-    OffsetDateTime newestStartDate = null;
+    SequencedMap<String, Double> capacityByLicense = new LinkedHashMap<>();
 
     List<Contract> contracts = contractsController.getValidContracts(usage);
-    for (Contract contract : contracts) {
-      total += getValueByContractMetricId(contract, contractMetricId);
+    List<Contract> sortedForAllocation =
+        contracts.stream().sorted(ContractAllocationAuditService.ALLOCATION_ORDER).toList();
+    for (Contract contract : sortedForAllocation) {
+      double contractValue = getValueByContractMetricId(contract, contractMetricId);
+      total += contractValue;
       isGratis &= isContractCompatibleWithGratis(contract, usage);
-      if (isNewerOverageLicense(contract, newestStartDate, licenseId)) {
-        newestStartDate = contract.getStartDate();
-        licenseId = contract.getLicenseId();
-      }
+      String contractLicenseId =
+          Optional.ofNullable(contract.getLicenseId())
+              .filter(licenseId -> !licenseId.isBlank())
+              .orElse(NO_LICENSE_ID);
+      capacityByLicense.merge(contractLicenseId, contractValue, Double::sum);
     }
 
     if (BillableUsage.BillingProvider.AWS.equals(usage.getBillingProvider())) {
@@ -75,10 +84,24 @@ public class ContractCoverageService {
             .metricId(contractMetricId)
             .gratis(isGratis)
             .total(total)
-            .licenseId(licenseId)
+            .selectedLicenseId(getSelectedLicenseId(contracts))
+            .capacityByLicense(Collections.unmodifiableSequencedMap(capacityByLicense))
             .build();
     log.debug("Total contract coverage is {} for usage {} ", coverage, usage);
     return coverage;
+  }
+
+  private String getSelectedLicenseId(List<Contract> contracts) {
+    OffsetDateTime newestStartDate = null;
+    String selectedLicenseId = null;
+    for (Contract contract : contracts) {
+      if (isNewerOverageLicense(contract, newestStartDate, selectedLicenseId)) {
+        newestStartDate = contract.getStartDate();
+        selectedLicenseId = contract.getLicenseId();
+      }
+    }
+
+    return selectedLicenseId;
   }
 
   private static boolean isGratisContract(BillableUsage usage) {
