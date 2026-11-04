@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.CloudProvider;
 import org.candlepin.subscriptions.json.Event.HardwareType;
@@ -48,6 +49,7 @@ import org.candlepin.subscriptions.json.Event.Sla;
 import org.candlepin.subscriptions.json.Event.Usage;
 import org.candlepin.subscriptions.json.Measurement;
 
+@Slf4j
 public class SwatchEventHelper {
 
   public static Event createSwatchEvent(
@@ -97,6 +99,30 @@ public class SwatchEventHelper {
         .withMeasurements(measurements);
   }
 
+  private static Sla parseSlaOrNull(String value) {
+    if (value == null) {
+      return null;
+    }
+    try {
+      return Sla.fromValue(value);
+    } catch (IllegalArgumentException e) {
+      log.debug("Unparsable SLA specified when creating Swatch event: {}", value);
+      return null;
+    }
+  }
+
+  private static Usage parseUsageOrNull(String value) {
+    if (value == null) {
+      return null;
+    }
+    try {
+      return Usage.fromValue(value);
+    } catch (IllegalArgumentException e) {
+      log.debug("Unparsable Usage specified when creating Swatch event: {}", value);
+      return null;
+    }
+  }
+
   public static List<Measurement> buildMeasurements(double cores, double sockets) {
     return List.of(
         new Measurement().withMetricId("cores").withValue(cores),
@@ -138,6 +164,9 @@ public class SwatchEventHelper {
             || "AZURE".equalsIgnoreCase(sys.getCloudProvider());
     String hypervisorUuid = sys.getHypervisorUuid();
 
+    Sla sla = rhsm == null ? null : parseSlaOrNull(rhsm.getSla());
+    Usage usage = rhsm == null ? null : parseUsageOrNull(rhsm.getUsage());
+
     // 2) Hardware type
     HardwareType hardwareType = determineHardwareType(hasCloudProvider, isVirtualHost);
 
@@ -178,8 +207,8 @@ public class SwatchEventHelper {
         hbiEvent.getHost(),
         eventType,
         hbiEvent.getTimestamp().toOffsetDateTime(),
-        Sla.fromValue(rhsm != null ? rhsm.getSla() : null),
-        Usage.fromValue(rhsm != null ? rhsm.getUsage() : null),
+        sla,
+        usage,
         cloudProvider,
         hardwareType,
         isVirtualHost,
