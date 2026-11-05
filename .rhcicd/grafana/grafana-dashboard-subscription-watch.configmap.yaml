@@ -27,7 +27,7 @@ data:
       "editable": true,
       "fiscalYearStartMonth": 0,
       "graphTooltip": 1,
-      "id": 1184876,
+      "id": 1025966,
       "links": [],
       "panels": [
         {
@@ -328,7 +328,7 @@ data:
                 "h": 6,
                 "w": 24,
                 "x": 0,
-                "y": 117
+                "y": 188
               },
               "id": 9062,
               "options": {
@@ -443,7 +443,7 @@ data:
                 "h": 7,
                 "w": 6,
                 "x": 0,
-                "y": 195
+                "y": 266
               },
               "id": 111,
               "options": {
@@ -543,7 +543,7 @@ data:
                 "h": 7,
                 "w": 6,
                 "x": 6,
-                "y": 195
+                "y": 266
               },
               "id": 117,
               "options": {
@@ -639,7 +639,7 @@ data:
                 "h": 7,
                 "w": 6,
                 "x": 0,
-                "y": 4390
+                "y": 4461
               },
               "id": 113,
               "options": {
@@ -739,7 +739,7 @@ data:
                 "h": 7,
                 "w": 6,
                 "x": 6,
-                "y": 4390
+                "y": 4461
               },
               "id": 115,
               "options": {
@@ -849,7 +849,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 196
+                "y": 267
               },
               "id": 103,
               "options": {
@@ -947,7 +947,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 196
+                "y": 267
               },
               "id": 76,
               "options": {
@@ -1044,7 +1044,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 196
+                "y": 267
               },
               "id": 101,
               "options": {
@@ -1082,7 +1082,7 @@ data:
           "type": "row"
         },
         {
-          "collapsed": false,
+          "collapsed": true,
           "gridPos": {
             "h": 1,
             "w": 24,
@@ -1090,393 +1090,394 @@ data:
             "y": 3
           },
           "id": 86,
-          "panels": [],
+          "panels": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "description": "Per-second Logging HEC transmission failure rate over the past 10 minutes.  The y-axis is the total number of log messages that failed transmission.",
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 0,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green"
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  }
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 9,
+                "w": 18,
+                "x": 0,
+                "y": 4
+              },
+              "id": 9055,
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "single",
+                  "sort": "none"
+                }
+              },
+              "pluginVersion": "11.6.11",
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "${datasource}"
+                  },
+                  "editorMode": "code",
+                  "expr": "sum by (service) (\n  label_replace(\n    increase(otelcol_exporter_send_failed_log_records{exporter=\"splunk_hec/logs\"}[10m]),\n    \"service\",\n    \"$1\",\n    \"pod\",\n    \"^(.*)-[a-z0-9]+-[a-z0-9]+$\"\n  )\n)",
+                  "range": true,
+                  "refId": "A"
+                }
+              ],
+              "title": "Logging HEC Failures",
+              "type": "timeseries"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "description": "",
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 0,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green"
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  }
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 9,
+                "w": 18,
+                "x": 0,
+                "y": 84
+              },
+              "id": 9056,
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "single",
+                  "sort": "none"
+                }
+              },
+              "pluginVersion": "11.6.11",
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "${datasource}"
+                  },
+                  "editorMode": "code",
+                  "expr": "sum by (service) (\n  label_replace(\n    increase(otelcol_exporter_sent_log_records{exporter=\"splunk_hec/logs\"}[10m]),\n    \"service\",\n    \"$1\",\n    \"pod\",\n    \"^(.*)-[a-z0-9]+-[a-z0-9]+$\"\n  )\n)",
+                  "range": true,
+                  "refId": "A"
+                }
+              ],
+              "title": "Logging HEC Success Rate",
+              "type": "timeseries"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "description": "",
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 0,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green"
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  }
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 9,
+                "w": 18,
+                "x": 0,
+                "y": 93
+              },
+              "id": 9065,
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "single",
+                  "sort": "none"
+                }
+              },
+              "pluginVersion": "11.6.11",
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "${datasource}"
+                  },
+                  "editorMode": "code",
+                  "expr": "sum by (service, exporter) (\n  label_replace(\n    increase(otelcol_exporter_send_failed_spans{}[10m]),\n    \"service\",\n    \"$1\",\n    \"pod\",\n    \"^(.*)-[a-z0-9]+-[a-z0-9]+$\"\n  )\n)",
+                  "range": true,
+                  "refId": "A"
+                }
+              ],
+              "title": "Traces Failures",
+              "type": "timeseries"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "description": "",
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 0,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green"
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  }
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 9,
+                "w": 18,
+                "x": 0,
+                "y": 102
+              },
+              "id": 9066,
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "single",
+                  "sort": "none"
+                }
+              },
+              "pluginVersion": "11.6.11",
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "${datasource}"
+                  },
+                  "editorMode": "code",
+                  "expr": "sum by (service, exporter) (\n  label_replace(\n    increase(otelcol_exporter_sent_spans{}[10m]),\n    \"service\",\n    \"$1\",\n    \"pod\",\n    \"^(.*)-[a-z0-9]+-[a-z0-9]+$\"\n  )\n)",
+                  "range": true,
+                  "refId": "A"
+                }
+              ],
+              "title": "Traces Success Rate",
+              "type": "timeseries"
+            }
+          ],
           "title": "OTeL Metrics",
           "type": "row"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "description": "Per-second Logging HEC transmission failure rate over the past 10 minutes.  The y-axis is the total number of log messages that failed transmission.",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisBorderShow": false,
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "barWidthFactor": 0.6,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "insertNulls": false,
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green"
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 9,
-            "w": 18,
-            "x": 0,
-            "y": 4
-          },
-          "id": 9055,
-          "options": {
-            "legend": {
-              "calcs": [],
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "hideZeros": false,
-              "mode": "single",
-              "sort": "none"
-            }
-          },
-          "pluginVersion": "11.6.11",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "editorMode": "code",
-              "expr": "sum by (service) (\n  label_replace(\n    increase(otelcol_exporter_send_failed_log_records{exporter=\"splunk_hec/logs\"}[10m]),\n    \"service\",\n    \"$1\",\n    \"pod\",\n    \"^(.*)-[a-z0-9]+-[a-z0-9]+$\"\n  )\n)",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "Logging HEC Failures",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "description": "",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisBorderShow": false,
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "barWidthFactor": 0.6,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "insertNulls": false,
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green"
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 9,
-            "w": 18,
-            "x": 0,
-            "y": 13
-          },
-          "id": 9056,
-          "options": {
-            "legend": {
-              "calcs": [],
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "hideZeros": false,
-              "mode": "single",
-              "sort": "none"
-            }
-          },
-          "pluginVersion": "11.6.11",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "editorMode": "code",
-              "expr": "sum by (service) (\n  label_replace(\n    increase(otelcol_exporter_sent_log_records{exporter=\"splunk_hec/logs\"}[10m]),\n    \"service\",\n    \"$1\",\n    \"pod\",\n    \"^(.*)-[a-z0-9]+-[a-z0-9]+$\"\n  )\n)",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "Logging HEC Success Rate",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "description": "",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisBorderShow": false,
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "barWidthFactor": 0.6,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "insertNulls": false,
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green"
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 9,
-            "w": 18,
-            "x": 0,
-            "y": 22
-          },
-          "id": 9065,
-          "options": {
-            "legend": {
-              "calcs": [],
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "hideZeros": false,
-              "mode": "single",
-              "sort": "none"
-            }
-          },
-          "pluginVersion": "11.6.11",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "editorMode": "code",
-              "expr": "sum by (service, exporter) (\n  label_replace(\n    increase(otelcol_exporter_send_failed_spans{}[10m]),\n    \"service\",\n    \"$1\",\n    \"pod\",\n    \"^(.*)-[a-z0-9]+-[a-z0-9]+$\"\n  )\n)",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "Traces Failures",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "description": "",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisBorderShow": false,
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "barWidthFactor": 0.6,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "insertNulls": false,
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green"
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 9,
-            "w": 18,
-            "x": 0,
-            "y": 31
-          },
-          "id": 9066,
-          "options": {
-            "legend": {
-              "calcs": [],
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "hideZeros": false,
-              "mode": "single",
-              "sort": "none"
-            }
-          },
-          "pluginVersion": "11.6.11",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "editorMode": "code",
-              "expr": "sum by (service, exporter) (\n  label_replace(\n    increase(otelcol_exporter_sent_spans{}[10m]),\n    \"service\",\n    \"$1\",\n    \"pod\",\n    \"^(.*)-[a-z0-9]+-[a-z0-9]+$\"\n  )\n)",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "Traces Success Rate",
-          "type": "timeseries"
         },
         {
           "collapsed": true,
@@ -1484,7 +1485,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 40
+            "y": 4
           },
           "id": 70,
           "panels": [
@@ -1554,7 +1555,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 2332
+                "y": 2403
               },
               "id": 47,
               "options": {
@@ -1693,7 +1694,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 2332
+                "y": 2403
               },
               "id": 52,
               "options": {
@@ -1829,7 +1830,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 2332
+                "y": 2403
               },
               "id": 54,
               "options": {
@@ -2012,7 +2013,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 2332
+                "y": 2403
               },
               "id": 56,
               "options": {
@@ -2147,7 +2148,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 4378
+                "y": 4449
               },
               "id": 92,
               "options": {
@@ -2226,7 +2227,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 41
+            "y": 5
           },
           "id": 12,
           "panels": [
@@ -2252,7 +2253,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 0,
-                "y": 2333
+                "y": 2404
               },
               "id": 72,
               "options": {
@@ -2356,7 +2357,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 6,
-                "y": 2333
+                "y": 2404
               },
               "id": 40,
               "options": {
@@ -2488,7 +2489,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 12,
-                "y": 2333
+                "y": 2404
               },
               "id": 59,
               "options": {
@@ -2583,7 +2584,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 18,
-                "y": 2333
+                "y": 2404
               },
               "id": 4,
               "options": {
@@ -2678,7 +2679,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 0,
-                "y": 3859
+                "y": 3930
               },
               "id": 41,
               "options": {
@@ -2808,7 +2809,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 6,
-                "y": 3859
+                "y": 3930
               },
               "id": 8,
               "options": {
@@ -2902,7 +2903,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 12,
-                "y": 3859
+                "y": 3930
               },
               "id": 10,
               "options": {
@@ -2998,7 +2999,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 18,
-                "y": 3859
+                "y": 3930
               },
               "id": 96,
               "options": {
@@ -3129,7 +3130,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 3869
+                "y": 3940
               },
               "id": 5025,
               "options": {
@@ -3261,7 +3262,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 3869
+                "y": 3940
               },
               "id": 5022,
               "options": {
@@ -3370,7 +3371,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 3869
+                "y": 3940
               },
               "id": 5023,
               "options": {
@@ -3476,7 +3477,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 3869
+                "y": 3940
               },
               "id": 5024,
               "options": {
@@ -3522,7 +3523,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 42
+            "y": 6
           },
           "id": 45,
           "panels": [
@@ -3591,7 +3592,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 2334
+                "y": 2405
               },
               "id": 63,
               "options": {
@@ -3722,7 +3723,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 2334
+                "y": 2405
               },
               "id": 64,
               "options": {
@@ -3852,7 +3853,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 2334
+                "y": 2405
               },
               "id": 66,
               "options": {
@@ -3952,7 +3953,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 2334
+                "y": 2405
               },
               "id": 68,
               "options": {
@@ -4047,7 +4048,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 2838
+                "y": 2909
               },
               "id": 94,
               "options": {
@@ -4192,7 +4193,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 2838
+                "y": 2909
               },
               "id": 5010,
               "options": {
@@ -4301,7 +4302,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 2838
+                "y": 2909
               },
               "id": 5011,
               "options": {
@@ -4407,7 +4408,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 2838
+                "y": 2909
               },
               "id": 5012,
               "options": {
@@ -4539,7 +4540,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 2846
+                "y": 2917
               },
               "id": 5013,
               "options": {
@@ -4596,7 +4597,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 43
+            "y": 7
           },
           "id": 31,
           "panels": [
@@ -4664,7 +4665,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 2335
+                "y": 2406
               },
               "id": 32,
               "options": {
@@ -4758,7 +4759,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 2335
+                "y": 2406
               },
               "id": 33,
               "options": {
@@ -4851,7 +4852,7 @@ data:
                 "h": 9,
                 "w": 12,
                 "x": 12,
-                "y": 2335
+                "y": 2406
               },
               "id": 34,
               "options": {
@@ -4945,7 +4946,7 @@ data:
                 "h": 11,
                 "w": 6,
                 "x": 0,
-                "y": 2352
+                "y": 2423
               },
               "id": 35,
               "options": {
@@ -5039,7 +5040,7 @@ data:
                 "h": 11,
                 "w": 6,
                 "x": 6,
-                "y": 2352
+                "y": 2423
               },
               "id": 36,
               "options": {
@@ -5135,7 +5136,7 @@ data:
                 "h": 11,
                 "w": 6,
                 "x": 12,
-                "y": 2352
+                "y": 2423
               },
               "id": 95,
               "options": {
@@ -5231,7 +5232,7 @@ data:
                 "h": 11,
                 "w": 6,
                 "x": 18,
-                "y": 2352
+                "y": 2423
               },
               "id": 5015,
               "options": {
@@ -5337,7 +5338,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 2363
+                "y": 2434
               },
               "id": 5016,
               "options": {
@@ -5457,7 +5458,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 2363
+                "y": 2434
               },
               "id": 5014,
               "options": {
@@ -5599,7 +5600,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 2363
+                "y": 2434
               },
               "id": 5017,
               "options": {
@@ -5656,7 +5657,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 44
+            "y": 8
           },
           "id": 9048,
           "panels": [
@@ -5756,7 +5757,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 2336
+                "y": 2407
               },
               "id": 9049,
               "options": {
@@ -5887,7 +5888,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 2336
+                "y": 2407
               },
               "id": 9038,
               "options": {
@@ -5996,7 +5997,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 2336
+                "y": 2407
               },
               "id": 9039,
               "options": {
@@ -6102,7 +6103,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 2336
+                "y": 2407
               },
               "id": 9040,
               "options": {
@@ -6148,7 +6149,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 45
+            "y": 9
           },
           "id": 9050,
           "panels": [
@@ -6248,7 +6249,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 8399
+                "y": 8470
               },
               "id": 9051,
               "options": {
@@ -6379,7 +6380,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 8399
+                "y": 8470
               },
               "id": 9052,
               "options": {
@@ -6488,7 +6489,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 8399
+                "y": 8470
               },
               "id": 9053,
               "options": {
@@ -6594,7 +6595,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 8399
+                "y": 8470
               },
               "id": 9054,
               "options": {
@@ -6640,7 +6641,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 46
+            "y": 10
           },
           "id": 123,
           "panels": [
@@ -6707,7 +6708,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 5749
+                "y": 11
               },
               "id": 124,
               "options": {
@@ -6770,7 +6771,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 5749
+                "y": 11
               },
               "id": 125,
               "options": {
@@ -6870,7 +6871,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 5749
+                "y": 11
               },
               "id": 126,
               "options": {
@@ -6962,7 +6963,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 5749
+                "y": 11
               },
               "id": 127,
               "options": {
@@ -6986,7 +6987,7 @@ data:
                     "uid": "${datasource}"
                   },
                   "editorMode": "code",
-                  "expr": "sum(swatch_metrics_hbi_outbox_count{table=\"hbi_event_outbox\"})",
+                  "expr": "max(swatch_metrics_hbi_outbox_count{table=\"hbi_event_outbox\"})",
                   "legendFormat": "Outbox Records",
                   "range": true,
                   "refId": "A"
@@ -7125,7 +7126,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 5758
+                "y": 20
               },
               "id": 133,
               "options": {
@@ -7257,7 +7258,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 5758
+                "y": 20
               },
               "id": 5018,
               "options": {
@@ -7366,7 +7367,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 5758
+                "y": 20
               },
               "id": 5019,
               "options": {
@@ -7472,7 +7473,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 5758
+                "y": 20
               },
               "id": 5020,
               "options": {
@@ -7604,7 +7605,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 5811
+                "y": 28
               },
               "id": 5021,
               "options": {
@@ -7661,7 +7662,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 47
+            "y": 11
           },
           "id": 16,
           "panels": [
@@ -7731,7 +7732,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 205
+                "y": 276
               },
               "id": 20,
               "options": {
@@ -7838,7 +7839,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 205
+                "y": 276
               },
               "id": 89,
               "options": {
@@ -7941,7 +7942,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 205
+                "y": 276
               },
               "id": 90,
               "options": {
@@ -8037,7 +8038,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 205
+                "y": 276
               },
               "id": 128,
               "options": {
@@ -8137,7 +8138,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 214
+                "y": 285
               },
               "id": 5002,
               "options": {
@@ -8236,7 +8237,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 214
+                "y": 285
               },
               "id": 5001,
               "options": {
@@ -8339,7 +8340,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 214
+                "y": 285
               },
               "id": 5028,
               "options": {
@@ -8437,7 +8438,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 214
+                "y": 285
               },
               "id": 5027,
               "options": {
@@ -8603,7 +8604,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 223
+                "y": 294
               },
               "id": 132,
               "options": {
@@ -8717,7 +8718,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 223
+                "y": 294
               },
               "id": 118,
               "options": {
@@ -8837,7 +8838,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 223
+                "y": 294
               },
               "id": 5026,
               "options": {
@@ -8980,7 +8981,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 223
+                "y": 294
               },
               "id": 5029,
               "options": {
@@ -9110,7 +9111,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 231
+                "y": 302
               },
               "id": 5003,
               "interval": "1m",
@@ -9230,7 +9231,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 231
+                "y": 302
               },
               "id": 5004,
               "interval": "1m",
@@ -9350,7 +9351,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 239
+                "y": 310
               },
               "id": 5049,
               "interval": "1m",
@@ -9470,7 +9471,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 239
+                "y": 310
               },
               "id": 5050,
               "interval": "1m",
@@ -9590,7 +9591,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 247
+                "y": 318
               },
               "id": 9057,
               "interval": "1m",
@@ -9710,7 +9711,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 247
+                "y": 318
               },
               "id": 9058,
               "interval": "1m",
@@ -9778,7 +9779,7 @@ data:
                 "h": 10,
                 "w": 18,
                 "x": 0,
-                "y": 255
+                "y": 326
               },
               "id": 121,
               "options": {
@@ -9851,7 +9852,7 @@ data:
                 "h": 10,
                 "w": 18,
                 "x": 0,
-                "y": 265
+                "y": 336
               },
               "id": 122,
               "options": {
@@ -9903,7 +9904,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 48
+            "y": 12
           },
           "id": 74,
           "panels": [
@@ -9973,7 +9974,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 9059
+                "y": 9130
               },
               "id": 83,
               "options": {
@@ -10075,7 +10076,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 9059
+                "y": 9130
               },
               "id": 120,
               "options": {
@@ -10175,7 +10176,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 9059
+                "y": 9130
               },
               "id": 107,
               "options": {
@@ -10274,7 +10275,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 9059
+                "y": 9130
               },
               "id": 98,
               "options": {
@@ -10375,7 +10376,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 9068
+                "y": 9139
               },
               "id": 78,
               "options": {
@@ -10472,7 +10473,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 9068
+                "y": 9139
               },
               "id": 80,
               "options": {
@@ -10566,7 +10567,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 9068
+                "y": 9139
               },
               "id": 119,
               "maxDataPoints": 100,
@@ -10691,7 +10692,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 9068
+                "y": 9139
               },
               "id": 99,
               "maxDataPoints": 100,
@@ -10874,7 +10875,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 9221
+                "y": 9292
               },
               "id": 134,
               "options": {
@@ -10932,7 +10933,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 49
+            "y": 13
           },
           "id": 5048,
           "panels": [
@@ -11032,7 +11033,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 8391
+                "y": 8462
               },
               "id": 5041,
               "options": {
@@ -11163,7 +11164,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 8391
+                "y": 8462
               },
               "id": 5038,
               "options": {
@@ -11272,7 +11273,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 8391
+                "y": 8462
               },
               "id": 5039,
               "options": {
@@ -11378,7 +11379,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 8391
+                "y": 8462
               },
               "id": 5040,
               "options": {
@@ -11424,7 +11425,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 50
+            "y": 14
           },
           "id": 5047,
           "panels": [
@@ -11525,7 +11526,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 6064
+                "y": 6135
               },
               "id": 5037,
               "options": {
@@ -11656,7 +11657,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 6064
+                "y": 6135
               },
               "id": 5034,
               "options": {
@@ -11765,7 +11766,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 6064
+                "y": 6135
               },
               "id": 5035,
               "options": {
@@ -11871,7 +11872,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 6064
+                "y": 6135
               },
               "id": 5036,
               "options": {
@@ -11917,7 +11918,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 51
+            "y": 15
           },
           "id": 5046,
           "panels": [
@@ -12017,7 +12018,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 6074
+                "y": 6145
               },
               "id": 5045,
               "options": {
@@ -12148,7 +12149,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 6074
+                "y": 6145
               },
               "id": 5042,
               "options": {
@@ -12257,7 +12258,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 6074
+                "y": 6145
               },
               "id": 5043,
               "options": {
@@ -12363,7 +12364,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 6074
+                "y": 6145
               },
               "id": 5044,
               "options": {
@@ -12409,7 +12410,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 52
+            "y": 16
           },
           "id": 129,
           "panels": [
@@ -12477,7 +12478,7 @@ data:
                 "h": 8,
                 "w": 12,
                 "x": 0,
-                "y": 6075
+                "y": 6146
               },
               "id": 130,
               "options": {
@@ -12606,7 +12607,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 6083
+                "y": 6154
               },
               "id": 5009,
               "options": {
@@ -12737,7 +12738,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 6083
+                "y": 6154
               },
               "id": 5006,
               "options": {
@@ -12846,7 +12847,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 6083
+                "y": 6154
               },
               "id": 5007,
               "options": {
@@ -12952,7 +12953,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 6083
+                "y": 6154
               },
               "id": 5008,
               "options": {
@@ -13050,7 +13051,7 @@ data:
                 "h": 8,
                 "w": 8,
                 "x": 0,
-                "y": 6126
+                "y": 6197
               },
               "id": 136,
               "options": {
@@ -13198,7 +13199,7 @@ data:
                 "h": 8,
                 "w": 21,
                 "x": 0,
-                "y": 6134
+                "y": 6205
               },
               "id": 137,
               "options": {
@@ -13400,7 +13401,7 @@ data:
                 "h": 8,
                 "w": 21,
                 "x": 0,
-                "y": 6142
+                "y": 6213
               },
               "id": 131,
               "options": {
@@ -13542,7 +13543,7 @@ data:
       "timezone": "utc",
       "title": "Subscription Watch",
       "uid": "lkPhH-1Zk",
-      "version": 215
+      "version": 240
     }
 kind: ConfigMap
 metadata:
