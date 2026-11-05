@@ -45,7 +45,7 @@ spec:
       description: Reporting source identifier (konflux-<pipeline-run-name> when pipeline name is set)
   steps:
     - name: extract
-      image: quay.io/konflux-ci/task-runner:v3
+      image: quay.io/konflux-ci/task-runner:v4
       env:
         - name: EVENT_TYPE
           valueFrom:

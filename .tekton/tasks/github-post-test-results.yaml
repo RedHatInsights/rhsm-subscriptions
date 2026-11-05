@@ -48,7 +48,7 @@ spec:
     - name: artifacts
   steps:
     - name: post-comment
-      image: quay.io/konflux-ci/task-runner:v3
+      image: quay.io/konflux-ci/task-runner:v4
       env:
         - name: BONFIRE_COMMAND_FILE
           value: "$(params.BONFIRE_COMMAND_FILE)"
