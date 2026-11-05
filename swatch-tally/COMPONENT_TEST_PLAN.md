@@ -33,13 +33,14 @@ Test cases are organized by functional area for easier navigation and maintenanc
 
 **Functional Area:** Event ingestion, conflict resolution, data transformation, and summary message output
 
-**Test Coverage (41 tests):**
+**Test Coverage (42 tests):**
 - Tally Conflict Handling
 - Product Tag and Metric Filtering
 - Hypervisor Handling
 - Data Persistence
 - Tally Summary Messages - Non-PAYG/Nightly
 - Tally Summary Messages - PAYG/Hourly
+- Nightly tally with host reconciliation disabled (`nightly-tally-TC003`)
 
 The core tally processing pipeline: Events IN from Kafka → Process/Tally → Store Snapshots → Publish Summaries OUT to Kafka.
 
@@ -142,10 +143,10 @@ Each test file should correspond to a specific test case section in the function
 
 ## Quick Reference
 
-**Total Test Coverage:** 167 tests across 6 functional areas
+**Total Test Coverage:** 168 tests across 6 functional areas
 
 **By Test Count:**
-- Tally Processing Pipeline: 41 tests
+- Tally Processing Pipeline: 42 tests
 - Tally Reports API: 42 tests
 - Instance Reports API: 40 tests
 - RBAC Authorization: 38 tests

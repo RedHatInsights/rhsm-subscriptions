@@ -996,3 +996,21 @@ This test plan covers the core tally processing pipeline:
     - SLA, usage, and billing account metadata is correct
 - **Expected Result**:
     - Multiple events aggregate correctly to a single summary with the sum of all metric values
+
+## Feature Flag: DISABLE_NIGHTLY_TALLY_HOST_UPDATE
+
+**nightly-tally-TC003 - Use existing Swatch host buckets when reconciliation is disabled**
+
+- **Description**: Verify nightly tally uses the existing Swatch host buckets when HBI host reconciliation is disabled, so an update to HBI facts does not alter tally results
+- **Setup**:
+  - Organization is opted in
+  - Insert a physical RHEL host into HBI with two sockets and tally it once to create Swatch host buckets
+  - Update the same HBI host to six sockets
+  - Clear tally snapshots while preserving the existing Swatch host buckets
+- **Action**:
+  - Enable the `DISABLE_NIGHTLY_TALLY_HOST_UPDATE` flag
+  - Run nightly tally for the organization
+- **Verification**:
+  - Daily RHEL socket tally remains at two sockets
+- **Expected Result**:
+  - Tally uses the existing Swatch host buckets and does not incorporate the updated HBI socket count while reconciliation is disabled

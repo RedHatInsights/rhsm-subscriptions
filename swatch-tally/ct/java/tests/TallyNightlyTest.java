@@ -30,6 +30,7 @@ import static utils.TallyTestProducts.RHEL_FOR_X86;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.api.hbi.HbiDbConnector;
+import com.redhat.swatch.component.tests.api.hbi.HostBuilder;
 import com.redhat.swatch.component.tests.api.hbi.HostConnector.SeededHost;
 import com.redhat.swatch.component.tests.api.hbi.HostStateManager;
 import com.redhat.swatch.component.tests.api.hbi.HostTemplates;
@@ -83,6 +84,7 @@ public class TallyNightlyTest extends BaseTallyComponentTest {
 
   @AfterEach
   void cleanupHosts() {
+    unleash.setDisableNightlyTallyHostUpdate(false);
     if (hostManager != null) {
       hostManager.cleanupAll();
     }
@@ -211,6 +213,62 @@ public class TallyNightlyTest extends BaseTallyComponentTest {
     assertEquals(
         instanceSockets, latestDailyTallyValue(orgId, product, "Sockets", beginning, ending));
     assertEquals(instanceCores, latestDailyTallyValue(orgId, product, "Cores", beginning, ending));
+  }
+
+  @Test
+  @TestPlanName("nightly-tally-TC003")
+  void testNightlyTallyUsesExistingHostBucketsWhenReconciliationIsDisabled() {
+    service.createOptInConfig(orgId);
+    unleash.setDisableNightlyTallyHostUpdate(false);
+
+    OffsetDateTime beginning = OffsetDateTime.now().minusDays(1);
+    OffsetDateTime ending = OffsetDateTime.now().plusDays(1);
+    HostBuilder hostBuilder =
+        hostManager.createHost(orgId).apply(HostTemplates.conduitReportedPhysicalRhel(2, 2));
+    SeededHost seeded = hostBuilder.insert();
+    assertNotNull(seeded.hostId(), "Host should be created");
+
+    // Reconcile once to create the real Swatch host buckets used by the flag-enabled tally below.
+    service.tallyOrg(orgId);
+    assertEquals(
+        2.0,
+        getDailyRhelSocketCount(beginning, ending),
+        "Initial tally should reflect the host's two sockets");
+
+    SeededHost updated =
+        hostBuilder
+            .systemProfileFacts(
+                SystemProfileFacts.builder()
+                    .infrastructureType("physical")
+                    .arch("x86_64")
+                    .numberOfSockets(6)
+                    .numberOfCpus(6)
+                    .build())
+            .update();
+    assertEquals(seeded.hostId(), updated.hostId(), "Update should target the same host row");
+
+    clearTallySnapshots(orgId);
+    assertEquals(
+        0.0,
+        getDailyRhelSocketCount(beginning, ending),
+        "Snapshots should be cleared while retaining the host buckets");
+
+    unleash.setDisableNightlyTallyHostUpdate(true);
+    service.tallyOrg(orgId);
+
+    assertEquals(
+        2.0,
+        getDailyRhelSocketCount(beginning, ending),
+        "Flag-enabled tally should use the existing Swatch host buckets, not updated HBI facts");
+  }
+
+  private double getDailyRhelSocketCount(OffsetDateTime beginning, OffsetDateTime ending) {
+    return getSocketCount(service, orgId, RHEL_FOR_X86.productTag(), "Daily", beginning, ending);
+  }
+
+  private void clearTallySnapshots(String testOrgId) {
+    swatchDatabase.executeInTransaction(
+        ctx -> ctx.executeUpdate("DELETE FROM tally_snapshots WHERE org_id = ?", testOrgId));
   }
 
   private static double latestDailyTallyValue(
