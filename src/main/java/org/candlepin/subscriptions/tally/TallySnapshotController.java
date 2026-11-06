@@ -37,6 +37,7 @@ import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.configuration.FeatureFlags;
 import org.candlepin.subscriptions.db.TallyStateRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
@@ -58,6 +59,7 @@ public class TallySnapshotController {
   protected static final String TALLIED_USAGE_TOTAL_METRIC = "swatch_tally_tallied_usage_total";
 
   private final ApplicationProperties appProps;
+  private final FeatureFlags featureFlags;
   private final InventoryAccountUsageCollector usageCollector;
   private final EventController eventController;
   private final MetricUsageCollector metricUsageCollector;
@@ -72,6 +74,7 @@ public class TallySnapshotController {
   @Autowired
   public TallySnapshotController(
       ApplicationProperties appProps,
+      FeatureFlags featureFlags,
       InventoryAccountUsageCollector usageCollector,
       EventController eventController,
       MaxSeenSnapshotStrategy maxSeenSnapshotStrategy,
@@ -83,6 +86,7 @@ public class TallySnapshotController {
       MeterRegistry meterRegistry,
       ApplicationClock clock) {
     this.appProps = appProps;
+    this.featureFlags = featureFlags;
     this.usageCollector = usageCollector;
     this.eventController = eventController;
     this.maxSeenSnapshotStrategy = maxSeenSnapshotStrategy;
@@ -148,6 +152,8 @@ public class TallySnapshotController {
         // We use a functional interface for processing event batches to allow
         // us to wrap the Event fetch in a read only transaction without needing
         // to annotate this method with a DB transaction.
+        boolean shouldUpdateHosts =
+            !featureFlags.isEnabled(FeatureFlags.DISABLE_HOURLY_HOST_UPDATE);
         eventController.processEventsInBatches(
             orgId,
             serviceType,
@@ -155,7 +161,9 @@ public class TallySnapshotController {
             appProps.getHourlyTallyEventBatchSize(),
             nextBatch ->
                 retryTemplate.execute(context -> {
-                  metricUsageCollector.updateHosts(orgId, serviceType, nextBatch);
+                  if (shouldUpdateHosts) {
+                    metricUsageCollector.updateHosts(orgId, serviceType, nextBatch);
+                  }
                   metricUsageCollector.calculateUsage(nextBatch, calcCache);
                   currentState.setLatestEventRecordDate(
                       nextBatch.get(nextBatch.size() - 1).getRecordDate());

@@ -205,6 +205,22 @@
             ],
             "variants": [],
             "createdAt": "2026-10-16T19:00:00.000Z"
+        },
+        {
+            "name": "swatch.swatch-tally.disable-hourly-host-update",
+            "description": "Disable hourly tally host updates. When enabled, the hourly tally job will skip updating host records, reducing database load while still performing snapshot calculations.",
+            "type": "operational",
+            "project": "default",
+            "enabled": false,
+            "stale": false,
+            "strategies": [
+                {
+                    "name": "default",
+                    "parameters": {}
+                }
+            ],
+            "variants": [],
+            "createdAt": "2026-11-04T13:39:00.000Z"
         }
     ],
     "strategies": [

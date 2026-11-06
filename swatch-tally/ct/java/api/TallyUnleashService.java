@@ -31,6 +31,8 @@ public class TallyUnleashService extends UnleashService {
       "swatch.swatch-tally.enable-event-driven-tally";
   private static final String USE_LEGACY_HOURLY_TALLY_SNAPSHOT_QUERY =
       "swatch.swatch-tally.use-legacy-hourly-tally-snapshot-query";
+  private static final String DISABLE_HOURLY_HOST_UPDATE =
+      "swatch.swatch-tally.disable-hourly-host-update";
 
   /** Matches {@code KesselRolesAugmentor.KESSEL_FLAG} in swatch-common-security. */
   private static final String USE_KESSEL_RBAC = "swatch.common-security.use-kessel-rbac";
@@ -73,5 +75,13 @@ public class TallyUnleashService extends UnleashService {
 
   public void disableEventDrivenTally() {
     disableFlag(ENABLE_EVENT_DRIVEN_TALLY);
+  }
+
+  public void setDisableHourlyHostUpdate(boolean disabled) {
+    if (disabled) {
+      enableFlag(DISABLE_HOURLY_HOST_UPDATE);
+    } else {
+      disableFlag(DISABLE_HOURLY_HOST_UPDATE);
+    }
   }
 }
