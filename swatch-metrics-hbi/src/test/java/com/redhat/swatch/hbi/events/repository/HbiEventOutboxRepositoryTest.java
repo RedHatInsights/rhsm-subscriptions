@@ -151,38 +151,36 @@ class HbiEventOutboxRepositoryTest {
     AtomicReference<List<HbiEventOutbox>> secondTxResult = new AtomicReference<>();
 
     Thread t1 =
-        new Thread(
-            () -> {
-              try {
-                userTransaction.begin();
-                List<HbiEventOutbox> lockedRows = repository.findAllWithLock(10);
-                assertEquals(1, lockedRows.size());
-                firstTxHasLock.countDown();
-                // Hold the transaction open until the second transaction runs its query
-                releaseFirstTx.await(2, TimeUnit.SECONDS);
-                userTransaction.commit();
-              } catch (Exception e) {
-                throw new RuntimeException(e);
-              }
-            });
+        new Thread(() -> {
+          try {
+            userTransaction.begin();
+            List<HbiEventOutbox> lockedRows = repository.findAllWithLock(10);
+            assertEquals(1, lockedRows.size());
+            firstTxHasLock.countDown();
+            // Hold the transaction open until the second transaction runs its query
+            releaseFirstTx.await(2, TimeUnit.SECONDS);
+            userTransaction.commit();
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+        });
 
     Thread t2 =
-        new Thread(
-            () -> {
-              try {
-                // Wait until the first transaction has acquired the lock
-                firstTxHasLock.await(2, TimeUnit.SECONDS);
-                userTransaction.begin();
-                List<HbiEventOutbox> rows = repository.findAllWithLock(10);
-                secondTxResult.set(rows);
-                userTransaction.commit();
-              } catch (Exception e) {
-                throw new RuntimeException(e);
-              } finally {
-                // Allow first transaction to complete
-                releaseFirstTx.countDown();
-              }
-            });
+        new Thread(() -> {
+          try {
+            // Wait until the first transaction has acquired the lock
+            firstTxHasLock.await(2, TimeUnit.SECONDS);
+            userTransaction.begin();
+            List<HbiEventOutbox> rows = repository.findAllWithLock(10);
+            secondTxResult.set(rows);
+            userTransaction.commit();
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          } finally {
+            // Allow first transaction to complete
+            releaseFirstTx.countDown();
+          }
+        });
 
     t1.start();
     t2.start();
@@ -208,22 +206,20 @@ class HbiEventOutboxRepositoryTest {
   long givenManyOutboxRecords() {
     long count = 1000;
     LongStream.range(0, count)
-        .forEach(
-            i -> {
-              givenExistingHbiEventOutbox();
-            });
+        .forEach(i -> {
+          givenExistingHbiEventOutbox();
+        });
     return count;
   }
 
   void forceVacuum() {
     entityManager
         .unwrap(Session.class)
-        .doWork(
-            connection -> {
-              try (var statement = connection.prepareStatement("VACUUM hbi_event_outbox")) {
-                statement.executeUpdate();
-              }
-            });
+        .doWork(connection -> {
+          try (var statement = connection.prepareStatement("VACUUM hbi_event_outbox")) {
+            statement.executeUpdate();
+          }
+        });
   }
 
   private HbiEventOutbox givenExistingHbiEventOutbox() {

@@ -87,109 +87,109 @@ class EventControllerTest {
   void setup() {
     eventRecord1 =
         """
-                {
-                   "sla": "Premium",
-                   "role": "osd",
-                   "org_id": "4",
-                   "timestamp": "2023-05-02T00:00:00Z",
-                   "event_type": "snapshot_redhat.com:openshift_dedicated:cluster_hour",
-                   "expiration": "2023-05-02T01:00:00Z",
-                   "instance_id": "e3a62bd1-fd00-405c-9401-f2288808588d",
-                   "display_name": "automation_osd_cluster_e3a62bd1-fd00-405c-9401-f2288808588d",
-                   "event_source": "prometheus",
-                   "measurements": [
-                     {
-                       "metric_id": "Instance-hours",
-                       "value": 1
-                     }
-                   ],
-                   "service_type": "OpenShift Cluster"
-                 }
-                """;
+        {
+           "sla": "Premium",
+           "role": "osd",
+           "org_id": "4",
+           "timestamp": "2023-05-02T00:00:00Z",
+           "event_type": "snapshot_redhat.com:openshift_dedicated:cluster_hour",
+           "expiration": "2023-05-02T01:00:00Z",
+           "instance_id": "e3a62bd1-fd00-405c-9401-f2288808588d",
+           "display_name": "automation_osd_cluster_e3a62bd1-fd00-405c-9401-f2288808588d",
+           "event_source": "prometheus",
+           "measurements": [
+             {
+               "metric_id": "Instance-hours",
+               "value": 1
+             }
+           ],
+           "service_type": "OpenShift Cluster"
+         }
+        """;
     eventRecord2 =
         """
-                {
-                   "sla": "Premium",
-                   "role": "osd",
-                   "org_id": "6",
-                   "timestamp": "2023-05-02T00:00:00Z",
-                   "event_type": "snapshot_redhat.com:openshift_dedicated:cluster_hour",
-                   "expiration": "2023-05-02T01:00:00Z",
-                   "instance_id": "e3a62bd1-fd00-405c-9401-f2288808588d",
-                   "display_name": "automation_osd_cluster_e3a62bd1-fd00-405c-9401-f2288808588d",
-                   "event_source": "prometheus",
-                   "measurements": [
-                     {
-                       "metric_id": "Instance-hours",
-                       "value": 1
-                     }
-                   ],
-                   "service_type": "OpenShift Cluster"
-                 }
-                """;
+        {
+           "sla": "Premium",
+           "role": "osd",
+           "org_id": "6",
+           "timestamp": "2023-05-02T00:00:00Z",
+           "event_type": "snapshot_redhat.com:openshift_dedicated:cluster_hour",
+           "expiration": "2023-05-02T01:00:00Z",
+           "instance_id": "e3a62bd1-fd00-405c-9401-f2288808588d",
+           "display_name": "automation_osd_cluster_e3a62bd1-fd00-405c-9401-f2288808588d",
+           "event_source": "prometheus",
+           "measurements": [
+             {
+               "metric_id": "Instance-hours",
+               "value": 1
+             }
+           ],
+           "service_type": "OpenShift Cluster"
+         }
+        """;
     eventRecord3 =
         """
-                {
-                   "sla": "Premium",
-                   "role": "osd",
-                   "org_id": "6",
-                   "timestamp": "2023-05-02T00:00:00Z",
-                   "event_type": "snapshot_redhat.com:openshift_dedicated:cluster_hour",
-                   "expiration": "2023-05-02T01:00:00Z",
-                   "instance_id": "e3a62bd1-fd00-405c-9401-f2288808588d",
-                   "display_name": "automation_osd_cluster_e3a62bd1-fd00-405c-9401-f2288808588d",
-                   "event_source": "prometheus",
-                   "measurements": [
-                     {
-                       "metric_id": "Instance-hours",
-                       "value": 1
-                     }
-                   ],
-                   "service_type": "OpenShift Cluster"
-                 }
-                """;
+        {
+           "sla": "Premium",
+           "role": "osd",
+           "org_id": "6",
+           "timestamp": "2023-05-02T00:00:00Z",
+           "event_type": "snapshot_redhat.com:openshift_dedicated:cluster_hour",
+           "expiration": "2023-05-02T01:00:00Z",
+           "instance_id": "e3a62bd1-fd00-405c-9401-f2288808588d",
+           "display_name": "automation_osd_cluster_e3a62bd1-fd00-405c-9401-f2288808588d",
+           "event_source": "prometheus",
+           "measurements": [
+             {
+               "metric_id": "Instance-hours",
+               "value": 1
+             }
+           ],
+           "service_type": "OpenShift Cluster"
+         }
+        """;
     eventRecord4 =
         """
-                {
-                   "sla": "Premium1",
-                   "role": "osd",
-                   "org_id": "6",
-                   "timestamp": "2023-05-02T00:00:00Z",
-                   "event_type": "snapshot_redhat.com:openshift_dedicated:cluster_hour",
-                   "expiration": "2023-05-02T01:00:00Z",
-                   "instance_id": "e3a62bd1-fd00-405c-9401-f2288808588d",
-                   "display_name": "automation_osd_cluster_e3a62bd1-fd00-405c-9401-f2288808588d",
-                   "event_source": "prometheus",
-                   "measurements": [
-                     {
-                       "metric_id": "Instance-hours",
-                       "value": 1
-                     }
-                   ],
-                   "service_type": "OpenShift Cluster"
-                 }
-                """;
+        {
+           "sla": "Premium1",
+           "role": "osd",
+           "org_id": "6",
+           "timestamp": "2023-05-02T00:00:00Z",
+           "event_type": "snapshot_redhat.com:openshift_dedicated:cluster_hour",
+           "expiration": "2023-05-02T01:00:00Z",
+           "instance_id": "e3a62bd1-fd00-405c-9401-f2288808588d",
+           "display_name": "automation_osd_cluster_e3a62bd1-fd00-405c-9401-f2288808588d",
+           "event_source": "prometheus",
+           "measurements": [
+             {
+               "metric_id": "Instance-hours",
+               "value": 1
+             }
+           ],
+           "service_type": "OpenShift Cluster"
+         }
+        """;
     eventRecord5 =
         """
-                {
-                   "sla": "Premium",
-                   "role": "osd",
-                   "org_id": "7",
-                   "timestamp": "2023-05-02T00:00:00Z",
-                   "event_type": "snapshot_redhat.com:openshift_dedicated:cluster_hour",
-                   "expiration": "2023-05-02T01:00:00Z",
-                   "instance_id": "e3a62bd1-fd00-405c-9401-f2288808588d",
-                   "display_name": "automation_osd_cluster_e3a62bd1-fd00-405c-9401-f2288808588d",
-                   "event_source": "prometheus",
-                   "measurements": [
-                     {
-                       "metric_id": "Instance-hours",
-                       "value": 1
-                     }
-                   ],
-                   "service_type": "OpenShift Cluster"
-                 }
-                """;
+        {
+           "sla": "Premium",
+           "role": "osd",
+           "org_id": "7",
+           "timestamp": "2023-05-02T00:00:00Z",
+           "event_type": "snapshot_redhat.com:openshift_dedicated:cluster_hour",
+           "expiration": "2023-05-02T01:00:00Z",
+           "instance_id": "e3a62bd1-fd00-405c-9401-f2288808588d",
+           "display_name": "automation_osd_cluster_e3a62bd1-fd00-405c-9401-f2288808588d",
+           "event_source": "prometheus",
+           "measurements": [
+             {
+               "metric_id": "Instance-hours",
+               "value": 1
+             }
+           ],
+           "service_type": "OpenShift Cluster"
+         }
+        """;
 
     eventRecordNegativeMeasurement =
         """
@@ -404,53 +404,53 @@ class EventControllerTest {
 
     var invalidProductTagEventRecord1 =
         """
+                {
+                 "sla":"Premium",
+                 "org_id":"111111111",
+                 "timestamp":"2024-06-10T10:00:00Z",
+                 "conversion":false,
+                 "event_type":"snapshot_rhel-for-x86-els-payg-addon_vCPUs",
+                 "expiration":"2024-06-10T11:00:00Z",
+                 "instance_id":"d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                 "product_tag":[
+                    "dummy"
+                 ],
+                 "display_name":"automation__cluster_d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                 "event_source":"Premium",
+                 "measurements":[
                     {
-                     "sla":"Premium",
-                     "org_id":"111111111",
-                     "timestamp":"2024-06-10T10:00:00Z",
-                     "conversion":false,
-                     "event_type":"snapshot_rhel-for-x86-els-payg-addon_vCPUs",
-                     "expiration":"2024-06-10T11:00:00Z",
-                     "instance_id":"d147ddf2-be4a-4a59-acf7-7f222758b47c",
-                     "product_tag":[
-                        "dummy"
-                     ],
-                     "display_name":"automation__cluster_d147ddf2-be4a-4a59-acf7-7f222758b47c",
-                     "event_source":"Premium",
-                     "measurements":[
-                        {
-                           "value":4.0,
-                           "metric_id":"vCPUs"
-                        }
-                     ],
-                     "service_type":"RHEL System"
-                  }
-            """;
+                       "value":4.0,
+                       "metric_id":"vCPUs"
+                    }
+                 ],
+                 "service_type":"RHEL System"
+              }
+        """;
 
     var validProductTagEventRecord1 =
         """
+                {
+                 "sla":"Premium",
+                 "org_id":"111111111",
+                 "timestamp":"2024-06-10T10:00:00Z",
+                 "conversion":false,
+                 "event_type":"snapshot_rhel-for-x86-els-payg-addon_vCPUs",
+                 "expiration":"2024-06-10T11:00:00Z",
+                 "instance_id":"d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                 "product_tag":[
+                    "rhel-for-x86-els-payg-addon"
+                 ],
+                 "display_name":"automation__cluster_d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                 "event_source":"Premium",
+                 "measurements":[
                     {
-                     "sla":"Premium",
-                     "org_id":"111111111",
-                     "timestamp":"2024-06-10T10:00:00Z",
-                     "conversion":false,
-                     "event_type":"snapshot_rhel-for-x86-els-payg-addon_vCPUs",
-                     "expiration":"2024-06-10T11:00:00Z",
-                     "instance_id":"d147ddf2-be4a-4a59-acf7-7f222758b47c",
-                     "product_tag":[
-                        "rhel-for-x86-els-payg-addon"
-                     ],
-                     "display_name":"automation__cluster_d147ddf2-be4a-4a59-acf7-7f222758b47c",
-                     "event_source":"Premium",
-                     "measurements":[
-                        {
-                           "value":4.0,
-                           "metric_id":"vCPUs"
-                        }
-                     ],
-                     "service_type":"RHEL System"
-                  }
-            """;
+                       "value":4.0,
+                       "metric_id":"vCPUs"
+                    }
+                 ],
+                 "service_type":"RHEL System"
+              }
+        """;
     eventRecords.add(validProductTagEventRecord1);
     eventRecords.add(invalidProductTagEventRecord1);
     eventController.persistServiceInstances(eventRecords);
@@ -467,33 +467,33 @@ class EventControllerTest {
 
     var mixedPaygoNonPaygoEventRecord =
         """
+                {
+                 "sla":"Premium",
+                 "org_id":"111111111",
+                 "timestamp":"2024-06-10T10:00:00Z",
+                 "conversion":false,
+                 "event_type":"snapshot_mixed_tags",
+                 "expiration":"2024-06-10T11:00:00Z",
+                 "instance_id":"d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                 "product_tag":[
+                    "rhel-for-x86-els-payg-addon",
+                    "rhel-for-x86-els-converted"
+                 ],
+                 "display_name":"automation__cluster_d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                 "event_source":"Premium",
+                 "measurements":[
                     {
-                     "sla":"Premium",
-                     "org_id":"111111111",
-                     "timestamp":"2024-06-10T10:00:00Z",
-                     "conversion":false,
-                     "event_type":"snapshot_mixed_tags",
-                     "expiration":"2024-06-10T11:00:00Z",
-                     "instance_id":"d147ddf2-be4a-4a59-acf7-7f222758b47c",
-                     "product_tag":[
-                        "rhel-for-x86-els-payg-addon",
-                        "rhel-for-x86-els-converted"
-                     ],
-                     "display_name":"automation__cluster_d147ddf2-be4a-4a59-acf7-7f222758b47c",
-                     "event_source":"Premium",
-                     "measurements":[
-                        {
-                           "value":4.0,
-                           "metric_id":"vCPUs"
-                        },
-                        {
-                           "value":2.0,
-                           "metric_id":"Sockets"
-                        }
-                     ],
-                     "service_type":"RHEL System"
-                  }
-            """;
+                       "value":4.0,
+                       "metric_id":"vCPUs"
+                    },
+                    {
+                       "value":2.0,
+                       "metric_id":"Sockets"
+                    }
+                 ],
+                 "service_type":"RHEL System"
+              }
+        """;
 
     eventRecords.add(mixedPaygoNonPaygoEventRecord);
     eventController.persistServiceInstances(eventRecords);
@@ -536,28 +536,28 @@ class EventControllerTest {
   void testMeterRegistryCounter(String eventSource) {
     var validProductTagEventRecord1 =
         """
+                {
+                 "sla":"Premium",
+                 "org_id":"111111111",
+                 "timestamp":"2024-06-10T10:00:00Z",
+                 "conversion":false,
+                 "event_type":"snapshot_rhel-for-x86-els-payg-addon_vCPUs",
+                 "expiration":"2024-06-10T11:00:00Z",
+                 "instance_id":"d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                 "product_tag":[
+                    "rhel-for-x86-els-payg-addon"
+                 ],
+                 "display_name":"automation__cluster_d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                 "event_source":"%s",
+                 "measurements":[
                     {
-                     "sla":"Premium",
-                     "org_id":"111111111",
-                     "timestamp":"2024-06-10T10:00:00Z",
-                     "conversion":false,
-                     "event_type":"snapshot_rhel-for-x86-els-payg-addon_vCPUs",
-                     "expiration":"2024-06-10T11:00:00Z",
-                     "instance_id":"d147ddf2-be4a-4a59-acf7-7f222758b47c",
-                     "product_tag":[
-                        "rhel-for-x86-els-payg-addon"
-                     ],
-                     "display_name":"automation__cluster_d147ddf2-be4a-4a59-acf7-7f222758b47c",
-                     "event_source":"%s",
-                     "measurements":[
-                        {
-                           "value":4.0,
-                           "metric_id":"vCPUs"
-                        }
-                     ],
-                     "service_type":"RHEL System"
-                  }
-            """
+                       "value":4.0,
+                       "metric_id":"vCPUs"
+                    }
+                 ],
+                 "service_type":"RHEL System"
+              }
+        """
             .formatted(eventSource);
     when(eventRecordRepository.saveAll(any()))
         .thenReturn(
@@ -695,80 +695,80 @@ class EventControllerTest {
 
     var hbiEventWithActiveOrgId =
         """
+                {
+                 "sla":"Premium",
+                 "org_id":"%s",
+                 "timestamp":"2024-06-10T10:00:00Z",
+                 "conversion":false,
+                 "event_type":"snapshot_rhel-for-x86-els-payg-addon_vCPUs",
+                 "expiration":"2024-06-10T11:00:00Z",
+                 "instance_id":"d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                 "product_tag":[
+                    "rhel-for-x86-els-payg-addon"
+                 ],
+                 "display_name":"automation__cluster_d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                 "event_source":"Premium",
+                 "measurements":[
                     {
-                     "sla":"Premium",
-                     "org_id":"%s",
-                     "timestamp":"2024-06-10T10:00:00Z",
-                     "conversion":false,
-                     "event_type":"snapshot_rhel-for-x86-els-payg-addon_vCPUs",
-                     "expiration":"2024-06-10T11:00:00Z",
-                     "instance_id":"d147ddf2-be4a-4a59-acf7-7f222758b47c",
-                     "product_tag":[
-                        "rhel-for-x86-els-payg-addon"
-                     ],
-                     "display_name":"automation__cluster_d147ddf2-be4a-4a59-acf7-7f222758b47c",
-                     "event_source":"Premium",
-                     "measurements":[
-                        {
-                           "value":4.0,
-                           "metric_id":"vCPUs"
-                        }
-                     ],
-                     "service_type":"HBI_HOST"
-                  }
-            """
+                       "value":4.0,
+                       "metric_id":"vCPUs"
+                    }
+                 ],
+                 "service_type":"HBI_HOST"
+              }
+        """
             .formatted(expectedActiveOrgId);
 
     var hbiEventWithInactiveOrgId =
         """
+                {
+                 "sla":"Premium",
+                 "org_id":"%s",
+                 "timestamp":"2024-06-10T10:00:00Z",
+                 "conversion":false,
+                 "event_type":"snapshot_rhel-for-x86-els-payg-addon_vCPUs",
+                 "expiration":"2024-06-10T11:00:00Z",
+                 "instance_id":"d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                 "product_tag":[
+                    "rhel-for-x86-els-payg-addon"
+                 ],
+                 "display_name":"automation__cluster_d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                 "event_source":"Premium",
+                 "measurements":[
                     {
-                     "sla":"Premium",
-                     "org_id":"%s",
-                     "timestamp":"2024-06-10T10:00:00Z",
-                     "conversion":false,
-                     "event_type":"snapshot_rhel-for-x86-els-payg-addon_vCPUs",
-                     "expiration":"2024-06-10T11:00:00Z",
-                     "instance_id":"d147ddf2-be4a-4a59-acf7-7f222758b47c",
-                     "product_tag":[
-                        "rhel-for-x86-els-payg-addon"
-                     ],
-                     "display_name":"automation__cluster_d147ddf2-be4a-4a59-acf7-7f222758b47c",
-                     "event_source":"Premium",
-                     "measurements":[
-                        {
-                           "value":4.0,
-                           "metric_id":"vCPUs"
-                        }
-                     ],
-                     "service_type":"HBI_HOST"
-                  }
-            """
+                       "value":4.0,
+                       "metric_id":"vCPUs"
+                    }
+                 ],
+                 "service_type":"HBI_HOST"
+              }
+        """
             .formatted(expectedInactiveOrgId);
 
     var nonHbiEvent =
         """
+                {
+                 "sla":"Premium",
+                 "org_id":"%s",
+                 "timestamp":"2024-06-10T10:00:00Z",
+                 "conversion":false,
+                 "event_type":"snapshot_rhel",
+                 "expiration":"2024-06-10T11:00:00Z",
+                 "instance_id":"d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                 "product_tag":[
+                    "rhel-for-x86-els-payg-addon"
+                 ],
+                 "display_name":"automation__cluster_d147ddf2-be4a-4a59-acf7-7f222758b47c",
+                 "event_source":"Premium",
+                 "measurements":[
                     {
-                     "sla":"Premium",
-                     "org_id":"%s",
-                     "timestamp":"2024-06-10T10:00:00Z",
-                     "conversion":false,
-                     "event_type":"snapshot_rhel",
-                     "expiration":"2024-06-10T11:00:00Z",
-                     "instance_id":"d147ddf2-be4a-4a59-acf7-7f222758b47c",
-                     "product_tag":[
-                        "rhel-for-x86-els-payg-addon"
-                     ],
-                     "display_name":"automation__cluster_d147ddf2-be4a-4a59-acf7-7f222758b47c",
-                     "event_source":"Premium",
-                     "measurements":[
-                        {
-                           "value":4.0,
-                           "metric_id":"vCPUs"
-                        }
-                     ],
-                     "service_type":"RHEL Server"
-                  }
-            """
+                       "value":4.0,
+                       "metric_id":"vCPUs"
+                    }
+                 ],
+                 "service_type":"RHEL Server"
+              }
+        """
             .formatted(expecedNonHbiOrgId);
 
     List<String> eventRecords = new ArrayList<>();
@@ -802,15 +802,12 @@ class EventControllerTest {
   private Optional<Meter> getIngestedUsageMetric(
       String productTag, String metricId, String billingProvider, String eventSource) {
     return meterRegistry.getMeters().stream()
-        .filter(
-            m ->
-                INGESTED_USAGE_METRIC.equals(m.getId().getName())
-                    && productTag.equals(m.getId().getTag("product"))
-                    && MetricId.fromString(metricId)
-                        .getValue()
-                        .equals(m.getId().getTag("metric_id"))
-                    && billingProvider.equals(m.getId().getTag("billing_provider"))
-                    && eventSource.equals(m.getId().getTag("event_source")))
+        .filter(m ->
+            INGESTED_USAGE_METRIC.equals(m.getId().getName())
+                && productTag.equals(m.getId().getTag("product"))
+                && MetricId.fromString(metricId).getValue().equals(m.getId().getTag("metric_id"))
+                && billingProvider.equals(m.getId().getTag("billing_provider"))
+                && eventSource.equals(m.getId().getTag("event_source")))
         .findFirst();
   }
 

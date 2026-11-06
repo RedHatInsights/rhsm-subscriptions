@@ -504,11 +504,10 @@ class HbiEventConsumerTest {
     Awaitility.await()
         .await()
         .pollDelay(Duration.ofMillis(500))
-        .untilAsserted(
-            () -> {
-              verify(hbiEventProcessor, times(1)).process(event);
-              thenCounterMetricExists(event.getType(), "unsupported");
-            });
+        .untilAsserted(() -> {
+          verify(hbiEventProcessor, times(1)).process(event);
+          thenCounterMetricExists(event.getType(), "unsupported");
+        });
   }
 
   @Test
@@ -582,12 +581,11 @@ class HbiEventConsumerTest {
   private void thenCounterMetricExists(String type, String errorMessage) {
     var metric =
         meterRegistry.getMeters().stream()
-            .filter(
-                m ->
-                    COUNTER_EVENTS_METRIC.equals(m.getId().getName())
-                        && type.equals(m.getId().getTag("type"))
-                        && (errorMessage == null
-                            || errorMessage.equals(m.getId().getTag("error-message"))))
+            .filter(m ->
+                COUNTER_EVENTS_METRIC.equals(m.getId().getName())
+                    && type.equals(m.getId().getTag("type"))
+                    && (errorMessage == null
+                        || errorMessage.equals(m.getId().getTag("error-message"))))
             .findFirst();
 
     assertTrue(
@@ -661,15 +659,14 @@ class HbiEventConsumerTest {
     List<HbiEventOutbox> outboxRecords = new ArrayList<>();
     Awaitility.await()
         .atMost(Duration.ofSeconds(1))
-        .untilAsserted(
-            () -> {
-              List<HbiEventOutbox> nextCheck = getAllOutboxRecords();
-              assertEquals(
-                  expectedCount,
-                  nextCheck.size(),
-                  "Expected " + expectedCount + " out of " + nextCheck.size());
-              outboxRecords.addAll(nextCheck);
-            });
+        .untilAsserted(() -> {
+          List<HbiEventOutbox> nextCheck = getAllOutboxRecords();
+          assertEquals(
+              expectedCount,
+              nextCheck.size(),
+              "Expected " + expectedCount + " out of " + nextCheck.size());
+          outboxRecords.addAll(nextCheck);
+        });
 
     return outboxRecords.stream().map(HbiEventOutbox::getSwatchEventJson).toList();
   }

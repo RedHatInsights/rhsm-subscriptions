@@ -57,10 +57,9 @@ public class ProductId {
         .filter(variant -> variant.getTag().equalsIgnoreCase(value))
         .findFirst()
         .map(ProductId::new)
-        .orElseThrow(
-            () ->
-                new IllegalArgumentException(
-                    String.format("ProductId: %s not found in configuration", value)));
+        .orElseThrow(() ->
+            new IllegalArgumentException(
+                String.format("ProductId: %s not found in configuration", value)));
   }
 
   public boolean isOnDemand() {

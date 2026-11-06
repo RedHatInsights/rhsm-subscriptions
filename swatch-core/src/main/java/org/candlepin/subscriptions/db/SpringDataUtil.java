@@ -40,12 +40,11 @@ public class SpringDataUtil {
             .findFirst();
     return existing
         .map(join -> (Join<S, T>) join)
-        .orElseGet(
-            () -> {
-              var join = (Join<S, T>) primaryJoin.fetch(attribute);
-              join.alias(alias);
-              return join;
-            });
+        .orElseGet(() -> {
+          var join = (Join<S, T>) primaryJoin.fetch(attribute);
+          join.alias(alias);
+          return join;
+        });
   }
 
   public static <P, S> Join<P, S> fetchJoin(
@@ -55,12 +54,11 @@ public class SpringDataUtil {
         root.getJoins().stream().filter(join -> Objects.equals(join.getAlias(), alias)).findFirst();
     return existing
         .map(join -> (Join<P, S>) join)
-        .orElseGet(
-            () -> {
-              var join = (Join<P, S>) root.fetch(attribute);
-              join.alias(alias);
-              return join;
-            });
+        .orElseGet(() -> {
+          var join = (Join<P, S>) root.fetch(attribute);
+          join.alias(alias);
+          return join;
+        });
   }
 
   public static <P, S> Join<P, S> fetchJoin(
@@ -70,11 +68,10 @@ public class SpringDataUtil {
         root.getJoins().stream().filter(join -> Objects.equals(join.getAlias(), alias)).findFirst();
     return existing
         .map(join -> (Join<P, S>) join)
-        .orElseGet(
-            () -> {
-              var join = (Join<P, S>) root.fetch(attribute);
-              join.alias(alias);
-              return join;
-            });
+        .orElseGet(() -> {
+          var join = (Join<P, S>) root.fetch(attribute);
+          join.alias(alias);
+          return join;
+        });
   }
 }

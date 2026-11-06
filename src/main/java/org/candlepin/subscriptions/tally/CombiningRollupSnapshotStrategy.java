@@ -118,14 +118,13 @@ public class CombiningRollupSnapshotStrategy {
     List<TallySnapshot> rollupSnapshots =
         Arrays.stream(GRANULARITIES)
             .filter(g -> !Objects.equals(g, finestGranularity))
-            .map(
-                granularity ->
-                    produceRollups(
-                        totalExistingSnapshots,
-                        derivedExistingSnapshots,
-                        granularity,
-                        groupedFinestSnapshots,
-                        reductionFunction))
+            .map(granularity ->
+                produceRollups(
+                    totalExistingSnapshots,
+                    derivedExistingSnapshots,
+                    granularity,
+                    groupedFinestSnapshots,
+                    reductionFunction))
             .flatMap(List::stream)
             .toList();
 
@@ -176,14 +175,13 @@ public class CombiningRollupSnapshotStrategy {
 
       List<TallySnapshot> existingSnapshots = snapMap.getOrDefault(orgId, Collections.emptyList());
 
-      existingSnapshots.forEach(
-          snap -> {
-            TallySnapshotNaturalKey key = new TallySnapshotNaturalKey(snap);
-            if (totalExistingSnapshots.containsKey(key)) {
-              log.warn("A snapshot with this key already exists. {}", snap);
-            }
-            totalExistingSnapshots.put(key, snap);
-          });
+      existingSnapshots.forEach(snap -> {
+        TallySnapshotNaturalKey key = new TallySnapshotNaturalKey(snap);
+        if (totalExistingSnapshots.containsKey(key)) {
+          log.warn("A snapshot with this key already exists. {}", snap);
+        }
+        totalExistingSnapshots.put(key, snap);
+      });
 
       if (granularityWillBeRolledUp) {
         derivedExistingSnapshots.putAll(
@@ -241,9 +239,8 @@ public class CombiningRollupSnapshotStrategy {
         calculatedTotals
             .getMeasurements()
             .keySet()
-            .forEach(
-                metricId ->
-                    seenMeasurements.add(new TallyMeasurementKey(type, metricId.getValue())));
+            .forEach(metricId ->
+                seenMeasurements.add(new TallyMeasurementKey(type, metricId.getValue())));
       }
       updateSnapshotWithHardwareMeasurements(snapshot, type, calculatedTotals);
     }
@@ -289,32 +286,31 @@ public class CombiningRollupSnapshotStrategy {
             .filter(existing -> existing.getValue().getGranularity() == granularity)
             .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
 
-    accountCalcs.forEach(
-        (offset, accountCalc) -> {
-          for (UsageCalculation.Key usageKey : accountCalc.getKeys()) {
-            var snapshotKey =
-                new TallySnapshotNaturalKey(
-                    accountCalc.getOrgId(),
-                    usageKey.getProductId(),
-                    granularity,
-                    usageKey.getSla(),
-                    usageKey.getUsage(),
-                    usageKey.getBillingProvider(),
-                    usageKey.getBillingAccountId(),
-                    offset);
+    accountCalcs.forEach((offset, accountCalc) -> {
+      for (UsageCalculation.Key usageKey : accountCalc.getKeys()) {
+        var snapshotKey =
+            new TallySnapshotNaturalKey(
+                accountCalc.getOrgId(),
+                usageKey.getProductId(),
+                granularity,
+                usageKey.getSla(),
+                usageKey.getUsage(),
+                usageKey.getBillingProvider(),
+                usageKey.getBillingAccountId(),
+                offset);
 
-            TallySnapshot existing = affectedSnaps.remove(snapshotKey);
-            TallySnapshot snapshot = Objects.requireNonNullElseGet(existing, TallySnapshot::new);
+        TallySnapshot existing = affectedSnaps.remove(snapshotKey);
+        TallySnapshot snapshot = Objects.requireNonNullElseGet(existing, TallySnapshot::new);
 
-            UsageCalculation productCalc = accountCalc.getCalculation(usageKey);
+        UsageCalculation productCalc = accountCalc.getCalculation(usageKey);
 
-            populateSnapshotFromProductUsageCalculation(
-                snapshot, accountCalc.getOrgId(), productCalc, granularity);
+        populateSnapshotFromProductUsageCalculation(
+            snapshot, accountCalc.getOrgId(), productCalc, granularity);
 
-            snapshot.setSnapshotDate(offset);
-            toSave.add(tallyRepo.save(snapshot));
-          }
-        });
+        snapshot.setSnapshotDate(offset);
+        toSave.add(tallyRepo.save(snapshot));
+      }
+    });
 
     return toSave;
   }
@@ -335,18 +331,17 @@ public class CombiningRollupSnapshotStrategy {
       DoubleBinaryOperator reductionFunction) {
 
     List<TallySnapshot> rollupsProduced = new ArrayList<>();
-    snapshotMapping.forEach(
-        (rollupKey, newAndUpdatedSnapshots) -> {
-          List<TallySnapshot> existingContributingSnapshots =
-              rollupLookup.getOrDefault(rollupKey, Collections.emptyList());
-          rollupsProduced.addAll(
-              produceRollups(
-                  existingSnapshotLookup,
-                  granularity,
-                  existingContributingSnapshots,
-                  newAndUpdatedSnapshots,
-                  reductionFunction));
-        });
+    snapshotMapping.forEach((rollupKey, newAndUpdatedSnapshots) -> {
+      List<TallySnapshot> existingContributingSnapshots =
+          rollupLookup.getOrDefault(rollupKey, Collections.emptyList());
+      rollupsProduced.addAll(
+          produceRollups(
+              existingSnapshotLookup,
+              granularity,
+              existingContributingSnapshots,
+              newAndUpdatedSnapshots,
+              reductionFunction));
+    });
 
     return rollupsProduced;
   }
@@ -369,28 +364,26 @@ public class CombiningRollupSnapshotStrategy {
     allContributingSnapshots.addAll(existingContributingSnapshots);
     allContributingSnapshots.addAll(newAndUpdatedSnapshots);
 
-    allContributingSnapshots.forEach(
-        snapshot -> {
-          var identifier =
-              new UsageCalculation.Key(
-                  snapshot.getProductId(),
-                  snapshot.getServiceLevel(),
-                  snapshot.getUsage(),
-                  snapshot.getBillingProvider(),
-                  snapshot.getBillingAccountId());
-          reducedMeasurements.computeIfAbsent(identifier, i -> new HashMap<>());
-          Map<TallyMeasurementKey, Double> measurements = reducedMeasurements.get(identifier);
+    allContributingSnapshots.forEach(snapshot -> {
+      var identifier =
+          new UsageCalculation.Key(
+              snapshot.getProductId(),
+              snapshot.getServiceLevel(),
+              snapshot.getUsage(),
+              snapshot.getBillingProvider(),
+              snapshot.getBillingAccountId());
+      reducedMeasurements.computeIfAbsent(identifier, i -> new HashMap<>());
+      Map<TallyMeasurementKey, Double> measurements = reducedMeasurements.get(identifier);
 
-          snapshot
-              .getTallyMeasurements()
-              .forEach(
-                  (tallyMeasurementKey, measurementValue) -> {
-                    Double currentTotal = measurements.getOrDefault(tallyMeasurementKey, 0.0);
-                    measurements.put(
-                        tallyMeasurementKey,
-                        reductionFunction.applyAsDouble(currentTotal, measurementValue));
-                  });
-        });
+      snapshot
+          .getTallyMeasurements()
+          .forEach((tallyMeasurementKey, measurementValue) -> {
+            Double currentTotal = measurements.getOrDefault(tallyMeasurementKey, 0.0);
+            measurements.put(
+                tallyMeasurementKey,
+                reductionFunction.applyAsDouble(currentTotal, measurementValue));
+          });
+    });
 
     return updateTallySnapshots(
         existingSnapshotLookup, granularity, reducedMeasurements, firstFinestGranularitySnapshot);
@@ -415,42 +408,40 @@ public class CombiningRollupSnapshotStrategy {
       TallySnapshot firstFinestGranularitySnapshot) {
     List<TallySnapshot> saved = new ArrayList<>();
 
-    reducedMeasurements.forEach(
-        (usageKey, measurements) -> {
-          OffsetDateTime snapshotDate =
-              calculateStartOfRange(firstFinestGranularitySnapshot.getSnapshotDate(), granularity);
-          var snapshotKey =
-              new TallySnapshotNaturalKey(
-                  firstFinestGranularitySnapshot.getOrgId(),
-                  firstFinestGranularitySnapshot.getProductId(),
-                  granularity,
-                  usageKey.getSla(),
-                  usageKey.getUsage(),
-                  usageKey.getBillingProvider(),
-                  usageKey.getBillingAccountId(),
-                  snapshotDate);
-          TallySnapshot existing = existingSnapshotLookup.get(snapshotKey);
-          TallySnapshot snapshot = Objects.requireNonNullElseGet(existing, TallySnapshot::new);
+    reducedMeasurements.forEach((usageKey, measurements) -> {
+      OffsetDateTime snapshotDate =
+          calculateStartOfRange(firstFinestGranularitySnapshot.getSnapshotDate(), granularity);
+      var snapshotKey =
+          new TallySnapshotNaturalKey(
+              firstFinestGranularitySnapshot.getOrgId(),
+              firstFinestGranularitySnapshot.getProductId(),
+              granularity,
+              usageKey.getSla(),
+              usageKey.getUsage(),
+              usageKey.getBillingProvider(),
+              usageKey.getBillingAccountId(),
+              snapshotDate);
+      TallySnapshot existing = existingSnapshotLookup.get(snapshotKey);
+      TallySnapshot snapshot = Objects.requireNonNullElseGet(existing, TallySnapshot::new);
 
-          snapshot.setOrgId(firstFinestGranularitySnapshot.getOrgId());
-          snapshot.setProductId(firstFinestGranularitySnapshot.getProductId());
+      snapshot.setOrgId(firstFinestGranularitySnapshot.getOrgId());
+      snapshot.setProductId(firstFinestGranularitySnapshot.getProductId());
 
-          snapshot.setSnapshotDate(snapshotDate);
-          snapshot.setGranularity(granularity);
-          snapshot.setServiceLevel(usageKey.getSla());
-          snapshot.setUsage(usageKey.getUsage());
-          snapshot.setBillingAccountId(usageKey.getBillingAccountId());
-          snapshot.setBillingProvider(usageKey.getBillingProvider());
-          snapshot.setPrimary(PrimaryRecordUtils.isPrimaryRecord(snapshot));
-          measurements.forEach(
-              (measurementKey, value) ->
-                  snapshot.setMeasurement(
-                      measurementKey.getMeasurementType(),
-                      MetricId.fromString(measurementKey.getMetricId()),
-                      value));
+      snapshot.setSnapshotDate(snapshotDate);
+      snapshot.setGranularity(granularity);
+      snapshot.setServiceLevel(usageKey.getSla());
+      snapshot.setUsage(usageKey.getUsage());
+      snapshot.setBillingAccountId(usageKey.getBillingAccountId());
+      snapshot.setBillingProvider(usageKey.getBillingProvider());
+      snapshot.setPrimary(PrimaryRecordUtils.isPrimaryRecord(snapshot));
+      measurements.forEach((measurementKey, value) ->
+          snapshot.setMeasurement(
+              measurementKey.getMeasurementType(),
+              MetricId.fromString(measurementKey.getMetricId()),
+              value));
 
-          saved.add(tallyRepo.save(snapshot));
-        });
+      saved.add(tallyRepo.save(snapshot));
+    });
 
     return saved;
   }

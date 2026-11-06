@@ -256,10 +256,8 @@ class SubscriptionCapacityServiceTest {
     for (String expectedSubNumber : expectedSubNumbers) {
       assertTrue(
           result.values().stream()
-              .anyMatch(
-                  c ->
-                      c.stream()
-                          .anyMatch(cv -> expectedSubNumber.equals(cv.getSubscriptionNumber()))),
+              .anyMatch(c ->
+                  c.stream().anyMatch(cv -> expectedSubNumber.equals(cv.getSubscriptionNumber()))),
           "Should contain capacity for " + expectedSubNumber);
     }
   }

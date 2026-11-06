@@ -116,11 +116,10 @@ class TallyHypervisorTest extends BaseTallyComponentTest {
 
     var subManFromIR =
         hypervisorIR
-            .orElseThrow(
-                () ->
-                    new RuntimeException(
-                        String.format(
-                            "Hypervisor missing from the Instance Report! %s", instanceResponse)))
+            .orElseThrow(() ->
+                new RuntimeException(
+                    String.format(
+                        "Hypervisor missing from the Instance Report! %s", instanceResponse)))
             .getSubscriptionManagerId();
 
     assertEquals(
@@ -366,10 +365,8 @@ class TallyHypervisorTest extends BaseTallyComponentTest {
 
     var hypervisor1IR =
         instanceResponse.getData().stream()
-            .filter(
-                i ->
-                    i.getDisplayName() != null
-                        && "Hypervisor-1".equalsIgnoreCase(i.getDisplayName()))
+            .filter(i ->
+                i.getDisplayName() != null && "Hypervisor-1".equalsIgnoreCase(i.getDisplayName()))
             .findFirst();
 
     assertTrue(hypervisor1IR.isPresent(), "Hypervisor-1 should be present in the Instance Report!");

@@ -272,16 +272,15 @@ public class ContractEntity extends ModificationTrackedEntity {
       Predicate[] present =
           upstreamContracts.stream()
               .filter(identity -> identity.billingProviderId() != null)
-              .map(
-                  identity -> {
-                    Predicate billingProviderIdMatch =
-                        builder.equal(billingProviderId, identity.billingProviderId());
-                    Predicate subscriptionNumberMatch =
-                        identity.subscriptionNumber() == null
-                            ? builder.isNull(subscriptionNumber)
-                            : builder.equal(subscriptionNumber, identity.subscriptionNumber());
-                    return builder.and(billingProviderIdMatch, subscriptionNumberMatch);
-                  })
+              .map(identity -> {
+                Predicate billingProviderIdMatch =
+                    builder.equal(billingProviderId, identity.billingProviderId());
+                Predicate subscriptionNumberMatch =
+                    identity.subscriptionNumber() == null
+                        ? builder.isNull(subscriptionNumber)
+                        : builder.equal(subscriptionNumber, identity.subscriptionNumber());
+                return builder.and(billingProviderIdMatch, subscriptionNumberMatch);
+              })
               .toArray(Predicate[]::new);
 
       if (present.length == 0) {

@@ -149,26 +149,23 @@ public class KafkaSeekHelper implements KafkaConsumerRebalanceListener {
   public void seekToPosition(KafkaSeekPosition position) {
     kafkaClientService.getConsumerChannels().stream()
         .map(kafkaClientService::getConsumer)
-        .forEach(
-            asyncConsumer ->
-                asyncConsumer
-                    .runOnPollingThread(
-                        consumer -> {
-                          if (position == KafkaSeekPosition.BEGINNING) {
-                            Map<TopicPartition, OffsetAndMetadata> beginningOffsets =
-                                offsetWithMetadata(
-                                    consumer.beginningOffsets(consumer.assignment()));
-                            seekAndCommit(consumer, beginningOffsets);
-                            log.info("Kafka consumer seeked to beginning");
-                          } else {
-                            Map<TopicPartition, OffsetAndMetadata> endOffsets =
-                                offsetWithMetadata(consumer.endOffsets(consumer.assignment()));
-                            seekAndCommit(consumer, endOffsets);
-                            log.info("Kafka consumer seeked to end");
-                          }
-                        })
-                    .subscribe()
-                    .asCompletionStage());
+        .forEach(asyncConsumer ->
+            asyncConsumer
+                .runOnPollingThread(consumer -> {
+                  if (position == KafkaSeekPosition.BEGINNING) {
+                    Map<TopicPartition, OffsetAndMetadata> beginningOffsets =
+                        offsetWithMetadata(consumer.beginningOffsets(consumer.assignment()));
+                    seekAndCommit(consumer, beginningOffsets);
+                    log.info("Kafka consumer seeked to beginning");
+                  } else {
+                    Map<TopicPartition, OffsetAndMetadata> endOffsets =
+                        offsetWithMetadata(consumer.endOffsets(consumer.assignment()));
+                    seekAndCommit(consumer, endOffsets);
+                    log.info("Kafka consumer seeked to end");
+                  }
+                })
+                .subscribe()
+                .asCompletionStage());
   }
 
   private static Map<TopicPartition, OffsetAndMetadata> offsetWithMetadata(
@@ -180,18 +177,16 @@ public class KafkaSeekHelper implements KafkaConsumerRebalanceListener {
   public void seekToTimestamp(OffsetDateTime timestamp) {
     kafkaClientService.getConsumerChannels().stream()
         .map(kafkaClientService::getConsumer)
-        .forEach(
-            asyncConsumer ->
-                asyncConsumer
-                    .runOnPollingThread(
-                        consumer -> {
-                          Map<TopicPartition, OffsetAndMetadata> desiredOffsets =
-                              getOffsetsForTimestamp(consumer, timestamp);
-                          seekAndCommit(consumer, desiredOffsets);
-                          log.info("Kafka consumer seeked to {}", timestamp);
-                        })
-                    .subscribe()
-                    .asCompletionStage());
+        .forEach(asyncConsumer ->
+            asyncConsumer
+                .runOnPollingThread(consumer -> {
+                  Map<TopicPartition, OffsetAndMetadata> desiredOffsets =
+                      getOffsetsForTimestamp(consumer, timestamp);
+                  seekAndCommit(consumer, desiredOffsets);
+                  log.info("Kafka consumer seeked to {}", timestamp);
+                })
+                .subscribe()
+                .asCompletionStage());
   }
 
   public enum KafkaSeekPosition {

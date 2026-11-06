@@ -750,10 +750,9 @@ public class TallyInstancesReportFiltersPaygTest extends BaseTallyComponentTest 
           "sla+usage filter should include both fixture instances with different billing accounts");
       long fixtureRows =
           response.getData().stream()
-              .filter(
-                  d ->
-                      partialSlaUsage.firstInstanceId().equals(d.getInstanceId())
-                          || partialSlaUsage.secondInstanceId().equals(d.getInstanceId()))
+              .filter(d ->
+                  partialSlaUsage.firstInstanceId().equals(d.getInstanceId())
+                      || partialSlaUsage.secondInstanceId().equals(d.getInstanceId()))
               .count();
       assertEquals(
           2, fixtureRows, "Each fixture instance should appear once under partial filters");

@@ -108,12 +108,11 @@ public class SwatchService extends RestService {
     }
 
     return Optional.ofNullable(info.get(FEATURE_FLAGS_SECTION))
-        .map(
-            f ->
-                new InfoFeatureFlags()
-                    .withFlags(
-                        JsonUtils.getObjectMapper()
-                            .convertValue(f, new TypeReference<List<InfoFeatureFlag>>() {})));
+        .map(f ->
+            new InfoFeatureFlags()
+                .withFlags(
+                    JsonUtils.getObjectMapper()
+                        .convertValue(f, new TypeReference<List<InfoFeatureFlag>>() {})));
   }
 
   /**

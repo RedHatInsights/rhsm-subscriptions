@@ -75,15 +75,12 @@ public class LoggerCaptor extends Handler {
 
   public static void thenNoErrorLogWithMessage(String str) {
     Awaitility.await()
-        .untilAsserted(
-            () ->
-                assertTrue(
-                    LOGGER_CAPTOR.records.stream()
-                        .noneMatch(
-                            r ->
-                                (r.getLevel().equals(Level.SEVERE)
-                                        || r.getLevel().equals(Level.WARNING))
-                                    && messageContains(r, str))));
+        .untilAsserted(() ->
+            assertTrue(
+                LOGGER_CAPTOR.records.stream()
+                    .noneMatch(r ->
+                        (r.getLevel().equals(Level.SEVERE) || r.getLevel().equals(Level.WARNING))
+                            && messageContains(r, str))));
   }
 
   private static boolean messageContains(LogRecord record, String str) {
@@ -101,10 +98,9 @@ public class LoggerCaptor extends Handler {
 
   private static void thenLogWithMessage(Level level, Predicate<String> check) {
     Awaitility.await()
-        .untilAsserted(
-            () ->
-                assertTrue(
-                    LOGGER_CAPTOR.records.stream()
-                        .anyMatch(r -> r.getLevel().equals(level) && check.test(r.getMessage()))));
+        .untilAsserted(() ->
+            assertTrue(
+                LOGGER_CAPTOR.records.stream()
+                    .anyMatch(r -> r.getLevel().equals(level) && check.test(r.getMessage()))));
   }
 }

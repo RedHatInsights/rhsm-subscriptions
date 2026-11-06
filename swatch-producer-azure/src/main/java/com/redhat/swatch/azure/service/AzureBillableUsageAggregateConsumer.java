@@ -268,11 +268,10 @@ public class AzureBillableUsageAggregateConsumer {
 
     Optional<Metric> metric =
         Variant.findByTag(aggregationKey.getProductId()).stream()
-            .map(
-                v ->
-                    v.getSubscription()
-                        .getMetric(MetricId.fromString(aggregationKey.getMetricId()).getValue())
-                        .orElse(null))
+            .map(v ->
+                v.getSubscription()
+                    .getMetric(MetricId.fromString(aggregationKey.getMetricId()).getValue())
+                    .orElse(null))
             .filter(Objects::nonNull)
             .findFirst();
 

@@ -46,11 +46,11 @@ class SubscriptionDefinitionRegistryTest {
     if (Files.isSymbolicLink(Paths.get(url.getPath()))) {
       var warning =
           """
-      Detected a symlink version of swatch_config_index.txt.  This link should only be used
-      in testNoGlobalTags().  Its presence indicates a failure of the test to clean up after itself.
-      Please delete the symlink at %s and rerun the tests.
-      Also consider investigating why the symlink was not deleted after completion of the test.
-      """
+          Detected a symlink version of swatch_config_index.txt.  This link should only be used
+          in testNoGlobalTags().  Its presence indicates a failure of the test to clean up after itself.
+          Please delete the symlink at %s and rerun the tests.
+          Also consider investigating why the symlink was not deleted after completion of the test.
+          """
               .formatted(url.getPath());
       throw new IllegalStateException(warning);
     }

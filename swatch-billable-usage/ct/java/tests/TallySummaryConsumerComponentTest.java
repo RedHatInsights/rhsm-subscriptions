@@ -570,12 +570,9 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     String billingAccountId = tallySummary.getTallySnapshots().get(0).getBillingAccountId();
     BillableUsageAggregate found =
         aggregates.stream()
-            .filter(
-                a ->
-                    billingAccountId.equals(
-                        a.getAggregateKey() != null
-                            ? a.getAggregateKey().getBillingAccountId()
-                            : null))
+            .filter(a ->
+                billingAccountId.equals(
+                    a.getAggregateKey() != null ? a.getAggregateKey().getBillingAccountId() : null))
             .findFirst()
             .orElse(null);
     assertNotNull(found, "Expected one aggregate for billing account " + billingAccountId);
@@ -622,10 +619,8 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
       List<BillableUsageAggregate> aggregates, String metricId) {
     BillableUsageAggregate found =
         aggregates.stream()
-            .filter(
-                a ->
-                    a.getAggregateKey() != null
-                        && metricId.equals(a.getAggregateKey().getMetricId()))
+            .filter(a ->
+                a.getAggregateKey() != null && metricId.equals(a.getAggregateKey().getMetricId()))
             .findFirst()
             .orElse(null);
     assertNotNull(found, "Expected one aggregate for metric " + metricId);
@@ -674,10 +669,8 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
       List<BillableUsageAggregate> aggregates, String productId) {
     BillableUsageAggregate found =
         aggregates.stream()
-            .filter(
-                a ->
-                    a.getAggregateKey() != null
-                        && productId.equals(a.getAggregateKey().getProductId()))
+            .filter(a ->
+                a.getAggregateKey() != null && productId.equals(a.getAggregateKey().getProductId()))
             .findFirst()
             .orElse(null);
     assertNotNull(found, "Expected one aggregate for product " + productId);
@@ -731,12 +724,11 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
       String expectedPeriodSecondMonth) {
     List<String> periods =
         billableUsages.stream()
-            .map(
-                u ->
-                    service
-                        .getRemittancesByTally(u.getTallyId().toString())
-                        .get(0)
-                        .getAccumulationPeriod())
+            .map(u ->
+                service
+                    .getRemittancesByTally(u.getTallyId().toString())
+                    .get(0)
+                    .getAccumulationPeriod())
             .sorted()
             .toList();
     List<String> expectedPeriods =

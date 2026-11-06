@@ -140,20 +140,19 @@ public class ResteasyResourcesFinder {
   private void retainApplicationsWithPath() {
     applications =
         applications.stream()
-            .filter(
-                app -> {
-                  final ApplicationPath path =
-                      AnnotationUtils.findAnnotation(app, ApplicationPath.class);
-                  if (path == null) {
-                    logger.warn(
-                        "JAX-RS Application class {} has no ApplicationPath annotation, so it will not be configured",
-                        app.getName());
-                  } else {
-                    logger.info(
-                        "JAX-RS Application class found: {}", ((Class<Application>) app).getName());
-                  }
-                  return path != null;
-                })
+            .filter(app -> {
+              final ApplicationPath path =
+                  AnnotationUtils.findAnnotation(app, ApplicationPath.class);
+              if (path == null) {
+                logger.warn(
+                    "JAX-RS Application class {} has no ApplicationPath annotation, so it will not be configured",
+                    app.getName());
+              } else {
+                logger.info(
+                    "JAX-RS Application class found: {}", ((Class<Application>) app).getName());
+              }
+              return path != null;
+            })
             .collect(Collectors.toSet());
   }
 

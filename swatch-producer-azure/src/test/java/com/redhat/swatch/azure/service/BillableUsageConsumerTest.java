@@ -151,11 +151,10 @@ class BillableUsageConsumerTest {
     consumer.process(BASILISK_INSTANCE_HOURS_RECORD);
     verify(statusProducer)
         .emitStatus(
-            argThat(
-                usage ->
-                    BillableUsage.Status.FAILED.equals(usage.getStatus())
-                        && BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND.equals(
-                            usage.getErrorCode())));
+            argThat(usage ->
+                BillableUsage.Status.FAILED.equals(usage.getStatus())
+                    && BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND.equals(
+                        usage.getErrorCode())));
   }
 
   @Test
@@ -165,10 +164,9 @@ class BillableUsageConsumerTest {
     consumer.process(BASILISK_INSTANCE_HOURS_RECORD_OLD);
     verify(statusProducer)
         .emitStatus(
-            argThat(
-                usage ->
-                    BillableUsage.Status.FAILED.equals(usage.getStatus())
-                        && BillableUsage.ErrorCode.INACTIVE.equals(usage.getErrorCode())));
+            argThat(usage ->
+                BillableUsage.Status.FAILED.equals(usage.getStatus())
+                    && BillableUsage.ErrorCode.INACTIVE.equals(usage.getErrorCode())));
   }
 
   @Test
@@ -178,11 +176,10 @@ class BillableUsageConsumerTest {
     consumer.process(BASILISK_INSTANCE_HOURS_RECORD_OLD);
     verify(statusProducer)
         .emitStatus(
-            argThat(
-                usage ->
-                    BillableUsage.Status.FAILED.equals(usage.getStatus())
-                        && BillableUsage.ErrorCode.SUBSCRIPTION_TERMINATED.equals(
-                            usage.getErrorCode())));
+            argThat(usage ->
+                BillableUsage.Status.FAILED.equals(usage.getStatus())
+                    && BillableUsage.ErrorCode.SUBSCRIPTION_TERMINATED.equals(
+                        usage.getErrorCode())));
   }
 
   @Test
@@ -194,11 +191,9 @@ class BillableUsageConsumerTest {
     consumer.process(aggregate);
     verify(statusProducer)
         .emitStatus(
-            argThat(
-                usage ->
-                    BillableUsage.Status.FAILED.equals(usage.getStatus())
-                        && BillableUsage.ErrorCode.USAGE_CONTEXT_LOOKUP.equals(
-                            usage.getErrorCode())));
+            argThat(usage ->
+                BillableUsage.Status.FAILED.equals(usage.getStatus())
+                    && BillableUsage.ErrorCode.USAGE_CONTEXT_LOOKUP.equals(usage.getErrorCode())));
     verifyNoInteractions(marketplaceService);
   }
 
@@ -233,10 +228,9 @@ class BillableUsageConsumerTest {
     consumer.process(BASILISK_INSTANCE_HOURS_RECORD);
     verify(statusProducer)
         .emitStatus(
-            argThat(
-                usage ->
-                    BillableUsage.Status.SUCCEEDED.equals(usage.getStatus())
-                        && Objects.isNull(usage.getErrorCode())));
+            argThat(usage ->
+                BillableUsage.Status.SUCCEEDED.equals(usage.getStatus())
+                    && Objects.isNull(usage.getErrorCode())));
   }
 
   @Test
@@ -259,10 +253,9 @@ class BillableUsageConsumerTest {
     consumer.process(BASILISK_INSTANCE_HOURS_RECORD);
     verify(statusProducer)
         .emitStatus(
-            argThat(
-                usage ->
-                    BillableUsage.Status.FAILED.equals(usage.getStatus())
-                        && BillableUsage.ErrorCode.UNKNOWN.equals(usage.getErrorCode())));
+            argThat(usage ->
+                BillableUsage.Status.FAILED.equals(usage.getStatus())
+                    && BillableUsage.ErrorCode.UNKNOWN.equals(usage.getErrorCode())));
   }
 
   @Test

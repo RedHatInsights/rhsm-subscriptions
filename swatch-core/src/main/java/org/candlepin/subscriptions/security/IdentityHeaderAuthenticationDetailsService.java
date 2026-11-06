@@ -179,21 +179,19 @@ public class IdentityHeaderAuthenticationDetailsService
   private List<String> getKesselPermissions(InsightsUserPrincipal user) {
     try {
       return user.getKesselPrincipalId()
-          .map(
-              principalId -> {
-                log.debug(
-                    "Fetching Kessel permissions for orgId={}, principalId={}",
-                    user.getOrgId(),
-                    principalId);
-                return kesselService.getPermissions(principalId, user.getOrgId());
-              })
-          .orElseGet(
-              () -> {
-                log.warn(
-                    "Cannot determine Kessel principal id for orgId={}; denying access",
-                    user.getOrgId());
-                return Collections.emptyList();
-              });
+          .map(principalId -> {
+            log.debug(
+                "Fetching Kessel permissions for orgId={}, principalId={}",
+                user.getOrgId(),
+                principalId);
+            return kesselService.getPermissions(principalId, user.getOrgId());
+          })
+          .orElseGet(() -> {
+            log.warn(
+                "Cannot determine Kessel principal id for orgId={}; denying access",
+                user.getOrgId());
+            return Collections.emptyList();
+          });
     } catch (Exception e) {
       log.warn("Unable to determine roles from Kessel service.", e);
       return Collections.emptyList();

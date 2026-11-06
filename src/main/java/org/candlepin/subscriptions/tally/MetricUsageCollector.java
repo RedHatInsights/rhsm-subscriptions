@@ -144,21 +144,18 @@ public class MetricUsageCollector {
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void calculateUsage(List<Event> events, AccountUsageCalculationCache calcCache) {
-    events.forEach(
-        event -> {
-          if (calcCache.isEventApplied(event)) {
-            return;
-          }
+    events.forEach(event -> {
+      if (calcCache.isEventApplied(event)) {
+        return;
+      }
 
-          // Rebuild the account calculation for this Event's timestamp.
-          AccountUsageCalculation calc =
-              calcCache.contains(event)
-                  ? calcCache.get(event)
-                  : loadHourlyAccountCalculation(event);
+      // Rebuild the account calculation for this Event's timestamp.
+      AccountUsageCalculation calc =
+          calcCache.contains(event) ? calcCache.get(event) : loadHourlyAccountCalculation(event);
 
-          updateUsage(calc, event);
-          calcCache.put(event, calc);
-        });
+      updateUsage(calc, event);
+      calcCache.put(event, calc);
+    });
   }
 
   private void updateInstanceFromEvent(Event event, Host instance) {
@@ -173,17 +170,16 @@ public class MetricUsageCollector {
     // on the host.
     Optional.ofNullable(event.getMeasurements())
         .orElse(Collections.emptyList())
-        .forEach(
-            measurement -> {
-              if (!isUsageAlreadyApplied(instance, event)) {
-                instance.setMeasurement(measurement.getMetricId(), measurement.getValue());
-              }
-              // Every event should be applied to the totals.
-              instance.addToMonthlyTotal(
-                  event.getTimestamp(),
-                  MetricId.fromString(measurement.getMetricId()),
-                  measurement.getValue());
-            });
+        .forEach(measurement -> {
+          if (!isUsageAlreadyApplied(instance, event)) {
+            instance.setMeasurement(measurement.getMetricId(), measurement.getValue());
+          }
+          // Every event should be applied to the totals.
+          instance.addToMonthlyTotal(
+              event.getTimestamp(),
+              MetricId.fromString(measurement.getMetricId()),
+              measurement.getValue());
+        });
 
     addBucketsFromEvent(instance, event);
     instance.setLastAppliedEventRecordDate(event.getServiceType(), event.getRecordDate());
@@ -328,42 +324,35 @@ public class MetricUsageCollector {
             getCloudProviderAsString(event.getCloudProvider()));
 
     Set<HostBucketKey> activeHostBucketKeys = new HashSet<>();
-    bucketTuples.forEach(
-        tuple -> {
-          String productId = (String) tuple.get(0);
-          ServiceLevel slaBucket = (ServiceLevel) tuple.get(1);
-          Usage usageBucket = (Usage) tuple.get(2);
-          BillingProvider billingProvider = (BillingProvider) tuple.get(3);
-          String billingAccountId = (String) tuple.get(4);
+    bucketTuples.forEach(tuple -> {
+      String productId = (String) tuple.get(0);
+      ServiceLevel slaBucket = (ServiceLevel) tuple.get(1);
+      Usage usageBucket = (Usage) tuple.get(2);
+      BillingProvider billingProvider = (BillingProvider) tuple.get(3);
+      String billingAccountId = (String) tuple.get(4);
 
-          Integer cores =
-              Optional.ofNullable(host.getMeasurement(MetricIdUtils.getCores().toString()))
-                  .map(Double::intValue)
-                  .orElse(null);
-          Integer sockets =
-              Optional.ofNullable(host.getMeasurement(MetricIdUtils.getSockets().toString()))
-                  .map(Double::intValue)
-                  .orElse(null);
+      Integer cores =
+          Optional.ofNullable(host.getMeasurement(MetricIdUtils.getCores().toString()))
+              .map(Double::intValue)
+              .orElse(null);
+      Integer sockets =
+          Optional.ofNullable(host.getMeasurement(MetricIdUtils.getSockets().toString()))
+              .map(Double::intValue)
+              .orElse(null);
 
-          HostTallyBucket bucket = new HostTallyBucket();
-          var key =
-              new HostBucketKey(
-                  host,
-                  productId,
-                  slaBucket,
-                  usageBucket,
-                  billingProvider,
-                  billingAccountId,
-                  false);
+      HostTallyBucket bucket = new HostTallyBucket();
+      var key =
+          new HostBucketKey(
+              host, productId, slaBucket, usageBucket, billingProvider, billingAccountId, false);
 
-          bucket.setKey(key);
-          bucket.setMeasurementType(hardwareMeasurementType);
-          activeHostBucketKeys.add(key);
-          bucket.setCores(cores);
-          bucket.setSockets(sockets);
-          bucket.setPrimary(PrimaryRecordUtils.isPrimaryRecord(bucket));
-          host.addBucket(bucket);
-        });
+      bucket.setKey(key);
+      bucket.setMeasurementType(hardwareMeasurementType);
+      activeHostBucketKeys.add(key);
+      bucket.setCores(cores);
+      bucket.setSockets(sockets);
+      bucket.setPrimary(PrimaryRecordUtils.isPrimaryRecord(bucket));
+      host.addBucket(bucket);
+    });
     // mark as deleted the buckets that are not active
     // and are only related to the incoming event product.
     for (HostTallyBucket bucket : host.getBuckets()) {
@@ -376,38 +365,34 @@ public class MetricUsageCollector {
 
   private void updateUsage(AccountUsageCalculation calc, Event event) {
     Set<List<Object>> bucketTuples = buildBucketTuples(event);
-    bucketTuples.forEach(
-        tuple -> {
-          String productId = (String) tuple.get(0);
-          ServiceLevel slaBucket = (ServiceLevel) tuple.get(1);
-          Usage usageBucket = (Usage) tuple.get(2);
-          BillingProvider billingProvider = (BillingProvider) tuple.get(3);
-          String billingAccountId = (String) tuple.get(4);
+    bucketTuples.forEach(tuple -> {
+      String productId = (String) tuple.get(0);
+      ServiceLevel slaBucket = (ServiceLevel) tuple.get(1);
+      Usage usageBucket = (Usage) tuple.get(2);
+      BillingProvider billingProvider = (BillingProvider) tuple.get(3);
+      String billingAccountId = (String) tuple.get(4);
 
-          Key usageKey =
-              new Key(productId, slaBucket, usageBucket, billingProvider, billingAccountId);
+      Key usageKey = new Key(productId, slaBucket, usageBucket, billingProvider, billingAccountId);
 
-          HardwareMeasurementType hardwareMeasurementType =
-              getHardwareMeasurementType(
-                  getHostHardwareType(event.getHardwareType()),
-                  getCloudProviderAsString(event.getCloudProvider()));
-          event
-              .getMeasurements()
-              .forEach(
-                  measurement -> {
-                    var metricId = MetricId.fromString(measurement.getMetricId());
-                    if (isMetricSupportedByProduct(metricId, productId)) {
-                      calc.addUsage(
-                          usageKey, hardwareMeasurementType, metricId, measurement.getValue());
-                    } else {
-                      log.warn(
-                          "Metric '{}' is not supported by product '{}'. Skipping measurement: {}",
-                          metricId,
-                          productId,
-                          measurement);
-                    }
-                  });
-        });
+      HardwareMeasurementType hardwareMeasurementType =
+          getHardwareMeasurementType(
+              getHostHardwareType(event.getHardwareType()),
+              getCloudProviderAsString(event.getCloudProvider()));
+      event
+          .getMeasurements()
+          .forEach(measurement -> {
+            var metricId = MetricId.fromString(measurement.getMetricId());
+            if (isMetricSupportedByProduct(metricId, productId)) {
+              calc.addUsage(usageKey, hardwareMeasurementType, metricId, measurement.getValue());
+            } else {
+              log.warn(
+                  "Metric '{}' is not supported by product '{}'. Skipping measurement: {}",
+                  metricId,
+                  productId,
+                  measurement);
+            }
+          });
+    });
   }
 
   private boolean isMetricSupportedByProduct(MetricId metric, String productId) {
@@ -431,11 +416,8 @@ public class MetricUsageCollector {
             .collect(MoreCollectors.toOptional());
     Optional<String> usage =
         subDefinitions.stream()
-            .map(
-                x ->
-                    Optional.ofNullable(x.getDefaults().getUsage())
-                        .map(Object::toString)
-                        .orElse(""))
+            .map(x ->
+                Optional.ofNullable(x.getDefaults().getUsage()).map(Object::toString).orElse(""))
             .filter(s -> !s.isBlank())
             .distinct()
             .collect(MoreCollectors.toOptional());
@@ -539,32 +521,27 @@ public class MetricUsageCollector {
             clock.endOfHour(event.getTimestamp()));
 
     AccountUsageCalculation calc = new AccountUsageCalculation(event.getOrgId());
-    snapshots.forEach(
-        snap -> {
-          Key usageKey = Key.fromTallySnapshot(snap);
-          snap.getTallyMeasurements().entrySet().stream()
-              // Do not accumulate the TOTAL measurements as the calculation object calculates the
-              // totals based on the measurements that are added to it.
-              .filter(e -> !HardwareMeasurementType.TOTAL.equals(e.getKey().getMeasurementType()))
-              .forEach(
-                  entry -> {
-                    var measurementKey = entry.getKey();
-                    var metricId = MetricId.fromString(measurementKey.getMetricId());
-                    if (isMetricSupportedByProduct(metricId, usageKey.getProductId())) {
-                      calc.addUsage(
-                          usageKey,
-                          measurementKey.getMeasurementType(),
-                          metricId,
-                          entry.getValue());
-                    } else {
-                      log.warn(
-                          "Metric '{}' is not supported by product '{}'. Skipping measurement: {}",
-                          metricId,
-                          usageKey.getProductId(),
-                          measurementKey);
-                    }
-                  });
-        });
+    snapshots.forEach(snap -> {
+      Key usageKey = Key.fromTallySnapshot(snap);
+      snap.getTallyMeasurements().entrySet().stream()
+          // Do not accumulate the TOTAL measurements as the calculation object calculates the
+          // totals based on the measurements that are added to it.
+          .filter(e -> !HardwareMeasurementType.TOTAL.equals(e.getKey().getMeasurementType()))
+          .forEach(entry -> {
+            var measurementKey = entry.getKey();
+            var metricId = MetricId.fromString(measurementKey.getMetricId());
+            if (isMetricSupportedByProduct(metricId, usageKey.getProductId())) {
+              calc.addUsage(
+                  usageKey, measurementKey.getMeasurementType(), metricId, entry.getValue());
+            } else {
+              log.warn(
+                  "Metric '{}' is not supported by product '{}'. Skipping measurement: {}",
+                  metricId,
+                  usageKey.getProductId(),
+                  measurementKey);
+            }
+          });
+    });
     return calc;
   }
 }

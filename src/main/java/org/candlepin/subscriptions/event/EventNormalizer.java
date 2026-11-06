@@ -91,22 +91,19 @@ public class EventNormalizer {
         Objects.isNull(event.getMeasurements()) ? Set.of() : new HashSet<>(event.getMeasurements());
 
     return tags.stream()
-        .flatMap(
-            tag -> {
-              // Get the metrics supported by this tag from the product configuration
-              Set<String> supportedMetrics =
-                  MetricIdUtils.getMetricIdsFromConfigForTag(tag)
-                      .map(MetricId::toUpperCaseFormatted)
-                      .collect(Collectors.toSet());
+        .flatMap(tag -> {
+          // Get the metrics supported by this tag from the product configuration
+          Set<String> supportedMetrics =
+              MetricIdUtils.getMetricIdsFromConfigForTag(tag)
+                  .map(MetricId::toUpperCaseFormatted)
+                  .collect(Collectors.toSet());
 
-              // Filter measurements to only those supported by this tag
-              return measurements.stream()
-                  .filter(
-                      m ->
-                          supportedMetrics.contains(
-                              MetricIdUtils.toUpperCaseFormatted(m.getMetricId())))
-                  .map(measurement -> create(event, tag, measurement));
-            })
+          // Filter measurements to only those supported by this tag
+          return measurements.stream()
+              .filter(m ->
+                  supportedMetrics.contains(MetricIdUtils.toUpperCaseFormatted(m.getMetricId())))
+              .map(measurement -> create(event, tag, measurement));
+        })
         .toList();
   }
 

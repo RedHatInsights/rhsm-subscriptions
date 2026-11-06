@@ -266,30 +266,27 @@ class TallySnapshotControllerTest implements ExtendWithEmbeddedKafka {
 
     TallySnapshot eventOneHourly =
         createdSnapshots.stream()
-            .filter(
-                s ->
-                    Granularity.HOURLY.equals(s.getGranularity())
-                        && s.getSnapshotDate().equals(firstSnapshotHour))
+            .filter(s ->
+                Granularity.HOURLY.equals(s.getGranularity())
+                    && s.getSnapshotDate().equals(firstSnapshotHour))
             .findFirst()
             .orElseThrow();
     assertSnapshot(eventOneHourly, 50.0);
 
     TallySnapshot secondHourly =
         createdSnapshots.stream()
-            .filter(
-                s ->
-                    Granularity.HOURLY.equals(s.getGranularity())
-                        && s.getSnapshotDate().equals(secondSnapshotHour))
+            .filter(s ->
+                Granularity.HOURLY.equals(s.getGranularity())
+                    && s.getSnapshotDate().equals(secondSnapshotHour))
             .findFirst()
             .orElseThrow();
     assertSnapshot(secondHourly, 20.0);
 
     TallySnapshot dailySnapshot =
         createdSnapshots.stream()
-            .filter(
-                s ->
-                    Granularity.DAILY.equals(s.getGranularity())
-                        && s.getSnapshotDate().equals(clock.startOfDay(firstSnapshotHour)))
+            .filter(s ->
+                Granularity.DAILY.equals(s.getGranularity())
+                    && s.getSnapshotDate().equals(clock.startOfDay(firstSnapshotHour)))
             .findFirst()
             .orElseThrow();
     assertSnapshot(dailySnapshot, 70.0);

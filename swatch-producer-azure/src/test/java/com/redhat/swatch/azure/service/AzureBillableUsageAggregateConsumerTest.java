@@ -229,29 +229,25 @@ class AzureBillableUsageAggregateConsumerTest {
 
   private void thenMeteredTotalMetricIsPopulated() {
     Awaitility.await()
-        .untilAsserted(
-            () -> {
-              var metric = getMeteredTotalMetric(MetricIdUtils.getCores().toUpperCaseFormatted());
-              assertTrue(metric.isPresent());
-              assertEquals(
-                  metric.get().measure().iterator().next().getValue(),
-                  EXPECTED_VALUE.doubleValue()
-                      / getBillingFactor(PRODUCT_ID, MetricIdUtils.getCores().getValue()));
-            });
+        .untilAsserted(() -> {
+          var metric = getMeteredTotalMetric(MetricIdUtils.getCores().toUpperCaseFormatted());
+          assertTrue(metric.isPresent());
+          assertEquals(
+              metric.get().measure().iterator().next().getValue(),
+              EXPECTED_VALUE.doubleValue()
+                  / getBillingFactor(PRODUCT_ID, MetricIdUtils.getCores().getValue()));
+        });
   }
 
   private Optional<Meter> getMeteredTotalMetric(String metricId) {
     return meterRegistry.getMeters().stream()
-        .filter(
-            m ->
-                METERED_TOTAL_METRIC.equals(m.getId().getName())
-                    && PRODUCT_ID.equals(m.getId().getTag("product"))
-                    && MetricId.fromString(metricId)
-                        .getValue()
-                        .equals(m.getId().getTag("metric_id"))
-                    && BillableUsage.BillingProvider.AZURE
-                        .toString()
-                        .equals(m.getId().getTag("billing_provider")))
+        .filter(m ->
+            METERED_TOTAL_METRIC.equals(m.getId().getName())
+                && PRODUCT_ID.equals(m.getId().getTag("product"))
+                && MetricId.fromString(metricId).getValue().equals(m.getId().getTag("metric_id"))
+                && BillableUsage.BillingProvider.AZURE
+                    .toString()
+                    .equals(m.getId().getTag("billing_provider")))
         .findFirst();
   }
 }

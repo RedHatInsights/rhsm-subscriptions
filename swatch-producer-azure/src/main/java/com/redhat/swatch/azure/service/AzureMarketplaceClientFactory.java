@@ -56,26 +56,25 @@ public class AzureMarketplaceClientFactory {
 
   public List<AzureClient> createClientForEachTenant() {
     return azureMarketplaceCredentials.getClients().stream()
-        .map(
-            client -> {
-              try {
-                var apiBuilder =
-                    RestClientBuilder.newBuilder()
-                        .baseUri(new URI(azureMarketplaceProperties.getMarketplaceBaseUrl()))
-                        .readTimeout(
-                            azureMarketplaceProperties.getReadTimeout(), TimeUnit.MILLISECONDS);
-                if (!azureMarketplaceProperties.isDisableAzureOidc()) {
-                  apiBuilder.register(
-                      new AzureMarketplaceHeaderProvider(
-                          azureMarketplaceProperties, client, oidcClients));
-                }
-                return new AzureClient(
-                    client.getClientId(), apiBuilder.build(AzureMarketplaceApi.class));
-              } catch (URISyntaxException ex) {
-                log.error("Unable to create URI for Azure authentication for client.", ex);
-                return null;
-              }
-            })
+        .map(client -> {
+          try {
+            var apiBuilder =
+                RestClientBuilder.newBuilder()
+                    .baseUri(new URI(azureMarketplaceProperties.getMarketplaceBaseUrl()))
+                    .readTimeout(
+                        azureMarketplaceProperties.getReadTimeout(), TimeUnit.MILLISECONDS);
+            if (!azureMarketplaceProperties.isDisableAzureOidc()) {
+              apiBuilder.register(
+                  new AzureMarketplaceHeaderProvider(
+                      azureMarketplaceProperties, client, oidcClients));
+            }
+            return new AzureClient(
+                client.getClientId(), apiBuilder.build(AzureMarketplaceApi.class));
+          } catch (URISyntaxException ex) {
+            log.error("Unable to create URI for Azure authentication for client.", ex);
+            return null;
+          }
+        })
         .filter(Objects::nonNull)
         .toList();
   }

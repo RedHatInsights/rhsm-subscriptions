@@ -149,14 +149,13 @@ public class InstancesResource implements InstancesApi {
     Optional<MetricId> metricIdOptional =
         Stream.of(metricId)
             .filter(Objects::nonNull)
-            .map(
-                m -> {
-                  try {
-                    return MetricId.fromString(m);
-                  } catch (IllegalArgumentException ex) {
-                    throw new BadRequestException(ex);
-                  }
-                })
+            .map(m -> {
+              try {
+                return MetricId.fromString(m);
+              } catch (IllegalArgumentException ex) {
+                throw new BadRequestException(ex);
+              }
+            })
             .findFirst();
 
     Integer minCores = null;
@@ -257,14 +256,13 @@ public class InstancesResource implements InstancesApi {
                 .productTag(productTag)
                 .billingProvider(BillingProvider.fromString(billingProvider))
                 .build())
-        .forEach(
-            x ->
-                billingAccountIds.add(
-                    new BillingAccountIdInfo()
-                        .orgId(orgId)
-                        .productTag(x.productId())
-                        .billingProvider(getBillingProviderString(x))
-                        .billingAccountId(x.billingAccountId())));
+        .forEach(x ->
+            billingAccountIds.add(
+                new BillingAccountIdInfo()
+                    .orgId(orgId)
+                    .productTag(x.productId())
+                    .billingProvider(getBillingProviderString(x))
+                    .billingAccountId(x.billingAccountId())));
     return new BillingAccountIdResponse().ids(billingAccountIds);
   }
 

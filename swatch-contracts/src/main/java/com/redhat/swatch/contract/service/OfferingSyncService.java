@@ -234,11 +234,10 @@ public class OfferingSyncService {
   // version then return true. False means we should sync with the latest upstream version.
   private boolean alreadySynced(Optional<OfferingEntity> persisted, OfferingEntity latest) {
     return persisted
-        .map(
-            offering ->
-                Objects.equals(offering, latest)
-                    && Objects.equals(offering.getProductIds(), latest.getProductIds())
-                    && Objects.equals(offering.getChildSkus(), latest.getChildSkus()))
+        .map(offering ->
+            Objects.equals(offering, latest)
+                && Objects.equals(offering.getProductIds(), latest.getProductIds())
+                && Objects.equals(offering.getChildSkus(), latest.getChildSkus()))
         .orElse(false);
   }
 

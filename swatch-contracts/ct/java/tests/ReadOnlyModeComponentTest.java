@@ -109,21 +109,19 @@ public class ReadOnlyModeComponentTest extends BaseContractComponentTest {
   }
 
   private void thenContractIsNotCreated(Contract contract) {
-    AwaitilityUtils.untilAsserted(
-        () ->
-            assertEquals(
-                0,
-                countMatchingContracts(contract),
-                "Contract should not be created while consumer is paused"));
+    AwaitilityUtils.untilAsserted(() ->
+        assertEquals(
+            0,
+            countMatchingContracts(contract),
+            "Contract should not be created while consumer is paused"));
   }
 
   private void thenContractIsCreated(Contract contract) {
-    AwaitilityUtils.untilAsserted(
-        () ->
-            assertEquals(
-                1,
-                countMatchingContracts(contract),
-                "Contract should be created while consumer is not paused"));
+    AwaitilityUtils.untilAsserted(() ->
+        assertEquals(
+            1,
+            countMatchingContracts(contract),
+            "Contract should be created while consumer is not paused"));
   }
 
   private long countMatchingContracts(Contract contract) {

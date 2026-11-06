@@ -91,14 +91,13 @@ public class HbiHostRelationshipService {
   private HbiHostRelationship findOrDefault(String orgId, UUID inventoryId) {
     return repository
         .findByOrgIdAndInventoryId(orgId, inventoryId)
-        .orElseGet(
-            () -> {
-              log.info("Creating new HbiHostRelationship for {}:{}", orgId, inventoryId);
-              HbiHostRelationship newRelationship = new HbiHostRelationship();
-              newRelationship.setOrgId(orgId);
-              newRelationship.setInventoryId(inventoryId);
-              return newRelationship;
-            });
+        .orElseGet(() -> {
+          log.info("Creating new HbiHostRelationship for {}:{}", orgId, inventoryId);
+          HbiHostRelationship newRelationship = new HbiHostRelationship();
+          newRelationship.setOrgId(orgId);
+          newRelationship.setInventoryId(inventoryId);
+          return newRelationship;
+        });
   }
 
   public Optional<HbiHostRelationship> findHypervisor(String orgId, String hypervisorId) {

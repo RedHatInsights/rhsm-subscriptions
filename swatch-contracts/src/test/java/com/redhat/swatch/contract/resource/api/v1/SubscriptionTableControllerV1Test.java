@@ -165,12 +165,11 @@ class SubscriptionTableControllerV1Test {
 
     Map<SubscriptionMeasurementKey, Double> flattened = new HashMap<>();
     Arrays.stream(specs)
-        .map(
-            s -> {
-              var measurements = s.createMeasurements(org, productId);
-              s.subscription.setSubscriptionMeasurements(measurements);
-              return measurements;
-            })
+        .map(s -> {
+          var measurements = s.createMeasurements(org, productId);
+          s.subscription.setSubscriptionMeasurements(measurements);
+          return measurements;
+        })
         .forEach(flattened::putAll);
 
     return flattened;
@@ -433,16 +432,15 @@ class SubscriptionTableControllerV1Test {
     // DbReportCriteria.equals()
     verify(subscriptionRepository)
         .findUnlimited(
-            argThat(
-                x ->
-                    x.getOrgId().equals(criteria.getOrgId())
-                        && x.getProductTag().equals(criteria.getProductTag())
-                        && x.getServiceLevel().equals(criteria.getServiceLevel())
-                        && x.getUsage().equals(criteria.getUsage())
-                        && x.getMetricId().equals(criteria.getMetricId())
-                        && x.getHypervisorReportCategory()
-                            .equals(criteria.getHypervisorReportCategory())
-                        && x.getBillingProvider().equals(criteria.getBillingProvider())));
+            argThat(x ->
+                x.getOrgId().equals(criteria.getOrgId())
+                    && x.getProductTag().equals(criteria.getProductTag())
+                    && x.getServiceLevel().equals(criteria.getServiceLevel())
+                    && x.getUsage().equals(criteria.getUsage())
+                    && x.getMetricId().equals(criteria.getMetricId())
+                    && x.getHypervisorReportCategory()
+                        .equals(criteria.getHypervisorReportCategory())
+                    && x.getBillingProvider().equals(criteria.getBillingProvider())));
   }
 
   @Test

@@ -611,16 +611,15 @@ class TallySnapshotRepositoryTest {
         IntStream.range(0, snapshotCount).mapToObj(index -> "BatchProduct" + index).toList();
     List<TallySnapshot> snapshots =
         IntStream.range(0, products.size())
-            .mapToObj(
-                index ->
-                    createUnpersisted(
-                        orgId,
-                        products.get(index),
-                        Granularity.DAILY,
-                        index + 1,
-                        index + 2,
-                        index + 3,
-                        NOWISH.plusDays(index)))
+            .mapToObj(index ->
+                createUnpersisted(
+                    orgId,
+                    products.get(index),
+                    Granularity.DAILY,
+                    index + 1,
+                    index + 2,
+                    index + 3,
+                    NOWISH.plusDays(index)))
             .toList();
     repository.saveAll(snapshots);
     repository.flush();

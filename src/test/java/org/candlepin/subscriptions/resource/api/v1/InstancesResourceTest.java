@@ -692,21 +692,19 @@ class InstancesResourceTest {
             RHEL_FOR_ARM.getValue(), BillingProvider.AWS, "account2");
 
     when(hostRepository.billingAccountIds(
-            argThat(
-                criteria ->
-                    criteria != null
-                        && criteria.getOrgId().equals("org1")
-                        && RHEL_FOR_ARM.getValue().equals(criteria.getProductTag())
-                        && BillingProvider.AWS.equals(criteria.getBillingProvider()))))
+            argThat(criteria ->
+                criteria != null
+                    && criteria.getOrgId().equals("org1")
+                    && RHEL_FOR_ARM.getValue().equals(criteria.getProductTag())
+                    && BillingProvider.AWS.equals(criteria.getBillingProvider()))))
         .thenReturn(List.of(host1));
 
     when(hostRepository.billingAccountIds(
-            argThat(
-                criteria ->
-                    criteria != null
-                        && criteria.getOrgId().equals("org2")
-                        && RHEL_FOR_ARM.getValue().equals(criteria.getProductTag())
-                        && BillingProvider.AWS.equals(criteria.getBillingProvider()))))
+            argThat(criteria ->
+                criteria != null
+                    && criteria.getOrgId().equals("org2")
+                    && RHEL_FOR_ARM.getValue().equals(criteria.getProductTag())
+                    && BillingProvider.AWS.equals(criteria.getBillingProvider()))))
         .thenReturn(List.of(host2));
     // filter by org1 works:
     var response = whenFetchBillingAccountIdsForOrg("org1", RHEL_FOR_ARM, BillingProvider.AWS);
@@ -733,30 +731,27 @@ class InstancesResourceTest {
             RHEL_FOR_X86.getValue(), BillingProvider.AWS, "account2");
 
     when(hostRepository.billingAccountIds(
-            argThat(
-                criteria ->
-                    criteria != null
-                        && criteria.getOrgId().equals(ORG_ID)
-                        && RHEL_FOR_ARM.getValue().equals(criteria.getProductTag())
-                        && BillingProvider.AWS.equals(criteria.getBillingProvider()))))
+            argThat(criteria ->
+                criteria != null
+                    && criteria.getOrgId().equals(ORG_ID)
+                    && RHEL_FOR_ARM.getValue().equals(criteria.getProductTag())
+                    && BillingProvider.AWS.equals(criteria.getBillingProvider()))))
         .thenReturn(List.of(host1));
 
     when(hostRepository.billingAccountIds(
-            argThat(
-                criteria ->
-                    criteria != null
-                        && criteria.getOrgId().equals(ORG_ID)
-                        && RHEL_FOR_X86.getValue().equals(criteria.getProductTag())
-                        && BillingProvider.AWS.equals(criteria.getBillingProvider()))))
+            argThat(criteria ->
+                criteria != null
+                    && criteria.getOrgId().equals(ORG_ID)
+                    && RHEL_FOR_X86.getValue().equals(criteria.getProductTag())
+                    && BillingProvider.AWS.equals(criteria.getBillingProvider()))))
         .thenReturn(List.of(host2));
 
     when(hostRepository.billingAccountIds(
-            argThat(
-                criteria ->
-                    criteria != null
-                        && criteria.getOrgId().equals(ORG_ID)
-                        && criteria.getProductTag() == null
-                        && BillingProvider.AWS.equals(criteria.getBillingProvider()))))
+            argThat(criteria ->
+                criteria != null
+                    && criteria.getOrgId().equals(ORG_ID)
+                    && criteria.getProductTag() == null
+                    && BillingProvider.AWS.equals(criteria.getBillingProvider()))))
         .thenReturn(List.of(host1, host2));
 
     var response = whenFetchBillingAccountIdsForOrg(RHEL_FOR_ARM, BillingProvider.AWS);
@@ -781,32 +776,29 @@ class InstancesResourceTest {
             RHEL_FOR_ARM.getValue(), BillingProvider.AZURE, "account2");
 
     when(hostRepository.billingAccountIds(
-            argThat(
-                criteria ->
-                    criteria != null
-                        && criteria.getOrgId().equals(ORG_ID)
-                        && RHEL_FOR_ARM.getValue().equals(criteria.getProductTag())
-                        && (criteria.getBillingProvider() == null
-                            || BillingProvider._ANY.equals(criteria.getBillingProvider())
-                            || BillingProvider.EMPTY.equals(criteria.getBillingProvider())))))
+            argThat(criteria ->
+                criteria != null
+                    && criteria.getOrgId().equals(ORG_ID)
+                    && RHEL_FOR_ARM.getValue().equals(criteria.getProductTag())
+                    && (criteria.getBillingProvider() == null
+                        || BillingProvider._ANY.equals(criteria.getBillingProvider())
+                        || BillingProvider.EMPTY.equals(criteria.getBillingProvider())))))
         .thenReturn(List.of(host1, host2));
 
     when(hostRepository.billingAccountIds(
-            argThat(
-                criteria ->
-                    criteria != null
-                        && criteria.getOrgId().equals(ORG_ID)
-                        && RHEL_FOR_ARM.getValue().equals(criteria.getProductTag())
-                        && BillingProvider.AWS.equals(criteria.getBillingProvider()))))
+            argThat(criteria ->
+                criteria != null
+                    && criteria.getOrgId().equals(ORG_ID)
+                    && RHEL_FOR_ARM.getValue().equals(criteria.getProductTag())
+                    && BillingProvider.AWS.equals(criteria.getBillingProvider()))))
         .thenReturn(List.of(host1));
 
     when(hostRepository.billingAccountIds(
-            argThat(
-                criteria ->
-                    criteria != null
-                        && criteria.getOrgId().equals(ORG_ID)
-                        && RHEL_FOR_ARM.getValue().equals(criteria.getProductTag())
-                        && BillingProvider.AZURE.equals(criteria.getBillingProvider()))))
+            argThat(criteria ->
+                criteria != null
+                    && criteria.getOrgId().equals(ORG_ID)
+                    && RHEL_FOR_ARM.getValue().equals(criteria.getProductTag())
+                    && BillingProvider.AZURE.equals(criteria.getBillingProvider()))))
         .thenReturn(List.of(host2));
 
     // filter by empty/not set/any should behave the same

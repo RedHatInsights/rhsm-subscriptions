@@ -235,56 +235,49 @@ public class ApiSecurityConfiguration {
         .addFilterAfter(logPrincipalFilter(), MdcFilter.class)
         .addFilterAt(antiCsrfFilter(secProps), CsrfFilter.class)
         .csrf(csrf -> csrf.disable()) // We use our own CSRF filter
-        .exceptionHandling(
-            handler -> {
-              handler.accessDeniedHandler(restAccessDeniedHandler);
-              handler.authenticationEntryPoint(restAuthenticationEntryPoint);
-            })
+        .exceptionHandling(handler -> {
+          handler.accessDeniedHandler(restAccessDeniedHandler);
+          handler.authenticationEntryPoint(restAuthenticationEntryPoint);
+        })
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-        .authorizeHttpRequests(
-            requests -> {
-              for (String url : URLS_PERMITTED_WITHOUT_AUTH) {
-                requests.requestMatchers(PathPatternRequestMatcher.pathPattern(url)).permitAll();
-              }
-              requests.requestMatchers(this::isDummyRequest).permitAll();
-              requests
-                  .requestMatchers(EndpointRequest.to("health", "info", "prometheus"))
-                  .permitAll();
+        .authorizeHttpRequests(requests -> {
+          for (String url : URLS_PERMITTED_WITHOUT_AUTH) {
+            requests.requestMatchers(PathPatternRequestMatcher.pathPattern(url)).permitAll();
+          }
+          requests.requestMatchers(this::isDummyRequest).permitAll();
+          requests.requestMatchers(EndpointRequest.to("health", "info", "prometheus")).permitAll();
 
-              /* Values assigned to management.path-mapping.* shouldn't have a leading slash. However, Clowder
-               * only provides a path starting with a leading slash.  I have elected to set the default
-               * to do the same for the sake of consistency.  The leading slash can potentially cause problems with Spring
-               * Security since the path now becomes (assuming management.base-path is "/") "//metrics".
-               * Browser requests to "/metrics" aren't going to match according to Spring Security's path matching rules
-               * and the end result is that any security rule applied to EndpointRequest.to("prometheus") will be
-               * applied to the defined path ("//metrics") rather than the de facto path ("/metrics").
-               * Accordingly, I've put in a custom rule in the security config to allow for access to "/metrics"
-               */
-              requests
-                  .requestMatchers(PathPatternRequestMatcher.pathPattern("/metrics"))
-                  .permitAll();
-              // Intentionally not prefixed with "ROLE_"
-              requests
-                  .requestMatchers(
-                      PathPatternRequestMatcher.pathPattern(
-                          "/api/rhsm-subscriptions" + "/v1/internal/**"))
-                  .hasRole("INTERNAL");
-              /* For Spring Security 6, we can use
-               * .access(
-               * new WebExpressionAuthorizationManager("@optInChecker.checkAccess(authentication)")
-               * )
-               */
-              requests
-                  .requestMatchers(
-                      PathPatternRequestMatcher.pathPattern("/api/rhsm-subscriptions/v1/tally/**"),
-                      PathPatternRequestMatcher.pathPattern(
-                          "/api/rhsm-subscriptions/v1/instances" + "/**"))
-                  .access(
-                      (auth, req) ->
-                          new AuthorizationDecision(optInChecker.checkAccess(auth.get())));
-              requests.anyRequest().authenticated();
-            })
+          /* Values assigned to management.path-mapping.* shouldn't have a leading slash. However, Clowder
+           * only provides a path starting with a leading slash.  I have elected to set the default
+           * to do the same for the sake of consistency.  The leading slash can potentially cause problems with Spring
+           * Security since the path now becomes (assuming management.base-path is "/") "//metrics".
+           * Browser requests to "/metrics" aren't going to match according to Spring Security's path matching rules
+           * and the end result is that any security rule applied to EndpointRequest.to("prometheus") will be
+           * applied to the defined path ("//metrics") rather than the de facto path ("/metrics").
+           * Accordingly, I've put in a custom rule in the security config to allow for access to "/metrics"
+           */
+          requests.requestMatchers(PathPatternRequestMatcher.pathPattern("/metrics")).permitAll();
+          // Intentionally not prefixed with "ROLE_"
+          requests
+              .requestMatchers(
+                  PathPatternRequestMatcher.pathPattern(
+                      "/api/rhsm-subscriptions" + "/v1/internal/**"))
+              .hasRole("INTERNAL");
+          /* For Spring Security 6, we can use
+           * .access(
+           * new WebExpressionAuthorizationManager("@optInChecker.checkAccess(authentication)")
+           * )
+           */
+          requests
+              .requestMatchers(
+                  PathPatternRequestMatcher.pathPattern("/api/rhsm-subscriptions/v1/tally/**"),
+                  PathPatternRequestMatcher.pathPattern(
+                      "/api/rhsm-subscriptions/v1/instances" + "/**"))
+              .access(
+                  (auth, req) -> new AuthorizationDecision(optInChecker.checkAccess(auth.get())));
+          requests.anyRequest().authenticated();
+        })
         .anonymous(Customizer.withDefaults());
     return http.build();
   }

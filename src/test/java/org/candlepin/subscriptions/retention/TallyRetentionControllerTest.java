@@ -161,14 +161,13 @@ class TallyRetentionControllerTest {
 
   private void givenOrganization(String... orgIds) {
     Stream.of(orgIds)
-        .forEach(
-            orgId -> {
-              OrgConfig org = new OrgConfig();
-              org.setOrgId(orgId);
-              org.setOptInType(OptInType.API);
-              org.setCreated(OffsetDateTime.now());
-              org.setUpdated(OffsetDateTime.now());
-              orgConfigRepository.save(org);
-            });
+        .forEach(orgId -> {
+          OrgConfig org = new OrgConfig();
+          org.setOrgId(orgId);
+          org.setOptInType(OptInType.API);
+          org.setCreated(OffsetDateTime.now());
+          org.setUpdated(OffsetDateTime.now());
+          orgConfigRepository.save(org);
+        });
   }
 }

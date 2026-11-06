@@ -118,9 +118,8 @@ public class SubscriptionContractService {
     // Metric.value is an int32 in the API contract, so the stored double is truncated here the
     // same way the contracts-table mapper truncates ContractMetricEntity.value.
     return measurements.entrySet().stream()
-        .map(
-            entry ->
-                new Metric().metricId(entry.getKey()).value((int) entry.getValue().doubleValue()))
+        .map(entry ->
+            new Metric().metricId(entry.getKey()).value((int) entry.getValue().doubleValue()))
         .toList();
   }
 }

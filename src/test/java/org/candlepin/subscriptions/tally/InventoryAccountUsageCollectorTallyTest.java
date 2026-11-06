@@ -934,13 +934,12 @@ class InventoryAccountUsageCollectorTallyTest {
               }
               Optional<HostTallyBucket> appliedBucket =
                   ProductUsageCollectorFactory.get(product).buildBucket(key, facts);
-              appliedBucket.ifPresent(
-                  bucket -> {
-                    // host.addBucket changes bucket.key.hostId, so we do that first; to
-                    // avoid mutating the item in the set
-                    host.addBucket(bucket);
-                    seenBucketKeys.add(bucket.getKey());
-                  });
+              appliedBucket.ifPresent(bucket -> {
+                // host.addBucket changes bucket.key.hostId, so we do that first; to
+                // avoid mutating the item in the set
+                host.addBucket(bucket);
+                seenBucketKeys.add(bucket.getKey());
+              });
             } catch (Exception e) {
               fail("Unable to collect usage data for host", e);
             }

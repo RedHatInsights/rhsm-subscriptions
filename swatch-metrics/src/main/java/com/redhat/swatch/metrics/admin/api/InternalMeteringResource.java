@@ -69,15 +69,13 @@ public class InternalMeteringResource implements DefaultApi {
         .filter(SubscriptionDefinition::isPrometheusEnabled)
         .flatMap(subDef -> subDef.getVariants().stream())
         .map(Variant::getTag)
-        .forEach(
-            productTag -> {
-              try {
-                tasks.updateMetricsForAllAccounts(productTag);
-              } catch (Exception e) {
-                log.error(
-                    "Error updating metrics of product tag {} for all accounts. ", productTag, e);
-              }
-            });
+        .forEach(productTag -> {
+          try {
+            tasks.updateMetricsForAllAccounts(productTag);
+          } catch (Exception e) {
+            log.error("Error updating metrics of product tag {} for all accounts. ", productTag, e);
+          }
+        });
   }
 
   @Override
@@ -128,22 +126,20 @@ public class InternalMeteringResource implements DefaultApi {
 
     subDef
         .getMetricIds()
-        .forEach(
-            metric -> {
-              try {
-                controller.collectMetrics(
-                    productTag, MetricId.fromString(metric), orgId, start, end);
-              } catch (Exception e) {
-                log.error(
-                    "Problem collecting metrics: {} {} {} [{} -> {}]",
-                    orgId,
-                    productTag,
-                    metric,
-                    start,
-                    end,
-                    e);
-              }
-            });
+        .forEach(metric -> {
+          try {
+            controller.collectMetrics(productTag, MetricId.fromString(metric), orgId, start, end);
+          } catch (Exception e) {
+            log.error(
+                "Problem collecting metrics: {} {} {} [{} -> {}]",
+                orgId,
+                productTag,
+                metric,
+                start,
+                end,
+                e);
+          }
+        });
   }
 
   private void queueMeteringForOrgId(

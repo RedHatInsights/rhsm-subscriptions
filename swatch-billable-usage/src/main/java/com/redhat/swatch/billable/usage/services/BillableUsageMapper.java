@@ -90,14 +90,13 @@ public class BillableUsageMapper {
     return summary.getTallySnapshots().stream()
         .filter(this::isSnapshotPAYGEligible)
         .filter(this::hasMeasurements)
-        .flatMap(
-            snapshot ->
-                snapshot.getTallyMeasurements().stream()
-                    // Filter out any HardwareMeasurementType.TOTAL measurements to prevent
-                    // duplicates
-                    .filter(this::isNotHardwareMeasurementTypeTotal)
-                    .filter(m -> isSupportedMetric(m, snapshot))
-                    .map(m -> toBillableUsage(m, summary, snapshot)));
+        .flatMap(snapshot ->
+            snapshot.getTallyMeasurements().stream()
+                // Filter out any HardwareMeasurementType.TOTAL measurements to prevent
+                // duplicates
+                .filter(this::isNotHardwareMeasurementTypeTotal)
+                .filter(m -> isSupportedMetric(m, snapshot))
+                .map(m -> toBillableUsage(m, summary, snapshot)));
   }
 
   private boolean isSupportedMetric(TallyMeasurement measurement, TallySnapshot snapshot) {

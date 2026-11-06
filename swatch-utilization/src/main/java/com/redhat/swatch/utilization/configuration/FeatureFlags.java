@@ -76,11 +76,10 @@ public class FeatureFlags implements InfoFeatureFlagContributor {
     }
 
     return mapToSendNotificationPayload(variant)
-        .map(
-            p -> {
-              List<String> denylist = p.getEventTypesDenylist();
-              return denylist == null || !denylist.contains(eventType);
-            })
+        .map(p -> {
+          List<String> denylist = p.getEventTypesDenylist();
+          return denylist == null || !denylist.contains(eventType);
+        })
         .orElse(true);
   }
 

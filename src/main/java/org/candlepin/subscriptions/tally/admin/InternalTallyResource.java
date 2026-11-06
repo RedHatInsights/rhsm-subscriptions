@@ -240,14 +240,13 @@ public class InternalTallyResource implements InternalTallyApi {
         List<Event> events = objectMapper.readValue(jsonListOfEvents, new TypeReference<>() {});
         events.stream()
             .filter(this::isBillingProviderAllowed)
-            .forEach(
-                event -> {
-                  try {
-                    eventKafkaTemplate.send(this.eventTopic, event.getOrgId(), event);
-                  } catch (Exception e) {
-                    messages.append(e.getMessage());
-                  }
-                });
+            .forEach(event -> {
+              try {
+                eventKafkaTemplate.send(this.eventTopic, event.getOrgId(), event);
+              } catch (Exception e) {
+                messages.append(e.getMessage());
+              }
+            });
       } catch (JsonProcessingException e) {
         messages.append(e.getMessage());
       }

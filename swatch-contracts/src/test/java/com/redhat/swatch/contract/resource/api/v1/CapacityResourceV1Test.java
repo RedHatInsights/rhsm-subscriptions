@@ -122,12 +122,11 @@ class CapacityResourceV1Test {
   @Test
   void testReportByMetricIdShouldUseQueryBasedOnHeaderAndParameters() {
     when(subscriptionRepository.findByCriteria(
-            argThat(
-                argument ->
-                    argument.getOrgId().equals("org123")
-                        && argument
-                            .getHypervisorReportCategory()
-                            .equals(HypervisorReportCategory.NON_HYPERVISOR.toString())),
+            argThat(argument ->
+                argument.getOrgId().equals("org123")
+                    && argument
+                        .getHypervisorReportCategory()
+                        .equals(HypervisorReportCategory.NON_HYPERVISOR.toString())),
             any(Sort.class)))
         .thenReturn(List.of(basicSubscription()));
 
@@ -154,10 +153,9 @@ class CapacityResourceV1Test {
   @Test
   void testReportByMetricIdShouldUseSlaQueryParam() {
     when(subscriptionRepository.findByCriteria(
-            argThat(
-                argument ->
-                    argument.getOrgId().equals("org123")
-                        && argument.getServiceLevel().equals(ServiceLevelType.PREMIUM.toString())),
+            argThat(argument ->
+                argument.getOrgId().equals("org123")
+                    && argument.getServiceLevel().equals(ServiceLevelType.PREMIUM.toString())),
             any(Sort.class)))
         .thenReturn(List.of(basicSubscription()));
 
@@ -184,10 +182,9 @@ class CapacityResourceV1Test {
   @Test
   void testReportByMetricIdShouldUseUsageQueryParam() {
     when(subscriptionRepository.findByCriteria(
-            argThat(
-                argument ->
-                    argument.getOrgId().equals("org123")
-                        && argument.getUsage().equals(Usage.PRODUCTION.getValue())),
+            argThat(argument ->
+                argument.getOrgId().equals("org123")
+                    && argument.getUsage().equals(Usage.PRODUCTION.getValue())),
             any(Sort.class)))
         .thenReturn(List.of(basicSubscription()));
 
@@ -214,10 +211,9 @@ class CapacityResourceV1Test {
   @Test
   void testReportByMetricIdShouldUseBillingAccountQueryParam() {
     when(subscriptionRepository.findByCriteria(
-            argThat(
-                argument ->
-                    argument.getOrgId().equals("org123")
-                        && argument.getBillingAccountId().equals("account123456")),
+            argThat(argument ->
+                argument.getOrgId().equals("org123")
+                    && argument.getBillingAccountId().equals("account123456")),
             any(Sort.class)))
         .thenReturn(List.of(basicSubscription()));
 
@@ -244,9 +240,8 @@ class CapacityResourceV1Test {
   @Test
   void testReportByMetricIdShouldTreatEmptySlaAsNull() {
     when(subscriptionRepository.findByCriteria(
-            argThat(
-                argument ->
-                    argument.getOrgId().equals("org123") && isNull(argument.getServiceLevel())),
+            argThat(argument ->
+                argument.getOrgId().equals("org123") && isNull(argument.getServiceLevel())),
             any(Sort.class)))
         .thenReturn(List.of(basicSubscription()));
 
@@ -314,14 +309,13 @@ class CapacityResourceV1Test {
 
     var subs =
         Stream.of(sock1, sock2, cores1, cores2, hypSock1, hypSock2, hypCore1, hypCore2)
-            .map(
-                m ->
-                    SubscriptionEntity.builder()
-                        .startDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1))
-                        .endDate(max.truncatedTo(ChronoUnit.DAYS).minusSeconds(1))
-                        .orgId("org123")
-                        .subscriptionMeasurements(m)
-                        .build())
+            .map(m ->
+                SubscriptionEntity.builder()
+                    .startDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1))
+                    .endDate(max.truncatedTo(ChronoUnit.DAYS).minusSeconds(1))
+                    .orgId("org123")
+                    .subscriptionMeasurements(m)
+                    .build())
             .toList();
 
     when(subscriptionRepository.findByCriteria(
@@ -357,14 +351,13 @@ class CapacityResourceV1Test {
 
     var subs =
         Stream.of(hypSock, hypCore, sock, cores)
-            .map(
-                m ->
-                    SubscriptionEntity.builder()
-                        .startDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1))
-                        .endDate(max.truncatedTo(ChronoUnit.DAYS).minusSeconds(1))
-                        .orgId("owner123456")
-                        .subscriptionMeasurements(m)
-                        .build())
+            .map(m ->
+                SubscriptionEntity.builder()
+                    .startDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1))
+                    .endDate(max.truncatedTo(ChronoUnit.DAYS).minusSeconds(1))
+                    .orgId("owner123456")
+                    .subscriptionMeasurements(m)
+                    .build())
             .toList();
 
     when(subscriptionRepository.findByCriteria(
@@ -688,10 +681,9 @@ class CapacityResourceV1Test {
     limited.setOffering(limitedOffering);
 
     when(subscriptionRepository.findByCriteria(
-            argThat(
-                argument ->
-                    argument.getOrgId().equals("org123")
-                        && argument.getMetricId().equals(METRIC_ID_CORES.toString())),
+            argThat(argument ->
+                argument.getOrgId().equals("org123")
+                    && argument.getMetricId().equals(METRIC_ID_CORES.toString())),
             any(Sort.class)))
         .thenReturn(List.of(limited));
 

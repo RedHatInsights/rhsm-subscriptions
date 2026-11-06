@@ -823,13 +823,10 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
 
   private void addMeasurementsToMonthlyTotals(Host host, OffsetDateTime month) {
     host.getMeasurements()
-        .forEach(
-            (metricId, value) -> {
-              host.addToMonthlyTotal(
-                  InstanceMonthlyTotalKey.formatMonthId(month),
-                  MetricId.fromString(metricId),
-                  value);
-            });
+        .forEach((metricId, value) -> {
+          host.addToMonthlyTotal(
+              InstanceMonthlyTotalKey.formatMonthId(month), MetricId.fromString(metricId), value);
+        });
   }
 
   @Nested
@@ -955,20 +952,19 @@ class TallyInstanceViewRepositoryTest implements ExtendWithSwatchDatabase {
         .forEach(x -> x.setDisplayName(DEFAULT_DISPLAY_NAME));
     List<Host> results = new ArrayList<>();
     Arrays.stream(hosts)
-        .forEach(
-            host -> {
-              AccountServiceInventory accountServiceInventory =
-                  accountServiceInventoryRepository
-                      .findById(
-                          AccountServiceInventoryId.builder()
-                              .orgId(host.getOrgId())
-                              .serviceType("HBI_HOST")
-                              .build())
-                      .orElse(new AccountServiceInventory(host.getOrgId(), "HBI_HOST"));
-              accountServiceInventory.getServiceInstances().put(host.getInstanceId(), host);
-              accountServiceInventoryRepository.save(accountServiceInventory);
-              results.add(accountServiceInventory.getServiceInstances().get(host.getInstanceId()));
-            });
+        .forEach(host -> {
+          AccountServiceInventory accountServiceInventory =
+              accountServiceInventoryRepository
+                  .findById(
+                      AccountServiceInventoryId.builder()
+                          .orgId(host.getOrgId())
+                          .serviceType("HBI_HOST")
+                          .build())
+                  .orElse(new AccountServiceInventory(host.getOrgId(), "HBI_HOST"));
+          accountServiceInventory.getServiceInstances().put(host.getInstanceId(), host);
+          accountServiceInventoryRepository.save(accountServiceInventory);
+          results.add(accountServiceInventory.getServiceInstances().get(host.getInstanceId()));
+        });
     accountServiceInventoryRepository.flush();
     return results;
   }

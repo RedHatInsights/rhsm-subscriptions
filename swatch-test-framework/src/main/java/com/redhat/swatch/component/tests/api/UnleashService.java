@@ -65,11 +65,11 @@ public class UnleashService extends RestService {
     String payload =
         String.format(
             """
-        {
-          "name": "%s",
-          "type": "operational"
-        }
-        """,
+            {
+              "name": "%s",
+              "type": "operational"
+            }
+            """,
             flag);
 
     given().body(payload).when().post(UNLEASH_FEATURES_PATH).then().log().ifError();
@@ -173,10 +173,9 @@ public class UnleashService extends RestService {
     InfoFeatureFlags featureFlags =
         swatchService
             .getFeatureFlags()
-            .orElseThrow(
-                () ->
-                    new AssertionError(
-                        "Management /info must expose a feature-flags section for Unleash waits"));
+            .orElseThrow(() ->
+                new AssertionError(
+                    "Management /info must expose a feature-flags section for Unleash waits"));
     assertNotNull(featureFlags.getFlags(), "feature-flags list should be present in /info");
 
     InfoFeatureFlag actual =

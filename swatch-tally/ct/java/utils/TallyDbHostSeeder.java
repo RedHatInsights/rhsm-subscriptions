@@ -107,36 +107,35 @@ public final class TallyDbHostSeeder {
     UUID hostId = UUID.randomUUID();
     String subManId = UUID.randomUUID().toString();
 
-    database.executeInTransaction(
-        ctx -> {
-          ensureAccountServiceRow(ctx, orgId);
-          insertHostRow(
-              ctx,
-              hostId,
-              inventoryId,
-              subManId,
-              orgId,
-              false,
-              false,
-              false,
-              "CLOUD",
-              null,
-              lastSeen,
-              billingProvider,
-              billingAccountId,
-              null);
-          insertBucket(
-              ctx,
-              hostId,
-              productTag,
-              "Premium",
-              "Production",
-              4,
-              2,
-              "CLOUD",
-              billingProvider,
-              billingAccountId);
-        });
+    database.executeInTransaction(ctx -> {
+      ensureAccountServiceRow(ctx, orgId);
+      insertHostRow(
+          ctx,
+          hostId,
+          inventoryId,
+          subManId,
+          orgId,
+          false,
+          false,
+          false,
+          "CLOUD",
+          null,
+          lastSeen,
+          billingProvider,
+          billingAccountId,
+          null);
+      insertBucket(
+          ctx,
+          hostId,
+          productTag,
+          "Premium",
+          "Production",
+          4,
+          2,
+          "CLOUD",
+          billingProvider,
+          billingAccountId);
+    });
 
     return hostId;
   }
@@ -158,25 +157,24 @@ public final class TallyDbHostSeeder {
     String subManId = UUID.randomUUID().toString();
     OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
 
-    database.executeInTransaction(
-        ctx -> {
-          ensureAccountServiceRow(ctx, orgId);
-          insertHostRow(
-              ctx,
-              hostId,
-              inventoryId,
-              subManId,
-              orgId,
-              isGuest,
-              isUnmappedGuest,
-              isHypervisor,
-              hardwareType,
-              numOfGuests,
-              now,
-              null,
-              null,
-              hypervisorUuid);
-        });
+    database.executeInTransaction(ctx -> {
+      ensureAccountServiceRow(ctx, orgId);
+      insertHostRow(
+          ctx,
+          hostId,
+          inventoryId,
+          subManId,
+          orgId,
+          isGuest,
+          isUnmappedGuest,
+          isHypervisor,
+          hardwareType,
+          numOfGuests,
+          now,
+          null,
+          null,
+          hypervisorUuid);
+    });
 
     return new SeededHost(hostId, inventoryId, subManId);
   }

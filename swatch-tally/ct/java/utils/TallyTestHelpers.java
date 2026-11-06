@@ -450,13 +450,12 @@ public class TallyTestHelpers {
     for (Event event : events) {
       kafkaBridge.produceKafkaMessage(SWATCH_SERVICE_INSTANCE_INGRESS, event);
     }
-    AwaitilityUtils.untilAsserted(
-        () -> {
-          service.performHourlyTallyForOrg(orgId);
-          if (!ready.getAsBoolean()) {
-            throw new AssertionError("Data not yet materialized for org " + orgId);
-          }
-        });
+    AwaitilityUtils.untilAsserted(() -> {
+      service.performHourlyTallyForOrg(orgId);
+      if (!ready.getAsBoolean()) {
+        throw new AssertionError("Data not yet materialized for org " + orgId);
+      }
+    });
   }
 
   // --- Then helper methods: Retrieve and verify test results ---
@@ -616,55 +615,46 @@ public class TallyTestHelpers {
       String billingProvider) {
     return tallySummaries.stream()
         .filter(summary -> orgId.equalsIgnoreCase(summary.getOrgId()))
-        .flatMap(
-            summary ->
-                summary.getTallySnapshots() == null
-                    ? Stream.empty()
-                    : summary.getTallySnapshots().stream())
+        .flatMap(summary ->
+            summary.getTallySnapshots() == null
+                ? Stream.empty()
+                : summary.getTallySnapshots().stream())
         .filter(snapshot -> productId.equalsIgnoreCase(snapshot.getProductId()))
         .filter(snapshot -> granularity.equals(snapshot.getGranularity()))
-        .filter(
-            snapshot -> {
-              if (sla == null) {
-                return true;
-              }
-              String snapshotSla = snapshot.getSla() == null ? "" : snapshot.getSla().toString();
-              return snapshotSla.equalsIgnoreCase(sla);
-            })
-        .filter(
-            snapshot -> {
-              if (usage == null) {
-                return true;
-              }
-              String snapshotUsage =
-                  snapshot.getUsage() == null ? "" : snapshot.getUsage().toString();
-              return snapshotUsage.equalsIgnoreCase(usage);
-            })
-        .filter(
-            snapshot -> {
-              if (billingAccountId == null) {
-                return true;
-              }
-              String snapshotBillingAccountId =
-                  snapshot.getBillingAccountId() == null ? "" : snapshot.getBillingAccountId();
-              return snapshotBillingAccountId.equalsIgnoreCase(billingAccountId);
-            })
-        .filter(
-            snapshot -> {
-              if (billingProvider == null) {
-                return true;
-              }
-              String snapshotBillingProvider =
-                  snapshot.getBillingProvider() == null
-                      ? ""
-                      : snapshot.getBillingProvider().toString();
-              return snapshotBillingProvider.equalsIgnoreCase(billingProvider);
-            })
-        .flatMap(
-            snapshot ->
-                snapshot.getTallyMeasurements() == null
-                    ? Stream.empty()
-                    : snapshot.getTallyMeasurements().stream())
+        .filter(snapshot -> {
+          if (sla == null) {
+            return true;
+          }
+          String snapshotSla = snapshot.getSla() == null ? "" : snapshot.getSla().toString();
+          return snapshotSla.equalsIgnoreCase(sla);
+        })
+        .filter(snapshot -> {
+          if (usage == null) {
+            return true;
+          }
+          String snapshotUsage = snapshot.getUsage() == null ? "" : snapshot.getUsage().toString();
+          return snapshotUsage.equalsIgnoreCase(usage);
+        })
+        .filter(snapshot -> {
+          if (billingAccountId == null) {
+            return true;
+          }
+          String snapshotBillingAccountId =
+              snapshot.getBillingAccountId() == null ? "" : snapshot.getBillingAccountId();
+          return snapshotBillingAccountId.equalsIgnoreCase(billingAccountId);
+        })
+        .filter(snapshot -> {
+          if (billingProvider == null) {
+            return true;
+          }
+          String snapshotBillingProvider =
+              snapshot.getBillingProvider() == null ? "" : snapshot.getBillingProvider().toString();
+          return snapshotBillingProvider.equalsIgnoreCase(billingProvider);
+        })
+        .flatMap(snapshot ->
+            snapshot.getTallyMeasurements() == null
+                ? Stream.empty()
+                : snapshot.getTallyMeasurements().stream())
         .filter(m -> metricId.equalsIgnoreCase(m.getMetricId()))
         .mapToDouble(m -> m.getValue() == null ? 0.0 : m.getValue())
         .sum();

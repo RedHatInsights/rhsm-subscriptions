@@ -65,9 +65,8 @@ public class SubscriptionCapacityService {
     for (var tallySnapshot : tallySummary.getTallySnapshots()) {
       try (Stream<SubscriptionCapacityView> resultStream =
           streamCapacities(tallySummary, tallySnapshot)) {
-        resultStream.forEach(
-            capacity ->
-                capacities.computeIfAbsent(tallySnapshot, k -> new ArrayList<>()).add(capacity));
+        resultStream.forEach(capacity ->
+            capacities.computeIfAbsent(tallySnapshot, k -> new ArrayList<>()).add(capacity));
       }
     }
 

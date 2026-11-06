@@ -55,12 +55,11 @@ public abstract class BaseConfigurationBuilder<T extends Annotation, C> {
   protected Optional<Duration> loadDuration(
       String propertyKey, Function<T, String> annotationMapper) {
     return PropertiesUtils.getAsDuration(properties, propertyKey)
-        .or(
-            () ->
-                annotationConfig
-                    .map(annotationMapper::apply)
-                    .filter(StringUtils::isNotEmpty)
-                    .map(DurationUtils::parse));
+        .or(() ->
+            annotationConfig
+                .map(annotationMapper::apply)
+                .filter(StringUtils::isNotEmpty)
+                .map(DurationUtils::parse));
   }
 
   protected Optional<Boolean> loadBoolean(
@@ -92,15 +91,14 @@ public abstract class BaseConfigurationBuilder<T extends Annotation, C> {
       String propertyKey, Function<T, int[]> annotationMapper) {
     return PropertiesUtils.get(properties, propertyKey)
         .map(v -> v.trim().split(COMMA))
-        .map(
-            arrayOfStrings -> {
-              int[] arrayOfIntegers = new int[arrayOfStrings.length];
-              for (int i = 0; i < arrayOfStrings.length; i++) {
-                arrayOfIntegers[i] = Integer.parseInt(arrayOfStrings[i]);
-              }
+        .map(arrayOfStrings -> {
+          int[] arrayOfIntegers = new int[arrayOfStrings.length];
+          for (int i = 0; i < arrayOfStrings.length; i++) {
+            arrayOfIntegers[i] = Integer.parseInt(arrayOfStrings[i]);
+          }
 
-              return arrayOfIntegers;
-            })
+          return arrayOfIntegers;
+        })
         .or(() -> annotationConfig.map(annotationMapper::apply));
   }
 

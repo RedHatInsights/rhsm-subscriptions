@@ -49,21 +49,20 @@ public class SubscriptionTableCapacityGraphComponentTest extends BaseContractCom
 
     givenSubscriptionStartingYesterday(product, sku, metric, capacity);
 
-    AwaitilityUtils.untilAsserted(
-        () -> {
-          double tableCapacity = getTableCapacity(product, metric);
-          double graphCapacity = getTodayGraphCapacity(product, metric);
+    AwaitilityUtils.untilAsserted(() -> {
+      double tableCapacity = getTableCapacity(product, metric);
+      double graphCapacity = getTodayGraphCapacity(product, metric);
 
-          assertThat(
-              "Capacity should be greater than 0 to confirm subscription was added",
-              tableCapacity,
-              greaterThan(0.0));
+      assertThat(
+          "Capacity should be greater than 0 to confirm subscription was added",
+          tableCapacity,
+          greaterThan(0.0));
 
-          assertThat(
-              "Table and graph capacity must match for " + metric,
-              tableCapacity,
-              closeTo(graphCapacity, 0.01));
-        });
+      assertThat(
+          "Table and graph capacity must match for " + metric,
+          tableCapacity,
+          closeTo(graphCapacity, 0.01));
+    });
   }
 
   private static Stream<Arguments> provideProductsAndMetrics() {
@@ -90,15 +89,14 @@ public class SubscriptionTableCapacityGraphComponentTest extends BaseContractCom
       return 0.0;
     }
     return report.getData().stream()
-        .mapToDouble(
-            sku -> {
-              List<Double> measurements = sku.getMeasurements();
-              if (measurements != null && metricIndex < measurements.size()) {
-                Double value = measurements.get(metricIndex);
-                return value != null ? value : 0.0;
-              }
-              return 0.0;
-            })
+        .mapToDouble(sku -> {
+          List<Double> measurements = sku.getMeasurements();
+          if (measurements != null && metricIndex < measurements.size()) {
+            Double value = measurements.get(metricIndex);
+            return value != null ? value : 0.0;
+          }
+          return 0.0;
+        })
         .sum();
   }
 

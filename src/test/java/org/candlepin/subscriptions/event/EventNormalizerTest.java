@@ -279,22 +279,17 @@ class EventNormalizerTest {
     // Find the event for each measurement
     Event coresEvent =
         flattened.stream()
-            .filter(
-                e ->
-                    e.getMeasurements()
-                        .getFirst()
-                        .getMetricId()
-                        .equals(CORES.toUpperCaseFormatted()))
+            .filter(e ->
+                e.getMeasurements().getFirst().getMetricId().equals(CORES.toUpperCaseFormatted()))
             .findFirst()
             .orElseThrow();
     Event instanceHoursEvent =
         flattened.stream()
-            .filter(
-                e ->
-                    e.getMeasurements()
-                        .getFirst()
-                        .getMetricId()
-                        .equals(MetricIdUtils.getInstanceHours().toUpperCaseFormatted()))
+            .filter(e ->
+                e.getMeasurements()
+                    .getFirst()
+                    .getMetricId()
+                    .equals(MetricIdUtils.getInstanceHours().toUpperCaseFormatted()))
             .findFirst()
             .orElseThrow();
 

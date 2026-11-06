@@ -362,11 +362,10 @@ public class TallyReportCategoryHasDataPaygTest extends BaseTallyComponentTest {
     return report.getData().stream()
         .filter(
             point -> point.getDate() != null && startOfUtcHour(point.getDate()).isEqual(hourStart))
-        .anyMatch(
-            point ->
-                point.getValue() != null
-                    && point.getValue() > 0
-                    && Boolean.TRUE.equals(point.getHasData()));
+        .anyMatch(point ->
+            point.getValue() != null
+                && point.getValue() > 0
+                && Boolean.TRUE.equals(point.getHasData()));
   }
 
   private static boolean cloudZeroMeasurementForHour(
@@ -377,9 +376,8 @@ public class TallyReportCategoryHasDataPaygTest extends BaseTallyComponentTest {
     return report.getData().stream()
         .filter(
             point -> point.getDate() != null && startOfUtcHour(point.getDate()).isEqual(hourStart))
-        .anyMatch(
-            point ->
-                intValueOrZero(point.getValue()) == 0 && Boolean.TRUE.equals(point.getHasData()));
+        .anyMatch(point ->
+            intValueOrZero(point.getValue()) == 0 && Boolean.TRUE.equals(point.getHasData()));
   }
 
   private static boolean hasMisleadingZeroWithHasData(TallyReportData report) {
@@ -387,10 +385,9 @@ public class TallyReportCategoryHasDataPaygTest extends BaseTallyComponentTest {
       return false;
     }
     return report.getData().stream()
-        .anyMatch(
-            point ->
-                point.getValue() != null
-                    && point.getValue() == 0
-                    && Boolean.TRUE.equals(point.getHasData()));
+        .anyMatch(point ->
+            point.getValue() != null
+                && point.getValue() == 0
+                && Boolean.TRUE.equals(point.getHasData()));
   }
 }

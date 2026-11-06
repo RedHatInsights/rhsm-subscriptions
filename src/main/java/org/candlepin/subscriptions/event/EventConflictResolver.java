@@ -99,47 +99,45 @@ public class EventConflictResolver {
 
     // Resolve any conflicting events.
     List<EventRecord> resolvedEvents = new ArrayList<>();
-    eventsToResolve.forEach(
-        (key, eventList) -> {
-          UsageConflictTracker tracker =
-              new UsageConflictTracker(allConflicting.getOrDefault(key, List.of()));
-          eventList.forEach(
-              event -> {
-                // Each event should only have a single conflict key since events
-                // were normalized by (tag,measurement).
-                UsageConflictKey conflictKey = tracker.getConflictKeyForEvent(event);
-                List<Event> newlyResolvedEvents = new ArrayList<>();
-                if (tracker.contains(conflictKey)) {
-                  Event conflictingEvent = tracker.getLatest(conflictKey);
-                  Measurement conflictingMeasurement =
-                      findMeasurement(conflictingEvent, conflictKey.getMetricId());
+    eventsToResolve.forEach((key, eventList) -> {
+      UsageConflictTracker tracker =
+          new UsageConflictTracker(allConflicting.getOrDefault(key, List.of()));
+      eventList.forEach(event -> {
+        // Each event should only have a single conflict key since events
+        // were normalized by (tag,measurement).
+        UsageConflictKey conflictKey = tracker.getConflictKeyForEvent(event);
+        List<Event> newlyResolvedEvents = new ArrayList<>();
+        if (tracker.contains(conflictKey)) {
+          Event conflictingEvent = tracker.getLatest(conflictKey);
+          Measurement conflictingMeasurement =
+              findMeasurement(conflictingEvent, conflictKey.getMetricId());
 
-                  if (!amendmentRequired(event, conflictingEvent, conflictKey.getMetricId())) {
-                    log.debug(
-                        "The incoming event does not require amendments for {}: {}",
-                        conflictKey.getMetricId(),
-                        event);
-                    return;
-                  }
+          if (!amendmentRequired(event, conflictingEvent, conflictKey.getMetricId())) {
+            log.debug(
+                "The incoming event does not require amendments for {}: {}",
+                conflictKey.getMetricId(),
+                event);
+            return;
+          }
 
-                  Event deductionEvent = createRecordFrom(conflictingEvent);
-                  deductionEvent.setProductTag(Set.of(conflictKey.getProductTag()));
-                  deductionEvent.setAmendmentType(AmendmentType.DEDUCTION);
-                  Measurement measurement =
-                      new Measurement()
-                          .withMetricId(conflictingMeasurement.getMetricId())
-                          .withValue(conflictingMeasurement.getValue() * -1);
-                  deductionEvent.setMeasurements(List.of(measurement));
-                  newlyResolvedEvents.add(deductionEvent);
-                }
+          Event deductionEvent = createRecordFrom(conflictingEvent);
+          deductionEvent.setProductTag(Set.of(conflictKey.getProductTag()));
+          deductionEvent.setAmendmentType(AmendmentType.DEDUCTION);
+          Measurement measurement =
+              new Measurement()
+                  .withMetricId(conflictingMeasurement.getMetricId())
+                  .withValue(conflictingMeasurement.getValue() * -1);
+          deductionEvent.setMeasurements(List.of(measurement));
+          newlyResolvedEvents.add(deductionEvent);
+        }
 
-                newlyResolvedEvents.add(event);
-                allConflicting.putIfAbsent(key, new ArrayList<>());
-                allConflicting.get(key).addAll(newlyResolvedEvents);
-                resolvedEvents.addAll(newlyResolvedEvents.stream().map(EventRecord::new).toList());
-                tracker.track(event);
-              });
-        });
+        newlyResolvedEvents.add(event);
+        allConflicting.putIfAbsent(key, new ArrayList<>());
+        allConflicting.get(key).addAll(newlyResolvedEvents);
+        resolvedEvents.addAll(newlyResolvedEvents.stream().map(EventRecord::new).toList());
+        tracker.track(event);
+      });
+    });
     log.info(
         "Finishing resolving events for incoming batch. In={} Resolved={}",
         incomingEvents.size(),
@@ -177,10 +175,9 @@ public class EventConflictResolver {
     return event.getMeasurements().stream()
         .filter(m -> StringUtils.equals(m.getMetricId(), metricId))
         .findFirst()
-        .orElseThrow(
-            () ->
-                new RuntimeException(
-                    String.format(
-                        "Could not find measurement metricId=%s for event=%s", metricId, event)));
+        .orElseThrow(() ->
+            new RuntimeException(
+                String.format(
+                    "Could not find measurement metricId=%s for event=%s", metricId, event)));
   }
 }

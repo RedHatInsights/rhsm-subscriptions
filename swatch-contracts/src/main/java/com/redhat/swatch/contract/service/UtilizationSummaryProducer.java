@@ -43,11 +43,10 @@ public class UtilizationSummaryProducer {
   }
 
   public Uni<Void> send(List<UtilizationSummary> utilizationSummaries) {
-    return producer.withTransaction(
-        emitter -> {
-          utilizationSummaries.forEach(emitter::send);
-          log.info("Sent {} utilization summaries", utilizationSummaries.size());
-          return Uni.createFrom().voidItem();
-        });
+    return producer.withTransaction(emitter -> {
+      utilizationSummaries.forEach(emitter::send);
+      log.info("Sent {} utilization summaries", utilizationSummaries.size());
+      return Uni.createFrom().voidItem();
+    });
   }
 }

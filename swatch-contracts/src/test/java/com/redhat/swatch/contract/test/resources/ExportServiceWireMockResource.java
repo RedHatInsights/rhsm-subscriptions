@@ -94,16 +94,15 @@ public class ExportServiceWireMockResource implements QuarkusTestResourceLifecyc
   public void verifyRequestWasSentToExportServiceWithError(
       GenericConsoleCloudEvent<ResourceRequest> request, String message) {
     Awaitility.await()
-        .untilAsserted(
-            () ->
-                wireMockServer.verify(
-                    postRequestedFor(
-                            urlEqualTo(
-                                String.format(
-                                    "/internal/export/v1/%s/subscriptions/%s/error",
-                                    request.getData().getResourceRequest().getExportRequestUUID(),
-                                    request.getData().getResourceRequest().getUUID())))
-                        .withRequestBody(containing(message))));
+        .untilAsserted(() ->
+            wireMockServer.verify(
+                postRequestedFor(
+                        urlEqualTo(
+                            String.format(
+                                "/internal/export/v1/%s/subscriptions/%s/error",
+                                request.getData().getResourceRequest().getExportRequestUUID(),
+                                request.getData().getResourceRequest().getUUID())))
+                    .withRequestBody(containing(message))));
   }
 
   public void verifyNoRequestsWereSentToExportServiceWithUploadData(
@@ -121,17 +120,16 @@ public class ExportServiceWireMockResource implements QuarkusTestResourceLifecyc
   public void verifyRequestWasSentToExportServiceWithUploadData(
       GenericConsoleCloudEvent<ResourceRequest> request, String expected) {
     Awaitility.await()
-        .untilAsserted(
-            () ->
-                wireMockServer.verify(
-                    postRequestedFor(
-                            urlEqualTo(
-                                String.format(
-                                    "/internal/export/v1/%s/subscriptions/%s/upload",
-                                    request.getData().getResourceRequest().getExportRequestUUID(),
-                                    request.getData().getResourceRequest().getUUID())))
-                        .withHeader("x-rh-exports-psk", equalTo("placeholder"))
-                        .withRequestBody(equalTo(expected))));
+        .untilAsserted(() ->
+            wireMockServer.verify(
+                postRequestedFor(
+                        urlEqualTo(
+                            String.format(
+                                "/internal/export/v1/%s/subscriptions/%s/upload",
+                                request.getData().getResourceRequest().getExportRequestUUID(),
+                                request.getData().getResourceRequest().getUUID())))
+                    .withHeader("x-rh-exports-psk", equalTo("placeholder"))
+                    .withRequestBody(equalTo(expected))));
   }
 
   public void mockRequestToReturnGatewayTimeout(GenericConsoleCloudEvent<ResourceRequest> request) {
@@ -146,18 +144,17 @@ public class ExportServiceWireMockResource implements QuarkusTestResourceLifecyc
 
   public void verifyUploadWasSent(UUID exportId, String application, UUID resourceId) {
     Awaitility.await()
-        .untilAsserted(
-            () ->
-                wireMockServer.verify(
-                    postRequestedFor(
-                        urlPathMatching(
-                            "/internal/export/v1/"
-                                + exportId
-                                + "/"
-                                + application
-                                + "/"
-                                + resourceId
-                                + "/upload"))));
+        .untilAsserted(() ->
+            wireMockServer.verify(
+                postRequestedFor(
+                    urlPathMatching(
+                        "/internal/export/v1/"
+                            + exportId
+                            + "/"
+                            + application
+                            + "/"
+                            + resourceId
+                            + "/upload"))));
   }
 
   private static WireMockServer startWireMockServer() {

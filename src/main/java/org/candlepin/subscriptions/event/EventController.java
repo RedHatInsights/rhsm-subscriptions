@@ -111,20 +111,19 @@ public class EventController {
     List<Event> toProcess = new ArrayList<>(batchSize);
     try (Stream<EventRecord> eventStream =
         repo.fetchOrderedEventStream(orgId, serviceType, begin)) {
-      eventStream.forEach(
-          eventRecord -> {
-            toProcess.add(eventRecord.getEvent());
-            repo.getEntityManager().detach(eventRecord);
-            if (toProcess.size() == batchSize) {
-              log.debug(
-                  "Processing batch of {} Events for orgId={} serviceType={}",
-                  batchSize,
-                  orgId,
-                  serviceType);
-              eventConsumer.accept(toProcess);
-              toProcess.clear();
-            }
-          });
+      eventStream.forEach(eventRecord -> {
+        toProcess.add(eventRecord.getEvent());
+        repo.getEntityManager().detach(eventRecord);
+        if (toProcess.size() == batchSize) {
+          log.debug(
+              "Processing batch of {} Events for orgId={} serviceType={}",
+              batchSize,
+              orgId,
+              serviceType);
+          eventConsumer.accept(toProcess);
+          toProcess.clear();
+        }
+      });
 
       // Process any that were outside the batch boundary.
       if (!toProcess.isEmpty()) {
@@ -181,36 +180,31 @@ public class EventController {
       if (!result.indexedEvents.isEmpty()) {
         // Check to see if any of the incoming Events are in conflict and if so, resolve them.
         savedEvents.addAll(
-            transactionHandler.runInNewTransaction(
-                () -> {
-                  List<EventRecord> resolved =
-                      resolveEventConflicts(
-                          result.indexedEvents.stream().map(Pair::getKey).toList());
-                  return repo.saveAll(resolved);
-                }));
+            transactionHandler.runInNewTransaction(() -> {
+              List<EventRecord> resolved =
+                  resolveEventConflicts(result.indexedEvents.stream().map(Pair::getKey).toList());
+              return repo.saveAll(resolved);
+            }));
         log.debug("Adding/Updating {} metric events", savedEvents.size());
       }
     } catch (Exception saveAllException) {
       log.warn(
           "Failed to save events. Retrying individually {} events.", result.indexedEvents.size());
-      result.indexedEvents.forEach(
-          indexedPair -> {
-            try {
-              savedEvents.addAll(
-                  transactionHandler.runInNewTransaction(
-                      () ->
-                          repo.saveAll(
-                              eventConflictResolver.resolveIncomingEvents(
-                                  List.of(indexedPair.getKey())))));
-            } catch (Exception individualSaveException) {
-              log.warn(
-                  "Failed to save individual event record: {} with error {}.",
-                  indexedPair.getKey(),
-                  ExceptionUtils.getStackTrace(individualSaveException));
-              throw new BatchListenerFailedException(
-                  individualSaveException.getMessage(), indexedPair.getValue());
-            }
-          });
+      result.indexedEvents.forEach(indexedPair -> {
+        try {
+          savedEvents.addAll(
+              transactionHandler.runInNewTransaction(() ->
+                  repo.saveAll(
+                      eventConflictResolver.resolveIncomingEvents(List.of(indexedPair.getKey())))));
+        } catch (Exception individualSaveException) {
+          log.warn(
+              "Failed to save individual event record: {} with error {}.",
+              indexedPair.getKey(),
+              ExceptionUtils.getStackTrace(individualSaveException));
+          throw new BatchListenerFailedException(
+              individualSaveException.getMessage(), indexedPair.getValue());
+        }
+      });
     }
 
     // create the ingested usage metrics for created events

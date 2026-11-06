@@ -47,17 +47,16 @@ public class InfoRoute {
     managementInterface
         .router()
         .get("/info")
-        .handler(
-            routingContext -> {
-              try {
-                byte[] body = objectMapper.writeValueAsBytes(aggregator.buildInfo());
-                routingContext
-                    .response()
-                    .putHeader("Content-Type", CONTENT_TYPE_JSON)
-                    .end(Buffer.buffer(body));
-              } catch (JsonProcessingException e) {
-                routingContext.fail(e);
-              }
-            });
+        .handler(routingContext -> {
+          try {
+            byte[] body = objectMapper.writeValueAsBytes(aggregator.buildInfo());
+            routingContext
+                .response()
+                .putHeader("Content-Type", CONTENT_TYPE_JSON)
+                .end(Buffer.buffer(body));
+          } catch (JsonProcessingException e) {
+            routingContext.fail(e);
+          }
+        });
   }
 }

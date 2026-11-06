@@ -41,14 +41,14 @@ public interface HostTallyBucketRepository
 
   @Query(
       """
-          select
-            b.key.productId as productId, b.measurementType as measurementType, b.key.usage as usage,
-            b.key.sla as sla, b.key.billingProvider as billingProvider, b.key.billingAccountId as billingAccountId,
-            sum(b.cores) as cores, sum(b.sockets) as sockets, count(h.id) as instances
-          from Host h, HostTallyBucket b
-            where h = b.host and h.orgId=:orgId and h.instanceType=:instanceType
-          group by b.key.productId, b.measurementType, b.key.usage, b.key.sla, b.key.billingProvider, b.key.billingAccountId
-  """)
+              select
+                b.key.productId as productId, b.measurementType as measurementType, b.key.usage as usage,
+                b.key.sla as sla, b.key.billingProvider as billingProvider, b.key.billingAccountId as billingAccountId,
+                sum(b.cores) as cores, sum(b.sockets) as sockets, count(h.id) as instances
+              from Host h, HostTallyBucket b
+                where h = b.host and h.orgId=:orgId and h.instanceType=:instanceType
+              group by b.key.productId, b.measurementType, b.key.usage, b.key.sla, b.key.billingProvider, b.key.billingAccountId
+      """)
   @QueryHints(
       value = {
         @QueryHint(name = HINT_FETCH_SIZE, value = "1024"),
@@ -62,21 +62,21 @@ public interface HostTallyBucketRepository
       nativeQuery = true,
       value =
           """
-    UPDATE host_tally_buckets
-    SET is_primary = true
-    WHERE ctid IN (
-      SELECT b.ctid FROM host_tally_buckets b
-      JOIN hosts h ON h.id = b.host_id
-      WHERE b.product_id = :productId
-        AND (CAST(:orgId AS VARCHAR) IS NULL OR h.org_id = :orgId)
-        AND b.sla <> :anyServiceLevel
-        AND b.usage <> :anyUsage
-        AND b.billing_provider <> :anyBillingProvider
-        AND b.billing_account_id <> '_ANY'
-        AND b.is_primary = false
-      LIMIT 20000
-    )
-  """)
+            UPDATE host_tally_buckets
+            SET is_primary = true
+            WHERE ctid IN (
+              SELECT b.ctid FROM host_tally_buckets b
+              JOIN hosts h ON h.id = b.host_id
+              WHERE b.product_id = :productId
+                AND (CAST(:orgId AS VARCHAR) IS NULL OR h.org_id = :orgId)
+                AND b.sla <> :anyServiceLevel
+                AND b.usage <> :anyUsage
+                AND b.billing_provider <> :anyBillingProvider
+                AND b.billing_account_id <> '_ANY'
+                AND b.is_primary = false
+              LIMIT 20000
+            )
+          """)
   int setIsPrimaryForPayg(
       @Param("orgId") String orgId,
       @Param("productId") String productId,
@@ -90,21 +90,21 @@ public interface HostTallyBucketRepository
       nativeQuery = true,
       value =
           """
-    UPDATE host_tally_buckets
-    SET is_primary = true
-    WHERE ctid IN (
-      SELECT b.ctid FROM host_tally_buckets b
-      JOIN hosts h ON h.id = b.host_id
-      WHERE b.product_id = :productId
-        AND (CAST(:orgId AS VARCHAR) IS NULL OR h.org_id = :orgId)
-        AND b.sla <> :anyServiceLevel
-        AND b.usage <> :anyUsage
-        AND b.billing_provider = :anyBillingProvider
-        AND b.billing_account_id = '_ANY'
-        AND b.is_primary = false
-      LIMIT 20000
-    )
-  """)
+            UPDATE host_tally_buckets
+            SET is_primary = true
+            WHERE ctid IN (
+              SELECT b.ctid FROM host_tally_buckets b
+              JOIN hosts h ON h.id = b.host_id
+              WHERE b.product_id = :productId
+                AND (CAST(:orgId AS VARCHAR) IS NULL OR h.org_id = :orgId)
+                AND b.sla <> :anyServiceLevel
+                AND b.usage <> :anyUsage
+                AND b.billing_provider = :anyBillingProvider
+                AND b.billing_account_id = '_ANY'
+                AND b.is_primary = false
+              LIMIT 20000
+            )
+          """)
   int setIsPrimaryForNonPayg(
       @Param("orgId") String orgId,
       @Param("productId") String productId,
@@ -118,19 +118,19 @@ public interface HostTallyBucketRepository
       nativeQuery = true,
       value =
           """
-    UPDATE host_tally_buckets
-    SET is_primary = true
-    WHERE ctid IN (
-      SELECT ctid FROM host_tally_buckets
-      WHERE product_id = :productId
-        AND sla <> :anyServiceLevel
-        AND usage <> :anyUsage
-        AND billing_provider <> :anyBillingProvider
-        AND billing_account_id <> '_ANY'
-        AND is_primary = false
-      LIMIT 20000
-    )
-  """)
+            UPDATE host_tally_buckets
+            SET is_primary = true
+            WHERE ctid IN (
+              SELECT ctid FROM host_tally_buckets
+              WHERE product_id = :productId
+                AND sla <> :anyServiceLevel
+                AND usage <> :anyUsage
+                AND billing_provider <> :anyBillingProvider
+                AND billing_account_id <> '_ANY'
+                AND is_primary = false
+              LIMIT 20000
+            )
+          """)
   int setIsPrimaryForPaygAllOrgs(
       @Param("productId") String productId,
       @Param("anyServiceLevel") String anyServiceLevel,
@@ -143,19 +143,19 @@ public interface HostTallyBucketRepository
       nativeQuery = true,
       value =
           """
-    UPDATE host_tally_buckets
-    SET is_primary = true
-    WHERE ctid IN (
-      SELECT ctid FROM host_tally_buckets
-      WHERE product_id = :productId
-        AND sla <> :anyServiceLevel
-        AND usage <> :anyUsage
-        AND billing_provider = :anyBillingProvider
-        AND billing_account_id = '_ANY'
-        AND is_primary = false
-      LIMIT 20000
-    )
-  """)
+            UPDATE host_tally_buckets
+            SET is_primary = true
+            WHERE ctid IN (
+              SELECT ctid FROM host_tally_buckets
+              WHERE product_id = :productId
+                AND sla <> :anyServiceLevel
+                AND usage <> :anyUsage
+                AND billing_provider = :anyBillingProvider
+                AND billing_account_id = '_ANY'
+                AND is_primary = false
+              LIMIT 20000
+            )
+          """)
   int setIsPrimaryForNonPaygAllOrgs(
       @Param("productId") String productId,
       @Param("anyServiceLevel") String anyServiceLevel,

@@ -108,12 +108,11 @@ public class UmbSubscription {
         .filter(Objects::nonNull)
         .map(SubscriptionProduct::getStatus)
         .filter(Objects::nonNull)
-        .flatMap(
-            statuses ->
-                Arrays.stream(statuses)
-                    .filter(Objects::nonNull)
-                    .filter(status -> "Terminated".equalsIgnoreCase(status.getState()))
-                    .findFirst());
+        .flatMap(statuses ->
+            Arrays.stream(statuses)
+                .filter(Objects::nonNull)
+                .filter(status -> "Terminated".equalsIgnoreCase(status.getState()))
+                .findFirst());
   }
 
   public static OffsetDateTime convertToUtc(LocalDateTime timestamp) {

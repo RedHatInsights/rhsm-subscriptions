@@ -280,18 +280,17 @@ public class SubscriptionSyncService {
     }
     optionalSubscription
         .or(() -> fetchSubscription(subscription.getSubscriptionNumber()))
-        .ifPresent(
-            existingData -> {
-              if (subscription.getBillingAccountId() == null) {
-                subscription.setBillingAccountId(existingData.getBillingAccountId());
-              }
-              if (subscription.getBillingProvider() == null) {
-                subscription.setBillingProvider(existingData.getBillingProvider());
-              }
-              if (subscription.getBillingProviderId() == null) {
-                subscription.setBillingProviderId(existingData.getBillingProviderId());
-              }
-            });
+        .ifPresent(existingData -> {
+          if (subscription.getBillingAccountId() == null) {
+            subscription.setBillingAccountId(existingData.getBillingAccountId());
+          }
+          if (subscription.getBillingProvider() == null) {
+            subscription.setBillingProvider(existingData.getBillingProvider());
+          }
+          if (subscription.getBillingProviderId() == null) {
+            subscription.setBillingProviderId(existingData.getBillingProviderId());
+          }
+        });
   }
 
   private Optional<? extends SubscriptionEntity> fetchSubscription(String subscriptionNumber) {
@@ -329,20 +328,19 @@ public class SubscriptionSyncService {
     // Partition upstream IT Search DTOs by subscription number: sync vs delete (filtered out).
     Map<String, Subscription> subNumbersToSync = new HashMap<>();
     Map<String, SubscriptionDeleteReason> subNumbersToDelete = new HashMap<>();
-    dtos.forEach(
-        dto -> {
-          if (StringUtils.isBlank(dto.getSubscriptionNumber())) {
-            log.warn("Skipping upstream subscription missing subscriptionNumber: {}", dto);
-            return;
-          }
-          String subNumber = dto.getSubscriptionNumber();
-          var filteredByReason = shouldSyncSub(dto);
-          if (filteredByReason.isPresent()) {
-            subNumbersToDelete.putIfAbsent(subNumber, filteredByReason.get());
-          } else {
-            subNumbersToSync.putIfAbsent(subNumber, dto);
-          }
-        });
+    dtos.forEach(dto -> {
+      if (StringUtils.isBlank(dto.getSubscriptionNumber())) {
+        log.warn("Skipping upstream subscription missing subscriptionNumber: {}", dto);
+        return;
+      }
+      String subNumber = dto.getSubscriptionNumber();
+      var filteredByReason = shouldSyncSub(dto);
+      if (filteredByReason.isPresent()) {
+        subNumbersToDelete.putIfAbsent(subNumber, filteredByReason.get());
+      } else {
+        subNumbersToSync.putIfAbsent(subNumber, dto);
+      }
+    });
 
     if (subNumbersToSync.isEmpty() && subNumbersToDelete.isEmpty()) {
       log.warn("No subscriptions found in upstream for orgId={}", orgId);
@@ -355,57 +353,52 @@ public class SubscriptionSyncService {
 
     var batchSize = 1024;
     CustomBatchIterator.batchStreamOf(subscriptionService.streamByOrgId(orgId), batchSize)
-        .forEach(
-            batch -> {
-              batch.forEach(
-                  subEntity -> {
-                    acquireSubscriptionLockBy(subEntity.getSubscriptionNumber());
-                    var subNumber = subEntity.getSubscriptionNumber();
-                    var dto = subNumbersToSync.remove(subNumber);
+        .forEach(batch -> {
+          batch.forEach(subEntity -> {
+            acquireSubscriptionLockBy(subEntity.getSubscriptionNumber());
+            var subNumber = subEntity.getSubscriptionNumber();
+            var dto = subNumbersToSync.remove(subNumber);
 
-                    if (subNumbersToDelete.containsKey(subNumber)) {
-                      subEntitiesForDeletion.add(
-                          Map.entry(subEntity, subNumbersToDelete.get(subNumber)));
-                      return;
-                    }
+            if (subNumbersToDelete.containsKey(subNumber)) {
+              subEntitiesForDeletion.add(Map.entry(subEntity, subNumbersToDelete.get(subNumber)));
+              return;
+            }
 
-                    // delete from swatch because it didn't appear in the latest list from the
-                    // subscription service, or it's in the denylist
-                    if (!subscriptionNumbersToSync.contains(subNumber)) {
-                      subEntitiesForDeletion.add(
-                          Map.entry(subEntity, SubscriptionDeleteReason.NOT_IN_UPSTREAM_RESPONSE));
-                      return;
-                    }
-                    if (productDenylist.productIdMatches(subEntity.getOffering().getSku())) {
-                      subEntitiesForDeletion.add(
-                          Map.entry(subEntity, SubscriptionDeleteReason.PRODUCT_DENYLIST));
-                      return;
-                    }
+            // delete from swatch because it didn't appear in the latest list from the
+            // subscription service, or it's in the denylist
+            if (!subscriptionNumbersToSync.contains(subNumber)) {
+              subEntitiesForDeletion.add(
+                  Map.entry(subEntity, SubscriptionDeleteReason.NOT_IN_UPSTREAM_RESPONSE));
+              return;
+            }
+            if (productDenylist.productIdMatches(subEntity.getOffering().getSku())) {
+              subEntitiesForDeletion.add(
+                  Map.entry(subEntity, SubscriptionDeleteReason.PRODUCT_DENYLIST));
+              return;
+            }
 
-                    // we've seen a newer version of the sub, but this version doesn't need updates
-                    if (dto == null) {
-                      return;
-                    }
+            // we've seen a newer version of the sub, but this version doesn't need updates
+            if (dto == null) {
+              return;
+            }
 
-                    syncSubscription(dto);
-                  });
-              subscriptionService.flushAndClearPersistenceContext();
-            });
+            syncSubscription(dto);
+          });
+          subscriptionService.flushAndClearPersistenceContext();
+        });
 
     // These are additional subs that should be synced but weren't previously in the database
     Stream<Subscription> stream = subNumbersToSync.values().stream();
 
     CustomBatchIterator.batchStreamOf(stream, batchSize)
-        .forEach(
-            batch -> {
-              batch.forEach(
-                  dto -> {
-                    acquireSubscriptionLockBy(dto.getSubscriptionNumber());
-                    syncSubscription(dto);
-                  });
+        .forEach(batch -> {
+          batch.forEach(dto -> {
+            acquireSubscriptionLockBy(dto.getSubscriptionNumber());
+            syncSubscription(dto);
+          });
 
-              subscriptionService.flushAndClearPersistenceContext();
-            });
+          subscriptionService.flushAndClearPersistenceContext();
+        });
 
     if (paygOnly) {
       // don't clean up stale subs, because PAYG-only sync discards/ignores too much data to
@@ -565,14 +558,13 @@ public class SubscriptionSyncService {
           objectMapper.readValue(subscriptionsJson, Subscription[].class);
       Arrays.stream(subscriptions)
           .map(this::convertDto)
-          .forEach(
-              subscription -> {
-                if (reconcileCapacity) {
-                  determineSubscriptionOffering(subscription);
-                  capacityReconciliationService.reconcileCapacityForSubscription(subscription);
-                }
-                subscriptionService.save(subscription);
-              });
+          .forEach(subscription -> {
+            if (reconcileCapacity) {
+              determineSubscriptionOffering(subscription);
+              capacityReconciliationService.reconcileCapacityForSubscription(subscription);
+            }
+            subscriptionService.save(subscription);
+          });
     } catch (JsonProcessingException e) {
       throw new IllegalArgumentException("Error parsing subscriptionsJson", e);
     }

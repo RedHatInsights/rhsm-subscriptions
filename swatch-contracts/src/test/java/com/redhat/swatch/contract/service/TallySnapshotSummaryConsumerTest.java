@@ -468,54 +468,48 @@ class TallySnapshotSummaryConsumerTest {
 
   private void thenUtilizationSummariesSent(int expectedCount) {
     Awaitility.await()
-        .untilAsserted(
-            () -> {
-              verify(utilizationProducer)
-                  .send(
-                      argThat(
-                          summaries -> {
-                            assertEquals(
-                                expectedCount,
-                                summaries.size(),
-                                "Expected number of utilization summaries sent");
-                            return true;
-                          }));
-            });
+        .untilAsserted(() -> {
+          verify(utilizationProducer)
+              .send(
+                  argThat(summaries -> {
+                    assertEquals(
+                        expectedCount,
+                        summaries.size(),
+                        "Expected number of utilization summaries sent");
+                    return true;
+                  }));
+        });
   }
 
   private void thenUtilizationSummaryHasSubscriptionFound(boolean expectedSubscriptionFound) {
     verify(utilizationProducer)
         .send(
-            argThat(
-                summaries -> {
-                  assertFalse(
-                      summaries.isEmpty(), "At least one utilization summary should be sent");
-                  UtilizationSummary first = summaries.get(0);
-                  assertNotNull(
-                      first.getSubscriptionFound(),
-                      "Utilization summary should have subscription found flag");
-                  assertEquals(
-                      expectedSubscriptionFound,
-                      first.getSubscriptionFound(),
-                      "Utilization summary should have correct subscription found flag");
-                  return true;
-                }));
+            argThat(summaries -> {
+              assertFalse(summaries.isEmpty(), "At least one utilization summary should be sent");
+              UtilizationSummary first = summaries.get(0);
+              assertNotNull(
+                  first.getSubscriptionFound(),
+                  "Utilization summary should have subscription found flag");
+              assertEquals(
+                  expectedSubscriptionFound,
+                  first.getSubscriptionFound(),
+                  "Utilization summary should have correct subscription found flag");
+              return true;
+            }));
   }
 
   private void thenUtilizationSummaryHasProductId(String expectedProductId) {
     verify(utilizationProducer)
         .send(
-            argThat(
-                summaries -> {
-                  assertFalse(
-                      summaries.isEmpty(), "At least one utilization summary should be sent");
-                  UtilizationSummary first = summaries.get(0);
-                  assertNotNull(first.getProductId(), "Utilization summary should have product ID");
-                  assertEquals(
-                      expectedProductId,
-                      first.getProductId(),
-                      "Utilization summary should have correct product ID");
-                  return true;
-                }));
+            argThat(summaries -> {
+              assertFalse(summaries.isEmpty(), "At least one utilization summary should be sent");
+              UtilizationSummary first = summaries.get(0);
+              assertNotNull(first.getProductId(), "Utilization summary should have product ID");
+              assertEquals(
+                  expectedProductId,
+                  first.getProductId(),
+                  "Utilization summary should have correct product ID");
+              return true;
+            }));
   }
 }

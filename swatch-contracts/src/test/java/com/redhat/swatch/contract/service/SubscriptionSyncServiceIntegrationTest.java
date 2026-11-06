@@ -140,33 +140,30 @@ class SubscriptionSyncServiceIntegrationTest {
     var failure = new AtomicReference<Throwable>();
 
     try (ExecutorService executor = Executors.newFixedThreadPool(threads)) {
-      executor.submit(
-          () -> {
-            try {
-              startLatch.await();
-              QuarkusTransaction.requiringNew()
-                  .run(
-                      () ->
-                          subscriptionSyncService.reconcileSubscriptionsWithSubscriptionService(
-                              ORG_ID, false));
-            } catch (Throwable t) {
-              failure.compareAndSet(null, t);
-            } finally {
-              doneLatch.countDown();
-            }
-          });
-      executor.submit(
-          () -> {
-            try {
-              startLatch.await();
-              QuarkusTransaction.requiringNew()
-                  .run(() -> subscriptionSyncService.saveSubscription(payload));
-            } catch (Throwable t) {
-              failure.compareAndSet(null, t);
-            } finally {
-              doneLatch.countDown();
-            }
-          });
+      executor.submit(() -> {
+        try {
+          startLatch.await();
+          QuarkusTransaction.requiringNew()
+              .run(() ->
+                  subscriptionSyncService.reconcileSubscriptionsWithSubscriptionService(
+                      ORG_ID, false));
+        } catch (Throwable t) {
+          failure.compareAndSet(null, t);
+        } finally {
+          doneLatch.countDown();
+        }
+      });
+      executor.submit(() -> {
+        try {
+          startLatch.await();
+          QuarkusTransaction.requiringNew()
+              .run(() -> subscriptionSyncService.saveSubscription(payload));
+        } catch (Throwable t) {
+          failure.compareAndSet(null, t);
+        } finally {
+          doneLatch.countDown();
+        }
+      });
 
       startLatch.countDown();
       try {
@@ -203,18 +200,17 @@ class SubscriptionSyncServiceIntegrationTest {
 
     try (ExecutorService executor = Executors.newFixedThreadPool(threads)) {
       for (int i = 0; i < threads; i++) {
-        executor.submit(
-            () -> {
-              try {
-                startLatch.await();
-                QuarkusTransaction.requiringNew()
-                    .run(() -> subscriptionSyncService.saveSubscription(payload));
-              } catch (Throwable t) {
-                failure.compareAndSet(null, t);
-              } finally {
-                doneLatch.countDown();
-              }
-            });
+        executor.submit(() -> {
+          try {
+            startLatch.await();
+            QuarkusTransaction.requiringNew()
+                .run(() -> subscriptionSyncService.saveSubscription(payload));
+          } catch (Throwable t) {
+            failure.compareAndSet(null, t);
+          } finally {
+            doneLatch.countDown();
+          }
+        });
       }
 
       startLatch.countDown();

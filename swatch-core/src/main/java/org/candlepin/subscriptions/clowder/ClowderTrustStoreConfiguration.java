@@ -100,12 +100,11 @@ public class ClowderTrustStoreConfiguration {
   private List<String> readCerts(String certString) {
     return Arrays.stream(certString.split("-----BEGIN CERTIFICATE-----"))
         .filter(s -> !s.isEmpty())
-        .map(
-            s ->
-                Arrays.stream(s.split("-----END CERTIFICATE-----"))
-                    .filter(s2 -> !s2.isEmpty())
-                    .findFirst()
-                    .orElseThrow(() -> new IllegalStateException("Invalid certificate found")))
+        .map(s ->
+            Arrays.stream(s.split("-----END CERTIFICATE-----"))
+                .filter(s2 -> !s2.isEmpty())
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Invalid certificate found")))
         .map(String::trim)
         .map(s -> s.replace("\n", ""))
         .toList();

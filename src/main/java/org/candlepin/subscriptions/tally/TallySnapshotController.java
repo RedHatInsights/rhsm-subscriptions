@@ -154,14 +154,13 @@ public class TallySnapshotController {
             currentState.getLatestEventRecordDate(),
             appProps.getHourlyTallyEventBatchSize(),
             nextBatch ->
-                retryTemplate.execute(
-                    context -> {
-                      metricUsageCollector.updateHosts(orgId, serviceType, nextBatch);
-                      metricUsageCollector.calculateUsage(nextBatch, calcCache);
-                      currentState.setLatestEventRecordDate(
-                          nextBatch.get(nextBatch.size() - 1).getRecordDate());
-                      return null;
-                    }));
+                retryTemplate.execute(context -> {
+                  metricUsageCollector.updateHosts(orgId, serviceType, nextBatch);
+                  metricUsageCollector.calculateUsage(nextBatch, calcCache);
+                  currentState.setLatestEventRecordDate(
+                      nextBatch.get(nextBatch.size() - 1).getRecordDate());
+                  return null;
+                }));
 
         if (!calcCache.isEmpty()) {
           var applicableUsageCalculations =
@@ -209,29 +208,26 @@ public class TallySnapshotController {
     // Only increment the counter at the finest granularity level to prevent over-counting
     snapshots.stream()
         .filter(this::filterByFinestGranularityAndNotAnySnapshots)
-        .map(
-            snapshot -> {
-              removeTotalMeasurementsForHourly(snapshot);
-              return snapshot;
-            })
-        .forEach(
-            snap ->
-                snap.getTallyMeasurements()
-                    .entrySet()
-                    .forEach(
-                        entry -> {
-                          List<String> tags =
-                              List.of(
-                                  "product",
-                                  snap.getProductId(),
-                                  "metric_id",
-                                  MetricId.tryGetValueFromString(entry.getKey().getMetricId()),
-                                  "billing_provider",
-                                  snap.getBillingProvider().getValue());
-                          meterRegistry
-                              .counter(TALLIED_USAGE_TOTAL_METRIC, tags.toArray(new String[0]))
-                              .increment(entry.getValue());
-                        }));
+        .map(snapshot -> {
+          removeTotalMeasurementsForHourly(snapshot);
+          return snapshot;
+        })
+        .forEach(snap ->
+            snap.getTallyMeasurements()
+                .entrySet()
+                .forEach(entry -> {
+                  List<String> tags =
+                      List.of(
+                          "product",
+                          snap.getProductId(),
+                          "metric_id",
+                          MetricId.tryGetValueFromString(entry.getKey().getMetricId()),
+                          "billing_provider",
+                          snap.getBillingProvider().getValue());
+                  meterRegistry
+                      .counter(TALLIED_USAGE_TOTAL_METRIC, tags.toArray(new String[0]))
+                      .increment(entry.getValue());
+                }));
   }
 
   private boolean filterByFinestGranularityAndNotAnySnapshots(TallySnapshot snapshot) {
@@ -249,19 +245,16 @@ public class TallySnapshotController {
   }
 
   private AccountUsageCalculation performTally(String orgId) {
-    retryTemplate.execute(
-        context -> {
-          usageCollector.reconcileSystemDataWithHbi(
-              orgId,
-              SubscriptionDefinition.filterVariants(
-                      variant ->
-                          variant.getSubscription() != null
-                              && !variant.getSubscription().isPaygEligible())
-                  .stream()
-                  .map(Variant::getTag)
-                  .collect(Collectors.toUnmodifiableSet()));
-          return null;
-        });
+    retryTemplate.execute(context -> {
+      usageCollector.reconcileSystemDataWithHbi(
+          orgId,
+          SubscriptionDefinition.filterVariants(variant ->
+                  variant.getSubscription() != null && !variant.getSubscription().isPaygEligible())
+              .stream()
+              .map(Variant::getTag)
+              .collect(Collectors.toUnmodifiableSet()));
+      return null;
+    });
     return usageCollector.tally(orgId);
   }
 

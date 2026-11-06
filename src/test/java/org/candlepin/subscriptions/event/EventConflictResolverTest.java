@@ -678,12 +678,11 @@ class EventConflictResolverTest {
   }
 
   private void sortEventCollections(List<Event> events) {
-    events.forEach(
-        event ->
-            event.setMeasurements(
-                event.getMeasurements().stream()
-                    .sorted(Comparator.comparing(Measurement::getMetricId))
-                    .toList()));
+    events.forEach(event ->
+        event.setMeasurements(
+            event.getMeasurements().stream()
+                .sorted(Comparator.comparing(Measurement::getMetricId))
+                .toList()));
   }
 
   public static class EventArgument {
@@ -715,11 +714,8 @@ class EventConflictResolverTest {
               instanceId,
               timestamp,
               measurements.entrySet().stream()
-                  .map(
-                      entry ->
-                          new Measurement()
-                              .withMetricId(entry.getKey())
-                              .withValue(entry.getValue()))
+                  .map(entry ->
+                      new Measurement().withMetricId(entry.getKey()).withValue(entry.getValue()))
                   .toList());
       event.setProductTag(tags);
       event.setAmendmentType(Objects.isNull(amendmentType) ? null : amendmentType);

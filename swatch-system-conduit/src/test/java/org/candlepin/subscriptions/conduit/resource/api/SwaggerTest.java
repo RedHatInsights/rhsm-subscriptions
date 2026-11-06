@@ -64,11 +64,10 @@ class SwaggerTest extends ConduitBaseTest {
 
   static Stream<Arguments> urlsPermittedWithoutAuth() {
     return Stream.of(ApiSecurityConfiguration.URLS_PERMITTED_WITHOUT_AUTH)
-        .map(
-            pattern -> {
-              String concreteUrl = WILDCARD_TO_CONCRETE.getOrDefault(pattern, pattern);
-              return Arguments.of(pattern, concreteUrl);
-            });
+        .map(pattern -> {
+          String concreteUrl = WILDCARD_TO_CONCRETE.getOrDefault(pattern, pattern);
+          return Arguments.of(pattern, concreteUrl);
+        });
   }
 
   @ParameterizedTest(name = "pattern \"{0}\" -> {1}")

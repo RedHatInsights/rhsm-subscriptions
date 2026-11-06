@@ -98,22 +98,21 @@ public class InventoryAccountUsageCollector {
     AccountUsageCalculation calculation = new AccountUsageCalculation(orgId);
     try (Stream<AccountBucketTally> tallyStream =
         tallyBucketRepository.tallyHostBuckets(orgId, HBI_INSTANCE_TYPE)) {
-      tallyStream.forEach(
-          bucketTally -> {
-            UsageCalculation usageCalc =
-                calculation.getOrCreateCalculation(
-                    new Key(
-                        bucketTally.getProductId(),
-                        bucketTally.getSla(),
-                        bucketTally.getUsage(),
-                        bucketTally.getBillingProvider(),
-                        bucketTally.getBillingAccountId()));
-            usageCalc.add(
-                bucketTally.getMeasurementType(),
-                Optional.ofNullable(bucketTally.getCores()).orElse(0.0),
-                Optional.ofNullable(bucketTally.getSockets()).orElse(0.0),
-                bucketTally.getInstances());
-          });
+      tallyStream.forEach(bucketTally -> {
+        UsageCalculation usageCalc =
+            calculation.getOrCreateCalculation(
+                new Key(
+                    bucketTally.getProductId(),
+                    bucketTally.getSla(),
+                    bucketTally.getUsage(),
+                    bucketTally.getBillingProvider(),
+                    bucketTally.getBillingAccountId()));
+        usageCalc.add(
+            bucketTally.getMeasurementType(),
+            Optional.ofNullable(bucketTally.getCores()).orElse(0.0),
+            Optional.ofNullable(bucketTally.getSockets()).orElse(0.0),
+            bucketTally.getInstances());
+      });
       return calculation;
     }
   }
@@ -173,17 +172,15 @@ public class InventoryAccountUsageCollector {
     Set<List<Object>> usageTuples =
         Sets.cartesianProduct(products, slas, usages, billingProviders, billingAccountIds);
     return usageTuples.stream()
-        .map(
-            tuple -> {
-              String product = (String) tuple.get(0);
-              ServiceLevel sla = (ServiceLevel) tuple.get(1);
-              Usage usage = (Usage) tuple.get(2);
-              BillingProvider billingProvider = (BillingProvider) tuple.get(3);
-              String billingAccountId = (String) tuple.get(4);
+        .map(tuple -> {
+          String product = (String) tuple.get(0);
+          ServiceLevel sla = (ServiceLevel) tuple.get(1);
+          Usage usage = (Usage) tuple.get(2);
+          BillingProvider billingProvider = (BillingProvider) tuple.get(3);
+          String billingAccountId = (String) tuple.get(4);
 
-              return new UsageCalculation.Key(
-                  product, sla, usage, billingProvider, billingAccountId);
-            })
+          return new UsageCalculation.Key(product, sla, usage, billingProvider, billingAccountId);
+        })
         .collect(Collectors.toSet());
   }
 
@@ -314,17 +311,16 @@ public class InventoryAccountUsageCollector {
         system.setNumOfGuests(placeholder.getNumOfGuests());
         placeholder
             .getBuckets()
-            .forEach(
-                bucket -> {
-                  if (normalizedFacts.getCores() != null) {
-                    bucket.setCores(normalizedFacts.getCores());
-                  }
-                  if (normalizedFacts.getSockets() != null) {
-                    bucket.setSockets(normalizedFacts.getSockets());
-                  }
-                  system.addBucket(bucket);
-                  seenBucketKeys.add(bucket.getKey());
-                });
+            .forEach(bucket -> {
+              if (normalizedFacts.getCores() != null) {
+                bucket.setCores(normalizedFacts.getCores());
+              }
+              if (normalizedFacts.getSockets() != null) {
+                bucket.setSockets(normalizedFacts.getSockets());
+              }
+              system.addBucket(bucket);
+              seenBucketKeys.add(bucket.getKey());
+            });
       }
     }
     // remove any buckets for guests no longer present
@@ -332,11 +328,10 @@ public class InventoryAccountUsageCollector {
     // subscription requirements (i.e. the bucket was populated from a guest).
     system
         .getBuckets()
-        .removeIf(
-            b ->
-                b.getKey().getAsHypervisor()
-                    && !seenBucketKeys.contains(b.getKey())
-                    && applicableProducts.contains(b.getKey().getProductId()));
+        .removeIf(b ->
+            b.getKey().getAsHypervisor()
+                && !seenBucketKeys.contains(b.getKey())
+                && applicableProducts.contains(b.getKey().getProductId()));
   }
 
   private Host createSwatchSystem(
@@ -381,13 +376,12 @@ public class InventoryAccountUsageCollector {
       }
       Optional<HostTallyBucket> appliedBucket =
           ProductUsageCollectorFactory.get(product).buildBucket(key, facts);
-      appliedBucket.ifPresent(
-          bucket -> {
-            // host.addBucket changes bucket.key.hostId, so we do that first; to
-            // avoid mutating the item in the set
-            host.addBucket(bucket);
-            seenBucketKeys.add(bucket.getKey());
-          });
+      appliedBucket.ifPresent(bucket -> {
+        // host.addBucket changes bucket.key.hostId, so we do that first; to
+        // avoid mutating the item in the set
+        host.addBucket(bucket);
+        seenBucketKeys.add(bucket.getKey());
+      });
     }
     // Remove any *non-hypervisor* keys that weren't seen this time.
     // Hypervisor keys need to be evaluated against hypervisor-guest data and are handled by
@@ -395,11 +389,10 @@ public class InventoryAccountUsageCollector {
     // NOTE: asHypervisor=false is used to operate solely on buckets for this system (filtering out
     // those added for a guest system).
     host.getBuckets()
-        .removeIf(
-            b ->
-                !b.getKey().getAsHypervisor()
-                    && !seenBucketKeys.contains(b.getKey())
-                    && applicableProducts.contains(b.getKey().getProductId()));
+        .removeIf(b ->
+            !b.getKey().getAsHypervisor()
+                && !seenBucketKeys.contains(b.getKey())
+                && applicableProducts.contains(b.getKey().getProductId()));
   }
 
   private Host updateSwatchSystem(

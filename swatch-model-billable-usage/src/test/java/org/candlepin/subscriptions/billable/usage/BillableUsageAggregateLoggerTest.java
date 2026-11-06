@@ -341,12 +341,11 @@ class BillableUsageAggregateLoggerTest {
             .startsWith("Sent usage request to AWS: result=" + response));
     records.stream()
         .skip(1)
-        .forEach(
-            record -> {
-              assertFalse(record.getMessage().contains("Sent usage request to AWS"));
-              assertFalse(record.getMessage().contains("result="));
-              assertFalse(record.getMessage().contains(response));
-            });
+        .forEach(record -> {
+          assertFalse(record.getMessage().contains("Sent usage request to AWS"));
+          assertFalse(record.getMessage().contains("result="));
+          assertFalse(record.getMessage().contains(response));
+        });
     assertCollectionsPreserved(aggregate);
     assertBoundedEvents(aggregate);
   }
@@ -375,12 +374,11 @@ class BillableUsageAggregateLoggerTest {
             .startsWith("Sent usage request to AWS: result=" + details + ", Quantity=42,"));
     records.stream()
         .skip(1)
-        .forEach(
-            record -> {
-              assertFalse(record.getMessage().contains("Sent usage request to AWS"));
-              assertFalse(record.getMessage().contains("Quantity="));
-              assertFalse(record.getMessage().contains("result="));
-            });
+        .forEach(record -> {
+          assertFalse(record.getMessage().contains("Sent usage request to AWS"));
+          assertFalse(record.getMessage().contains("Quantity="));
+          assertFalse(record.getMessage().contains("result="));
+        });
     assertCollectionsPreserved(aggregate);
     assertBoundedEvents(aggregate);
   }

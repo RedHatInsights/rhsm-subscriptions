@@ -123,19 +123,18 @@ public class InstancesJsonDataMapperService implements DataMapperService<TallyIn
 
   private List<InstancesExportJsonGuest> mapHostGuests(List<Host> guests) {
     return guests.stream()
-        .map(
-            guest ->
-                new InstancesExportJsonGuest()
-                    .withDisplayName(guest.getDisplayName())
-                    .withHardwareType(
-                        guest.getHardwareType() == null ? null : guest.getHardwareType().toString())
-                    .withInsightsId(guest.getInsightsId())
-                    .withInventoryId(guest.getInventoryId())
-                    .withSubscriptionManagerId(guest.getSubscriptionManagerId())
-                    .withLastSeen(guest.getLastSeen())
-                    .withCloudProvider(guest.getCloudProvider())
-                    .withIsUnmappedGuest(guest.isUnmappedGuest())
-                    .withIsHypervisor(guest.isHypervisor()))
+        .map(guest ->
+            new InstancesExportJsonGuest()
+                .withDisplayName(guest.getDisplayName())
+                .withHardwareType(
+                    guest.getHardwareType() == null ? null : guest.getHardwareType().toString())
+                .withInsightsId(guest.getInsightsId())
+                .withInventoryId(guest.getInventoryId())
+                .withSubscriptionManagerId(guest.getSubscriptionManagerId())
+                .withLastSeen(guest.getLastSeen())
+                .withCloudProvider(guest.getCloudProvider())
+                .withIsUnmappedGuest(guest.isUnmappedGuest())
+                .withIsHypervisor(guest.isHypervisor()))
         .toList();
   }
 

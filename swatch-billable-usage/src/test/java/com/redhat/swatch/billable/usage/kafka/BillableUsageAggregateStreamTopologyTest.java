@@ -283,14 +283,11 @@ class BillableUsageAggregateStreamTopologyTest {
   private Optional<Meter> getIngestedUsageAggregatedMetric(
       String productTag, String metricId, String billingProvider) {
     return meterRegistry.getMeters().stream()
-        .filter(
-            m ->
-                USAGE_TOTAL_AGGREGATED_METRIC.equals(m.getId().getName())
-                    && productTag.equals(m.getId().getTag("product"))
-                    && MetricId.fromString(metricId)
-                        .getValue()
-                        .equals(m.getId().getTag("metric_id"))
-                    && billingProvider.equals(m.getId().getTag("billing_provider")))
+        .filter(m ->
+            USAGE_TOTAL_AGGREGATED_METRIC.equals(m.getId().getName())
+                && productTag.equals(m.getId().getTag("product"))
+                && MetricId.fromString(metricId).getValue().equals(m.getId().getTag("metric_id"))
+                && billingProvider.equals(m.getId().getTag("billing_provider")))
         .findFirst();
   }
 }

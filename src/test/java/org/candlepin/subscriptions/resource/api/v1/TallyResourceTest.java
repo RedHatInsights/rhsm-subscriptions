@@ -137,23 +137,22 @@ class TallyResourceTest {
       var end = applicationClock.endOfMonth(TEST_DATE);
       List<TallyMeasurementAggregate> aggregates =
           Stream.of(1, 2, 8)
-              .map(
-                  i -> {
-                    var aggregate = new TallyMeasurementAggregate();
-                    aggregate.setSnapshotDate(
-                        OffsetDateTime.of(
-                            TEST_DATE.getYear(),
-                            TEST_DATE.getMonthValue(),
-                            i,
-                            12,
-                            35,
-                            0,
-                            0,
-                            ZoneOffset.UTC));
-                    aggregate.setMetricId(MetricIdUtils.getCores().toString());
-                    aggregate.setValue(i * 2.0);
-                    return aggregate;
-                  })
+              .map(i -> {
+                var aggregate = new TallyMeasurementAggregate();
+                aggregate.setSnapshotDate(
+                    OffsetDateTime.of(
+                        TEST_DATE.getYear(),
+                        TEST_DATE.getMonthValue(),
+                        i,
+                        12,
+                        35,
+                        0,
+                        0,
+                        ZoneOffset.UTC));
+                aggregate.setMetricId(MetricIdUtils.getCores().toString());
+                aggregate.setValue(i * 2.0);
+                return aggregate;
+              })
               .collect(Collectors.toList());
 
       Mockito.when(
@@ -198,26 +197,23 @@ class TallyResourceTest {
       assertTrue(firstSnapshot.getHasData());
 
       var snapshots2Through7 = response.getData().subList(1, 7);
-      snapshots2Through7.forEach(
-          snapshot -> {
-            assertTrue(snapshot.getHasData());
-            assertEquals(6, snapshot.getValue());
-          });
+      snapshots2Through7.forEach(snapshot -> {
+        assertTrue(snapshot.getHasData());
+        assertEquals(6, snapshot.getValue());
+      });
 
       var snapshots8ThroughPresent = response.getData().subList(7, TEST_DATE.getDayOfMonth());
-      snapshots8ThroughPresent.forEach(
-          snapshot -> {
-            assertTrue(snapshot.getHasData());
-            assertEquals(22, snapshot.getValue());
-          });
+      snapshots8ThroughPresent.forEach(snapshot -> {
+        assertTrue(snapshot.getHasData());
+        assertEquals(22, snapshot.getValue());
+      });
 
       var snapshotsPresentToEndOfMonth =
           response.getData().subList(TEST_DATE.getDayOfMonth(), TEST_DATE.getMonth().length(false));
-      snapshotsPresentToEndOfMonth.forEach(
-          snapshot -> {
-            assertFalse(snapshot.getHasData());
-            assertEquals(0, snapshot.getValue());
-          });
+      snapshotsPresentToEndOfMonth.forEach(snapshot -> {
+        assertFalse(snapshot.getHasData());
+        assertEquals(0, snapshot.getValue());
+      });
 
       assertEquals(22, response.getMeta().getTotalMonthly().getValue());
     }
@@ -746,15 +742,14 @@ class TallyResourceTest {
     void testRunningTotalFormatUsedForNewerTallyAPI() {
       List<TallyMeasurementAggregate> aggregates =
           Stream.of(1, 2, 8)
-              .map(
-                  i -> {
-                    var aggregate = new TallyMeasurementAggregate();
-                    aggregate.setSnapshotDate(
-                        OffsetDateTime.of(2023, 3, i, 12, 35, 0, 0, ZoneOffset.UTC));
-                    aggregate.setMetricId(MetricIdUtils.getCores().toString());
-                    aggregate.setValue(i * 2.0);
-                    return aggregate;
-                  })
+              .map(i -> {
+                var aggregate = new TallyMeasurementAggregate();
+                aggregate.setSnapshotDate(
+                    OffsetDateTime.of(2023, 3, i, 12, 35, 0, 0, ZoneOffset.UTC));
+                aggregate.setMetricId(MetricIdUtils.getCores().toString());
+                aggregate.setValue(i * 2.0);
+                return aggregate;
+              })
               .collect(Collectors.toList());
 
       TallyReportTotalMonthly expectedTotalMonthly =
@@ -806,15 +801,14 @@ class TallyResourceTest {
     void testMonthlyTotalsRoundedUpToNearestInteger() {
       List<TallyMeasurementAggregate> aggregates =
           Stream.of(1, 2)
-              .map(
-                  i -> {
-                    var aggregate = new TallyMeasurementAggregate();
-                    aggregate.setSnapshotDate(
-                        OffsetDateTime.of(2023, 3, i, 12, 35, 0, 0, ZoneOffset.UTC));
-                    aggregate.setMetricId(MetricIdUtils.getCores().toString());
-                    aggregate.setValue(1.3);
-                    return aggregate;
-                  })
+              .map(i -> {
+                var aggregate = new TallyMeasurementAggregate();
+                aggregate.setSnapshotDate(
+                    OffsetDateTime.of(2023, 3, i, 12, 35, 0, 0, ZoneOffset.UTC));
+                aggregate.setMetricId(MetricIdUtils.getCores().toString());
+                aggregate.setValue(1.3);
+                return aggregate;
+              })
               .collect(Collectors.toList());
 
       TallyReportTotalMonthly expectedTotalMonthly =
@@ -1083,23 +1077,22 @@ class TallyResourceTest {
       var end = applicationClock.endOfMonth(TEST_DATE);
       List<TallySnapshot> snapshots =
           Stream.of(1, 2, 8)
-              .map(
-                  i -> {
-                    var snapshot = new TallySnapshot();
-                    snapshot.setSnapshotDate(
-                        OffsetDateTime.of(
-                            TEST_DATE.getYear(),
-                            TEST_DATE.getMonthValue(),
-                            i,
-                            12,
-                            35,
-                            0,
-                            0,
-                            ZoneOffset.UTC));
-                    snapshot.setMeasurement(
-                        HardwareMeasurementType.TOTAL, MetricIdUtils.getCores(), i * 2.0);
-                    return snapshot;
-                  })
+              .map(i -> {
+                var snapshot = new TallySnapshot();
+                snapshot.setSnapshotDate(
+                    OffsetDateTime.of(
+                        TEST_DATE.getYear(),
+                        TEST_DATE.getMonthValue(),
+                        i,
+                        12,
+                        35,
+                        0,
+                        0,
+                        ZoneOffset.UTC));
+                snapshot.setMeasurement(
+                    HardwareMeasurementType.TOTAL, MetricIdUtils.getCores(), i * 2.0);
+                return snapshot;
+              })
               .collect(Collectors.toList());
 
       Mockito.when(
@@ -1141,26 +1134,23 @@ class TallyResourceTest {
       assertTrue(firstSnapshot.getHasData());
 
       var snapshots2Through7 = response.getData().subList(1, 7);
-      snapshots2Through7.forEach(
-          snapshot -> {
-            assertTrue(snapshot.getHasData());
-            assertEquals(6, snapshot.getValue());
-          });
+      snapshots2Through7.forEach(snapshot -> {
+        assertTrue(snapshot.getHasData());
+        assertEquals(6, snapshot.getValue());
+      });
 
       var snapshots8ThroughPresent = response.getData().subList(7, TEST_DATE.getDayOfMonth());
-      snapshots8ThroughPresent.forEach(
-          snapshot -> {
-            assertTrue(snapshot.getHasData());
-            assertEquals(22, snapshot.getValue());
-          });
+      snapshots8ThroughPresent.forEach(snapshot -> {
+        assertTrue(snapshot.getHasData());
+        assertEquals(22, snapshot.getValue());
+      });
 
       var snapshotsPresentToEndOfMonth =
           response.getData().subList(TEST_DATE.getDayOfMonth(), TEST_DATE.getMonth().length(false));
-      snapshotsPresentToEndOfMonth.forEach(
-          snapshot -> {
-            assertFalse(snapshot.getHasData());
-            assertEquals(0, snapshot.getValue());
-          });
+      snapshotsPresentToEndOfMonth.forEach(snapshot -> {
+        assertFalse(snapshot.getHasData());
+        assertEquals(0, snapshot.getValue());
+      });
 
       assertEquals(22, response.getMeta().getTotalMonthly().getValue());
     }
@@ -1457,15 +1447,14 @@ class TallyResourceTest {
     void testRunningTotalFormatUsedForNewerTallyAPI() {
       List<TallySnapshot> snapshots =
           Stream.of(1, 2, 8)
-              .map(
-                  i -> {
-                    var snapshot = new TallySnapshot();
-                    snapshot.setSnapshotDate(
-                        OffsetDateTime.of(2023, 3, i, 12, 35, 0, 0, ZoneOffset.UTC));
-                    snapshot.setMeasurement(
-                        HardwareMeasurementType.TOTAL, MetricIdUtils.getCores(), i * 2.0);
-                    return snapshot;
-                  })
+              .map(i -> {
+                var snapshot = new TallySnapshot();
+                snapshot.setSnapshotDate(
+                    OffsetDateTime.of(2023, 3, i, 12, 35, 0, 0, ZoneOffset.UTC));
+                snapshot.setMeasurement(
+                    HardwareMeasurementType.TOTAL, MetricIdUtils.getCores(), i * 2.0);
+                return snapshot;
+              })
               .collect(Collectors.toList());
 
       TallyReportTotalMonthly expectedTotalMonthly =
@@ -1516,15 +1505,14 @@ class TallyResourceTest {
     void testMonthlyTotalsRoundedUpToNearestInteger() {
       List<TallySnapshot> snapshots =
           Stream.of(1, 2)
-              .map(
-                  i -> {
-                    var snapshot = new TallySnapshot();
-                    snapshot.setSnapshotDate(
-                        OffsetDateTime.of(2023, 3, i, 12, 35, 0, 0, ZoneOffset.UTC));
-                    snapshot.setMeasurement(
-                        HardwareMeasurementType.TOTAL, MetricIdUtils.getCores(), 1.3);
-                    return snapshot;
-                  })
+              .map(i -> {
+                var snapshot = new TallySnapshot();
+                snapshot.setSnapshotDate(
+                    OffsetDateTime.of(2023, 3, i, 12, 35, 0, 0, ZoneOffset.UTC));
+                snapshot.setMeasurement(
+                    HardwareMeasurementType.TOTAL, MetricIdUtils.getCores(), 1.3);
+                return snapshot;
+              })
               .collect(Collectors.toList());
 
       TallyReportTotalMonthly expectedTotalMonthly =
@@ -1922,24 +1910,20 @@ class TallyResourceTest {
       Map<OffsetDateTime, Integer> values) {
     var capacityApiCategory =
         Optional.ofNullable(category)
-            .map(
-                c ->
-                    com.redhat.swatch.contracts.spring.api.model.ReportCategory.fromValue(
-                        c.toString()))
+            .map(c ->
+                com.redhat.swatch.contracts.spring.api.model.ReportCategory.fromValue(c.toString()))
             .orElse(null);
     var capacityApiGranularity =
         Optional.ofNullable(granularity)
-            .map(
-                c ->
-                    com.redhat.swatch.contracts.spring.api.model.GranularityType.fromValue(
-                        c.toString()))
+            .map(c ->
+                com.redhat.swatch.contracts.spring.api.model.GranularityType.fromValue(
+                    c.toString()))
             .orElse(null);
     var capacitySla =
         Optional.ofNullable(sla)
-            .map(
-                c ->
-                    com.redhat.swatch.contracts.spring.api.model.ServiceLevelType.fromValue(
-                        c.toString()))
+            .map(c ->
+                com.redhat.swatch.contracts.spring.api.model.ServiceLevelType.fromValue(
+                    c.toString()))
             .orElse(null);
     var capacityUsage =
         Optional.ofNullable(usage)

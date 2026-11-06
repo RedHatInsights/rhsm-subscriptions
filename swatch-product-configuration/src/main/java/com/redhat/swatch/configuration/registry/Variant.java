@@ -69,9 +69,8 @@ public class Variant {
       String productId, SubscriptionDefinitionGranularity granularity) {
     return findByTag(productId).stream()
         .map(Variant::getSubscription)
-        .anyMatch(
-            subscriptionDefinition ->
-                subscriptionDefinition.getSupportedGranularity().contains(granularity));
+        .anyMatch(subscriptionDefinition ->
+            subscriptionDefinition.getSupportedGranularity().contains(granularity));
   }
 
   public static boolean isValidProductTag(String productId) {

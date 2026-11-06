@@ -219,16 +219,12 @@ public class OfferingContractComponentTest extends BaseContractComponentTest {
       List<com.redhat.swatch.contract.test.model.Contract> contracts, Contract expectedContract) {
     var actualContract =
         contracts.stream()
-            .filter(
-                contract ->
-                    expectedContract
-                        .getSubscriptionNumber()
-                        .equals(contract.getSubscriptionNumber()))
+            .filter(contract ->
+                expectedContract.getSubscriptionNumber().equals(contract.getSubscriptionNumber()))
             .findFirst()
-            .orElseThrow(
-                () ->
-                    new AssertionError(
-                        "Active contract not found: " + expectedContract.getSubscriptionNumber()));
+            .orElseThrow(() ->
+                new AssertionError(
+                    "Active contract not found: " + expectedContract.getSubscriptionNumber()));
 
     assertEquals(orgId, actualContract.getOrgId(), "Contract organization should match");
     assertEquals(
@@ -292,9 +288,8 @@ public class OfferingContractComponentTest extends BaseContractComponentTest {
     for (var contract : contracts) {
       assertTrue(
           skuCapacity.getSubscriptions().stream()
-              .anyMatch(
-                  subscription ->
-                      contract.getSubscriptionNumber().equals(subscription.getNumber())),
+              .anyMatch(subscription ->
+                  contract.getSubscriptionNumber().equals(subscription.getNumber())),
           "SKU capacity should include contract " + contract.getSubscriptionNumber());
     }
   }
@@ -315,10 +310,8 @@ public class OfferingContractComponentTest extends BaseContractComponentTest {
           actualContract.getMetrics().stream()
               .filter(m -> m.getMetricId().equals(metricId))
               .findFirst()
-              .orElseThrow(
-                  () ->
-                      new AssertionError(
-                          "Metric '" + metricId + "' not found in contract metrics"));
+              .orElseThrow(() ->
+                  new AssertionError("Metric '" + metricId + "' not found in contract metrics"));
 
       assertEquals(
           expectedValue,

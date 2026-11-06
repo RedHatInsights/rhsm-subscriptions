@@ -234,9 +234,8 @@ public class OfferingTagsComponentTest extends BaseContractComponentTest {
           metrics.stream()
               .filter(metric -> expected.getId().equals(metric.getMetricId()))
               .findFirst()
-              .orElseThrow(
-                  () ->
-                      new AssertionError("Missing metric_id " + expected.getId() + " in response"));
+              .orElseThrow(() ->
+                  new AssertionError("Missing metric_id " + expected.getId() + " in response"));
       assertNotNull(actual.getAwsDimension(), "aws_dimension must not be null");
       assertFalse(actual.getAwsDimension().isBlank(), "aws_dimension must not be blank");
       assertEquals(

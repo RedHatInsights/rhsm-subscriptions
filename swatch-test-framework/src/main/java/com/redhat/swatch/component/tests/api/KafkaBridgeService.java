@@ -287,12 +287,11 @@ public class KafkaBridgeService extends RestService {
     }
 
     keepAliveScheduler =
-        Executors.newSingleThreadScheduledExecutor(
-            r -> {
-              Thread t = new Thread(r, "kafka-consumer-keepalive");
-              t.setDaemon(true);
-              return t;
-            });
+        Executors.newSingleThreadScheduledExecutor(r -> {
+          Thread t = new Thread(r, "kafka-consumer-keepalive");
+          t.setDaemon(true);
+          return t;
+        });
 
     Log.debug(
         this,

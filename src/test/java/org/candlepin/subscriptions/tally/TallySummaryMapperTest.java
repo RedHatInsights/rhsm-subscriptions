@@ -74,12 +74,11 @@ class TallySummaryMapperTest {
   void setUpMonthEnd() {
     lenient()
         .when(clock.endOfMonth(any(OffsetDateTime.class)))
-        .thenAnswer(
-            invocation -> {
-              OffsetDateTime date = invocation.getArgument(0);
-              var lastDay = date.with(TemporalAdjusters.lastDayOfMonth());
-              return lastDay.with(LocalTime.MAX);
-            });
+        .thenAnswer(invocation -> {
+          OffsetDateTime date = invocation.getArgument(0);
+          var lastDay = date.with(TemporalAdjusters.lastDayOfMonth());
+          return lastDay.with(LocalTime.MAX);
+        });
   }
 
   @ParameterizedTest

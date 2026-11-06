@@ -86,13 +86,12 @@ class SystemProfileFactsTest {
     profile.setIsMarketplace(expectedIsMarketplace);
     profile.setInstalledProducts(
         expectedProductIds.stream()
-            .map(
-                id -> {
-                  HbiHostSystemProfile.InstalledProduct product =
-                      new HbiHostSystemProfile.InstalledProduct();
-                  product.setId(id);
-                  return product;
-                })
+            .map(id -> {
+              HbiHostSystemProfile.InstalledProduct product =
+                  new HbiHostSystemProfile.InstalledProduct();
+              product.setId(id);
+              return product;
+            })
             .toList());
     HbiHostSystemProfile.Conversion conversion = new HbiHostSystemProfile.Conversion();
     conversion.setActivity(expectedIs3rdPartyMigrated);

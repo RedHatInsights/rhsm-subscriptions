@@ -88,18 +88,18 @@ public interface InventoryRepository extends Repository<InventoryHost, UUID> {
       nativeQuery = true,
       value =
           """
-        select
-        h.subscription_manager_id as subscription_manager_id
-        from hosts h
-        inner join system_profiles_static sps on h.id = sps.host_id
-        left join hbi.staleness s on h.org_id = s.org_id
-        where h.org_id=:orgId
-           and (h.facts->'rhsm'->>'BILLING_MODEL' IS NULL OR h.facts->'rhsm'->>'BILLING_MODEL' <> 'marketplace')
-           and (sps.host_type IS NULL OR sps.host_type <> 'edge')
-           and h.last_check_in + make_interval(secs => coalesce(s.conventional_time_to_stale, :stalenessOffsetSeconds)) > NOW() - make_interval(days => :culledOffsetDays)
-        -- NOTE: ordering is crucial for correct streaming reconciliation of HBI data
-        order by subscription_manager_id, h.id, h.org_id
-      """)
+            select
+            h.subscription_manager_id as subscription_manager_id
+            from hosts h
+            inner join system_profiles_static sps on h.id = sps.host_id
+            left join hbi.staleness s on h.org_id = s.org_id
+            where h.org_id=:orgId
+               and (h.facts->'rhsm'->>'BILLING_MODEL' IS NULL OR h.facts->'rhsm'->>'BILLING_MODEL' <> 'marketplace')
+               and (sps.host_type IS NULL OR sps.host_type <> 'edge')
+               and h.last_check_in + make_interval(secs => coalesce(s.conventional_time_to_stale, :stalenessOffsetSeconds)) > NOW() - make_interval(days => :culledOffsetDays)
+            -- NOTE: ordering is crucial for correct streaming reconciliation of HBI data
+            order by subscription_manager_id, h.id, h.org_id
+          """)
   @QueryHints(
       value = {
         @QueryHint(name = HINT_FETCH_SIZE, value = "1024"),

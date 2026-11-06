@@ -50,11 +50,9 @@ public class TallySummaryMessageConsumer {
       factor = "${BILLING_PRODUCER_BACK_OFF_MULTIPLIER:2}")
   public void consume(TallySummary payload, KafkaMessageMetadata<?> metadata) {
     MessageHelper.findFirstHeaderAsString(metadata, RECEIVED_KEY)
-        .ifPresent(
-            kafkaMessageKey ->
-                log.debug(
-                    "Tally Summary received w/ key={}. Producing billable usage.",
-                    kafkaMessageKey));
+        .ifPresent(kafkaMessageKey ->
+            log.debug(
+                "Tally Summary received w/ key={}. Producing billable usage.", kafkaMessageKey));
 
     billableUsageMapper
         .fromTallySummary(payload)

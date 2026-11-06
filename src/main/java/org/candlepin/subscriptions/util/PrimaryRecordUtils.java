@@ -138,10 +138,8 @@ public class PrimaryRecordUtils {
 
     SubscriptionDefinition subscriptionDefinition =
         SubscriptionDefinition.lookupSubscriptionByTag(productId)
-            .orElseThrow(
-                () ->
-                    new IllegalStateException(
-                        productId + " missing in subscription configuration"));
+            .orElseThrow(() ->
+                new IllegalStateException(productId + " missing in subscription configuration"));
 
     if (subscriptionDefinition.isPaygEligible()) {
       boolean billingProviderIsNotAny = billingProvider != BillingProvider._ANY;

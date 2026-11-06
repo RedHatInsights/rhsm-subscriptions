@@ -176,25 +176,22 @@ public class SubscriptionTableControllerV1 {
       }
       if (hypervisorReportCategory == HypervisorReportCategory.HYPERVISOR) {
         measurements =
-            measurements.filter(
-                entry ->
-                    ReportCategory.HYPERVISOR
-                        .toString()
-                        .equalsIgnoreCase(entry.getKey().getMeasurementType()));
+            measurements.filter(entry ->
+                ReportCategory.HYPERVISOR
+                    .toString()
+                    .equalsIgnoreCase(entry.getKey().getMeasurementType()));
       } else if (hypervisorReportCategory == HypervisorReportCategory.NON_HYPERVISOR) {
         measurements =
-            measurements.filter(
-                entry ->
-                    !ReportCategory.HYPERVISOR
-                        .toString()
-                        .equalsIgnoreCase(entry.getKey().getMeasurementType()));
+            measurements.filter(entry ->
+                !ReportCategory.HYPERVISOR
+                    .toString()
+                    .equalsIgnoreCase(entry.getKey().getMeasurementType()));
       }
-      measurements.forEach(
-          entry -> {
-            var measurementKey = entry.getKey();
-            var value = entry.getValue();
-            addTotalCapacity(subscription, measurementKey, value, inventory);
-          });
+      measurements.forEach(entry -> {
+        var measurementKey = entry.getKey();
+        var value = entry.getValue();
+        addTotalCapacity(subscription, measurementKey, value, inventory);
+      });
     }
 
     for (SubscriptionEntity subscription : unlimitedSubs) {
@@ -274,15 +271,14 @@ public class SubscriptionTableControllerV1 {
                 .build(),
             Sort.empty());
 
-    subscriptions.forEach(
-        sub -> {
-          var sku = sub.getOffering().getSku();
-          final SkuCapacityV1 inventory =
-              inventories.computeIfAbsent(
-                  String.format("%s:%s", sku, sub.getBillingProvider()),
-                  key -> initializeSkuCapacity(sub, NO_METRIC_ID));
-          addOnDemandSubscriptionInformation(sub, inventory);
-        });
+    subscriptions.forEach(sub -> {
+      var sku = sub.getOffering().getSku();
+      final SkuCapacityV1 inventory =
+          inventories.computeIfAbsent(
+              String.format("%s:%s", sku, sub.getBillingProvider()),
+              key -> initializeSkuCapacity(sub, NO_METRIC_ID));
+      addOnDemandSubscriptionInformation(sub, inventory);
+    });
     return inventories.values();
   }
 
@@ -389,32 +385,31 @@ public class SubscriptionTableControllerV1 {
 
   private static void sortCapacities(
       List<SkuCapacityV1> items, SkuCapacityReportSortV1 sort, SortDirection dir) {
-    items.sort(
-        (left, right) -> {
-          var sortField = Optional.ofNullable(sort).orElse(SkuCapacityReportSortV1.SKU);
-          int sortDir = 1;
-          if (dir == SortDirection.DESC) {
-            sortDir = -1;
-          }
-          int diff =
-              switch (sortField) {
-                case SKU -> left.getSku().compareTo(right.getSku());
-                case SERVICE_LEVEL -> left.getServiceLevel().compareTo(right.getServiceLevel());
-                case USAGE -> left.getUsage().compareTo(right.getUsage());
-                case QUANTITY -> left.getQuantity().compareTo(right.getQuantity());
-                case NEXT_EVENT_DATE -> left.getNextEventDate().compareTo(right.getNextEventDate());
-                case NEXT_EVENT_TYPE -> left.getNextEventType().compareTo(right.getNextEventType());
-                case TOTAL_CAPACITY -> compareTotalCapacity(left, right);
-                case PRODUCT_NAME -> left.getProductName().compareTo(right.getProductName());
-              };
-          // If the two items are sorted by some other field than SKU and are equal, then break the
-          // tie by sorting by SKU. No two SKUs in the list are equal.
-          if (diff == 0 && sortField != SkuCapacityReportSortV1.SKU) {
-            diff = left.getSku().compareTo(right.getSku());
-          }
+    items.sort((left, right) -> {
+      var sortField = Optional.ofNullable(sort).orElse(SkuCapacityReportSortV1.SKU);
+      int sortDir = 1;
+      if (dir == SortDirection.DESC) {
+        sortDir = -1;
+      }
+      int diff =
+          switch (sortField) {
+            case SKU -> left.getSku().compareTo(right.getSku());
+            case SERVICE_LEVEL -> left.getServiceLevel().compareTo(right.getServiceLevel());
+            case USAGE -> left.getUsage().compareTo(right.getUsage());
+            case QUANTITY -> left.getQuantity().compareTo(right.getQuantity());
+            case NEXT_EVENT_DATE -> left.getNextEventDate().compareTo(right.getNextEventDate());
+            case NEXT_EVENT_TYPE -> left.getNextEventType().compareTo(right.getNextEventType());
+            case TOTAL_CAPACITY -> compareTotalCapacity(left, right);
+            case PRODUCT_NAME -> left.getProductName().compareTo(right.getProductName());
+          };
+      // If the two items are sorted by some other field than SKU and are equal, then break the
+      // tie by sorting by SKU. No two SKUs in the list are equal.
+      if (diff == 0 && sortField != SkuCapacityReportSortV1.SKU) {
+        diff = left.getSku().compareTo(right.getSku());
+      }
 
-          return diff * sortDir;
-        });
+      return diff * sortDir;
+    });
   }
 
   private static int compareTotalCapacity(SkuCapacityV1 left, SkuCapacityV1 right) {

@@ -859,30 +859,29 @@ class IsPrimaryUpdateServiceIT implements ExtendWithSwatchDatabase {
           Sets.cartesianProduct(slas, usages, billingProviders, billingAccountIds);
 
       return tuples.stream()
-          .map(
-              tuple -> {
-                ServiceLevel sla = (ServiceLevel) tuple.get(0);
-                Usage usage = (Usage) tuple.get(1);
-                BillingProvider billingProvider = (BillingProvider) tuple.get(2);
-                String billingAccountId = (String) tuple.get(3);
+          .map(tuple -> {
+            ServiceLevel sla = (ServiceLevel) tuple.get(0);
+            Usage usage = (Usage) tuple.get(1);
+            BillingProvider billingProvider = (BillingProvider) tuple.get(2);
+            String billingAccountId = (String) tuple.get(3);
 
-                var measurementType =
-                    (billingProvider.equals(BillingProvider._ANY))
-                        ? HardwareMeasurementType.PHYSICAL
-                        : HardwareMeasurementType.AWS;
+            var measurementType =
+                (billingProvider.equals(BillingProvider._ANY))
+                    ? HardwareMeasurementType.PHYSICAL
+                    : HardwareMeasurementType.AWS;
 
-                return new HostTallyBucket(
-                    h,
-                    productId,
-                    sla,
-                    usage,
-                    billingProvider,
-                    billingAccountId,
-                    false,
-                    10,
-                    10,
-                    measurementType);
-              })
+            return new HostTallyBucket(
+                h,
+                productId,
+                sla,
+                usage,
+                billingProvider,
+                billingAccountId,
+                false,
+                10,
+                10,
+                measurementType);
+          })
           .collect(Collectors.toSet());
     }
   }

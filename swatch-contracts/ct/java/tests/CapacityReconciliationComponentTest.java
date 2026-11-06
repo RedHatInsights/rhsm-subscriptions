@@ -696,36 +696,34 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
     await("All subscriptions should be reconciled with updated measurements")
         .atMost(2, MINUTES)
         .pollInterval(2, SECONDS)
-        .untilAsserted(
-            () -> {
-              // Verify SKU capacity report shows the reconciled capacity
-              var capacityReport =
-                  service.getSkuCapacityByProductIdForOrg(Product.OPENSHIFT, orgId);
-              assertNotNull(capacityReport.getData());
-              var skuCapacity =
-                  capacityReport.getData().stream()
-                      .filter(s -> sku.equals(s.getSku()))
-                      .findFirst()
-                      .orElse(null);
+        .untilAsserted(() -> {
+          // Verify SKU capacity report shows the reconciled capacity
+          var capacityReport = service.getSkuCapacityByProductIdForOrg(Product.OPENSHIFT, orgId);
+          assertNotNull(capacityReport.getData());
+          var skuCapacity =
+              capacityReport.getData().stream()
+                  .filter(s -> sku.equals(s.getSku()))
+                  .findFirst()
+                  .orElse(null);
 
-              assertThat(MSG_SKU_PRESENT_IN_REPORT, skuCapacity, notNullValue());
-              assertThat(
-                  "SKU should have measurements array after reconciliation",
-                  Objects.requireNonNull(skuCapacity).getMeasurements(),
-                  notNullValue());
-              assertFalse(
-                  skuCapacity.getMeasurements().isEmpty(),
-                  "Measurements should not be empty after reconciliation");
+          assertThat(MSG_SKU_PRESENT_IN_REPORT, skuCapacity, notNullValue());
+          assertThat(
+              "SKU should have measurements array after reconciliation",
+              Objects.requireNonNull(skuCapacity).getMeasurements(),
+              notNullValue());
+          assertFalse(
+              skuCapacity.getMeasurements().isEmpty(),
+              "Measurements should not be empty after reconciliation");
 
-              // Verify reconciliation calculated capacity correctly
-              // OpenShift has multiple core measurements (physical, hypervisor), so sum them
-              double totalCapacity =
-                  skuCapacity.getMeasurements().stream().mapToDouble(Double::doubleValue).sum();
-              assertThat(
-                  "Total cores capacity should match expected total from all subscriptions",
-                  totalCapacity,
-                  closeTo(expectedTotalCapacity, 0.01));
-            });
+          // Verify reconciliation calculated capacity correctly
+          // OpenShift has multiple core measurements (physical, hypervisor), so sum them
+          double totalCapacity =
+              skuCapacity.getMeasurements().stream().mapToDouble(Double::doubleValue).sum();
+          assertThat(
+              "Total cores capacity should match expected total from all subscriptions",
+              totalCapacity,
+              closeTo(expectedTotalCapacity, 0.01));
+        });
   }
 
   /**
@@ -742,38 +740,37 @@ public class CapacityReconciliationComponentTest extends BaseContractComponentTe
     await("Capacity measurement should match")
         .atMost(2, MINUTES)
         .pollInterval(2, SECONDS)
-        .untilAsserted(
-            () -> {
-              var capacityReport = service.getSkuCapacityByProductIdForOrg(product, orgId);
-              assertNotNull(capacityReport.getData());
-              var skuCapacity =
-                  capacityReport.getData().stream()
-                      .filter(s -> sku.equals(s.getSku()))
-                      .findFirst()
-                      .orElse(null);
-              assertThat(MSG_SKU_PRESENT_IN_REPORT, skuCapacity, notNullValue());
-              assertThat(
-                  "SKU should have measurements after reconciliation",
-                  Objects.requireNonNull(skuCapacity).getMeasurements(),
-                  notNullValue());
-              assertThat(
-                  minMeasurementsMessage,
-                  skuCapacity.getMeasurements().size(),
-                  greaterThanOrEqualTo(minMeasurements));
+        .untilAsserted(() -> {
+          var capacityReport = service.getSkuCapacityByProductIdForOrg(product, orgId);
+          assertNotNull(capacityReport.getData());
+          var skuCapacity =
+              capacityReport.getData().stream()
+                  .filter(s -> sku.equals(s.getSku()))
+                  .findFirst()
+                  .orElse(null);
+          assertThat(MSG_SKU_PRESENT_IN_REPORT, skuCapacity, notNullValue());
+          assertThat(
+              "SKU should have measurements after reconciliation",
+              Objects.requireNonNull(skuCapacity).getMeasurements(),
+              notNullValue());
+          assertThat(
+              minMeasurementsMessage,
+              skuCapacity.getMeasurements().size(),
+              greaterThanOrEqualTo(minMeasurements));
 
-              var metricOrder = capacityReport.getMeta().getMeasurements();
-              for (MetricExpectation exp : expectations) {
-                int metricIndex = metricOrder.indexOf(exp.metricName());
-                assertThat(
-                    exp.metricName() + " metric should be in report",
-                    metricIndex,
-                    greaterThanOrEqualTo(0));
-                assertThat(
-                    exp.assertionMessage(),
-                    skuCapacity.getMeasurements().get(metricIndex),
-                    closeTo(exp.expectedValue(), 0.01));
-              }
-            });
+          var metricOrder = capacityReport.getMeta().getMeasurements();
+          for (MetricExpectation exp : expectations) {
+            int metricIndex = metricOrder.indexOf(exp.metricName());
+            assertThat(
+                exp.metricName() + " metric should be in report",
+                metricIndex,
+                greaterThanOrEqualTo(0));
+            assertThat(
+                exp.assertionMessage(),
+                skuCapacity.getMeasurements().get(metricIndex),
+                closeTo(exp.expectedValue(), 0.01));
+          }
+        });
   }
 
   private void thenSubscriptionHasCoresMeasurement(

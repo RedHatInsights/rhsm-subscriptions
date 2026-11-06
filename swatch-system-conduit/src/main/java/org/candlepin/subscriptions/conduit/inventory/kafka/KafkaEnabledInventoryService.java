@@ -97,11 +97,10 @@ public class KafkaEnabledInventoryService extends InventoryService {
         // After the retry limit is reached, the exception will bubble up to the catch clause and
         // the
         // loop will move on.
-        retryTemplate.execute(
-            context -> {
-              sendToKafka(now, factSet);
-              return null;
-            });
+        retryTemplate.execute(context -> {
+          sendToKafka(now, factSet);
+          return null;
+        });
       } catch (Exception e) {
         recordFailure(e);
       }

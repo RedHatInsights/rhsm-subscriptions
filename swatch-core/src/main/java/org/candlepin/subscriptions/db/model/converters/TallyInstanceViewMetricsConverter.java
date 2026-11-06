@@ -58,15 +58,14 @@ public class TallyInstanceViewMetricsConverter
       Map<MetricId, Double> metrics = new HashMap<>();
       objectMapper
           .readValue(s, List.class)
-          .forEach(
-              e -> {
-                Map<String, Object> m = (Map<String, Object>) e;
-                String metricId = (String) m.get(METRIC_ID);
-                double value = Optional.ofNullable(m.get(VALUE)).map(this::toDouble).orElse(0.0);
-                if (metricId != null) {
-                  metrics.put(MetricId.fromString(metricId), value);
-                }
-              });
+          .forEach(e -> {
+            Map<String, Object> m = (Map<String, Object>) e;
+            String metricId = (String) m.get(METRIC_ID);
+            double value = Optional.ofNullable(m.get(VALUE)).map(this::toDouble).orElse(0.0);
+            if (metricId != null) {
+              metrics.put(MetricId.fromString(metricId), value);
+            }
+          });
       return metrics;
     } catch (JsonProcessingException e) {
       throw new IllegalArgumentException("Error parsing metrics", e);

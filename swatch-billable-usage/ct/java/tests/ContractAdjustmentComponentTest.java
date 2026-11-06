@@ -658,125 +658,112 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
             List.of(overage.getUuid().toString()),
             overage.getLicenseId()));
     // Same tally also has COVERED; wait until the overage remittance is FAILED.
-    AwaitilityUtils.untilAsserted(
-        () -> {
-          List<TallyRemittance> remittances =
-              service.getRemittancesByTally(overage.getTallyId().toString());
-          assertTrue(
-              remittances.stream()
-                  .anyMatch(
-                      remittance ->
-                          RemittanceStatus.FAILED.name().equalsIgnoreCase(remittance.getStatus())
-                              && Math.abs(remittance.getRemittedPendingValue() - overage.getValue())
-                                  < 0.001),
-              "Overage remittance should be FAILED before retry");
-        });
+    AwaitilityUtils.untilAsserted(() -> {
+      List<TallyRemittance> remittances =
+          service.getRemittancesByTally(overage.getTallyId().toString());
+      assertTrue(
+          remittances.stream()
+              .anyMatch(remittance ->
+                  RemittanceStatus.FAILED.name().equalsIgnoreCase(remittance.getStatus())
+                      && Math.abs(remittance.getRemittedPendingValue() - overage.getValue())
+                          < 0.001),
+          "Overage remittance should be FAILED before retry");
+    });
   }
 
   private double thenAccountRemittedUsageEquals(
       RosaMetricScenario metric, double expectedRemittedValue) {
-    AwaitilityUtils.untilAsserted(
-        () ->
-            assertEquals(
-                expectedRemittedValue,
-                remittedRemittances(metric).stream()
-                    .mapToDouble(MonthlyRemittance::getRemittedValue)
-                    .sum(),
-                0.001,
-                "Account remittance mismatch for metric " + metric.metricId()));
+    AwaitilityUtils.untilAsserted(() ->
+        assertEquals(
+            expectedRemittedValue,
+            remittedRemittances(metric).stream()
+                .mapToDouble(MonthlyRemittance::getRemittedValue)
+                .sum(),
+            0.001,
+            "Account remittance mismatch for metric " + metric.metricId()));
     return expectedRemittedValue;
   }
 
   private void thenAccountRemittedUsageEquals(
       RosaMetricScenario metric, double expectedRemittedValue, String expectedLicenseId) {
-    AwaitilityUtils.untilAsserted(
-        () -> {
-          MonthlyRemittance remittance =
-              remittedRemittances(metric).stream()
-                  .filter(row -> expectedLicenseId.equals(row.getLicenseId()))
-                  .findFirst()
-                  .orElseThrow(
-                      () ->
-                          new AssertionError(
-                              "No overage remittance for license "
-                                  + expectedLicenseId
-                                  + " metric "
-                                  + metric.metricId()));
-          assertEquals(
-              expectedRemittedValue,
-              remittance.getRemittedValue(),
-              0.001,
-              "Remittance mismatch for " + metric.metricId());
-          assertEquals(
-              expectedLicenseId, remittance.getLicenseId(), "Remittance licenseId mismatch");
-        });
+    AwaitilityUtils.untilAsserted(() -> {
+      MonthlyRemittance remittance =
+          remittedRemittances(metric).stream()
+              .filter(row -> expectedLicenseId.equals(row.getLicenseId()))
+              .findFirst()
+              .orElseThrow(() ->
+                  new AssertionError(
+                      "No overage remittance for license "
+                          + expectedLicenseId
+                          + " metric "
+                          + metric.metricId()));
+      assertEquals(
+          expectedRemittedValue,
+          remittance.getRemittedValue(),
+          0.001,
+          "Remittance mismatch for " + metric.metricId());
+      assertEquals(expectedLicenseId, remittance.getLicenseId(), "Remittance licenseId mismatch");
+    });
   }
 
   private void thenAccountCoveredUsageEquals(
       RosaMetricScenario metric, double expectedCoveredValue) {
-    AwaitilityUtils.untilAsserted(
-        () ->
-            assertEquals(
-                expectedCoveredValue,
-                coveredRemittances(metric).stream()
-                    .mapToDouble(MonthlyRemittance::getRemittedValue)
-                    .sum(),
-                0.001,
-                "COVERED remittance mismatch for metric " + metric.metricId()));
+    AwaitilityUtils.untilAsserted(() ->
+        assertEquals(
+            expectedCoveredValue,
+            coveredRemittances(metric).stream()
+                .mapToDouble(MonthlyRemittance::getRemittedValue)
+                .sum(),
+            0.001,
+            "COVERED remittance mismatch for metric " + metric.metricId()));
   }
 
   private void thenAccountCoveredUsageEquals(
       RosaMetricScenario metric, double expectedCoveredValue, String expectedLicenseId) {
-    AwaitilityUtils.untilAsserted(
-        () -> {
-          List<MonthlyRemittance> forLicense =
-              coveredRemittances(metric).stream()
-                  .filter(row -> expectedLicenseId.equals(row.getLicenseId()))
-                  .toList();
-          if (forLicense.isEmpty()) {
-            throw new AssertionError(
-                "No COVERED remittance for license "
-                    + expectedLicenseId
-                    + " metric "
-                    + metric.metricId());
-          }
-          assertEquals(
-              expectedCoveredValue,
-              forLicense.stream().mapToDouble(MonthlyRemittance::getRemittedValue).sum(),
-              0.001,
-              "COVERED remittance mismatch for "
-                  + metric.metricId()
-                  + " license "
-                  + expectedLicenseId);
-        });
+    AwaitilityUtils.untilAsserted(() -> {
+      List<MonthlyRemittance> forLicense =
+          coveredRemittances(metric).stream()
+              .filter(row -> expectedLicenseId.equals(row.getLicenseId()))
+              .toList();
+      if (forLicense.isEmpty()) {
+        throw new AssertionError(
+            "No COVERED remittance for license "
+                + expectedLicenseId
+                + " metric "
+                + metric.metricId());
+      }
+      assertEquals(
+          expectedCoveredValue,
+          forLicense.stream().mapToDouble(MonthlyRemittance::getRemittedValue).sum(),
+          0.001,
+          "COVERED remittance mismatch for " + metric.metricId() + " license " + expectedLicenseId);
+    });
   }
 
   private void thenAccountCoveredUsageForPeriodEquals(
       RosaMetricScenario metric, double expectedCoveredValue, String accumulationPeriod) {
-    AwaitilityUtils.untilAsserted(
-        () ->
-            assertEquals(
-                expectedCoveredValue,
-                coveredRemittances(metric).stream()
-                    .filter(row -> accumulationPeriod.equals(row.getAccumulationPeriod()))
-                    .mapToDouble(MonthlyRemittance::getRemittedValue)
-                    .sum(),
-                0.001,
-                "COVERED remittance mismatch for period " + accumulationPeriod));
+    AwaitilityUtils.untilAsserted(() ->
+        assertEquals(
+            expectedCoveredValue,
+            coveredRemittances(metric).stream()
+                .filter(row -> accumulationPeriod.equals(row.getAccumulationPeriod()))
+                .mapToDouble(MonthlyRemittance::getRemittedValue)
+                .sum(),
+            0.001,
+            "COVERED remittance mismatch for period " + accumulationPeriod));
   }
 
   private void thenAccountRemittedUsageForPeriodEquals(
       RosaMetricScenario metric, double expectedRemittedValue, String accumulationPeriod) {
-    AwaitilityUtils.untilAsserted(
-        () ->
-            assertEquals(
-                expectedRemittedValue,
-                remittedRemittances(metric).stream()
-                    .filter(row -> accumulationPeriod.equals(row.getAccumulationPeriod()))
-                    .mapToDouble(MonthlyRemittance::getRemittedValue)
-                    .sum(),
-                0.001,
-                "Account remittance mismatch for period " + accumulationPeriod));
+    AwaitilityUtils.untilAsserted(() ->
+        assertEquals(
+            expectedRemittedValue,
+            remittedRemittances(metric).stream()
+                .filter(row -> accumulationPeriod.equals(row.getAccumulationPeriod()))
+                .mapToDouble(MonthlyRemittance::getRemittedValue)
+                .sum(),
+            0.001,
+            "Account remittance mismatch for period " + accumulationPeriod));
   }
 
   private void thenAccountRemittedUsageForPeriodEquals(
@@ -784,36 +771,33 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
       double expectedRemittedValue,
       String accumulationPeriod,
       String expectedLicenseId) {
-    AwaitilityUtils.untilAsserted(
-        () -> {
-          MonthlyRemittance remittance =
-              remittedRemittances(metric).stream()
-                  .filter(row -> accumulationPeriod.equals(row.getAccumulationPeriod()))
-                  .filter(row -> expectedLicenseId.equals(row.getLicenseId()))
-                  .findFirst()
-                  .orElseThrow(
-                      () ->
-                          new AssertionError(
-                              "No overage remittance for license "
-                                  + expectedLicenseId
-                                  + " period "
-                                  + accumulationPeriod));
-          assertEquals(
-              expectedRemittedValue,
-              remittance.getRemittedValue(),
-              0.001,
-              "Remittance mismatch for period " + accumulationPeriod);
-        });
+    AwaitilityUtils.untilAsserted(() -> {
+      MonthlyRemittance remittance =
+          remittedRemittances(metric).stream()
+              .filter(row -> accumulationPeriod.equals(row.getAccumulationPeriod()))
+              .filter(row -> expectedLicenseId.equals(row.getLicenseId()))
+              .findFirst()
+              .orElseThrow(() ->
+                  new AssertionError(
+                      "No overage remittance for license "
+                          + expectedLicenseId
+                          + " period "
+                          + accumulationPeriod));
+      assertEquals(
+          expectedRemittedValue,
+          remittance.getRemittedValue(),
+          0.001,
+          "Remittance mismatch for period " + accumulationPeriod);
+    });
   }
 
   private void thenContractsApiWasCalled() {
-    AwaitilityUtils.untilAsserted(
-        () ->
-            assertTrue(
-                contractsWiremock.countRequests(
-                        "/mock/contractApi/api/swatch-contracts/internal/contracts")
-                    >= 1,
-                "Expected contracts API call for the skipped tally"));
+    AwaitilityUtils.untilAsserted(() ->
+        assertTrue(
+            contractsWiremock.countRequests(
+                    "/mock/contractApi/api/swatch-contracts/internal/contracts")
+                >= 1,
+            "Expected contracts API call for the skipped tally"));
   }
 
   private List<MonthlyRemittance> remittedRemittances(RosaMetricScenario metric) {

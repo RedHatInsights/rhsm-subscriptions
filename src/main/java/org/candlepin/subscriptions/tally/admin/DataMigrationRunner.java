@@ -46,15 +46,14 @@ public class DataMigrationRunner {
   }
 
   public void migrate(DataMigration dataMigration, String startingRecordID, int batchSize) {
-    executor.execute(
-        () -> {
-          String lastProcessedId = startingRecordID;
-          do {
-            SqlRowSet page = dataMigration.extract(lastProcessedId, batchSize);
-            lastProcessedId = dataMigration.transformAndLoad(page);
-          } while (lastProcessedId != null);
+    executor.execute(() -> {
+      String lastProcessedId = startingRecordID;
+      do {
+        SqlRowSet page = dataMigration.extract(lastProcessedId, batchSize);
+        lastProcessedId = dataMigration.transformAndLoad(page);
+      } while (lastProcessedId != null);
 
-          dataMigration.recordCompleted();
-        });
+      dataMigration.recordCompleted();
+    });
   }
 }

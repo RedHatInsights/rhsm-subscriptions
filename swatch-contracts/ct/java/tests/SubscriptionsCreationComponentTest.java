@@ -141,35 +141,32 @@ public class SubscriptionsCreationComponentTest extends BaseContractComponentTes
     kafkaBridge.produceKafkaMessage(IT_SUBSCRIPTION_SYNC, buildKafkaMessage(updatedSubscription));
 
     // then quantity change ends the existing segment and creates a new one
-    AwaitilityUtils.untilAsserted(
-        () -> {
-          var subscriptions = service.getSubscriptionsByOrgId(orgId);
-          assertEquals(2, subscriptions.size(), "Quantity change should create a new segment");
-          assertTrue(
-              subscriptions.stream()
-                  .allMatch(
-                      s ->
-                          Objects.equals(
-                              s.getSubscriptionNumber(),
-                              updatedSubscription.getSubscriptionNumber())));
+    AwaitilityUtils.untilAsserted(() -> {
+      var subscriptions = service.getSubscriptionsByOrgId(orgId);
+      assertEquals(2, subscriptions.size(), "Quantity change should create a new segment");
+      assertTrue(
+          subscriptions.stream()
+              .allMatch(s ->
+                  Objects.equals(
+                      s.getSubscriptionNumber(), updatedSubscription.getSubscriptionNumber())));
 
-          var previousSegment =
-              subscriptions.stream()
-                  .filter(s -> Objects.equals(s.getQuantity(), subscription.getQuantity()))
-                  .findFirst();
-          assertTrue(previousSegment.isPresent());
-          assertNotNull(previousSegment.get().getEndDate());
+      var previousSegment =
+          subscriptions.stream()
+              .filter(s -> Objects.equals(s.getQuantity(), subscription.getQuantity()))
+              .findFirst();
+      assertTrue(previousSegment.isPresent());
+      assertNotNull(previousSegment.get().getEndDate());
 
-          var currentSegment =
-              subscriptions.stream()
-                  .filter(s -> Objects.equals(s.getQuantity(), updatedSubscription.getQuantity()))
-                  .findFirst();
-          assertTrue(currentSegment.isPresent());
-          assertEquals(updatedSubscription.getQuantity(), currentSegment.get().getQuantity());
-          assertTrue(
-              !previousSegment.get().getEndDate().isAfter(currentSegment.get().getStartDate()),
-              "Previous segment should end at or before the new segment starts");
-        });
+      var currentSegment =
+          subscriptions.stream()
+              .filter(s -> Objects.equals(s.getQuantity(), updatedSubscription.getQuantity()))
+              .findFirst();
+      assertTrue(currentSegment.isPresent());
+      assertEquals(updatedSubscription.getQuantity(), currentSegment.get().getQuantity());
+      assertTrue(
+          !previousSegment.get().getEndDate().isAfter(currentSegment.get().getStartDate()),
+          "Previous segment should end at or before the new segment starts");
+    });
   }
 
   @TestPlanName("subscriptions-creation-TC007")
@@ -194,35 +191,33 @@ public class SubscriptionsCreationComponentTest extends BaseContractComponentTes
         IT_SUBSCRIPTION_SYNC, buildKafkaMessage(terminatedSubscription));
 
     // Then: Subscription should be marked as terminated with updated end date
-    AwaitilityUtils.untilAsserted(
-        () -> {
-          var subscriptions = service.getSubscriptionsByOrgId(orgId);
-          assertEquals(1, subscriptions.size(), "Should have exactly one subscription");
+    AwaitilityUtils.untilAsserted(() -> {
+      var subscriptions = service.getSubscriptionsByOrgId(orgId);
+      assertEquals(1, subscriptions.size(), "Should have exactly one subscription");
 
-          var updatedSubscription = subscriptions.get(0);
-          assertEquals(
-              subscription.getSubscriptionNumber(),
-              updatedSubscription.getSubscriptionNumber(),
-              "Subscription number should match");
+      var updatedSubscription = subscriptions.get(0);
+      assertEquals(
+          subscription.getSubscriptionNumber(),
+          updatedSubscription.getSubscriptionNumber(),
+          "Subscription number should match");
 
-          assertNotNull(updatedSubscription.getEndDate(), "End date should be set");
-          assertTrue(
-              updatedSubscription.getEndDate().isBefore(originalEndDate),
-              String.format(
-                  "End date should be earlier than original. Original: %s, Updated: %s",
-                  originalEndDate, updatedSubscription.getEndDate()));
+      assertNotNull(updatedSubscription.getEndDate(), "End date should be set");
+      assertTrue(
+          updatedSubscription.getEndDate().isBefore(originalEndDate),
+          String.format(
+              "End date should be earlier than original. Original: %s, Updated: %s",
+              originalEndDate, updatedSubscription.getEndDate()));
 
-          long diffSeconds =
-              Math.abs(
-                  updatedSubscription.getEndDate().toEpochSecond()
-                      - terminationDate.toEpochSecond());
-          assertTrue(
-              diffSeconds < 10,
-              String.format(
-                  "End date should match termination date (within 10s). "
-                      + "Expected: %s, Actual: %s, Diff: %ds",
-                  terminationDate, updatedSubscription.getEndDate(), diffSeconds));
-        });
+      long diffSeconds =
+          Math.abs(
+              updatedSubscription.getEndDate().toEpochSecond() - terminationDate.toEpochSecond());
+      assertTrue(
+          diffSeconds < 10,
+          String.format(
+              "End date should match termination date (within 10s). "
+                  + "Expected: %s, Actual: %s, Diff: %ds",
+              terminationDate, updatedSubscription.getEndDate(), diffSeconds));
+    });
   }
 
   @TestPlanName("subscriptions-creation-TC008")
@@ -300,19 +295,17 @@ public class SubscriptionsCreationComponentTest extends BaseContractComponentTes
     assertEquals(2, subscriptions.size(), "Should have exactly two subscriptions");
     var actualFirstSubscription =
         subscriptions.stream()
-            .filter(
-                s ->
-                    Objects.equals(
-                        s.getSubscriptionNumber(), firstSubscription.getSubscriptionNumber()))
+            .filter(s ->
+                Objects.equals(
+                    s.getSubscriptionNumber(), firstSubscription.getSubscriptionNumber()))
             .findFirst();
     assertTrue(actualFirstSubscription.isPresent());
     assertSubscription(firstSubscription, actualFirstSubscription.get());
     var actualSecondSubscription =
         subscriptions.stream()
-            .filter(
-                s ->
-                    Objects.equals(
-                        s.getSubscriptionNumber(), secondSubscription.getSubscriptionNumber()))
+            .filter(s ->
+                Objects.equals(
+                    s.getSubscriptionNumber(), secondSubscription.getSubscriptionNumber()))
             .findFirst();
     assertTrue(actualSecondSubscription.isPresent());
     assertSubscription(secondSubscription, actualSecondSubscription.get());
