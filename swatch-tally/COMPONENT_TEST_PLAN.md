@@ -113,9 +113,10 @@ Event ingestion from Kafka topics with message deserialization and batch process
 
 **Functional Area:** System-level features, integrations, and health checks
 
-**Test Coverage (4 tests):**
+**Test Coverage (5 tests):**
 - Version API
 - Nightly Tally with HBI database
+- Nightly tally from existing Swatch buckets with reconciliation disabled (`nightly-tally-TC003`)
 
 System-level functionality including version information endpoints and database integrations.
 
@@ -142,7 +143,7 @@ Each test file should correspond to a specific test case section in the function
 
 ## Quick Reference
 
-**Total Test Coverage:** 167 tests across 6 functional areas
+**Total Test Coverage:** 168 tests across 6 functional areas
 
 **By Test Count:**
 - Tally Processing Pipeline: 41 tests
@@ -150,7 +151,7 @@ Each test file should correspond to a specific test case section in the function
 - Instance Reports API: 40 tests
 - RBAC Authorization: 38 tests
 - Usage Event Consumer: 2 tests
-- System & Infrastructure: 4 tests
+- System & Infrastructure: 5 tests
 
 **Test File Naming Convention:**
 - Test files follow pattern: `<FunctionalArea><Feature>Test.java`
