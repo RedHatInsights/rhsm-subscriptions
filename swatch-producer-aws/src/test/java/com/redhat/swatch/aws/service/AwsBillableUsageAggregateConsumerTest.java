@@ -326,10 +326,9 @@ class AwsBillableUsageAggregateConsumerTest {
 
     verify(billableUsageStatusProducer)
         .emitStatus(
-            argThat(
-                usage ->
-                    BillableUsage.Status.SUCCEEDED.equals(usage.getStatus())
-                        && licenseId.equals(usage.getLicenseId())));
+            argThat(usage ->
+                BillableUsage.Status.SUCCEEDED.equals(usage.getStatus())
+                    && licenseId.equals(usage.getLicenseId())));
   }
 
   @Test
@@ -344,12 +343,10 @@ class AwsBillableUsageAggregateConsumerTest {
 
     verify(billableUsageStatusProducer)
         .emitStatus(
-            argThat(
-                usage ->
-                    BillableUsage.Status.FAILED.equals(usage.getStatus())
-                        && BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND.equals(
-                            usage.getErrorCode())
-                        && licenseId.equals(usage.getLicenseId())));
+            argThat(usage ->
+                BillableUsage.Status.FAILED.equals(usage.getStatus())
+                    && BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND.equals(usage.getErrorCode())
+                    && licenseId.equals(usage.getLicenseId())));
   }
 
   @Test
@@ -373,17 +370,16 @@ class AwsBillableUsageAggregateConsumerTest {
         .thenReturn(MOCK_AWS_USAGE_CONTEXT);
     when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
     when(meteringClient.batchMeterUsage(any(BatchMeterUsageRequest.class)))
-        .thenAnswer(
-            invocation -> {
-              var request = invocation.getArgument(0, BatchMeterUsageRequest.class);
-              return BatchMeterUsageResponse.builder()
-                  .results(
-                      UsageRecordResult.builder()
-                          .usageRecord(request.usageRecords().getFirst())
-                          .status(UsageRecordResultStatus.SUCCESS)
-                          .build())
-                  .build();
-            });
+        .thenAnswer(invocation -> {
+          var request = invocation.getArgument(0, BatchMeterUsageRequest.class);
+          return BatchMeterUsageResponse.builder()
+              .results(
+                  UsageRecordResult.builder()
+                      .usageRecord(request.usageRecords().getFirst())
+                      .status(UsageRecordResultStatus.SUCCESS)
+                      .build())
+              .build();
+        });
 
     var meteredSuccessCounter =
         meterRegistry.counter(
@@ -461,11 +457,10 @@ class AwsBillableUsageAggregateConsumerTest {
     consumer.process(ROSA_INSTANCE_HOURS_RECORD);
     verify(billableUsageStatusProducer)
         .emitStatus(
-            argThat(
-                usage ->
-                    BillableUsage.Status.FAILED.equals(usage.getStatus())
-                        && BillableUsage.ErrorCode.MARKETPLACE_RATE_LIMIT.equals(
-                            usage.getErrorCode())));
+            argThat(usage ->
+                BillableUsage.Status.FAILED.equals(usage.getStatus())
+                    && BillableUsage.ErrorCode.MARKETPLACE_RATE_LIMIT.equals(
+                        usage.getErrorCode())));
   }
 
   @Test
@@ -626,11 +621,9 @@ class AwsBillableUsageAggregateConsumerTest {
     verifyNoInteractions(meteringClient);
     verify(billableUsageStatusProducer)
         .emitStatus(
-            argThat(
-                usage ->
-                    BillableUsage.Status.FAILED.equals(usage.getStatus())
-                        && BillableUsage.ErrorCode.USAGE_CONTEXT_LOOKUP.equals(
-                            usage.getErrorCode())));
+            argThat(usage ->
+                BillableUsage.Status.FAILED.equals(usage.getStatus())
+                    && BillableUsage.ErrorCode.USAGE_CONTEXT_LOOKUP.equals(usage.getErrorCode())));
   }
 
   @Test
@@ -670,11 +663,10 @@ class AwsBillableUsageAggregateConsumerTest {
     consumer.process(aggregate);
     verify(billableUsageStatusProducer)
         .emitStatus(
-            argThat(
-                usage ->
-                    BillableUsage.Status.FAILED.equals(usage.getStatus())
-                        && BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND.equals(
-                            usage.getErrorCode())));
+            argThat(usage ->
+                BillableUsage.Status.FAILED.equals(usage.getStatus())
+                    && BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND.equals(
+                        usage.getErrorCode())));
 
     // verify success
     reset(contractsApi, billableUsageStatusProducer);
@@ -694,11 +686,9 @@ class AwsBillableUsageAggregateConsumerTest {
     consumer.process(aggregate);
     verify(billableUsageStatusProducer)
         .emitStatus(
-            argThat(
-                usage ->
-                    BillableUsage.Status.FAILED.equals(usage.getStatus())
-                        && BillableUsage.ErrorCode.UNSUPPORTED_METRIC.equals(
-                            usage.getErrorCode())));
+            argThat(usage ->
+                BillableUsage.Status.FAILED.equals(usage.getStatus())
+                    && BillableUsage.ErrorCode.UNSUPPORTED_METRIC.equals(usage.getErrorCode())));
   }
 
   static Stream<Arguments> nonSuccessUsageRecordResults() {
@@ -734,10 +724,9 @@ class AwsBillableUsageAggregateConsumerTest {
     assertEquals(currentRejected + 1, rejectedCounter.count());
     verify(billableUsageStatusProducer)
         .emitStatus(
-            argThat(
-                usage ->
-                    BillableUsage.Status.FAILED.equals(usage.getStatus())
-                        && errorCode.equals(usage.getErrorCode())));
+            argThat(usage ->
+                BillableUsage.Status.FAILED.equals(usage.getStatus())
+                    && errorCode.equals(usage.getErrorCode())));
   }
 
   static Stream<Arguments> usageWindowTestArgs() {
@@ -819,35 +808,29 @@ class AwsBillableUsageAggregateConsumerTest {
 
   private Optional<Meter> getMeteredTotalMetricForSucceeded(String metricId) {
     return meterRegistry.getMeters().stream()
-        .filter(
-            m ->
-                AwsBillableUsageAggregateConsumer.METERED_TOTAL_METRIC.equals(m.getId().getName())
-                    && PRODUCT_ID.equals(m.getId().getTag("product"))
-                    && MetricId.fromString(metricId)
-                        .getValue()
-                        .equals(m.getId().getTag("metric_id"))
-                    && BillableUsage.BillingProvider.AWS
-                        .toString()
-                        .equals(m.getId().getTag("billing_provider"))
-                    && "succeeded".equals(m.getId().getTag("status"))
-                    && "".equals(m.getId().getTag("error_code")))
+        .filter(m ->
+            AwsBillableUsageAggregateConsumer.METERED_TOTAL_METRIC.equals(m.getId().getName())
+                && PRODUCT_ID.equals(m.getId().getTag("product"))
+                && MetricId.fromString(metricId).getValue().equals(m.getId().getTag("metric_id"))
+                && BillableUsage.BillingProvider.AWS
+                    .toString()
+                    .equals(m.getId().getTag("billing_provider"))
+                && "succeeded".equals(m.getId().getTag("status"))
+                && "".equals(m.getId().getTag("error_code")))
         .findFirst();
   }
 
   private Optional<Meter> getMeteredTotalMetricForFailed(String metricId, String errorCode) {
     return meterRegistry.getMeters().stream()
-        .filter(
-            m ->
-                AwsBillableUsageAggregateConsumer.METERED_TOTAL_METRIC.equals(m.getId().getName())
-                    && PRODUCT_ID.equals(m.getId().getTag("product"))
-                    && MetricId.fromString(metricId)
-                        .getValue()
-                        .equals(m.getId().getTag("metric_id"))
-                    && BillableUsage.BillingProvider.AWS
-                        .toString()
-                        .equals(m.getId().getTag("billing_provider"))
-                    && "failed".equals(m.getId().getTag("status"))
-                    && errorCode.equals(m.getId().getTag("error_code")))
+        .filter(m ->
+            AwsBillableUsageAggregateConsumer.METERED_TOTAL_METRIC.equals(m.getId().getName())
+                && PRODUCT_ID.equals(m.getId().getTag("product"))
+                && MetricId.fromString(metricId).getValue().equals(m.getId().getTag("metric_id"))
+                && BillableUsage.BillingProvider.AWS
+                    .toString()
+                    .equals(m.getId().getTag("billing_provider"))
+                && "failed".equals(m.getId().getTag("status"))
+                && errorCode.equals(m.getId().getTag("error_code")))
         .findFirst();
   }
 }

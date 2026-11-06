@@ -167,10 +167,8 @@ class InventoryAccountUsageCollectorCreateHostUsageKeysTest {
       assertTrue(keys.stream().allMatch(k -> RHEL_PRODUCT.equals(k.getProductId())));
       assertTrue(
           keys.stream()
-              .anyMatch(
-                  k ->
-                      k.getSla() == ServiceLevel.PREMIUM
-                          && k.getUsage() == Usage.DEVELOPMENT_TEST));
+              .anyMatch(k ->
+                  k.getSla() == ServiceLevel.PREMIUM && k.getUsage() == Usage.DEVELOPMENT_TEST));
     }
   }
 
@@ -196,10 +194,9 @@ class InventoryAccountUsageCollectorCreateHostUsageKeysTest {
       assertFalse(keys.isEmpty());
       assertTrue(
           keys.stream()
-              .anyMatch(
-                  k ->
-                      k.getSla() == ServiceLevel.SELF_SUPPORT
-                          && k.getUsage() == Usage.DEVELOPMENT_TEST));
+              .anyMatch(k ->
+                  k.getSla() == ServiceLevel.SELF_SUPPORT
+                      && k.getUsage() == Usage.DEVELOPMENT_TEST));
     }
   }
 
@@ -222,10 +219,8 @@ class InventoryAccountUsageCollectorCreateHostUsageKeysTest {
       Set<Key> keys = collector.createHostUsageKeys(products, normalizedFacts);
       assertTrue(
           keys.stream()
-              .anyMatch(
-                  k ->
-                      k.getSla() == ServiceLevel.STANDARD
-                          && k.getUsage() == Usage.DEVELOPMENT_TEST));
+              .anyMatch(k ->
+                  k.getSla() == ServiceLevel.STANDARD && k.getUsage() == Usage.DEVELOPMENT_TEST));
     }
   }
 

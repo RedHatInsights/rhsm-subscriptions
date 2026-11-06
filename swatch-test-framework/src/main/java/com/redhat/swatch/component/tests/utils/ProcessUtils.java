@@ -45,16 +45,15 @@ public final class ProcessUtils {
         // If graceful shutdown failed, proceed with forceful termination
         process
             .descendants()
-            .forEach(
-                child -> {
-                  if (child.supportsNormalTermination()) {
-                    child.destroyForcibly();
-                  }
+            .forEach(child -> {
+              if (child.supportsNormalTermination()) {
+                child.destroyForcibly();
+              }
 
-                  pidKiller(child.pid());
+              pidKiller(child.pid());
 
-                  AwaitilityUtils.untilIsFalse(child::isAlive);
-                });
+              AwaitilityUtils.untilIsFalse(child::isAlive);
+            });
 
         if (process.supportsNormalTermination()) {
           process.destroyForcibly();

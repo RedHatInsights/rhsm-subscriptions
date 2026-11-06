@@ -157,21 +157,19 @@ class HostRepositoryTest {
         .forEach(x -> x.setDisplayName(DEFAULT_DISPLAY_NAME));
     List<Host> results = new ArrayList<>();
     Arrays.stream(hosts)
-        .forEach(
-            host -> {
-              AccountServiceInventory accountServiceInventory =
-                  accountServiceInventoryRepository
-                      .findById(
-                          AccountServiceInventoryId.builder()
-                              .orgId(host.getOrgId())
-                              .serviceType("HBI_HOST")
-                              .build())
-                      .orElse(new AccountServiceInventory(host.getOrgId(), "HBI_HOST"));
-              accountServiceInventory.getServiceInstances().put(host.getInstanceId(), host);
-              accountServiceInventory =
-                  accountServiceInventoryRepository.save(accountServiceInventory);
-              results.add(accountServiceInventory.getServiceInstances().get(host.getInstanceId()));
-            });
+        .forEach(host -> {
+          AccountServiceInventory accountServiceInventory =
+              accountServiceInventoryRepository
+                  .findById(
+                      AccountServiceInventoryId.builder()
+                          .orgId(host.getOrgId())
+                          .serviceType("HBI_HOST")
+                          .build())
+                  .orElse(new AccountServiceInventory(host.getOrgId(), "HBI_HOST"));
+          accountServiceInventory.getServiceInstances().put(host.getInstanceId(), host);
+          accountServiceInventory = accountServiceInventoryRepository.save(accountServiceInventory);
+          results.add(accountServiceInventory.getServiceInstances().get(host.getInstanceId()));
+        });
     accountServiceInventoryRepository.flush();
     return results;
   }
@@ -1173,10 +1171,9 @@ class HostRepositoryTest {
             DbReportCriteria.builder().orgId("org2").productTag("prod3").build());
     assertEquals(2, records.size());
     records.stream()
-        .forEach(
-            accountIdRecord -> {
-              assertEquals("prod3", records.get(0).productId());
-            });
+        .forEach(accountIdRecord -> {
+          assertEquals("prod3", records.get(0).productId());
+        });
   }
 
   @Transactional
@@ -1191,10 +1188,9 @@ class HostRepositoryTest {
                 .build());
     assertEquals(2, records.size());
     records.stream()
-        .forEach(
-            accountIdRecord -> {
-              assertEquals(BillingProvider.RED_HAT, records.get(0).billingProvider());
-            });
+        .forEach(accountIdRecord -> {
+          assertEquals(BillingProvider.RED_HAT, records.get(0).billingProvider());
+        });
   }
 
   record BillingAccountIdTestRecord(
@@ -1245,32 +1241,30 @@ class HostRepositoryTest {
     AccountServiceInventory account2 = new AccountServiceInventory("org2", "HBI_HOST");
 
     billingAccountIdTestRecords.stream()
-        .forEach(
-            testRecord -> {
-              Stream.of(
-                      createBillingTestHost(testRecord.inventoryId, testRecord.orgId),
-                      createOldBillingTestHost(testRecord.inventoryId, testRecord.orgId))
-                  .forEach(
-                      host -> {
-                        HostTallyBucket bucket = new HostTallyBucket();
-                        bucket.setKey(
-                            new HostBucketKey(
-                                host,
-                                testRecord.productId,
-                                ServiceLevel._ANY,
-                                Usage._ANY,
-                                testRecord.billingProvider,
-                                testRecord.billingAccountId,
-                                false));
-                        bucket.setHost(host);
-                        host.addBucket(bucket);
-                        if (testRecord.orgId == "org1") {
-                          account1.getServiceInstances().put(host.getInstanceId(), host);
-                        } else {
-                          account2.getServiceInstances().put(host.getInstanceId(), host);
-                        }
-                      });
-            });
+        .forEach(testRecord -> {
+          Stream.of(
+                  createBillingTestHost(testRecord.inventoryId, testRecord.orgId),
+                  createOldBillingTestHost(testRecord.inventoryId, testRecord.orgId))
+              .forEach(host -> {
+                HostTallyBucket bucket = new HostTallyBucket();
+                bucket.setKey(
+                    new HostBucketKey(
+                        host,
+                        testRecord.productId,
+                        ServiceLevel._ANY,
+                        Usage._ANY,
+                        testRecord.billingProvider,
+                        testRecord.billingAccountId,
+                        false));
+                bucket.setHost(host);
+                host.addBucket(bucket);
+                if (testRecord.orgId == "org1") {
+                  account1.getServiceInstances().put(host.getInstanceId(), host);
+                } else {
+                  account2.getServiceInstances().put(host.getInstanceId(), host);
+                }
+              });
+        });
     accountServiceInventoryRepository.save(account1);
     accountServiceInventoryRepository.save(account2);
     accountServiceInventoryRepository.flush();

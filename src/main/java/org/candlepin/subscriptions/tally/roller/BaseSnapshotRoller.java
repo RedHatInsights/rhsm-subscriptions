@@ -226,15 +226,14 @@ public abstract class BaseSnapshotRoller {
     if (prodCalcTotals != null) {
       prodCalcTotals
           .getMeasurements()
-          .forEach(
-              (metricId, value) -> {
-                Double prodCalcMeasurement = prodCalcTotals.getMeasurement(metricId);
-                if (override
-                    || mustUpdate(
-                        snap.getMeasurement(measurementType, metricId), prodCalcMeasurement)) {
-                  snap.setMeasurement(measurementType, metricId, prodCalcMeasurement);
-                }
-              });
+          .forEach((metricId, value) -> {
+            Double prodCalcMeasurement = prodCalcTotals.getMeasurement(metricId);
+            if (override
+                || mustUpdate(
+                    snap.getMeasurement(measurementType, metricId), prodCalcMeasurement)) {
+              snap.setMeasurement(measurementType, metricId, prodCalcMeasurement);
+            }
+          });
     }
   }
 

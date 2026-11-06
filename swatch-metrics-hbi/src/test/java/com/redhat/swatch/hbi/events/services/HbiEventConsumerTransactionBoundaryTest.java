@@ -91,11 +91,10 @@ class HbiEventConsumerTransactionBoundaryTest {
     // complete.
     Awaitility.await()
         .atMost(Duration.ofSeconds(5))
-        .untilAsserted(
-            () -> {
-              verify(repo, times(2)).persist(any(HbiHostRelationship.class));
-              verify(outboxRepository, times(2)).persist(any(HbiEventOutbox.class));
-            });
+        .untilAsserted(() -> {
+          verify(repo, times(2)).persist(any(HbiHostRelationship.class));
+          verify(outboxRepository, times(2)).persist(any(HbiEventOutbox.class));
+        });
 
     // If the outbox record could not be persisted, the relationship change should have
     // been rolled back.
@@ -132,11 +131,10 @@ class HbiEventConsumerTransactionBoundaryTest {
     hbiEventsIn.send(hbiEvent);
     Awaitility.await()
         .atMost(Duration.ofSeconds(2))
-        .untilAsserted(
-            () -> {
-              verify(repo, atLeastOnce()).persist(any(HbiHostRelationship.class));
-              verify(outboxRepository, atLeastOnce()).persist(any(HbiEventOutbox.class));
-            });
+        .untilAsserted(() -> {
+          verify(repo, atLeastOnce()).persist(any(HbiHostRelationship.class));
+          verify(outboxRepository, atLeastOnce()).persist(any(HbiEventOutbox.class));
+        });
 
     // Make sure that the relationship is not found (transaction rolled back on commit)
     assertTrue(

@@ -169,12 +169,11 @@ public class PartnerGatewayKafkaComponentTest extends BaseContractComponentTest 
 
     kafkaBridge.asOfPartnerGateway().send(contract);
 
-    AwaitilityUtils.untilAsserted(
-        () ->
-            assertEquals(
-                1,
-                service.getContractsByOrgId(orgId).size(),
-                "Duplicate message should not create a second contract"));
+    AwaitilityUtils.untilAsserted(() ->
+        assertEquals(
+            1,
+            service.getContractsByOrgId(orgId).size(),
+            "Duplicate message should not create a second contract"));
   }
 
   @TestPlanName("partner-gateway-kafka-TC009")
@@ -250,10 +249,9 @@ public class PartnerGatewayKafkaComponentTest extends BaseContractComponentTest 
   }
 
   private void thenNoContractCreated() {
-    AwaitilityUtils.untilAsserted(
-        () ->
-            assertEquals(
-                0, service.getContractsByOrgId(orgId).size(), "No contract should be created"));
+    AwaitilityUtils.untilAsserted(() ->
+        assertEquals(
+            0, service.getContractsByOrgId(orgId).size(), "No contract should be created"));
   }
 
   private void thenKafkaConsumerAcceptsSubsequentMessages() {

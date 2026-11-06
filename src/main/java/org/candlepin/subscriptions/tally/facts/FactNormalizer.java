@@ -77,10 +77,9 @@ public class FactNormalizer {
     var syncTimestampOptional = Optional.ofNullable(hostFacts.getSyncTimestamp());
     boolean skipRhsmFacts =
         syncTimestampOptional
-            .map(
-                syncTimestamp ->
-                    StringUtils.hasText(syncTimestamp)
-                        && hostUnregistered(OffsetDateTime.parse(syncTimestamp)))
+            .map(syncTimestamp ->
+                StringUtils.hasText(syncTimestamp)
+                    && hostUnregistered(OffsetDateTime.parse(syncTimestamp)))
             .orElse(false);
 
     normalizedFacts.setProducts(

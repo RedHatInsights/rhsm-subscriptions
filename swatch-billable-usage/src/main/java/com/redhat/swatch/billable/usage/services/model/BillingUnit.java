@@ -39,10 +39,9 @@ public class BillingUnit implements Unit {
     var metricOptional =
         Variant.findByTag(usage.getProductId())
             .map(Variant::getSubscription)
-            .flatMap(
-                subscriptionDefinition ->
-                    subscriptionDefinition.getMetric(
-                        MetricId.fromString(usage.getMetricId()).getValue()));
+            .flatMap(subscriptionDefinition ->
+                subscriptionDefinition.getMetric(
+                    MetricId.fromString(usage.getMetricId()).getValue()));
     billingFactor =
         metricOptional
             .map(Metric::getBillingFactor)

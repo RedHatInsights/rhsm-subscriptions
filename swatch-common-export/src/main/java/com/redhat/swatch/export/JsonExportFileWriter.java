@@ -52,14 +52,13 @@ public class JsonExportFileWriter implements ExportFileWriter {
       var serializer =
           serializerProvider.findTypedValueSerializer(dataMapper.getExportItemClass(), false, null);
       data.flatMap(i -> dataMapper.mapDataItem(i, request).stream())
-          .forEach(
-              item -> {
-                try {
-                  serializer.serialize(item, jGenerator, serializerProvider);
-                } catch (IOException e) {
-                  handleIOException(item, request, e);
-                }
-              });
+          .forEach(item -> {
+            try {
+              serializer.serialize(item, jGenerator, serializerProvider);
+            } catch (IOException e) {
+              handleIOException(item, request, e);
+            }
+          });
       jGenerator.writeEndArray();
       jGenerator.writeEndObject();
     } catch (IOException e) {

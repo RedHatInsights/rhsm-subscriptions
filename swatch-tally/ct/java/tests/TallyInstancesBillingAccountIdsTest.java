@@ -263,12 +263,11 @@ class TallyInstancesBillingAccountIdsTest extends BaseTallyComponentTest {
 
     boolean containsOldAccount =
         ids.stream()
-            .anyMatch(
-                entry ->
-                    isolatedOrg.equals(entry.get("org_id"))
-                        && billingAccountId.equals(entry.get("billing_account_id"))
-                        && RHEL_FOR_X86_ELS_PAYG.productTag().equals(entry.get("product_tag"))
-                        && "aws".equals(entry.get("billing_provider")));
+            .anyMatch(entry ->
+                isolatedOrg.equals(entry.get("org_id"))
+                    && billingAccountId.equals(entry.get("billing_account_id"))
+                    && RHEL_FOR_X86_ELS_PAYG.productTag().equals(entry.get("product_tag"))
+                    && "aws".equals(entry.get("billing_provider")));
 
     assertFalse(
         containsOldAccount,

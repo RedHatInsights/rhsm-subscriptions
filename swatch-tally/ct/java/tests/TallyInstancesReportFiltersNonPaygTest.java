@@ -627,12 +627,11 @@ public class TallyInstancesReportFiltersNonPaygTest extends BaseTallyComponentTe
       return 0;
     }
     return response.getData().stream()
-        .mapToInt(
-            instance -> {
-              Map<String, Double> measurements = thenGetMeasurementsMap(response, instance);
-              Double sockets = measurements.get(METRIC_ID);
-              return sockets != null ? sockets.intValue() : 0;
-            })
+        .mapToInt(instance -> {
+          Map<String, Double> measurements = thenGetMeasurementsMap(response, instance);
+          Double sockets = measurements.get(METRIC_ID);
+          return sockets != null ? sockets.intValue() : 0;
+        })
         .sum();
   }
 }

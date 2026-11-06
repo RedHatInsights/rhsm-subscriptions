@@ -248,14 +248,13 @@ class BillableUsageStatusConsumerTest {
 
     whenSendResponse(successMessage);
     Awaitility.await()
-        .untilAsserted(
-            () ->
-                verifyRemittancesHaveLicense(
-                    List.of(
-                        remittanceA.getUuid().toString(),
-                        remittanceB.getUuid().toString(),
-                        remittanceNull.getUuid().toString()),
-                    LICENSE_B));
+        .untilAsserted(() ->
+            verifyRemittancesHaveLicense(
+                List.of(
+                    remittanceA.getUuid().toString(),
+                    remittanceB.getUuid().toString(),
+                    remittanceNull.getUuid().toString()),
+                LICENSE_B));
   }
 
   @Test
@@ -269,11 +268,10 @@ class BillableUsageStatusConsumerTest {
 
     whenSendResponse(successMessage);
     Awaitility.await()
-        .untilAsserted(
-            () ->
-                verifyRemittancesHaveLicense(
-                    List.of(remittanceA.getUuid().toString(), remittanceNull.getUuid().toString()),
-                    null));
+        .untilAsserted(() ->
+            verifyRemittancesHaveLicense(
+                List.of(remittanceA.getUuid().toString(), remittanceNull.getUuid().toString()),
+                null));
   }
 
   @Transactional
@@ -323,44 +321,40 @@ class BillableUsageStatusConsumerTest {
   @Transactional
   void verifyUpdateForSuccess() {
     remittanceRepository.findAll().stream()
-        .forEach(
-            result -> {
-              assertEquals(RemittanceStatus.SUCCEEDED, result.getStatus());
-              assertEquals(BILLED_ON, result.getBilledOn());
-              assertNull(result.getErrorCode());
-            });
+        .forEach(result -> {
+          assertEquals(RemittanceStatus.SUCCEEDED, result.getStatus());
+          assertEquals(BILLED_ON, result.getBilledOn());
+          assertNull(result.getErrorCode());
+        });
   }
 
   @Transactional
   void verifyGratisStatus() {
     remittanceRepository.findAll().stream()
-        .forEach(
-            result -> {
-              assertEquals(RemittanceStatus.GRATIS, result.getStatus());
-              assertNull(result.getErrorCode());
-            });
+        .forEach(result -> {
+          assertEquals(RemittanceStatus.GRATIS, result.getStatus());
+          assertNull(result.getErrorCode());
+        });
   }
 
   @Transactional
   void verifyUpdateForFailure(RemittanceErrorCode expected) {
     remittanceRepository.findAll().stream()
-        .forEach(
-            result -> {
-              assertEquals(RemittanceStatus.FAILED, result.getStatus());
-              assertEquals(expected, result.getErrorCode());
-              assertNull(result.getBilledOn());
-            });
+        .forEach(result -> {
+          assertEquals(RemittanceStatus.FAILED, result.getStatus());
+          assertEquals(expected, result.getErrorCode());
+          assertNull(result.getBilledOn());
+        });
   }
 
   @Transactional
   void verifyRemittanceStillPending() {
     remittanceRepository.findAll().stream()
-        .forEach(
-            result -> {
-              assertEquals(RemittanceStatus.PENDING, result.getStatus());
-              assertNull(result.getErrorCode());
-              assertNull(result.getBilledOn());
-            });
+        .forEach(result -> {
+          assertEquals(RemittanceStatus.PENDING, result.getStatus());
+          assertNull(result.getErrorCode());
+          assertNull(result.getBilledOn());
+        });
   }
 
   @Transactional

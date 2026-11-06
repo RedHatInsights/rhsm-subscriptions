@@ -267,11 +267,10 @@ class CreateUpdateHostHandlerTest {
 
     // The guest relationships should have been switched to a mapped guests.
     assertEquals(2, guestRelationships.size());
-    guestRelationships.forEach(
-        guestRelationship -> {
-          guestRelationship.setUnmappedGuest(false);
-          verify(relationshipRepo, times(1)).persist(guestRelationship);
-        });
+    guestRelationships.forEach(guestRelationship -> {
+      guestRelationship.setUnmappedGuest(false);
+      verify(relationshipRepo, times(1)).persist(guestRelationship);
+    });
   }
 
   @Test
@@ -366,17 +365,15 @@ class CreateUpdateHostHandlerTest {
             .map(e -> hbiEventHelper.virtualRelationshipFromHbiEvent(e, hypervisorUuid, true))
             .toList();
 
-    unmappedGuestRelationships.forEach(
-        relationship -> {
-          assertTrue(relationship.isUnmappedGuest());
-        });
+    unmappedGuestRelationships.forEach(relationship -> {
+      assertTrue(relationship.isUnmappedGuest());
+    });
 
     unmappedGuestRelationships.stream()
         .collect(Collectors.groupingBy(HbiHostRelationship::getOrgId))
-        .forEach(
-            (orgId, relationships) ->
-                when(relationshipRepo.findUnmappedGuests(orgId, hypervisorUuid))
-                    .thenReturn(relationships));
+        .forEach((orgId, relationships) ->
+            when(relationshipRepo.findUnmappedGuests(orgId, hypervisorUuid))
+                .thenReturn(relationships));
 
     return unmappedGuestRelationships;
   }

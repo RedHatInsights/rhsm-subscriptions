@@ -414,27 +414,26 @@ class MetricUsageCollectorTest {
     var billingAccountIds = Set.of("sellerAcctId", "_ANY");
     var tuples = Sets.cartesianProduct(usages, slas, billingProviders, billingAccountIds);
 
-    tuples.forEach(
-        tuple -> {
-          Usage usage = (Usage) tuple.get(0);
-          ServiceLevel sla = (ServiceLevel) tuple.get(1);
-          BillingProvider billingProvider = (BillingProvider) tuple.get(2);
-          String billingAccountId = (String) tuple.get(3);
+    tuples.forEach(tuple -> {
+      Usage usage = (Usage) tuple.get(0);
+      ServiceLevel sla = (ServiceLevel) tuple.get(1);
+      BillingProvider billingProvider = (BillingProvider) tuple.get(2);
+      String billingAccountId = (String) tuple.get(3);
 
-          HostBucketKey key = new HostBucketKey();
-          key.setProductId(RHEL_FOR_X86_ELS_PAYG);
-          key.setSla(sla);
-          key.setBillingProvider(billingProvider);
-          key.setBillingAccountId(billingAccountId);
-          key.setUsage(usage);
-          key.setAsHypervisor(false);
-          HostTallyBucket bucket = new HostTallyBucket();
-          bucket.setKey(key);
-          bucket.setCores(measurement.getValue().intValue());
-          bucket.setHost(instance);
-          bucket.setMeasurementType(HardwareMeasurementType.VIRTUAL);
-          expected.add(bucket);
-        });
+      HostBucketKey key = new HostBucketKey();
+      key.setProductId(RHEL_FOR_X86_ELS_PAYG);
+      key.setSla(sla);
+      key.setBillingProvider(billingProvider);
+      key.setBillingAccountId(billingAccountId);
+      key.setUsage(usage);
+      key.setAsHypervisor(false);
+      HostTallyBucket bucket = new HostTallyBucket();
+      bucket.setKey(key);
+      bucket.setCores(measurement.getValue().intValue());
+      bucket.setHost(instance);
+      bucket.setMeasurementType(HardwareMeasurementType.VIRTUAL);
+      expected.add(bucket);
+    });
     assertEquals(expected, new HashSet<>(instance.getBuckets()));
   }
 
@@ -465,12 +464,11 @@ class MetricUsageCollectorTest {
     // Find the primary bucket (non-_ANY SLA, Usage, BillingProvider, and BillingAccountId)
     Optional<HostTallyBucket> primaryBucket =
         instance.getBuckets().stream()
-            .filter(
-                b ->
-                    b.getKey().getSla() == ServiceLevel.PREMIUM
-                        && b.getKey().getUsage() == Usage.PRODUCTION
-                        && b.getKey().getBillingProvider() == BillingProvider.AWS
-                        && "123456".equals(b.getKey().getBillingAccountId()))
+            .filter(b ->
+                b.getKey().getSla() == ServiceLevel.PREMIUM
+                    && b.getKey().getUsage() == Usage.PRODUCTION
+                    && b.getKey().getBillingProvider() == BillingProvider.AWS
+                    && "123456".equals(b.getKey().getBillingAccountId()))
             .findFirst();
 
     assertTrue(primaryBucket.isPresent(), "Primary bucket should exist");
@@ -481,12 +479,11 @@ class MetricUsageCollectorTest {
     // Verify non-primary buckets (those with _ANY values)
     boolean allAnyBucketsAreNonPrimary =
         instance.getBuckets().stream()
-            .filter(
-                b ->
-                    b.getKey().getSla() == ServiceLevel._ANY
-                        || b.getKey().getUsage() == Usage._ANY
-                        || b.getKey().getBillingProvider() == BillingProvider._ANY
-                        || "_ANY".equals(b.getKey().getBillingAccountId()))
+            .filter(b ->
+                b.getKey().getSla() == ServiceLevel._ANY
+                    || b.getKey().getUsage() == Usage._ANY
+                    || b.getKey().getBillingProvider() == BillingProvider._ANY
+                    || "_ANY".equals(b.getKey().getBillingAccountId()))
             .allMatch(b -> !b.isPrimary());
 
     assertTrue(
@@ -520,12 +517,11 @@ class MetricUsageCollectorTest {
     // Find the primary bucket (non-_ANY SLA/Usage, _ANY billing fields)
     Optional<HostTallyBucket> primaryBucket =
         instance.getBuckets().stream()
-            .filter(
-                b ->
-                    b.getKey().getSla() == ServiceLevel.PREMIUM
-                        && b.getKey().getUsage() == Usage.PRODUCTION
-                        && b.getKey().getBillingProvider() == BillingProvider._ANY
-                        && "_ANY".equals(b.getKey().getBillingAccountId()))
+            .filter(b ->
+                b.getKey().getSla() == ServiceLevel.PREMIUM
+                    && b.getKey().getUsage() == Usage.PRODUCTION
+                    && b.getKey().getBillingProvider() == BillingProvider._ANY
+                    && "_ANY".equals(b.getKey().getBillingAccountId()))
             .findFirst();
 
     assertTrue(primaryBucket.isPresent(), "Primary bucket should exist");
@@ -536,12 +532,11 @@ class MetricUsageCollectorTest {
     // Verify non-primary buckets (those with _ANY SLA or Usage, or non-_ANY billing fields)
     boolean allNonPrimaryBucketsCorrect =
         instance.getBuckets().stream()
-            .filter(
-                b ->
-                    b.getKey().getSla() == ServiceLevel._ANY
-                        || b.getKey().getUsage() == Usage._ANY
-                        || b.getKey().getBillingProvider() != BillingProvider._ANY
-                        || !"_ANY".equals(b.getKey().getBillingAccountId()))
+            .filter(b ->
+                b.getKey().getSla() == ServiceLevel._ANY
+                    || b.getKey().getUsage() == Usage._ANY
+                    || b.getKey().getBillingProvider() != BillingProvider._ANY
+                    || !"_ANY".equals(b.getKey().getBillingAccountId()))
             .allMatch(b -> !b.isPrimary());
 
     assertTrue(
@@ -722,19 +717,18 @@ class MetricUsageCollectorTest {
 
     // Not defined on the event, should not exist.
     List.of(RHEL_WORKSTATION_SWATCH_PRODUCT_ID, RHEL_COMPUTE_NODE_SWATCH_PRODUCT_ID)
-        .forEach(
-            swatchProdId -> {
-              UsageCalculation.Key key =
-                  new UsageCalculation.Key(
-                      swatchProdId,
-                      ServiceLevel.PREMIUM,
-                      Usage._ANY,
-                      BillingProvider._ANY,
-                      "sellerAcctId");
-              assertFalse(
-                  accountUsageCalculation.containsCalculation(key),
-                  "Unexpected calculation: " + swatchProdId);
-            });
+        .forEach(swatchProdId -> {
+          UsageCalculation.Key key =
+              new UsageCalculation.Key(
+                  swatchProdId,
+                  ServiceLevel.PREMIUM,
+                  Usage._ANY,
+                  BillingProvider._ANY,
+                  "sellerAcctId");
+          assertFalse(
+              accountUsageCalculation.containsCalculation(key),
+              "Unexpected calculation: " + swatchProdId);
+        });
   }
 
   @ParameterizedTest

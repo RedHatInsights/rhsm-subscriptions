@@ -310,12 +310,11 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
             HardwareMeasurementType.PHYSICAL,
             HardwareMeasurementType.VIRTUAL,
             HardwareMeasurementType.HYPERVISOR)
-        .forEach(
-            type -> {
-              productCalc.add(type, MetricIdUtils.getCores(), (double) totalCores);
-              productCalc.add(type, MetricIdUtils.getSockets(), (double) totalSockets);
-              productCalc.add(type, MetricIdUtils.getInstanceHours(), (double) totalInstances);
-            });
+        .forEach(type -> {
+          productCalc.add(type, MetricIdUtils.getCores(), (double) totalCores);
+          productCalc.add(type, MetricIdUtils.getSockets(), (double) totalSockets);
+          productCalc.add(type, MetricIdUtils.getInstanceHours(), (double) totalInstances);
+        });
 
     AccountUsageCalculation calc = new AccountUsageCalculation(orgId);
     calc.addCalculation(productCalc);
@@ -332,13 +331,12 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
     for (HardwareMeasurementType type : HardwareMeasurementType.values()) {
       Totals expectedTotal = expectedVals.getTotals(type);
       MetricId.getAll()
-          .forEach(
-              metricId ->
-                  assertEquals(
-                      Optional.ofNullable(expectedTotal)
-                          .map(totals -> totals.getMeasurement(metricId))
-                          .orElse(null),
-                      snapshot.getMeasurement(type, metricId)));
+          .forEach(metricId ->
+              assertEquals(
+                  Optional.ofNullable(expectedTotal)
+                      .map(totals -> totals.getMeasurement(metricId))
+                      .orElse(null),
+                  snapshot.getMeasurement(type, metricId)));
     }
   }
 }

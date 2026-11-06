@@ -221,44 +221,37 @@ public class ApiSecurityConfiguration {
         .addFilterAfter(logPrincipalFilter(), MdcFilter.class)
         .addFilterAt(antiCsrfFilter(secProps), CsrfFilter.class)
         .csrf(csrf -> csrf.disable())
-        .exceptionHandling(
-            handler -> {
-              handler.accessDeniedHandler(restAccessDeniedHandler);
-              handler.authenticationEntryPoint(restAuthenticationEntryPoint);
-            })
+        .exceptionHandling(handler -> {
+          handler.accessDeniedHandler(restAccessDeniedHandler);
+          handler.authenticationEntryPoint(restAuthenticationEntryPoint);
+        })
         // disable sessions, our API is stateless, and sessions cause RBAC information to be cached
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-        .authorizeHttpRequests(
-            requests -> {
-              for (String url : URLS_PERMITTED_WITHOUT_AUTH) {
-                requests.requestMatchers(PathPatternRequestMatcher.pathPattern(url)).permitAll();
-              }
-              requests.requestMatchers(this::isDummyRequest).permitAll();
+        .authorizeHttpRequests(requests -> {
+          for (String url : URLS_PERMITTED_WITHOUT_AUTH) {
+            requests.requestMatchers(PathPatternRequestMatcher.pathPattern(url)).permitAll();
+          }
+          requests.requestMatchers(this::isDummyRequest).permitAll();
 
-              requests
-                  .requestMatchers(EndpointRequest.to("health", "info", "prometheus"))
-                  .permitAll();
-              /* Values assigned to management.path-mapping.* shouldn't have a leading slash. However, Clowder
-               * only provides a path starting with a leading slash.  I have elected to set the default
-               * to do the same for the sake of consistency.  The leading slash can potentially cause problems with Spring
-               * Security since the path now becomes (assuming management.base-path is "/") "//metrics".
-               * Browser requests to "/metrics" aren't going to match according to Spring Security's path matching rules
-               * and the end result is that any security rule applied to EndpointRequest.to("prometheus") will be
-               * applied to the defined path ("//metrics") rather than the de facto path ("/metrics").
-               * Accordingly, I've put in a custom rule in the security config to allow for access to "/metrics"
-               */
-              requests
-                  .requestMatchers(PathPatternRequestMatcher.pathPattern("/metrics"))
-                  .permitAll();
-              // Intentionally not prefixed with "ROLE_"
-              requests
-                  .requestMatchers(
-                      PathPatternRequestMatcher.pathPattern(
-                          "/api/rhsm-subscriptions/v1/internal/**"))
-                  .hasRole("INTERNAL");
-              requests.anyRequest().authenticated();
-            })
+          requests.requestMatchers(EndpointRequest.to("health", "info", "prometheus")).permitAll();
+          /* Values assigned to management.path-mapping.* shouldn't have a leading slash. However, Clowder
+           * only provides a path starting with a leading slash.  I have elected to set the default
+           * to do the same for the sake of consistency.  The leading slash can potentially cause problems with Spring
+           * Security since the path now becomes (assuming management.base-path is "/") "//metrics".
+           * Browser requests to "/metrics" aren't going to match according to Spring Security's path matching rules
+           * and the end result is that any security rule applied to EndpointRequest.to("prometheus") will be
+           * applied to the defined path ("//metrics") rather than the de facto path ("/metrics").
+           * Accordingly, I've put in a custom rule in the security config to allow for access to "/metrics"
+           */
+          requests.requestMatchers(PathPatternRequestMatcher.pathPattern("/metrics")).permitAll();
+          // Intentionally not prefixed with "ROLE_"
+          requests
+              .requestMatchers(
+                  PathPatternRequestMatcher.pathPattern("/api/rhsm-subscriptions/v1/internal/**"))
+              .hasRole("INTERNAL");
+          requests.anyRequest().authenticated();
+        })
         // Creates an anonymous user if no header is present at all. Prevents NPEs
         .anonymous(Customizer.withDefaults());
     return http.build();

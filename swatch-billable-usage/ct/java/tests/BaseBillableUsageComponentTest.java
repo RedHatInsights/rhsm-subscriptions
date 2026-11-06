@@ -166,19 +166,15 @@ public class BaseBillableUsageComponentTest {
     Awaitility.await()
         .atMost(Duration.ofSeconds(30))
         .pollInterval(Duration.ofSeconds(2))
-        .untilAsserted(
-            () -> {
-              List<TallyRemittance> remittances = service.getRemittancesByTally(tallyId);
-              assertNotNull(remittances, "Remittances should exist for tallyId: " + tallyId);
-              assertFalse(remittances.isEmpty(), "Should have at least one remittance");
-              assertEquals(
-                  expectedStatus,
-                  RemittanceStatus.valueOf(remittances.get(0).getStatus()),
-                  "Expected status "
-                      + expectedStatus
-                      + " but got "
-                      + remittances.get(0).getStatus());
-            });
+        .untilAsserted(() -> {
+          List<TallyRemittance> remittances = service.getRemittancesByTally(tallyId);
+          assertNotNull(remittances, "Remittances should exist for tallyId: " + tallyId);
+          assertFalse(remittances.isEmpty(), "Should have at least one remittance");
+          assertEquals(
+              expectedStatus,
+              RemittanceStatus.valueOf(remittances.get(0).getStatus()),
+              "Expected status " + expectedStatus + " but got " + remittances.get(0).getStatus());
+        });
   }
 
   protected void thenRemittanceStatusIs(String tallyId, RemittanceStatus expectedStatus) {

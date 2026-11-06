@@ -90,15 +90,14 @@ public class ProductTagLookupParams {
       if (engIds != null) {
         this.engIds =
             engIds.stream()
-                .map(
-                    id -> {
-                      try {
-                        return Integer.valueOf(id);
-                      } catch (NumberFormatException e) {
-                        log.warn("Invalid number format: {}", id);
-                        return null; // Return null for invalid elements
-                      }
-                    })
+                .map(id -> {
+                  try {
+                    return Integer.valueOf(id);
+                  } catch (NumberFormatException e) {
+                    log.warn("Invalid number format: {}", id);
+                    return null; // Return null for invalid elements
+                  }
+                })
                 .filter(Objects::nonNull) // Filter out invalid elements
                 .collect(Collectors.toSet());
       }

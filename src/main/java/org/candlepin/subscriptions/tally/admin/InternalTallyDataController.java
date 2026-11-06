@@ -84,15 +84,14 @@ public class InternalTallyDataController {
       events =
           objectMapper.readValue(jsonListOfEvents, new TypeReference<List<Event>>() {}).stream()
               .map(eventNormalizer::normalizeEvent)
-              .filter(
-                  e -> {
-                    if (eventController.validateServiceInstanceEvent(e)) {
-                      return true;
-                    } else {
-                      log.warn("Invalid event in batch: {}", e);
-                      return false;
-                    }
-                  })
+              .filter(e -> {
+                if (eventController.validateServiceInstanceEvent(e)) {
+                  return true;
+                } else {
+                  log.warn("Invalid event in batch: {}", e);
+                  return false;
+                }
+              })
               .toList();
     } catch (Exception e) {
       log.warn("Error parsing request body");

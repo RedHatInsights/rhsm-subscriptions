@@ -72,16 +72,15 @@ public interface ExtendWithExportServiceWireMock {
   default void verifyRequestWasSentToExportServiceWithError(
       GenericConsoleCloudEvent<ResourceRequest> request, String message) {
     Awaitility.await()
-        .untilAsserted(
-            () ->
-                EXPORT_SERVICE_WIRE_MOCK_SERVER.verify(
-                    postRequestedFor(
-                            urlEqualTo(
-                                String.format(
-                                    "/internal/export/v1/%s/subscriptions/%s/error",
-                                    request.getData().getResourceRequest().getExportRequestUUID(),
-                                    request.getData().getResourceRequest().getUUID())))
-                        .withRequestBody(containing(message))));
+        .untilAsserted(() ->
+            EXPORT_SERVICE_WIRE_MOCK_SERVER.verify(
+                postRequestedFor(
+                        urlEqualTo(
+                            String.format(
+                                "/internal/export/v1/%s/subscriptions/%s/error",
+                                request.getData().getResourceRequest().getExportRequestUUID(),
+                                request.getData().getResourceRequest().getUUID())))
+                    .withRequestBody(containing(message))));
   }
 
   default void verifyNoRequestsWereSentToExportServiceWithUploadData(
@@ -99,16 +98,15 @@ public interface ExtendWithExportServiceWireMock {
   default void verifyRequestWasSentToExportServiceWithUploadData(
       GenericConsoleCloudEvent<ResourceRequest> request, String expected) {
     Awaitility.await()
-        .untilAsserted(
-            () ->
-                EXPORT_SERVICE_WIRE_MOCK_SERVER.verify(
-                    postRequestedFor(
-                            urlEqualTo(
-                                String.format(
-                                    "/internal/export/v1/%s/subscriptions/%s/upload",
-                                    request.getData().getResourceRequest().getExportRequestUUID(),
-                                    request.getData().getResourceRequest().getUUID())))
-                        .withRequestBody(equalTo(expected))));
+        .untilAsserted(() ->
+            EXPORT_SERVICE_WIRE_MOCK_SERVER.verify(
+                postRequestedFor(
+                        urlEqualTo(
+                            String.format(
+                                "/internal/export/v1/%s/subscriptions/%s/upload",
+                                request.getData().getResourceRequest().getExportRequestUUID(),
+                                request.getData().getResourceRequest().getUUID())))
+                    .withRequestBody(equalTo(expected))));
   }
 
   static WireMockServer startWireMockServer() {

@@ -97,29 +97,28 @@ public class RhsmService {
                       + "(0[0-9]|[1-5][0-9]):(0[0-9]|[1-5][0-9]))Z$")
           String lastCheckinTime)
       throws ApiException {
-    return retryTemplate.execute(
-        context -> {
-          try {
-            bulkhead.acquirePermission();
-          } catch (BulkheadFullException exception) {
-            throw new SubscriptionsException(
-                ErrorCode.RHSM_SERVICE_REQUEST_ERROR,
-                Response.Status.TOO_MANY_REQUESTS,
-                "Failed due to limit timeout",
-                (String) null);
-          }
+    return retryTemplate.execute(context -> {
+      try {
+        bulkhead.acquirePermission();
+      } catch (BulkheadFullException exception) {
+        throw new SubscriptionsException(
+            ErrorCode.RHSM_SERVICE_REQUEST_ERROR,
+            Response.Status.TOO_MANY_REQUESTS,
+            "Failed due to limit timeout",
+            (String) null);
+      }
 
-          try {
-            log.debug("Fetching page of consumers for org {}.", orgId);
-            OrgInventory consumersForOrg =
-                api.getConsumersForOrg(orgId, batchSize, offset, lastCheckinTime);
-            int count = consumersForOrg.getBody().size();
-            log.debug("Consumer fetch complete. Found {} for batch of {}.", count, batchSize);
-            return consumersForOrg;
-          } finally {
-            bulkhead.onComplete();
-          }
-        });
+      try {
+        log.debug("Fetching page of consumers for org {}.", orgId);
+        OrgInventory consumersForOrg =
+            api.getConsumersForOrg(orgId, batchSize, offset, lastCheckinTime);
+        int count = consumersForOrg.getBody().size();
+        log.debug("Consumer fetch complete. Found {} for batch of {}.", count, batchSize);
+        return consumersForOrg;
+      } finally {
+        bulkhead.onComplete();
+      }
+    });
   }
 
   /**

@@ -57,14 +57,13 @@ class OperationalProductMessageTest {
                                                         180, 84, 70, 86, 94, 93, 176, 92, 317, 318,
                                                         271, 69, 201, 205, 394, 395, 408, 491, 479,
                                                         588, 605)
-                                                    .map(
-                                                        id ->
-                                                            Reference.builder()
-                                                                .system("PRODUCT")
-                                                                .entityName("Engineering Product")
-                                                                .qualifier("number")
-                                                                .value(id.toString())
-                                                                .build())
+                                                    .map(id ->
+                                                        Reference.builder()
+                                                            .system("PRODUCT")
+                                                            .entityName("Engineering Product")
+                                                            .qualifier("number")
+                                                            .value(id.toString())
+                                                            .build())
                                                     .collect(Collectors.toList())
                                                     .toArray(new Reference[] {}))
                                             .build())

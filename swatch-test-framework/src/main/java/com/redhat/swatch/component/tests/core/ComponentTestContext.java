@@ -123,7 +123,7 @@ public final class ComponentTestContext {
   }
 
   public <T extends Annotation> Optional<T> getAnnotatedConfiguration(Class<T> clazz) {
-    return getAnnotatedConfiguration(clazz, (s) -> true);
+    return getAnnotatedConfiguration(clazz, s -> true);
   }
 
   public <T extends Annotation> Optional<T> getAnnotatedConfiguration(

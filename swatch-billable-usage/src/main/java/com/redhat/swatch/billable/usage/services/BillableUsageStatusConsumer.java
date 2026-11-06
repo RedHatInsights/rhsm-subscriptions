@@ -70,16 +70,15 @@ public class BillableUsageStatusConsumer {
 
     var remittanceUuidsToUpdate = new ArrayList<>(billableUsageAggregate.getRemittanceUuids());
 
-    finalizedRemittances.forEach(
-        remittance -> {
-          log.warn(
-              "Error Code: {} - Remittance {} has finalized status {} and will not be updated to {}",
-              ErrorCode.REMITTANCE_NOT_PENDING.getCode(),
-              remittance.getUuid(),
-              remittance.getStatus(),
-              status);
-          remittanceUuidsToUpdate.remove(remittance.getUuid().toString());
-        });
+    finalizedRemittances.forEach(remittance -> {
+      log.warn(
+          "Error Code: {} - Remittance {} has finalized status {} and will not be updated to {}",
+          ErrorCode.REMITTANCE_NOT_PENDING.getCode(),
+          remittance.getUuid(),
+          remittance.getStatus(),
+          status);
+      remittanceUuidsToUpdate.remove(remittance.getUuid().toString());
+    });
 
     if (remittanceUuidsToUpdate.isEmpty()) {
       BillableUsageAggregateLogger.info(

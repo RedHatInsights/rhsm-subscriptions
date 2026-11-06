@@ -41,10 +41,9 @@ public class IdentityHeaderApiClient extends ApiClient {
 
     this.applicableAuthNames =
         getAuthentications().entrySet().stream()
-            .filter(
-                e ->
-                    e.getValue() instanceof ApiKeyAuth
-                        && "x-rh-identity".equals(((ApiKeyAuth) e.getValue()).getParamName()))
+            .filter(e ->
+                e.getValue() instanceof ApiKeyAuth
+                    && "x-rh-identity".equals(((ApiKeyAuth) e.getValue()).getParamName()))
             .map(Entry::getKey)
             .collect(Collectors.toSet());
   }

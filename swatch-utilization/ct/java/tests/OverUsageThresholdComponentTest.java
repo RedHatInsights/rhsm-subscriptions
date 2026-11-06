@@ -114,21 +114,20 @@ public class OverUsageThresholdComponentTest extends BaseUtilizationComponentTes
 
     whenUtilizationEventIsReceived();
 
-    untilAsserted(
-        () -> {
-          assertThat(
-              "Labeled series (Premium, Production) should gain one increment",
-              overUsageMetricCount(
-                      MetricIdUtils.getCores(),
-                      UtilizationSummary.Sla.PREMIUM,
-                      UtilizationSummary.Usage.PRODUCTION)
-                  - initialLabeled,
-              equalTo(EXPECTED_SINGLE_INCREMENT));
-          assertThat(
-              "Series with both sla and usage _ANY should be unchanged",
-              overUsageMetricCount(MetricIdUtils.getCores()) - initialBothSlaUsageAny,
-              equalTo(0.0));
-        });
+    untilAsserted(() -> {
+      assertThat(
+          "Labeled series (Premium, Production) should gain one increment",
+          overUsageMetricCount(
+                  MetricIdUtils.getCores(),
+                  UtilizationSummary.Sla.PREMIUM,
+                  UtilizationSummary.Usage.PRODUCTION)
+              - initialLabeled,
+          equalTo(EXPECTED_SINGLE_INCREMENT));
+      assertThat(
+          "Series with both sla and usage _ANY should be unchanged",
+          overUsageMetricCount(MetricIdUtils.getCores()) - initialBothSlaUsageAny,
+          equalTo(0.0));
+    });
 
     thenThresholdNotificationShouldBeSent(
         EventTypes.EXCEEDED_UTILIZATION_THRESHOLD,
@@ -205,14 +204,13 @@ public class OverUsageThresholdComponentTest extends BaseUtilizationComponentTes
     whenUtilizationEventIsReceived();
 
     // Counter should increment by exactly 1 (only the second measurement)
-    untilAsserted(
-        () -> {
-          double currentCount = overUsageMetricCount(MetricIdUtils.getInstanceHours());
-          assertThat(
-              "Counter should increment by exactly 1 for the one measurement exceeding threshold",
-              currentCount - initialInstanceHoursCount,
-              equalTo(EXPECTED_SINGLE_INCREMENT));
-        });
+    untilAsserted(() -> {
+      double currentCount = overUsageMetricCount(MetricIdUtils.getInstanceHours());
+      assertThat(
+          "Counter should increment by exactly 1 for the one measurement exceeding threshold",
+          currentCount - initialInstanceHoursCount,
+          equalTo(EXPECTED_SINGLE_INCREMENT));
+    });
   }
 
   // Given helpers
@@ -274,14 +272,13 @@ public class OverUsageThresholdComponentTest extends BaseUtilizationComponentTes
   void thenCounterShouldBeIncremented(String metric) {
     Double initialCount = initialCounters.getOrDefault(metric, 0.0);
     MetricId metricId = Product.fromString(utilizationSummary.getProductId()).getFirstMetricId();
-    untilAsserted(
-        () -> {
-          double currentCount = overUsageMetricCount(metricId);
-          assertThat(
-              metric + " counter should be incremented by exactly 1",
-              currentCount - initialCount,
-              equalTo(EXPECTED_SINGLE_INCREMENT));
-        });
+    untilAsserted(() -> {
+      double currentCount = overUsageMetricCount(metricId);
+      assertThat(
+          metric + " counter should be incremented by exactly 1",
+          currentCount - initialCount,
+          equalTo(EXPECTED_SINGLE_INCREMENT));
+    });
   }
 
   void thenOverUsageCounterShouldNotChange() {
@@ -289,11 +286,9 @@ public class OverUsageThresholdComponentTest extends BaseUtilizationComponentTes
     MetricId metricId = Product.fromString(utilizationSummary.getProductId()).getFirstMetricId();
     await()
         .pollDelay(MESSAGE_PROCESSING_DELAY)
-        .untilAsserted(
-            () -> {
-              double currentCount = overUsageMetricCount(metricId);
-              assertThat(
-                  "Over-usage counter should not change", currentCount, equalTo(initialCount));
-            });
+        .untilAsserted(() -> {
+          double currentCount = overUsageMetricCount(metricId);
+          assertThat("Over-usage counter should not change", currentCount, equalTo(initialCount));
+        });
   }
 }

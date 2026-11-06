@@ -245,14 +245,11 @@ class TallySummaryMessageConsumerTest {
 
   private void thenWarningLogWithMessage(String str) {
     Awaitility.await()
-        .untilAsserted(
-            () ->
-                assertTrue(
-                    LOGGER_CAPTOR.records.stream()
-                        .anyMatch(
-                            r ->
-                                r.getLevel().equals(Level.WARNING)
-                                    && r.getMessage().contains(str))));
+        .untilAsserted(() ->
+            assertTrue(
+                LOGGER_CAPTOR.records.stream()
+                    .anyMatch(
+                        r -> r.getLevel().equals(Level.WARNING) && r.getMessage().contains(str))));
   }
 
   public static class LoggerCaptor extends Handler {

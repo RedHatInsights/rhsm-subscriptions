@@ -143,23 +143,20 @@ public class UtilizationMultiComponentTest extends BaseUtilizationComponentTest 
     whenUtilizationEventIsReceived(premiumProduction);
     whenUtilizationEventIsReceived(standardDevTest);
 
-    untilAsserted(
-        () -> {
-          assertThat(
-              overUsageMetricCount(
-                      getCores(),
-                      UtilizationSummary.Sla.PREMIUM,
-                      UtilizationSummary.Usage.PRODUCTION)
-                  - initialPremiumProd,
-              equalTo(1.0));
-          assertThat(
-              overUsageMetricCount(
-                      getCores(),
-                      UtilizationSummary.Sla.STANDARD,
-                      UtilizationSummary.Usage.DEVELOPMENT_TEST)
-                  - initialStandardDev,
-              equalTo(1.0));
-        });
+    untilAsserted(() -> {
+      assertThat(
+          overUsageMetricCount(
+                  getCores(), UtilizationSummary.Sla.PREMIUM, UtilizationSummary.Usage.PRODUCTION)
+              - initialPremiumProd,
+          equalTo(1.0));
+      assertThat(
+          overUsageMetricCount(
+                  getCores(),
+                  UtilizationSummary.Sla.STANDARD,
+                  UtilizationSummary.Usage.DEVELOPMENT_TEST)
+              - initialStandardDev,
+          equalTo(1.0));
+    });
   }
 
   // Given helpers
@@ -182,30 +179,26 @@ public class UtilizationMultiComponentTest extends BaseUtilizationComponentTest 
   // Then helpers
   /** Verifies over-usage counter is incremented for the given metric. */
   private void thenOverUsageCounterShouldBeIncremented(double initialCount, MetricId metricId) {
-    untilAsserted(
-        () -> {
-          double currentCount = overUsageMetricCount(metricId);
-          assertThat(
-              OVER_USAGE_METRIC
-                  + " counter should increment by exactly 1 for "
-                  + metricId.getValue(),
-              currentCount - initialCount,
-              equalTo(1.0));
-        });
+    untilAsserted(() -> {
+      double currentCount = overUsageMetricCount(metricId);
+      assertThat(
+          OVER_USAGE_METRIC + " counter should increment by exactly 1 for " + metricId.getValue(),
+          currentCount - initialCount,
+          equalTo(1.0));
+    });
   }
 
   /** Verifies over-usage counter does not change for the given metric. */
   private void thenOverUsageCounterShouldNotChange(double initialCount, MetricId metricId) {
     await()
         .pollDelay(MESSAGE_PROCESSING_DELAY)
-        .untilAsserted(
-            () -> {
-              double currentCount = overUsageMetricCount(metricId);
-              assertThat(
-                  "Over-usage counter should not change for " + metricId.getValue(),
-                  currentCount,
-                  equalTo(initialCount));
-            });
+        .untilAsserted(() -> {
+          double currentCount = overUsageMetricCount(metricId);
+          assertThat(
+              "Over-usage counter should not change for " + metricId.getValue(),
+              currentCount,
+              equalTo(initialCount));
+        });
   }
 
   /** Verifies no notification is sent for the given product and metric. */

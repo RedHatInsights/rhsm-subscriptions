@@ -70,15 +70,14 @@ public class OfferingUpdateComponentTest extends BaseContractComponentTest {
         IT_PRODUCT_SYNC, OperationalProductEventMapper.mapFrom(openshiftOffering));
 
     // Then: API returns HTTP 200 response with updated product tag reflecting the change
-    AwaitilityUtils.untilAsserted(
-        () -> {
-          OfferingProductTags updatedTags = whenGetSkuProductTags(openshiftOffering);
-          thenProductTagsShouldContain(
-              updatedTags,
-              Product.OPENSHIFT.getName(),
-              "Product tag should be 'OpenShift Container Platform' after update. Actual was: "
-                  + updatedTags.getData());
-        });
+    AwaitilityUtils.untilAsserted(() -> {
+      OfferingProductTags updatedTags = whenGetSkuProductTags(openshiftOffering);
+      thenProductTagsShouldContain(
+          updatedTags,
+          Product.OPENSHIFT.getName(),
+          "Product tag should be 'OpenShift Container Platform' after update. Actual was: "
+              + updatedTags.getData());
+    });
 
     // And: The contract still exists and was not lost during the update
     List<Contract> contractsAfterUpdate = service.getContractsByOrgId(orgId);

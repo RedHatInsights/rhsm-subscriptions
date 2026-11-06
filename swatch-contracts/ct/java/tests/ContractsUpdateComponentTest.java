@@ -516,14 +516,13 @@ public class ContractsUpdateComponentTest extends BaseContractComponentTest {
   }
 
   private void thenOfferingShouldExist(String sku) {
-    AwaitilityUtils.untilAsserted(
-        () -> {
-          Response response = service.getSkuProductTags(sku);
-          assertEquals(
-              HttpStatus.SC_OK,
-              response.statusCode(),
-              "Offering should exist after product ingress event");
-        });
+    AwaitilityUtils.untilAsserted(() -> {
+      Response response = service.getSkuProductTags(sku);
+      assertEquals(
+          HttpStatus.SC_OK,
+          response.statusCode(),
+          "Offering should exist after product ingress event");
+    });
   }
 
   private com.redhat.swatch.contract.test.model.Contract thenContractIsCreated(Contract contract) {

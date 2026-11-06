@@ -660,10 +660,9 @@ public class ClowderJsonPropertySource extends PropertySource<ClowderJson>
         endpoints.stream()
             .filter(c -> endpoint.equals(getEndpointName(c)))
             .findFirst()
-            .orElseThrow(
-                () ->
-                    new IllegalStateException(
-                        "Could not find the private endpoint configuration for property: " + name));
+            .orElseThrow(() ->
+                new IllegalStateException(
+                    "Could not find the private endpoint configuration for property: " + name));
     return configFunction.apply(this, found);
   }
 

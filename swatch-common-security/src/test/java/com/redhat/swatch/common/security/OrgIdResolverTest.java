@@ -101,13 +101,13 @@ class OrgIdResolverTest {
   private static String customerIdentityHeader() {
     String json =
         """
-            {
-              "identity": {
-                "type": "User",
-                "org_id": "org123"
-              }
-            }
-            """;
+        {
+          "identity": {
+            "type": "User",
+            "org_id": "org123"
+          }
+        }
+        """;
     return new String(
         Base64.getEncoder().encode(json.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
   }

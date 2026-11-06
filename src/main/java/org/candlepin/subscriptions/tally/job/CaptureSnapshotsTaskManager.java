@@ -94,16 +94,14 @@ public class CaptureSnapshotsTaskManager {
       log.info("Queuing all org snapshot production in batches of size one");
 
       AtomicInteger count = new AtomicInteger(0);
-      orgStream.forEach(
-          org -> {
-            LogUtils.addOrgIdToMdc(org);
-            queue.enqueue(
-                TaskDescriptor.builder(
-                        TaskType.UPDATE_SNAPSHOTS, taskQueueProperties.getTopic(), org)
-                    .setSingleValuedArg("orgs", org)
-                    .build());
-            count.addAndGet(1);
-          });
+      orgStream.forEach(org -> {
+        LogUtils.addOrgIdToMdc(org);
+        queue.enqueue(
+            TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, taskQueueProperties.getTopic(), org)
+                .setSingleValuedArg("orgs", org)
+                .build());
+        count.addAndGet(1);
+      });
 
       LogUtils.clearOrgIdFromMdc();
       log.info("Done queuing snapshot production for {} org list.", count.intValue());
@@ -136,11 +134,10 @@ public class CaptureSnapshotsTaskManager {
       AtomicInteger count = new AtomicInteger(0);
       log.info("Queuing all org hourly snapshot in batches of size one");
 
-      orgStream.forEach(
-          orgId -> {
-            tallyOrgByHourly(orgId, false);
-            count.addAndGet(1);
-          });
+      orgStream.forEach(orgId -> {
+        tallyOrgByHourly(orgId, false);
+        count.addAndGet(1);
+      });
 
       log.info("Done queuing hourly snapshot production for {} accounts.", count.intValue());
 

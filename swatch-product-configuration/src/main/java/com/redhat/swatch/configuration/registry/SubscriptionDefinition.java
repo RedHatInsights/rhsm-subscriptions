@@ -192,9 +192,8 @@ public class SubscriptionDefinition {
     var metricOptional =
         Variant.findByTag(tag)
             .map(Variant::getSubscription)
-            .flatMap(
-                subscriptionDefinition ->
-                    subscriptionDefinition.getMetric(MetricId.fromString(metricId).getValue()));
+            .flatMap(subscriptionDefinition ->
+                subscriptionDefinition.getMetric(MetricId.fromString(metricId).getValue()));
     return metricOptional.map(Metric::getBillingFactor).orElse(1.0);
   }
 
@@ -208,11 +207,10 @@ public class SubscriptionDefinition {
   public static boolean variantSupportsGranularity(String tag, String granularity) {
     return lookupSubscriptionByTag(tag)
         .map(subscription -> supportsGranularity(subscription, granularity))
-        .orElseGet(
-            () -> {
-              log.warn("Granularity requested for missing subscription variant: {}", tag);
-              return false;
-            });
+        .orElseGet(() -> {
+          log.warn("Granularity requested for missing subscription variant: {}", tag);
+          return false;
+        });
   }
 
   @SafeVarargs
@@ -263,10 +261,9 @@ public class SubscriptionDefinition {
         SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
             // NOTE(khowell): we filter by payg/non-payg early in order to avoid role values from
             // non-payg (RHEL for x86) from being identified for payg (e.g. rhel-for-x86-els-addon)
-            .filter(
-                s ->
-                    params.getIsPaygEligibleProduct() == null
-                        || Objects.equals(s.isPaygEligible(), params.getIsPaygEligibleProduct()))
+            .filter(s ->
+                params.getIsPaygEligibleProduct() == null
+                    || Objects.equals(s.isPaygEligible(), params.getIsPaygEligibleProduct()))
             .flatMap(subscription -> subscription.getVariants().stream())
             .collect(Collectors.toSet());
 
@@ -291,11 +288,10 @@ public class SubscriptionDefinition {
   protected static Set<SubscriptionDefinition> cacheSubscriptionByEngId(String engProductId) {
     int engId = Integer.parseInt(engProductId);
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
-        .filter(
-            subscription ->
-                !subscription.getVariants().isEmpty()
-                    && subscription.getVariants().stream()
-                        .anyMatch(variant -> variant.getEngineeringIds().contains(engId)))
+        .filter(subscription ->
+            !subscription.getVariants().isEmpty()
+                && subscription.getVariants().stream()
+                    .anyMatch(variant -> variant.getEngineeringIds().contains(engId)))
         .collect(Collectors.toUnmodifiableSet());
   }
 
@@ -312,11 +308,10 @@ public class SubscriptionDefinition {
 
   protected static Optional<SubscriptionDefinition> cacheSubscriptionByRole(String role) {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
-        .filter(
-            subscription ->
-                !subscription.getVariants().isEmpty()
-                    && subscription.getVariants().stream()
-                        .anyMatch(variant -> variant.getRoles().contains(role)))
+        .filter(subscription ->
+            !subscription.getVariants().isEmpty()
+                && subscription.getVariants().stream()
+                    .anyMatch(variant -> variant.getRoles().contains(role)))
         .collect(MoreCollectors.toOptional());
   }
 
@@ -333,11 +328,10 @@ public class SubscriptionDefinition {
   protected static Optional<SubscriptionDefinition> cacheSubscriptionByTag(
       @NotNull @NotEmpty String tag) {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
-        .filter(
-            subscription ->
-                !subscription.getVariants().isEmpty()
-                    && subscription.getVariants().stream()
-                        .anyMatch(variant -> Objects.equals(tag, variant.getTag())))
+        .filter(subscription ->
+            !subscription.getVariants().isEmpty()
+                && subscription.getVariants().stream()
+                    .anyMatch(variant -> Objects.equals(tag, variant.getTag())))
         .collect(MoreCollectors.toOptional());
   }
 
@@ -377,11 +371,10 @@ public class SubscriptionDefinition {
 
   public boolean isPaygEligible() {
     return metrics.stream()
-        .anyMatch(
-            metric ->
-                metric.getRhmMetricId() != null
-                    || metric.getAwsDimension() != null
-                    || metric.getAzureDimension() != null);
+        .anyMatch(metric ->
+            metric.getRhmMetricId() != null
+                || metric.getAwsDimension() != null
+                || metric.getAzureDimension() != null);
   }
 
   public static String getAwsDimension(String productTag, String metricId) {
@@ -427,9 +420,8 @@ public class SubscriptionDefinition {
             .map(SubscriptionDefinition::lookupSubscriptionByTag)
             .filter(Optional::isPresent)
             .flatMap(s -> s.get().getIncludedSubscriptions().stream())
-            .flatMap(
-                productId ->
-                    SubscriptionDefinition.getAllProductTagsByProductId(productId).stream())
+            .flatMap(productId ->
+                SubscriptionDefinition.getAllProductTagsByProductId(productId).stream())
             .collect(Collectors.toSet());
 
     productTags.removeIf(exclusions::contains);

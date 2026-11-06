@@ -66,13 +66,12 @@ public class ContractSyncService {
     log.info("Queuing contract sync tasks for all orgs");
     AtomicLong count = new AtomicLong(0);
     try (Stream<String> orgIds = contractRepository.getDistinctOrgIds()) {
-      orgIds.forEach(
-          orgId -> {
-            contractSyncTaskEmitter.sendMessageAndAwait(
-                Message.of(new ContractSyncTask(orgId))
-                    .addMetadata(OutgoingKafkaRecordMetadata.builder().withKey(orgId).build()));
-            count.incrementAndGet();
-          });
+      orgIds.forEach(orgId -> {
+        contractSyncTaskEmitter.sendMessageAndAwait(
+            Message.of(new ContractSyncTask(orgId))
+                .addMetadata(OutgoingKafkaRecordMetadata.builder().withKey(orgId).build()));
+        count.incrementAndGet();
+      });
     }
     log.info("Done queuing contract sync tasks for {} org(s)", count.get());
     return count.get();

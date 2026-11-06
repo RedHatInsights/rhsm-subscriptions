@@ -50,17 +50,16 @@ public class SubscriptionCsvDataMapperService
 
     // when there are metrics, we return a different row by each metric.
     return metrics.stream()
-        .map(
-            m -> {
-              var item = buildSubscriptionItem(dataItem);
-              item.setMetricId(m.getMetricId());
-              if (SubscriptionCapacityViewRepository.PHYSICAL.equals(m.getMeasurementType())) {
-                item.setHypervisorCapacity(m.getCapacity());
-              } else {
-                item.setCapacity(m.getCapacity());
-              }
-              return (Object) item;
-            })
+        .map(m -> {
+          var item = buildSubscriptionItem(dataItem);
+          item.setMetricId(m.getMetricId());
+          if (SubscriptionCapacityViewRepository.PHYSICAL.equals(m.getMeasurementType())) {
+            item.setHypervisorCapacity(m.getCapacity());
+          } else {
+            item.setCapacity(m.getCapacity());
+          }
+          return (Object) item;
+        })
         .toList();
   }
 

@@ -110,13 +110,12 @@ class TallySnapshotControllerMetricsTest {
 
     // Perform these operations just to get calcCache.isEmpty() to evaluate to false
     doAnswer(
-            AdditionalAnswers.answerVoid(
-                (batch, cache) -> {
-                  var calc = new AccountUsageCalculation("123");
-                  var event = new Event();
-                  event.setTimestamp(OffsetDateTime.now());
-                  ((AccountUsageCalculationCache) cache).put(event, calc);
-                }))
+            AdditionalAnswers.answerVoid((batch, cache) -> {
+              var calc = new AccountUsageCalculation("123");
+              var event = new Event();
+              event.setTimestamp(OffsetDateTime.now());
+              ((AccountUsageCalculationCache) cache).put(event, calc);
+            }))
         .when(usageCollector)
         .calculateUsage(anyList(), any(AccountUsageCalculationCache.class));
 
@@ -158,20 +157,19 @@ class TallySnapshotControllerMetricsTest {
       // specific buckets are
       // filtered out
       Set<List<Object>> tuples = Sets.cartesianProduct(usages, slas, providers);
-      tuples.forEach(
-          t -> {
-            Usage u = (Usage) t.get(0);
-            ServiceLevel s = (ServiceLevel) t.get(1);
-            BillingProvider bp = (BillingProvider) t.get(2);
-            var snap = new TallySnapshot();
-            snap.setProductId(productId);
-            snap.setGranularity(granularity);
-            snap.setServiceLevel(s);
-            snap.setUsage(u);
-            snap.setBillingProvider(bp);
-            snap.setTallyMeasurements(measurements);
-            snapList.add(snap);
-          });
+      tuples.forEach(t -> {
+        Usage u = (Usage) t.get(0);
+        ServiceLevel s = (ServiceLevel) t.get(1);
+        BillingProvider bp = (BillingProvider) t.get(2);
+        var snap = new TallySnapshot();
+        snap.setProductId(productId);
+        snap.setGranularity(granularity);
+        snap.setServiceLevel(s);
+        snap.setUsage(u);
+        snap.setBillingProvider(bp);
+        snap.setTallyMeasurements(measurements);
+        snapList.add(snap);
+      });
     }
     return snapList;
   }

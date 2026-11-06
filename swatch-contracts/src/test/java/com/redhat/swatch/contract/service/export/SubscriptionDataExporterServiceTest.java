@@ -286,18 +286,17 @@ class SubscriptionDataExporterServiceTest {
     List<Object> data = new ArrayList<>();
     subscriptionCapacityViewRepository
         .streamBy(SubscriptionCapacityViewRepository.orgIdEquals(ORG_ID))
-        .forEach(
-            subscription -> {
-              if (isCsvFormat) {
-                List<Object> items = csvDataMapperService.mapDataItem(subscription, null);
-                items.forEach(i -> verifyCsvDataItem((SubscriptionsExportCsvItem) i));
-                data.addAll(items);
-              } else {
-                List<Object> items = jsonDataMapperService.mapDataItem(subscription, null);
-                items.forEach(i -> verifyJsonDataItem((SubscriptionsExportJsonItem) i));
-                data.addAll(items);
-              }
-            });
+        .forEach(subscription -> {
+          if (isCsvFormat) {
+            List<Object> items = csvDataMapperService.mapDataItem(subscription, null);
+            items.forEach(i -> verifyCsvDataItem((SubscriptionsExportCsvItem) i));
+            data.addAll(items);
+          } else {
+            List<Object> items = jsonDataMapperService.mapDataItem(subscription, null);
+            items.forEach(i -> verifyJsonDataItem((SubscriptionsExportJsonItem) i));
+            data.addAll(items);
+          }
+        });
 
     if (isCsvFormat) {
       verifyRequestWasSentToExportServiceWithUploadCsvData(data);

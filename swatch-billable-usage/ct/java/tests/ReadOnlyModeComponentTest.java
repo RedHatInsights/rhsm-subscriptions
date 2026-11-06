@@ -107,17 +107,16 @@ public class ReadOnlyModeComponentTest extends BaseBillableUsageComponentTest {
   }
 
   private void thenBillableUsageIsNotProducedForTally(TallySummary tallySummary) {
-    AwaitilityUtils.untilAsserted(
-        () ->
-            assertEquals(
-                0,
-                kafkaBridge
-                    .waitForKafkaMessage(
-                        BILLABLE_USAGE,
-                        billableUsageMatchesTallyId(tallySummary),
-                        0,
-                        AwaitilitySettings.using(Duration.ofSeconds(1), Duration.ofSeconds(2)))
-                    .size(),
-                "Expected no billable usage while consumer is paused"));
+    AwaitilityUtils.untilAsserted(() ->
+        assertEquals(
+            0,
+            kafkaBridge
+                .waitForKafkaMessage(
+                    BILLABLE_USAGE,
+                    billableUsageMatchesTallyId(tallySummary),
+                    0,
+                    AwaitilitySettings.using(Duration.ofSeconds(1), Duration.ofSeconds(2)))
+                .size(),
+            "Expected no billable usage while consumer is paused"));
   }
 }

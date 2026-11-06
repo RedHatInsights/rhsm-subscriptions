@@ -186,9 +186,8 @@ public class HostEventHandlerService {
 
     // Reprocess any unmapped guests and resend an event with updated measurements.
     return relationshipService.getUnmappedGuests(orgId, hypervisorSubscriptionManagerId).stream()
-        .map(
-            unmapped ->
-                refreshGuest(NormalizedEventType.INSTANCE_UPDATED, unmapped, eventTimestamp))
+        .map(unmapped ->
+            refreshGuest(NormalizedEventType.INSTANCE_UPDATED, unmapped, eventTimestamp))
         .toList();
   }
 
@@ -201,9 +200,8 @@ public class HostEventHandlerService {
 
     // Reprocess any mapped guests and resend an event with updated measurements.
     return relationshipService.getMappedGuests(orgId, hypervisorSubscriptionManagerId).stream()
-        .map(
-            unmapped ->
-                refreshGuest(NormalizedEventType.INSTANCE_UPDATED, unmapped, eventTimestamp))
+        .map(unmapped ->
+            refreshGuest(NormalizedEventType.INSTANCE_UPDATED, unmapped, eventTimestamp))
         .toList();
   }
 
@@ -285,16 +283,14 @@ public class HostEventHandlerService {
     List<Measurement> applicableMeasurements = new ArrayList<>();
     measurements
         .getCores()
-        .ifPresent(
-            cores ->
-                applicableMeasurements.add(
-                    new Measurement().withMetricId("cores").withValue(Double.valueOf(cores))));
+        .ifPresent(cores ->
+            applicableMeasurements.add(
+                new Measurement().withMetricId("cores").withValue(Double.valueOf(cores))));
     measurements
         .getSockets()
-        .ifPresent(
-            sockets ->
-                applicableMeasurements.add(
-                    new Measurement().withMetricId("sockets").withValue(Double.valueOf(sockets))));
+        .ifPresent(sockets ->
+            applicableMeasurements.add(
+                new Measurement().withMetricId("sockets").withValue(Double.valueOf(sockets))));
     return applicableMeasurements;
   }
 }

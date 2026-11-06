@@ -113,12 +113,12 @@ public class WireMockResource implements QuarkusTestResourceLifecycleManager {
                     .withHeader("Content-Type", "application/json")
                     .withBody(
                         """
-                                            [
-                                              {
-                                                "id": "123456"
-                                              }
-                                            ]
-                                            """)));
+                        [
+                          {
+                            "id": "123456"
+                          }
+                        ]
+                        """)));
   }
 
   private static void stubForRhPartnerApi(WireMockServer wireMockServer) {
@@ -129,105 +129,105 @@ public class WireMockResource implements QuarkusTestResourceLifecycleManager {
                     .withHeader("Content-Type", "application/json")
                     .withBody(
                         """
-                                                    {
-                                                      "content": [
-                                                        {
-                                                          "rhAccountId": "org123",
-                                                          "sourcePartner": "aws_marketplace",
-                                                          "partnerIdentities": {
-                                                            "awsCustomerId": "HSwCpt6sqkC",
-                                                            "customerAwsAccountId": "568056954830",
-                                                            "sellerAccountId": "568056954830"
-                                                          },
-                                                          "rhEntitlements": [
-                                                            {
-                                                              "sku": "RH000000",
-                                                              "subscriptionNumber": "123456"
-                                                            }
-                                                          ],
-                                                          "purchase": {
-                                                            "vendorProductCode": "1234567890abcdefghijklmno",
-                                                            "contracts": [
-                                                              {
-                                                                "startDate": "%s",
-                                                                "endDate": "%s",
-                                                                "dimensions": [
-                                                                  {
-                                                                    "name": "control_plane",
-                                                                    "value": "1000000"
-                                                                  },
-                                                                  {
-                                                                    "name": "four_vcpu_hour",
-                                                                    "value": "1000000"
-                                                                  }
-                                                                ]
-                                                              },
-                                                              {
-                                                                "startDate": "2023-04-20T00:09:14.192515Z",
-                                                                "dimensions": [
-                                                                  {
-                                                                    "name": "control_plane",
-                                                                    "value": "1000000"
-                                                                  },
-                                                                  {
-                                                                    "name": "four_vcpu_hour",
-                                                                    "value": "1000000"
-                                                                  }
-                                                                ]
-                                                              }
-                                                            ]
-                                                          },
-                                                          "status": "STATUS",
-                                                          "entitlementDates": {
-                                                            "startDate": "2023-03-17T12:29:48.569Z",
-                                                            "endDate": "2024-03-17T12:29:48.569Z"
-                                                          }
-                                                        },
-                                                        {
-                                                         "rhAccountId": "7186626",
-                                                         "sourcePartner": "azure_marketplace",
-                                                         "partnerIdentities": {
-                                                             "azureSubscriptionId": "fa650050-dedd-4958-b901-d8e5118c0a5f",
-                                                             "azureCustomerId": "eadf26ee-6fbc-4295-9a9e-25d4fea8951d_2019-05-31"
-                                                         },
-                                                         "rhEntitlements": [
-                                                             {
-                                                                 "sku": "RH000000",
-                                                                 "subscriptionNumber": "13294886"
-                                                             }
-                                                         ],
-                                                         "purchase": {
-                                                             "vendorProductCode": "rh-rhel-sub-preview",
-                                                             "azureResourceId": "a69ff71c-aa8b-43d9-dea8-822fab4bbb86",
-                                                             "contracts": [
-                                                                 {
-                                                                     "startDate": "2023-06-09T13:59:43.035365Z",
-                                                                     "planId": "rh-rhel-sub-1yr",
-                                                                     "dimensions": [
-                                                                         {
-                                                                             "name": "vCPU",
-                                                                             "value": 4
-                                                                         }
-                                                                     ]
-                                                                 }
-                                                             ]
-                                                         },
-                                                         "status": "UNSUBSCRIBED",
-                                                         "entitlementDates": {
-                                                             "startDate": "2023-06-09T13:59:43.035365Z",
-                                                             "endDate": "2024-06-09T19:37:46.651363Z"
-                                                         }
-                                                     }
-                                                    ],
-                                                      "page": {
-                                                        "size": 0,
-                                                        "totalElements": 0,
-                                                        "totalPages": 0,
-                                                        "number": 0
-                                                      }
-                                                    }
+                        {
+                          "content": [
+                            {
+                              "rhAccountId": "org123",
+                              "sourcePartner": "aws_marketplace",
+                              "partnerIdentities": {
+                                "awsCustomerId": "HSwCpt6sqkC",
+                                "customerAwsAccountId": "568056954830",
+                                "sellerAccountId": "568056954830"
+                              },
+                              "rhEntitlements": [
+                                {
+                                  "sku": "RH000000",
+                                  "subscriptionNumber": "123456"
+                                }
+                              ],
+                              "purchase": {
+                                "vendorProductCode": "1234567890abcdefghijklmno",
+                                "contracts": [
+                                  {
+                                    "startDate": "%s",
+                                    "endDate": "%s",
+                                    "dimensions": [
+                                      {
+                                        "name": "control_plane",
+                                        "value": "1000000"
+                                      },
+                                      {
+                                        "name": "four_vcpu_hour",
+                                        "value": "1000000"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "startDate": "2023-04-20T00:09:14.192515Z",
+                                    "dimensions": [
+                                      {
+                                        "name": "control_plane",
+                                        "value": "1000000"
+                                      },
+                                      {
+                                        "name": "four_vcpu_hour",
+                                        "value": "1000000"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              "status": "STATUS",
+                              "entitlementDates": {
+                                "startDate": "2023-03-17T12:29:48.569Z",
+                                "endDate": "2024-03-17T12:29:48.569Z"
+                              }
+                            },
+                            {
+                             "rhAccountId": "7186626",
+                             "sourcePartner": "azure_marketplace",
+                             "partnerIdentities": {
+                                 "azureSubscriptionId": "fa650050-dedd-4958-b901-d8e5118c0a5f",
+                                 "azureCustomerId": "eadf26ee-6fbc-4295-9a9e-25d4fea8951d_2019-05-31"
+                             },
+                             "rhEntitlements": [
+                                 {
+                                     "sku": "RH000000",
+                                     "subscriptionNumber": "13294886"
+                                 }
+                             ],
+                             "purchase": {
+                                 "vendorProductCode": "rh-rhel-sub-preview",
+                                 "azureResourceId": "a69ff71c-aa8b-43d9-dea8-822fab4bbb86",
+                                 "contracts": [
+                                     {
+                                         "startDate": "2023-06-09T13:59:43.035365Z",
+                                         "planId": "rh-rhel-sub-1yr",
+                                         "dimensions": [
+                                             {
+                                                 "name": "vCPU",
+                                                 "value": 4
+                                             }
+                                         ]
+                                     }
+                                 ]
+                             },
+                             "status": "UNSUBSCRIBED",
+                             "entitlementDates": {
+                                 "startDate": "2023-06-09T13:59:43.035365Z",
+                                 "endDate": "2024-06-09T19:37:46.651363Z"
+                             }
+                         }
+                        ],
+                          "page": {
+                            "size": 0,
+                            "totalElements": 0,
+                            "totalPages": 0,
+                            "number": 0
+                          }
+                        }
 
-                                                    """
+                        """
                             .formatted(DEFAULT_START_DATE, DEFAULT_END_DATE))));
   }
 

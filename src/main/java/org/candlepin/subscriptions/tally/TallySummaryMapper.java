@@ -105,18 +105,16 @@ public class TallySummaryMapper {
             .collect(Collectors.toSet());
 
     return snapshot.getTallyMeasurements().entrySet().stream()
-        .filter(
-            entry ->
-                applicableMetricIds.contains(
-                    MetricId.tryGetValueFromString(entry.getKey().getMetricId())))
-        .map(
-            entry ->
-                new TallyMeasurement()
-                    .withHardwareMeasurementType(entry.getKey().getMeasurementType().toString())
-                    .withMetricId(entry.getKey().getMetricId())
-                    .withValue(entry.getValue())
-                    .withCurrentTotal(
-                        getCurrentlyMeasuredTotal(snapshot, entry.getKey(), entry.getValue())))
+        .filter(entry ->
+            applicableMetricIds.contains(
+                MetricId.tryGetValueFromString(entry.getKey().getMetricId())))
+        .map(entry ->
+            new TallyMeasurement()
+                .withHardwareMeasurementType(entry.getKey().getMeasurementType().toString())
+                .withMetricId(entry.getKey().getMetricId())
+                .withValue(entry.getValue())
+                .withCurrentTotal(
+                    getCurrentlyMeasuredTotal(snapshot, entry.getKey(), entry.getValue())))
         .toList();
   }
 

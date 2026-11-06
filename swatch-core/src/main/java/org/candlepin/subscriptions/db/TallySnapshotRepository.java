@@ -223,18 +223,18 @@ public interface TallySnapshotRepository
   @Query(
       value =
           """
-      select coalesce(sum(m.value), 0.0) from tally_snapshots s
-      left join tally_measurements m on m.snapshot_id=s.id
-      where s.org_id = :orgId and
-        s.product_id = :productId and
-        s.granularity = :granularity and
-        s.sla = :serviceLevel and
-        s.usage = :usage and
-        s.billing_provider = :billingProvider and
-        s.billing_account_id = :billingAcctId and
-        s.snapshot_date >= :beginning and s.snapshot_date <= :ending and
-        m.measurement_type != 'TOTAL' and m.metric_id = :metricId
-      """,
+          select coalesce(sum(m.value), 0.0) from tally_snapshots s
+          left join tally_measurements m on m.snapshot_id=s.id
+          where s.org_id = :orgId and
+            s.product_id = :productId and
+            s.granularity = :granularity and
+            s.sla = :serviceLevel and
+            s.usage = :usage and
+            s.billing_provider = :billingProvider and
+            s.billing_account_id = :billingAcctId and
+            s.snapshot_date >= :beginning and s.snapshot_date <= :ending and
+            m.measurement_type != 'TOTAL' and m.metric_id = :metricId
+          """,
       nativeQuery = true)
   Double sumMeasurementValueForPeriod(
       @Param("orgId") String orgId,
@@ -284,19 +284,19 @@ public interface TallySnapshotRepository
   @Query(
       value =
           """
-      select coalesce(sum(m.value), 0.0) from tally_snapshots s
-      left join tally_measurements m on m.snapshot_id=s.id
-      where s.is_primary = true and
-        s.org_id = :orgId and
-        s.product_id = :productId and
-        s.granularity = :granularity and
-        s.sla = :serviceLevel and
-        s.usage = :usage and
-        s.billing_provider = :billingProvider and
-        s.billing_account_id = :billingAcctId and
-        s.snapshot_date >= :beginning and s.snapshot_date <= :ending and
-        m.measurement_type != 'TOTAL' and m.metric_id = :metricId
-      """,
+          select coalesce(sum(m.value), 0.0) from tally_snapshots s
+          left join tally_measurements m on m.snapshot_id=s.id
+          where s.is_primary = true and
+            s.org_id = :orgId and
+            s.product_id = :productId and
+            s.granularity = :granularity and
+            s.sla = :serviceLevel and
+            s.usage = :usage and
+            s.billing_provider = :billingProvider and
+            s.billing_account_id = :billingAcctId and
+            s.snapshot_date >= :beginning and s.snapshot_date <= :ending and
+            m.measurement_type != 'TOTAL' and m.metric_id = :metricId
+          """,
       nativeQuery = true)
   Double sumMeasurementValueForPeriodWithPrimary(
       @Param("orgId") String orgId,
@@ -341,18 +341,18 @@ public interface TallySnapshotRepository
   @Query(
       value =
           """
-    SELECT count(m) > 0 FROM TallySnapshot t
-    left join t.tallyMeasurements m on key(m) = :measurementKey
-    where
-      t.orgId = :orgId and
-      t.productId = :productId and
-      t.granularity = 'HOURLY' and
-      t.serviceLevel = :serviceLevel and
-      t.usage = :usage and
-      t.billingProvider = :billingProvider and
-      t.billingAccountId = :billingAcctId and
-      t.snapshotDate >= :beginning and t.snapshotDate <= :ending
-  """)
+            SELECT count(m) > 0 FROM TallySnapshot t
+            left join t.tallyMeasurements m on key(m) = :measurementKey
+            where
+              t.orgId = :orgId and
+              t.productId = :productId and
+              t.granularity = 'HOURLY' and
+              t.serviceLevel = :serviceLevel and
+              t.usage = :usage and
+              t.billingProvider = :billingProvider and
+              t.billingAccountId = :billingAcctId and
+              t.snapshotDate >= :beginning and t.snapshotDate <= :ending
+          """)
   boolean hasLatestBillables(
       @Param("orgId") String orgId,
       @Param("productId") String productId,
@@ -368,18 +368,18 @@ public interface TallySnapshotRepository
   @Modifying
   @Query(
       """
-    UPDATE TallySnapshot t
-    SET t.isPrimary = true
-    WHERE t.productId = :productId
-      AND (COALESCE(:orgId, t.orgId) = t.orgId)
-      AND t.snapshotDate >= :startDate
-      AND t.snapshotDate < :endDate
-      AND t.serviceLevel <> :anyServiceLevel
-      AND t.usage <> :anyUsage
-      AND t.billingProvider <> :anyBillingProvider
-      AND t.billingAccountId <> '_ANY'
-      AND t.isPrimary = false
-  """)
+        UPDATE TallySnapshot t
+        SET t.isPrimary = true
+        WHERE t.productId = :productId
+          AND (COALESCE(:orgId, t.orgId) = t.orgId)
+          AND t.snapshotDate >= :startDate
+          AND t.snapshotDate < :endDate
+          AND t.serviceLevel <> :anyServiceLevel
+          AND t.usage <> :anyUsage
+          AND t.billingProvider <> :anyBillingProvider
+          AND t.billingAccountId <> '_ANY'
+          AND t.isPrimary = false
+      """)
   int setIsPrimaryForPayg(
       @Param("orgId") String orgId,
       @Param("productId") String productId,
@@ -393,18 +393,18 @@ public interface TallySnapshotRepository
   @Modifying
   @Query(
       """
-    UPDATE TallySnapshot t
-    SET t.isPrimary = true
-    WHERE t.productId = :productId
-      AND (COALESCE(:orgId, t.orgId) = t.orgId)
-      AND t.snapshotDate >= :startDate
-      AND t.snapshotDate < :endDate
-      AND t.serviceLevel <> :anyServiceLevel
-      AND t.usage <> :anyUsage
-      AND t.billingProvider = :anyBillingProvider
-      AND t.billingAccountId = '_ANY'
-      AND t.isPrimary = false
-  """)
+        UPDATE TallySnapshot t
+        SET t.isPrimary = true
+        WHERE t.productId = :productId
+          AND (COALESCE(:orgId, t.orgId) = t.orgId)
+          AND t.snapshotDate >= :startDate
+          AND t.snapshotDate < :endDate
+          AND t.serviceLevel <> :anyServiceLevel
+          AND t.usage <> :anyUsage
+          AND t.billingProvider = :anyBillingProvider
+          AND t.billingAccountId = '_ANY'
+          AND t.isPrimary = false
+      """)
   int setIsPrimaryForNonPayg(
       @Param("orgId") String orgId,
       @Param("productId") String productId,

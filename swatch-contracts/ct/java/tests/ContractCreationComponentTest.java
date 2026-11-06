@@ -225,12 +225,11 @@ public class ContractCreationComponentTest extends BaseContractComponentTest {
     // And: Verify the contract was NOT created due to missing required subscription data
     // Wait for message to be processed - contract should NOT be created
     // Note: Using getContractsByOrgId since we expect no contracts to match contract details
-    AwaitilityUtils.untilAsserted(
-        () ->
-            assertEquals(
-                0,
-                service.getContractsByOrgId(orgId).size(),
-                "Contract should not be created when required subscription data is missing"));
+    AwaitilityUtils.untilAsserted(() ->
+        assertEquals(
+            0,
+            service.getContractsByOrgId(orgId).size(),
+            "Contract should not be created when required subscription data is missing"));
   }
 
   @TestPlanName("contracts-creation-TC008")

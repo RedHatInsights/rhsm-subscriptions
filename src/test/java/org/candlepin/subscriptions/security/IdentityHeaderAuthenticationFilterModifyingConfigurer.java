@@ -55,15 +55,14 @@ public class IdentityHeaderAuthenticationFilterModifyingConfigurer
        */
       chainProxy
           .getFilterChains()
-          .forEach(
-              chain -> {
-                var filter =
-                    chain.getFilters().stream()
-                        .filter(x -> x instanceof IdentityHeaderAuthenticationFilter)
-                        .findFirst()
-                        .get();
-                ((IdentityHeaderAuthenticationFilter) filter).setCheckForPrincipalChanges(false);
-              });
+          .forEach(chain -> {
+            var filter =
+                chain.getFilters().stream()
+                    .filter(x -> x instanceof IdentityHeaderAuthenticationFilter)
+                    .findFirst()
+                    .get();
+            ((IdentityHeaderAuthenticationFilter) filter).setCheckForPrincipalChanges(false);
+          });
       return request;
     };
   }

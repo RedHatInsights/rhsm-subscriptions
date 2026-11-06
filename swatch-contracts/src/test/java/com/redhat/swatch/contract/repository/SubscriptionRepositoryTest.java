@@ -678,11 +678,10 @@ class SubscriptionRepositoryTest {
     offeringRepo.persist(offering);
 
     List.of(old, recent)
-        .forEach(
-            x -> {
-              x.setOffering(offering);
-              subscriptionRepo.persistAndFlush(x);
-            });
+        .forEach(x -> {
+          x.setOffering(offering);
+          subscriptionRepo.persistAndFlush(x);
+        });
 
     var resultList =
         subscriptionRepo.findByCriteria(

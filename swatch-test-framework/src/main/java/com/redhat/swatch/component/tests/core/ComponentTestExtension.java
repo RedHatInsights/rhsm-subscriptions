@@ -198,11 +198,10 @@ public class ComponentTestExtension
       Service service = ReflectionUtils.getFieldValue(findTestInstance(context, field), field);
       Annotation[] annotations = field.getAnnotations();
       getAnnotationBinding(annotations)
-          .ifPresent(
-              binding -> {
-                Service resolved = initService(service, field.getName(), binding, annotations);
-                ReflectionUtils.setFieldValue(findTestInstance(context, field), field, resolved);
-              });
+          .ifPresent(binding -> {
+            Service resolved = initService(service, field.getName(), binding, annotations);
+            ReflectionUtils.setFieldValue(findTestInstance(context, field), field, resolved);
+          });
     } else if (InjectUtils.isAnnotatedWithInject(field)) {
       injectDependency(context, field);
     }
@@ -210,13 +209,12 @@ public class ComponentTestExtension
 
   private void initServiceFromAnnotation(Annotation annotation) {
     getAnnotationBinding(annotation)
-        .ifPresent(
-            binding ->
-                initService(
-                    binding.getDefaultServiceImplementation(),
-                    binding.getDefaultName(annotation),
-                    binding,
-                    annotation));
+        .ifPresent(binding ->
+            initService(
+                binding.getDefaultServiceImplementation(),
+                binding.getDefaultName(annotation),
+                binding,
+                annotation));
   }
 
   private void injectDependency(ExtensionContext testContext, Field field) {

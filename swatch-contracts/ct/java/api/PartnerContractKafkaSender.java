@@ -66,14 +66,13 @@ public class PartnerContractKafkaSender {
 
     List<Dimension> dimensions =
         contract.getContractMetrics().entrySet().stream()
-            .map(
-                entry -> {
-                  Dimension dim = new Dimension();
-                  dim.setDimensionName(entry.getKey());
-                  dim.setDimensionValue(String.valueOf(entry.getValue().intValue()));
-                  dim.setExpirationDate(contract.getEndDate());
-                  return dim;
-                })
+            .map(entry -> {
+              Dimension dim = new Dimension();
+              dim.setDimensionName(entry.getKey());
+              dim.setDimensionValue(String.valueOf(entry.getValue().intValue()));
+              dim.setExpirationDate(contract.getEndDate());
+              return dim;
+            })
             .toList();
 
     if (!dimensions.isEmpty()) {

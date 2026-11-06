@@ -1288,11 +1288,10 @@ class ContractServiceTest extends BaseUnitTest {
   /** Necessary to simulate a concurrent transaction that deletes one contract. */
   private void hardDeleteContractInNewTransaction(UUID uuid) {
     QuarkusTransaction.requiringNew()
-        .run(
-            () ->
-                entityManager
-                    .createNativeQuery("DELETE FROM contracts WHERE uuid = :uuid")
-                    .setParameter("uuid", uuid)
-                    .executeUpdate());
+        .run(() ->
+            entityManager
+                .createNativeQuery("DELETE FROM contracts WHERE uuid = :uuid")
+                .setParameter("uuid", uuid)
+                .executeUpdate());
   }
 }

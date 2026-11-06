@@ -49,41 +49,41 @@ class ContractsPartnerEntitlementMessageConsumerTest {
 
   private static final String VALID_JSON_MESSAGE =
       """
-        {
-          "action": "contract-updated",
-          "redHatSubscriptionNumber": "12345678",
-          "cloudIdentifiers": {
-            "awsCustomerAccountId": "795061427196",
-            "productCode": "test-product-code",
-            "azureResourceId": "azure-resource-123"
-          },
-          "currentDimensions": [{
-            "dimensionName": "test-dimension",
-            "dimensionValue": "10"
-          }]
-        }
-        """;
+      {
+        "action": "contract-updated",
+        "redHatSubscriptionNumber": "12345678",
+        "cloudIdentifiers": {
+          "awsCustomerAccountId": "795061427196",
+          "productCode": "test-product-code",
+          "azureResourceId": "azure-resource-123"
+        },
+        "currentDimensions": [{
+          "dimensionName": "test-dimension",
+          "dimensionValue": "10"
+        }]
+      }
+      """;
 
   /**
    * Partner Gateway contract-updated payload shape with extra top-level licenseArn (SWATCH-4946).
    */
   private static final String JSON_WITH_EXTRA_LICENSE_ARN_FIELD =
       """
-        {
-          "action": "contract-updated",
-          "licenseArn": "arn:aws:license-manager:us-east-1:000000000000:license:swatch-test-license",
-          "redHatSubscriptionNumber": "12345678",
-          "cloudIdentifiers": {
-            "awsCustomerAccountId": "795061427196",
-            "productCode": "test-product-code",
-            "azureResourceId": "azure-resource-123"
-          },
-          "currentDimensions": [{
-            "dimensionName": "test-dimension",
-            "dimensionValue": "10"
-          }]
-        }
-        """;
+      {
+        "action": "contract-updated",
+        "licenseArn": "arn:aws:license-manager:us-east-1:000000000000:license:swatch-test-license",
+        "redHatSubscriptionNumber": "12345678",
+        "cloudIdentifiers": {
+          "awsCustomerAccountId": "795061427196",
+          "productCode": "test-product-code",
+          "azureResourceId": "azure-resource-123"
+        },
+        "currentDimensions": [{
+          "dimensionName": "test-dimension",
+          "dimensionValue": "10"
+        }]
+      }
+      """;
 
   @Inject @Any InMemoryConnector connector;
 
@@ -113,11 +113,10 @@ class ContractsPartnerEntitlementMessageConsumerTest {
     whenSendMessage(VALID_JSON_MESSAGE);
     await()
         .atMost(Duration.ofMillis(500))
-        .untilAsserted(
-            () -> {
-              verify(consumer).consumeContract(VALID_JSON_MESSAGE);
-              verify(contractService).createPartnerContract(any(PartnerEntitlementsRequest.class));
-            });
+        .untilAsserted(() -> {
+          verify(consumer).consumeContract(VALID_JSON_MESSAGE);
+          verify(contractService).createPartnerContract(any(PartnerEntitlementsRequest.class));
+        });
   }
 
   @Test
@@ -125,12 +124,11 @@ class ContractsPartnerEntitlementMessageConsumerTest {
     whenSendMessage(JSON_WITH_EXTRA_LICENSE_ARN_FIELD);
     await()
         .atMost(Duration.ofMillis(500))
-        .untilAsserted(
-            () -> {
-              verify(consumer).consumeContract(JSON_WITH_EXTRA_LICENSE_ARN_FIELD);
-              thenKafkaContractDeserializedSuccessfully();
-              verify(contractService).createPartnerContract(any(PartnerEntitlementsRequest.class));
-            });
+        .untilAsserted(() -> {
+          verify(consumer).consumeContract(JSON_WITH_EXTRA_LICENSE_ARN_FIELD);
+          thenKafkaContractDeserializedSuccessfully();
+          verify(contractService).createPartnerContract(any(PartnerEntitlementsRequest.class));
+        });
   }
 
   @Test
@@ -138,13 +136,12 @@ class ContractsPartnerEntitlementMessageConsumerTest {
     whenSendMessage("not-valid-json");
     await()
         .atMost(Duration.ofMillis(500))
-        .untilAsserted(
-            () -> {
-              verify(consumer).consumeContract("not-valid-json");
-              LoggerCaptor.thenWarnLogWithMessage("Unable to read IT Partner Kafka message");
-              verify(contractService, never())
-                  .createPartnerContract(any(PartnerEntitlementsRequest.class));
-            });
+        .untilAsserted(() -> {
+          verify(consumer).consumeContract("not-valid-json");
+          LoggerCaptor.thenWarnLogWithMessage("Unable to read IT Partner Kafka message");
+          verify(contractService, never())
+              .createPartnerContract(any(PartnerEntitlementsRequest.class));
+        });
   }
 
   @Test

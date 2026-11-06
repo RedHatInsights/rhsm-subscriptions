@@ -44,14 +44,13 @@ public class CsvExportFileWriter implements ExportFileWriter {
       var csvSchema = csvMapper.schemaFor(dataMapper.getExportItemClass()).withUseHeader(true);
       var writer = csvMapper.writer(csvSchema).writeValues(stream);
       data.flatMap(i -> dataMapper.mapDataItem(i, request).stream())
-          .forEach(
-              item -> {
-                try {
-                  writer.write(item);
-                } catch (IOException e) {
-                  handleIOException(item, request, e);
-                }
-              });
+          .forEach(item -> {
+            try {
+              writer.write(item);
+            } catch (IOException e) {
+              handleIOException(item, request, e);
+            }
+          });
       writer.close();
     } catch (IOException e) {
       log.error("Error writing the CSV payload for request {}", request.getExportRequestUUID(), e);

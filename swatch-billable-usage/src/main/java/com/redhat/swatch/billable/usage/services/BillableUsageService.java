@@ -238,13 +238,12 @@ public class BillableUsageService {
 
   private void createCoveredRemittances(
       BillableUsage usage, Map<String, Double> coveredDeltaByLicense) {
-    coveredDeltaByLicense.forEach(
-        (licenseId, coveredValue) -> {
-          if (coveredValue != null && coveredValue > 0) {
-            String persistLicenseId = NO_LICENSE_ID.equals(licenseId) ? null : licenseId;
-            persistCoveredRemittance(usage, persistLicenseId, coveredValue);
-          }
-        });
+    coveredDeltaByLicense.forEach((licenseId, coveredValue) -> {
+      if (coveredValue != null && coveredValue > 0) {
+        String persistLicenseId = NO_LICENSE_ID.equals(licenseId) ? null : licenseId;
+        persistCoveredRemittance(usage, persistLicenseId, coveredValue);
+      }
+    });
   }
 
   private void persistCoveredRemittance(

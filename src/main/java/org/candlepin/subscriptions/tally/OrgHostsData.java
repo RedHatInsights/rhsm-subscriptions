@@ -106,31 +106,29 @@ public class OrgHostsData {
   }
 
   public void collectGuestData(Map<String, Set<HostBucketKey>> hostBucketKeys) {
-    hypervisorFacts.forEach(
-        (hypervisorUuid, normalizedFacts) -> {
-          Host host = hypervisorHosts.get(hypervisorUuid);
-          host.setNumOfGuests(hypervisorGuestCounts.getOrDefault(hypervisorUuid, 0));
+    hypervisorFacts.forEach((hypervisorUuid, normalizedFacts) -> {
+      Host host = hypervisorHosts.get(hypervisorUuid);
+      host.setNumOfGuests(hypervisorGuestCounts.getOrDefault(hypervisorUuid, 0));
 
-          Set<HostBucketKey> bucketKeys =
-              hostBucketKeys.computeIfAbsent(host.getInstanceId(), h -> new HashSet<>());
-          Set<UsageCalculation.Key> keys =
-              hypervisorKeys.getOrDefault(hypervisorUuid, Collections.emptySet());
+      Set<HostBucketKey> bucketKeys =
+          hostBucketKeys.computeIfAbsent(host.getInstanceId(), h -> new HashSet<>());
+      Set<UsageCalculation.Key> keys =
+          hypervisorKeys.getOrDefault(hypervisorUuid, Collections.emptySet());
 
-          for (UsageCalculation.Key key : keys) {
-            ProductUsageCollector productUsageCollector =
-                ProductUsageCollectorFactory.get(key.getProductId());
-            Optional<HostTallyBucket> appliedBucket =
-                productUsageCollector.buildBucketForHypervisor(key, normalizedFacts);
+      for (UsageCalculation.Key key : keys) {
+        ProductUsageCollector productUsageCollector =
+            ProductUsageCollectorFactory.get(key.getProductId());
+        Optional<HostTallyBucket> appliedBucket =
+            productUsageCollector.buildBucketForHypervisor(key, normalizedFacts);
 
-            // addBucket changes bucket.key.hostId, so do that first to avoid mutating the item in
-            // the set
-            appliedBucket.ifPresent(
-                bucket -> {
-                  host.addBucket(bucket);
-                  bucketKeys.add(bucket.getKey());
-                });
-          }
+        // addBucket changes bucket.key.hostId, so do that first to avoid mutating the item in
+        // the set
+        appliedBucket.ifPresent(bucket -> {
+          host.addBucket(bucket);
+          bucketKeys.add(bucket.getKey());
         });
+      }
+    });
   }
 
   public void addHostWithNormalizedFacts(Host host, NormalizedFacts facts) {

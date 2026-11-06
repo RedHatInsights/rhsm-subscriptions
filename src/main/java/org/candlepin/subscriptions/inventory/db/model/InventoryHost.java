@@ -96,65 +96,65 @@ import lombok.Setter;
     name = "InventoryHost.streamFacts",
     query =
         """
-        select
-        h.id as inventory_id, h.org_id, h.modified_on, h.account, h.display_name,
-        h.facts->'rhsm'->>'IS_VIRTUAL' as is_virtual,
-        h.facts->'satellite'->>'virtual_host_uuid' as satellite_hypervisor_uuid,
-        h.facts->'satellite'->>'system_purpose_role' as satellite_role,
-        h.facts->'satellite'->>'system_purpose_sla' as satellite_sla,
-        h.facts->'satellite'->>'system_purpose_usage' as satellite_usage,
-        h.facts->'rhsm'->>'GUEST_ID' as guest_id,
-        h.facts->'rhsm'->>'SYNC_TIMESTAMP' as sync_timestamp,
-        h.facts->'rhsm'->>'SYSPURPOSE_ROLE' as syspurpose_role,
-        h.facts->'rhsm'->>'SYSPURPOSE_SLA' as syspurpose_sla,
-        h.facts->'rhsm'->>'SYSPURPOSE_USAGE' as syspurpose_usage,
-        h.facts->'rhsm'->>'SYSPURPOSE_UNITS' as syspurpose_units,
-        h.facts->'rhsm'->>'BILLING_MODEL' as billing_model,
-        h.facts->'qpc'->>'IS_RHEL' as is_rhel,
-        sps.virtual_host_uuid::text as hypervisor_uuid,
-        sps.infrastructure_type as system_profile_infrastructure_type,
-        sps.cores_per_socket as system_profile_cores_per_socket,
-        sps.number_of_sockets as system_profile_sockets,
-        sps.number_of_cpus as system_profile_cpus,
-        sps.threads_per_core as system_profile_threads_per_core,
-        sps.cloud_provider as cloud_provider,
-        sps.arch as system_profile_arch,
-        sps.is_marketplace as is_marketplace,
-        sps.conversions->>'activity' as conversions_activity,
-        h.subscription_manager_id as subscription_manager_id,
-        h.insights_id::text as insights_id,
-        h.provider_id as provider_id,
-        rhsm_products.products,
-        qpc_prods.qpc_products,
-        system_profile.system_profile_product_ids,
-        coalesce(
-            h.facts->'satellite'->>'virtual_host_uuid',
-            sps.virtual_host_uuid::text,
-            h.subscription_manager_id) as hardware_subman_id,
-        coalesce(
-            h.facts->'satellite'->>'virtual_host_uuid',
-            sps.virtual_host_uuid::text
-        ) as any_hypervisor_uuid
-        from hosts h
-        inner join system_profiles_static sps on h.org_id = sps.org_id and h.id = sps.host_id
-        left join system_profiles_dynamic spd on h.org_id = spd.org_id and h.id = spd.host_id
-        left join hbi.staleness s on h.org_id = s.org_id
-        cross join lateral (
-            select string_agg(items, ',') as products
-            from jsonb_array_elements_text(h.facts->'rhsm'->'RH_PROD') as items) rhsm_products
-        cross join lateral (
-            select string_agg(items, ',') as qpc_products
-            from jsonb_array_elements_text(h.facts->'qpc'->'rh_products_installed') as items) qpc_prods
-        cross join lateral (
-            select string_agg(items->>'id', ',') as system_profile_product_ids
-            from jsonb_array_elements(spd.installed_products) as items) system_profile
-        where h.org_id=:orgId
-           and (h.facts->'rhsm'->>'BILLING_MODEL' IS NULL OR h.facts->'rhsm'->>'BILLING_MODEL' <> 'marketplace')
-           and (sps.host_type IS NULL OR sps.host_type <> 'edge')
-           and h.last_check_in + make_interval(secs => coalesce(s.conventional_time_to_stale, :stalenessOffsetSeconds)) > NOW() - make_interval(days => :culledOffsetDays)
-        -- NOTE: ordering is crucial for correct streaming reconciliation of HBI data
-        order by hardware_subman_id, any_hypervisor_uuid, inventory_id, h.org_id
-    """,
+            select
+            h.id as inventory_id, h.org_id, h.modified_on, h.account, h.display_name,
+            h.facts->'rhsm'->>'IS_VIRTUAL' as is_virtual,
+            h.facts->'satellite'->>'virtual_host_uuid' as satellite_hypervisor_uuid,
+            h.facts->'satellite'->>'system_purpose_role' as satellite_role,
+            h.facts->'satellite'->>'system_purpose_sla' as satellite_sla,
+            h.facts->'satellite'->>'system_purpose_usage' as satellite_usage,
+            h.facts->'rhsm'->>'GUEST_ID' as guest_id,
+            h.facts->'rhsm'->>'SYNC_TIMESTAMP' as sync_timestamp,
+            h.facts->'rhsm'->>'SYSPURPOSE_ROLE' as syspurpose_role,
+            h.facts->'rhsm'->>'SYSPURPOSE_SLA' as syspurpose_sla,
+            h.facts->'rhsm'->>'SYSPURPOSE_USAGE' as syspurpose_usage,
+            h.facts->'rhsm'->>'SYSPURPOSE_UNITS' as syspurpose_units,
+            h.facts->'rhsm'->>'BILLING_MODEL' as billing_model,
+            h.facts->'qpc'->>'IS_RHEL' as is_rhel,
+            sps.virtual_host_uuid::text as hypervisor_uuid,
+            sps.infrastructure_type as system_profile_infrastructure_type,
+            sps.cores_per_socket as system_profile_cores_per_socket,
+            sps.number_of_sockets as system_profile_sockets,
+            sps.number_of_cpus as system_profile_cpus,
+            sps.threads_per_core as system_profile_threads_per_core,
+            sps.cloud_provider as cloud_provider,
+            sps.arch as system_profile_arch,
+            sps.is_marketplace as is_marketplace,
+            sps.conversions->>'activity' as conversions_activity,
+            h.subscription_manager_id as subscription_manager_id,
+            h.insights_id::text as insights_id,
+            h.provider_id as provider_id,
+            rhsm_products.products,
+            qpc_prods.qpc_products,
+            system_profile.system_profile_product_ids,
+            coalesce(
+                h.facts->'satellite'->>'virtual_host_uuid',
+                sps.virtual_host_uuid::text,
+                h.subscription_manager_id) as hardware_subman_id,
+            coalesce(
+                h.facts->'satellite'->>'virtual_host_uuid',
+                sps.virtual_host_uuid::text
+            ) as any_hypervisor_uuid
+            from hosts h
+            inner join system_profiles_static sps on h.org_id = sps.org_id and h.id = sps.host_id
+            left join system_profiles_dynamic spd on h.org_id = spd.org_id and h.id = spd.host_id
+            left join hbi.staleness s on h.org_id = s.org_id
+            cross join lateral (
+                select string_agg(items, ',') as products
+                from jsonb_array_elements_text(h.facts->'rhsm'->'RH_PROD') as items) rhsm_products
+            cross join lateral (
+                select string_agg(items, ',') as qpc_products
+                from jsonb_array_elements_text(h.facts->'qpc'->'rh_products_installed') as items) qpc_prods
+            cross join lateral (
+                select string_agg(items->>'id', ',') as system_profile_product_ids
+                from jsonb_array_elements(spd.installed_products) as items) system_profile
+            where h.org_id=:orgId
+               and (h.facts->'rhsm'->>'BILLING_MODEL' IS NULL OR h.facts->'rhsm'->>'BILLING_MODEL' <> 'marketplace')
+               and (sps.host_type IS NULL OR sps.host_type <> 'edge')
+               and h.last_check_in + make_interval(secs => coalesce(s.conventional_time_to_stale, :stalenessOffsetSeconds)) > NOW() - make_interval(days => :culledOffsetDays)
+            -- NOTE: ordering is crucial for correct streaming reconciliation of HBI data
+            order by hardware_subman_id, any_hypervisor_uuid, inventory_id, h.org_id
+        """,
     resultSetMapping = "inventoryHostFactsMapping")
 @Getter
 @Setter

@@ -161,16 +161,15 @@ public abstract class DevProcessManagedResource extends ManagedResource {
     }
 
     shutdownHook =
-        new Thread(
-            () -> {
-              if (process != null && process.isAlive()) {
-                Log.warn(
-                    context.getOwner(),
-                    "JVM shutdown detected - emergency cleanup of process PID: %d",
-                    process.pid());
-                ProcessUtils.destroy(process);
-              }
-            });
+        new Thread(() -> {
+          if (process != null && process.isAlive()) {
+            Log.warn(
+                context.getOwner(),
+                "JVM shutdown detected - emergency cleanup of process PID: %d",
+                process.pid());
+            ProcessUtils.destroy(process);
+          }
+        });
 
     shutdownHook.setName("DevProcessCleanup-" + service);
     Runtime.getRuntime().addShutdownHook(shutdownHook);

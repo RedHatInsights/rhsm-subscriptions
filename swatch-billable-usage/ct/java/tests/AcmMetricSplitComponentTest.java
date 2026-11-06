@@ -224,52 +224,50 @@ public class AcmMetricSplitComponentTest extends BaseBillableUsageComponentTest 
 
   private void thenTallyRemittancesMatch(
       String tallyId, Map<String, Double> expectedByMetric, BillingProvider billingProvider) {
-    AwaitilityUtils.untilAsserted(
-        () -> {
-          List<TallyRemittance> remittances =
-              service.getRemittancesByTally(tallyId).stream()
-                  .filter(row -> !COVERED.name().equalsIgnoreCase(row.getStatus()))
-                  .toList();
-          assertNotNull(remittances, "Remittances should exist for tally");
-          assertEquals(
-              expectedByMetric.size(), remittances.size(), "Tally remittance row count mismatch");
-          Map<String, Double> actual =
-              remittances.stream()
-                  .collect(
-                      Collectors.toMap(
-                          TallyRemittance::getMetricId, TallyRemittance::getRemittedPendingValue));
-          assertEquals(expectedByMetric, actual, "Tally remittances mismatch");
-          String expectedProvider = billingProvider.toTallyApiModel().value();
-          for (TallyRemittance remittance : remittances) {
-            assertEquals(
-                RemittanceStatus.PENDING.name(),
-                remittance.getStatus(),
-                "Remittance status for metric " + remittance.getMetricId());
-            assertEquals(
-                expectedProvider,
-                remittance.getBillingProvider(),
-                "Remittance billing provider for metric " + remittance.getMetricId());
-          }
-        });
+    AwaitilityUtils.untilAsserted(() -> {
+      List<TallyRemittance> remittances =
+          service.getRemittancesByTally(tallyId).stream()
+              .filter(row -> !COVERED.name().equalsIgnoreCase(row.getStatus()))
+              .toList();
+      assertNotNull(remittances, "Remittances should exist for tally");
+      assertEquals(
+          expectedByMetric.size(), remittances.size(), "Tally remittance row count mismatch");
+      Map<String, Double> actual =
+          remittances.stream()
+              .collect(
+                  Collectors.toMap(
+                      TallyRemittance::getMetricId, TallyRemittance::getRemittedPendingValue));
+      assertEquals(expectedByMetric, actual, "Tally remittances mismatch");
+      String expectedProvider = billingProvider.toTallyApiModel().value();
+      for (TallyRemittance remittance : remittances) {
+        assertEquals(
+            RemittanceStatus.PENDING.name(),
+            remittance.getStatus(),
+            "Remittance status for metric " + remittance.getMetricId());
+        assertEquals(
+            expectedProvider,
+            remittance.getBillingProvider(),
+            "Remittance billing provider for metric " + remittance.getMetricId());
+      }
+    });
   }
 
   private void thenAccountRemittanceEquals(
       String metricId, BillingProvider billingProvider, double expectedRemittedValue) {
-    AwaitilityUtils.untilAsserted(
-        () -> {
-          double actual =
-              service
-                  .getRemittances(
-                      RHACM.getName(),
-                      orgId,
-                      metricId,
-                      billingProvider.toTallyApiModel().value(),
-                      billingAccountId)
-                  .stream()
-                  .filter(row -> !COVERED.name().equalsIgnoreCase(row.getRemittanceStatus()))
-                  .mapToDouble(MonthlyRemittance::getRemittedValue)
-                  .sum();
-          assertEquals(expectedRemittedValue, actual, 0.001, "Account remittance value mismatch");
-        });
+    AwaitilityUtils.untilAsserted(() -> {
+      double actual =
+          service
+              .getRemittances(
+                  RHACM.getName(),
+                  orgId,
+                  metricId,
+                  billingProvider.toTallyApiModel().value(),
+                  billingAccountId)
+              .stream()
+              .filter(row -> !COVERED.name().equalsIgnoreCase(row.getRemittanceStatus()))
+              .mapToDouble(MonthlyRemittance::getRemittedValue)
+              .sum();
+      assertEquals(expectedRemittedValue, actual, 0.001, "Account remittance value mismatch");
+    });
   }
 }

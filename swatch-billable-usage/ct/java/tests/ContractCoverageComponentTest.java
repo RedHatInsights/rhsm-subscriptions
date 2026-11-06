@@ -502,12 +502,11 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
 
   private void thenAccountRemittedUsageRowCount(
       String productId, String metricId, int expectedRowCount) {
-    AwaitilityUtils.untilAsserted(
-        () ->
-            assertEquals(
-                expectedRowCount,
-                remittedRemittances(productId, metricId).size(),
-                "Unexpected monthly overage remittance row count"));
+    AwaitilityUtils.untilAsserted(() ->
+        assertEquals(
+            expectedRowCount,
+            remittedRemittances(productId, metricId).size(),
+            "Unexpected monthly overage remittance row count"));
   }
 
   private void thenAccountRemittedUsageEquals(
@@ -517,88 +516,77 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
 
   private void thenAccountRemittedUsageEquals(
       String productId, String metricId, double expectedRemittedValue, String expectedLicenseId) {
-    AwaitilityUtils.untilAsserted(
-        () -> {
-          if (expectedRemittedValue == 0.0 && expectedLicenseId == null) {
-            assertEquals(
-                0.0,
-                remittedRemittances(productId, metricId).stream()
-                    .mapToDouble(MonthlyRemittance::getRemittedValue)
-                    .sum(),
-                0.001,
-                "Expected no overage remittance");
-            return;
-          }
-          MonthlyRemittance remittance =
-              remittedRemittances(productId, metricId).stream()
-                  .filter(row -> Objects.equals(expectedLicenseId, row.getLicenseId()))
-                  .findFirst()
-                  .orElseThrow(
-                      () -> new AssertionError("Expected account remittance for licenseId"));
-          assertEquals(
-              expectedRemittedValue,
-              remittance.getRemittedValue(),
-              0.001,
-              "Account remittance value mismatch");
-          assertEquals(
-              expectedLicenseId,
-              remittance.getLicenseId(),
-              "Account remittance licenseId mismatch");
-        });
+    AwaitilityUtils.untilAsserted(() -> {
+      if (expectedRemittedValue == 0.0 && expectedLicenseId == null) {
+        assertEquals(
+            0.0,
+            remittedRemittances(productId, metricId).stream()
+                .mapToDouble(MonthlyRemittance::getRemittedValue)
+                .sum(),
+            0.001,
+            "Expected no overage remittance");
+        return;
+      }
+      MonthlyRemittance remittance =
+          remittedRemittances(productId, metricId).stream()
+              .filter(row -> Objects.equals(expectedLicenseId, row.getLicenseId()))
+              .findFirst()
+              .orElseThrow(() -> new AssertionError("Expected account remittance for licenseId"));
+      assertEquals(
+          expectedRemittedValue,
+          remittance.getRemittedValue(),
+          0.001,
+          "Account remittance value mismatch");
+      assertEquals(
+          expectedLicenseId, remittance.getLicenseId(), "Account remittance licenseId mismatch");
+    });
   }
 
   private void thenAccountCoveredUsageEquals(
       String productId, String metricId, double expectedCoveredValue, String expectedLicenseId) {
-    AwaitilityUtils.untilAsserted(
-        () -> {
-          MonthlyRemittance remittance =
-              coveredRemittances(productId, metricId).stream()
-                  .filter(row -> Objects.equals(expectedLicenseId, row.getLicenseId()))
-                  .findFirst()
-                  .orElseThrow(
-                      () ->
-                          new AssertionError(
-                              "Expected COVERED monthly remittance for licenseId "
-                                  + expectedLicenseId));
-          assertEquals(
-              "covered", remittance.getRemittanceStatus(), "Expected remittanceStatus covered");
-          assertEquals(
-              expectedCoveredValue,
-              remittance.getRemittedValue(),
-              0.001,
-              "COVERED remittance value mismatch");
-          assertEquals(
-              expectedLicenseId,
-              remittance.getLicenseId(),
-              "COVERED remittance licenseId mismatch");
-        });
+    AwaitilityUtils.untilAsserted(() -> {
+      MonthlyRemittance remittance =
+          coveredRemittances(productId, metricId).stream()
+              .filter(row -> Objects.equals(expectedLicenseId, row.getLicenseId()))
+              .findFirst()
+              .orElseThrow(() ->
+                  new AssertionError(
+                      "Expected COVERED monthly remittance for licenseId " + expectedLicenseId));
+      assertEquals(
+          "covered", remittance.getRemittanceStatus(), "Expected remittanceStatus covered");
+      assertEquals(
+          expectedCoveredValue,
+          remittance.getRemittedValue(),
+          0.001,
+          "COVERED remittance value mismatch");
+      assertEquals(
+          expectedLicenseId, remittance.getLicenseId(), "COVERED remittance licenseId mismatch");
+    });
   }
 
   private void thenAccountRemittedUsageSumEquals(
       String productId, String metricId, double expectedRemittedTotal) {
-    AwaitilityUtils.untilAsserted(
-        () -> {
-          assertEquals(
-              expectedRemittedTotal,
-              remittedRemittances(productId, metricId).stream()
-                  .mapToDouble(MonthlyRemittance::getRemittedValue)
-                  .sum(),
-              0.001,
-              "Account remittance total mismatch");
-        });
+    AwaitilityUtils.untilAsserted(() -> {
+      assertEquals(
+          expectedRemittedTotal,
+          remittedRemittances(productId, metricId).stream()
+              .mapToDouble(MonthlyRemittance::getRemittedValue)
+              .sum(),
+          0.001,
+          "Account remittance total mismatch");
+    });
   }
 
   private void thenAccountCoveredUsageSumEquals(
       String productId, String metricId, double expectedCoveredValue) {
-    AwaitilityUtils.untilAsserted(
-        () ->
-            assertEquals(
-                expectedCoveredValue,
-                coveredRemittances(productId, metricId).stream()
-                    .mapToDouble(MonthlyRemittance::getRemittedValue)
-                    .sum(),
-                0.001,
-                "COVERED remittance sum mismatch"));
+    AwaitilityUtils.untilAsserted(() ->
+        assertEquals(
+            expectedCoveredValue,
+            coveredRemittances(productId, metricId).stream()
+                .mapToDouble(MonthlyRemittance::getRemittedValue)
+                .sum(),
+            0.001,
+            "COVERED remittance sum mismatch"));
   }
 
   private List<MonthlyRemittance> remittedRemittances(String productId, String metricId) {
@@ -626,26 +614,24 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
 
   private void thenTallyRemittancePendingValueEquals(
       String tallyId, double expectedRemittedPendingValue) {
-    AwaitilityUtils.untilAsserted(
-        () -> {
-          TallyRemittance remittance = overageTallyRemittance(tallyId);
-          assertEquals(
-              expectedRemittedPendingValue,
-              remittance.getRemittedPendingValue(),
-              0.001,
-              "Remitted pending value mismatch");
-        });
+    AwaitilityUtils.untilAsserted(() -> {
+      TallyRemittance remittance = overageTallyRemittance(tallyId);
+      assertEquals(
+          expectedRemittedPendingValue,
+          remittance.getRemittedPendingValue(),
+          0.001,
+          "Remitted pending value mismatch");
+    });
   }
 
   private void thenTallyRemittanceStatusEquals(String tallyId, RemittanceStatus expectedStatus) {
-    AwaitilityUtils.untilAsserted(
-        () -> {
-          TallyRemittance remittance = overageTallyRemittance(tallyId);
-          assertEquals(
-              expectedStatus.name(),
-              remittance.getStatus(),
-              "Remittance status mismatch for tally " + tallyId);
-        });
+    AwaitilityUtils.untilAsserted(() -> {
+      TallyRemittance remittance = overageTallyRemittance(tallyId);
+      assertEquals(
+          expectedStatus.name(),
+          remittance.getStatus(),
+          "Remittance status mismatch for tally " + tallyId);
+    });
   }
 
   private void thenNoBillableUsageKafkaMessage(String productId) {
@@ -679,27 +665,26 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
       RemittanceStatus expectedStatus,
       String expectedLicenseId,
       double expectedRemittedPendingValue) {
-    AwaitilityUtils.untilAsserted(
-        () -> {
-          TallyRemittance remittance = overageTallyRemittance(tallyId);
-          assertEquals(
-              expectedRemittedPendingValue,
-              remittance.getRemittedPendingValue(),
-              0.001,
-              "Remitted pending value mismatch");
-          if (expectedStatus != null) {
-            assertEquals(
-                expectedStatus.name(),
-                remittance.getStatus(),
-                "Remittance status mismatch for tally " + tallyId);
-          }
-          String actualLicenseId = remittance.getLicenseId();
-          if (expectedLicenseId == null) {
-            assertNull(actualLicenseId, "Expected null licenseId");
-          } else {
-            assertEquals(expectedLicenseId, actualLicenseId, "Remittance licenseId mismatch");
-          }
-        });
+    AwaitilityUtils.untilAsserted(() -> {
+      TallyRemittance remittance = overageTallyRemittance(tallyId);
+      assertEquals(
+          expectedRemittedPendingValue,
+          remittance.getRemittedPendingValue(),
+          0.001,
+          "Remitted pending value mismatch");
+      if (expectedStatus != null) {
+        assertEquals(
+            expectedStatus.name(),
+            remittance.getStatus(),
+            "Remittance status mismatch for tally " + tallyId);
+      }
+      String actualLicenseId = remittance.getLicenseId();
+      if (expectedLicenseId == null) {
+        assertNull(actualLicenseId, "Expected null licenseId");
+      } else {
+        assertEquals(expectedLicenseId, actualLicenseId, "Remittance licenseId mismatch");
+      }
+    });
   }
 
   private TallyRemittance overageTallyRemittance(String tallyId) {

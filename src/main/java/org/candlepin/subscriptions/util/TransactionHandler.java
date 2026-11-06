@@ -33,7 +33,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class TransactionHandler {
 
-  @Transactional()
+  @Transactional
   public <T> T runInTransaction(Supplier<T> supplier) {
     return supplier.get();
   }

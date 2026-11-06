@@ -71,12 +71,11 @@ public final class PooledRestAssured {
   private static final long IDLE_TIMEOUT_SECONDS = 3L;
   private static final List<PoolingClientConnectionManager> MANAGERS = new CopyOnWriteArrayList<>();
   private static final ScheduledExecutorService EVICTOR =
-      Executors.newSingleThreadScheduledExecutor(
-          r -> {
-            Thread thread = new Thread(r, "pooled-restassured-evictor");
-            thread.setDaemon(true);
-            return thread;
-          });
+      Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread thread = new Thread(r, "pooled-restassured-evictor");
+        thread.setDaemon(true);
+        return thread;
+      });
   private static final RestAssuredConfig CONFIG = buildConfig(MAX_TOTAL, MAX_PER_ROUTE);
   private static final RestAssuredConfig KEEP_ALIVE_CONFIG =
       buildConfig(KEEP_ALIVE_MAX_TOTAL, KEEP_ALIVE_MAX_PER_ROUTE);
@@ -130,15 +129,14 @@ public final class PooledRestAssured {
     // RestAssured does not EntityUtils.consume unless a body matcher is set, so
     // the Apache connection stays leased. Buffering the entity consumes the
     // stream inside execute() and still leaves the body for RestAssured.
-    httpClient.addResponseInterceptor(
-        (response, context) -> {
-          HttpEntity entity = response.getEntity();
-          if (entity != null) {
-            response.setEntity(new BufferedHttpEntity(entity));
-          }
-          connections.closeExpiredConnections();
-          connections.closeIdleConnections(KEEP_ALIVE_MS, TimeUnit.MILLISECONDS);
-        });
+    httpClient.addResponseInterceptor((response, context) -> {
+      HttpEntity entity = response.getEntity();
+      if (entity != null) {
+        response.setEntity(new BufferedHttpEntity(entity));
+      }
+      connections.closeExpiredConnections();
+      connections.closeIdleConnections(KEEP_ALIVE_MS, TimeUnit.MILLISECONDS);
+    });
     return RestAssuredConfig.config()
         .httpClient(
             HttpClientConfig.httpClientConfig()

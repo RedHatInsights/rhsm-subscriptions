@@ -60,22 +60,19 @@ public class SubscriptionCapacityViewMetricConverter
       Set<SubscriptionCapacityViewMetric> metrics = new HashSet<>();
       objectMapper
           .readValue(s, List.class)
-          .forEach(
-              e -> {
-                Map<String, Object> m = (Map<String, Object>) e;
-                metrics.add(
-                    SubscriptionCapacityViewMetric.builder()
-                        .metricId(
-                            Optional.ofNullable(m.get(METRIC_ID))
-                                .map(String.class::cast)
-                                .orElse(null))
-                        .capacity(Optional.ofNullable(m.get(VALUE)).map(this::toDouble).orElse(0.0))
-                        .measurementType(
-                            Optional.ofNullable(m.get(MEASUREMENT_TYPE))
-                                .map(String.class::cast)
-                                .orElse(null))
-                        .build());
-              });
+          .forEach(e -> {
+            Map<String, Object> m = (Map<String, Object>) e;
+            metrics.add(
+                SubscriptionCapacityViewMetric.builder()
+                    .metricId(
+                        Optional.ofNullable(m.get(METRIC_ID)).map(String.class::cast).orElse(null))
+                    .capacity(Optional.ofNullable(m.get(VALUE)).map(this::toDouble).orElse(0.0))
+                    .measurementType(
+                        Optional.ofNullable(m.get(MEASUREMENT_TYPE))
+                            .map(String.class::cast)
+                            .orElse(null))
+                    .build());
+          });
       return metrics;
     } catch (JsonProcessingException e) {
       throw new IllegalArgumentException("Error parsing metrics with value: " + s, e);

@@ -184,18 +184,16 @@ class CombiningRollupSnapshotStrategyTest {
     List<TallySnapshot> talliesSaved = talliesSavedCaptor.getAllValues();
     TallySnapshot actual1 =
         talliesSaved.stream()
-            .filter(
-                s ->
-                    s.getGranularity() == Granularity.DAILY
-                        && s.getSnapshotDate().isEqual(dailyTimestamp1))
+            .filter(s ->
+                s.getGranularity() == Granularity.DAILY
+                    && s.getSnapshotDate().isEqual(dailyTimestamp1))
             .findFirst()
             .orElseThrow();
     TallySnapshot actual2 =
         talliesSaved.stream()
-            .filter(
-                s ->
-                    s.getGranularity() == Granularity.DAILY
-                        && s.getSnapshotDate().isEqual(dailyTimestamp2))
+            .filter(s ->
+                s.getGranularity() == Granularity.DAILY
+                    && s.getSnapshotDate().isEqual(dailyTimestamp2))
             .findFirst()
             .orElseThrow();
     assertThat(

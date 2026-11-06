@@ -429,13 +429,12 @@ public class InventoryController {
     rhsmFacts.entrySet().stream()
         .filter(
             entry -> entry.getKey().startsWith(NIC_PREFIX) && entry.getKey().endsWith(MAC_SUFFIX))
-        .forEach(
-            entry -> {
-              var macString = entry.getValue();
-              var macFact = entry.getKey();
-              var splitMacs = filterMacs(consumer, macString, macFact);
-              macAddresses.addAll(splitMacs);
-            });
+        .forEach(entry -> {
+          var macString = entry.getValue();
+          var macFact = entry.getKey();
+          var splitMacs = filterMacs(consumer, macString, macFact);
+          macAddresses.addAll(splitMacs);
+        });
 
     return macAddresses;
   }
@@ -443,17 +442,15 @@ public class InventoryController {
   private Set<String> extractIpAddresses(Consumer consumer, Map<String, String> rhsmFacts) {
     Set<String> ipAddresses = new HashSet<>();
     rhsmFacts.entrySet().stream()
-        .filter(
-            entry ->
-                entry.getKey().matches(IP_ADDRESS_FACT_REGEX)
-                    && StringUtils.hasLength(entry.getValue()))
-        .forEach(
-            entry -> {
-              var addrString = entry.getValue();
-              var addrFact = entry.getKey();
-              var splitAddrs = filterIps(consumer, addrString, addrFact);
-              ipAddresses.addAll(splitAddrs);
-            });
+        .filter(entry ->
+            entry.getKey().matches(IP_ADDRESS_FACT_REGEX)
+                && StringUtils.hasLength(entry.getValue()))
+        .forEach(entry -> {
+          var addrString = entry.getValue();
+          var addrFact = entry.getKey();
+          var splitAddrs = filterIps(consumer, addrString, addrFact);
+          ipAddresses.addAll(splitAddrs);
+        });
 
     return ipAddresses;
   }
@@ -637,11 +634,10 @@ public class InventoryController {
 
     AtomicLong updateSize = new AtomicLong(0);
 
-    facts.forEach(
-        hostFacts -> {
-          inventoryService.scheduleHostUpdate(hostFacts);
-          updateSize.incrementAndGet();
-        });
+    facts.forEach(hostFacts -> {
+      inventoryService.scheduleHostUpdate(hostFacts);
+      updateSize.incrementAndGet();
+    });
 
     long size = updateSize.get();
 

@@ -26,57 +26,57 @@ import java.util.Base64;
 public class RhIdentityUtils {
   public static final String ASSOCIATE_IDENTITY_JSON =
       """
-            {
-              "identity": {
-                "type": "Associate",
-                "associate" : {
-                  "email": "test@example.com"
-                }
-              }
-            }
-            """;
+      {
+        "identity": {
+          "type": "Associate",
+          "associate" : {
+            "email": "test@example.com"
+          }
+        }
+      }
+      """;
 
   public static final String ASSOCIATE_IDENTITY_HEADER = generateHeader(ASSOCIATE_IDENTITY_JSON);
   public static final String X509_IDENTITY_JSON =
       """
-            {
-              "identity": {
-                "type": "X509",
-                "x509" : {
-                  "subject_dn": "CN=test.example.com"
-                }
-              }
-            }
-            """;
+      {
+        "identity": {
+          "type": "X509",
+          "x509" : {
+            "subject_dn": "CN=test.example.com"
+          }
+        }
+      }
+      """;
 
   public static final String X509_IDENTITY_HEADER = generateHeader(X509_IDENTITY_JSON);
 
   public static final String CUSTOMER_IDENTITY_JSON =
       """
-            {
-              "identity": {
-                "type": "User",
-                "org_id": "org123",
-                "user_id": "user123"
-              }
-            }
-            """;
+      {
+        "identity": {
+          "type": "User",
+          "org_id": "org123",
+          "user_id": "user123"
+        }
+      }
+      """;
 
   public static final String CUSTOMER_IDENTITY_HEADER = generateHeader(CUSTOMER_IDENTITY_JSON);
 
   public static final String ORG_ADMIN_IDENTITY_JSON =
       """
-            {
-              "identity": {
-                "type": "User",
-                "org_id": "org123",
-                "user_id": "user123",
-                "user": {
-                  "is_org_admin": true
-                }
-              }
-            }
-            """;
+      {
+        "identity": {
+          "type": "User",
+          "org_id": "org123",
+          "user_id": "user123",
+          "user": {
+            "is_org_admin": true
+          }
+        }
+      }
+      """;
 
   public static final String ORG_ADMIN_IDENTITY_HEADER = generateHeader(ORG_ADMIN_IDENTITY_JSON);
 

@@ -132,13 +132,12 @@ public class CapacityReportComponentTest extends BaseContractComponentTest {
     Assertions.assertNotNull(snapshots);
     boolean hasValidData =
         snapshots.stream()
-            .anyMatch(
-                snapshot -> {
-                  assertThat("Date should not be null", snapshot.getDate(), notNullValue());
-                  assertThat("Value should not be null", snapshot.getValue(), notNullValue());
-                  assertThat("HasData should not be null", snapshot.getHasData(), notNullValue());
-                  return snapshot.getHasData() && snapshot.getValue() > 0;
-                });
+            .anyMatch(snapshot -> {
+              assertThat("Date should not be null", snapshot.getDate(), notNullValue());
+              assertThat("Value should not be null", snapshot.getValue(), notNullValue());
+              assertThat("HasData should not be null", snapshot.getHasData(), notNullValue());
+              return snapshot.getHasData() && snapshot.getValue() > 0;
+            });
     assertTrue(hasValidData, "Should have at least one snapshot with valid capacity data");
 
     // Verify meta object

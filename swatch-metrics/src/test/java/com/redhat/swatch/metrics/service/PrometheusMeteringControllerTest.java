@@ -143,7 +143,6 @@ class PrometheusMeteringControllerTest {
             .putMetricItem("socket_count", String.valueOf(socketCount))
             .putMetricItem("tenant_id", tenantId)
             .putMetricItem("conversions_success", String.valueOf(is3rdPartyMigrationFlag));
-    ;
 
     BigDecimal time1 = BigDecimal.valueOf(123456.234);
     BigDecimal val1 = BigDecimal.valueOf(100L);
@@ -400,7 +399,6 @@ class PrometheusMeteringControllerTest {
             .putMetricItem("socket_count", String.valueOf(socketCount))
             .putMetricItem("tenant_id", tenantId)
             .putMetricItem("conversions_success", String.valueOf(is3rdPartyMigrationFlag));
-    ;
 
     BigDecimal time1 = BigDecimal.valueOf(123456.234);
     BigDecimal val1 = BigDecimal.valueOf(100L);
@@ -457,7 +455,6 @@ class PrometheusMeteringControllerTest {
             .putMetricItem("socket_count", String.valueOf(socketCount))
             .putMetricItem("tenant_id", tenantId)
             .putMetricItem("conversions_success", String.valueOf(is3rdPartyMigrationFlag));
-    ;
 
     BigDecimal time1 = BigDecimal.valueOf(123456.234);
     BigDecimal val1 = BigDecimal.valueOf(100L);

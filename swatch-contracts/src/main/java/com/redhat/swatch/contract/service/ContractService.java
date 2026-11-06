@@ -342,11 +342,10 @@ public class ContractService {
 
     boolean areRecordsUpdated = !contractsToPersist.isEmpty() || hasDeletedContracts;
     if (!contractsToPersist.isEmpty()) {
-      contractsToPersist.forEach(
-          contractEntity -> {
-            log.info("Updating or creating contract: {}", contractEntity);
-            persistContract(contractEntity, OffsetDateTime.now());
-          });
+      contractsToPersist.forEach(contractEntity -> {
+        log.info("Updating or creating contract: {}", contractEntity);
+        persistContract(contractEntity, OffsetDateTime.now());
+      });
     }
     return areRecordsUpdated;
   }
@@ -447,11 +446,8 @@ public class ContractService {
       SubscriptionEntity existingSubscription, SubscriptionEntity matchingUpdatedSubscription) {
     var measurements =
         existingSubscription.getSubscriptionMeasurements().keySet().stream()
-            .filter(
-                measurement ->
-                    !matchingUpdatedSubscription
-                        .getSubscriptionMeasurements()
-                        .containsKey(measurement))
+            .filter(measurement ->
+                !matchingUpdatedSubscription.getSubscriptionMeasurements().containsKey(measurement))
             .toList();
     measurements.forEach(
         measurement -> existingSubscription.getSubscriptionMeasurements().remove(measurement));
@@ -518,18 +514,16 @@ public class ContractService {
       ContractEntity contract, OffsetDateTime terminationDate) {
     subscriptionService.findByContract(contract).stream()
         .filter(sub -> sub.getEndDate() == null || sub.getEndDate().isAfter(terminationDate))
-        .forEach(
-            sub -> {
-              log.info(
-                  "Terminating subscription that no longer exists in upstream partner API: {}",
-                  sub);
-              sub.setEndDate(terminationDate);
-              sub.setBillingProvider(null);
-              sub.setBillingProviderId(null);
-              sub.setBillingAccountId(null);
-              sub.getSubscriptionMeasurements().clear();
-              subscriptionService.terminate(sub);
-            });
+        .forEach(sub -> {
+          log.info(
+              "Terminating subscription that no longer exists in upstream partner API: {}", sub);
+          sub.setEndDate(terminationDate);
+          sub.setBillingProvider(null);
+          sub.setBillingProviderId(null);
+          sub.setBillingAccountId(null);
+          sub.getSubscriptionMeasurements().clear();
+          subscriptionService.terminate(sub);
+        });
   }
 
   private void terminateContract(ContractEntity contract, OffsetDateTime terminationDate) {
@@ -738,9 +732,8 @@ public class ContractService {
     if (entitlement.getPurchase().getContracts() != null) {
       contractEntities =
           entitlement.getPurchase().getContracts().stream()
-              .map(
-                  contract ->
-                      contractEntityMapper.mapEntitlementToContractEntity(entitlement, contract))
+              .map(contract ->
+                  contractEntityMapper.mapEntitlementToContractEntity(entitlement, contract))
               .toList();
     }
 

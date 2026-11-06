@@ -80,17 +80,16 @@ public class ContractsWiremockService extends WiremockService {
   public void setupContracts(String orgId, String productId, List<ContractStub> contracts) {
     List<Map<String, Object>> payloads =
         contracts.stream()
-            .map(
-                contract ->
-                    contractPayload(
-                        orgId,
-                        productId,
-                        contract.startDate(),
-                        contract.endDate(),
-                        contract.metricCoverage().entrySet().stream()
-                            .map(entry -> contractMetric(entry.getKey(), entry.getValue()))
-                            .toList(),
-                        contract.licenseId()))
+            .map(contract ->
+                contractPayload(
+                    orgId,
+                    productId,
+                    contract.startDate(),
+                    contract.endDate(),
+                    contract.metricCoverage().entrySet().stream()
+                        .map(entry -> contractMetric(entry.getKey(), entry.getValue()))
+                        .toList(),
+                    contract.licenseId()))
             .toList();
     registerContractsStub(orgId, productId, payloads);
   }

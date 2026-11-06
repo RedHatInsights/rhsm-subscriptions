@@ -49,23 +49,23 @@ class ProductStatusKafkaMessageConsumerTest {
 
   private static final String VALID_JSON_MESSAGE =
       """
-        {
-          "occurredOn": "2023-05-29T16:00:54.279Z",
-          "productCode": "RH0180191",
-          "productCategory": "Parent SKU",
-          "eventType": "Create"
-        }
-        """;
+      {
+        "occurredOn": "2023-05-29T16:00:54.279Z",
+        "productCode": "RH0180191",
+        "productCategory": "Parent SKU",
+        "eventType": "Create"
+      }
+      """;
 
   private static final String CHILD_SKU_JSON_MESSAGE =
       """
-        {
-          "occurredOn": "2023-05-29T16:00:54.279Z",
-          "productCode": "SVCRH01",
-          "productCategory": "Child SKU",
-          "eventType": "Update"
-        }
-        """;
+      {
+        "occurredOn": "2023-05-29T16:00:54.279Z",
+        "productCode": "SVCRH01",
+        "productCategory": "Child SKU",
+        "eventType": "Update"
+      }
+      """;
 
   @InjectMock OfferingSyncService offeringSyncService;
   @Inject @Any InMemoryConnector connector;
@@ -92,12 +92,11 @@ class ProductStatusKafkaMessageConsumerTest {
     whenSendMessage(VALID_JSON_MESSAGE);
     await()
         .atMost(Duration.ofMillis(500))
-        .untilAsserted(
-            () -> {
-              verify(consumer).consumeProduct(VALID_JSON_MESSAGE);
-              LoggerCaptor.thenInfoLogWithMessage("IT Product message consumed: source=kafka");
-              verify(offeringSyncService).syncProductFromEvent(any(OperationalProductEvent.class));
-            });
+        .untilAsserted(() -> {
+          verify(consumer).consumeProduct(VALID_JSON_MESSAGE);
+          LoggerCaptor.thenInfoLogWithMessage("IT Product message consumed: source=kafka");
+          verify(offeringSyncService).syncProductFromEvent(any(OperationalProductEvent.class));
+        });
   }
 
   @Test
@@ -105,12 +104,11 @@ class ProductStatusKafkaMessageConsumerTest {
     whenSendMessage(CHILD_SKU_JSON_MESSAGE);
     await()
         .atMost(Duration.ofMillis(500))
-        .untilAsserted(
-            () -> {
-              verify(consumer).consumeProduct(CHILD_SKU_JSON_MESSAGE);
-              LoggerCaptor.thenInfoLogWithMessage("IT Product message consumed: source=kafka");
-              verify(offeringSyncService).syncProductFromEvent(any(OperationalProductEvent.class));
-            });
+        .untilAsserted(() -> {
+          verify(consumer).consumeProduct(CHILD_SKU_JSON_MESSAGE);
+          LoggerCaptor.thenInfoLogWithMessage("IT Product message consumed: source=kafka");
+          verify(offeringSyncService).syncProductFromEvent(any(OperationalProductEvent.class));
+        });
   }
 
   @Test
@@ -118,13 +116,12 @@ class ProductStatusKafkaMessageConsumerTest {
     whenSendMessage("not-valid-json");
     await()
         .atMost(Duration.ofMillis(500))
-        .untilAsserted(
-            () -> {
-              verify(consumer).consumeProduct("not-valid-json");
-              LoggerCaptor.thenWarnLogWithMessage("Unable to read IT Product Kafka message");
-              verify(offeringSyncService, never())
-                  .syncProductFromEvent(any(OperationalProductEvent.class));
-            });
+        .untilAsserted(() -> {
+          verify(consumer).consumeProduct("not-valid-json");
+          LoggerCaptor.thenWarnLogWithMessage("Unable to read IT Product Kafka message");
+          verify(offeringSyncService, never())
+              .syncProductFromEvent(any(OperationalProductEvent.class));
+        });
   }
 
   @Test

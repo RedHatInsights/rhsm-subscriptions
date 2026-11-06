@@ -119,11 +119,10 @@ class SubscriptionTableControllerV2Test {
   private void givenCapacities(ProductId productId, MeasurementSpec... specs) {
 
     Arrays.stream(specs)
-        .forEach(
-            s -> {
-              var measurements = s.createMeasurements(productId);
-              s.subscription.setMetrics(measurements);
-            });
+        .forEach(s -> {
+          var measurements = s.createMeasurements(productId);
+          s.subscription.setMetrics(measurements);
+        });
   }
 
   @Test
@@ -804,15 +803,14 @@ class SubscriptionTableControllerV2Test {
 
   private void givenOfferings(MeasurementSpec... specs) {
     Stream.of(specs)
-        .forEach(
-            spec -> {
-              OfferingEntity offering = spec.createOffering();
-              spec.subscription.setSku(offering.getSku());
-              spec.subscription.setHasUnlimitedUsage(offering.isHasUnlimitedUsage());
-              spec.subscription.setUsage(offering.getUsage());
-              spec.subscription.setServiceLevel(offering.getServiceLevel());
-              spec.subscription.setProductName(offering.getProductName());
-            });
+        .forEach(spec -> {
+          OfferingEntity offering = spec.createOffering();
+          spec.subscription.setSku(offering.getSku());
+          spec.subscription.setHasUnlimitedUsage(offering.isHasUnlimitedUsage());
+          spec.subscription.setUsage(offering.getUsage());
+          spec.subscription.setServiceLevel(offering.getServiceLevel());
+          spec.subscription.setProductName(offering.getProductName());
+        });
   }
 
   private void givenSubscriptionsInRepository(SubscriptionCapacityView... subs) {

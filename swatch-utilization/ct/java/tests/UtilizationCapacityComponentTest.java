@@ -116,20 +116,19 @@ public class UtilizationCapacityComponentTest extends BaseUtilizationComponentTe
     whenUtilizationEventIsReceived();
 
     Product product = Product.ROSA;
-    AwaitilityUtils.untilAsserted(
-        () -> {
-          Assertions.assertEquals(
-              initialExplicit,
-              overUsageMetricCount(
-                  product.getFirstMetricId(),
-                  UtilizationSummary.Sla.PREMIUM,
-                  UtilizationSummary.Usage.PRODUCTION),
-              "Counter for Premium/Production labels should not change when capacity is invalid");
-          Assertions.assertEquals(
-              initialBothSlaUsageAny,
-              overUsageMetricCount(product.getFirstMetricId()),
-              "Counter with both sla and usage _ANY should not change when capacity is invalid");
-        });
+    AwaitilityUtils.untilAsserted(() -> {
+      Assertions.assertEquals(
+          initialExplicit,
+          overUsageMetricCount(
+              product.getFirstMetricId(),
+              UtilizationSummary.Sla.PREMIUM,
+              UtilizationSummary.Usage.PRODUCTION),
+          "Counter for Premium/Production labels should not change when capacity is invalid");
+      Assertions.assertEquals(
+          initialBothSlaUsageAny,
+          overUsageMetricCount(product.getFirstMetricId()),
+          "Counter with both sla and usage _ANY should not change when capacity is invalid");
+    });
   }
 
   private void givenUtilizationSummaryForProduct(Product product) {
@@ -163,11 +162,10 @@ public class UtilizationCapacityComponentTest extends BaseUtilizationComponentTe
 
   private void thenOverUsageCounterShouldNotChange() {
     Product product = Product.fromString(utilizationSummary.getProductId());
-    AwaitilityUtils.untilAsserted(
-        () -> {
-          double currentCount = overUsageMetricCount(product.getFirstMetricId());
-          Assertions.assertEquals(
-              initialOverUsageCount, currentCount, "Over-usage counter should not change");
-        });
+    AwaitilityUtils.untilAsserted(() -> {
+      double currentCount = overUsageMetricCount(product.getFirstMetricId());
+      Assertions.assertEquals(
+          initialOverUsageCount, currentCount, "Over-usage counter should not change");
+    });
   }
 }

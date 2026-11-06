@@ -368,24 +368,22 @@ public class TallyResource implements TallyApi {
       Map<OffsetDateTime, Integer> capacityByDate) {
     Map<MetricId, Double> runningTotals = new HashMap<>();
     List<UnroundedTallyReportDataPoint> runningTotalSnaps = new ArrayList<>();
-    snaps.forEach(
-        snapshot -> {
-          double snapshotTotal = Optional.ofNullable(snapshot.value()).orElse(0.0);
-          double newValue = runningTotals.getOrDefault(metricId, 0.0) + snapshotTotal;
+    snaps.forEach(snapshot -> {
+      double snapshotTotal = Optional.ofNullable(snapshot.value()).orElse(0.0);
+      double newValue = runningTotals.getOrDefault(metricId, 0.0) + snapshotTotal;
 
-          double snapshotValue = newValue;
-          double capacity = capacityByDate.getOrDefault(clock.startOfDay(snapshot.date()), 0);
-          if (BillingCategory.PREPAID.equals(billingCategory)) {
-            snapshotValue = Math.min(newValue, capacity);
-          } else if (BillingCategory.ON_DEMAND.equals(billingCategory)) {
-            snapshotValue = Math.max(newValue - capacity, 0);
-          }
+      double snapshotValue = newValue;
+      double capacity = capacityByDate.getOrDefault(clock.startOfDay(snapshot.date()), 0);
+      if (BillingCategory.PREPAID.equals(billingCategory)) {
+        snapshotValue = Math.min(newValue, capacity);
+      } else if (BillingCategory.ON_DEMAND.equals(billingCategory)) {
+        snapshotValue = Math.max(newValue - capacity, 0);
+      }
 
-          runningTotalSnaps.add(
-              new UnroundedTallyReportDataPoint(
-                  snapshot.date(), snapshotValue, snapshot.hasData()));
-          runningTotals.put(metricId, newValue);
-        });
+      runningTotalSnaps.add(
+          new UnroundedTallyReportDataPoint(snapshot.date(), snapshotValue, snapshot.hasData()));
+      runningTotals.put(metricId, newValue);
+    });
     return runningTotalSnaps;
   }
 
@@ -434,9 +432,8 @@ public class TallyResource implements TallyApi {
     // No Java-side grouping needed - create data points directly
     List<UnroundedTallyReportDataPoint> dataPoints =
         summedPage.stream()
-            .map(
-                sum ->
-                    new UnroundedTallyReportDataPoint(sum.getSnapshotDate(), sum.getValue(), true))
+            .map(sum ->
+                new UnroundedTallyReportDataPoint(sum.getSnapshotDate(), sum.getValue(), true))
             .toList();
 
     return new TallyQueryResult(dataPoints, summedPage);

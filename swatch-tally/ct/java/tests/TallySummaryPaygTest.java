@@ -243,18 +243,17 @@ public class TallySummaryPaygTest extends BaseTallyComponentTest {
   }
 
   private void givenEventsPersisted(int expectedCount) {
-    AwaitilityUtils.untilIsTrue(
-        () -> {
-          try (Connection connection = swatchDatabase.getConnection();
-              PreparedStatement statement =
-                  connection.prepareStatement("SELECT COUNT(*) FROM events WHERE org_id = ?")) {
-            statement.setString(1, orgId);
-            try (ResultSet results = statement.executeQuery()) {
-              results.next();
-              return results.getInt(1) >= expectedCount;
-            }
-          }
-        });
+    AwaitilityUtils.untilIsTrue(() -> {
+      try (Connection connection = swatchDatabase.getConnection();
+          PreparedStatement statement =
+              connection.prepareStatement("SELECT COUNT(*) FROM events WHERE org_id = ?")) {
+        statement.setString(1, orgId);
+        try (ResultSet results = statement.executeQuery()) {
+          results.next();
+          return results.getInt(1) >= expectedCount;
+        }
+      }
+    });
   }
 
   private TallySummary thenSummaryForHour(OffsetDateTime hour, String metric) {
@@ -279,10 +278,9 @@ public class TallySummaryPaygTest extends BaseTallyComponentTest {
             .filter(m -> metric.equalsIgnoreCase(m.getMetricId()))
             .toList();
     Assertions.assertFalse(measurements.isEmpty(), hour.toString());
-    measurements.forEach(
-        measurement -> {
-          Assertions.assertEquals(expectedValue, measurement.getValue());
-          Assertions.assertEquals(expectedTotal, measurement.getCurrentTotal());
-        });
+    measurements.forEach(measurement -> {
+      Assertions.assertEquals(expectedValue, measurement.getValue());
+      Assertions.assertEquals(expectedTotal, measurement.getCurrentTotal());
+    });
   }
 }

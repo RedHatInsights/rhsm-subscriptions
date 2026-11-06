@@ -63,12 +63,12 @@ class BillableUsageResourceIT {
         .contentType(ContentType.JSON)
         .body(
             """
-                    {
-                      "sla": "Standard",
-                      "usage": "Development/Test",
-                      "billingProvider": "aws"
-                    }
-                    """)
+            {
+              "sla": "Standard",
+              "usage": "Development/Test",
+              "billingProvider": "aws"
+            }
+            """)
         .post("/api/swatch-producer-aws/internal/aws/billable_usage")
         .then()
         .statusCode(HttpStatus.SC_FORBIDDEN);

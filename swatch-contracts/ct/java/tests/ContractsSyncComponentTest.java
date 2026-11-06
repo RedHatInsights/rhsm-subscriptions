@@ -277,18 +277,16 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
     assertTrue(initialMeasurementTotal > 0.0, "Initial capacity should be positive");
 
     // Delete the measurements to reproduce the missing-row regression.
-    swatchDatabase.executeInTransaction(
-        context ->
-            context.executeUpdate(
-                "DELETE FROM subscription_measurements WHERE subscription_number = ?",
-                subscriptionNumber));
+    swatchDatabase.executeInTransaction(context ->
+        context.executeUpdate(
+            "DELETE FROM subscription_measurements WHERE subscription_number = ?",
+            subscriptionNumber));
     AwaitilityUtils.until(
         () ->
             service
                 .getSkuCapacityByProductIdForOrgAndSku(contract.getProduct(), orgId, sku)
-                .map(
-                    capacity ->
-                        capacity.getMeasurements().stream().mapToDouble(Double::doubleValue).sum())
+                .map(capacity ->
+                    capacity.getMeasurements().stream().mapToDouble(Double::doubleValue).sum())
                 .orElse(0.0),
         capacity -> capacity == 0.0);
 
@@ -306,10 +304,9 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
             () -> service.getSkuCapacityByProductIdForOrgAndSku(contract.getProduct(), orgId, sku),
             capacity ->
                 capacity
-                    .map(
-                        value ->
-                            value.getMeasurements().stream().mapToDouble(Double::doubleValue).sum()
-                                == initialMeasurementTotal)
+                    .map(value ->
+                        value.getMeasurements().stream().mapToDouble(Double::doubleValue).sum()
+                            == initialMeasurementTotal)
                     .orElse(false));
     var restoredCapacity = skuCapacity.orElseThrow();
     assertNotNull(restoredCapacity.getSubscriptions(), "Should have subscriptions");
@@ -1129,62 +1126,54 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
   }
 
   private void thenContractIsFound(String contractUuid, BillingProvider provider) {
-    thenAssertContractsForOrg(
-        contracts -> {
-          boolean found =
-              contracts.stream()
-                  .anyMatch(
-                      c ->
-                          c.getUuid().equals(contractUuid)
-                              && c.getBillingProvider().equals(provider.toApiModel()));
-          assertTrue(
-              found,
-              "Expected contract uuid=" + contractUuid + " provider=" + provider + " to exist");
-        });
+    thenAssertContractsForOrg(contracts -> {
+      boolean found =
+          contracts.stream()
+              .anyMatch(c ->
+                  c.getUuid().equals(contractUuid)
+                      && c.getBillingProvider().equals(provider.toApiModel()));
+      assertTrue(
+          found, "Expected contract uuid=" + contractUuid + " provider=" + provider + " to exist");
+    });
   }
 
   private void thenSingleContractHasStableUuid(String uuid) {
-    thenAssertContractsForOrg(
-        contracts -> {
-          assertEquals(1, contracts.size(), "contracts: no duplicate rows");
-          assertEquals(uuid, contracts.get(0).getUuid(), "contracts: UUID must be stable");
-        });
+    thenAssertContractsForOrg(contracts -> {
+      assertEquals(1, contracts.size(), "contracts: no duplicate rows");
+      assertEquals(uuid, contracts.get(0).getUuid(), "contracts: UUID must be stable");
+    });
   }
 
   private void thenSingleContractHasStableUuidAndMetrics(String uuid, int expectedMetricsCount) {
-    thenAssertContractsForOrg(
-        contracts -> {
-          assertEquals(1, contracts.size(), "contracts: no duplicate rows");
-          assertEquals(uuid, contracts.get(0).getUuid(), "contracts: UUID must be stable");
-          assertEquals(
-              expectedMetricsCount,
-              contracts.get(0).getMetrics().size(),
-              "contract_metrics: row count must be stable");
-        });
+    thenAssertContractsForOrg(contracts -> {
+      assertEquals(1, contracts.size(), "contracts: no duplicate rows");
+      assertEquals(uuid, contracts.get(0).getUuid(), "contracts: UUID must be stable");
+      assertEquals(
+          expectedMetricsCount,
+          contracts.get(0).getMetrics().size(),
+          "contract_metrics: row count must be stable");
+    });
   }
 
   private void thenSingleSubscriptionHasStableNumberAndMeasurements(
       String subscriptionNumber, int expectedMeasurementsCount) {
-    AwaitilityUtils.untilAsserted(
-        () -> {
-          var subs = service.getSubscriptionsByOrgId(orgId);
-          assertEquals(1, subs.size(), "subscriptions: no duplicate rows");
-          assertEquals(
-              subscriptionNumber,
-              subs.get(0).getSubscriptionNumber(),
-              "subscriptions: subscription_number must be stable");
-          assertEquals(
-              expectedMeasurementsCount,
-              subs.get(0).getMetrics().size(),
-              "subscription_measurements: row count must be stable");
-        });
+    AwaitilityUtils.untilAsserted(() -> {
+      var subs = service.getSubscriptionsByOrgId(orgId);
+      assertEquals(1, subs.size(), "subscriptions: no duplicate rows");
+      assertEquals(
+          subscriptionNumber,
+          subs.get(0).getSubscriptionNumber(),
+          "subscriptions: subscription_number must be stable");
+      assertEquals(
+          expectedMeasurementsCount,
+          subs.get(0).getMetrics().size(),
+          "subscription_measurements: row count must be stable");
+    });
   }
 
   private void thenContractsSizeAre(int expected) {
-    thenAssertContractsForOrg(
-        contracts ->
-            assertEquals(
-                expected, contracts.size(), "Expected " + expected + " contract(s) for org"));
+    thenAssertContractsForOrg(contracts ->
+        assertEquals(expected, contracts.size(), "Expected " + expected + " contract(s) for org"));
   }
 
   private void thenOrgHasSingleContractWithProvider(String orgId, BillingProvider provider) {
@@ -1228,33 +1217,26 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
   }
 
   private void thenAssertContractsPresentBySubscriptionNumber(Contract... expected) {
-    thenAssertContractsForOrg(
-        contracts -> {
-          assertEquals(
-              expected.length, contracts.size(), "Expected all stubbed contracts to be present");
-          for (Contract expectedContract : expected) {
-            assertTrue(
-                contracts.stream()
-                    .anyMatch(
-                        c ->
-                            expectedContract
-                                .getSubscriptionNumber()
-                                .equals(c.getSubscriptionNumber())),
-                "subscriptionNumber "
-                    + expectedContract.getSubscriptionNumber()
-                    + " must be present");
-          }
-        });
+    thenAssertContractsForOrg(contracts -> {
+      assertEquals(
+          expected.length, contracts.size(), "Expected all stubbed contracts to be present");
+      for (Contract expectedContract : expected) {
+        assertTrue(
+            contracts.stream()
+                .anyMatch(c ->
+                    expectedContract.getSubscriptionNumber().equals(c.getSubscriptionNumber())),
+            "subscriptionNumber " + expectedContract.getSubscriptionNumber() + " must be present");
+      }
+    });
   }
 
   private com.redhat.swatch.contract.test.model.Contract getPersistedContract(Contract expected) {
     return service.getContractsByOrgId(orgId).stream()
         .filter(c -> expected.getSubscriptionNumber().equals(c.getSubscriptionNumber()))
         .findFirst()
-        .orElseThrow(
-            () ->
-                new AssertionError(
-                    "No contract for subscriptionNumber=" + expected.getSubscriptionNumber()));
+        .orElseThrow(() ->
+            new AssertionError(
+                "No contract for subscriptionNumber=" + expected.getSubscriptionNumber()));
   }
 
   private com.redhat.swatch.contract.test.model.Subscription getPersistedSubscription(
@@ -1262,10 +1244,9 @@ public class ContractsSyncComponentTest extends BaseContractComponentTest {
     return service.getSubscriptionsByOrgId(orgId).stream()
         .filter(s -> expected.getSubscriptionNumber().equals(s.getSubscriptionNumber()))
         .findFirst()
-        .orElseThrow(
-            () ->
-                new AssertionError(
-                    "No subscription for subscriptionNumber=" + expected.getSubscriptionNumber()));
+        .orElseThrow(() ->
+            new AssertionError(
+                "No subscription for subscriptionNumber=" + expected.getSubscriptionNumber()));
   }
 
   private static String awsDimensionFor(MetricId metricId) {

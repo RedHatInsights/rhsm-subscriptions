@@ -60,7 +60,7 @@ class BillableUsageRemittanceRepositoryTest {
   @Inject EntityManager entityManager;
 
   @Transactional
-  @BeforeEach()
+  @BeforeEach
   public void setUp() {
     TimeZone.setDefault(TimeZone.getTimeZone(ZoneOffset.UTC));
     repository.deleteAll();

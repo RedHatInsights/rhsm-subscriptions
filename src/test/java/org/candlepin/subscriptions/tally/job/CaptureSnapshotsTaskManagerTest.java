@@ -154,15 +154,14 @@ class CaptureSnapshotsTaskManagerTest {
 
     manager.updateHourlySnapshotsForAllOrgs();
 
-    expectedOrgs.forEach(
-        orgId -> {
-          verify(queue, times(1))
-              .enqueue(
-                  TaskDescriptor.builder(
-                          TaskType.UPDATE_HOURLY_SNAPSHOTS, taskQueueProperties.getTopic(), null)
-                      .setSingleValuedArg("orgId", orgId)
-                      .build());
-        });
+    expectedOrgs.forEach(orgId -> {
+      verify(queue, times(1))
+          .enqueue(
+              TaskDescriptor.builder(
+                      TaskType.UPDATE_HOURLY_SNAPSHOTS, taskQueueProperties.getTopic(), null)
+                  .setSingleValuedArg("orgId", orgId)
+                  .build());
+    });
   }
 
   private TaskDescriptor createDescriptorAccount(List<String> accounts) {

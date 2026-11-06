@@ -113,17 +113,16 @@ class ContractServiceIntegrationTest {
 
     try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
       for (Runnable task : List.of(first, second)) {
-        executor.submit(
-            () -> {
-              try {
-                startLatch.await();
-                QuarkusTransaction.requiringNew().run(task);
-              } catch (Throwable t) {
-                failure.compareAndSet(null, t);
-              } finally {
-                doneLatch.countDown();
-              }
-            });
+        executor.submit(() -> {
+          try {
+            startLatch.await();
+            QuarkusTransaction.requiringNew().run(task);
+          } catch (Throwable t) {
+            failure.compareAndSet(null, t);
+          } finally {
+            doneLatch.countDown();
+          }
+        });
       }
 
       startLatch.countDown();

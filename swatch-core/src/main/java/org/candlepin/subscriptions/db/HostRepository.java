@@ -83,14 +83,14 @@ public interface HostRepository
   @Query(
       value =
           """
-      select h
-      from Host h
-      left join fetch h.measurements
-      left join fetch h.buckets
-      left join fetch h.lastAppliedEventRecordDateByServiceType
-      where h.orgId=:orgId
-        and h.instanceType='HBI_HOST'
-      order by coalesce(h.hypervisorUuid, h.subscriptionManagerId), h.hypervisorUuid, h.inventoryId, h.id
+          select h
+          from Host h
+          left join fetch h.measurements
+          left join fetch h.buckets
+          left join fetch h.lastAppliedEventRecordDateByServiceType
+          where h.orgId=:orgId
+            and h.instanceType='HBI_HOST'
+          order by coalesce(h.hypervisorUuid, h.subscriptionManagerId), h.hypervisorUuid, h.inventoryId, h.id
           """)
   @QueryHints(value = {@QueryHint(name = HINT_FETCH_SIZE, value = "1024")})
   Stream<Host> streamHbiHostsByOrgId(@Param("orgId") String orgId);
@@ -98,8 +98,8 @@ public interface HostRepository
   @Query(
       value =
           """
-     SELECT h FROM Host h
-     LEFT JOIN FETCH h.monthlyTotals
+          SELECT h FROM Host h
+          LEFT JOIN FETCH h.monthlyTotals
           """)
   /* Used in testing since we don't have a session which can resolve the proxy objects associated with a lazy fetch */
   List<Host> findAllEagerly();
@@ -567,13 +567,13 @@ public interface HostRepository
   @Query(
       value =
           """
-      select h from Host h
-      left join fetch h.measurements
-      left join fetch h.buckets
-      left join fetch h.monthlyTotals
-      left join fetch h.lastAppliedEventRecordDateByServiceType
-      where h.orgId=:orgId
-      and h.instanceId in :instanceIds
+          select h from Host h
+          left join fetch h.measurements
+          left join fetch h.buckets
+          left join fetch h.monthlyTotals
+          left join fetch h.lastAppliedEventRecordDateByServiceType
+          where h.orgId=:orgId
+          and h.instanceId in :instanceIds
           """)
   @QueryHints(value = {@QueryHint(name = HINT_FETCH_SIZE, value = "1024")})
   Stream<Host> findAllByOrgIdAndInstanceIdIn(

@@ -89,12 +89,11 @@ public class OrgPreferencesService {
   private OrgUtilizationPreferenceEntity getOrCreateOrgPreferenceEntity(String orgId) {
     return repository
         .findByIdOptional(orgId)
-        .orElseGet(
-            () -> {
-              var entity = new OrgUtilizationPreferenceEntity();
-              entity.setOrgId(orgId);
-              return entity;
-            });
+        .orElseGet(() -> {
+          var entity = new OrgUtilizationPreferenceEntity();
+          entity.setOrgId(orgId);
+          return entity;
+        });
   }
 
   private static OffsetDateTime toOffsetDateTime(Instant instant) {

@@ -58,10 +58,9 @@ public class MetricId implements Serializable {
         .filter(metricId -> metricId.equalsIgnoreCase(formattedValue))
         .map(MetricId::new)
         .findFirst()
-        .orElseThrow(
-            () ->
-                new IllegalArgumentException(
-                    String.format("MetricId: %s not found in configuration", value)));
+        .orElseThrow(() ->
+            new IllegalArgumentException(
+                String.format("MetricId: %s not found in configuration", value)));
   }
 
   /**

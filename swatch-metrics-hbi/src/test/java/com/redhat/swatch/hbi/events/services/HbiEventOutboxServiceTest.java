@@ -132,15 +132,14 @@ class HbiEventOutboxServiceTest {
   private void assertSwatchEventSent(Event... expected) {
     Awaitility.await()
         .atMost(Duration.ofSeconds(1))
-        .untilAsserted(
-            () -> {
-              List<? extends Message<Event>> received = swatchEventsOut.received();
-              assertEquals(expected.length, received.size());
-              received.forEach(m -> System.out.println(m.getPayload()));
-              MatcherAssert.assertThat(
-                  received.stream().map(Message::getPayload).toList(),
-                  Matchers.containsInAnyOrder(expected));
-            });
+        .untilAsserted(() -> {
+          List<? extends Message<Event>> received = swatchEventsOut.received();
+          assertEquals(expected.length, received.size());
+          received.forEach(m -> System.out.println(m.getPayload()));
+          MatcherAssert.assertThat(
+              received.stream().map(Message::getPayload).toList(),
+              Matchers.containsInAnyOrder(expected));
+        });
 
     // Clear the events so that any additional calls to this method start fresh.
     swatchEventsOut.clear();

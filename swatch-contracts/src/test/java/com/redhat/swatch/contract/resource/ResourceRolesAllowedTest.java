@@ -63,66 +63,64 @@ class ResourceRolesAllowedTest {
   Stream<DynamicTest> testResourceMethodAnnotatedWithAppropriateRoles() throws IOException {
     var api = loadOpenApiModel();
     return findResourceMethods().stream()
-        .map(
-            method ->
-                DynamicTest.dynamicTest(
-                    method.getDeclaringClass().getSimpleName() + "#" + method.getName(),
-                    () -> {
-                      String path = getPath(method);
-                      String httpMethod = getHttpMethod(method);
-                      assertNotNull(
-                          httpMethod, String.format("path %s has no http method defined", path));
-                      var pathItem = api.getPaths().getPathItem(path);
-                      assertNotNull(
-                          pathItem,
-                          String.format(
-                              "path %s method %s not defined in openapi spec", path, httpMethod));
-                      var operation =
-                          switch (httpMethod) {
-                            case "DELETE" -> pathItem.getDELETE();
-                            case "GET" -> pathItem.getGET();
-                            case "HEAD" -> pathItem.getHEAD();
-                            case "OPTIONS" -> pathItem.getOPTIONS();
-                            case "POST" -> pathItem.getPOST();
-                            case "PUT" -> pathItem.getPUT();
-                            default -> throw new UnsupportedOperationException(httpMethod);
-                          };
-                      if (!path.startsWith("/api/rhsm-subscriptions/")) {
-                        assertNotNull(
-                            operation.getSecurity(),
-                            String.format(
-                                "Security schemes not defined for path %s method %s",
-                                path, httpMethod));
-                        assertTrue(
-                            operation.getSecurity().size() > 0,
-                            String.format(
-                                "Security schemes must not be empty for path %s method %s",
-                                path, httpMethod));
-                        for (var requirement : operation.getSecurity()) {
-                          assertEquals(
-                              1,
-                              requirement.getSchemes().size(),
-                              "Requirements of multiple schemes not supported");
-                        }
-                        var allSchemes =
-                            operation.getSecurity().stream()
-                                .flatMap(req -> req.getSchemes().keySet().stream())
-                                .collect(Collectors.toSet());
-                        var rolesAllowed =
-                            Optional.ofNullable(findAnnotation(RolesAllowed.class, method))
-                                .map(RolesAllowed::value)
-                                .orElse(new String[] {});
-                        assertEquals(allSchemes, new HashSet<>(Arrays.asList(rolesAllowed)));
-                      } else {
-                        var rolesAllowed =
-                            Optional.ofNullable(findAnnotation(RolesAllowed.class, method))
-                                .map(RolesAllowed::value)
-                                .orElse(new String[] {});
-                        assertEquals(
-                            Set.of("customer", "service"),
-                            new HashSet<>(Arrays.asList(rolesAllowed)));
-                      }
-                    }));
+        .map(method ->
+            DynamicTest.dynamicTest(
+                method.getDeclaringClass().getSimpleName() + "#" + method.getName(),
+                () -> {
+                  String path = getPath(method);
+                  String httpMethod = getHttpMethod(method);
+                  assertNotNull(
+                      httpMethod, String.format("path %s has no http method defined", path));
+                  var pathItem = api.getPaths().getPathItem(path);
+                  assertNotNull(
+                      pathItem,
+                      String.format(
+                          "path %s method %s not defined in openapi spec", path, httpMethod));
+                  var operation =
+                      switch (httpMethod) {
+                        case "DELETE" -> pathItem.getDELETE();
+                        case "GET" -> pathItem.getGET();
+                        case "HEAD" -> pathItem.getHEAD();
+                        case "OPTIONS" -> pathItem.getOPTIONS();
+                        case "POST" -> pathItem.getPOST();
+                        case "PUT" -> pathItem.getPUT();
+                        default -> throw new UnsupportedOperationException(httpMethod);
+                      };
+                  if (!path.startsWith("/api/rhsm-subscriptions/")) {
+                    assertNotNull(
+                        operation.getSecurity(),
+                        String.format(
+                            "Security schemes not defined for path %s method %s",
+                            path, httpMethod));
+                    assertTrue(
+                        operation.getSecurity().size() > 0,
+                        String.format(
+                            "Security schemes must not be empty for path %s method %s",
+                            path, httpMethod));
+                    for (var requirement : operation.getSecurity()) {
+                      assertEquals(
+                          1,
+                          requirement.getSchemes().size(),
+                          "Requirements of multiple schemes not supported");
+                    }
+                    var allSchemes =
+                        operation.getSecurity().stream()
+                            .flatMap(req -> req.getSchemes().keySet().stream())
+                            .collect(Collectors.toSet());
+                    var rolesAllowed =
+                        Optional.ofNullable(findAnnotation(RolesAllowed.class, method))
+                            .map(RolesAllowed::value)
+                            .orElse(new String[] {});
+                    assertEquals(allSchemes, new HashSet<>(Arrays.asList(rolesAllowed)));
+                  } else {
+                    var rolesAllowed =
+                        Optional.ofNullable(findAnnotation(RolesAllowed.class, method))
+                            .map(RolesAllowed::value)
+                            .orElse(new String[] {});
+                    assertEquals(
+                        Set.of("customer", "service"), new HashSet<>(Arrays.asList(rolesAllowed)));
+                  }
+                }));
   }
 
   private String getHttpMethod(Method method) {

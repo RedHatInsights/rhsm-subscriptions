@@ -238,10 +238,9 @@ public class BillingAccountIdsComponentTest extends BaseContractComponentTest {
         accounts.stream()
             .filter(candidate -> productTag.equals(candidate.getProductTag()))
             .findFirst()
-            .orElseThrow(
-                () ->
-                    new AssertionError(
-                        "No billing account record found for product tag " + productTag));
+            .orElseThrow(() ->
+                new AssertionError(
+                    "No billing account record found for product tag " + productTag));
     assertBillingAccount(account, billingAccountId, productTag);
   }
 }

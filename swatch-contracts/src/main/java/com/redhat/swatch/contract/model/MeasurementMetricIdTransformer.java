@@ -117,21 +117,20 @@ public class MeasurementMetricIdTransformer {
                 .collect(Collectors.toSet());
         contract
             .getMetrics()
-            .removeIf(
-                metric -> {
-                  if (!metrics.contains(metric.getMetricId())) {
-                    log.warn(
-                        "Removing unsupported metric '{}' from contract using the product '{}'. "
-                            + "List of supported metrics in the product are: {}",
-                        metric.getMetricId(),
-                        productTag,
-                        metrics);
+            .removeIf(metric -> {
+              if (!metrics.contains(metric.getMetricId())) {
+                log.warn(
+                    "Removing unsupported metric '{}' from contract using the product '{}'. "
+                        + "List of supported metrics in the product are: {}",
+                    metric.getMetricId(),
+                    productTag,
+                    metrics);
 
-                    return true;
-                  }
+                return true;
+              }
 
-                  return false;
-                });
+              return false;
+            });
       }
     } catch (ProcessingException | NoSuchElementException e) {
       log.error("Error resolving dimensions for contract metrics", e);
@@ -189,20 +188,19 @@ public class MeasurementMetricIdTransformer {
     Map<String, Double> metrics = new HashMap<>();
     subscription
         .getSubscriptionMeasurements()
-        .forEach(
-            (key, value) -> {
-              String dimension = dimensionResolver.apply(key.getMetricId());
-              if (dimension == null || value == null) {
-                log.debug(
-                    "Skipping measurement '{}' on subscription {}: no dimension configured",
-                    key.getMetricId(),
-                    subscription.getSubscriptionNumber());
-                return;
-              }
-              double billingFactor =
-                  Optional.ofNullable(billingFactorResolver.apply(key.getMetricId())).orElse(1.0);
-              metrics.merge(dimension, value * billingFactor, Double::sum);
-            });
+        .forEach((key, value) -> {
+          String dimension = dimensionResolver.apply(key.getMetricId());
+          if (dimension == null || value == null) {
+            log.debug(
+                "Skipping measurement '{}' on subscription {}: no dimension configured",
+                key.getMetricId(),
+                subscription.getSubscriptionNumber());
+            return;
+          }
+          double billingFactor =
+              Optional.ofNullable(billingFactorResolver.apply(key.getMetricId())).orElse(1.0);
+          metrics.merge(dimension, value * billingFactor, Double::sum);
+        });
     return metrics;
   }
 

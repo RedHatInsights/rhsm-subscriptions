@@ -657,11 +657,10 @@ class BillableUsageServiceTest {
     thenUsageIsSent(usage, 0.0);
     verify(remittanceRepo, atLeastOnce())
         .persist(
-            Mockito.<BillableUsageRemittanceEntity>argThat(
-                remittance ->
-                    RemittanceStatus.COVERED.equals(remittance.getStatus())
-                        && remittance.getRemittedPendingValue() == 10.0
-                        && "license-new".equals(remittance.getLicenseId())));
+            Mockito.<BillableUsageRemittanceEntity>argThat(remittance ->
+                RemittanceStatus.COVERED.equals(remittance.getStatus())
+                    && remittance.getRemittedPendingValue() == 10.0
+                    && "license-new".equals(remittance.getLicenseId())));
   }
 
   @Test
@@ -706,10 +705,9 @@ class BillableUsageServiceTest {
     thenRemittanceIsUpdated(usage, usageDate, 30.0, RemittanceStatus.PENDING, "license-same");
     verify(remittanceRepo, atLeastOnce())
         .persist(
-            Mockito.<BillableUsageRemittanceEntity>argThat(
-                remittance ->
-                    RemittanceStatus.COVERED.equals(remittance.getStatus())
-                        && remittance.getRemittedPendingValue() == 60.0));
+            Mockito.<BillableUsageRemittanceEntity>argThat(remittance ->
+                RemittanceStatus.COVERED.equals(remittance.getStatus())
+                    && remittance.getRemittedPendingValue() == 60.0));
     thenUsageIsSent(usage, 30.0, "license-same");
   }
 
@@ -726,7 +724,7 @@ class BillableUsageServiceTest {
         arguments(CLOCK.startOfCurrentMonth().plusMonths(1), 3.0, 0.0, 4.0, 2.0));
   }
 
-  @ParameterizedTest()
+  @ParameterizedTest
   @MethodSource("remittanceBillingFactorParameters")
   void testRemittanceWithBillingFactor(
       OffsetDateTime usageDate,
@@ -962,10 +960,9 @@ class BillableUsageServiceTest {
     if (expectedRemitted == 0.0) {
       verify(remittanceRepo, never())
           .persistAndFlush(
-              argThat(
-                  remittance ->
-                      remittance.getStatus() != RemittanceStatus.COVERED
-                          && remittance.getRemittedPendingValue() > 0));
+              argThat(remittance ->
+                  remittance.getStatus() != RemittanceStatus.COVERED
+                      && remittance.getRemittedPendingValue() > 0));
     } else {
       thenRemittanceIsUpdated(usage, usageDate, expectedRemitted, null);
     }
@@ -985,15 +982,14 @@ class BillableUsageServiceTest {
       BillableUsage usage, double expectedValue, String expectedLicenseId) {
     verify(producer)
         .produce(
-            argThat(
-                output -> {
-                  assertEquals(usage.getUuid(), output.getUuid());
-                  assertEquals(usage.getTallyId(), output.getTallyId());
-                  assertEquals(expectedValue, output.getValue());
-                  assertEquals(usage.getCurrentTotal(), output.getCurrentTotal());
-                  assertEquals(expectedLicenseId, output.getLicenseId());
-                  return true;
-                }));
+            argThat(output -> {
+              assertEquals(usage.getUuid(), output.getUuid());
+              assertEquals(usage.getTallyId(), output.getTallyId());
+              assertEquals(expectedValue, output.getValue());
+              assertEquals(usage.getCurrentTotal(), output.getCurrentTotal());
+              assertEquals(expectedLicenseId, output.getLicenseId());
+              return true;
+            }));
   }
 
   private void thenBillableMeterMatches(BillableUsage usage, double expectedBillableValue) {
@@ -1064,27 +1060,25 @@ class BillableUsageServiceTest {
       String expectedLicenseId) {
     verify(remittanceRepo, atLeastOnce())
         .persistAndFlush(
-            argThat(
-                remittance -> {
-                  if (RemittanceStatus.COVERED.equals(remittance.getStatus())) {
-                    return false;
-                  }
-                  assertEquals(usage.getTallyId(), remittance.getTallyId());
-                  assertEquals(usage.getProductId(), remittance.getProductId());
-                  assertEquals(
-                      MetricId.fromString(usage.getMetricId()).getValue(),
-                      remittance.getMetricId());
-                  assertEquals(usage.getBillingProvider().value(), remittance.getBillingProvider());
-                  assertEquals(
-                      AccumulationPeriodFormatter.toMonthId(expectedAccumulationPeriodDate),
-                      remittance.getAccumulationPeriod());
-                  assertEquals(expectedRemittedPendingValue, remittance.getRemittedPendingValue());
-                  if (expectedStatus != null) {
-                    assertEquals(expectedStatus, remittance.getStatus());
-                  }
-                  assertEquals(expectedLicenseId, remittance.getLicenseId());
-                  return true;
-                }));
+            argThat(remittance -> {
+              if (RemittanceStatus.COVERED.equals(remittance.getStatus())) {
+                return false;
+              }
+              assertEquals(usage.getTallyId(), remittance.getTallyId());
+              assertEquals(usage.getProductId(), remittance.getProductId());
+              assertEquals(
+                  MetricId.fromString(usage.getMetricId()).getValue(), remittance.getMetricId());
+              assertEquals(usage.getBillingProvider().value(), remittance.getBillingProvider());
+              assertEquals(
+                  AccumulationPeriodFormatter.toMonthId(expectedAccumulationPeriodDate),
+                  remittance.getAccumulationPeriod());
+              assertEquals(expectedRemittedPendingValue, remittance.getRemittedPendingValue());
+              if (expectedStatus != null) {
+                assertEquals(expectedStatus, remittance.getStatus());
+              }
+              assertEquals(expectedLicenseId, remittance.getLicenseId());
+              return true;
+            }));
   }
 
   private void stubSubscriptionDefinition(
@@ -1121,14 +1115,11 @@ class BillableUsageServiceTest {
   private Optional<Meter> getUsageMetric(
       String metric, String productTag, String metricId, String billingProvider) {
     return meterRegistry.getMeters().stream()
-        .filter(
-            m ->
-                metric.equals(m.getId().getName())
-                    && productTag.equals(m.getId().getTag("product"))
-                    && MetricId.fromString(metricId)
-                        .getValue()
-                        .equals(m.getId().getTag("metric_id"))
-                    && billingProvider.equals(m.getId().getTag("billing_provider")))
+        .filter(m ->
+            metric.equals(m.getId().getName())
+                && productTag.equals(m.getId().getTag("product"))
+                && MetricId.fromString(metricId).getValue().equals(m.getId().getTag("metric_id"))
+                && billingProvider.equals(m.getId().getTag("billing_provider")))
         .findFirst();
   }
 }

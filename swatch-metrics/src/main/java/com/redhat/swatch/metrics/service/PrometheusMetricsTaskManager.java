@@ -64,12 +64,11 @@ public class PrometheusMetricsTaskManager {
   public void updateMetricsForOrgId(
       String orgId, String productTag, OffsetDateTime start, OffsetDateTime end) {
     MetricIdUtils.getMetricIdsFromConfigForTag(productTag)
-        .forEach(
-            metricId -> {
-              log.info("Queuing {} {} metric updates for orgId={}.", productTag, metricId, orgId);
-              queueMetricUpdateForOrgId(orgId, productTag, metricId, start, end);
-              log.info("Done queuing updates of {} {} metric", productTag, metricId);
-            });
+        .forEach(metricId -> {
+          log.info("Queuing {} {} metric updates for orgId={}.", productTag, metricId, orgId);
+          queueMetricUpdateForOrgId(orgId, productTag, metricId, start, end);
+          log.info("Done queuing updates of {} {} metric", productTag, metricId);
+        });
   }
 
   @Transactional
@@ -80,14 +79,12 @@ public class PrometheusMetricsTaskManager {
     OffsetDateTime start = end.minusMinutes(metricProperties.rangeInMinutes());
     log.info("Queuing {} metric updates for range: [{}, {})", productTag, start, end);
     var subDefOptional = SubscriptionDefinition.lookupSubscriptionByTag(productTag);
-    subDefOptional.ifPresent(
-        subDef ->
-            subDef
-                .getMetricIds() // No null check required here since metrics will always be present
-                .forEach(
-                    metric ->
-                        queueMetricUpdateForAllAccounts(
-                            productTag, MetricId.fromString(metric), start, end)));
+    subDefOptional.ifPresent(subDef ->
+        subDef
+            .getMetricIds() // No null check required here since metrics will always be present
+            .forEach(metric ->
+                queueMetricUpdateForAllAccounts(
+                    productTag, MetricId.fromString(metric), start, end)));
   }
 
   @Retry

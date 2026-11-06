@@ -280,11 +280,10 @@ public class TallyInstanceViewRepository {
       } else {
         // try the metrics
         getMetricIdToSort(sort)
-            .ifPresent(
-                metricId -> {
-                  var metrics = leftJoinMetricsBy(metricId, isPayg, root, builder);
-                  orders.add(orderByColumn(builder, metrics.value(), isAscending));
-                });
+            .ifPresent(metricId -> {
+              var metrics = leftJoinMetricsBy(metricId, isPayg, root, builder);
+              orders.add(orderByColumn(builder, metrics.value(), isAscending));
+            });
       }
 
       orders.add(builder.asc(root.get(TallyInstanceView_.ID)));

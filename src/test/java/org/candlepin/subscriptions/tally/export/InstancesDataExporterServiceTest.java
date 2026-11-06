@@ -295,17 +295,16 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
           && bucket.getMeasurementType() == HardwareMeasurementType.HYPERVISOR) {
         data.addAll(
             item.guests.stream()
-                .map(
-                    g ->
-                        new InstancesExportCsvItem()
-                            .withId(g.getId().toString())
-                            .withHypervisorUuid(g.getHypervisorUuid())
-                            .withDisplayName(g.getDisplayName())
-                            .withInventoryId(g.getInventoryId())
-                            .withHardwareType(g.getHardwareType().toString())
-                            .withInstanceId(g.getInstanceId())
-                            .withSubscriptionManagerId(g.getSubscriptionManagerId())
-                            .withLastSeen(g.getLastSeen()))
+                .map(g ->
+                    new InstancesExportCsvItem()
+                        .withId(g.getId().toString())
+                        .withHypervisorUuid(g.getHypervisorUuid())
+                        .withDisplayName(g.getDisplayName())
+                        .withInventoryId(g.getInventoryId())
+                        .withHardwareType(g.getHardwareType().toString())
+                        .withInstanceId(g.getInstanceId())
+                        .withSubscriptionManagerId(g.getSubscriptionManagerId())
+                        .withLastSeen(g.getLastSeen()))
                 .toList());
       }
     }
@@ -358,14 +357,13 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
       if (item.guests != null) {
         instance.setGuests(
             item.guests.stream()
-                .map(
-                    g ->
-                        new InstancesExportJsonGuest()
-                            .withDisplayName(g.getDisplayName())
-                            .withHardwareType(g.getHardwareType().toString())
-                            .withLastSeen(g.getLastSeen())
-                            .withIsHypervisor(g.isHypervisor())
-                            .withIsUnmappedGuest(g.isUnmappedGuest()))
+                .map(g ->
+                    new InstancesExportJsonGuest()
+                        .withDisplayName(g.getDisplayName())
+                        .withHardwareType(g.getHardwareType().toString())
+                        .withLastSeen(g.getLastSeen())
+                        .withIsHypervisor(g.isHypervisor())
+                        .withIsUnmappedGuest(g.isUnmappedGuest()))
                 .toList());
       }
 
@@ -481,11 +479,10 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
             ResourceUtils.ANY,
             instanceSockets.intValue(),
             instanceCores.intValue());
-    buckets.forEach(
-        bucket -> {
-          bucket.getKey().setAsHypervisor(true);
-          instance.addBucket(bucket);
-        });
+    buckets.forEach(bucket -> {
+      bucket.getKey().setAsHypervisor(true);
+      instance.addBucket(bucket);
+    });
 
     // save
     repository.save(instance);

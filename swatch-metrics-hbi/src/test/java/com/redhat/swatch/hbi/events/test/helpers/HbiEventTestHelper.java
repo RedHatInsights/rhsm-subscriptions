@@ -120,12 +120,11 @@ public class HbiEventTestHelper {
         event.getHost().getFacts().stream()
             .filter(f -> namespace.equals(f.getNamespace()))
             .findFirst()
-            .orElseGet(
-                () -> {
-                  HbiHostFacts facts = new HbiHostFacts();
-                  facts.setNamespace(namespace);
-                  return facts;
-                });
+            .orElseGet(() -> {
+              HbiHostFacts facts = new HbiHostFacts();
+              facts.setNamespace(namespace);
+              return facts;
+            });
     hostFacts.getFacts().put(factName, factValue);
   }
 

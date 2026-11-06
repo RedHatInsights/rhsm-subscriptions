@@ -57,9 +57,8 @@ public class CapacityReportUnlimitedQuantityComponentTest extends BaseContractCo
     // And: At least one snapshot should have hasInfiniteQuantity=true
     boolean hasInfiniteQuantityFound =
         capacityReport.getData().stream()
-            .anyMatch(
-                snapshot ->
-                    snapshot.getHasInfiniteQuantity() != null && snapshot.getHasInfiniteQuantity());
+            .anyMatch(snapshot ->
+                snapshot.getHasInfiniteQuantity() != null && snapshot.getHasInfiniteQuantity());
 
     assertTrue(
         hasInfiniteQuantityFound,
@@ -93,10 +92,9 @@ public class CapacityReportUnlimitedQuantityComponentTest extends BaseContractCo
     // And: Snapshots during unlimited subscription period should have hasInfiniteQuantity=true
     boolean hasInfiniteQuantityFoundInRange =
         capacityReport.getData().stream()
-            .filter(
-                snapshot ->
-                    !snapshot.getDate().isBefore(clock.now().minusDays(5))
-                        && !snapshot.getDate().isAfter(clock.now().minusDays(2)))
+            .filter(snapshot ->
+                !snapshot.getDate().isBefore(clock.now().minusDays(5))
+                    && !snapshot.getDate().isAfter(clock.now().minusDays(2)))
             .anyMatch(CapacityReportUnlimitedQuantityComponentTest::isInfiniteQuantity);
 
     assertTrue(
@@ -106,14 +104,11 @@ public class CapacityReportUnlimitedQuantityComponentTest extends BaseContractCo
     // And: Snapshots OUTSIDE unlimited subscription period should have hasInfiniteQuantity=false
     boolean allOutsideRangeAreFalse =
         capacityReport.getData().stream()
-            .filter(
-                snapshot ->
-                    snapshot.getDate().isBefore(clock.now().minusDays(5))
-                        || snapshot.getDate().isAfter(clock.now().minusDays(2)))
-            .allMatch(
-                snapshot ->
-                    snapshot.getHasInfiniteQuantity() == null
-                        || !snapshot.getHasInfiniteQuantity());
+            .filter(snapshot ->
+                snapshot.getDate().isBefore(clock.now().minusDays(5))
+                    || snapshot.getDate().isAfter(clock.now().minusDays(2)))
+            .allMatch(snapshot ->
+                snapshot.getHasInfiniteQuantity() == null || !snapshot.getHasInfiniteQuantity());
 
     assertTrue(
         allOutsideRangeAreFalse,

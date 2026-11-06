@@ -122,36 +122,31 @@ public class SubscriptionTableControllerV2 {
     Map<InventoryKey, SkuCapacityV2> reportItemsBySku = new HashMap<>();
     repository
         .streamBy(subscriptionSpec)
-        .forEach(
-            subscription -> {
-              InventoryKey inventoryKey = new InventoryKey(productId, subscription);
+        .forEach(subscription -> {
+          InventoryKey inventoryKey = new InventoryKey(productId, subscription);
 
-              SkuCapacityV2 inventory =
-                  reportItemsBySku.computeIfAbsent(
-                      inventoryKey, s -> initializeSkuCapacity(subscription, metrics, category));
-              calculateNextEvent(subscription, inventory);
-              if (productId.isOnDemand()) {
-                addOnDemandSubscriptionInformation(subscription, inventory);
-              } else {
-                addSubscriptionInformation(subscription, inventory);
-              }
+          SkuCapacityV2 inventory =
+              reportItemsBySku.computeIfAbsent(
+                  inventoryKey, s -> initializeSkuCapacity(subscription, metrics, category));
+          calculateNextEvent(subscription, inventory);
+          if (productId.isOnDemand()) {
+            addOnDemandSubscriptionInformation(subscription, inventory);
+          } else {
+            addSubscriptionInformation(subscription, inventory);
+          }
 
-              subscription.getMetrics().stream()
-                  .filter(m -> m.getCapacity() != null)
-                  .filter(m -> m.getMetricId() != null)
-                  .filter(metrics::isSupported)
-                  .filter(filterByCategory(inventory))
-                  .forEach(
-                      entry -> {
-                        int position =
-                            metrics.getPosition(MetricId.fromString(entry.getMetricId()));
-                        inventory
-                            .getMeasurements()
-                            .set(
-                                position,
-                                inventory.getMeasurements().get(position) + entry.getCapacity());
-                      });
-            });
+          subscription.getMetrics().stream()
+              .filter(m -> m.getCapacity() != null)
+              .filter(m -> m.getMetricId() != null)
+              .filter(metrics::isSupported)
+              .filter(filterByCategory(inventory))
+              .forEach(entry -> {
+                int position = metrics.getPosition(MetricId.fromString(entry.getMetricId()));
+                inventory
+                    .getMeasurements()
+                    .set(position, inventory.getMeasurements().get(position) + entry.getCapacity());
+              });
+        });
 
     List<SkuCapacityV2> reportItems = new ArrayList<>(reportItemsBySku.values());
     int reportItemCount = reportItems.size();
@@ -219,31 +214,30 @@ public class SubscriptionTableControllerV2 {
 
   private static void sortCapacities(
       List<SkuCapacityV2> items, SkuCapacityReportSortV2 sort, SortDirection dir) {
-    items.sort(
-        (left, right) -> {
-          var sortField = Optional.ofNullable(sort).orElse(SkuCapacityReportSortV2.SKU);
-          int sortDir = 1;
-          if (dir == SortDirection.DESC) {
-            sortDir = -1;
-          }
-          int diff =
-              switch (sortField) {
-                case SKU -> left.getSku().compareTo(right.getSku());
-                case SERVICE_LEVEL -> left.getServiceLevel().compareTo(right.getServiceLevel());
-                case USAGE -> left.getUsage().compareTo(right.getUsage());
-                case QUANTITY -> left.getQuantity().compareTo(right.getQuantity());
-                case NEXT_EVENT_DATE -> left.getNextEventDate().compareTo(right.getNextEventDate());
-                case NEXT_EVENT_TYPE -> left.getNextEventType().compareTo(right.getNextEventType());
-                case PRODUCT_NAME -> left.getProductName().compareTo(right.getProductName());
-              };
-          // If the two items are sorted by some other field than SKU and are equal, then break the
-          // tie by sorting by SKU. No two SKUs in the list are equal.
-          if (diff == 0 && sortField != SkuCapacityReportSortV2.SKU) {
-            diff = left.getSku().compareTo(right.getSku());
-          }
+    items.sort((left, right) -> {
+      var sortField = Optional.ofNullable(sort).orElse(SkuCapacityReportSortV2.SKU);
+      int sortDir = 1;
+      if (dir == SortDirection.DESC) {
+        sortDir = -1;
+      }
+      int diff =
+          switch (sortField) {
+            case SKU -> left.getSku().compareTo(right.getSku());
+            case SERVICE_LEVEL -> left.getServiceLevel().compareTo(right.getServiceLevel());
+            case USAGE -> left.getUsage().compareTo(right.getUsage());
+            case QUANTITY -> left.getQuantity().compareTo(right.getQuantity());
+            case NEXT_EVENT_DATE -> left.getNextEventDate().compareTo(right.getNextEventDate());
+            case NEXT_EVENT_TYPE -> left.getNextEventType().compareTo(right.getNextEventType());
+            case PRODUCT_NAME -> left.getProductName().compareTo(right.getProductName());
+          };
+      // If the two items are sorted by some other field than SKU and are equal, then break the
+      // tie by sorting by SKU. No two SKUs in the list are equal.
+      if (diff == 0 && sortField != SkuCapacityReportSortV2.SKU) {
+        diff = left.getSku().compareTo(right.getSku());
+      }
 
-          return diff * sortDir;
-        });
+      return diff * sortDir;
+    });
   }
 
   private Predicate<SubscriptionCapacityViewMetric> filterByCategory(SkuCapacityV2 inventory) {

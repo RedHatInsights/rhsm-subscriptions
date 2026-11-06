@@ -65,12 +65,11 @@ class MetricsHbiVirtualRhelCreateUpdateComponentTest extends BaseSMHBIComponentT
             .apply(
                 HostTemplates.conduitVirtualRhelGuestSelfSupportDevTest(
                     2, 2, "non-existent-hypervisor-uuid"))
-            .apply(
-                b ->
-                    b.systemProfileFacts(
-                        b.getSystemProfileFacts().toBuilder()
-                            .threadsPerCore(4) // Extend template: add threadsPerCore for this test
-                            .build()))
+            .apply(b ->
+                b.systemProfileFacts(
+                    b.getSystemProfileFacts().toBuilder()
+                        .threadsPerCore(4) // Extend template: add threadsPerCore for this test
+                        .build()))
             .toEvent()
             .type(hbiEventType)
             .timestamp(OffsetDateTime.now(ZoneOffset.UTC))
@@ -116,12 +115,11 @@ class MetricsHbiVirtualRhelCreateUpdateComponentTest extends BaseSMHBIComponentT
             .apply(
                 HostTemplates.conduitVirtualRhelGuestSelfSupportDevTest(
                     2, 2, "non-existent-hypervisor-uuid"))
-            .apply(
-                b ->
-                    b.systemProfileFacts(
-                        b.getSystemProfileFacts().toBuilder()
-                            .numberOfCpus(4) // Extend template: add numberOfCpus for this test
-                            .build()))
+            .apply(b ->
+                b.systemProfileFacts(
+                    b.getSystemProfileFacts().toBuilder()
+                        .numberOfCpus(4) // Extend template: add numberOfCpus for this test
+                        .build()))
             .toEvent()
             .type(hbiEventType)
             .timestamp(OffsetDateTime.now(ZoneOffset.UTC))
@@ -165,19 +163,17 @@ class MetricsHbiVirtualRhelCreateUpdateComponentTest extends BaseSMHBIComponentT
         hostEvents
             .createHost(orgId)
             .apply(HostTemplates.conduitVirtualRhelGuestSelfSupportDevTest(2, 2, null))
-            .apply(
-                b ->
-                    b.rhsmFacts(
-                        b.rhsmFacts().toBuilder()
-                            .product("419") // Override: ARM product instead of x86
-                            .build()))
-            .apply(
-                b ->
-                    b.systemProfileFacts(
-                        b.getSystemProfileFacts().toBuilder()
-                            .arch("arm") // Extend template: change to ARM architecture
-                            .hypervisorUuid(null) // Clear hypervisorUuid (not a guest)
-                            .build()))
+            .apply(b ->
+                b.rhsmFacts(
+                    b.rhsmFacts().toBuilder()
+                        .product("419") // Override: ARM product instead of x86
+                        .build()))
+            .apply(b ->
+                b.systemProfileFacts(
+                    b.getSystemProfileFacts().toBuilder()
+                        .arch("arm") // Extend template: change to ARM architecture
+                        .hypervisorUuid(null) // Clear hypervisorUuid (not a guest)
+                        .build()))
             .toEvent()
             .type(hbiEventType)
             .timestamp(OffsetDateTime.now(ZoneOffset.UTC))
@@ -226,14 +222,13 @@ class MetricsHbiVirtualRhelCreateUpdateComponentTest extends BaseSMHBIComponentT
         hostEvents
             .createHost(orgId)
             .apply(HostTemplates.conduitVirtualRhelGuestSelfSupportDevTest(8, 4, null))
-            .apply(
-                b ->
-                    b.systemProfileFacts(
-                        b.getSystemProfileFacts().toBuilder()
-                            .numberOfCpus(4) // Extend template: add numberOfCpus
-                            .cloudProvider("aws") // Extend template: add cloud provider
-                            .hypervisorUuid(null) // Clear hypervisorUuid for cloud host
-                            .build()))
+            .apply(b ->
+                b.systemProfileFacts(
+                    b.getSystemProfileFacts().toBuilder()
+                        .numberOfCpus(4) // Extend template: add numberOfCpus
+                        .cloudProvider("aws") // Extend template: add cloud provider
+                        .hypervisorUuid(null) // Clear hypervisorUuid for cloud host
+                        .build()))
             .toEvent()
             .type(hbiEventType)
             .timestamp(OffsetDateTime.now(ZoneOffset.UTC))

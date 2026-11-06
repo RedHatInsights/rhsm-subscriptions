@@ -57,16 +57,15 @@ public class ContractsV1Resource implements ContractsV1Api {
         subscriptionRepository.findBillingAccountInfo(orgId, Optional.ofNullable(productTag));
     var ids =
         billingAccounts.stream()
-            .map(
-                dto ->
-                    new BillingAccount()
-                        .orgId(dto.orgId())
-                        .billingAccountId(dto.billingAccountId())
-                        .billingProvider(
-                            Optional.ofNullable(dto.billingProvider())
-                                .map(BillingProvider::getValue)
-                                .orElse(null))
-                        .productTag(dto.productTag()))
+            .map(dto ->
+                new BillingAccount()
+                    .orgId(dto.orgId())
+                    .billingAccountId(dto.billingAccountId())
+                    .billingProvider(
+                        Optional.ofNullable(dto.billingProvider())
+                            .map(BillingProvider::getValue)
+                            .orElse(null))
+                    .productTag(dto.productTag()))
             .toList();
     return new BillingAccountIdResponse().ids(ids);
   }

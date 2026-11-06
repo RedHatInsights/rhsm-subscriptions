@@ -110,14 +110,13 @@ public class BillableUsageCalculation {
     SequencedMap<String, Double> remaining = new LinkedHashMap<>();
     contractCoverage
         .getCapacityByLicense()
-        .forEach(
-            (licenseId, billableCapacity) -> {
-              double metricCapacity =
-                  Quantity.fromValue(usage, nullToZero(billableCapacity)).toMetricUnits();
-              String key = licenseId == null || licenseId.isBlank() ? NO_LICENSE_ID : licenseId;
-              double already = nullToZero(alreadyCoveredByLicense.get(key));
-              remaining.put(key, Math.max(0.0, metricCapacity - already));
-            });
+        .forEach((licenseId, billableCapacity) -> {
+          double metricCapacity =
+              Quantity.fromValue(usage, nullToZero(billableCapacity)).toMetricUnits();
+          String key = licenseId == null || licenseId.isBlank() ? NO_LICENSE_ID : licenseId;
+          double already = nullToZero(alreadyCoveredByLicense.get(key));
+          remaining.put(key, Math.max(0.0, metricCapacity - already));
+        });
     return Collections.unmodifiableSequencedMap(remaining);
   }
 

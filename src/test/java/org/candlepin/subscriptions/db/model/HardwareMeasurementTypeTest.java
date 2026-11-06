@@ -53,9 +53,8 @@ class HardwareMeasurementTypeTest {
   @Test
   void ensureAllCloudProviderTypesAreConsideredSupported() {
     HardwareMeasurementType.getCloudProviderTypes()
-        .forEach(
-            type -> {
-              assertTrue(HardwareMeasurementType.isSupportedCloudProvider(type.name()));
-            });
+        .forEach(type -> {
+          assertTrue(HardwareMeasurementType.isSupportedCloudProvider(type.name()));
+        });
   }
 }

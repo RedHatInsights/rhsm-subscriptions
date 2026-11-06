@@ -142,18 +142,17 @@ public class InstancesCsvDataMapperService implements DataMapperService<TallyIns
 
   private List<InstancesExportCsvItem> toInstancesExportCsvItem(List<Host> guests) {
     return guests.stream()
-        .map(
-            guest ->
-                new InstancesExportCsvItem()
-                    .withId(guest.getId().toString())
-                    .withDisplayName(guest.getDisplayName())
-                    .withInventoryId(guest.getInventoryId())
-                    .withHardwareType(
-                        guest.getHardwareType() == null ? null : guest.getHardwareType().toString())
-                    .withInstanceId(guest.getInstanceId())
-                    .withSubscriptionManagerId(guest.getSubscriptionManagerId())
-                    .withHypervisorUuid(guest.getHypervisorUuid())
-                    .withLastSeen(guest.getLastSeen()))
+        .map(guest ->
+            new InstancesExportCsvItem()
+                .withId(guest.getId().toString())
+                .withDisplayName(guest.getDisplayName())
+                .withInventoryId(guest.getInventoryId())
+                .withHardwareType(
+                    guest.getHardwareType() == null ? null : guest.getHardwareType().toString())
+                .withInstanceId(guest.getInstanceId())
+                .withSubscriptionManagerId(guest.getSubscriptionManagerId())
+                .withHypervisorUuid(guest.getHypervisorUuid())
+                .withLastSeen(guest.getLastSeen()))
         .toList();
   }
 

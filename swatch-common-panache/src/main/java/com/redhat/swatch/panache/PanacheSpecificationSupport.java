@@ -57,11 +57,10 @@ public interface PanacheSpecificationSupport<Entity, Id> extends PanacheReposito
     if (sort != null) {
       criteriaQuery.orderBy(
           sort.getColumns().stream()
-              .map(
-                  column -> {
-                    var path = resolvePath(root, column.getName());
-                    return createOrder(criteriaBuilder, path, column);
-                  })
+              .map(column -> {
+                var path = resolvePath(root, column.getName());
+                return createOrder(criteriaBuilder, path, column);
+              })
               .toList());
     }
     var query = entityManager.createQuery(criteriaQuery);

@@ -80,11 +80,10 @@ public class EnabledOrgsMessageConsumer extends SeekableKafkaConsumer {
     log.info("Sending all enabled organizations to topic '{}'", request.getTargetTopic());
     AtomicInteger requests = new AtomicInteger(0);
     try (var organizations = repository.findSyncEnabledOrgs()) {
-      organizations.forEach(
-          orgId -> {
-            producer.send(request.getTargetTopic(), new EnabledOrgsResponse().withOrgId(orgId));
-            requests.incrementAndGet();
-          });
+      organizations.forEach(orgId -> {
+        producer.send(request.getTargetTopic(), new EnabledOrgsResponse().withOrgId(orgId));
+        requests.incrementAndGet();
+      });
     }
 
     log.info(

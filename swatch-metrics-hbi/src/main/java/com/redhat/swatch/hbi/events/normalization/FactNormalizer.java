@@ -193,10 +193,9 @@ public class FactNormalizer {
 
   private boolean skipRhsmFacts(String syncTimestampFact) {
     return Optional.ofNullable(syncTimestampFact)
-        .map(
-            syncTimestamp ->
-                !StringUtil.isNullOrEmpty(syncTimestampFact)
-                    && hostUnregistered(OffsetDateTime.parse(syncTimestamp)))
+        .map(syncTimestamp ->
+            !StringUtil.isNullOrEmpty(syncTimestampFact)
+                && hostUnregistered(OffsetDateTime.parse(syncTimestamp)))
         .orElse(false);
   }
 

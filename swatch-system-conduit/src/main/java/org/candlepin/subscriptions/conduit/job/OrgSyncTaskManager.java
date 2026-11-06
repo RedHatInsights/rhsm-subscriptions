@@ -91,15 +91,14 @@ public class OrgSyncTaskManager {
     }
     long count =
         orgsToSync
-            .map(
-                org -> {
-                  try {
-                    updateOrgInventory(org);
-                  } catch (Exception e) {
-                    log.error("Could not update inventory for org: {}", org, e);
-                  }
-                  return null;
-                })
+            .map(org -> {
+              try {
+                updateOrgInventory(org);
+              } catch (Exception e) {
+                log.error("Could not update inventory for org: {}", org, e);
+              }
+              return null;
+            })
             .count();
     log.info("Inventory update complete, synced {} orgs.", count);
   }

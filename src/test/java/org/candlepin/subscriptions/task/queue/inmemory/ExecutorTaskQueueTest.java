@@ -49,10 +49,9 @@ class ExecutorTaskQueueTest {
         TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "my-group", null).build();
     final AtomicBoolean done = new AtomicBoolean();
     Mockito.when(taskFactory.build(Mockito.any()))
-        .thenReturn(
-            () -> {
-              done.set(true);
-            });
+        .thenReturn(() -> {
+          done.set(true);
+        });
     queue.enqueue(expectedTaskDesc);
     processor.shutdown(2000, TimeUnit.MILLISECONDS);
     assertTrue(done.get());
@@ -64,25 +63,22 @@ class ExecutorTaskQueueTest {
     ExecutorTaskQueue queue = new ExecutorTaskQueue();
     ExecutorTaskProcessor processor =
         new ExecutorTaskProcessor(
-            Executors.newCachedThreadPool(
-                (runnable) -> {
-                  Thread thread = new Thread(runnable);
-                  thread.setUncaughtExceptionHandler(
-                      (t, throwable) -> {
-                        failed.set(true);
-                      });
-                  return thread;
-                }),
+            Executors.newCachedThreadPool(runnable -> {
+              Thread thread = new Thread(runnable);
+              thread.setUncaughtExceptionHandler((t, throwable) -> {
+                failed.set(true);
+              });
+              return thread;
+            }),
             taskFactory,
             queue,
             "my-group");
     TaskDescriptor expectedTaskDesc =
         TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "my-group", null).build();
     Mockito.when(taskFactory.build(Mockito.any()))
-        .thenReturn(
-            () -> {
-              throw new RuntimeException("Error!");
-            });
+        .thenReturn(() -> {
+          throw new RuntimeException("Error!");
+        });
     queue.enqueue(expectedTaskDesc);
     processor.shutdown(2000, TimeUnit.MILLISECONDS);
     assertFalse(failed.get());

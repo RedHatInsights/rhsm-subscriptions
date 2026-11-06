@@ -520,12 +520,11 @@ class InventoryAccountUsageCollectorReconcileTest {
     ArgumentCaptor<InventorySwatchDataCollator.Processor> processorCaptor =
         ArgumentCaptor.forClass(InventorySwatchDataCollator.Processor.class);
     when(collator.collateData(any(), anyInt(), anyInt(), processorCaptor.capture()))
-        .thenAnswer(
-            invocation -> {
-              InventorySwatchDataCollator.Processor processor = processorCaptor.getValue();
-              processor.accept(hbiHost, swatchHost, new OrgHostsData("org123"), 1);
-              return 1;
-            });
+        .thenAnswer(invocation -> {
+          InventorySwatchDataCollator.Processor processor = processorCaptor.getValue();
+          processor.accept(hbiHost, swatchHost, new OrgHostsData("org123"), 1);
+          return 1;
+        });
 
     when(props.getHbiReconciliationFlushInterval()).thenReturn(10L);
 
@@ -578,12 +577,11 @@ class InventoryAccountUsageCollectorReconcileTest {
     ArgumentCaptor<InventorySwatchDataCollator.Processor> processorCaptor =
         ArgumentCaptor.forClass(InventorySwatchDataCollator.Processor.class);
     when(collator.collateData(any(), anyInt(), anyInt(), processorCaptor.capture()))
-        .thenAnswer(
-            invocation -> {
-              InventorySwatchDataCollator.Processor processor = processorCaptor.getValue();
-              processor.accept(hbiHost, swatchHost, new OrgHostsData("org123"), 1);
-              return 1;
-            });
+        .thenAnswer(invocation -> {
+          InventorySwatchDataCollator.Processor processor = processorCaptor.getValue();
+          processor.accept(hbiHost, swatchHost, new OrgHostsData("org123"), 1);
+          return 1;
+        });
 
     when(props.getHbiReconciliationFlushInterval()).thenReturn(10L);
 
@@ -637,17 +635,16 @@ class InventoryAccountUsageCollectorReconcileTest {
     ArgumentCaptor<InventorySwatchDataCollator.Processor> processorCaptor =
         ArgumentCaptor.forClass(InventorySwatchDataCollator.Processor.class);
     when(collator.collateData(any(), anyInt(), anyInt(), processorCaptor.capture()))
-        .thenAnswer(
-            invocation -> {
-              InventorySwatchDataCollator.Processor processor = processorCaptor.getValue();
-              OrgHostsData orgHostsData = new OrgHostsData("org123");
-              Host placeholder = new Host();
-              orgHostsData.addHostToHypervisor("sm-123", placeholder);
-              orgHostsData.addHostMapping("sm-123", "sm-123");
-              orgHostsData.addHypervisorFacts("sm-123", new NormalizedFacts());
-              processor.accept(hbiHypervisor, swatchHypervisor, orgHostsData, 1);
-              return 1;
-            });
+        .thenAnswer(invocation -> {
+          InventorySwatchDataCollator.Processor processor = processorCaptor.getValue();
+          OrgHostsData orgHostsData = new OrgHostsData("org123");
+          Host placeholder = new Host();
+          orgHostsData.addHostToHypervisor("sm-123", placeholder);
+          orgHostsData.addHostMapping("sm-123", "sm-123");
+          orgHostsData.addHypervisorFacts("sm-123", new NormalizedFacts());
+          processor.accept(hbiHypervisor, swatchHypervisor, orgHostsData, 1);
+          return 1;
+        });
 
     when(props.getHbiReconciliationFlushInterval()).thenReturn(10L);
 

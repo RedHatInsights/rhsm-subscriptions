@@ -160,10 +160,9 @@ public interface EventRecordRepository
     for (List<EventKey> nextBatch : Iterables.partition(keys, Short.MAX_VALUE)) {
       Set<String> matchingTuples =
           nextBatch.stream()
-              .map(
-                  e ->
-                      String.format(
-                          "('%s', '%s', '%s')", e.getOrgId(), e.getInstanceId(), e.getTimestamp()))
+              .map(e ->
+                  String.format(
+                      "('%s', '%s', '%s')", e.getOrgId(), e.getInstanceId(), e.getTimestamp()))
               .collect(Collectors.toSet());
 
       String query =

@@ -60,19 +60,17 @@ public class UsageContextSubscriptionProvider {
 
     var existsRecentlyTerminatedSubscription =
         subscriptions.stream()
-            .anyMatch(
-                subscription ->
-                    subscription.getEndDate() != null
-                        && subscription.getEndDate().isBefore(criteria.getEnding()));
+            .anyMatch(subscription ->
+                subscription.getEndDate() != null
+                    && subscription.getEndDate().isBefore(criteria.getEnding()));
 
     // Filter out any terminated subscriptions
     var activeSubscriptions =
         subscriptions.stream()
-            .filter(
-                subscription ->
-                    subscription.getEndDate() == null
-                        || subscription.getEndDate().isAfter(criteria.getEnding())
-                        || subscription.getEndDate().equals(criteria.getEnding()))
+            .filter(subscription ->
+                subscription.getEndDate() == null
+                    || subscription.getEndDate().isAfter(criteria.getEnding())
+                    || subscription.getEndDate().equals(criteria.getEnding()))
             .toList();
 
     if (activeSubscriptions.isEmpty()) {
