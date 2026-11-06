@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -35,12 +36,16 @@ import jakarta.persistence.EntityManager;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
+import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.configuration.FeatureFlags;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
@@ -70,7 +75,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
  * metricUsageCollector.updateHosts() method is NOT called, while calculateUsage() continues to be
  * called normally.
  */
-@SpringBootTest
+@SpringBootTest(properties = {"rhsm-subscriptions.hourly-tally-event-batch-size=1"})
 @ExtendWith(MockitoExtension.class)
 @ActiveProfiles({"worker", "test"})
 class TallySnapshotControllerDisableHostUpdateTest implements ExtendWithEmbeddedKafka {
@@ -82,6 +87,7 @@ class TallySnapshotControllerDisableHostUpdateTest implements ExtendWithEmbedded
   @MockitoBean EventRecordRepository eventRepo;
   @MockitoBean TallyStateRepository tallyStateRepo;
   @MockitoBean FeatureFlags featureFlags;
+  @Autowired ApplicationProperties appProps;
   @Autowired RetryTemplate collectorRetryTemplate;
   @MockitoSpyBean ApplicationClock clock;
   @MockitoBean TallySnapshotRepository snapshotRepo;
@@ -187,6 +193,82 @@ class TallySnapshotControllerDisableHostUpdateTest implements ExtendWithEmbedded
     // Then: updateHosts should be called (at least once, since we have events)
     verify(metricUsageCollector, atLeastOnce()).updateHosts(any(), any(), anyList());
     verify(metricUsageCollector, atLeastOnce()).calculateUsage(anyList(), any());
+  }
+
+  @Test
+  void whenFlagChangesAfterFirstBatch_thenAllBatchesUpdateHosts() {
+    String flag = FeatureFlags.DISABLE_HOURLY_HOST_UPDATE;
+    AtomicBoolean flagState = new AtomicBoolean(false);
+    when(featureFlags.isEnabled(flag)).thenAnswer(ignored -> flagState.get());
+
+    OffsetDateTime snapshotHour = clock.startOfCurrentHour();
+    String firstInstanceId = UUID.randomUUID().toString();
+    String secondInstanceId = UUID.randomUUID().toString();
+    EventRecord firstEvent = createEvent(firstInstanceId, snapshotHour, 42.0);
+    EventRecord secondEvent = createEvent(secondInstanceId, snapshotHour, 20.0);
+    OffsetDateTime after = clock.startOfToday().minusDays(1);
+    when(eventRepo.fetchOrderedEventStream(ORG_ID, SERVICE_TYPE, after))
+        .thenReturn(Stream.of(firstEvent, secondEvent));
+
+    List<String> updatedInstanceIds = new ArrayList<>();
+    Mockito.doAnswer(
+            invocation -> {
+              List<Event> batch = invocation.getArgument(2);
+              for (Event event : batch) {
+                updatedInstanceIds.add(event.getInstanceId());
+              }
+              flagState.set(true);
+              return null;
+            })
+        .when(metricUsageCollector)
+        .updateHosts(eq(ORG_ID), eq(SERVICE_TYPE), anyList());
+
+    controller.produceHourlySnapshotsForOrg(ORG_ID);
+
+    // Flag evaluated once per service type (8 service types total)
+    verify(featureFlags, times(8)).isEnabled(flag);
+
+    assertEquals(List.of(firstInstanceId, secondInstanceId), updatedInstanceIds);
+    verify(metricUsageCollector, times(2)).updateHosts(any(), any(), anyList());
+    verify(metricUsageCollector, times(2)).calculateUsage(anyList(), any());
+  }
+
+  @Test
+  void whenFlagClearsAfterFirstBatch_thenAllBatchesSkipHosts() {
+    String flag = FeatureFlags.DISABLE_HOURLY_HOST_UPDATE;
+    AtomicBoolean flagState = new AtomicBoolean(true);
+    when(featureFlags.isEnabled(flag)).thenAnswer(ignored -> flagState.get());
+
+    OffsetDateTime snapshotHour = clock.startOfCurrentHour();
+    String firstInstanceId = UUID.randomUUID().toString();
+    String secondInstanceId = UUID.randomUUID().toString();
+    EventRecord firstEvent = createEvent(firstInstanceId, snapshotHour, 42.0);
+    EventRecord secondEvent = createEvent(secondInstanceId, snapshotHour, 20.0);
+    OffsetDateTime after = clock.startOfToday().minusDays(1);
+    when(eventRepo.fetchOrderedEventStream(ORG_ID, SERVICE_TYPE, after))
+        .thenReturn(Stream.of(firstEvent, secondEvent));
+
+    List<String> calculatedInstanceIds = new ArrayList<>();
+    Mockito.doAnswer(
+            invocation -> {
+              List<Event> batch = invocation.getArgument(0);
+              for (Event event : batch) {
+                calculatedInstanceIds.add(event.getInstanceId());
+              }
+              flagState.set(false);
+              return null;
+            })
+        .when(metricUsageCollector)
+        .calculateUsage(anyList(), any());
+
+    controller.produceHourlySnapshotsForOrg(ORG_ID);
+
+    // Flag evaluated once per service type (8 service types total)
+    verify(featureFlags, times(8)).isEnabled(flag);
+
+    assertEquals(List.of(firstInstanceId, secondInstanceId), calculatedInstanceIds);
+    verify(metricUsageCollector, never()).updateHosts(any(), any(), anyList());
+    verify(metricUsageCollector, times(2)).calculateUsage(anyList(), any());
   }
 
   private EventRecord createEvent(String instanceId, OffsetDateTime usageTimestamp, Double value) {
