@@ -44,7 +44,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 import org.candlepin.clock.ApplicationClock;
 import org.hamcrest.Matchers;
@@ -68,7 +67,6 @@ class SubscriptionRepositoryTest {
 
   @Inject SubscriptionRepository subscriptionRepo;
   @Inject OfferingRepository offeringRepo;
-  @Inject ContractRepository contractRepo;
   @Inject ApplicationClock clock;
 
   @BeforeEach
@@ -345,7 +343,7 @@ class SubscriptionRepositoryTest {
 
   @TestTransaction
   @Test
-  void filtersByLicenseIdViaContract() {
+  void filtersByLicenseId() {
     OfferingEntity offering = persistRosaOffering("licenseSku");
     var matching = persistAwsSubscription(offering, "subA", "license-a");
     persistAwsSubscription(offering, "subB", "license-b");
@@ -358,37 +356,11 @@ class SubscriptionRepositoryTest {
 
   @TestTransaction
   @Test
-  void licenseIdFilterDoesNotMatchNullLicenseOnContract() {
+  void licenseIdFilterDoesNotMatchNullLicense() {
     OfferingEntity offering = persistRosaOffering("nullLicenseSku");
     persistAwsSubscription(offering, "subNull", null);
 
     assertTrue(findByLicenseId("missing-license").isEmpty());
-  }
-
-  @TestTransaction
-  @Test
-  void licenseIdFilterRequiresMatchingStartDate() {
-    OfferingEntity offering = persistRosaOffering("startDateSku");
-    SubscriptionEntity subscription = createSubscription("org123", "subStart", BILLING_ACCOUNT_ID);
-    subscription.setOffering(offering);
-    subscription.setBillingProvider(BillingProvider.AWS);
-    subscriptionRepo.persist(subscription);
-    contractRepo.persistAndFlush(
-        ContractEntity.builder()
-            .uuid(UUID.randomUUID())
-            .orgId(subscription.getOrgId())
-            .subscriptionNumber(subscription.getSubscriptionNumber())
-            .startDate(subscription.getStartDate().minusDays(1))
-            .endDate(subscription.getEndDate())
-            .lastUpdated(now)
-            .offering(offering)
-            .billingProvider("aws")
-            .billingAccountId(BILLING_ACCOUNT_ID)
-            .vendorProductCode("product-code")
-            .licenseId("license-start")
-            .build());
-
-    assertTrue(findByLicenseId("license-start").isEmpty());
   }
 
   @TestTransaction
@@ -931,21 +903,8 @@ class SubscriptionRepositoryTest {
     SubscriptionEntity subscription = createSubscription("org123", subId, BILLING_ACCOUNT_ID);
     subscription.setOffering(offering);
     subscription.setBillingProvider(BillingProvider.AWS);
-    subscriptionRepo.persist(subscription);
-    contractRepo.persistAndFlush(
-        ContractEntity.builder()
-            .uuid(UUID.randomUUID())
-            .orgId(subscription.getOrgId())
-            .subscriptionNumber(subscription.getSubscriptionNumber())
-            .startDate(subscription.getStartDate())
-            .endDate(subscription.getEndDate())
-            .lastUpdated(now)
-            .offering(offering)
-            .billingProvider("aws")
-            .billingAccountId(BILLING_ACCOUNT_ID)
-            .vendorProductCode("product-code")
-            .licenseId(licenseId)
-            .build());
+    subscription.setLicenseId(licenseId);
+    subscriptionRepo.persistAndFlush(subscription);
     return subscription;
   }
 

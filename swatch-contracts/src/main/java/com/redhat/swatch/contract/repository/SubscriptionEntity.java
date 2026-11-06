@@ -340,25 +340,8 @@ public class SubscriptionEntity extends ModificationTrackedEntity {
   }
 
   private static Specification<SubscriptionEntity> hasLicenseId(String licenseId) {
-    return (root, query, builder) -> {
-      var subquery = query.subquery(Integer.class);
-      var contractRoot = subquery.from(ContractEntity.class);
-      subquery
-          .select(builder.literal(1))
-          .where(
-              builder.and(
-                  builder.equal(contractRoot.get(ContractEntity_.licenseId), licenseId),
-                  builder.equal(
-                      contractRoot.get(ContractEntity_.subscriptionNumber),
-                      root.get(SubscriptionEntity_.subscriptionNumber)),
-                  builder.equal(
-                      contractRoot.get(ContractEntity_.startDate),
-                      root.get(SubscriptionEntity_.startDate)),
-                  builder.equal(
-                      contractRoot.get(ContractEntity_.orgId),
-                      root.get(SubscriptionEntity_.orgId))));
-      return builder.exists(subquery);
-    };
+    return (root, query, builder) ->
+        builder.equal(root.get(SubscriptionEntity_.licenseId), licenseId);
   }
 
   private static Specification<SubscriptionEntity> metricsCriteria(
