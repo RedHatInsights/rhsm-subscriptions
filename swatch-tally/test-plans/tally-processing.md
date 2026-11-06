@@ -937,3 +937,51 @@ This test plan covers the core tally processing pipeline:
     - Tally report filtered by usage=Production returns no data points with hasData=true
 - **Expected Result**:
     - Event with explicit SLA/Usage is tallied with those values, not defaults
+
+## Tally Event Ingestion
+
+**tally-event-ingestion-negative-measurements-TC001 - Verify that only events with positive measurements are tallied**
+- **Description**: Verify that multiple PAYG events will be processed if there is an event with a negative value
+- **Setup**:
+  - Organization is opted in 
+  - There are two valid PAYG events for RHEL for x86 ELS PAYG 
+  - There is one invalid PAYG events for RHEL for x86 ELS PAYG with a negative value
+- **Action**:
+  - Send the events via the Kafka Bridge to the service instance ingress topic
+  - Perform hourly tally for the organization
+- **Verification**:
+  - The Hourly sum matches the two valid PAYG events
+  - The instance does not include the instance of the malformed event
+- **Expected Result**:
+  - The events with the valid values are the only ones that are processed
+
+**tally-event-ingestion-null-instance-id-TC002 - Verify that only events with a valid instance id's are tallied**
+- **Description**: Verify that only events with a valid instance ID are tallied
+- **Setup**:
+  - Organization is opted in 
+  - There are two valid PAYG events for RHEL for x86 ELS PAYG 
+  - One of the events has a null instance ID
+- **Action**:
+  - Send the events via the Kafka Bridge to the service instance ingress topic
+  - Perform hourly tally for the organization
+- **Verification**:
+  - The Hourly sum matches the two valid PAYG events
+  - The instance does not include the instance of the malformed event
+- **Expected Result**:
+  - The events with the valid instance id's are the only ones that are processed
+  
+**tally-event-ingestion-invalid-product-tag-TC003 - Verify that only events with a valid product tags are tallied**
+- **Description**: Verify that only events with a valid product tags are tallied
+- **Setup**:
+  - Organization is opted in 
+  - There are two valid PAYG events for RHEL for x86 ELS PAYG 
+  - One of the events has an invalid product tag
+- **Action**:
+  - Send the events via the Kafka Bridge to the service instance ingress topic
+  - Perform hourly tally for the organization
+- **Verification**:
+  - The Hourly sum matches the two valid PAYG events
+  - The instance does not include the instance of the malformed event
+- **Expected Result**:
+  - The events with the valid product tags are the only ones that are processed
+
