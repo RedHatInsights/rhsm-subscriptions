@@ -20,7 +20,6 @@
  */
 package tests;
 
-import static api.BillableUsageTestHelper.createTallySummary;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE_HOURLY_AGGREGATE;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE_STATUS;
@@ -29,7 +28,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static utils.BillableUsageAggregateHelper.buildBillableUsageAggregate;
 import static utils.BillableUsageAggregateHelper.mergeHourlyAggregates;
+import static utils.TallySummaryBuilder.buildTallySummary;
 
 import api.BillableUsageSwatchService;
 import api.BillableUsageUnleashService;
@@ -50,21 +51,17 @@ import com.redhat.swatch.configuration.util.MetricIdUtils;
 import domain.BillingProvider;
 import domain.Product;
 import domain.RemittanceStatus;
-import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.awaitility.Awaitility;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
-import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 import org.junit.jupiter.api.BeforeEach;
 
 @ComponentTest(name = "swatch-billable-usage")
@@ -218,7 +215,7 @@ public class BaseBillableUsageComponentTest {
       RemittanceStatus expectedRemittanceStatus) {
     givenNoContractCoverageForRhelAddon();
     var tallySummary =
-        createTallySummary(
+        buildTallySummary(
             orgId,
             RHEL_PAYG_ADDON.getName(),
             VCPUS.toString(),
@@ -253,44 +250,5 @@ public class BaseBillableUsageComponentTest {
             null));
     waitForRemittanceStatus(billableUsage.getTallyId().toString(), expectedRemittanceStatus);
     return billableUsage;
-  }
-
-  protected BillableUsageAggregate buildBillableUsageAggregate(
-      String orgId,
-      String productId,
-      String metricId,
-      String billingAccountId,
-      BillableUsage.Status status,
-      BillableUsage.ErrorCode errorCode,
-      OffsetDateTime billedOn,
-      List<String> remittanceUuids,
-      String licenseId) {
-    var aggregateKey = new BillableUsageAggregateKey();
-    aggregateKey.setOrgId(orgId);
-    aggregateKey.setProductId(productId);
-    aggregateKey.setMetricId(metricId);
-    aggregateKey.setSla("Premium");
-    aggregateKey.setUsage("Production");
-    aggregateKey.setBillingProvider(BillingProvider.AWS.name());
-    aggregateKey.setBillingAccountId(billingAccountId);
-
-    var aggregate = new BillableUsageAggregate();
-    aggregate.setAggregateKey(aggregateKey);
-    aggregate.setStatus(status);
-    aggregate.setRemittanceUuids(remittanceUuids);
-    aggregate.setTotalValue(BigDecimal.valueOf(5.0));
-    aggregate.setWindowTimestamp(OffsetDateTime.now(ZoneOffset.UTC).minusDays(3));
-    aggregate.setAggregateId(UUID.randomUUID());
-    Set<OffsetDateTime> snapshotDateSet = new HashSet<>();
-    snapshotDateSet.add(OffsetDateTime.now(ZoneOffset.UTC).minusDays(3));
-    aggregate.setSnapshotDates(snapshotDateSet);
-    aggregate.setLicenseId(licenseId);
-    if (errorCode != null) {
-      aggregate.setErrorCode(errorCode);
-    }
-    if (billedOn != null) {
-      aggregate.setBilledOn(billedOn);
-    }
-    return aggregate;
   }
 }

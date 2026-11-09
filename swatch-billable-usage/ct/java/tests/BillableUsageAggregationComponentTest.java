@@ -20,12 +20,12 @@
  */
 package tests;
 
-import static api.BillableUsageTestHelper.createTallySummaryWithCurrentTotal;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static utils.TallySummaryBuilder.buildTallySummaryWithCurrentTotal;
 
 import api.MessageValidators;
 import com.redhat.swatch.component.tests.api.TestPlanName;
@@ -60,7 +60,7 @@ public class BillableUsageAggregationComponentTest extends BaseBillableUsageComp
     for (int i = 0; i < currentTotals.length; i++) {
       double previousTotal = i > 0 ? currentTotals[i - 1] : 0.0;
       tallies[i] =
-          createTallySummaryWithCurrentTotal(
+          buildTallySummaryWithCurrentTotal(
               orgId,
               ROSA.getName(),
               CORES.toString(),

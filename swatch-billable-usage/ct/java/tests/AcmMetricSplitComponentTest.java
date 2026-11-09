@@ -20,13 +20,13 @@
  */
 package tests;
 
-import static api.BillableUsageTestHelper.createPhysicalMeasurement;
-import static api.BillableUsageTestHelper.createTallySummary;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
 import static domain.RemittanceStatus.COVERED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static utils.TallyMeasurementBuilder.buildPhysicalMeasurement;
+import static utils.TallySummaryBuilder.buildTallySummary;
 
 import api.MessageValidators;
 import com.redhat.swatch.billable.usage.openapi.model.MonthlyRemittance;
@@ -185,13 +185,13 @@ public class AcmMetricSplitComponentTest extends BaseBillableUsageComponentTest 
   private TallySummary whenAcmTallyWithBothMetricsIsPublished(
       BillingProvider billingProvider, double managedTotal, double selfManagedTotal) {
     TallySummary tallySummary =
-        createTallySummary(
+        buildTallySummary(
             orgId,
             RHACM.getName(),
             billingProvider,
             billingAccountId,
-            createPhysicalMeasurement(VCPUS.toString(), managedTotal),
-            createPhysicalMeasurement(VCPUS_SELF_MANAGED.toString(), selfManagedTotal));
+            buildPhysicalMeasurement(VCPUS.toString(), managedTotal),
+            buildPhysicalMeasurement(VCPUS_SELF_MANAGED.toString(), selfManagedTotal));
     kafkaBridge.produceKafkaMessage(TALLY, tallySummary);
     return tallySummary;
   }

@@ -22,13 +22,14 @@ package tests;
 
 import static api.BillableUsageRemittanceExpectations.expectedInitialRemittance;
 import static api.BillableUsageRemittanceExpectations.expectedRemittanceAfterUsageIncrease;
-import static api.BillableUsageTestHelper.createTallySummaryWithCurrentTotal;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE_STATUS;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
 import static domain.RemittanceStatus.COVERED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static utils.BillableUsageAggregateHelper.buildBillableUsageAggregate;
+import static utils.TallySummaryBuilder.buildTallySummaryWithCurrentTotal;
 
 import api.MessageValidators;
 import com.redhat.swatch.billable.usage.openapi.model.MonthlyRemittance;
@@ -618,7 +619,7 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
 
   private void whenUsageIsTallied(RosaMetricScenario metric, double value, double currentTotal) {
     var tallySummary =
-        createTallySummaryWithCurrentTotal(
+        buildTallySummaryWithCurrentTotal(
             orgId,
             ROSA.getName(),
             metric.metricId().toString(),
@@ -632,7 +633,7 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
   private void whenUsageIsTallied(
       RosaMetricScenario metric, double value, double currentTotal, OffsetDateTime snapshotDate) {
     var tallySummary =
-        createTallySummaryWithCurrentTotal(
+        buildTallySummaryWithCurrentTotal(
             orgId,
             ROSA.getName(),
             metric.metricId().toString(),

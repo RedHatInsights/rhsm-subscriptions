@@ -20,13 +20,13 @@
  */
 package tests;
 
-import static api.BillableUsageTestHelper.createTallySummary;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
 import static domain.RemittanceStatus.COVERED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static utils.TallySummaryBuilder.buildTallySummary;
 
 import api.MessageValidators;
 import com.redhat.swatch.billable.usage.openapi.model.MonthlyRemittance;
@@ -474,7 +474,7 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
   private TallySummary whenRosaTallyIsPublished(
       String metricId, double currentTotal, OffsetDateTime snapshotDate) {
     TallySummary tallySummary =
-        createTallySummary(
+        buildTallySummary(
             orgId,
             ROSA.getName(),
             metricId,
@@ -488,7 +488,7 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
 
   private TallySummary whenAnsibleTallyIsPublished(double usageValue, OffsetDateTime snapshotDate) {
     TallySummary tallySummary =
-        createTallySummary(
+        buildTallySummary(
             orgId,
             ANSIBLE_AAP_MANAGED.getName(),
             MANAGED_NODES.toString(),
