@@ -6749,7 +6749,40 @@ data:
               "fieldConfig": {
                 "defaults": {
                   "color": {
-                    "mode": "thresholds"
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 0,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
                   },
                   "mappings": [],
                   "thresholds": {
@@ -6774,22 +6807,19 @@ data:
                 "y": 11
               },
               "id": 125,
+              "interval": "5m",
               "options": {
-                "colorMode": "value",
-                "graphMode": "area",
-                "justifyMode": "auto",
-                "orientation": "auto",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                  "calcs": [
-                    "lastNotNull"
-                  ],
-                  "fields": "",
-                  "values": false
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
                 },
-                "showPercentChange": false,
-                "textMode": "auto",
-                "wideLayout": true
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "none"
+                }
               },
               "pluginVersion": "11.6.11",
               "targets": [
@@ -6799,14 +6829,15 @@ data:
                     "uid": "${datasource}"
                   },
                   "editorMode": "code",
-                  "expr": "sum(rhsm_subscriptions_metrics_hbi_events_counter_total) by (type)",
-                  "legendFormat": "Events by {{type}}",
+                  "expr": "round(sum(increase(rhsm_subscriptions_metrics_hbi_events_counter_total[$__rate_interval])) by (type))",
+                  "interval": "15s",
+                  "legendFormat": "{{type}}",
                   "range": true,
                   "refId": "A"
                 }
               ],
-              "title": "HBI events by type",
-              "type": "stat"
+              "title": "HBI events by type (approx. events per 5m)",
+              "type": "timeseries"
             },
             {
               "datasource": {
