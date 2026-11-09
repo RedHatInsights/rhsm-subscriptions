@@ -24,18 +24,17 @@ import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE_HOURLY_AGGREGATE;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE_STATUS;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
+import static domain.RemittanceStatus.COVERED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static utils.BillableUsageAggregateHelper.buildBillableUsageAggregate;
 import static utils.BillableUsageAggregateHelper.mergeHourlyAggregates;
-import static utils.TallySummaryBuilder.buildTallySummary;
 
 import api.BillableUsageSwatchService;
 import api.BillableUsageUnleashService;
 import api.ContractsWiremockService;
 import api.MessageValidators;
+import com.redhat.swatch.billable.usage.openapi.model.MonthlyRemittance;
 import com.redhat.swatch.billable.usage.openapi.model.TallyRemittance;
 import com.redhat.swatch.component.tests.api.ComponentTest;
 import com.redhat.swatch.component.tests.api.KafkaBridge;
@@ -46,6 +45,7 @@ import com.redhat.swatch.component.tests.api.Wiremock;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
+import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import domain.BillingProvider;
@@ -55,22 +55,25 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import org.awaitility.Awaitility;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import utils.TallySummaryBuilder;
 
 @ComponentTest(name = "swatch-billable-usage")
 public class BaseBillableUsageComponentTest {
   static final MetricId CORES = MetricIdUtils.getCores();
+  static final MetricId INSTANCE_HOURS = MetricIdUtils.getInstanceHours();
+  static final MetricId MANAGED_NODES = MetricIdUtils.getManagedNodes();
   static final MetricId VCPUS = MetricIdUtils.getVCpus();
-  static final Product ROSA = Product.ROSA;
-  static final Product RHEL_PAYG_ADDON = Product.RHEL_PAYG_ADDON;
-  static final Product ANSIBLE_AAP_MANAGED = Product.ANSIBLE_AAP_MANAGED;
+  static final MetricId VCPUS_SELF_MANAGED = MetricIdUtils.getVCpusSelfManaged();
 
   @KafkaBridge
   static KafkaBridgeService kafkaBridge =
@@ -89,14 +92,81 @@ public class BaseBillableUsageComponentTest {
 
   protected String orgId;
   protected String billingAccountId;
+  private final Set<String> orgIds = new HashSet<>();
 
   @BeforeEach
   void setUp() {
-    orgId = RandomUtils.generateRandom();
+    orgId = givenOrgId();
     billingAccountId = RandomUtils.generateRandom();
     // Drain suppressed windows left by prior tests on shared Kafka before producing new usages.
     service.flushBillableUsageAggregationTopic();
     unleash.disableReadOnly();
+  }
+
+  @AfterEach
+  void tearDown() {
+    for (String orgId : orgIds) {
+      service.deleteRemittancesAssociatedWithOrg(orgId);
+    }
+  }
+
+  protected String givenOrgId() {
+    return givenOrgId(RandomUtils.generateRandom());
+  }
+
+  protected String givenOrgId(String orgId) {
+    orgIds.add(orgId);
+    return orgId;
+  }
+
+  protected void givenNoContractCoverageForProduct(Product product) {
+    contractsWiremock.forContractsAPI().stubNoContractCoverage(orgId, product);
+  }
+
+  protected void givenNoContractCoverageForProduct(String orgId, Product product) {
+    contractsWiremock.forContractsAPI().stubNoContractCoverage(orgId, product);
+  }
+
+  protected BillableUsage givenFirstRemittanceWithStatus(
+      Product product,
+      Metric metric,
+      BillingProvider billingProvider,
+      double value,
+      String billingAccountId,
+      BillableUsage.Status status,
+      BillableUsage.ErrorCode errorCode,
+      RemittanceStatus expectedRemittanceStatus) {
+    givenNoContractCoverageForProduct(product);
+    var tallySummary =
+        TallySummaryBuilder.buildTallySummary(
+            orgId, product.getName(), metric.getId(), value, billingProvider, billingAccountId);
+    kafkaBridge.produceKafkaMessage(TALLY, tallySummary);
+
+    List<BillableUsage> billableUsages =
+        kafkaBridge.waitForKafkaMessage(
+            BILLABLE_USAGE,
+            MessageValidators.billableUsageMatchesWithValue(orgId, product, value),
+            1);
+    assertEquals(1, billableUsages.size(), "Expected exactly 1 billable usage for first tally");
+    BillableUsage billableUsage = billableUsages.getFirst();
+    thenRemittanceStatusIs(billableUsage, RemittanceStatus.PENDING);
+
+    OffsetDateTime billedOn =
+        status == BillableUsage.Status.SUCCEEDED ? OffsetDateTime.now(ZoneOffset.UTC) : null;
+    kafkaBridge.produceKafkaMessage(
+        BILLABLE_USAGE_STATUS,
+        buildBillableUsageAggregate(
+            orgId,
+            product.getName(),
+            metric.getId(),
+            billingAccountId,
+            status,
+            errorCode,
+            billedOn,
+            List.of(billableUsage.getUuid().toString()),
+            null));
+    thenRemittanceStatusIs(billableUsage, expectedRemittanceStatus);
+    return billableUsage;
   }
 
   protected BillableUsageAggregate whenHourlyAggregateContainsRemittances(
@@ -115,7 +185,7 @@ public class BaseBillableUsageComponentTest {
 
     for (BillableUsage usage : usages) {
       if (usage.getTallyId() != null) {
-        waitForRemittanceStatus(usage.getTallyId().toString(), RemittanceStatus.PENDING);
+        thenRemittanceStatusIs(usage, RemittanceStatus.PENDING);
       }
     }
 
@@ -147,108 +217,261 @@ public class BaseBillableUsageComponentTest {
             .onConditionNotMet(service::flushBillableUsageAggregationTopic));
   }
 
-  /** Asserts only the valid probe produced billable usage and service remains healthy. */
-  protected void assertInvalidTallyIsDropped(String expectedOrgId) {
-    var matched =
-        kafkaBridge.waitForKafkaMessage(
-            BILLABLE_USAGE,
-            MessageValidators.billableUsageMatches(expectedOrgId, ROSA.getName()),
-            1);
-    assertEquals(1, matched.size(), "Only probe tally should produce billable usage");
-    assertTrue(service.isRunning(), "Service should remain healthy after invalid tally message");
+  protected List<MonthlyRemittance> getAccountRemittances(
+      Product product, MetricId metricId, BillingProvider billingProvider) {
+    return service.getRemittances(
+        orgId, product, metricId, billingProvider.toTallyApiModel().value(), billingAccountId);
   }
 
-  /** Wait for remittance to reach expected status using API polling */
-  protected void waitForRemittanceStatus(String tallyId, RemittanceStatus expectedStatus) {
-    Awaitility.await()
-        .atMost(Duration.ofSeconds(30))
-        .pollInterval(Duration.ofSeconds(2))
-        .untilAsserted(() -> {
+  protected List<MonthlyRemittance> remittedRemittances(Product product, MetricId metricId) {
+    return getAccountRemittances(product, metricId, BillingProvider.AWS).stream()
+        .filter(row -> !COVERED.name().equalsIgnoreCase(row.getRemittanceStatus()))
+        .toList();
+  }
+
+  protected List<MonthlyRemittance> coveredRemittances(Product product, MetricId metricId) {
+    return getAccountRemittances(product, metricId, BillingProvider.AWS).stream()
+        .filter(row -> COVERED.name().equalsIgnoreCase(row.getRemittanceStatus()))
+        .toList();
+  }
+
+  protected void thenAccountRemittedUsageRowCount(
+      Product product, MetricId metricId, int expectedRowCount) {
+    AwaitilityUtils.untilAsserted(() ->
+        assertEquals(
+            expectedRowCount,
+            remittedRemittances(product, metricId).size(),
+            "Unexpected monthly overage remittance row count"));
+  }
+
+  protected double thenAccountRemittedUsageEquals(
+      Product product, MetricId metricId, double expectedRemittedValue) {
+    AwaitilityUtils.untilAsserted(() ->
+        assertEquals(
+            expectedRemittedValue,
+            remittedRemittances(product, metricId).stream()
+                .mapToDouble(MonthlyRemittance::getRemittedValue)
+                .sum(),
+            0.001,
+            "Account remittance mismatch for metric " + metricId.toString()));
+    return expectedRemittedValue;
+  }
+
+  protected void thenAccountRemittedUsageEquals(
+      Product product, MetricId metricId, double expectedRemittedValue, String expectedLicenseId) {
+    AwaitilityUtils.untilAsserted(() -> {
+      if (expectedRemittedValue == 0.0 && expectedLicenseId == null) {
+        assertEquals(
+            0.0,
+            remittedRemittances(product, metricId).stream()
+                .mapToDouble(MonthlyRemittance::getRemittedValue)
+                .sum(),
+            0.001,
+            "Expected no overage remittance");
+        return;
+      }
+      MonthlyRemittance remittance =
+          remittedRemittances(product, metricId).stream()
+              .filter(row -> Objects.equals(expectedLicenseId, row.getLicenseId()))
+              .findFirst()
+              .orElseThrow(() ->
+                  new AssertionError(
+                      "Expected account remittance for licenseId "
+                          + expectedLicenseId
+                          + " metric "
+                          + metricId.toString()));
+      assertNotNull(remittance.getRemittedValue(), "Remitted value should be present");
+      assertEquals(
+          expectedRemittedValue,
+          remittance.getRemittedValue(),
+          0.001,
+          "Account remittance value mismatch");
+      assertEquals(
+          expectedLicenseId, remittance.getLicenseId(), "Account remittance licenseId mismatch");
+    });
+  }
+
+  protected void thenAccountRemittedUsageSumEquals(
+      Product product, MetricId metricId, double expectedRemittedTotal) {
+    AwaitilityUtils.untilAsserted(() ->
+        assertEquals(
+            expectedRemittedTotal,
+            remittedRemittances(product, metricId).stream()
+                .mapToDouble(MonthlyRemittance::getRemittedValue)
+                .sum(),
+            0.001,
+            "Account remittance total mismatch"));
+  }
+
+  protected void thenAccountCoveredUsageEquals(
+      Product product, MetricId metricId, double expectedCoveredValue) {
+    AwaitilityUtils.untilAsserted(() ->
+        assertEquals(
+            expectedCoveredValue,
+            coveredRemittances(product, metricId).stream()
+                .mapToDouble(MonthlyRemittance::getRemittedValue)
+                .sum(),
+            0.001,
+            "COVERED remittance mismatch for metric " + metricId.toString()));
+  }
+
+  protected void thenAccountCoveredUsageEquals(
+      Product product, MetricId metricId, double expectedCoveredValue, String expectedLicenseId) {
+    AwaitilityUtils.untilAsserted(() -> {
+      List<MonthlyRemittance> forLicense =
+          coveredRemittances(product, metricId).stream()
+              .filter(row -> Objects.equals(expectedLicenseId, row.getLicenseId()))
+              .toList();
+      if (forLicense.isEmpty()) {
+        throw new AssertionError(
+            "Expected COVERED monthly remittance for licenseId "
+                + expectedLicenseId
+                + " metric "
+                + metricId.toString());
+      }
+      assertEquals(
+          expectedCoveredValue,
+          forLicense.stream().mapToDouble(MonthlyRemittance::getRemittedValue).sum(),
+          0.001,
+          "COVERED remittance value mismatch");
+    });
+  }
+
+  protected void thenAccountCoveredUsageSumEquals(
+      Product product, MetricId metricId, double expectedCoveredValue) {
+    AwaitilityUtils.untilAsserted(() ->
+        assertEquals(
+            expectedCoveredValue,
+            coveredRemittances(product, metricId).stream()
+                .mapToDouble(MonthlyRemittance::getRemittedValue)
+                .sum(),
+            0.001,
+            "COVERED remittance sum mismatch"));
+  }
+
+  protected void thenAccountCoveredUsageForPeriodEquals(
+      Product product, MetricId metricId, double expectedCoveredValue, String accumulationPeriod) {
+    AwaitilityUtils.untilAsserted(() ->
+        assertEquals(
+            expectedCoveredValue,
+            coveredRemittances(product, metricId).stream()
+                .filter(row -> accumulationPeriod.equals(row.getAccumulationPeriod()))
+                .mapToDouble(MonthlyRemittance::getRemittedValue)
+                .sum(),
+            0.001,
+            "COVERED remittance mismatch for period " + accumulationPeriod));
+  }
+
+  protected void thenAccountRemittedUsageForPeriodEquals(
+      Product product, MetricId metricId, double expectedRemittedValue, String accumulationPeriod) {
+    AwaitilityUtils.untilAsserted(() ->
+        assertEquals(
+            expectedRemittedValue,
+            remittedRemittances(product, metricId).stream()
+                .filter(row -> accumulationPeriod.equals(row.getAccumulationPeriod()))
+                .mapToDouble(MonthlyRemittance::getRemittedValue)
+                .sum(),
+            0.001,
+            "Account remittance mismatch for period " + accumulationPeriod));
+  }
+
+  protected void thenAccountRemittedUsageForPeriodEquals(
+      Product product,
+      MetricId metricId,
+      double expectedRemittedValue,
+      String accumulationPeriod,
+      String expectedLicenseId) {
+    AwaitilityUtils.untilAsserted(() -> {
+      MonthlyRemittance remittance =
+          remittedRemittances(product, metricId).stream()
+              .filter(row -> accumulationPeriod.equals(row.getAccumulationPeriod()))
+              .filter(row -> expectedLicenseId.equals(row.getLicenseId()))
+              .findFirst()
+              .orElseThrow(() ->
+                  new AssertionError(
+                      "No overage remittance for license "
+                          + expectedLicenseId
+                          + " period "
+                          + accumulationPeriod));
+      assertNotNull(remittance.getRemittedValue(), "Remitted value should be present");
+      assertEquals(
+          expectedRemittedValue,
+          remittance.getRemittedValue(),
+          0.001,
+          "Remittance mismatch for period " + accumulationPeriod);
+    });
+  }
+
+  protected TallyRemittance thenRemittanceStatusIs(
+      BillableUsage usage, RemittanceStatus expectedStatus) {
+    Objects.requireNonNull(usage, "usage must not be null");
+    return thenRemittanceStatusIs(usage.getTallyId(), expectedStatus);
+  }
+
+  protected TallyRemittance thenRemittanceStatusIs(UUID tallyId, RemittanceStatus expectedStatus) {
+    Objects.requireNonNull(tallyId, "tallyId must not be null");
+    return AwaitilityUtils.until(
+        () -> {
           List<TallyRemittance> remittances = service.getRemittancesByTally(tallyId);
-          assertNotNull(remittances, "Remittances should exist for tallyId: " + tallyId);
-          assertFalse(remittances.isEmpty(), "Should have at least one remittance");
-          assertEquals(
-              expectedStatus,
-              RemittanceStatus.valueOf(remittances.get(0).getStatus()),
-              "Expected status " + expectedStatus + " but got " + remittances.get(0).getStatus());
-        });
+          if (remittances == null) {
+            return null;
+          }
+
+          var matched =
+              remittances.stream()
+                  .filter(r -> expectedStatus.equals(RemittanceStatus.valueOf(r.getStatus())))
+                  .toList();
+
+          if (matched.size() != 1) {
+            return null;
+          }
+
+          return matched.getFirst();
+        },
+        Objects::nonNull);
   }
 
-  protected void thenRemittanceStatusIs(String tallyId, RemittanceStatus expectedStatus) {
-    waitForRemittanceStatus(tallyId, expectedStatus);
+  protected TallyRemittance thenRemittanceForMetricStatusIs(
+      UUID tallyId, MetricId metricId, RemittanceStatus expectedStatus) {
+    Objects.requireNonNull(tallyId, "tallyId must not be null");
+    Objects.requireNonNull(metricId, "metricId must not be null");
+    return AwaitilityUtils.until(
+        () -> {
+          List<TallyRemittance> remittances = service.getRemittancesByTally(tallyId);
+          if (remittances == null) {
+            return null;
+          }
+
+          var matched =
+              remittances.stream()
+                  .filter(r -> expectedStatus.equals(RemittanceStatus.valueOf(r.getStatus())))
+                  .filter(r -> metricId.toString().equals(r.getMetricId()))
+                  .toList();
+
+          if (matched.size() != 1) {
+            return null;
+          }
+
+          return matched.getFirst();
+        },
+        Objects::nonNull);
   }
 
-  protected void thenRemittanceHasValue(String tallyId, double expectedValue) {
-    List<TallyRemittance> remittances = service.getRemittancesByTally(tallyId);
-    assertNotNull(remittances, "Remittances should exist for tallyId: " + tallyId);
-    assertEquals(1, remittances.size(), "Exactly one remittance per tally");
-    assertEquals(
-        expectedValue,
-        remittances.get(0).getRemittedPendingValue(),
-        0.001,
-        "Remittance should have value " + expectedValue);
-  }
+  protected TallyRemittance thenRemittanceValueIs(BillableUsage usage, double expectedValue) {
+    Objects.requireNonNull(usage, "usage must not be null");
+    Objects.requireNonNull(usage.getTallyId(), "tallyId must not be null");
+    return AwaitilityUtils.until(
+        () -> {
+          List<TallyRemittance> remittances = service.getRemittancesByTally(usage.getTallyId());
+          if (remittances == null) {
+            return null;
+          }
 
-  protected void givenNoContractCoverageForRhelAddon() {
-    contractsWiremock.forContractsAPI().stubNoContractCoverage(orgId, RHEL_PAYG_ADDON);
-  }
-
-  protected BillableUsage givenFirstRemittanceSucceeded(double value, String billingAccountId) {
-    return givenFirstRemittanceWithStatus(
-        value, billingAccountId, BillableUsage.Status.SUCCEEDED, null, RemittanceStatus.SUCCEEDED);
-  }
-
-  protected BillableUsage givenFirstRemittanceFailed(double value, String billingAccountId) {
-    return givenFirstRemittanceWithStatus(
-        value,
-        billingAccountId,
-        BillableUsage.Status.FAILED,
-        BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND,
-        RemittanceStatus.FAILED);
-  }
-
-  private BillableUsage givenFirstRemittanceWithStatus(
-      double value,
-      String billingAccountId,
-      BillableUsage.Status status,
-      BillableUsage.ErrorCode errorCode,
-      RemittanceStatus expectedRemittanceStatus) {
-    givenNoContractCoverageForRhelAddon();
-    var tallySummary =
-        buildTallySummary(
-            orgId,
-            RHEL_PAYG_ADDON.getName(),
-            VCPUS.toString(),
-            value,
-            BillingProvider.AWS,
-            billingAccountId);
-    kafkaBridge.produceKafkaMessage(TALLY, tallySummary);
-
-    List<BillableUsage> billableUsages =
-        kafkaBridge.waitForKafkaMessage(
-            BILLABLE_USAGE,
-            MessageValidators.billableUsageMatchesWithValue(
-                orgId, RHEL_PAYG_ADDON.getName(), value),
-            1);
-    assertEquals(1, billableUsages.size(), "Expected exactly 1 billable usage for first tally");
-    BillableUsage billableUsage = billableUsages.get(0);
-    waitForRemittanceStatus(billableUsage.getTallyId().toString(), RemittanceStatus.PENDING);
-
-    OffsetDateTime billedOn =
-        status == BillableUsage.Status.SUCCEEDED ? OffsetDateTime.now(ZoneOffset.UTC) : null;
-    kafkaBridge.produceKafkaMessage(
-        BILLABLE_USAGE_STATUS,
-        buildBillableUsageAggregate(
-            orgId,
-            RHEL_PAYG_ADDON.getName(),
-            VCPUS.toString(),
-            billingAccountId,
-            status,
-            errorCode,
-            billedOn,
-            List.of(billableUsage.getUuid().toString()),
-            null));
-    waitForRemittanceStatus(billableUsage.getTallyId().toString(), expectedRemittanceStatus);
-    return billableUsage;
+          return remittances.getFirst();
+        },
+        r ->
+            r != null
+                && r.getRemittedPendingValue() != null
+                && Math.abs(expectedValue - r.getRemittedPendingValue()) <= 0.001);
   }
 }

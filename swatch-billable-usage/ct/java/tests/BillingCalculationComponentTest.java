@@ -22,17 +22,18 @@ package tests;
 
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
+import static domain.BillingProvider.AWS;
+import static domain.Product.RHEL_PAYG_ADDON;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static utils.TallySummaryBuilder.buildTallySummaryWithCurrentTotal;
 import static utils.TallySummaryBuilder.buildTallySummaryWithDefaults;
 
 import api.MessageValidators;
 import com.redhat.swatch.billable.usage.openapi.model.MonthlyRemittance;
-import com.redhat.swatch.billable.usage.openapi.model.TallyRemittance;
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
-import domain.BillingProvider;
+import com.redhat.swatch.configuration.util.MetricIdUtils;
 import domain.RemittanceStatus;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -42,6 +43,7 @@ import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.TallySummary;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import utils.TallySummaryBuilder;
 
 public class BillingCalculationComponentTest extends BaseBillableUsageComponentTest {
 
@@ -50,7 +52,6 @@ public class BillingCalculationComponentTest extends BaseBillableUsageComponentT
     service.flushBillableUsageAggregationTopic();
   }
 
-  /** Verify current_total decrease does not create a new remittance (delta floors at zero). */
   @TestPlanName("billable-usage-billing-calculation-TC001")
   @Test
   void shouldNotCreateNewRemittanceWhenCurrentTotalDecreases() {
@@ -58,17 +59,26 @@ public class BillingCalculationComponentTest extends BaseBillableUsageComponentT
     double firstValue = 10.0;
     double decreasedTotal = 6.0;
     String billingAccountId = RandomUtils.generateRandom();
-    BillableUsage firstBillableUsage = givenFirstRemittanceSucceeded(firstValue, billingAccountId);
+    BillableUsage firstBillableUsage =
+        givenFirstRemittanceWithStatus(
+            RHEL_PAYG_ADDON,
+            RHEL_PAYG_ADDON.getMetric(VCPUS),
+            AWS,
+            firstValue,
+            billingAccountId,
+            BillableUsage.Status.SUCCEEDED,
+            null,
+            RemittanceStatus.SUCCEEDED);
 
     // When: Second tally summary with current_total = 6 (below the remitted 10)
     TallySummary secondTally =
-        buildTallySummaryWithCurrentTotal(
+        TallySummaryBuilder.buildTallySummaryWithCurrentTotal(
             orgId,
             RHEL_PAYG_ADDON.getName(),
-            VCPUS.toString(),
+            MetricIdUtils.getVCpus().getValue(),
             decreasedTotal,
             decreasedTotal,
-            BillingProvider.AWS,
+            AWS,
             billingAccountId);
     kafkaBridge.produceKafkaMessage(TALLY, secondTally);
 
@@ -76,7 +86,7 @@ public class BillingCalculationComponentTest extends BaseBillableUsageComponentT
     List<BillableUsage> secondUsages =
         kafkaBridge.waitForKafkaMessage(
             BILLABLE_USAGE,
-            MessageValidators.billableUsageMatchesWithValue(orgId, RHEL_PAYG_ADDON.getName(), 0.0),
+            MessageValidators.billableUsageMatchesWithValue(orgId, RHEL_PAYG_ADDON, 0.0),
             1);
     assertEquals(
         1, secondUsages.size(), "Expected exactly one billable usage message emitted with value 0");
@@ -84,23 +94,19 @@ public class BillingCalculationComponentTest extends BaseBillableUsageComponentT
     // Then: Monthly total unchanged — no new remittance row for the second tally
     List<MonthlyRemittance> monthlyRemittances =
         service.getRemittances(
-            RHEL_PAYG_ADDON.getName(),
-            orgId,
-            VCPUS.toString(),
-            BillingProvider.AWS.toTallyApiModel().value(),
-            billingAccountId);
+            orgId, RHEL_PAYG_ADDON, VCPUS, AWS.toTallyApiModel().value(), billingAccountId);
     assertEquals(1, monthlyRemittances.size(), "Only one monthly accumulation period expected");
+    assertNotNull(monthlyRemittances.getFirst().getRemittedValue());
     assertEquals(
         firstValue,
-        monthlyRemittances.get(0).getRemittedValue(),
+        monthlyRemittances.getFirst().getRemittedValue(),
         0.001,
         "Monthly total should equal the first remittance only — no second remittance created");
 
     // Then: Original remittance unchanged
-    thenRemittanceHasValue(firstBillableUsage.getTallyId().toString(), firstValue);
+    thenRemittanceValueIs(firstBillableUsage, firstValue);
   }
 
-  /** Verify failed remittances are excluded from the already-remitted total. */
   @TestPlanName("billable-usage-billing-calculation-TC002")
   @Test
   void shouldExcludeFailedRemittancesFromTotalRemitted() {
@@ -108,17 +114,26 @@ public class BillingCalculationComponentTest extends BaseBillableUsageComponentT
     double firstValue = 10.0;
     double secondTotal = 6.0;
     String billingAccountId = RandomUtils.generateRandom();
-    BillableUsage firstBillableUsage = givenFirstRemittanceFailed(firstValue, billingAccountId);
+    BillableUsage firstBillableUsage =
+        givenFirstRemittanceWithStatus(
+            RHEL_PAYG_ADDON,
+            RHEL_PAYG_ADDON.getMetric(VCPUS),
+            AWS,
+            firstValue,
+            billingAccountId,
+            BillableUsage.Status.FAILED,
+            BillableUsage.ErrorCode.SUBSCRIPTION_NOT_FOUND,
+            RemittanceStatus.FAILED);
 
     // When: Second tally summary with current_total = 6 (failed remittance is excluded)
     TallySummary secondTally =
-        buildTallySummaryWithCurrentTotal(
+        TallySummaryBuilder.buildTallySummaryWithCurrentTotal(
             orgId,
             RHEL_PAYG_ADDON.getName(),
             VCPUS.toString(),
             secondTotal,
             secondTotal,
-            BillingProvider.AWS,
+            AWS,
             billingAccountId);
     kafkaBridge.produceKafkaMessage(TALLY, secondTally);
 
@@ -126,38 +141,29 @@ public class BillingCalculationComponentTest extends BaseBillableUsageComponentT
     List<BillableUsage> secondUsages =
         kafkaBridge.waitForKafkaMessage(
             BILLABLE_USAGE,
-            MessageValidators.billableUsageMatchesWithValue(
-                orgId, RHEL_PAYG_ADDON.getName(), secondTotal),
+            MessageValidators.billableUsageMatchesWithValue(orgId, RHEL_PAYG_ADDON, secondTotal),
             1);
     assertEquals(
         1, secondUsages.size(), "Expected exactly one billable usage message with value 6");
 
     // Then: Two remittance rows — first FAILED, second PENDING with value 6
-    List<TallyRemittance> firstRemittances =
-        service.getRemittancesByTally(firstBillableUsage.getTallyId().toString());
-    assertEquals(1, firstRemittances.size(), "First tally should have exactly one remittance");
-    assertEquals(
-        RemittanceStatus.FAILED.name(),
-        firstRemittances.get(0).getStatus(),
-        "First remittance should be FAILED");
+    thenRemittanceStatusIs(firstBillableUsage, RemittanceStatus.FAILED);
 
-    thenRemittanceStatusIs(secondUsages.get(0).getTallyId().toString(), RemittanceStatus.PENDING);
-    thenRemittanceHasValue(secondUsages.get(0).getTallyId().toString(), secondTotal);
+    var secondUsage = secondUsages.getFirst();
+    thenRemittanceStatusIs(secondUsage, RemittanceStatus.PENDING);
+    thenRemittanceValueIs(secondUsage, secondTotal);
   }
 
-  /**
-   * Verify emitted BillableUsage.snapshotDate is set to remittance creation time, not original
-   * tally date.
-   */
   @TestPlanName("billable-usage-billing-calculation-TC003")
   @Test
   void shouldUpdateSnapshotDateToRemittanceDateOnOutput() {
     // Given: Tally with snapshot date one hour in the past
-    givenNoContractCoverageForRhelAddon();
+    givenNoContractCoverageForProduct(RHEL_PAYG_ADDON);
     OffsetDateTime beforeRemittance = OffsetDateTime.now(ZoneOffset.UTC);
     TallySummary tallySummary =
         buildTallySummaryWithDefaults(orgId, RHEL_PAYG_ADDON.getName(), VCPUS.toString(), 8.0);
-    OffsetDateTime originalSnapshotDate = tallySummary.getTallySnapshots().get(0).getSnapshotDate();
+    OffsetDateTime originalSnapshotDate =
+        tallySummary.getTallySnapshots().getFirst().getSnapshotDate();
 
     // When: Tally is published
     kafkaBridge.produceKafkaMessage(TALLY, tallySummary);
@@ -165,11 +171,9 @@ public class BillingCalculationComponentTest extends BaseBillableUsageComponentT
     // Then: Billable usage is emitted on Kafka
     List<BillableUsage> billableUsages =
         kafkaBridge.waitForKafkaMessage(
-            BILLABLE_USAGE,
-            MessageValidators.billableUsageMatches(orgId, RHEL_PAYG_ADDON.getName()),
-            1);
+            BILLABLE_USAGE, MessageValidators.billableUsageMatches(orgId, RHEL_PAYG_ADDON), 1);
     assertEquals(1, billableUsages.size(), "Expected exactly one billable usage message");
-    OffsetDateTime emittedSnapshotDate = billableUsages.get(0).getSnapshotDate();
+    OffsetDateTime emittedSnapshotDate = billableUsages.getFirst().getSnapshotDate();
 
     // Then: emitted snapshot_date is not the original tally date (which was ~1 hour ago)
     assertTrue(
