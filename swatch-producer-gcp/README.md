@@ -50,6 +50,38 @@ entries with real values when ready:
   check, report and retries of the same immutable aggregate. Preserve the ID and
   payload when replaying; changing the quantity under the same ID is unsupported.
 
+### Required ITPEG handoff
+
+**ITPEG (`ibm-entitlement-gateway`) must capture and persist the GCP entitlement's
+`usageReportingId`, then expose it downstream alongside `gcpEntitlementId` and
+the Red Hat account/subscription mapping.** Its current GCP entitlement mapping
+does not retain this field.
+
+Carry this value through `swatch-contracts` to the GCP producer, which passes it
+unchanged as Service Control's `consumerId` when reporting billable usage.
+Keep it separate from the procurement account ID (`gcpAccountId`), Cloud Billing
+account ID (`gcpBillingAccountId`), and entitlement ID (`gcpEntitlementId`);
+those identifiers do not replace `usageReportingId`.
+
+An observed ITPEG response contains `partnerIdentities.gcpAccountId` and
+`partnerIdentities.gcpEntitlementId`, but neither `usageReportingId` nor
+`gcpBillingAccountId`. Other fields provide subscription context:
+
+- `rhAccountId` identifies the Red Hat account; upstream must resolve its SWATCH
+  organization mapping.
+- `rhEntitlements[].subscriptionNumber` identifies the Red Hat subscription.
+- `purchase.vendorProductCode` identifies the Marketplace product, and
+  `purchase.contracts[].planId` identifies its purchased plan. Confirm the Service
+  Control service domain and billing metric names in Producer Portal.
+- `entitlementDates.startDate` and `endDate` provide effective dates for resolving
+  the entitlement associated with the actual usage interval.
+
+The response can contain multiple entitlements with the same GCP account and
+product, including overlapping dates for different plans. Production lookup must
+preserve entitlement/subscription identity, plan, and effective dates, associate
+usage with the correct entitlement, and reject ambiguous matches. The POC's
+account/product placeholder lookup does not yet implement this resolution.
+
 ## Required usage interval
 
 **Each aggregate must contain usage from exactly one actual UTC usage hour.**
@@ -82,17 +114,40 @@ producers, with a separate consumer group. `KAFKA_BOOTSTRAP_SERVERS` defaults to
 other billing providers. Live successful submissions emit `SUCCEEDED` with the
 original aggregate/remittance IDs; submission errors emit `FAILED` with `UNKNOWN`.
 
-For a manual live experiment, configure real mappings, set `GCP_DRY_RUN=false`,
-and configure Application Default Credentials (ADC), for example through
-`GOOGLE_APPLICATION_CREDENTIALS` pointing at a service-account or workload
-identity configuration. The SDK handles authentication and token refresh.
-The credential must be authorized for
+### Credentials: follow ITPEG's mounted-file approach
+
+For live calls, provision a Google service-account JSON key through the deployment's
+secret management and mount it at `/opt/app/config/gcp-service-account.json`,
+following ITPEG's approach. Override the filesystem path using
+`GCP_CREDENTIALS_FILE` (`gcp.credentials-file`) when needed. Use a filesystem path,
+not a `file:` URI. Credential values belong in the mounted secret, not in the
+repository or application properties.
+
+The producer explicitly loads the file with `ServiceAccountCredentials.fromStream()`,
+scopes it to `https://www.googleapis.com/auth/cloud-platform`, and supplies it to
+the SDK through `FixedCredentialsProvider`. The SDK obtains and refreshes OAuth
+access tokens. This uses Google's service-account-specific loader for the same
+credential-file model as ITPEG; it does not use ADC discovery or
+`GOOGLE_APPLICATION_CREDENTIALS`.
+The file is loaded when the SDK client is first created; restart the service
+after rotating the mounted key so it loads the replacement credentials.
+
+Configure real customer/metric mappings, mount the file, and set `GCP_DRY_RUN=false`
+for a manual live experiment. For example, if the file is mounted elsewhere:
+
+```sh
+export GCP_CREDENTIALS_FILE=/run/secrets/gcp-service-account.json
+export GCP_DRY_RUN=false
+mvn -pl swatch-producer-gcp quarkus:dev
+```
+
+The service account must be authorized for
 `servicemanagement.services.check` and `servicemanagement.services.report` on the
 service (typically `roles/servicemanagement.serviceController`). The SDK uses
 its HTTP/JSON transport against `GCP_ENDPOINT`, which defaults to
 `https://servicecontrol.googleapis.com`. For local stub testing only,
-`GCP_EMULATOR_ENDPOINT=http://127.0.0.1:PORT` bypasses ADC; emulator endpoints
-are restricted to loopback hosts.
+`GCP_EMULATOR_ENDPOINT=http://127.0.0.1:PORT` bypasses credential loading; emulator
+endpoints are restricted to loopback hosts. Dry runs also do not read the file.
 Use Google's Test Billing Account and current usage timestamps for live testing.
 The included dated fixture is for preview/stub testing.
 
@@ -100,7 +155,7 @@ The included dated fixture is for preview/stub testing.
 
 This is a local experiment, with its HTTP interface bound to loopback. Production
 work includes contracts lookup with subscription/plan effective dates, registry
-configuration and unit conversion, workload identity setup,
+configuration and unit conversion, mounted credential provisioning and rotation,
 authentication for administrative HTTP access, deployment configuration,
 provider-specific errors/retries, and durable submission/replay tracking.
 The POC does not enforce reporting deadlines or handle usage corrections.
@@ -116,13 +171,15 @@ mvn -pl swatch-producer-gcp -am test -Dtest='Gcp*Test' -Dsurefire.failIfNoSpecif
 ```
 
 Tests cover request mapping, invalid contexts/quantities/usage intervals,
-dry-run behavior, the check-before-report HTTP exchange against a local stub,
+dry-run behavior, service-account file loading and authenticated requests against
+local token/API stubs, the check-before-report HTTP exchange against a local stub,
 HTTP-200 error arrays, HTTP failures, and correlated billing statuses.
 
 ## Google references
 
 - [Java SDK](https://docs.cloud.google.com/java/docs/reference/google-cloud-service-control/latest/com.google.api.servicecontrol.v1.ServiceControllerClient)
-- [SDK configuration and ADC](https://docs.cloud.google.com/java/docs/reference/google-cloud-service-control/latest/com.google.api.servicecontrol.v1.ServiceControllerSettings)
+- [SDK configuration](https://docs.cloud.google.com/java/docs/reference/google-cloud-service-control/latest/com.google.api.servicecontrol.v1.ServiceControllerSettings)
+- [Service-account credential loading](https://docs.cloud.google.com/java/docs/reference/google-auth-library/latest/com.google.auth.oauth2.ServiceAccountCredentials)
 - [Usage reporting and identifiers](https://docs.cloud.google.com/marketplace/docs/partners/integrated-saas/configure-usage-reports)
 - [Service Control check](https://docs.cloud.google.com/service-infrastructure/docs/service-control/reference/rest/v1/services/check)
 - [Service Control report and per-operation errors](https://docs.cloud.google.com/service-infrastructure/docs/service-control/reference/rest/v1/services/report)

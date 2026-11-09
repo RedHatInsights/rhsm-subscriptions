@@ -20,18 +20,24 @@
  */
 package com.redhat.swatch.gcp;
 
+import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.api.gax.core.NoCredentialsProvider;
 import com.google.api.servicecontrol.v1.CheckRequest;
 import com.google.api.servicecontrol.v1.ReportRequest;
 import com.google.api.servicecontrol.v1.ServiceControllerClient;
 import com.google.api.servicecontrol.v1.ServiceControllerSettings;
+import com.google.auth.oauth2.ServiceAccountCredentials;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.io.IOException;
 import java.net.URI;
+import java.nio.file.Files;
 
 @ApplicationScoped
 public class GcpServiceControlClient {
+  private static final String CLOUD_PLATFORM_SCOPE =
+      "https://www.googleapis.com/auth/cloud-platform";
+
   private final GcpConfiguration configuration;
   private ServiceControllerClient client;
 
@@ -61,7 +67,7 @@ public class GcpServiceControlClient {
     return configuration.emulatorEndpoint().orElse(configuration.endpoint());
   }
 
-  // Lazy creation keeps preview mode independent of ADC and avoids opening SDK resources.
+  // Lazy creation keeps preview mode independent of the credential file and SDK resources.
   private synchronized ServiceControllerClient sdkClient() {
     if (client == null) {
       try {
@@ -73,6 +79,12 @@ public class GcpServiceControlClient {
             throw new IllegalArgumentException("The unauthenticated emulator must use loopback");
           }
           settings.setCredentialsProvider(NoCredentialsProvider.create());
+        } else {
+          try (var input = Files.newInputStream(configuration.credentialsFile())) {
+            var credentials =
+                ServiceAccountCredentials.fromStream(input).createScoped(CLOUD_PLATFORM_SCOPE);
+            settings.setCredentialsProvider(FixedCredentialsProvider.create(credentials));
+          }
         }
         // Keep POC submissions to one attempt; production needs a durable retry policy.
         for (var call : java.util.List.of(settings.checkSettings(), settings.reportSettings())) {
@@ -87,7 +99,9 @@ public class GcpServiceControlClient {
         }
         client = ServiceControllerClient.create(settings.build());
       } catch (IOException e) {
-        throw new IllegalStateException("Could not initialize Google Service Control SDK / ADC", e);
+        throw new IllegalStateException(
+            "Could not initialize Google Service Control SDK with the configured service-account file",
+            e);
       }
     }
     return client;

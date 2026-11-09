@@ -22,6 +22,7 @@ package com.redhat.swatch.gcp;
 
 import io.smallrye.config.ConfigMapping;
 import java.net.URI;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -33,6 +34,8 @@ public interface GcpConfiguration {
   URI endpoint();
 
   Duration requestTimeout();
+
+  Path credentialsFile();
 
   Optional<URI> emulatorEndpoint();
 
