@@ -938,14 +938,73 @@ This test plan covers the core tally processing pipeline:
 - **Expected Result**:
     - Event with explicit SLA/Usage is tallied with those values, not defaults
 
+## Feature Flag: DISABLE_HOURLY_HOST_UPDATE
+
+**unleash-disable-hourly-host-update-TC001 - DISABLE_HOURLY_HOST_UPDATE flag defaults to false and toggles properly**
+
+- **Description**: Verify the DISABLE_HOURLY_HOST_UPDATE unleash flag defaults to false and can be toggled properly
+- **Setup**: Access the Unleash feature flag 'swatch.swatch-tally.disable-hourly-host-update'
+- **Action**:
+  - Verify default state (flag should be false)
+  - Enable the flag (set to true)
+  - Disable the flag again (set to false)
+- **Verification**:
+  - Flag is false by default (host updates enabled)
+  - Flag can be enabled to true (host updates disabled)
+  - Flag can be toggled back to false (host updates enabled)
+- **Expected Result**:
+  - Flag defaults to false, can be toggled to true, and back to false as required
+
+**tally-summary-disable-host-update-TC001 - Tally summary correct with DISABLE_HOURLY_HOST_UPDATE flag state**
+
+- **Description**: Verify tally summary produces correct data regardless of DISABLE_HOURLY_HOST_UPDATE flag state (parameterized test: flag disabled and enabled)
+- **Setup**: Set DISABLE_HOURLY_HOST_UPDATE flag to either false (enabled) or true (disabled). Publish a PAYG event with specific metric value
+- **Action**: Perform hourly tally and poll for tally summaries
+- **Verification**:
+  - Tally summary contains correct orgId, product ID, metric ID, and granularity
+  - Tally measurement value matches the event value
+  - SLA, usage, and billing account attributes are preserved correctly
+  - Summary data is consistent regardless of flag state
+- **Expected Result**:
+  - Tally summary data is correct and unaffected by the host update flag state
+
+**tally-summary-disable-host-update-TC002 - Multiple tally summaries correct with flag toggled**
+
+- **Description**: Verify tally summaries for the different hours remain correct when flag is toggled between runs
+- **Setup**:
+  - Publish event with flag disabled
+  - Toggle flag to enabled and publish another event in different hour
+- **Action**: Perform hourly tally after each event and poll for tally summaries
+- **Verification**:
+  - First summary (flag disabled) has correct value and attributes
+  - Second summary (flag enabled) has correct value and attributes
+  - Both summaries contain correct billing account IDs and billing providers
+  - Flag toggling does not corrupt or lose data
+- **Expected Result**:
+  - Multiple summaries remain correct regardless of flag state changes between runs
+
+**tally-summary-disable-host-update-TC003 - Tally summary aggregation correct with flag enabled**
+
+- **Description**: Verify multiple events for the same hour aggregate correctly when flag is enabled
+- **Setup**:
+  - Set DISABLE_HOURLY_HOST_UPDATE flag to true
+  - Publish 3 events with different instances but same SLA, usage, and billing attributes
+- **Action**: Perform hourly tally and poll for tally summaries
+- **Verification**:
+  - Aggregated summary shows sum of all event values (3 instances × metric value)
+  - Single summary message is returned for the aggregated data
+  - SLA, usage, and billing account metadata is correct
+- **Expected Result**:
+  - Multiple events aggregate correctly to a single summary with the sum of all metric values
+
 ## Tally Event Ingestion
 
-**tally-event-ingestion-negative-measurements-TC001 - Verify that only events with positive measurements are tallied**
+**tally-event-ingestion-negative-measurements-TC001 - Verify that negative values are not tallied**
 - **Description**: Verify that multiple PAYG events will be processed if there is an event with a negative value
 - **Setup**:
   - Organization is opted in 
   - There are two valid PAYG events for RHEL for x86 ELS PAYG 
-  - There is one invalid PAYG events for RHEL for x86 ELS PAYG with a negative value
+  - And one event with invalid PAYG for RHEL for x86 ELS PAYG with a negative value
 - **Action**:
   - Send the events via the Kafka Bridge to the service instance ingress topic
   - Perform hourly tally for the organization
@@ -955,12 +1014,12 @@ This test plan covers the core tally processing pipeline:
 - **Expected Result**:
   - The events with the valid values are the only ones that are processed
 
-**tally-event-ingestion-null-instance-id-TC002 - Verify that only events with a valid instance id's are tallied**
+**tally-event-ingestion-null-instance-id-TC002 - Verify that only events with a valid instance IDs are tallied**
 - **Description**: Verify that only events with a valid instance ID are tallied
 - **Setup**:
   - Organization is opted in 
   - There are two valid PAYG events for RHEL for x86 ELS PAYG 
-  - One of the events has a null instance ID
+  - And one event that has a null instance ID
 - **Action**:
   - Send the events via the Kafka Bridge to the service instance ingress topic
   - Perform hourly tally for the organization
@@ -968,14 +1027,14 @@ This test plan covers the core tally processing pipeline:
   - The Hourly sum matches the two valid PAYG events
   - The instance does not include the instance of the malformed event
 - **Expected Result**:
-  - The events with the valid instance id's are the only ones that are processed
+  - The events with the valid instance IDs are the only ones that are processed
   
-**tally-event-ingestion-invalid-product-tag-TC003 - Verify that only events with a valid product tags are tallied**
-- **Description**: Verify that only events with a valid product tags are tallied
+**tally-event-ingestion-invalid-product-tag-TC003 - Verify that only events with valid product tags are tallied**
+- **Description**: Verify that only events with valid product tags are tallied
 - **Setup**:
   - Organization is opted in 
   - There are two valid PAYG events for RHEL for x86 ELS PAYG 
-  - One of the events has an invalid product tag
+  - And one event that has an invalid product tag
 - **Action**:
   - Send the events via the Kafka Bridge to the service instance ingress topic
   - Perform hourly tally for the organization
