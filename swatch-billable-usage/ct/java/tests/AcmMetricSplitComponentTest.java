@@ -165,21 +165,25 @@ public class AcmMetricSplitComponentTest extends BaseBillableUsageComponentTest 
   }
 
   private void givenLegacyAwsAcmContract(double managedCoverage) {
-    contractsWiremock.setupContractCoverage(
-        orgId, RHACM.getName(), ACM_VCPU_HOURS, managedCoverage);
+    contractsWiremock
+        .forContractsAPI()
+        .stubContractCoverage(orgId, RHACM, ACM_VCPU_HOURS, managedCoverage);
   }
 
   private void givenDualDimensionAwsAcmContract(
       double managedCoverage, double selfManagedCoverage) {
-    contractsWiremock.setupMultiMetricContractCoverage(
-        orgId,
-        RHACM.getName(),
-        Map.of(ACM_VCPU_HOURS, managedCoverage, ACM_VCPU_HOURS_SLFMNG, selfManagedCoverage));
+    contractsWiremock
+        .forContractsAPI()
+        .stubMultiMetricContractCoverage(
+            orgId,
+            RHACM,
+            Map.of(ACM_VCPU_HOURS, managedCoverage, ACM_VCPU_HOURS_SLFMNG, selfManagedCoverage));
   }
 
   private void givenAzureManagedOnlyAcmContract(double managedCoverage) {
-    contractsWiremock.setupContractCoverage(
-        orgId, RHACM.getName(), ACM_VCPU_HOURS_MNG, managedCoverage);
+    contractsWiremock
+        .forContractsAPI()
+        .stubContractCoverage(orgId, RHACM, ACM_VCPU_HOURS_MNG, managedCoverage);
   }
 
   private TallySummary whenAcmTallyWithBothMetricsIsPublished(

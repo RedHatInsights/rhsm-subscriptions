@@ -156,7 +156,7 @@ public class BillableUsageStatusComponentTest extends BaseBillableUsageComponent
   }
 
   private BillableUsage givenPendingRemittanceExists() {
-    contractsWiremock.setupNoContractCoverage(orgId, ROSA.getName());
+    contractsWiremock.forContractsAPI().stubNoContractCoverage(orgId, ROSA);
     whenRosaTallyIsSent(VALUE);
 
     double expectedValue = VALUE * BILLING_FACTOR;
@@ -174,8 +174,9 @@ public class BillableUsageStatusComponentTest extends BaseBillableUsageComponent
   private BillableUsage givenPendingRemittanceWithLicense(String licenseId, double tallyValue) {
     OffsetDateTime start = OffsetDateTime.now(ZoneOffset.UTC).minusMonths(1);
     OffsetDateTime end = OffsetDateTime.now(ZoneOffset.UTC).plusYears(1);
-    contractsWiremock.setupContracts(
-        orgId, ROSA.getName(), List.of(new ContractStub(start, end, Map.of(), licenseId)));
+    contractsWiremock
+        .forContractsAPI()
+        .stubContracts(orgId, ROSA, List.of(new ContractStub(start, end, Map.of(), licenseId)));
 
     TallySummary tallySummary = whenRosaTallyIsSent(tallyValue);
     String tallyId = tallySummary.getTallySnapshots().getFirst().getId().toString();

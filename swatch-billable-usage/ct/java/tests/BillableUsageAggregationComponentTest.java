@@ -51,7 +51,7 @@ public class BillableUsageAggregationComponentTest extends BaseBillableUsageComp
   @TestPlanName("billable-usage-aggregation-TC001")
   public void shouldAggregateMultipleTalliesIntoSingleHourlyMessage() {
     // Given: No contract coverage; a billing account ID shared across all tallies
-    contractsWiremock.setupNoContractCoverage(orgId, ROSA.getName());
+    contractsWiremock.forContractsAPI().stubNoContractCoverage(orgId, ROSA);
     String billingAccountId = RandomUtils.generateRandom();
 
     double[] currentTotals = {10.0, 16.0, 23.0};

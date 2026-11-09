@@ -82,8 +82,9 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
   @Test
   public void testBillableUsageWithContractCoverage() {
     // Setup wiremock endpoints
-    contractsWiremock.setupContractCoverage(
-        orgId, ROSA.getName(), AWS_DIMENSION, CONTRACT_COVERAGE);
+    contractsWiremock
+        .forContractsAPI()
+        .stubContractCoverage(orgId, ROSA, AWS_DIMENSION, CONTRACT_COVERAGE);
 
     // Create and send tally summary
     TallySummary tallySummary =
@@ -261,8 +262,8 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     String org1 = orgId;
     String org2 = RandomUtils.generateRandom();
     Set<String> orgIds = Set.of(org1, org2);
-    contractsWiremock.setupNoContractCoverage(org1, ROSA.getName());
-    contractsWiremock.setupNoContractCoverage(org2, ROSA.getName());
+    contractsWiremock.forContractsAPI().stubNoContractCoverage(org1, ROSA);
+    contractsWiremock.forContractsAPI().stubNoContractCoverage(org2, ROSA);
 
     // When: Tally snapshots are sent for each org (different values per org)
     whenTallySummaryIsSentForOrg(org1, value1);
@@ -342,8 +343,8 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     double valueRhelAddon = 17.0; // RHEL addon vCPUs (billing factor 1.0 -> 17.0)
     String billingAccountId = RandomUtils.generateRandom();
     Set<String> productIds = Set.of(ROSA.getName(), RHEL_PAYG_ADDON.getName());
-    contractsWiremock.setupNoContractCoverage(orgId, ROSA.getName());
-    contractsWiremock.setupNoContractCoverage(orgId, RHEL_PAYG_ADDON.getName());
+    contractsWiremock.forContractsAPI().stubNoContractCoverage(orgId, ROSA);
+    contractsWiremock.forContractsAPI().stubNoContractCoverage(orgId, RHEL_PAYG_ADDON);
 
     // When: Tally snapshots are sent for the same org/billing account with different products
     whenTallySummariesAreSentForTwoProducts(billingAccountId, valueRosa, valueRhelAddon);
@@ -412,7 +413,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     String billingAccountId = RandomUtils.generateRandom();
     OffsetDateTime snapshotDateLastMonth = OffsetDateTime.now(ZoneOffset.UTC).minusDays(35);
     OffsetDateTime snapshotDateCurrentMonth = OffsetDateTime.now(ZoneOffset.UTC).minusDays(1);
-    contractsWiremock.setupNoContractCoverage(orgId, RHEL_PAYG_ADDON.getName());
+    contractsWiremock.forContractsAPI().stubNoContractCoverage(orgId, RHEL_PAYG_ADDON);
 
     // When: Tally snapshots are sent for last month and current month (same account/product/metric)
     whenTallySummariesAreSentWithSnapshotDates(
@@ -439,7 +440,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
   }
 
   private void givenNoContractCoverageForRosa() {
-    contractsWiremock.setupNoContractCoverage(orgId, ROSA.getName());
+    contractsWiremock.forContractsAPI().stubNoContractCoverage(orgId, ROSA);
   }
 
   private List<BillableUsageAggregate> whenHourlyAggregatesAreReceived(
