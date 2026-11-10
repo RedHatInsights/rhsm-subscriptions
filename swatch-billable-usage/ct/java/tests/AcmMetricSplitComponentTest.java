@@ -22,6 +22,9 @@ package tests;
 
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
+import static domain.BillingProvider.AWS;
+import static domain.BillingProvider.AZURE;
+import static domain.Product.RHACM;
 import static domain.RemittanceStatus.COVERED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -34,12 +37,11 @@ import com.redhat.swatch.billable.usage.openapi.model.TallyRemittance;
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.configuration.registry.MetricId;
-import com.redhat.swatch.configuration.util.MetricIdUtils;
 import domain.BillingProvider;
-import domain.Product;
 import domain.RemittanceStatus;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.TallySummary;
@@ -47,51 +49,28 @@ import org.junit.jupiter.api.Test;
 
 public class AcmMetricSplitComponentTest extends BaseBillableUsageComponentTest {
 
-  private static final Product RHACM = Product.RHACM;
-  private static final MetricId VCPUS_SELF_MANAGED = MetricIdUtils.getVCpusSelfManaged();
-  private static final double ACM_BILLING_FACTOR = 1.0;
-  private static final String ACM_VCPU_HOURS = RHACM.getMetric(VCPUS).getAwsDimension();
-  private static final String ACM_VCPU_HOURS_SLFMNG =
-      RHACM.getMetric(VCPUS_SELF_MANAGED).getAwsDimension();
-  private static final String ACM_VCPU_HOURS_MNG = RHACM.getMetric(VCPUS).getAzureDimension();
-
-  private static String tallyId(TallySummary tallySummary) {
-    return tallySummary.getTallySnapshots().getFirst().getId().toString();
-  }
-
   @Test
   @TestPlanName("billable-usage-acm-metric-split-TC001")
   void shouldCoverManagedOnlyForLegacyAwsContract() {
     double managedCoverage = 10.0;
     double managedTotal = 15.0;
     double selfManagedTotal = 8.0;
-    double expectedManagedRemittance = managedTotal - managedCoverage;
-    double expectedSelfManagedRemittance = selfManagedTotal;
 
     // Given: Legacy AWS contract covering managed dimension only
-    givenLegacyAwsAcmContract(managedCoverage);
+    givenAcmContractCoverageForAwsWithVCPUsOnly(managedCoverage);
 
     // When: Tally with managed overage and full self-managed usage
     TallySummary tallySummary =
-        whenAcmTallyWithBothMetricsIsPublished(BillingProvider.AWS, managedTotal, selfManagedTotal);
+        whenAcmTallyWithBothMetricsIsPublished(AWS, managedTotal, selfManagedTotal);
 
-    // Then: Managed and self-managed bill independently from contract coverage
+    // Then: Managed and self-managed bill independently of contract coverage
     List<BillableUsage> usages = thenTwoAcmUsagesReceived();
-    thenUsageHasValueFactorAndProvider(
-        usages, VCPUS.toString(), expectedManagedRemittance, BillableUsage.BillingProvider.AWS);
-    thenUsageHasValueFactorAndProvider(
-        usages,
-        VCPUS_SELF_MANAGED.toString(),
-        expectedSelfManagedRemittance,
-        BillableUsage.BillingProvider.AWS);
+    thenUsageHasValueFactorAndProvider(usages, VCPUS, managedTotal - managedCoverage, AWS);
+    thenUsageHasValueFactorAndProvider(usages, VCPUS_SELF_MANAGED, selfManagedTotal, AWS);
     thenTallyRemittancesMatch(
-        tallyId(tallySummary),
-        Map.of(
-            VCPUS.toString(),
-            expectedManagedRemittance,
-            VCPUS_SELF_MANAGED.toString(),
-            expectedSelfManagedRemittance),
-        BillingProvider.AWS);
+        tallySummary,
+        AWS,
+        Map.of(VCPUS, managedTotal - managedCoverage, VCPUS_SELF_MANAGED, selfManagedTotal));
   }
 
   @Test
@@ -101,31 +80,20 @@ public class AcmMetricSplitComponentTest extends BaseBillableUsageComponentTest 
     double selfManagedCoverage = 20.0;
     double managedTotal = 12.0;
     double selfManagedTotal = 15.0;
-    double expectedManagedRemittance = managedTotal - managedCoverage;
-    double expectedSelfManagedRemittance = Math.max(0.0, selfManagedTotal - selfManagedCoverage);
 
     // Given: AWS contract with independent coverage per ACM dimension
-    givenDualDimensionAwsAcmContract(managedCoverage, selfManagedCoverage);
+    givenAcmContractCoverageForAws(managedCoverage, selfManagedCoverage);
 
     // When: Tally with managed overage and self-managed within contract
     TallySummary tallySummary =
-        whenAcmTallyWithBothMetricsIsPublished(BillingProvider.AWS, managedTotal, selfManagedTotal);
+        whenAcmTallyWithBothMetricsIsPublished(AWS, managedTotal, selfManagedTotal);
 
     // Then: Managed bills overage only; self-managed fully covered
     List<BillableUsage> usages = thenTwoAcmUsagesReceived();
-    thenUsageHasValueFactorAndProvider(
-        usages, VCPUS.toString(), expectedManagedRemittance, BillableUsage.BillingProvider.AWS);
-    thenUsageHasValueFactorAndProvider(
-        usages,
-        VCPUS_SELF_MANAGED.toString(),
-        expectedSelfManagedRemittance,
-        BillableUsage.BillingProvider.AWS);
-    thenTallyRemittancesMatch(
-        tallyId(tallySummary),
-        Map.of(VCPUS.toString(), expectedManagedRemittance),
-        BillingProvider.AWS);
-    thenAccountRemittanceEquals(
-        VCPUS_SELF_MANAGED.toString(), BillingProvider.AWS, expectedSelfManagedRemittance);
+    thenUsageHasValueFactorAndProvider(usages, VCPUS, managedTotal - managedCoverage, AWS);
+    thenUsageHasValueFactorAndProvider(usages, VCPUS_SELF_MANAGED, 0.0, AWS);
+    thenTallyRemittancesMatch(tallySummary, AWS, Map.of(VCPUS, managedTotal - managedCoverage));
+    thenAccountRemittanceEquals(VCPUS_SELF_MANAGED, AWS, 0.0);
   }
 
   @Test
@@ -134,56 +102,49 @@ public class AcmMetricSplitComponentTest extends BaseBillableUsageComponentTest 
     double managedCoverage = 16.0;
     double managedTotal = 20.0;
     double selfManagedTotal = 9.0;
-    double expectedManagedRemittance = managedTotal - managedCoverage;
-    double expectedSelfManagedRemittance = selfManagedTotal;
 
     // Given: Azure contract covering managed dimension only
-    givenAzureManagedOnlyAcmContract(managedCoverage);
+    givenAcmContractCoverageForAzureWithVCPUsOnly(managedCoverage);
 
     // When: Tally with managed overage and full self-managed usage
     TallySummary tallySummary =
-        whenAcmTallyWithBothMetricsIsPublished(
-            BillingProvider.AZURE, managedTotal, selfManagedTotal);
+        whenAcmTallyWithBothMetricsIsPublished(AZURE, managedTotal, selfManagedTotal);
 
     // Then: Azure dimensions map to correct contract metrics for coverage
     List<BillableUsage> usages = thenTwoAcmUsagesReceived();
-    thenUsageHasValueFactorAndProvider(
-        usages, VCPUS.toString(), expectedManagedRemittance, BillableUsage.BillingProvider.AZURE);
-    thenUsageHasValueFactorAndProvider(
-        usages,
-        VCPUS_SELF_MANAGED.toString(),
-        expectedSelfManagedRemittance,
-        BillableUsage.BillingProvider.AZURE);
+    thenUsageHasValueFactorAndProvider(usages, VCPUS, managedTotal - managedCoverage, AZURE);
+    thenUsageHasValueFactorAndProvider(usages, VCPUS_SELF_MANAGED, selfManagedTotal, AZURE);
     thenTallyRemittancesMatch(
-        tallyId(tallySummary),
-        Map.of(
-            VCPUS.toString(),
-            expectedManagedRemittance,
-            VCPUS_SELF_MANAGED.toString(),
-            expectedSelfManagedRemittance),
-        BillingProvider.AZURE);
+        tallySummary,
+        AZURE,
+        Map.of(VCPUS, managedTotal - managedCoverage, VCPUS_SELF_MANAGED, selfManagedTotal));
   }
 
-  private void givenLegacyAwsAcmContract(double managedCoverage) {
+  private void givenAcmContractCoverageForAwsWithVCPUsOnly(double managedCoverage) {
     contractsWiremock
         .forContractsAPI()
-        .stubContractCoverage(orgId, RHACM, ACM_VCPU_HOURS, managedCoverage);
+        .stubContractCoverage(
+            orgId, RHACM, RHACM.getMetric(VCPUS).getAwsDimension(), managedCoverage);
   }
 
-  private void givenDualDimensionAwsAcmContract(
-      double managedCoverage, double selfManagedCoverage) {
+  private void givenAcmContractCoverageForAzureWithVCPUsOnly(double managedCoverage) {
+    contractsWiremock
+        .forContractsAPI()
+        .stubContractCoverage(
+            orgId, RHACM, RHACM.getMetric(VCPUS).getAzureDimension(), managedCoverage);
+  }
+
+  private void givenAcmContractCoverageForAws(double managedCoverage, double selfManagedCoverage) {
     contractsWiremock
         .forContractsAPI()
         .stubMultiMetricContractCoverage(
             orgId,
             RHACM,
-            Map.of(ACM_VCPU_HOURS, managedCoverage, ACM_VCPU_HOURS_SLFMNG, selfManagedCoverage));
-  }
-
-  private void givenAzureManagedOnlyAcmContract(double managedCoverage) {
-    contractsWiremock
-        .forContractsAPI()
-        .stubContractCoverage(orgId, RHACM, ACM_VCPU_HOURS_MNG, managedCoverage);
+            Map.of(
+                RHACM.getMetric(VCPUS).getAwsDimension(),
+                managedCoverage,
+                RHACM.getMetric(VCPUS_SELF_MANAGED).getAwsDimension(),
+                selfManagedCoverage));
   }
 
   private TallySummary whenAcmTallyWithBothMetricsIsPublished(
@@ -203,31 +164,40 @@ public class AcmMetricSplitComponentTest extends BaseBillableUsageComponentTest 
   private List<BillableUsage> thenTwoAcmUsagesReceived() {
     List<BillableUsage> usages =
         kafkaBridge.waitForKafkaMessage(
-            BILLABLE_USAGE, MessageValidators.billableUsageMatches(orgId, RHACM.getName()), 2);
+            BILLABLE_USAGE, MessageValidators.billableUsageMatches(orgId, RHACM), 2);
     assertEquals(2, usages.size(), "Expected two billable-usage messages for rhacm");
     return usages;
   }
 
   private void thenUsageHasValueFactorAndProvider(
       List<BillableUsage> usages,
-      String metricId,
+      MetricId metricId,
       double expectedValue,
-      BillableUsage.BillingProvider provider) {
+      BillingProvider provider) {
     BillableUsage usage =
-        usages.stream().filter(u -> metricId.equals(u.getMetricId())).findFirst().orElse(null);
+        usages.stream()
+            .filter(u -> metricId.toString().equals(u.getMetricId()))
+            .findFirst()
+            .orElse(null);
     assertNotNull(usage, "Expected billable usage for metric " + metricId);
     assertEquals(
         expectedValue, usage.getValue(), 0.001, "Billable usage value for metric " + metricId);
     assertEquals(
-        ACM_BILLING_FACTOR,
+        RHACM.getBillingFactor(metricId),
         usage.getBillingFactor(),
         0.001,
         "Billing factor for metric " + metricId);
-    assertEquals(provider, usage.getBillingProvider(), "Billing provider for metric " + metricId);
+    assertEquals(
+        provider.toBillableUsageApiModel(),
+        usage.getBillingProvider(),
+        "Billing provider for metric " + metricId);
   }
 
   private void thenTallyRemittancesMatch(
-      String tallyId, Map<String, Double> expectedByMetric, BillingProvider billingProvider) {
+      TallySummary tallySummary,
+      BillingProvider billingProvider,
+      Map<MetricId, Double> expectedByMetric) {
+    UUID tallyId = tallySummary.getTallySnapshots().getFirst().getId();
     AwaitilityUtils.untilAsserted(() -> {
       List<TallyRemittance> remittances =
           service.getRemittancesByTally(tallyId).stream()
@@ -236,11 +206,12 @@ public class AcmMetricSplitComponentTest extends BaseBillableUsageComponentTest 
       assertNotNull(remittances, "Remittances should exist for tally");
       assertEquals(
           expectedByMetric.size(), remittances.size(), "Tally remittance row count mismatch");
-      Map<String, Double> actual =
+      Map<MetricId, Double> actual =
           remittances.stream()
               .collect(
                   Collectors.toMap(
-                      TallyRemittance::getMetricId, TallyRemittance::getRemittedPendingValue));
+                      r -> MetricId.fromString(r.getMetricId()),
+                      TallyRemittance::getRemittedPendingValue));
       assertEquals(expectedByMetric, actual, "Tally remittances mismatch");
       String expectedProvider = billingProvider.toTallyApiModel().value();
       for (TallyRemittance remittance : remittances) {
@@ -257,13 +228,13 @@ public class AcmMetricSplitComponentTest extends BaseBillableUsageComponentTest 
   }
 
   private void thenAccountRemittanceEquals(
-      String metricId, BillingProvider billingProvider, double expectedRemittedValue) {
+      MetricId metricId, BillingProvider billingProvider, double expectedRemittedValue) {
     AwaitilityUtils.untilAsserted(() -> {
       double actual =
           service
               .getRemittances(
-                  RHACM.getName(),
                   orgId,
+                  RHACM,
                   metricId,
                   billingProvider.toTallyApiModel().value(),
                   billingAccountId)

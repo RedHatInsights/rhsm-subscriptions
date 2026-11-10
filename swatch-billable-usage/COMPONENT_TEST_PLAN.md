@@ -469,7 +469,7 @@ These scenarios verify that contract coverage applies independently to managed a
   - Phase 3: Restore contract; publish second increment (month total 200)
 - **Verification:**
   - Phase 2 remittance unchanged from phase 1
-  - Phase 3 remittance matches `BillableUsageRemittanceExpectations.expectedRemittanceAfterUsageIncrease`
+  - Phase 3 remittance usage is increased
 - **Expected Result:**
   - Cores: initial 76, final 176; Instance-hours: initial 94, final 194
 

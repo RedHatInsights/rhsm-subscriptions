@@ -20,27 +20,22 @@
  */
 package tests;
 
-import static api.BillableUsageRemittanceExpectations.expectedInitialRemittance;
-import static api.BillableUsageRemittanceExpectations.expectedRemittanceAfterUsageIncrease;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE_STATUS;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
-import static domain.RemittanceStatus.COVERED;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static domain.BillingProvider.AWS;
+import static domain.Product.ROSA;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static utils.BillableUsageAggregateHelper.buildBillableUsageAggregate;
 import static utils.TallySummaryBuilder.buildTallySummaryWithCurrentTotal;
 
 import api.MessageValidators;
-import com.redhat.swatch.billable.usage.openapi.model.MonthlyRemittance;
 import com.redhat.swatch.billable.usage.openapi.model.TallyRemittance;
-import com.redhat.swatch.component.tests.api.DefaultMessageValidator;
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.configuration.registry.MetricId;
-import com.redhat.swatch.configuration.util.MetricIdUtils;
-import domain.BillingProvider;
 import domain.ContractStub;
+import domain.Product;
 import domain.RemittanceStatus;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -48,31 +43,16 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.junit.jupiter.api.Test;
 
 public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentTest {
 
-  private static final MetricId INSTANCE_HOURS = MetricIdUtils.getInstanceHours();
-  private static final String CORES_AWS_DIMENSION = ROSA.getMetric(CORES).getAwsDimension();
-  private static final String INSTANCE_HOURS_AWS_DIMENSION =
-      ROSA.getMetric(INSTANCE_HOURS).getAwsDimension();
-  private static final double CORES_BILLING_FACTOR = ROSA.getBillingFactor(CORES);
-  // Instance-hours has no billingFactor in rosa.yaml; production default is 1.0
-  private static final double INSTANCE_HOURS_BILLING_FACTOR = 1.0;
   private static final DateTimeFormatter MONTH_ID = DateTimeFormatter.ofPattern("uuuu-MM");
-  private static final RosaMetricScenario INSTANCE_HOURS_METRIC =
-      new RosaMetricScenario(
-          INSTANCE_HOURS, INSTANCE_HOURS_AWS_DIMENSION, INSTANCE_HOURS_BILLING_FACTOR);
 
-  /**
-   * Removing a contract mid-month must not change remittance already recorded; usage billed after
-   * the contract is restored must apply the adjustment formula.
-   */
   @Test
   @TestPlanName("billable-usage-contract-adjustment-TC001")
-  public void testVerifyContractAdjustmentForRemoveContract() {
+  void shouldAdjustRemittanceWhenContractIsRemoved() {
     double contractMetricValue = 6.0;
     double applicableMetricUsage = 100.0;
     double totalBillingUsage = applicableMetricUsage * 2;
@@ -82,43 +62,39 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
     givenRosaContractWithEqualMetricCoverage(contractMetricValue);
     whenUsageIsTallied(applicableMetricUsage, applicableMetricUsage);
 
-    for (RosaMetricScenario metric : rosaMetricScenarios()) {
+    for (MetricId metricId : ROSA.getMetrics().keySet()) {
       double expected =
           expectedInitialRemittance(
-              applicableMetricUsage, metric.billingFactor(), contractMetricValue);
-      remittedByMetric.put(metric.metricId(), thenAccountRemittedUsageEquals(metric, expected));
+              applicableMetricUsage, ROSA.getBillingFactor(metricId), contractMetricValue);
+      remittedByMetric.put(metricId, thenAccountRemittedUsageEquals(ROSA, metricId, expected));
     }
 
     // Phase 2: contract removed, re-tally with zero increment → remittance unchanged
     givenContractIsRemoved();
     whenUsageIsTallied(0.0, applicableMetricUsage);
 
-    for (RosaMetricScenario metric : rosaMetricScenarios()) {
-      thenAccountRemittedUsageEquals(metric, remittedByMetric.get(metric.metricId()));
+    for (MetricId metricId : ROSA.getMetrics().keySet()) {
+      thenAccountRemittedUsageEquals(ROSA, metricId, remittedByMetric.get(metricId));
     }
 
     // Phase 3: contract restored, second increment 100 (month total 200) → adjusted remittance
     givenRosaContractWithEqualMetricCoverage(contractMetricValue);
     whenUsageIsTallied(applicableMetricUsage, totalBillingUsage);
 
-    for (RosaMetricScenario metric : rosaMetricScenarios()) {
+    for (MetricId metricId : ROSA.getMetrics().keySet()) {
       double expected =
           expectedRemittanceAfterUsageIncrease(
               totalBillingUsage,
-              remittedByMetric.get(metric.metricId()),
-              metric.billingFactor(),
+              remittedByMetric.get(metricId),
+              ROSA.getBillingFactor(metricId),
               contractMetricValue);
-      thenAccountRemittedUsageEquals(metric, expected);
+      thenAccountRemittedUsageEquals(ROSA, metricId, expected);
     }
   }
 
-  /**
-   * Adding a second contract mid-month keeps remittance at the first contract's value until usage
-   * exceeds combined coverage (contracts 10 + 100; usage 100 → 200 → 501).
-   */
   @Test
   @TestPlanName("billable-usage-contract-adjustment-TC002")
-  public void testVerifyContractAdjustmentWhenAddMoreContractInMidMonth() {
+  void shouldAdjustRemittanceWhenContractIsAddedMidMonth() {
     double initialContractMetricValue = 10.0;
     double addedContractMetricValue = 100.0;
     double totalContractMetricValue = initialContractMetricValue + addedContractMetricValue;
@@ -129,11 +105,11 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
     givenRosaContractWithEqualMetricCoverage(initialContractMetricValue);
     whenUsageIsTallied(applicableMetricUsage, applicableMetricUsage);
 
-    for (RosaMetricScenario metric : rosaMetricScenarios()) {
+    for (MetricId metricId : ROSA.getMetrics().keySet()) {
       double expected =
           expectedInitialRemittance(
-              applicableMetricUsage, metric.billingFactor(), initialContractMetricValue);
-      remittedByMetric.put(metric.metricId(), thenAccountRemittedUsageEquals(metric, expected));
+              applicableMetricUsage, ROSA.getBillingFactor(metricId), initialContractMetricValue);
+      remittedByMetric.put(metricId, thenAccountRemittedUsageEquals(ROSA, metricId, expected));
     }
 
     // Phase 2: second contract added, re-tally only — remittance still reflects first contract
@@ -141,30 +117,30 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
         initialContractMetricValue, addedContractMetricValue);
     whenUsageIsTallied(0.0, applicableMetricUsage);
 
-    for (RosaMetricScenario metric : rosaMetricScenarios()) {
-      thenAccountRemittedUsageEquals(metric, remittedByMetric.get(metric.metricId()));
+    for (MetricId metricId : ROSA.getMetrics().keySet()) {
+      thenAccountRemittedUsageEquals(ROSA, metricId, remittedByMetric.get(metricId));
     }
 
     // Phase 3: second usage increment (month total 200) — still first-contract remittance
     double totalAfterSecondEvent = applicableMetricUsage * 2;
     whenUsageIsTallied(applicableMetricUsage, totalAfterSecondEvent);
 
-    for (RosaMetricScenario metric : rosaMetricScenarios()) {
-      thenAccountRemittedUsageEquals(metric, remittedByMetric.get(metric.metricId()));
+    for (MetricId metricId : ROSA.getMetrics().keySet()) {
+      thenAccountRemittedUsageEquals(ROSA, metricId, remittedByMetric.get(metricId));
     }
 
     // Phase 4: large third increment (month total 501) — remittance uses combined coverage
     double totalAfterThirdEvent = totalAfterSecondEvent + 301.0;
     whenUsageIsTallied(301.0, totalAfterThirdEvent);
 
-    for (RosaMetricScenario metric : rosaMetricScenarios()) {
+    for (MetricId metricId : ROSA.getMetrics().keySet()) {
       double expected =
           expectedRemittanceAfterUsageIncrease(
               totalAfterThirdEvent,
-              remittedByMetric.get(metric.metricId()),
-              metric.billingFactor(),
+              remittedByMetric.get(metricId),
+              ROSA.getBillingFactor(metricId),
               totalContractMetricValue);
-      thenAccountRemittedUsageEquals(metric, expected);
+      thenAccountRemittedUsageEquals(ROSA, metricId, expected);
     }
   }
 
@@ -179,18 +155,18 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
         "license-prepaid", prepaidCoverage, now.minusDays(10), now.plusDays(10));
 
     double currentTotal = 100.0;
-    whenUsageIsTallied(INSTANCE_HOURS_METRIC, currentTotal, currentTotal);
-    thenAccountRemittedUsageEquals(INSTANCE_HOURS_METRIC, 0.0);
-    thenAccountCoveredUsageEquals(INSTANCE_HOURS_METRIC, currentTotal);
+    whenUsageIsTallied(ROSA, INSTANCE_HOURS, currentTotal, currentTotal);
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, 0.0);
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, currentTotal);
 
     // Phase 2: only newer empty-metric contract (capacity 0).
     givenRosaEmptyMetricContractWithLicense("license-new", now.minusHours(1), now.plusDays(10));
 
     // Phase 3: small new usage; remittance is only the post-switch overage.
     double deltaCurrentTotal = 5.0;
-    whenUsageIsTallied(INSTANCE_HOURS_METRIC, deltaCurrentTotal, currentTotal + deltaCurrentTotal);
-    thenAccountRemittedUsageEquals(INSTANCE_HOURS_METRIC, deltaCurrentTotal, "license-new");
-    thenAccountCoveredUsageEquals(INSTANCE_HOURS_METRIC, currentTotal);
+    whenUsageIsTallied(ROSA, INSTANCE_HOURS, deltaCurrentTotal, currentTotal + deltaCurrentTotal);
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, deltaCurrentTotal, "license-new");
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, currentTotal);
   }
 
   @Test
@@ -204,9 +180,9 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
         "license-prepaid", prepaidCoverage, now.minusDays(10), now.plusDays(10));
 
     double currentTotal = 100.0;
-    whenUsageIsTallied(INSTANCE_HOURS_METRIC, currentTotal, currentTotal);
-    thenAccountRemittedUsageEquals(INSTANCE_HOURS_METRIC, 0.0);
-    thenAccountCoveredUsageEquals(INSTANCE_HOURS_METRIC, currentTotal);
+    whenUsageIsTallied(ROSA, INSTANCE_HOURS, currentTotal, currentTotal);
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, 0.0);
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, currentTotal);
 
     // Phase 2: only newer empty-metric contract (capacity 0).
     givenRosaEmptyMetricContractWithLicense("license-new", now.minusHours(1), now.plusDays(10));
@@ -214,9 +190,9 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
     // Phase 3: post-switch overage under the empty-metric license.
     double firstDeltaCurrentTotal = 5.0;
     whenUsageIsTallied(
-        INSTANCE_HOURS_METRIC, firstDeltaCurrentTotal, currentTotal + firstDeltaCurrentTotal);
-    thenAccountRemittedUsageEquals(INSTANCE_HOURS_METRIC, firstDeltaCurrentTotal, "license-new");
-    thenAccountCoveredUsageEquals(INSTANCE_HOURS_METRIC, currentTotal);
+        ROSA, INSTANCE_HOURS, firstDeltaCurrentTotal, currentTotal + firstDeltaCurrentTotal);
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, firstDeltaCurrentTotal, "license-new");
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, currentTotal);
 
     // Phase 4: restored coverage; further growth is COVERED, overage unchanged.
     // Tally snapshots use now-1h; contract start must be at or before that snapshot.
@@ -224,11 +200,12 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
     givenRosaInstanceHoursContractWithLicense(
         "license-restored", prepaidCoverage, now.minusHours(2), now.plusDays(10));
     whenUsageIsTallied(
-        INSTANCE_HOURS_METRIC,
+        ROSA,
+        INSTANCE_HOURS,
         secondDeltaCurrentTotal,
         currentTotal + firstDeltaCurrentTotal + secondDeltaCurrentTotal);
-    thenAccountRemittedUsageEquals(INSTANCE_HOURS_METRIC, firstDeltaCurrentTotal, "license-new");
-    thenAccountCoveredUsageEquals(INSTANCE_HOURS_METRIC, currentTotal + secondDeltaCurrentTotal);
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, firstDeltaCurrentTotal, "license-new");
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, currentTotal + secondDeltaCurrentTotal);
   }
 
   @Test
@@ -242,16 +219,16 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
 
     double currentTotal = 80.0;
     double expectedFirstOverage = currentTotal - prepaidCoverage;
-    whenUsageIsTallied(INSTANCE_HOURS_METRIC, currentTotal, currentTotal);
-    thenAccountCoveredUsageEquals(INSTANCE_HOURS_METRIC, prepaidCoverage);
-    thenAccountRemittedUsageEquals(INSTANCE_HOURS_METRIC, expectedFirstOverage);
+    whenUsageIsTallied(ROSA, INSTANCE_HOURS, currentTotal, currentTotal);
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, prepaidCoverage);
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, expectedFirstOverage);
 
     double deltaCurrentTotal = 15.0;
     givenRosaEmptyMetricContractWithLicense("license-new", now.minusHours(1), now.plusDays(10));
-    whenUsageIsTallied(INSTANCE_HOURS_METRIC, deltaCurrentTotal, currentTotal + deltaCurrentTotal);
-    thenAccountCoveredUsageEquals(INSTANCE_HOURS_METRIC, prepaidCoverage);
-    thenAccountRemittedUsageEquals(INSTANCE_HOURS_METRIC, expectedFirstOverage + deltaCurrentTotal);
-    thenAccountRemittedUsageEquals(INSTANCE_HOURS_METRIC, deltaCurrentTotal, "license-new");
+    whenUsageIsTallied(ROSA, INSTANCE_HOURS, deltaCurrentTotal, currentTotal + deltaCurrentTotal);
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, prepaidCoverage);
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, expectedFirstOverage + deltaCurrentTotal);
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, deltaCurrentTotal, "license-new");
   }
 
   @Test
@@ -265,24 +242,24 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
         "license-prepaid", largeCoverage, now.minusDays(10), now.plusDays(10));
 
     double currentTotal = 80.0;
-    whenUsageIsTallied(INSTANCE_HOURS_METRIC, currentTotal, currentTotal);
-    thenAccountRemittedUsageEquals(INSTANCE_HOURS_METRIC, 0.0);
-    thenAccountCoveredUsageEquals(INSTANCE_HOURS_METRIC, currentTotal);
+    whenUsageIsTallied(ROSA, INSTANCE_HOURS, currentTotal, currentTotal);
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, 0.0);
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, currentTotal);
 
     // small contract - no increment
     double smallCoverage = 40.0;
     givenRosaInstanceHoursContractWithLicense(
         "license-new", smallCoverage, now.minusHours(2), now.plusDays(10));
-    whenUsageIsTallied(INSTANCE_HOURS_METRIC, 0.0, currentTotal);
-    thenAccountRemittedUsageEquals(INSTANCE_HOURS_METRIC, 0.0);
-    thenAccountCoveredUsageEquals(INSTANCE_HOURS_METRIC, currentTotal);
+    whenUsageIsTallied(ROSA, INSTANCE_HOURS, 0.0, currentTotal);
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, 0.0);
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, currentTotal);
 
     // growth fits under the new live coverage → COVERED, not marketplace remittance
     double deltaCurrentTotal = 10.0;
     double monthToDateAfterGrowth = currentTotal + deltaCurrentTotal;
-    whenUsageIsTallied(INSTANCE_HOURS_METRIC, deltaCurrentTotal, monthToDateAfterGrowth);
-    thenAccountRemittedUsageEquals(INSTANCE_HOURS_METRIC, 0.0);
-    thenAccountCoveredUsageEquals(INSTANCE_HOURS_METRIC, monthToDateAfterGrowth);
+    whenUsageIsTallied(ROSA, INSTANCE_HOURS, deltaCurrentTotal, monthToDateAfterGrowth);
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, 0.0);
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, monthToDateAfterGrowth);
   }
 
   @Test
@@ -295,22 +272,22 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
         "license-prepaid", prepaidCoverage, now.minusDays(10), now.plusDays(10));
 
     double firstCurrentTotal = 80.0;
-    whenUsageIsTallied(INSTANCE_HOURS_METRIC, firstCurrentTotal, firstCurrentTotal);
-    thenAccountCoveredUsageEquals(INSTANCE_HOURS_METRIC, firstCurrentTotal);
+    whenUsageIsTallied(ROSA, INSTANCE_HOURS, firstCurrentTotal, firstCurrentTotal);
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, firstCurrentTotal);
 
     givenRosaEmptyMetricContractWithLicense("license-new", now.minusHours(1), now.plusDays(10));
 
     double secondCurrentTotal = 85.0;
     double expectedFirstOverage = secondCurrentTotal - firstCurrentTotal;
-    whenUsageIsTallied(INSTANCE_HOURS_METRIC, expectedFirstOverage, secondCurrentTotal);
-    thenAccountRemittedUsageEquals(INSTANCE_HOURS_METRIC, expectedFirstOverage, "license-new");
+    whenUsageIsTallied(ROSA, INSTANCE_HOURS, expectedFirstOverage, secondCurrentTotal);
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, expectedFirstOverage, "license-new");
 
     double thirdCurrentTotal = 100.0;
     double expectedSecondOverage = thirdCurrentTotal - secondCurrentTotal;
-    whenUsageIsTallied(INSTANCE_HOURS_METRIC, expectedSecondOverage, thirdCurrentTotal);
+    whenUsageIsTallied(ROSA, INSTANCE_HOURS, expectedSecondOverage, thirdCurrentTotal);
     thenAccountRemittedUsageEquals(
-        INSTANCE_HOURS_METRIC, expectedSecondOverage + expectedFirstOverage);
-    thenAccountCoveredUsageEquals(INSTANCE_HOURS_METRIC, firstCurrentTotal);
+        ROSA, INSTANCE_HOURS, expectedSecondOverage + expectedFirstOverage);
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, firstCurrentTotal);
   }
 
   @Test
@@ -323,20 +300,20 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
         "license-prepaid", prepaidCoverage, now.minusDays(10), now.plusDays(10));
 
     double currentTotal = 80.0;
-    whenUsageIsTallied(INSTANCE_HOURS_METRIC, currentTotal, currentTotal);
-    thenAccountRemittedUsageEquals(INSTANCE_HOURS_METRIC, 0.0);
-    thenAccountCoveredUsageEquals(INSTANCE_HOURS_METRIC, currentTotal);
+    whenUsageIsTallied(ROSA, INSTANCE_HOURS, currentTotal, currentTotal);
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, 0.0);
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, currentTotal);
 
     givenRosaEmptyMetricContractWithLicense("license-new", now.minusHours(1), now.plusDays(10));
-    whenUsageIsTallied(INSTANCE_HOURS_METRIC, 0.0, currentTotal);
-    thenAccountRemittedUsageEquals(INSTANCE_HOURS_METRIC, 0.0);
-    thenAccountCoveredUsageEquals(INSTANCE_HOURS_METRIC, currentTotal);
+    whenUsageIsTallied(ROSA, INSTANCE_HOURS, 0.0, currentTotal);
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, 0.0);
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, currentTotal);
 
     givenRosaInstanceHoursContractWithLicense(
         "license-restored", prepaidCoverage, now.minusHours(2), now.plusDays(10));
-    whenUsageIsTallied(INSTANCE_HOURS_METRIC, 0.0, currentTotal);
-    thenAccountRemittedUsageEquals(INSTANCE_HOURS_METRIC, 0.0);
-    thenAccountCoveredUsageEquals(INSTANCE_HOURS_METRIC, currentTotal);
+    whenUsageIsTallied(ROSA, INSTANCE_HOURS, 0.0, currentTotal);
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, 0.0);
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, currentTotal);
   }
 
   @Test
@@ -347,18 +324,18 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
     givenContractsApiReturnsServerError();
 
     double firstCurrentTotal = 40.0;
-    whenUsageIsTallied(INSTANCE_HOURS_METRIC, firstCurrentTotal, firstCurrentTotal);
+    whenUsageIsTallied(ROSA, INSTANCE_HOURS, firstCurrentTotal, firstCurrentTotal);
     thenContractsApiWasCalled();
-    thenAccountRemittedUsageEquals(INSTANCE_HOURS_METRIC, 0.0);
-    thenAccountCoveredUsageEquals(INSTANCE_HOURS_METRIC, 0.0);
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, 0.0);
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, 0.0);
 
     givenRosaEmptyMetricContractWithLicense("license-new", now.minusHours(1), now.plusDays(10));
 
     double secondCurrentTotal = 80.0;
     whenUsageIsTallied(
-        INSTANCE_HOURS_METRIC, secondCurrentTotal - firstCurrentTotal, secondCurrentTotal);
-    thenAccountRemittedUsageEquals(INSTANCE_HOURS_METRIC, secondCurrentTotal, "license-new");
-    thenAccountCoveredUsageEquals(INSTANCE_HOURS_METRIC, 0.0);
+        ROSA, INSTANCE_HOURS, secondCurrentTotal - firstCurrentTotal, secondCurrentTotal);
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, secondCurrentTotal, "license-new");
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, 0.0);
   }
 
   @Test
@@ -372,34 +349,28 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
 
     double currentTotal = 80.0;
     double expectedRemitted = currentTotal - prepaidCoverage;
-    whenUsageIsTallied(INSTANCE_HOURS_METRIC, currentTotal, currentTotal);
-    thenAccountCoveredUsageEquals(INSTANCE_HOURS_METRIC, prepaidCoverage);
-    thenAccountRemittedUsageEquals(INSTANCE_HOURS_METRIC, expectedRemitted);
+    whenUsageIsTallied(ROSA, INSTANCE_HOURS, currentTotal, currentTotal);
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, prepaidCoverage);
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, expectedRemitted);
 
     BillableUsage overage =
         kafkaBridge
             .waitForKafkaMessage(
                 BILLABLE_USAGE,
-                MessageValidators.billableUsageMatchesWithValue(
-                    orgId, ROSA.getName(), expectedRemitted),
+                MessageValidators.billableUsageMatchesWithValue(orgId, ROSA, expectedRemitted),
                 1)
             .getFirst();
     whenRemittedUsageMarkedFailed(overage);
-    thenAccountCoveredUsageEquals(INSTANCE_HOURS_METRIC, prepaidCoverage);
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, prepaidCoverage);
 
-    whenUsageIsTallied(INSTANCE_HOURS_METRIC, 0.0, currentTotal);
+    whenUsageIsTallied(ROSA, INSTANCE_HOURS, 0.0, currentTotal);
     kafkaBridge.waitForKafkaMessage(
         BILLABLE_USAGE,
-        new DefaultMessageValidator<>(
-            usage ->
-                Objects.equals(orgId, usage.getOrgId())
-                    && Objects.equals(ROSA.getName(), usage.getProductId())
-                    && Math.abs(usage.getValue() - expectedRemitted) < 0.001
-                    && !Objects.equals(overage.getUuid(), usage.getUuid()),
-            BillableUsage.class),
+        MessageValidators.billableUsageMatchesValueExcludingUuid(
+            orgId, ROSA, expectedRemitted, overage.getUuid()),
         1);
 
-    thenAccountCoveredUsageEquals(INSTANCE_HOURS_METRIC, prepaidCoverage);
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, prepaidCoverage);
   }
 
   @Test
@@ -415,32 +386,32 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
             new ContractStub(
                 now.minusMonths(2),
                 end,
-                Map.of(INSTANCE_HOURS_AWS_DIMENSION, firstContractCovered),
+                Map.of(ROSA.getMetric(INSTANCE_HOURS).getAwsDimension(), firstContractCovered),
                 "license-a"),
             new ContractStub(
                 now.minusMonths(1),
                 end,
-                Map.of(INSTANCE_HOURS_AWS_DIMENSION, secondContractCovered),
+                Map.of(ROSA.getMetric(INSTANCE_HOURS).getAwsDimension(), secondContractCovered),
                 "license-z")));
 
     double firstCurrentTotal = 55.0;
-    whenUsageIsTallied(INSTANCE_HOURS_METRIC, firstCurrentTotal, firstCurrentTotal);
-    thenAccountRemittedUsageEquals(INSTANCE_HOURS_METRIC, 0.0);
+    whenUsageIsTallied(ROSA, INSTANCE_HOURS, firstCurrentTotal, firstCurrentTotal);
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, 0.0);
     // ALLOCATION_ORDER: same endDate → newer start (Z) first → Z:30 A:25
-    thenAccountCoveredUsageEquals(INSTANCE_HOURS_METRIC, firstCurrentTotal);
-    thenAccountCoveredUsageEquals(INSTANCE_HOURS_METRIC, secondContractCovered, "license-z");
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, firstCurrentTotal);
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, secondContractCovered, "license-z");
     thenAccountCoveredUsageEquals(
-        INSTANCE_HOURS_METRIC, firstCurrentTotal - secondContractCovered, "license-a");
+        ROSA, INSTANCE_HOURS, firstCurrentTotal - secondContractCovered, "license-a");
 
     double combinedCoverage = secondContractCovered + firstContractCovered;
     double secondCurrentTotal = 90.0;
     whenUsageIsTallied(
-        INSTANCE_HOURS_METRIC, secondCurrentTotal - firstCurrentTotal, secondCurrentTotal);
+        ROSA, INSTANCE_HOURS, secondCurrentTotal - firstCurrentTotal, secondCurrentTotal);
     thenAccountRemittedUsageEquals(
-        INSTANCE_HOURS_METRIC, secondCurrentTotal - combinedCoverage, "license-z");
-    thenAccountCoveredUsageEquals(INSTANCE_HOURS_METRIC, combinedCoverage);
-    thenAccountCoveredUsageEquals(INSTANCE_HOURS_METRIC, secondContractCovered, "license-z");
-    thenAccountCoveredUsageEquals(INSTANCE_HOURS_METRIC, firstContractCovered, "license-a");
+        ROSA, INSTANCE_HOURS, secondCurrentTotal - combinedCoverage, "license-z");
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, combinedCoverage);
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, secondContractCovered, "license-z");
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, firstContractCovered, "license-a");
   }
 
   @Test
@@ -453,19 +424,19 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
         "license-a", firstContractCovered, now.minusDays(10), now.plusDays(10));
 
     double firstCurrentTotal = 80.0;
-    whenUsageIsTallied(INSTANCE_HOURS_METRIC, firstCurrentTotal, firstCurrentTotal);
-    thenAccountRemittedUsageEquals(INSTANCE_HOURS_METRIC, 0.0);
-    thenAccountCoveredUsageEquals(INSTANCE_HOURS_METRIC, firstCurrentTotal);
+    whenUsageIsTallied(ROSA, INSTANCE_HOURS, firstCurrentTotal, firstCurrentTotal);
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, 0.0);
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, firstCurrentTotal);
 
     givenContractIsRemoved();
     contractsWiremock.clearAllRequests();
 
     double secondCurrentTotal = 90.0;
     whenUsageIsTallied(
-        INSTANCE_HOURS_METRIC, secondCurrentTotal - firstCurrentTotal, secondCurrentTotal);
+        ROSA, INSTANCE_HOURS, secondCurrentTotal - firstCurrentTotal, secondCurrentTotal);
     thenContractsApiWasCalled();
-    thenAccountRemittedUsageEquals(INSTANCE_HOURS_METRIC, 0.0);
-    thenAccountCoveredUsageEquals(INSTANCE_HOURS_METRIC, firstCurrentTotal);
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, 0.0);
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, firstCurrentTotal);
 
     double secondContractCovered = 40.0;
     givenRosaInstanceHoursContractWithLicense(
@@ -473,17 +444,17 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
 
     double thirdCurrentTotal = 100.0;
     whenUsageIsTallied(
-        INSTANCE_HOURS_METRIC, thirdCurrentTotal - secondCurrentTotal, thirdCurrentTotal);
-    thenAccountRemittedUsageEquals(INSTANCE_HOURS_METRIC, 0.0);
-    thenAccountCoveredUsageEquals(INSTANCE_HOURS_METRIC, thirdCurrentTotal);
+        ROSA, INSTANCE_HOURS, thirdCurrentTotal - secondCurrentTotal, thirdCurrentTotal);
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, 0.0);
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, thirdCurrentTotal);
 
     double stackedFloor = firstCurrentTotal + secondContractCovered;
     double forthCurrentTotal = 150.0;
     whenUsageIsTallied(
-        INSTANCE_HOURS_METRIC, forthCurrentTotal - thirdCurrentTotal, forthCurrentTotal);
+        ROSA, INSTANCE_HOURS, forthCurrentTotal - thirdCurrentTotal, forthCurrentTotal);
     thenAccountRemittedUsageEquals(
-        INSTANCE_HOURS_METRIC, forthCurrentTotal - stackedFloor, "license-y");
-    thenAccountCoveredUsageEquals(INSTANCE_HOURS_METRIC, stackedFloor);
+        ROSA, INSTANCE_HOURS, forthCurrentTotal - stackedFloor, "license-y");
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, stackedFloor);
   }
 
   @Test
@@ -497,24 +468,24 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
 
     givenRosaInstanceHoursContractWithLicense(
         "license-a", 100.0, oct9.minusDays(8), oct9.plusDays(1));
-    whenUsageIsTallied(INSTANCE_HOURS_METRIC, 80.0, 80.0, oct9);
-    thenAccountCoveredUsageForPeriodEquals(INSTANCE_HOURS_METRIC, 80.0, october);
-    thenAccountRemittedUsageForPeriodEquals(INSTANCE_HOURS_METRIC, 0.0, october);
+    whenUsageIsTallied(ROSA, INSTANCE_HOURS, 80.0, 80.0, oct9);
+    thenAccountCoveredUsageForPeriodEquals(ROSA, INSTANCE_HOURS, 80.0, october);
+    thenAccountRemittedUsageForPeriodEquals(ROSA, INSTANCE_HOURS, 0.0, october);
 
     givenContractIsRemoved();
     contractsWiremock.clearAllRequests();
-    whenUsageIsTallied(INSTANCE_HOURS_METRIC, 10.0, 90.0, oct12);
+    whenUsageIsTallied(ROSA, INSTANCE_HOURS, 10.0, 90.0, oct12);
     thenContractsApiWasCalled();
-    thenAccountCoveredUsageForPeriodEquals(INSTANCE_HOURS_METRIC, 80.0, october);
-    thenAccountRemittedUsageForPeriodEquals(INSTANCE_HOURS_METRIC, 0.0, october);
+    thenAccountCoveredUsageForPeriodEquals(ROSA, INSTANCE_HOURS, 80.0, october);
+    thenAccountRemittedUsageForPeriodEquals(ROSA, INSTANCE_HOURS, 0.0, october);
 
     givenRosaInstanceHoursContractWithLicense(
         "license-y", 40.0, nov1.minusHours(1), nov1.plusDays(29));
-    whenUsageIsTallied(INSTANCE_HOURS_METRIC, 50.0, 50.0, nov1);
-    thenAccountCoveredUsageForPeriodEquals(INSTANCE_HOURS_METRIC, 80.0, october);
-    thenAccountRemittedUsageForPeriodEquals(INSTANCE_HOURS_METRIC, 0.0, october);
-    thenAccountCoveredUsageForPeriodEquals(INSTANCE_HOURS_METRIC, 40.0, november);
-    thenAccountRemittedUsageForPeriodEquals(INSTANCE_HOURS_METRIC, 10.0, november, "license-y");
+    whenUsageIsTallied(ROSA, INSTANCE_HOURS, 50.0, 50.0, nov1);
+    thenAccountCoveredUsageForPeriodEquals(ROSA, INSTANCE_HOURS, 80.0, october);
+    thenAccountRemittedUsageForPeriodEquals(ROSA, INSTANCE_HOURS, 0.0, october);
+    thenAccountCoveredUsageForPeriodEquals(ROSA, INSTANCE_HOURS, 40.0, november);
+    thenAccountRemittedUsageForPeriodEquals(ROSA, INSTANCE_HOURS, 10.0, november, "license-y");
   }
 
   @Test
@@ -528,30 +499,28 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
 
     givenRosaInstanceHoursContracts(
         List.of(
-            new ContractStub(oct1, oct10, Map.of(INSTANCE_HOURS_AWS_DIMENSION, 100.0), "license-a"),
             new ContractStub(
-                oct13, oct29, Map.of(INSTANCE_HOURS_AWS_DIMENSION, 40.0), "license-y")));
+                oct1,
+                oct10,
+                Map.of(ROSA.getMetric(INSTANCE_HOURS).getAwsDimension(), 100.0),
+                "license-a"),
+            new ContractStub(
+                oct13,
+                oct29,
+                Map.of(ROSA.getMetric(INSTANCE_HOURS).getAwsDimension(), 40.0),
+                "license-y")));
 
-    whenUsageIsTallied(INSTANCE_HOURS_METRIC, 80.0, 80.0, oct9);
-    thenAccountRemittedUsageEquals(INSTANCE_HOURS_METRIC, 0.0);
-    thenAccountCoveredUsageEquals(INSTANCE_HOURS_METRIC, 80.0, "license-a");
-  }
-
-  private record RosaMetricScenario(MetricId metricId, String awsDimension, double billingFactor) {}
-
-  private List<RosaMetricScenario> rosaMetricScenarios() {
-    return List.of(
-        new RosaMetricScenario(CORES, CORES_AWS_DIMENSION, CORES_BILLING_FACTOR),
-        INSTANCE_HOURS_METRIC);
+    whenUsageIsTallied(ROSA, INSTANCE_HOURS, 80.0, 80.0, oct9);
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, 0.0);
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, 80.0, "license-a");
   }
 
   private Map<String, Double> equalCoverageForAllRosaMetrics(double contractBillableUnits) {
     return Map.of(
-        CORES_AWS_DIMENSION, contractBillableUnits,
-        INSTANCE_HOURS_AWS_DIMENSION, contractBillableUnits);
+        ROSA.getMetric(CORES).getAwsDimension(), contractBillableUnits,
+        ROSA.getMetric(INSTANCE_HOURS).getAwsDimension(), contractBillableUnits);
   }
 
-  /** Stub a single contract with equal billable units on every ROSA AWS dimension. */
   private void givenRosaContractWithEqualMetricCoverage(double contractBillableUnits) {
     contractsWiremock
         .forContractsAPI()
@@ -559,7 +528,6 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
             orgId, ROSA, equalCoverageForAllRosaMetrics(contractBillableUnits));
   }
 
-  /** Stub two active contracts; billable-usage aggregates coverage across both. */
   private void givenMultipleRosaContractsWithEqualMetricCoverage(
       double firstContractBillableUnits, double secondContractBillableUnits) {
     OffsetDateTime startDate = OffsetDateTime.now().minusMonths(1);
@@ -582,7 +550,6 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
                     null)));
   }
 
-  /** Stub contracts API so no contract exists for the org/product. */
   private void givenContractIsRemoved() {
     contractsWiremock.forContractsAPI().stubContractNotFound(orgId, ROSA);
   }
@@ -596,7 +563,10 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
             ROSA,
             List.of(
                 new ContractStub(
-                    start, end, Map.of(INSTANCE_HOURS_AWS_DIMENSION, billableUnits), licenseId)));
+                    start,
+                    end,
+                    Map.of(ROSA.getMetric(INSTANCE_HOURS).getAwsDimension(), billableUnits),
+                    licenseId)));
   }
 
   private void givenRosaInstanceHoursContracts(List<ContractStub> contracts) {
@@ -614,39 +584,36 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
     contractsWiremock.forContractsAPI().stubContractServiceError(orgId);
   }
 
-  /**
-   * Publish a TALLY summary per ROSA metric. {@code value} is the increment; {@code currentTotal}
-   * is the month-to-date cumulative usage.
-   */
   private void whenUsageIsTallied(double value, double currentTotal) {
-    for (RosaMetricScenario metric : rosaMetricScenarios()) {
-      whenUsageIsTallied(metric, value, currentTotal);
+    for (MetricId metricId : ROSA.getMetrics().keySet()) {
+      whenUsageIsTallied(ROSA, metricId, value, currentTotal);
     }
   }
 
-  private void whenUsageIsTallied(RosaMetricScenario metric, double value, double currentTotal) {
-    var tallySummary =
-        buildTallySummaryWithCurrentTotal(
-            orgId,
-            ROSA.getName(),
-            metric.metricId().toString(),
-            value,
-            currentTotal,
-            BillingProvider.AWS,
-            billingAccountId);
-    kafkaBridge.produceKafkaMessage(TALLY, tallySummary);
+  private void whenUsageIsTallied(
+      Product product, MetricId metricId, double value, double currentTotal) {
+    whenUsageIsTallied(
+        product,
+        metricId,
+        value,
+        currentTotal,
+        OffsetDateTime.now().minusHours(1).withOffsetSameInstant(ZoneOffset.UTC));
   }
 
   private void whenUsageIsTallied(
-      RosaMetricScenario metric, double value, double currentTotal, OffsetDateTime snapshotDate) {
+      Product product,
+      MetricId metricId,
+      double value,
+      double currentTotal,
+      OffsetDateTime snapshotDate) {
     var tallySummary =
         buildTallySummaryWithCurrentTotal(
             orgId,
-            ROSA.getName(),
-            metric.metricId().toString(),
+            product.getName(),
+            metricId.getValue(),
             value,
             currentTotal,
-            BillingProvider.AWS,
+            AWS,
             billingAccountId,
             snapshotDate);
     kafkaBridge.produceKafkaMessage(TALLY, tallySummary);
@@ -667,135 +634,15 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
             overage.getLicenseId()));
     // Same tally also has COVERED; wait until the overage remittance is FAILED.
     AwaitilityUtils.untilAsserted(() -> {
-      List<TallyRemittance> remittances =
-          service.getRemittancesByTally(overage.getTallyId().toString());
+      List<TallyRemittance> remittances = service.getRemittancesByTally(overage.getTallyId());
       assertTrue(
           remittances.stream()
+              .filter(r -> r.getRemittedPendingValue() != null)
               .anyMatch(remittance ->
                   RemittanceStatus.FAILED.name().equalsIgnoreCase(remittance.getStatus())
                       && Math.abs(remittance.getRemittedPendingValue() - overage.getValue())
                           < 0.001),
           "Overage remittance should be FAILED before retry");
-    });
-  }
-
-  private double thenAccountRemittedUsageEquals(
-      RosaMetricScenario metric, double expectedRemittedValue) {
-    AwaitilityUtils.untilAsserted(() ->
-        assertEquals(
-            expectedRemittedValue,
-            remittedRemittances(metric).stream()
-                .mapToDouble(MonthlyRemittance::getRemittedValue)
-                .sum(),
-            0.001,
-            "Account remittance mismatch for metric " + metric.metricId()));
-    return expectedRemittedValue;
-  }
-
-  private void thenAccountRemittedUsageEquals(
-      RosaMetricScenario metric, double expectedRemittedValue, String expectedLicenseId) {
-    AwaitilityUtils.untilAsserted(() -> {
-      MonthlyRemittance remittance =
-          remittedRemittances(metric).stream()
-              .filter(row -> expectedLicenseId.equals(row.getLicenseId()))
-              .findFirst()
-              .orElseThrow(() ->
-                  new AssertionError(
-                      "No overage remittance for license "
-                          + expectedLicenseId
-                          + " metric "
-                          + metric.metricId()));
-      assertEquals(
-          expectedRemittedValue,
-          remittance.getRemittedValue(),
-          0.001,
-          "Remittance mismatch for " + metric.metricId());
-      assertEquals(expectedLicenseId, remittance.getLicenseId(), "Remittance licenseId mismatch");
-    });
-  }
-
-  private void thenAccountCoveredUsageEquals(
-      RosaMetricScenario metric, double expectedCoveredValue) {
-    AwaitilityUtils.untilAsserted(() ->
-        assertEquals(
-            expectedCoveredValue,
-            coveredRemittances(metric).stream()
-                .mapToDouble(MonthlyRemittance::getRemittedValue)
-                .sum(),
-            0.001,
-            "COVERED remittance mismatch for metric " + metric.metricId()));
-  }
-
-  private void thenAccountCoveredUsageEquals(
-      RosaMetricScenario metric, double expectedCoveredValue, String expectedLicenseId) {
-    AwaitilityUtils.untilAsserted(() -> {
-      List<MonthlyRemittance> forLicense =
-          coveredRemittances(metric).stream()
-              .filter(row -> expectedLicenseId.equals(row.getLicenseId()))
-              .toList();
-      if (forLicense.isEmpty()) {
-        throw new AssertionError(
-            "No COVERED remittance for license "
-                + expectedLicenseId
-                + " metric "
-                + metric.metricId());
-      }
-      assertEquals(
-          expectedCoveredValue,
-          forLicense.stream().mapToDouble(MonthlyRemittance::getRemittedValue).sum(),
-          0.001,
-          "COVERED remittance mismatch for " + metric.metricId() + " license " + expectedLicenseId);
-    });
-  }
-
-  private void thenAccountCoveredUsageForPeriodEquals(
-      RosaMetricScenario metric, double expectedCoveredValue, String accumulationPeriod) {
-    AwaitilityUtils.untilAsserted(() ->
-        assertEquals(
-            expectedCoveredValue,
-            coveredRemittances(metric).stream()
-                .filter(row -> accumulationPeriod.equals(row.getAccumulationPeriod()))
-                .mapToDouble(MonthlyRemittance::getRemittedValue)
-                .sum(),
-            0.001,
-            "COVERED remittance mismatch for period " + accumulationPeriod));
-  }
-
-  private void thenAccountRemittedUsageForPeriodEquals(
-      RosaMetricScenario metric, double expectedRemittedValue, String accumulationPeriod) {
-    AwaitilityUtils.untilAsserted(() ->
-        assertEquals(
-            expectedRemittedValue,
-            remittedRemittances(metric).stream()
-                .filter(row -> accumulationPeriod.equals(row.getAccumulationPeriod()))
-                .mapToDouble(MonthlyRemittance::getRemittedValue)
-                .sum(),
-            0.001,
-            "Account remittance mismatch for period " + accumulationPeriod));
-  }
-
-  private void thenAccountRemittedUsageForPeriodEquals(
-      RosaMetricScenario metric,
-      double expectedRemittedValue,
-      String accumulationPeriod,
-      String expectedLicenseId) {
-    AwaitilityUtils.untilAsserted(() -> {
-      MonthlyRemittance remittance =
-          remittedRemittances(metric).stream()
-              .filter(row -> accumulationPeriod.equals(row.getAccumulationPeriod()))
-              .filter(row -> expectedLicenseId.equals(row.getLicenseId()))
-              .findFirst()
-              .orElseThrow(() ->
-                  new AssertionError(
-                      "No overage remittance for license "
-                          + expectedLicenseId
-                          + " period "
-                          + accumulationPeriod));
-      assertEquals(
-          expectedRemittedValue,
-          remittance.getRemittedValue(),
-          0.001,
-          "Remittance mismatch for period " + accumulationPeriod);
     });
   }
 
@@ -808,24 +655,26 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
             "Expected contracts API call for the skipped tally"));
   }
 
-  private List<MonthlyRemittance> remittedRemittances(RosaMetricScenario metric) {
-    return accountRemittances(metric).stream()
-        .filter(row -> !COVERED.name().equalsIgnoreCase(row.getRemittanceStatus()))
-        .toList();
+  private static double expectedInitialRemittance(
+      double metricUsage, double billingFactor, double contractBillableUnits) {
+    double contractValue = contractBillableUnits / billingFactor;
+    return Math.ceil(metricUsage * billingFactor) / billingFactor - contractValue;
   }
 
-  private List<MonthlyRemittance> coveredRemittances(RosaMetricScenario metric) {
-    return accountRemittances(metric).stream()
-        .filter(row -> COVERED.name().equalsIgnoreCase(row.getRemittanceStatus()))
-        .toList();
-  }
-
-  private List<MonthlyRemittance> accountRemittances(RosaMetricScenario metric) {
-    return service.getRemittances(
-        ROSA.getName(),
-        orgId,
-        metric.metricId().toString(),
-        BillingProvider.AWS.toTallyApiModel().value(),
-        billingAccountId);
+  /**
+   * Remittance after new usage when contracts may have changed mid-month.
+   *
+   * <p>{@code alreadyRemitted + ceil((totalUsage - alreadyRemitted) × billingFactor) /
+   * billingFactor − contractBillableUnits / billingFactor}
+   */
+  private static double expectedRemittanceAfterUsageIncrease(
+      double totalUsage,
+      double alreadyRemitted,
+      double billingFactor,
+      double contractBillableUnits) {
+    double contractValue = contractBillableUnits / billingFactor;
+    double applicableUsage =
+        Math.ceil((totalUsage - alreadyRemitted) * billingFactor) / billingFactor;
+    return alreadyRemitted + applicableUsage - contractValue;
   }
 }

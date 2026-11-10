@@ -22,10 +22,10 @@ package tests;
 
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
+import static domain.Product.ROSA;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static utils.TallySummaryBuilder.buildTallySummaryWithCurrentTotal;
 
 import api.MessageValidators;
 import com.redhat.swatch.component.tests.api.TestPlanName;
@@ -40,27 +40,27 @@ import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 import org.candlepin.subscriptions.billable.usage.TallySummary;
 import org.junit.jupiter.api.Test;
+import utils.TallySummaryBuilder;
 
 public class BillableUsageAggregationComponentTest extends BaseBillableUsageComponentTest {
 
-  private static final double BILLING_FACTOR = ROSA.getBillingFactor(CORES);
   private static final String LICENSE_A = "arn:aws:license-manager:1:license:a";
   private static final String LICENSE_B = "arn:aws:license-manager:1:license:b";
 
   @Test
   @TestPlanName("billable-usage-aggregation-TC001")
-  public void shouldAggregateMultipleTalliesIntoSingleHourlyMessage() {
+  void shouldAggregateMultipleTalliesIntoSingleHourlyMessage() {
     // Given: No contract coverage; a billing account ID shared across all tallies
-    contractsWiremock.forContractsAPI().stubNoContractCoverage(orgId, ROSA);
+    givenNoContractCoverageForProduct(ROSA);
     String billingAccountId = RandomUtils.generateRandom();
 
     double[] currentTotals = {10.0, 16.0, 23.0};
-    TallySummary[] tallies = new TallySummary[currentTotals.length];
 
+    // When: All three tallies are published to the TALLY topic
     for (int i = 0; i < currentTotals.length; i++) {
       double previousTotal = i > 0 ? currentTotals[i - 1] : 0.0;
-      tallies[i] =
-          buildTallySummaryWithCurrentTotal(
+      TallySummary tallySummary =
+          TallySummaryBuilder.buildTallySummaryWithCurrentTotal(
               orgId,
               ROSA.getName(),
               CORES.toString(),
@@ -68,24 +68,22 @@ public class BillableUsageAggregationComponentTest extends BaseBillableUsageComp
               currentTotals[i],
               BillingProvider.AWS,
               billingAccountId);
-    }
 
-    // When: All three tallies are published to the TALLY topic
-    for (TallySummary tally : tallies) {
-      kafkaBridge.produceKafkaMessage(TALLY, tally);
+      kafkaBridge.produceKafkaMessage(TALLY, tallySummary);
     }
 
     // And: Wait for all three billable-usage messages to be produced (ensures they're in the
     // stream)
     List<BillableUsage> usages =
         kafkaBridge.waitForKafkaMessage(
-            BILLABLE_USAGE, MessageValidators.billableUsageMatches(orgId, ROSA.getName()), 3);
+            BILLABLE_USAGE, MessageValidators.billableUsageMatches(orgId, ROSA), 3);
 
     // Then: One hourly aggregate message is emitted with totalValue = sum of individual billable
     // values. The service stores remittedValue = billableValue / billingFactor to prevent
     // double-ceiling, so the aggregate equals ceil(finalCurrentTotal × factor) = ceil(23 × 0.25) =
     // 6
-    double expectedTotalValue = Math.ceil(currentTotals[currentTotals.length - 1] * BILLING_FACTOR);
+    double billingFactor = ROSA.getBillingFactor(CORES);
+    double expectedTotalValue = Math.ceil(currentTotals[currentTotals.length - 1] * billingFactor);
 
     BillableUsageAggregate aggregate = whenHourlyAggregateContainsRemittances(usages);
 

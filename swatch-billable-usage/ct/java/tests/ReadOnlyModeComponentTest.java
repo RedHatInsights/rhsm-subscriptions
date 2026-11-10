@@ -24,6 +24,7 @@ import static api.BillableUsageUnleashService.ENABLE_READ_ONLY;
 import static api.MessageValidators.billableUsageMatchesTallyId;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
+import static domain.Product.ROSA;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static utils.TallySummaryBuilder.buildTallySummaryWithDefaults;
@@ -51,7 +52,7 @@ public class ReadOnlyModeComponentTest extends BaseBillableUsageComponentTest {
   @TestPlanName("read-only-TC001")
   @Test
   void shouldPauseAndResumeConsumerWithFeatureFlag() {
-    contractsWiremock.forContractsAPI().stubNoContractCoverage(orgId, ROSA);
+    givenNoContractCoverageForProduct(ROSA);
 
     // By default, the channel is consuming, so tallies produce billable usage
     TallySummary first = whenTallySummaryIsPublished();
@@ -88,7 +89,7 @@ public class ReadOnlyModeComponentTest extends BaseBillableUsageComponentTest {
             .findFirst()
             .orElseThrow(() -> new AssertionError("Read-only feature flag missing from /info"));
 
-    assertEquals(ENABLE_READ_ONLY, flag.getName());
+    assertEquals(ENABLE_READ_ONLY, flag.getName(), "Info endpoint should expose read-only flag");
     assertTrue(flag.getEnabled());
   }
 
