@@ -347,10 +347,10 @@ class SubscriptionRepositoryTest {
   @Test
   void filtersByLicenseIdViaContract() {
     OfferingEntity offering = persistRosaOffering("licenseSku");
-    var matching = persistAwsSubscription(offering, "subA", "license-a");
-    persistAwsSubscription(offering, "subB", "license-b");
+    var matching = persistAwsSubscriptionWithContractLicense(offering, "subA", "license-a");
+    persistAwsSubscriptionWithContractLicense(offering, "subB", "license-b");
 
-    var results = findByLicenseId("license-a");
+    var results = findByLicenseId("license-a", false);
 
     assertEquals(1, results.size());
     assertEquals(matching.getSubscriptionNumber(), results.get(0).getSubscriptionNumber());
@@ -360,9 +360,9 @@ class SubscriptionRepositoryTest {
   @Test
   void licenseIdFilterDoesNotMatchNullLicenseOnContract() {
     OfferingEntity offering = persistRosaOffering("nullLicenseSku");
-    persistAwsSubscription(offering, "subNull", null);
+    persistAwsSubscriptionWithContractLicense(offering, "subNull", null);
 
-    assertTrue(findByLicenseId("missing-license").isEmpty());
+    assertTrue(findByLicenseId("missing-license", false).isEmpty());
   }
 
   @TestTransaction
@@ -388,7 +388,50 @@ class SubscriptionRepositoryTest {
             .licenseId("license-start")
             .build());
 
-    assertTrue(findByLicenseId("license-start").isEmpty());
+    assertTrue(findByLicenseId("license-start", false).isEmpty());
+  }
+
+  @TestTransaction
+  @Test
+  void filtersByLicenseIdOnSubscriptionWhenEnabled() {
+    OfferingEntity offering = persistRosaOffering("subLicenseSku");
+    var matching = persistAwsSubscriptionWithSubscriptionLicense(offering, "subA", "license-a");
+    persistAwsSubscriptionWithSubscriptionLicense(offering, "subB", "license-b");
+
+    var results = findByLicenseId("license-a", true);
+
+    assertEquals(1, results.size());
+    assertEquals(matching.getSubscriptionNumber(), results.get(0).getSubscriptionNumber());
+  }
+
+  @TestTransaction
+  @Test
+  void licenseIdOnSubscriptionDoesNotMatchNullWhenEnabled() {
+    OfferingEntity offering = persistRosaOffering("nullSubLicenseSku");
+    persistAwsSubscriptionWithSubscriptionLicense(offering, "subNull", null);
+
+    assertTrue(findByLicenseId("missing-license", true).isEmpty());
+  }
+
+  @TestTransaction
+  @Test
+  void licenseIdFilterUsesOnlySourceSelectedByFlag() {
+    OfferingEntity offering = persistRosaOffering("mixedLicenseSku");
+    var subscription = persistAwsSubscriptionWithContractLicense(offering, "subMixed", "license-b");
+    subscription.setLicenseId("license-a");
+    subscriptionRepo.persistAndFlush(subscription);
+
+    var bySubscriptionLicense = findByLicenseId("license-a", true);
+    assertEquals(1, bySubscriptionLicense.size());
+    assertEquals(
+        subscription.getSubscriptionNumber(), bySubscriptionLicense.get(0).getSubscriptionNumber());
+    assertTrue(findByLicenseId("license-b", true).isEmpty());
+
+    var byContractLicense = findByLicenseId("license-b", false);
+    assertEquals(1, byContractLicense.size());
+    assertEquals(
+        subscription.getSubscriptionNumber(), byContractLicense.get(0).getSubscriptionNumber());
+    assertTrue(findByLicenseId("license-a", false).isEmpty());
   }
 
   @TestTransaction
@@ -926,7 +969,7 @@ class SubscriptionRepositoryTest {
     return offering;
   }
 
-  private SubscriptionEntity persistAwsSubscription(
+  private SubscriptionEntity persistAwsSubscriptionWithContractLicense(
       OfferingEntity offering, String subId, String licenseId) {
     SubscriptionEntity subscription = createSubscription("org123", subId, BILLING_ACCOUNT_ID);
     subscription.setOffering(offering);
@@ -949,7 +992,18 @@ class SubscriptionRepositoryTest {
     return subscription;
   }
 
-  private List<SubscriptionEntity> findByLicenseId(String licenseId) {
+  private SubscriptionEntity persistAwsSubscriptionWithSubscriptionLicense(
+      OfferingEntity offering, String subId, String licenseId) {
+    SubscriptionEntity subscription = createSubscription("org123", subId, BILLING_ACCOUNT_ID);
+    subscription.setOffering(offering);
+    subscription.setBillingProvider(BillingProvider.AWS);
+    subscription.setLicenseId(licenseId);
+    subscriptionRepo.persistAndFlush(subscription);
+    return subscription;
+  }
+
+  private List<SubscriptionEntity> findByLicenseId(
+      String licenseId, boolean useSubscriptionLicenseId) {
     return subscriptionRepo.findByCriteria(
         DbReportCriteria.builder()
             .orgId("org123")
@@ -957,6 +1011,7 @@ class SubscriptionRepositoryTest {
             .billingProvider(BillingProvider.AWS)
             .billingAccountId(BILLING_ACCOUNT_ID)
             .licenseId(licenseId)
+            .useSubscriptionLicenseId(useSubscriptionLicenseId)
             .beginning(now)
             .ending(now)
             .build());

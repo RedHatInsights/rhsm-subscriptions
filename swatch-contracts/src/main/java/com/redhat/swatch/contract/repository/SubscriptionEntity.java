@@ -339,7 +339,12 @@ public class SubscriptionEntity extends ModificationTrackedEntity {
         builder.like(root.get(SubscriptionEntity_.billingAccountId), billingAccountId + "%");
   }
 
-  private static Specification<SubscriptionEntity> hasLicenseId(String licenseId) {
+  private static Specification<SubscriptionEntity> hasLicenseId(
+      String licenseId, boolean useSubscriptionLicenseId) {
+    if (useSubscriptionLicenseId) {
+      return (root, query, builder) ->
+          builder.equal(root.get(SubscriptionEntity_.licenseId), licenseId);
+    }
     return (root, query, builder) -> {
       var subquery = query.subquery(Integer.class);
       var contractRoot = subquery.from(ContractEntity.class);
@@ -443,7 +448,10 @@ public class SubscriptionEntity extends ModificationTrackedEntity {
     }
     if (Objects.nonNull(dbReportCriteria.getLicenseId())
         && !dbReportCriteria.getLicenseId().isBlank()) {
-      searchCriteria = searchCriteria.and(hasLicenseId(dbReportCriteria.getLicenseId()));
+      searchCriteria =
+          searchCriteria.and(
+              hasLicenseId(
+                  dbReportCriteria.getLicenseId(), dbReportCriteria.isUseSubscriptionLicenseId()));
     }
     if (Objects.nonNull(dbReportCriteria.getMetricId())
         || Objects.nonNull(dbReportCriteria.getHypervisorReportCategory())) {
