@@ -68,7 +68,7 @@ public class TallyIngestionComponentTest extends BaseBillableUsageComponentTest 
   public void testProcessValidHourlyPaygTallySummaryForAzure() {
     // Given: No contract coverage; ROSA tally with Azure billing provider and a known account ID
     String azureAccountId = RandomUtils.generateRandom();
-    contractsWiremock.setupNoContractCoverage(orgId, ROSA.getName());
+    contractsWiremock.forContractsAPI().stubNoContractCoverage(orgId, ROSA);
 
     // When: One tally snapshot is published with billing_provider=azure
     TallySummary tallySummary =
@@ -103,7 +103,7 @@ public class TallyIngestionComponentTest extends BaseBillableUsageComponentTest 
   @TestPlanName("billable-usage-tally-ingestion-TC002")
   public void testIgnoreTotalHardwareMeasurementDuplicates() {
     // Given: No contract coverage; a snapshot with both PHYSICAL and TOTAL measurements for CORES
-    contractsWiremock.setupNoContractCoverage(orgId, ROSA.getName());
+    contractsWiremock.forContractsAPI().stubNoContractCoverage(orgId, ROSA);
     String billingAccountId = RandomUtils.generateRandom();
 
     double physicalValue = 8.0;
@@ -183,7 +183,7 @@ public class TallyIngestionComponentTest extends BaseBillableUsageComponentTest 
   public void testMapOneTallySummaryToMultipleBillableUsages() {
     // Given: No contract coverage; a single snapshot with two PHYSICAL measurements (Cores and
     // Instance-hours), each with its own billing factor
-    contractsWiremock.setupNoContractCoverage(orgId, ROSA.getName());
+    contractsWiremock.forContractsAPI().stubNoContractCoverage(orgId, ROSA);
     String billingAccountId = RandomUtils.generateRandom();
 
     double coresValue = 4.0;
@@ -276,7 +276,7 @@ public class TallyIngestionComponentTest extends BaseBillableUsageComponentTest 
   @TestPlanName("billable-usage-tally-ingestion-TC004")
   public void testRejectInvalidSnapshotDateWithoutServiceCrash() {
     // Given: No contract coverage; a raw JSON payload with snapshot_date="testerday" (unparseable)
-    contractsWiremock.setupNoContractCoverage(orgId, ROSA.getName());
+    contractsWiremock.forContractsAPI().stubNoContractCoverage(orgId, ROSA);
     String billingAccountId = RandomUtils.generateRandom();
 
     // Raw JSON payload bypasses the typed API to guarantee the bad string reaches the consumer

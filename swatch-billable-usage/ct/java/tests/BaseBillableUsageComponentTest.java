@@ -190,7 +190,7 @@ public class BaseBillableUsageComponentTest {
   }
 
   protected void givenNoContractCoverageForRhelAddon() {
-    contractsWiremock.setupNoContractCoverage(orgId, RHEL_PAYG_ADDON.getName());
+    contractsWiremock.forContractsAPI().stubNoContractCoverage(orgId, RHEL_PAYG_ADDON);
   }
 
   protected BillableUsage givenFirstRemittanceSucceeded(double value, String billingAccountId) {

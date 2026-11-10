@@ -553,8 +553,10 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
 
   /** Stub a single contract with equal billable units on every ROSA AWS dimension. */
   private void givenRosaContractWithEqualMetricCoverage(double contractBillableUnits) {
-    contractsWiremock.setupMultiMetricContractCoverage(
-        orgId, ROSA.getName(), equalCoverageForAllRosaMetrics(contractBillableUnits));
+    contractsWiremock
+        .forContractsAPI()
+        .stubMultiMetricContractCoverage(
+            orgId, ROSA, equalCoverageForAllRosaMetrics(contractBillableUnits));
   }
 
   /** Stub two active contracts; billable-usage aggregates coverage across both. */
@@ -562,49 +564,54 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
       double firstContractBillableUnits, double secondContractBillableUnits) {
     OffsetDateTime startDate = OffsetDateTime.now().minusMonths(1);
     OffsetDateTime endDate = OffsetDateTime.now().plusYears(1);
-    contractsWiremock.setupContracts(
-        orgId,
-        ROSA.getName(),
-        List.of(
-            new ContractStub(
-                startDate,
-                endDate,
-                equalCoverageForAllRosaMetrics(firstContractBillableUnits),
-                null),
-            new ContractStub(
-                startDate,
-                endDate,
-                equalCoverageForAllRosaMetrics(secondContractBillableUnits),
-                null)));
+    contractsWiremock
+        .forContractsAPI()
+        .stubContracts(
+            orgId,
+            ROSA,
+            List.of(
+                new ContractStub(
+                    startDate,
+                    endDate,
+                    equalCoverageForAllRosaMetrics(firstContractBillableUnits),
+                    null),
+                new ContractStub(
+                    startDate,
+                    endDate,
+                    equalCoverageForAllRosaMetrics(secondContractBillableUnits),
+                    null)));
   }
 
   /** Stub contracts API so no contract exists for the org/product. */
   private void givenContractIsRemoved() {
-    contractsWiremock.setupContractNotFound(orgId, ROSA.getName());
+    contractsWiremock.forContractsAPI().stubContractNotFound(orgId, ROSA);
   }
 
   private void givenRosaInstanceHoursContractWithLicense(
       String licenseId, double billableUnits, OffsetDateTime start, OffsetDateTime end) {
-    contractsWiremock.setupContracts(
-        orgId,
-        ROSA.getName(),
-        List.of(
-            new ContractStub(
-                start, end, Map.of(INSTANCE_HOURS_AWS_DIMENSION, billableUnits), licenseId)));
+    contractsWiremock
+        .forContractsAPI()
+        .stubContracts(
+            orgId,
+            ROSA,
+            List.of(
+                new ContractStub(
+                    start, end, Map.of(INSTANCE_HOURS_AWS_DIMENSION, billableUnits), licenseId)));
   }
 
   private void givenRosaInstanceHoursContracts(List<ContractStub> contracts) {
-    contractsWiremock.setupContracts(orgId, ROSA.getName(), contracts);
+    contractsWiremock.forContractsAPI().stubContracts(orgId, ROSA, contracts);
   }
 
   private void givenRosaEmptyMetricContractWithLicense(
       String licenseId, OffsetDateTime start, OffsetDateTime end) {
-    contractsWiremock.setupContracts(
-        orgId, ROSA.getName(), List.of(new ContractStub(start, end, Map.of(), licenseId)));
+    contractsWiremock
+        .forContractsAPI()
+        .stubContracts(orgId, ROSA, List.of(new ContractStub(start, end, Map.of(), licenseId)));
   }
 
   private void givenContractsApiReturnsServerError() {
-    contractsWiremock.setupContractServiceError(orgId);
+    contractsWiremock.forContractsAPI().stubContractServiceError(orgId);
   }
 
   /**

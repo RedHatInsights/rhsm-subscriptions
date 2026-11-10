@@ -32,7 +32,7 @@ public class BillableUsageNegativeComponentTest extends BaseBillableUsageCompone
   @TestPlanName("billable-usage-negative-TC001")
   public void shouldSurviveNullTallyMessage() {
     // Given: Contract with zero coverage so all probe usage becomes billable
-    contractsWiremock.setupNoContractCoverage(orgId, ROSA.getName());
+    contractsWiremock.forContractsAPI().stubNoContractCoverage(orgId, ROSA);
 
     // When: Null message published; valid probe follows to confirm consumer is still alive
     kafkaBridge.produceKafkaMessage(TALLY, null);
@@ -47,7 +47,7 @@ public class BillableUsageNegativeComponentTest extends BaseBillableUsageCompone
   @TestPlanName("billable-usage-negative-TC002")
   public void shouldSurviveMalformedTallyDeserialization() {
     // Given: Contract with zero coverage so all probe usage becomes billable
-    contractsWiremock.setupNoContractCoverage(orgId, ROSA.getName());
+    contractsWiremock.forContractsAPI().stubNoContractCoverage(orgId, ROSA);
 
     // When: Malformed message published; valid probe follows to confirm consumer is still alive
     kafkaBridge.produceKafkaMessage(TALLY, "not-a-valid-tally-summary");
