@@ -23,11 +23,14 @@ package api;
 import com.redhat.swatch.billable.usage.openapi.model.MonthlyRemittance;
 import com.redhat.swatch.billable.usage.openapi.model.TallyRemittance;
 import com.redhat.swatch.component.tests.api.SwatchService;
+import com.redhat.swatch.configuration.registry.MetricId;
+import domain.Product;
 import io.restassured.common.mapper.TypeRef;
 import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 import org.apache.http.HttpStatus;
 
-/** Service class for billable usage API operations in component tests */
 public class BillableUsageSwatchService extends SwatchService {
 
   private static final String ENDPOINT_PREFIX = "/api/swatch-billable-usage/internal";
@@ -36,43 +39,29 @@ public class BillableUsageSwatchService extends SwatchService {
   private static final String REMITTANCE_ENDPOINT_BY_TALLY_ID =
       ENDPOINT_PREFIX + "/remittance/accountRemittances/{tallyId}";
   private static final String FLUSH_ENDPOINT = ENDPOINT_PREFIX + "/rpc/topics/flush";
+  private static final String DELETE_REMITTANCES_ENDPOINT =
+      ENDPOINT_PREFIX + "/rpc/remittance/{orgId}";
 
-  /**
-   * Get remittances by tally ID using internal API
-   *
-   * @param tallyId the tally ID to look up
-   * @return list of remittances for the given tally ID
-   */
-  public List<TallyRemittance> getRemittancesByTally(String tallyId) {
+  public List<TallyRemittance> getRemittancesByTally(UUID tallyId) {
+    Objects.requireNonNull(tallyId, "tallyId must not be null");
     return given()
-        .get(REMITTANCE_ENDPOINT_BY_TALLY_ID, tallyId)
+        .get(REMITTANCE_ENDPOINT_BY_TALLY_ID, tallyId.toString())
         .then()
         .statusCode(HttpStatus.SC_OK)
         .extract()
         .as(new TypeRef<List<TallyRemittance>>() {});
   }
 
-  /**
-   * Get monthly remittances for an account (product, org, metric, billing provider, billing
-   * account). Use to verify remittances per accumulation period (e.g. last month vs current month).
-   *
-   * @param productId product ID
-   * @param orgId organization ID
-   * @param metricId metric ID
-   * @param billingProvider billing provider
-   * @param billingAccountId billing account ID
-   * @return list of monthly remittances for the account
-   */
   public List<MonthlyRemittance> getRemittances(
-      String productId,
       String orgId,
-      String metricId,
+      Product product,
+      MetricId metricId,
       String billingProvider,
       String billingAccountId) {
     return given()
-        .queryParam("productId", productId)
         .queryParam("orgId", orgId)
-        .queryParam("metricId", metricId)
+        .queryParam("productId", product.getName())
+        .queryParam("metricId", metricId.toString())
         .queryParam("billingProvider", billingProvider)
         .queryParam("billingAccountId", billingAccountId)
         .get(REMITTANCE_ENDPOINT)
@@ -82,8 +71,12 @@ public class BillableUsageSwatchService extends SwatchService {
         .as(new TypeRef<List<MonthlyRemittance>>() {});
   }
 
-  /** Flush Kafka topics using internal API. */
   public void flushBillableUsageAggregationTopic() {
     given().post(FLUSH_ENDPOINT).then().statusCode(HttpStatus.SC_OK);
+  }
+
+  public void deleteRemittancesAssociatedWithOrg(String orgId) {
+    Objects.requireNonNull(orgId, "orgId must not be null");
+    given().delete(DELETE_REMITTANCES_ENDPOINT, orgId).then().statusCode(HttpStatus.SC_OK);
   }
 }

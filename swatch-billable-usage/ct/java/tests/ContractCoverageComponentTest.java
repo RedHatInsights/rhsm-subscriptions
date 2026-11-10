@@ -22,21 +22,20 @@ package tests;
 
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
+import static domain.BillingProvider.AWS;
+import static domain.Product.ANSIBLE_AAP_MANAGED;
+import static domain.Product.ROSA;
 import static domain.RemittanceStatus.COVERED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static utils.TallySummaryBuilder.buildTallySummary;
 
 import api.MessageValidators;
-import com.redhat.swatch.billable.usage.openapi.model.MonthlyRemittance;
 import com.redhat.swatch.billable.usage.openapi.model.TallyRemittance;
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.utils.AwaitilitySettings;
 import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.configuration.registry.MetricId;
-import com.redhat.swatch.configuration.util.MetricIdUtils;
-import domain.BillingProvider;
 import domain.ContractStub;
 import domain.Product;
 import domain.RemittanceStatus;
@@ -45,17 +44,15 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.UUID;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.TallySummary;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import utils.TallySummaryBuilder;
 
 public class ContractCoverageComponentTest extends BaseBillableUsageComponentTest {
 
-  private static final MetricId INSTANCE_HOURS = MetricIdUtils.getInstanceHours();
-  private static final MetricId MANAGED_NODES = MetricIdUtils.getManagedNodes();
-  private static final String CORES_AWS_DIMENSION = ROSA.getMetric(CORES).getAwsDimension();
   private static final OffsetDateTime ANSIBLE_CONTRACT_START_MONTH =
       OffsetDateTime.of(2026, 1, 10, 12, 0, 0, 0, ZoneOffset.UTC);
   private static final OffsetDateTime ANSIBLE_GRATIS_SNAPSHOT_DATE =
@@ -70,110 +67,102 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
 
   @Test
   @TestPlanName("billable-usage-contract-coverage-TC001")
-  void testSkipProcessingWhenContractEnabledProductHasNoContract() {
+  void shouldSkipProcessingWhenContractEnabledProductHasNoContract() {
     givenNoContractExistsForRosa();
 
-    whenRosaTallyIsPublished(CORES.toString(), 20.0, OffsetDateTime.now(ZoneOffset.UTC));
+    whenRosaTallyIsPublished(CORES, 20.0, OffsetDateTime.now(ZoneOffset.UTC));
 
-    thenAccountRemittedUsageEquals(ROSA.getName(), CORES.toString(), 0.0);
-    thenNoBillableUsageKafkaMessage(ROSA.getName());
+    thenAccountRemittedUsageEquals(ROSA, CORES, 0.0);
+    thenNoBillableUsageKafkaMessage(ROSA);
   }
 
   @Test
   @TestPlanName("billable-usage-contract-coverage-TC002")
-  void testContractFullyCoversUsage() {
+  void shouldFullyCoverUsageWhenWithinContract() {
     double contractMetricValue = 10.0;
     double currentTotal = 4.0;
     givenRosaContractCoverage(INSTANCE_HOURS, contractMetricValue);
 
-    whenRosaTallyIsPublished(
-        INSTANCE_HOURS.toString(), currentTotal, OffsetDateTime.now(ZoneOffset.UTC));
+    whenRosaTallyIsPublished(INSTANCE_HOURS, currentTotal, OffsetDateTime.now(ZoneOffset.UTC));
 
-    thenAccountRemittedUsageEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 0.0);
-    thenAccountCoveredUsageSumEquals(ROSA.getName(), INSTANCE_HOURS.toString(), currentTotal);
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, 0.0);
+    thenAccountCoveredUsageSumEquals(ROSA, INSTANCE_HOURS, currentTotal);
   }
 
   @Test
   @TestPlanName("billable-usage-contract-coverage-TC003")
-  void testContractPartiallyCoversUsage() {
+  void shouldPartiallyCoverUsageWhenAboveContract() {
     double contractMetricValue = 3.0;
     double currentTotal = 4.0;
     givenRosaContractCoverage(INSTANCE_HOURS, contractMetricValue);
 
     TallySummary tallySummary =
-        whenRosaTallyIsPublished(
-            INSTANCE_HOURS.toString(), currentTotal, OffsetDateTime.now(ZoneOffset.UTC));
-    String tallyId = tallySummary.getTallySnapshots().getFirst().getId().toString();
+        whenRosaTallyIsPublished(INSTANCE_HOURS, currentTotal, OffsetDateTime.now(ZoneOffset.UTC));
 
-    thenTallyRemittancePendingValueEquals(tallyId, 1.0);
-    thenAccountCoveredUsageSumEquals(
-        ROSA.getName(), INSTANCE_HOURS.toString(), contractMetricValue);
+    thenTallyRemittancePendingValueEquals(tallySummary, 1.0);
+    thenAccountCoveredUsageSumEquals(ROSA, INSTANCE_HOURS, contractMetricValue);
   }
 
   @Test
   @TestPlanName("billable-usage-contract-coverage-TC004")
-  void testContractWithNoMetricsStillAllowsBilling() {
+  void shouldBillWhenContractHasNoMetrics() {
     double currentTotal = 4.0;
     givenRosaContractWithEmptyMetrics();
 
     TallySummary tallySummary =
-        whenRosaTallyIsPublished(
-            INSTANCE_HOURS.toString(), currentTotal, OffsetDateTime.now(ZoneOffset.UTC));
-    String tallyId = tallySummary.getTallySnapshots().getFirst().getId().toString();
+        whenRosaTallyIsPublished(INSTANCE_HOURS, currentTotal, OffsetDateTime.now(ZoneOffset.UTC));
 
-    thenTallyRemittancePendingValueEquals(tallyId, currentTotal);
+    thenTallyRemittancePendingValueEquals(tallySummary, currentTotal);
   }
 
   @Test
   @TestPlanName("billable-usage-contract-coverage-TC005")
-  void testCreateGratisRemittanceWithoutKafkaEmission() {
+  void shouldCreateGratisRemittanceWithoutKafkaEmission() {
     double usageValue = 2.0;
     givenAnsibleContractStartingInCurrentMonth(ANSIBLE_GRATIS_SNAPSHOT_DATE);
 
     TallySummary tallySummary =
         whenAnsibleTallyIsPublished(usageValue, ANSIBLE_GRATIS_SNAPSHOT_DATE);
-    String tallyId = tallySummary.getTallySnapshots().getFirst().getId().toString();
 
-    thenTallyRemittanceStatusEquals(tallyId, RemittanceStatus.GRATIS);
-    thenNoBillableUsageKafkaMessage(ANSIBLE_AAP_MANAGED.getName());
+    thenTallyRemittanceStatusEquals(tallySummary, RemittanceStatus.GRATIS);
+    thenNoBillableUsageKafkaMessage(ANSIBLE_AAP_MANAGED);
   }
 
   @Test
   @TestPlanName("billable-usage-contract-coverage-TC006")
-  void testGratisNotAppliedInMonthAfterContractStart() {
+  void shouldNotApplyGratisInMonthAfterContractStart() {
     double usageValue = 2.0;
     givenAnsibleContractStartingInCurrentMonth(ANSIBLE_CONTRACT_START_MONTH);
 
     TallySummary tallySummary =
         whenAnsibleTallyIsPublished(usageValue, ANSIBLE_NEXT_MONTH_SNAPSHOT_DATE);
-    String tallyId = tallySummary.getTallySnapshots().getFirst().getId().toString();
 
-    thenTallyRemittanceStatusEquals(tallyId, RemittanceStatus.PENDING);
-    thenBillableUsageKafkaMessageEmitted(ANSIBLE_AAP_MANAGED.getName(), usageValue);
+    thenTallyRemittanceStatusEquals(tallySummary, RemittanceStatus.PENDING);
+    thenBillableUsageKafkaMessageEmitted(ANSIBLE_AAP_MANAGED, usageValue);
   }
 
   @Test
   @TestPlanName("billable-usage-contract-coverage-TC007")
-  void testResolveAwsDimensionAsContractMetricId() {
+  void shouldResolveAwsDimensionAsContractMetricId() {
     double contractMetricValue = 10.0;
     double currentTotal = 4.0;
     // Contract stub uses AWS dimension (four_vcpu_hour), not the SWATCH metric id (Cores).
-    givenRosaContractCoverageOnAwsDimension(CORES_AWS_DIMENSION, contractMetricValue);
+    givenRosaContractCoverage(CORES, contractMetricValue);
 
-    whenRosaTallyIsPublished(CORES.toString(), currentTotal, OffsetDateTime.now(ZoneOffset.UTC));
+    whenRosaTallyIsPublished(CORES, currentTotal, OffsetDateTime.now(ZoneOffset.UTC));
 
-    thenAccountRemittedUsageEquals(ROSA.getName(), CORES.toString(), 0.0);
+    thenAccountRemittedUsageEquals(ROSA, CORES, 0.0);
   }
 
   @Test
   @TestPlanName("billable-usage-contract-coverage-TC008")
-  void testHandleContractsApiUnavailable() {
+  void shouldSkipProcessingWhenContractsApiUnavailable() {
     givenContractsApiReturnsServerError();
 
-    whenRosaTallyIsPublished(CORES.toString(), 8.0, OffsetDateTime.now(ZoneOffset.UTC));
+    whenRosaTallyIsPublished(CORES, 8.0, OffsetDateTime.now(ZoneOffset.UTC));
 
-    thenAccountRemittedUsageEquals(ROSA.getName(), CORES.toString(), 0.0);
-    thenNoBillableUsageKafkaMessage(ROSA.getName());
+    thenAccountRemittedUsageEquals(ROSA, CORES, 0.0);
+    thenNoBillableUsageKafkaMessage(ROSA);
   }
 
   @Test
@@ -195,9 +184,9 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
                 Map.of(awsDimension, 3.0),
                 "arn:aws:license-manager:1:license:b")));
 
-    whenRosaTallyIsPublished(INSTANCE_HOURS.toString(), 5.0, OffsetDateTime.now(ZoneOffset.UTC));
+    whenRosaTallyIsPublished(INSTANCE_HOURS, 5.0, OffsetDateTime.now(ZoneOffset.UTC));
 
-    thenAccountRemittedUsageEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 0.0);
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, 0.0);
   }
 
   @Test
@@ -221,13 +210,12 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
                 newerLicense)));
 
     TallySummary tallySummary =
-        whenRosaTallyIsPublished(
-            INSTANCE_HOURS.toString(), 5.0, OffsetDateTime.now(ZoneOffset.UTC));
-    String tallyId = tallySummary.getTallySnapshots().getFirst().getId().toString();
+        whenRosaTallyIsPublished(INSTANCE_HOURS, 5.0, OffsetDateTime.now(ZoneOffset.UTC));
+    UUID tallyId = tallySummary.getTallySnapshots().getFirst().getId();
 
-    thenAccountRemittedUsageEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 1.0, newerLicense);
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, 1.0, newerLicense);
     thenTallyRemittancePendingValueAndLicenseEquals(tallyId, 1.0, newerLicense);
-    thenBillableUsageKafkaMessageWithLicense(ROSA.getName(), 1.0, newerLicense);
+    thenBillableUsageKafkaMessageWithLicense(ROSA, 1.0, newerLicense);
   }
 
   @Test
@@ -251,13 +239,12 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
                 null)));
 
     TallySummary tallySummary =
-        whenRosaTallyIsPublished(
-            INSTANCE_HOURS.toString(), 5.0, OffsetDateTime.now(ZoneOffset.UTC));
-    String tallyId = tallySummary.getTallySnapshots().getFirst().getId().toString();
+        whenRosaTallyIsPublished(INSTANCE_HOURS, 5.0, OffsetDateTime.now(ZoneOffset.UTC));
+    UUID tallyId = tallySummary.getTallySnapshots().getFirst().getId();
 
-    thenAccountRemittedUsageEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 1.0, licensedId);
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, 1.0, licensedId);
     thenTallyRemittancePendingValueAndLicenseEquals(tallyId, 1.0, licensedId);
-    thenBillableUsageKafkaMessageWithLicense(ROSA.getName(), 1.0, licensedId);
+    thenBillableUsageKafkaMessageWithLicense(ROSA, 1.0, licensedId);
   }
 
   @Test
@@ -283,13 +270,12 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
                 newestLicense)));
 
     TallySummary tallySummary = whenAnsibleTallyIsPublished(3.0, ANSIBLE_GRATIS_SNAPSHOT_DATE);
-    String tallyId = tallySummary.getTallySnapshots().getFirst().getId().toString();
+    UUID tallyId = tallySummary.getTallySnapshots().getFirst().getId();
 
-    thenAccountRemittedUsageEquals(
-        ANSIBLE_AAP_MANAGED.getName(), MANAGED_NODES.toString(), 1.0, newestLicense);
+    thenAccountRemittedUsageEquals(ANSIBLE_AAP_MANAGED, MANAGED_NODES, 1.0, newestLicense);
     thenTallyRemittanceStatusLicenseAndValueEquals(
         tallyId, RemittanceStatus.PENDING, newestLicense, 1.0);
-    thenBillableUsageKafkaMessageWithLicense(ANSIBLE_AAP_MANAGED.getName(), 1.0, newestLicense);
+    thenBillableUsageKafkaMessageWithLicense(ANSIBLE_AAP_MANAGED, 1.0, newestLicense);
   }
 
   @Test
@@ -314,13 +300,12 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
                 newestLicense)));
 
     TallySummary tallySummary = whenAnsibleTallyIsPublished(3.0, snapshotDate);
-    String tallyId = tallySummary.getTallySnapshots().getFirst().getId().toString();
+    UUID tallyId = tallySummary.getTallySnapshots().getFirst().getId();
 
-    thenAccountRemittedUsageEquals(
-        ANSIBLE_AAP_MANAGED.getName(), MANAGED_NODES.toString(), 1.0, newestLicense);
+    thenAccountRemittedUsageEquals(ANSIBLE_AAP_MANAGED, MANAGED_NODES, 1.0, newestLicense);
     thenTallyRemittanceStatusLicenseAndValueEquals(
         tallyId, RemittanceStatus.GRATIS, newestLicense, 1.0);
-    thenNoBillableUsageKafkaMessage(ANSIBLE_AAP_MANAGED.getName());
+    thenNoBillableUsageKafkaMessage(ANSIBLE_AAP_MANAGED);
   }
 
   @Test
@@ -340,16 +325,13 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
                 sameStart, end, Map.of(awsDimension, 2.0), lexicographicallySmallerLicenseId)));
 
     TallySummary tallySummary =
-        whenRosaTallyIsPublished(
-            INSTANCE_HOURS.toString(), 5.0, OffsetDateTime.now(ZoneOffset.UTC));
-    String tallyId = tallySummary.getTallySnapshots().getFirst().getId().toString();
+        whenRosaTallyIsPublished(INSTANCE_HOURS, 5.0, OffsetDateTime.now(ZoneOffset.UTC));
+    UUID tallyId = tallySummary.getTallySnapshots().getFirst().getId();
 
-    thenAccountRemittedUsageEquals(
-        ROSA.getName(), INSTANCE_HOURS.toString(), 1.0, lexicographicallySmallerLicenseId);
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, 1.0, lexicographicallySmallerLicenseId);
     thenTallyRemittancePendingValueAndLicenseEquals(
         tallyId, 1.0, lexicographicallySmallerLicenseId);
-    thenBillableUsageKafkaMessageWithLicense(
-        ROSA.getName(), 1.0, lexicographicallySmallerLicenseId);
+    thenBillableUsageKafkaMessageWithLicense(ROSA, 1.0, lexicographicallySmallerLicenseId);
   }
 
   @Test
@@ -366,9 +348,9 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
             new ContractStub(
                 firstSnapshot.minusMonths(1), end, Map.of(awsDimension, 2.0), licenseA)));
 
-    whenRosaTallyIsPublished(INSTANCE_HOURS.toString(), 3.0, firstSnapshot);
-    thenAccountRemittedUsageRowCount(ROSA.getName(), INSTANCE_HOURS.toString(), 1);
-    thenAccountRemittedUsageEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 1.0, licenseA);
+    whenRosaTallyIsPublished(INSTANCE_HOURS, 3.0, firstSnapshot);
+    thenAccountRemittedUsageRowCount(ROSA, INSTANCE_HOURS, 1);
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, 1.0, licenseA);
 
     givenContracts(
         ROSA,
@@ -378,12 +360,12 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
             new ContractStub(
                 firstSnapshot.minusDays(5), end, Map.of(awsDimension, 2.0), licenseB)));
 
-    whenRosaTallyIsPublished(INSTANCE_HOURS.toString(), 6.0, firstSnapshot.plusHours(1));
+    whenRosaTallyIsPublished(INSTANCE_HOURS, 6.0, firstSnapshot.plusHours(1));
 
-    thenAccountRemittedUsageRowCount(ROSA.getName(), INSTANCE_HOURS.toString(), 2);
-    thenAccountRemittedUsageSumEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 2.0);
-    thenAccountRemittedUsageEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 1.0, licenseB);
-    thenAccountRemittedUsageEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 1.0, licenseA);
+    thenAccountRemittedUsageRowCount(ROSA, INSTANCE_HOURS, 2);
+    thenAccountRemittedUsageSumEquals(ROSA, INSTANCE_HOURS, 2.0);
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, 1.0, licenseB);
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, 1.0, licenseA);
   }
 
   @Test
@@ -401,12 +383,10 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
                 Map.of(ROSA.getMetric(INSTANCE_HOURS).getAwsDimension(), contractMetricValue),
                 licenseId)));
 
-    whenRosaTallyIsPublished(
-        INSTANCE_HOURS.toString(), currentTotal, OffsetDateTime.now(ZoneOffset.UTC));
+    whenRosaTallyIsPublished(INSTANCE_HOURS, currentTotal, OffsetDateTime.now(ZoneOffset.UTC));
 
-    thenAccountCoveredUsageEquals(
-        ROSA.getName(), INSTANCE_HOURS.toString(), currentTotal, licenseId);
-    thenAccountRemittedUsageEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 0.0);
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, currentTotal, licenseId);
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, 0.0);
   }
 
   @Test
@@ -426,15 +406,14 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
                 licenseId)));
 
     whenRosaTallyIsPublished(
-        INSTANCE_HOURS.toString(), firstTotal, OffsetDateTime.now(ZoneOffset.UTC).minusHours(2));
-    thenAccountCoveredUsageEquals(ROSA.getName(), INSTANCE_HOURS.toString(), firstTotal, licenseId);
-    thenAccountRemittedUsageEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 0.0);
+        INSTANCE_HOURS, firstTotal, OffsetDateTime.now(ZoneOffset.UTC).minusHours(2));
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, firstTotal, licenseId);
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, 0.0);
 
     whenRosaTallyIsPublished(
-        INSTANCE_HOURS.toString(), secondTotal, OffsetDateTime.now(ZoneOffset.UTC).minusHours(1));
-    thenAccountCoveredUsageEquals(
-        ROSA.getName(), INSTANCE_HOURS.toString(), secondTotal, licenseId);
-    thenAccountRemittedUsageEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 0.0);
+        INSTANCE_HOURS, secondTotal, OffsetDateTime.now(ZoneOffset.UTC).minusHours(1));
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, secondTotal, licenseId);
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, 0.0);
   }
 
   private void givenNoContractExistsForRosa() {
@@ -446,7 +425,7 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
   }
 
   private void givenRosaContractWithEmptyMetrics() {
-    contractsWiremock.forContractsAPI().stubNoContractCoverage(orgId, ROSA);
+    givenNoContractCoverageForProduct(ROSA);
   }
 
   private void givenRosaContractCoverage(MetricId metricId, double contractBillableUnits) {
@@ -454,13 +433,6 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
         .forContractsAPI()
         .stubContractCoverage(
             orgId, ROSA, ROSA.getMetric(metricId).getAwsDimension(), contractBillableUnits);
-  }
-
-  private void givenRosaContractCoverageOnAwsDimension(
-      String awsDimension, double contractBillableUnits) {
-    contractsWiremock
-        .forContractsAPI()
-        .stubContractCoverage(orgId, ROSA, awsDimension, contractBillableUnits);
   }
 
   private void givenAnsibleContractStartingInCurrentMonth(OffsetDateTime snapshotDate) {
@@ -477,14 +449,14 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
   }
 
   private TallySummary whenRosaTallyIsPublished(
-      String metricId, double currentTotal, OffsetDateTime snapshotDate) {
+      MetricId metricId, double currentTotal, OffsetDateTime snapshotDate) {
     TallySummary tallySummary =
-        buildTallySummary(
+        TallySummaryBuilder.buildTallySummary(
             orgId,
             ROSA.getName(),
-            metricId,
+            metricId.toString(),
             currentTotal,
-            BillingProvider.AWS,
+            AWS,
             billingAccountId,
             snapshotDate);
     kafkaBridge.produceKafkaMessage(TALLY, tallySummary);
@@ -493,132 +465,21 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
 
   private TallySummary whenAnsibleTallyIsPublished(double usageValue, OffsetDateTime snapshotDate) {
     TallySummary tallySummary =
-        buildTallySummary(
+        TallySummaryBuilder.buildTallySummary(
             orgId,
             ANSIBLE_AAP_MANAGED.getName(),
             MANAGED_NODES.toString(),
             usageValue,
-            BillingProvider.AWS,
+            AWS,
             billingAccountId,
             snapshotDate);
     kafkaBridge.produceKafkaMessage(TALLY, tallySummary);
     return tallySummary;
   }
 
-  private void thenAccountRemittedUsageRowCount(
-      String productId, String metricId, int expectedRowCount) {
-    AwaitilityUtils.untilAsserted(() ->
-        assertEquals(
-            expectedRowCount,
-            remittedRemittances(productId, metricId).size(),
-            "Unexpected monthly overage remittance row count"));
-  }
-
-  private void thenAccountRemittedUsageEquals(
-      String productId, String metricId, double expectedRemittedValue) {
-    thenAccountRemittedUsageEquals(productId, metricId, expectedRemittedValue, null);
-  }
-
-  private void thenAccountRemittedUsageEquals(
-      String productId, String metricId, double expectedRemittedValue, String expectedLicenseId) {
-    AwaitilityUtils.untilAsserted(() -> {
-      if (expectedRemittedValue == 0.0 && expectedLicenseId == null) {
-        assertEquals(
-            0.0,
-            remittedRemittances(productId, metricId).stream()
-                .mapToDouble(MonthlyRemittance::getRemittedValue)
-                .sum(),
-            0.001,
-            "Expected no overage remittance");
-        return;
-      }
-      MonthlyRemittance remittance =
-          remittedRemittances(productId, metricId).stream()
-              .filter(row -> Objects.equals(expectedLicenseId, row.getLicenseId()))
-              .findFirst()
-              .orElseThrow(() -> new AssertionError("Expected account remittance for licenseId"));
-      assertEquals(
-          expectedRemittedValue,
-          remittance.getRemittedValue(),
-          0.001,
-          "Account remittance value mismatch");
-      assertEquals(
-          expectedLicenseId, remittance.getLicenseId(), "Account remittance licenseId mismatch");
-    });
-  }
-
-  private void thenAccountCoveredUsageEquals(
-      String productId, String metricId, double expectedCoveredValue, String expectedLicenseId) {
-    AwaitilityUtils.untilAsserted(() -> {
-      MonthlyRemittance remittance =
-          coveredRemittances(productId, metricId).stream()
-              .filter(row -> Objects.equals(expectedLicenseId, row.getLicenseId()))
-              .findFirst()
-              .orElseThrow(() ->
-                  new AssertionError(
-                      "Expected COVERED monthly remittance for licenseId " + expectedLicenseId));
-      assertEquals(
-          "covered", remittance.getRemittanceStatus(), "Expected remittanceStatus covered");
-      assertEquals(
-          expectedCoveredValue,
-          remittance.getRemittedValue(),
-          0.001,
-          "COVERED remittance value mismatch");
-      assertEquals(
-          expectedLicenseId, remittance.getLicenseId(), "COVERED remittance licenseId mismatch");
-    });
-  }
-
-  private void thenAccountRemittedUsageSumEquals(
-      String productId, String metricId, double expectedRemittedTotal) {
-    AwaitilityUtils.untilAsserted(() -> {
-      assertEquals(
-          expectedRemittedTotal,
-          remittedRemittances(productId, metricId).stream()
-              .mapToDouble(MonthlyRemittance::getRemittedValue)
-              .sum(),
-          0.001,
-          "Account remittance total mismatch");
-    });
-  }
-
-  private void thenAccountCoveredUsageSumEquals(
-      String productId, String metricId, double expectedCoveredValue) {
-    AwaitilityUtils.untilAsserted(() ->
-        assertEquals(
-            expectedCoveredValue,
-            coveredRemittances(productId, metricId).stream()
-                .mapToDouble(MonthlyRemittance::getRemittedValue)
-                .sum(),
-            0.001,
-            "COVERED remittance sum mismatch"));
-  }
-
-  private List<MonthlyRemittance> remittedRemittances(String productId, String metricId) {
-    return accountRemittances(productId, metricId).stream()
-        .filter(row -> !isCoveredStatus(row))
-        .toList();
-  }
-
-  private List<MonthlyRemittance> coveredRemittances(String productId, String metricId) {
-    return accountRemittances(productId, metricId).stream().filter(this::isCoveredStatus).toList();
-  }
-
-  private List<MonthlyRemittance> accountRemittances(String productId, String metricId) {
-    return service.getRemittances(
-        productId,
-        orgId,
-        metricId,
-        BillingProvider.AWS.toTallyApiModel().value(),
-        billingAccountId);
-  }
-
-  private boolean isCoveredStatus(MonthlyRemittance remittance) {
-    return COVERED.name().equalsIgnoreCase(remittance.getRemittanceStatus());
-  }
-
   private void thenTallyRemittancePendingValueEquals(
-      String tallyId, double expectedRemittedPendingValue) {
+      TallySummary tallySummary, double expectedRemittedPendingValue) {
+    UUID tallyId = tallySummary.getTallySnapshots().getFirst().getId();
     AwaitilityUtils.untilAsserted(() -> {
       TallyRemittance remittance = overageTallyRemittance(tallyId);
       assertEquals(
@@ -629,7 +490,9 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
     });
   }
 
-  private void thenTallyRemittanceStatusEquals(String tallyId, RemittanceStatus expectedStatus) {
+  private void thenTallyRemittanceStatusEquals(
+      TallySummary tallySummary, RemittanceStatus expectedStatus) {
+    UUID tallyId = tallySummary.getTallySnapshots().getFirst().getId();
     AwaitilityUtils.untilAsserted(() -> {
       TallyRemittance remittance = overageTallyRemittance(tallyId);
       assertEquals(
@@ -639,7 +502,7 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
     });
   }
 
-  private void thenNoBillableUsageKafkaMessage(String productId) {
+  private void thenNoBillableUsageKafkaMessage(Product product) {
     AwaitilityUtils.untilAsserted(
         () ->
             assertEquals(
@@ -647,7 +510,7 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
                 kafkaBridge
                     .waitForKafkaMessage(
                         BILLABLE_USAGE,
-                        MessageValidators.billableUsageMatches(orgId, productId),
+                        MessageValidators.billableUsageMatches(orgId, product),
                         0,
                         AwaitilitySettings.using(Duration.ofSeconds(1), Duration.ofSeconds(2)))
                     .size(),
@@ -655,18 +518,18 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
         AwaitilitySettings.usingTimeout(Duration.ofSeconds(15)));
   }
 
-  private void thenBillableUsageKafkaMessageEmitted(String productId, double expectedValue) {
-    thenBillableUsageKafkaMessageWithLicense(productId, expectedValue, null);
+  private void thenBillableUsageKafkaMessageEmitted(Product product, double expectedValue) {
+    thenBillableUsageKafkaMessageWithLicense(product, expectedValue, null);
   }
 
   private void thenTallyRemittancePendingValueAndLicenseEquals(
-      String tallyId, double expectedRemittedPendingValue, String expectedLicenseId) {
+      UUID tallyId, double expectedRemittedPendingValue, String expectedLicenseId) {
     thenTallyRemittanceStatusLicenseAndValueEquals(
         tallyId, null, expectedLicenseId, expectedRemittedPendingValue);
   }
 
   private void thenTallyRemittanceStatusLicenseAndValueEquals(
-      String tallyId,
+      UUID tallyId,
       RemittanceStatus expectedStatus,
       String expectedLicenseId,
       double expectedRemittedPendingValue) {
@@ -692,7 +555,7 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
     });
   }
 
-  private TallyRemittance overageTallyRemittance(String tallyId) {
+  private TallyRemittance overageTallyRemittance(UUID tallyId) {
     List<TallyRemittance> remittances = service.getRemittancesByTally(tallyId);
     assertNotNull(remittances, "Remittances should exist for tally " + tallyId);
     List<TallyRemittance> overage =
@@ -704,13 +567,13 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
   }
 
   private void thenBillableUsageKafkaMessageWithLicense(
-      String productId, double expectedValue, String expectedLicenseId) {
+      Product product, double expectedValue, String expectedLicenseId) {
     AwaitilityUtils.untilAsserted(
         () -> {
           List<BillableUsage> messages =
               kafkaBridge.waitForKafkaMessage(
                   BILLABLE_USAGE,
-                  MessageValidators.billableUsageMatchesWithValue(orgId, productId, expectedValue),
+                  MessageValidators.billableUsageMatchesWithValue(orgId, product, expectedValue),
                   1,
                   AwaitilitySettings.using(Duration.ofSeconds(1), Duration.ofSeconds(5)));
           assertEquals(

@@ -22,6 +22,7 @@ package api;
 
 import com.redhat.swatch.component.tests.api.DefaultMessageValidator;
 import com.redhat.swatch.component.tests.api.MessageValidator;
+import domain.Product;
 import java.util.Set;
 import java.util.UUID;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
@@ -32,18 +33,18 @@ import org.candlepin.subscriptions.billable.usage.TallySummary;
 public class MessageValidators {
 
   public static DefaultMessageValidator<BillableUsage> billableUsageMatches(
-      String orgId, String productId) {
+      String orgId, Product product) {
     return new DefaultMessageValidator<>(
-        usage -> orgId.equals(usage.getOrgId()) && productId.equals(usage.getProductId()),
+        usage -> orgId.equals(usage.getOrgId()) && product.getName().equals(usage.getProductId()),
         BillableUsage.class);
   }
 
   public static DefaultMessageValidator<BillableUsage> billableUsageMatchesWithValue(
-      String orgId, String productId, double expectedValue) {
+      String orgId, Product product, double expectedValue) {
     return new DefaultMessageValidator<>(
         usage ->
             orgId.equals(usage.getOrgId())
-                && productId.equals(usage.getProductId())
+                && product.getName().equals(usage.getProductId())
                 && Math.abs(usage.getValue() - expectedValue) < 0.001,
         BillableUsage.class);
   }
@@ -79,9 +80,10 @@ public class MessageValidators {
   }
 
   public static DefaultMessageValidator<BillableUsage> billableUsageMatchesAnyOrg(
-      Set<String> orgIds, String productId) {
+      Set<String> orgIds, Product product) {
     return new DefaultMessageValidator<>(
-        usage -> orgIds.contains(usage.getOrgId()) && productId.equals(usage.getProductId()),
+        usage ->
+            orgIds.contains(usage.getOrgId()) && product.getName().equals(usage.getProductId()),
         BillableUsage.class);
   }
 
@@ -114,5 +116,16 @@ public class MessageValidators {
     UUID tallyId = tallySummary.getTallySnapshots().getFirst().getId();
     return new DefaultMessageValidator<>(
         usage -> tallyId.equals(usage.getTallyId()), BillableUsage.class);
+  }
+
+  public static DefaultMessageValidator<BillableUsage> billableUsageMatchesValueExcludingUuid(
+      String orgId, Product product, double expectedValue, UUID excludedUuid) {
+    return new DefaultMessageValidator<>(
+        usage ->
+            orgId.equals(usage.getOrgId())
+                && product.getName().equals(usage.getProductId())
+                && Math.abs(usage.getValue() - expectedValue) < 0.001
+                && !excludedUuid.equals(usage.getUuid()),
+        BillableUsage.class);
   }
 }

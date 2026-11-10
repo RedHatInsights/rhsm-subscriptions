@@ -23,25 +23,22 @@ package tests;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE_STATUS;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
+import static domain.Product.ROSA;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static utils.BillableUsageAggregateHelper.buildBillableUsageAggregate;
-import static utils.TallySummaryBuilder.buildTallySummary;
 
+import api.BillableUsageDatabaseService;
 import api.MessageValidators;
 import com.redhat.swatch.billable.usage.openapi.model.TallyRemittance;
-import com.redhat.swatch.component.tests.api.DefaultMessageValidator;
 import com.redhat.swatch.component.tests.api.SwatchDatabase;
 import com.redhat.swatch.component.tests.api.TestPlanName;
-import com.redhat.swatch.component.tests.api.db.DatabaseService;
 import domain.BillingProvider;
 import domain.ContractStub;
 import domain.RemittanceErrorCode;
 import domain.RemittanceStatus;
-import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -52,13 +49,14 @@ import java.util.UUID;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.TallySummary;
 import org.junit.jupiter.api.Test;
+import utils.TallySummaryBuilder;
 
 public class BillableUsageStatusComponentTest extends BaseBillableUsageComponentTest {
 
-  @SwatchDatabase static DatabaseService swatchDatabase = new DatabaseService();
+  @SwatchDatabase
+  static BillableUsageDatabaseService swatchDatabase = new BillableUsageDatabaseService();
 
   private static final double VALUE = 8.0;
-  private static final double BILLING_FACTOR = ROSA.getBillingFactor(CORES);
   private static final String LICENSE_A = "arn:aws:license-manager:1:license:a";
   private static final String LICENSE_B = "arn:aws:license-manager:1:license:b";
 
@@ -79,10 +77,10 @@ public class BillableUsageStatusComponentTest extends BaseBillableUsageComponent
         LICENSE_B);
 
     // Then: both remittances succeed and share that license
-    thenRemittanceStatusIs(usageA.getTallyId().toString(), RemittanceStatus.SUCCEEDED);
-    thenRemittanceStatusIs(usageB.getTallyId().toString(), RemittanceStatus.SUCCEEDED);
-    assertEquals(LICENSE_B, remittanceLicenseForTally(usageA.getTallyId().toString()));
-    assertEquals(LICENSE_B, remittanceLicenseForTally(usageB.getTallyId().toString()));
+    var remittanceA = thenRemittanceStatusIs(usageA, RemittanceStatus.SUCCEEDED);
+    var remittanceB = thenRemittanceStatusIs(usageB, RemittanceStatus.SUCCEEDED);
+    assertEquals(LICENSE_B, remittanceA.getLicenseId(), "Remittance A license should match status");
+    assertEquals(LICENSE_B, remittanceB.getLicenseId(), "Remittance B license should match status");
   }
 
   @Test
@@ -100,8 +98,8 @@ public class BillableUsageStatusComponentTest extends BaseBillableUsageComponent
         null);
 
     // Then: status updates and remittance license mirrors the status payload
-    thenRemittanceStatusIs(usage.getTallyId().toString(), RemittanceStatus.SUCCEEDED);
-    assertNull(remittanceLicenseForTally(usage.getTallyId().toString()));
+    var remittance = thenRemittanceStatusIs(usage, RemittanceStatus.SUCCEEDED);
+    assertNull(remittance.getLicenseId(), "Remittance license should be cleared");
   }
 
   @Test
@@ -109,8 +107,7 @@ public class BillableUsageStatusComponentTest extends BaseBillableUsageComponent
   void shouldUpdateRemittanceWithSucceededStatus() {
     // Given: a pending remittance exists
     BillableUsage billableUsage = givenPendingRemittanceExists();
-    String tallyId = billableUsage.getTallyId().toString();
-    Instant createdAt = lastModified(billableUsage.getUuid());
+    Instant createdAt = swatchDatabase.getLastModified(billableUsage.getUuid());
     OffsetDateTime expectedBilledOnTime = OffsetDateTime.now(ZoneOffset.UTC);
 
     // When: status update with SUCCEEDED is published
@@ -122,13 +119,10 @@ public class BillableUsageStatusComponentTest extends BaseBillableUsageComponent
         null);
 
     // Then: remittance is SUCCEEDED with billedOn populated
-    thenRemittanceStatusIs(tallyId, RemittanceStatus.SUCCEEDED);
-    List<TallyRemittance> remittances = service.getRemittancesByTally(tallyId);
-    assertNotNull(remittances, "Remittances should exist");
-    assertFalse(remittances.isEmpty(), "Should have at least one remittance");
-    thenBilledOnIsNear(remittances.getFirst(), expectedBilledOnTime);
+    var remittance = thenRemittanceStatusIs(billableUsage, RemittanceStatus.SUCCEEDED);
+    thenBilledOnIsNear(remittance, expectedBilledOnTime);
     assertTrue(
-        lastModified(billableUsage.getUuid()).isAfter(createdAt),
+        swatchDatabase.getLastModified(billableUsage.getUuid()).isAfter(createdAt),
         "Status update should advance the database-generated last_modified timestamp");
   }
 
@@ -137,7 +131,6 @@ public class BillableUsageStatusComponentTest extends BaseBillableUsageComponent
   void shouldUpdateRemittanceWithFailedStatus() {
     // Given: a pending remittance exists
     BillableUsage billableUsage = givenPendingRemittanceExists();
-    String tallyId = billableUsage.getTallyId().toString();
 
     // When: status update with FAILED is published
     whenStatusUpdateIsSent(
@@ -148,26 +141,23 @@ public class BillableUsageStatusComponentTest extends BaseBillableUsageComponent
         null);
 
     // Then: remittance is FAILED with the expected error code
-    thenRemittanceStatusIs(tallyId, RemittanceStatus.FAILED);
-    List<TallyRemittance> remittances = service.getRemittancesByTally(tallyId);
-    assertNotNull(remittances, "Remittances should exist");
-    assertFalse(remittances.isEmpty(), "Should have at least one remittance");
-    thenErrorCodeIs(remittances.getFirst(), RemittanceErrorCode.SUBSCRIPTION_NOT_FOUND.name());
+    var remittance = thenRemittanceStatusIs(billableUsage, RemittanceStatus.FAILED);
+    thenErrorCodeIs(remittance, RemittanceErrorCode.SUBSCRIPTION_NOT_FOUND.name());
   }
 
   private BillableUsage givenPendingRemittanceExists() {
-    contractsWiremock.forContractsAPI().stubNoContractCoverage(orgId, ROSA);
+    givenNoContractCoverageForProduct(ROSA);
     whenRosaTallyIsSent(VALUE);
 
-    double expectedValue = VALUE * BILLING_FACTOR;
+    double expectedValue = VALUE * ROSA.getBillingFactor(CORES);
     List<BillableUsage> billableUsages =
         kafkaBridge.waitForKafkaMessage(
             BILLABLE_USAGE,
-            MessageValidators.billableUsageMatchesWithValue(orgId, ROSA.getName(), expectedValue),
+            MessageValidators.billableUsageMatchesWithValue(orgId, ROSA, expectedValue),
             1);
     assertEquals(1, billableUsages.size(), "Expected exactly 1 billable usage message");
     BillableUsage usage = billableUsages.getFirst();
-    waitForRemittanceStatus(usage.getTallyId().toString(), RemittanceStatus.PENDING);
+    thenRemittanceStatusIs(usage, RemittanceStatus.PENDING);
     return usage;
   }
 
@@ -179,28 +169,20 @@ public class BillableUsageStatusComponentTest extends BaseBillableUsageComponent
         .stubContracts(orgId, ROSA, List.of(new ContractStub(start, end, Map.of(), licenseId)));
 
     TallySummary tallySummary = whenRosaTallyIsSent(tallyValue);
-    String tallyId = tallySummary.getTallySnapshots().getFirst().getId().toString();
-    waitForRemittanceStatus(tallyId, RemittanceStatus.PENDING);
-    assertEquals(licenseId, remittanceLicenseForTally(tallyId), "Remittance license mismatch");
+    UUID tallyId = tallySummary.getTallySnapshots().getFirst().getId();
+    var remittance = thenRemittanceStatusIs(tallyId, RemittanceStatus.PENDING);
+    assertEquals(licenseId, remittance.getLicenseId(), "Remittance license mismatch");
 
     List<BillableUsage> billableUsages =
         kafkaBridge.waitForKafkaMessage(
-            BILLABLE_USAGE,
-            new DefaultMessageValidator<>(
-                usage ->
-                    orgId.equals(usage.getOrgId())
-                        && ROSA.getName().equals(usage.getProductId())
-                        && usage.getTallyId() != null
-                        && tallyId.equals(usage.getTallyId().toString()),
-                BillableUsage.class),
-            1);
+            BILLABLE_USAGE, MessageValidators.billableUsageMatchesTallyId(tallySummary), 1);
     assertEquals(1, billableUsages.size(), "Expected exactly 1 billable usage for tally");
     return billableUsages.getFirst();
   }
 
   private TallySummary whenRosaTallyIsSent(double tallyValue) {
     TallySummary tallySummary =
-        buildTallySummary(
+        TallySummaryBuilder.buildTallySummary(
             orgId,
             ROSA.getName(),
             CORES.toString(),
@@ -229,30 +211,6 @@ public class BillableUsageStatusComponentTest extends BaseBillableUsageComponent
             billedOn,
             remittanceUuids,
             licenseId));
-  }
-
-  private String remittanceLicenseForTally(String tallyId) {
-    List<TallyRemittance> remittances = service.getRemittancesByTally(tallyId);
-    assertNotNull(remittances, "Remittances should exist for tally " + tallyId);
-    assertFalse(remittances.isEmpty(), "Should have at least one remittance");
-    return remittances.getFirst().getLicenseId();
-  }
-
-  private Instant lastModified(UUID remittanceUuid) {
-    try (var connection = swatchDatabase.getConnection();
-        var statement =
-            connection.prepareStatement(
-                "SELECT last_modified FROM billable_usage_remittance WHERE uuid = ?")) {
-      statement.setObject(1, remittanceUuid);
-      try (var result = statement.executeQuery()) {
-        assertTrue(result.next(), "Remittance should exist: " + remittanceUuid);
-        var timestamp = result.getTimestamp(1);
-        assertNotNull(timestamp, "last_modified should be populated on insert");
-        return timestamp.toInstant();
-      }
-    } catch (SQLException e) {
-      throw new AssertionError("Failed to read remittance last_modified", e);
-    }
   }
 
   private void thenBilledOnIsNear(TallyRemittance remittance, OffsetDateTime expectedTime) {

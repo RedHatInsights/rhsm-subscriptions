@@ -20,9 +20,14 @@
  */
 package tests;
 
+import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
+import static domain.Product.ROSA;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static utils.TallySummaryBuilder.buildTallySummaryWithDefaults;
 
+import api.MessageValidators;
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import org.junit.jupiter.api.Test;
 
@@ -30,9 +35,9 @@ public class BillableUsageNegativeComponentTest extends BaseBillableUsageCompone
 
   @Test
   @TestPlanName("billable-usage-negative-TC001")
-  public void shouldSurviveNullTallyMessage() {
+  void shouldSurviveNullTallyMessage() {
     // Given: Contract with zero coverage so all probe usage becomes billable
-    contractsWiremock.forContractsAPI().stubNoContractCoverage(orgId, ROSA);
+    givenNoContractCoverageForProduct(ROSA);
 
     // When: Null message published; valid probe follows to confirm consumer is still alive
     kafkaBridge.produceKafkaMessage(TALLY, null);
@@ -40,14 +45,14 @@ public class BillableUsageNegativeComponentTest extends BaseBillableUsageCompone
         TALLY, buildTallySummaryWithDefaults(orgId, ROSA.getName(), CORES.toString(), 8.0));
 
     // Then: Only probe produces billable usage; service remains healthy
-    assertInvalidTallyIsDropped(orgId);
+    thenInvalidTallyIsDropped(orgId);
   }
 
   @Test
   @TestPlanName("billable-usage-negative-TC002")
-  public void shouldSurviveMalformedTallyDeserialization() {
+  void shouldSurviveMalformedTallyDeserialization() {
     // Given: Contract with zero coverage so all probe usage becomes billable
-    contractsWiremock.forContractsAPI().stubNoContractCoverage(orgId, ROSA);
+    givenNoContractCoverageForProduct(ROSA);
 
     // When: Malformed message published; valid probe follows to confirm consumer is still alive
     kafkaBridge.produceKafkaMessage(TALLY, "not-a-valid-tally-summary");
@@ -55,6 +60,14 @@ public class BillableUsageNegativeComponentTest extends BaseBillableUsageCompone
         TALLY, buildTallySummaryWithDefaults(orgId, ROSA.getName(), CORES.toString(), 8.0));
 
     // Then: Only probe produces billable usage; service remains healthy
-    assertInvalidTallyIsDropped(orgId);
+    thenInvalidTallyIsDropped(orgId);
+  }
+
+  private void thenInvalidTallyIsDropped(String expectedOrgId) {
+    var matched =
+        kafkaBridge.waitForKafkaMessage(
+            BILLABLE_USAGE, MessageValidators.billableUsageMatches(expectedOrgId, ROSA), 1);
+    assertEquals(1, matched.size(), "Only probe tally should produce billable usage");
+    assertTrue(service.isRunning(), "Service should remain healthy after invalid tally message");
   }
 }
