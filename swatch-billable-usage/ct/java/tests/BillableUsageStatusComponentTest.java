@@ -20,7 +20,6 @@
  */
 package tests;
 
-import static api.BillableUsageTestHelper.createTallySummary;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE_STATUS;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
@@ -29,6 +28,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static utils.BillableUsageAggregateHelper.buildBillableUsageAggregate;
+import static utils.TallySummaryBuilder.buildTallySummary;
 
 import api.MessageValidators;
 import com.redhat.swatch.billable.usage.openapi.model.TallyRemittance;
@@ -198,7 +199,7 @@ public class BillableUsageStatusComponentTest extends BaseBillableUsageComponent
 
   private TallySummary whenRosaTallyIsSent(double tallyValue) {
     TallySummary tallySummary =
-        createTallySummary(
+        buildTallySummary(
             orgId,
             ROSA.getName(),
             CORES.toString(),

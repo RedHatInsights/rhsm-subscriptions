@@ -20,13 +20,13 @@
  */
 package tests;
 
-import static api.BillableUsageTestHelper.createTallySummaryWithDefaults;
 import static api.BillableUsageUnleashService.ENABLE_READ_ONLY;
 import static api.MessageValidators.billableUsageMatchesTallyId;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static utils.TallySummaryBuilder.buildTallySummaryWithDefaults;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.component.tests.model.InfoFeatureFlag;
@@ -94,7 +94,7 @@ public class ReadOnlyModeComponentTest extends BaseBillableUsageComponentTest {
 
   private TallySummary whenTallySummaryIsPublished() {
     TallySummary tallySummary =
-        createTallySummaryWithDefaults(orgId, ROSA.getName(), CORES.toString(), TALLY_VALUE);
+        buildTallySummaryWithDefaults(orgId, ROSA.getName(), CORES.toString(), TALLY_VALUE);
     kafkaBridge.produceKafkaMessage(TALLY, tallySummary);
     return tallySummary;
   }

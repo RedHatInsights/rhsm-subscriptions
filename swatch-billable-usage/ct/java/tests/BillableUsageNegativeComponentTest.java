@@ -20,8 +20,8 @@
  */
 package tests;
 
-import static api.BillableUsageTestHelper.createTallySummaryWithDefaults;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
+import static utils.TallySummaryBuilder.buildTallySummaryWithDefaults;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
 import org.junit.jupiter.api.Test;
@@ -37,7 +37,7 @@ public class BillableUsageNegativeComponentTest extends BaseBillableUsageCompone
     // When: Null message published; valid probe follows to confirm consumer is still alive
     kafkaBridge.produceKafkaMessage(TALLY, null);
     kafkaBridge.produceKafkaMessage(
-        TALLY, createTallySummaryWithDefaults(orgId, ROSA.getName(), CORES.toString(), 8.0));
+        TALLY, buildTallySummaryWithDefaults(orgId, ROSA.getName(), CORES.toString(), 8.0));
 
     // Then: Only probe produces billable usage; service remains healthy
     assertInvalidTallyIsDropped(orgId);
@@ -52,7 +52,7 @@ public class BillableUsageNegativeComponentTest extends BaseBillableUsageCompone
     // When: Malformed message published; valid probe follows to confirm consumer is still alive
     kafkaBridge.produceKafkaMessage(TALLY, "not-a-valid-tally-summary");
     kafkaBridge.produceKafkaMessage(
-        TALLY, createTallySummaryWithDefaults(orgId, ROSA.getName(), CORES.toString(), 8.0));
+        TALLY, buildTallySummaryWithDefaults(orgId, ROSA.getName(), CORES.toString(), 8.0));
 
     // Then: Only probe produces billable usage; service remains healthy
     assertInvalidTallyIsDropped(orgId);

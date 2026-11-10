@@ -27,6 +27,7 @@ import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.Getter;
@@ -66,6 +67,7 @@ public enum Product {
   }
 
   public double getBillingFactor(MetricId metricId) {
-    return getMetric(metricId).getBillingFactor();
+    // 1.0 comes from SubscriptionDefinition
+    return Optional.ofNullable(getMetric(metricId).getBillingFactor()).orElse(1.0);
   }
 }

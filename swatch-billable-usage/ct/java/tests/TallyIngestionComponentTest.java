@@ -20,13 +20,13 @@
  */
 package tests;
 
-import static api.BillableUsageTestHelper.createTallySummary;
-import static api.BillableUsageTestHelper.createTallySummaryWithDefaults;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static utils.TallySummaryBuilder.buildTallySummary;
+import static utils.TallySummaryBuilder.buildTallySummaryWithDefaults;
 
 import api.MessageValidators;
 import com.redhat.swatch.billable.usage.openapi.model.TallyRemittance;
@@ -72,7 +72,7 @@ public class TallyIngestionComponentTest extends BaseBillableUsageComponentTest 
 
     // When: One tally snapshot is published with billing_provider=azure
     TallySummary tallySummary =
-        createTallySummary(
+        buildTallySummary(
             orgId, ROSA.getName(), CORES.toString(), VALUE, BillingProvider.AZURE, azureAccountId);
     kafkaBridge.produceKafkaMessage(TALLY, tallySummary);
 
@@ -322,7 +322,7 @@ public class TallyIngestionComponentTest extends BaseBillableUsageComponentTest 
     // Two valid messages must be processed normally after the bad one
     for (int i = 0; i < 2; i++) {
       TallySummary validTally =
-          createTallySummaryWithDefaults(orgId, ROSA.getName(), CORES.toString(), VALUE);
+          buildTallySummaryWithDefaults(orgId, ROSA.getName(), CORES.toString(), VALUE);
       kafkaBridge.produceKafkaMessage(TALLY, validTally);
     }
 

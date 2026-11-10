@@ -20,19 +20,65 @@
  */
 package utils;
 
+import static org.candlepin.subscriptions.billable.usage.BillableUsage.Sla.PREMIUM;
+import static org.candlepin.subscriptions.billable.usage.BillableUsage.Usage.PRODUCTION;
+
+import domain.BillingProvider;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
+import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 
 public final class BillableUsageAggregateHelper {
 
   private BillableUsageAggregateHelper() {}
+
+  public static BillableUsageAggregate buildBillableUsageAggregate(
+      String orgId,
+      String productId,
+      String metricId,
+      String billingAccountId,
+      BillableUsage.Status status,
+      BillableUsage.ErrorCode errorCode,
+      OffsetDateTime billedOn,
+      List<String> remittanceUuids,
+      String licenseId) {
+    var aggregateKey = new BillableUsageAggregateKey();
+    aggregateKey.setOrgId(orgId);
+    aggregateKey.setProductId(productId);
+    aggregateKey.setMetricId(metricId);
+    aggregateKey.setSla(PREMIUM.value());
+    aggregateKey.setUsage(PRODUCTION.value());
+    aggregateKey.setBillingProvider(BillingProvider.AWS.name());
+    aggregateKey.setBillingAccountId(billingAccountId);
+
+    var aggregate = new BillableUsageAggregate();
+    aggregate.setAggregateKey(aggregateKey);
+    aggregate.setStatus(status);
+    aggregate.setRemittanceUuids(remittanceUuids);
+    aggregate.setTotalValue(BigDecimal.valueOf(5.0));
+    aggregate.setWindowTimestamp(OffsetDateTime.now(ZoneOffset.UTC).minusDays(3));
+    aggregate.setAggregateId(UUID.randomUUID());
+    Set<OffsetDateTime> snapshotDateSet = new HashSet<>();
+    snapshotDateSet.add(OffsetDateTime.now(ZoneOffset.UTC).minusDays(3));
+    aggregate.setSnapshotDates(snapshotDateSet);
+    aggregate.setLicenseId(licenseId);
+    if (errorCode != null) {
+      aggregate.setErrorCode(errorCode);
+    }
+    if (billedOn != null) {
+      aggregate.setBilledOn(billedOn);
+    }
+    return aggregate;
+  }
 
   public static BillableUsageAggregate mergeHourlyAggregates(
       List<BillableUsageAggregate> aggregates, Set<String> expectedRemittanceUuids) {

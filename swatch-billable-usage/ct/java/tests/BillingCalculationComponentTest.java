@@ -20,12 +20,12 @@
  */
 package tests;
 
-import static api.BillableUsageTestHelper.createTallySummaryWithCurrentTotal;
-import static api.BillableUsageTestHelper.createTallySummaryWithDefaults;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static utils.TallySummaryBuilder.buildTallySummaryWithCurrentTotal;
+import static utils.TallySummaryBuilder.buildTallySummaryWithDefaults;
 
 import api.MessageValidators;
 import com.redhat.swatch.billable.usage.openapi.model.MonthlyRemittance;
@@ -62,7 +62,7 @@ public class BillingCalculationComponentTest extends BaseBillableUsageComponentT
 
     // When: Second tally summary with current_total = 6 (below the remitted 10)
     TallySummary secondTally =
-        createTallySummaryWithCurrentTotal(
+        buildTallySummaryWithCurrentTotal(
             orgId,
             RHEL_PAYG_ADDON.getName(),
             VCPUS.toString(),
@@ -112,7 +112,7 @@ public class BillingCalculationComponentTest extends BaseBillableUsageComponentT
 
     // When: Second tally summary with current_total = 6 (failed remittance is excluded)
     TallySummary secondTally =
-        createTallySummaryWithCurrentTotal(
+        buildTallySummaryWithCurrentTotal(
             orgId,
             RHEL_PAYG_ADDON.getName(),
             VCPUS.toString(),
@@ -156,7 +156,7 @@ public class BillingCalculationComponentTest extends BaseBillableUsageComponentT
     givenNoContractCoverageForRhelAddon();
     OffsetDateTime beforeRemittance = OffsetDateTime.now(ZoneOffset.UTC);
     TallySummary tallySummary =
-        createTallySummaryWithDefaults(orgId, RHEL_PAYG_ADDON.getName(), VCPUS.toString(), 8.0);
+        buildTallySummaryWithDefaults(orgId, RHEL_PAYG_ADDON.getName(), VCPUS.toString(), 8.0);
     OffsetDateTime originalSnapshotDate = tallySummary.getTallySnapshots().get(0).getSnapshotDate();
 
     // When: Tally is published
