@@ -20,13 +20,13 @@
  */
 package tests;
 
-import static api.BillableUsageTestHelper.createTallySummary;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
 import static domain.RemittanceStatus.COVERED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static utils.TallySummaryBuilder.buildTallySummary;
 
 import api.MessageValidators;
 import com.redhat.swatch.billable.usage.openapi.model.MonthlyRemittance;
@@ -38,6 +38,7 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import domain.BillingProvider;
 import domain.ContractStub;
+import domain.Product;
 import domain.RemittanceStatus;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -181,7 +182,7 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
     String awsDimension = ROSA.getMetric(INSTANCE_HOURS).getAwsDimension();
     OffsetDateTime end = OffsetDateTime.now(ZoneOffset.UTC).plusYears(1);
     givenContracts(
-        ROSA.getName(),
+        ROSA,
         List.of(
             new ContractStub(
                 OffsetDateTime.now(ZoneOffset.UTC).minusMonths(2),
@@ -206,7 +207,7 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
     String newerLicense = "arn:aws:license-manager:1:license:newer";
     OffsetDateTime end = OffsetDateTime.now(ZoneOffset.UTC).plusYears(1);
     givenContracts(
-        ROSA.getName(),
+        ROSA,
         List.of(
             new ContractStub(
                 OffsetDateTime.now(ZoneOffset.UTC).minusMonths(2),
@@ -236,7 +237,7 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
     String licensedId = "arn:aws:license-manager:1:license:only";
     OffsetDateTime end = OffsetDateTime.now(ZoneOffset.UTC).plusYears(1);
     givenContracts(
-        ROSA.getName(),
+        ROSA,
         List.of(
             new ContractStub(
                 OffsetDateTime.now(ZoneOffset.UTC).minusMonths(2),
@@ -268,7 +269,7 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
     OffsetDateTime end = ANSIBLE_GRATIS_SNAPSHOT_DATE.plusYears(1);
     String newestLicense = "arn:aws:license-manager:1:license:jan-15";
     givenContracts(
-        ANSIBLE_AAP_MANAGED.getName(),
+        ANSIBLE_AAP_MANAGED,
         List.of(
             new ContractStub(
                 monthStart,
@@ -299,7 +300,7 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
     OffsetDateTime end = snapshotDate.plusYears(1);
     String newestLicense = "arn:aws:license-manager:1:license:jan-20";
     givenContracts(
-        ANSIBLE_AAP_MANAGED.getName(),
+        ANSIBLE_AAP_MANAGED,
         List.of(
             new ContractStub(
                 OffsetDateTime.of(2026, 1, 10, 12, 0, 0, 0, ZoneOffset.UTC),
@@ -331,7 +332,7 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
     OffsetDateTime sameStart = OffsetDateTime.now(ZoneOffset.UTC).minusMonths(1);
     OffsetDateTime end = OffsetDateTime.now(ZoneOffset.UTC).plusYears(1);
     givenContracts(
-        ROSA.getName(),
+        ROSA,
         List.of(
             new ContractStub(
                 sameStart, end, Map.of(awsDimension, 2.0), lexicographicallyLargerLicenseId),
@@ -360,7 +361,7 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
     OffsetDateTime end = OffsetDateTime.now(ZoneOffset.UTC).plusYears(1);
     OffsetDateTime firstSnapshot = OffsetDateTime.now(ZoneOffset.UTC);
     givenContracts(
-        ROSA.getName(),
+        ROSA,
         List.of(
             new ContractStub(
                 firstSnapshot.minusMonths(1), end, Map.of(awsDimension, 2.0), licenseA)));
@@ -370,7 +371,7 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
     thenAccountRemittedUsageEquals(ROSA.getName(), INSTANCE_HOURS.toString(), 1.0, licenseA);
 
     givenContracts(
-        ROSA.getName(),
+        ROSA,
         List.of(
             new ContractStub(
                 firstSnapshot.minusMonths(1), end, Map.of(awsDimension, 2.0), licenseA),
@@ -392,7 +393,7 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
     double contractMetricValue = 10.0;
     double currentTotal = 4.0;
     givenContracts(
-        ROSA.getName(),
+        ROSA,
         List.of(
             new ContractStub(
                 OffsetDateTime.now(ZoneOffset.UTC).minusMonths(1),
@@ -416,7 +417,7 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
     double firstTotal = 40.0;
     double secondTotal = 90.0;
     givenContracts(
-        ROSA.getName(),
+        ROSA,
         List.of(
             new ContractStub(
                 OffsetDateTime.now(ZoneOffset.UTC).minusMonths(1),
@@ -437,44 +438,48 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
   }
 
   private void givenNoContractExistsForRosa() {
-    contractsWiremock.setupContractNotFound(orgId, ROSA.getName());
+    contractsWiremock.forContractsAPI().stubContractNotFound(orgId, ROSA);
   }
 
-  private void givenContracts(String productId, List<ContractStub> contracts) {
-    contractsWiremock.setupContracts(orgId, productId, contracts);
+  private void givenContracts(Product product, List<ContractStub> contracts) {
+    contractsWiremock.forContractsAPI().stubContracts(orgId, product, contracts);
   }
 
   private void givenRosaContractWithEmptyMetrics() {
-    contractsWiremock.setupNoContractCoverage(orgId, ROSA.getName());
+    contractsWiremock.forContractsAPI().stubNoContractCoverage(orgId, ROSA);
   }
 
   private void givenRosaContractCoverage(MetricId metricId, double contractBillableUnits) {
-    contractsWiremock.setupContractCoverage(
-        orgId, ROSA.getName(), ROSA.getMetric(metricId).getAwsDimension(), contractBillableUnits);
+    contractsWiremock
+        .forContractsAPI()
+        .stubContractCoverage(
+            orgId, ROSA, ROSA.getMetric(metricId).getAwsDimension(), contractBillableUnits);
   }
 
   private void givenRosaContractCoverageOnAwsDimension(
       String awsDimension, double contractBillableUnits) {
-    contractsWiremock.setupContractCoverage(
-        orgId, ROSA.getName(), awsDimension, contractBillableUnits);
+    contractsWiremock
+        .forContractsAPI()
+        .stubContractCoverage(orgId, ROSA, awsDimension, contractBillableUnits);
   }
 
   private void givenAnsibleContractStartingInCurrentMonth(OffsetDateTime snapshotDate) {
     OffsetDateTime contractStart =
         snapshotDate.withDayOfMonth(1).plusHours(2).withOffsetSameInstant(ZoneOffset.UTC);
     OffsetDateTime contractEnd = contractStart.plusYears(1);
-    contractsWiremock.setupContractCoverage(
-        orgId, ANSIBLE_AAP_MANAGED.getName(), contractStart, contractEnd);
+    contractsWiremock
+        .forContractsAPI()
+        .stubContractCoverage(orgId, ANSIBLE_AAP_MANAGED, contractStart, contractEnd);
   }
 
   private void givenContractsApiReturnsServerError() {
-    contractsWiremock.setupContractServiceError(orgId);
+    contractsWiremock.forContractsAPI().stubContractServiceError(orgId);
   }
 
   private TallySummary whenRosaTallyIsPublished(
       String metricId, double currentTotal, OffsetDateTime snapshotDate) {
     TallySummary tallySummary =
-        createTallySummary(
+        buildTallySummary(
             orgId,
             ROSA.getName(),
             metricId,
@@ -488,7 +493,7 @@ public class ContractCoverageComponentTest extends BaseBillableUsageComponentTes
 
   private TallySummary whenAnsibleTallyIsPublished(double usageValue, OffsetDateTime snapshotDate) {
     TallySummary tallySummary =
-        createTallySummary(
+        buildTallySummary(
             orgId,
             ANSIBLE_AAP_MANAGED.getName(),
             MANAGED_NODES.toString(),

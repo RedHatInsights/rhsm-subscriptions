@@ -422,13 +422,24 @@ class ContractsResourceTest {
 
   @Test
   void passesLicenseIdWhenProvidedOnAwsUsageContextLookup() {
+    when(featureFlags.useSubscriptions()).thenReturn(false);
+    assertAwsUsageContextLicenseCriteria("arn:aws:license-manager:us-east-1:1:license:abc", false);
+  }
+
+  @Test
+  void usesSubscriptionLicenseIdWhenUseSubscriptionsEnabled() {
+    when(featureFlags.useSubscriptions()).thenReturn(true);
+    assertAwsUsageContextLicenseCriteria("arn:aws:license-manager:us-east-1:1:license:abc", true);
+  }
+
+  private void assertAwsUsageContextLicenseCriteria(
+      String licenseId, boolean useSubscriptionLicenseId) {
     SubscriptionEntity sub = new SubscriptionEntity();
     sub.setBillingProviderId("foo1;foo2;foo3");
     sub.setBillingAccountId("123");
     sub.setEndDate(defaultEndDate);
     when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(List.of(sub));
 
-    String licenseId = "arn:aws:license-manager:us-east-1:1:license:abc";
     given()
         .queryParams(
             "orgId",
@@ -454,6 +465,7 @@ class ContractsResourceTest {
         ArgumentCaptor.forClass(DbReportCriteria.class);
     verify(subscriptionRepository).findByCriteria(criteriaCaptor.capture(), any());
     assertEquals(licenseId, criteriaCaptor.getValue().getLicenseId());
+    assertEquals(useSubscriptionLicenseId, criteriaCaptor.getValue().isUseSubscriptionLicenseId());
   }
 
   @Test

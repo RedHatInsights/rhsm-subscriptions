@@ -23,7 +23,6 @@ package domain;
 import java.time.OffsetDateTime;
 import java.util.Map;
 
-/** WireMock stub fields for one contracts-API agreement. */
 public record ContractStub(
     OffsetDateTime startDate,
     OffsetDateTime endDate,

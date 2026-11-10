@@ -29,6 +29,8 @@ public class TallyUnleashService extends UnleashService {
       "swatch.swatch-tally.enable-host-tally-bucket-primary-row-searches";
   private static final String ENABLE_EVENT_DRIVEN_TALLY =
       "swatch.swatch-tally.enable-event-driven-tally";
+  private static final String DISABLE_NIGHTLY_TALLY_HOST_UPDATE =
+      "swatch.swatch-tally.disable-nightly-tally-host-update";
   private static final String USE_LEGACY_HOURLY_TALLY_SNAPSHOT_QUERY =
       "swatch.swatch-tally.use-legacy-hourly-tally-snapshot-query";
   private static final String DISABLE_HOURLY_HOST_UPDATE =
@@ -82,6 +84,14 @@ public class TallyUnleashService extends UnleashService {
       enableFlag(DISABLE_HOURLY_HOST_UPDATE);
     } else {
       disableFlag(DISABLE_HOURLY_HOST_UPDATE);
+    }
+  }
+
+  public void setDisableNightlyTallyHostUpdate(boolean disabled) {
+    if (disabled) {
+      enableFlag(DISABLE_NIGHTLY_TALLY_HOST_UPDATE);
+    } else {
+      disableFlag(DISABLE_NIGHTLY_TALLY_HOST_UPDATE);
     }
   }
 }

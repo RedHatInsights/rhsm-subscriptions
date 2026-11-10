@@ -20,15 +20,15 @@
  */
 package tests;
 
-import static api.BillableUsageTestHelper.createTallySummary;
-import static api.BillableUsageTestHelper.createTallySummaryWithDefaults;
-import static api.BillableUsageTestHelper.createTallySummaryWithGranularity;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE_HOURLY_AGGREGATE;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static utils.TallySummaryBuilder.buildTallySummary;
+import static utils.TallySummaryBuilder.buildTallySummaryWithDefaults;
+import static utils.TallySummaryBuilder.buildTallySummaryWithGranularity;
 
 import api.MessageValidators;
 import com.redhat.swatch.billable.usage.openapi.model.TallyRemittance;
@@ -66,7 +66,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
 
     // Create and send tally summary
     TallySummary tallySummary =
-        createTallySummaryWithDefaults(orgId, ROSA.getName(), CORES.toString(), VALUE);
+        buildTallySummaryWithDefaults(orgId, ROSA.getName(), CORES.toString(), VALUE);
     kafkaBridge.produceKafkaMessage(TALLY, tallySummary);
 
     // Verify billable usage is produced
@@ -82,12 +82,13 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
   @Test
   public void testBillableUsageWithContractCoverage() {
     // Setup wiremock endpoints
-    contractsWiremock.setupContractCoverage(
-        orgId, ROSA.getName(), AWS_DIMENSION, CONTRACT_COVERAGE);
+    contractsWiremock
+        .forContractsAPI()
+        .stubContractCoverage(orgId, ROSA, AWS_DIMENSION, CONTRACT_COVERAGE);
 
     // Create and send tally summary
     TallySummary tallySummary =
-        createTallySummaryWithDefaults(orgId, ROSA.getName(), CORES.toString(), VALUE);
+        buildTallySummaryWithDefaults(orgId, ROSA.getName(), CORES.toString(), VALUE);
     kafkaBridge.produceKafkaMessage(TALLY, tallySummary);
 
     // Verify billable usage accounts for contract coverage
@@ -183,7 +184,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
 
     // Create and send tally summary with DAILY granularity
     TallySummary dailyTallySummary =
-        createTallySummaryWithGranularity(
+        buildTallySummaryWithGranularity(
             orgId,
             ROSA.getName(),
             CORES.toString(),
@@ -194,7 +195,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
 
     // Create and send tally summary with HOURLY granularity
     TallySummary hourlyTallySummary =
-        createTallySummaryWithGranularity(
+        buildTallySummaryWithGranularity(
             orgId,
             ROSA.getName(),
             CORES.toString(),
@@ -261,8 +262,8 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     String org1 = orgId;
     String org2 = RandomUtils.generateRandom();
     Set<String> orgIds = Set.of(org1, org2);
-    contractsWiremock.setupNoContractCoverage(org1, ROSA.getName());
-    contractsWiremock.setupNoContractCoverage(org2, ROSA.getName());
+    contractsWiremock.forContractsAPI().stubNoContractCoverage(org1, ROSA);
+    contractsWiremock.forContractsAPI().stubNoContractCoverage(org2, ROSA);
 
     // When: Tally snapshots are sent for each org (different values per org)
     whenTallySummaryIsSentForOrg(org1, value1);
@@ -342,8 +343,8 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     double valueRhelAddon = 17.0; // RHEL addon vCPUs (billing factor 1.0 -> 17.0)
     String billingAccountId = RandomUtils.generateRandom();
     Set<String> productIds = Set.of(ROSA.getName(), RHEL_PAYG_ADDON.getName());
-    contractsWiremock.setupNoContractCoverage(orgId, ROSA.getName());
-    contractsWiremock.setupNoContractCoverage(orgId, RHEL_PAYG_ADDON.getName());
+    contractsWiremock.forContractsAPI().stubNoContractCoverage(orgId, ROSA);
+    contractsWiremock.forContractsAPI().stubNoContractCoverage(orgId, RHEL_PAYG_ADDON);
 
     // When: Tally snapshots are sent for the same org/billing account with different products
     whenTallySummariesAreSentForTwoProducts(billingAccountId, valueRosa, valueRhelAddon);
@@ -412,7 +413,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
     String billingAccountId = RandomUtils.generateRandom();
     OffsetDateTime snapshotDateLastMonth = OffsetDateTime.now(ZoneOffset.UTC).minusDays(35);
     OffsetDateTime snapshotDateCurrentMonth = OffsetDateTime.now(ZoneOffset.UTC).minusDays(1);
-    contractsWiremock.setupNoContractCoverage(orgId, RHEL_PAYG_ADDON.getName());
+    contractsWiremock.forContractsAPI().stubNoContractCoverage(orgId, RHEL_PAYG_ADDON);
 
     // When: Tally snapshots are sent for last month and current month (same account/product/metric)
     whenTallySummariesAreSentWithSnapshotDates(
@@ -439,7 +440,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
   }
 
   private void givenNoContractCoverageForRosa() {
-    contractsWiremock.setupNoContractCoverage(orgId, ROSA.getName());
+    contractsWiremock.forContractsAPI().stubNoContractCoverage(orgId, ROSA);
   }
 
   private List<BillableUsageAggregate> whenHourlyAggregatesAreReceived(
@@ -464,21 +465,21 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
 
   private TallySummary whenSendTallySummaryWithValue(double value) {
     TallySummary tallySummary =
-        createTallySummaryWithDefaults(orgId, ROSA.getName(), CORES.toString(), value);
+        buildTallySummaryWithDefaults(orgId, ROSA.getName(), CORES.toString(), value);
     kafkaBridge.produceKafkaMessage(TALLY, tallySummary);
     return tallySummary;
   }
 
   private TallySummary whenSendTallySummaryForRhelAddonWithValue(double value) {
     TallySummary tallySummary =
-        createTallySummaryWithDefaults(orgId, RHEL_PAYG_ADDON.getName(), VCPUS.toString(), value);
+        buildTallySummaryWithDefaults(orgId, RHEL_PAYG_ADDON.getName(), VCPUS.toString(), value);
     kafkaBridge.produceKafkaMessage(TALLY, tallySummary);
     return tallySummary;
   }
 
   private void whenSecondTallySummaryIsSent(double value, String billingAccountId) {
     TallySummary secondTallySummary =
-        createTallySummary(
+        buildTallySummary(
             orgId,
             RHEL_PAYG_ADDON.getName(),
             VCPUS.toString(),
@@ -490,14 +491,14 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
 
   private void whenTallySummaryIsSentForOrg(String orgId, double value) {
     TallySummary tallySummary =
-        createTallySummaryWithDefaults(orgId, ROSA.getName(), CORES.toString(), value);
+        buildTallySummaryWithDefaults(orgId, ROSA.getName(), CORES.toString(), value);
     kafkaBridge.produceKafkaMessage(TALLY, tallySummary);
   }
 
   private void whenTallySummariesAreSentForTwoMetrics(
       String billingAccountId, double valueCores, double valueInstanceHours) {
     TallySummary tallySummaryCores =
-        createTallySummary(
+        buildTallySummary(
             orgId,
             ROSA.getName(),
             CORES.toString(),
@@ -505,7 +506,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
             BillingProvider.AWS,
             billingAccountId);
     TallySummary tallySummaryInstanceHours =
-        createTallySummary(
+        buildTallySummary(
             orgId,
             ROSA.getName(),
             INSTANCE_HOURS.toString(),
@@ -522,7 +523,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
       OffsetDateTime snapshotDateLastMonth,
       OffsetDateTime snapshotDateCurrentMonth) {
     TallySummary tallyLastMonth =
-        createTallySummary(
+        buildTallySummary(
             orgId,
             RHEL_PAYG_ADDON.getName(),
             VCPUS.toString(),
@@ -531,7 +532,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
             billingAccountId,
             snapshotDateLastMonth);
     TallySummary tallyCurrentMonth =
-        createTallySummary(
+        buildTallySummary(
             orgId,
             RHEL_PAYG_ADDON.getName(),
             VCPUS.toString(),
@@ -546,7 +547,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
   private void whenTallySummariesAreSentForTwoProducts(
       String billingAccountId, double valueRosa, double valueRhelAddon) {
     TallySummary tallySummaryRosa =
-        createTallySummary(
+        buildTallySummary(
             orgId,
             ROSA.getName(),
             CORES.toString(),
@@ -554,7 +555,7 @@ public class TallySummaryConsumerComponentTest extends BaseBillableUsageComponen
             BillingProvider.AWS,
             billingAccountId);
     TallySummary tallySummaryRhelAddon =
-        createTallySummary(
+        buildTallySummary(
             orgId,
             RHEL_PAYG_ADDON.getName(),
             VCPUS.toString(),

@@ -30,7 +30,7 @@
     <jakarta.ws.rs-api.version>4.0.0</jakarta.ws.rs-api.version>
     <jakarta.persistence-api.version>3.2.0</jakarta.persistence-api.version>
     <opentelemetry-api.version>1.67.0</opentelemetry-api.version>
-    <awssdk-bom.version>2.57.10</awssdk-bom.version>
+    <awssdk-bom.version>2.57.11</awssdk-bom.version>
     <guava.version>33.8.0-jre</guava.version>
     <liquibase.version>5.0.4</liquibase.version>
     <postgresql.version>42.7.14</postgresql.version>
@@ -47,7 +47,7 @@
     <rest-assured.version>6.3.0</rest-assured.version>
     <kessel-sdk.version>1.11.0</kessel-sdk.version>
     <grpc.version>1.85.1</grpc.version>
-    <oauth2-oidc-sdk.version>11.38.2</oauth2-oidc-sdk.version>
+    <oauth2-oidc-sdk.version>11.39</oauth2-oidc-sdk.version>
 
     <!-- Plugins -->
     <compiler-plugin.version>3.16.0</compiler-plugin.version>

@@ -18,7 +18,9 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package api;
+package utils;
+
+import static utils.TallyMeasurementBuilder.buildPhysicalMeasurement;
 
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import domain.BillingProvider;
@@ -30,18 +32,18 @@ import org.candlepin.subscriptions.billable.usage.TallyMeasurement;
 import org.candlepin.subscriptions.billable.usage.TallySnapshot;
 import org.candlepin.subscriptions.billable.usage.TallySummary;
 
-public final class BillableUsageTestHelper {
+public final class TallySummaryBuilder {
 
-  private BillableUsageTestHelper() {}
+  private TallySummaryBuilder() {}
 
-  public static TallySummary createTallySummary(
+  public static TallySummary buildTallySummary(
       String orgId,
       String productId,
       String metricId,
       double value,
       BillingProvider billingProvider,
       String billingAccountId) {
-    return createTallySummary(
+    return buildTallySummary(
         orgId,
         productId,
         metricId,
@@ -51,11 +53,7 @@ public final class BillableUsageTestHelper {
         OffsetDateTime.now().minusHours(1).withOffsetSameInstant(ZoneOffset.UTC));
   }
 
-  /**
-   * Create a tally summary with a specific snapshot date. Use for time-boundary tests (e.g. last
-   * month vs current month).
-   */
-  public static TallySummary createTallySummary(
+  public static TallySummary buildTallySummary(
       String orgId,
       String productId,
       String metricId,
@@ -63,22 +61,22 @@ public final class BillableUsageTestHelper {
       BillingProvider billingProvider,
       String billingAccountId,
       OffsetDateTime snapshotDate) {
-    return createTallySummary(
+    return buildTallySummary(
         orgId,
         productId,
         billingProvider,
         billingAccountId,
         snapshotDate,
-        createPhysicalMeasurement(metricId, value));
+        TallyMeasurementBuilder.buildPhysicalMeasurement(metricId, value));
   }
 
-  public static TallySummary createTallySummary(
+  public static TallySummary buildTallySummary(
       String orgId,
       String productId,
       BillingProvider billingProvider,
       String billingAccountId,
       TallyMeasurement... measurements) {
-    return createTallySummary(
+    return buildTallySummary(
         orgId,
         productId,
         billingProvider,
@@ -87,7 +85,7 @@ public final class BillableUsageTestHelper {
         measurements);
   }
 
-  public static TallySummary createTallySummary(
+  public static TallySummary buildTallySummary(
       String orgId,
       String productId,
       BillingProvider billingProvider,
@@ -111,18 +109,13 @@ public final class BillableUsageTestHelper {
     return tallySummary;
   }
 
-  public static TallySummary createTallySummaryWithDefaults(
+  public static TallySummary buildTallySummaryWithDefaults(
       String orgId, String productId, String metricId, double value) {
-    return createTallySummary(
+    return buildTallySummary(
         orgId, productId, metricId, value, BillingProvider.AWS, RandomUtils.generateRandom());
   }
 
-  /**
-   * Create a tally summary where {@code currentTotal} reflects cumulative usage for the month while
-   * {@code value} is the increment from this snapshot. Use for re-tally and contract-adjustment
-   * scenarios.
-   */
-  public static TallySummary createTallySummaryWithCurrentTotal(
+  public static TallySummary buildTallySummaryWithCurrentTotal(
       String orgId,
       String productId,
       String metricId,
@@ -130,15 +123,15 @@ public final class BillableUsageTestHelper {
       double currentTotal,
       BillingProvider billingProvider,
       String billingAccountId) {
-    return createTallySummary(
+    return buildTallySummary(
         orgId,
         productId,
         billingProvider,
         billingAccountId,
-        createPhysicalMeasurement(metricId, value, currentTotal));
+        buildPhysicalMeasurement(metricId, value, currentTotal));
   }
 
-  public static TallySummary createTallySummaryWithCurrentTotal(
+  public static TallySummary buildTallySummaryWithCurrentTotal(
       String orgId,
       String productId,
       String metricId,
@@ -147,30 +140,16 @@ public final class BillableUsageTestHelper {
       BillingProvider billingProvider,
       String billingAccountId,
       OffsetDateTime snapshotDate) {
-    return createTallySummary(
+    return buildTallySummary(
         orgId,
         productId,
         billingProvider,
         billingAccountId,
         snapshotDate,
-        createPhysicalMeasurement(metricId, value, currentTotal));
+        buildPhysicalMeasurement(metricId, value, currentTotal));
   }
 
-  public static TallyMeasurement createPhysicalMeasurement(String metricId, double value) {
-    return createPhysicalMeasurement(metricId, value, value);
-  }
-
-  public static TallyMeasurement createPhysicalMeasurement(
-      String metricId, double value, double currentTotal) {
-    var measurement = new TallyMeasurement();
-    measurement.setHardwareMeasurementType("PHYSICAL");
-    measurement.setMetricId(metricId);
-    measurement.setValue(value);
-    measurement.setCurrentTotal(currentTotal);
-    return measurement;
-  }
-
-  public static TallySummary createTallySummaryWithGranularity(
+  public static TallySummary buildTallySummaryWithGranularity(
       String orgId,
       String productId,
       String metricId,
@@ -178,8 +157,8 @@ public final class BillableUsageTestHelper {
       TallySnapshot.Granularity granularity,
       UUID snapshotId) {
 
-    TallySummary tallySummary = createTallySummaryWithDefaults(orgId, productId, metricId, value);
-    TallySnapshot snapshot = tallySummary.getTallySnapshots().get(0);
+    TallySummary tallySummary = buildTallySummaryWithDefaults(orgId, productId, metricId, value);
+    TallySnapshot snapshot = tallySummary.getTallySnapshots().getFirst();
     snapshot.setGranularity(granularity);
     snapshot.setId(snapshotId);
     return tallySummary;

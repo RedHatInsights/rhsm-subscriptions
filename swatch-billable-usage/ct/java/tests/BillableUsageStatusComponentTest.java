@@ -20,7 +20,6 @@
  */
 package tests;
 
-import static api.BillableUsageTestHelper.createTallySummary;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE_STATUS;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
@@ -29,6 +28,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static utils.BillableUsageAggregateHelper.buildBillableUsageAggregate;
+import static utils.TallySummaryBuilder.buildTallySummary;
 
 import api.MessageValidators;
 import com.redhat.swatch.billable.usage.openapi.model.TallyRemittance;
@@ -155,7 +156,7 @@ public class BillableUsageStatusComponentTest extends BaseBillableUsageComponent
   }
 
   private BillableUsage givenPendingRemittanceExists() {
-    contractsWiremock.setupNoContractCoverage(orgId, ROSA.getName());
+    contractsWiremock.forContractsAPI().stubNoContractCoverage(orgId, ROSA);
     whenRosaTallyIsSent(VALUE);
 
     double expectedValue = VALUE * BILLING_FACTOR;
@@ -173,8 +174,9 @@ public class BillableUsageStatusComponentTest extends BaseBillableUsageComponent
   private BillableUsage givenPendingRemittanceWithLicense(String licenseId, double tallyValue) {
     OffsetDateTime start = OffsetDateTime.now(ZoneOffset.UTC).minusMonths(1);
     OffsetDateTime end = OffsetDateTime.now(ZoneOffset.UTC).plusYears(1);
-    contractsWiremock.setupContracts(
-        orgId, ROSA.getName(), List.of(new ContractStub(start, end, Map.of(), licenseId)));
+    contractsWiremock
+        .forContractsAPI()
+        .stubContracts(orgId, ROSA, List.of(new ContractStub(start, end, Map.of(), licenseId)));
 
     TallySummary tallySummary = whenRosaTallyIsSent(tallyValue);
     String tallyId = tallySummary.getTallySnapshots().getFirst().getId().toString();
@@ -198,7 +200,7 @@ public class BillableUsageStatusComponentTest extends BaseBillableUsageComponent
 
   private TallySummary whenRosaTallyIsSent(double tallyValue) {
     TallySummary tallySummary =
-        createTallySummary(
+        buildTallySummary(
             orgId,
             ROSA.getName(),
             CORES.toString(),

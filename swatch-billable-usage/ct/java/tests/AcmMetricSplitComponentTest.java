@@ -20,13 +20,13 @@
  */
 package tests;
 
-import static api.BillableUsageTestHelper.createPhysicalMeasurement;
-import static api.BillableUsageTestHelper.createTallySummary;
 import static com.redhat.swatch.component.tests.utils.Topics.BILLABLE_USAGE;
 import static com.redhat.swatch.component.tests.utils.Topics.TALLY;
 import static domain.RemittanceStatus.COVERED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static utils.TallyMeasurementBuilder.buildPhysicalMeasurement;
+import static utils.TallySummaryBuilder.buildTallySummary;
 
 import api.MessageValidators;
 import com.redhat.swatch.billable.usage.openapi.model.MonthlyRemittance;
@@ -165,33 +165,37 @@ public class AcmMetricSplitComponentTest extends BaseBillableUsageComponentTest 
   }
 
   private void givenLegacyAwsAcmContract(double managedCoverage) {
-    contractsWiremock.setupContractCoverage(
-        orgId, RHACM.getName(), ACM_VCPU_HOURS, managedCoverage);
+    contractsWiremock
+        .forContractsAPI()
+        .stubContractCoverage(orgId, RHACM, ACM_VCPU_HOURS, managedCoverage);
   }
 
   private void givenDualDimensionAwsAcmContract(
       double managedCoverage, double selfManagedCoverage) {
-    contractsWiremock.setupMultiMetricContractCoverage(
-        orgId,
-        RHACM.getName(),
-        Map.of(ACM_VCPU_HOURS, managedCoverage, ACM_VCPU_HOURS_SLFMNG, selfManagedCoverage));
+    contractsWiremock
+        .forContractsAPI()
+        .stubMultiMetricContractCoverage(
+            orgId,
+            RHACM,
+            Map.of(ACM_VCPU_HOURS, managedCoverage, ACM_VCPU_HOURS_SLFMNG, selfManagedCoverage));
   }
 
   private void givenAzureManagedOnlyAcmContract(double managedCoverage) {
-    contractsWiremock.setupContractCoverage(
-        orgId, RHACM.getName(), ACM_VCPU_HOURS_MNG, managedCoverage);
+    contractsWiremock
+        .forContractsAPI()
+        .stubContractCoverage(orgId, RHACM, ACM_VCPU_HOURS_MNG, managedCoverage);
   }
 
   private TallySummary whenAcmTallyWithBothMetricsIsPublished(
       BillingProvider billingProvider, double managedTotal, double selfManagedTotal) {
     TallySummary tallySummary =
-        createTallySummary(
+        buildTallySummary(
             orgId,
             RHACM.getName(),
             billingProvider,
             billingAccountId,
-            createPhysicalMeasurement(VCPUS.toString(), managedTotal),
-            createPhysicalMeasurement(VCPUS_SELF_MANAGED.toString(), selfManagedTotal));
+            buildPhysicalMeasurement(VCPUS.toString(), managedTotal),
+            buildPhysicalMeasurement(VCPUS_SELF_MANAGED.toString(), selfManagedTotal));
     kafkaBridge.produceKafkaMessage(TALLY, tallySummary);
     return tallySummary;
   }

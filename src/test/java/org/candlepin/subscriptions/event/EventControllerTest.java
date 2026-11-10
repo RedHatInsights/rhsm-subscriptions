@@ -25,6 +25,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -60,9 +62,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.kafka.listener.BatchListenerFailedException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 @SpringBootTest
 @ExtendWith(MockitoExtension.class)
@@ -72,6 +77,7 @@ class EventControllerTest {
   @Autowired ObjectMapper mapper;
   @MockitoBean private EventRecordRepository eventRecordRepository;
   @MockitoBean private OptInController optInController;
+  @MockitoSpyBean private EventNormalizer eventNormalizer;
   @Captor private ArgumentCaptor<Collection<EventRecord>> eventsSaved;
   @Autowired private MeterRegistry meterRegistry;
   @Autowired private EventController eventController;
@@ -288,6 +294,31 @@ class EventControllerTest {
     List<EventRecord> events = eventsSaved.getAllValues().get(0).stream().toList();
     assertEquals(1, events.size());
     assertEquals(expectedEvent, events.get(0));
+  }
+
+  @Test
+  @ExtendWith(OutputCaptureExtension.class)
+  void testPersistServiceInstancesSkipsAndLogsNormalizationFailure(CapturedOutput output) {
+    doThrow(new IllegalStateException("normalization failed"))
+        .when(eventNormalizer)
+        .normalizeEvent(argThat(event -> "6".equals(event.getOrgId())));
+
+    List<String> eventRecords = List.of(eventRecord1, eventRecord2, eventRecord5);
+
+    BatchListenerFailedException exception =
+        assertThrows(
+            BatchListenerFailedException.class,
+            () -> eventController.persistServiceInstances(eventRecords));
+
+    assertEquals(2, exception.getIndex());
+
+    verify(eventRecordRepository).saveAll(eventsSaved.capture());
+    List<EventRecord> saved = eventsSaved.getValue().stream().toList();
+    assertEquals(1, saved.size());
+    assertEquals("4", saved.get(0).getOrgId());
+    verify(optInController, never()).optInByOrgId("6", OptInType.PROMETHEUS);
+
+    assertTrue(output.getAll().contains("Issue found normalization failed"));
   }
 
   @Test
