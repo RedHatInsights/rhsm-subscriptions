@@ -51,7 +51,7 @@ public class ReadOnlyModeComponentTest extends BaseBillableUsageComponentTest {
   @TestPlanName("read-only-TC001")
   @Test
   void shouldPauseAndResumeConsumerWithFeatureFlag() {
-    contractsWiremock.setupNoContractCoverage(orgId, ROSA.getName());
+    contractsWiremock.forContractsAPI().stubNoContractCoverage(orgId, ROSA);
 
     // By default, the channel is consuming, so tallies produce billable usage
     TallySummary first = whenTallySummaryIsPublished();
