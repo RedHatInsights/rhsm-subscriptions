@@ -37,6 +37,7 @@ public class DbReportCriteria {
   private BillingProvider billingProvider;
   private String billingAccountId;
   private String licenseId;
+  private boolean useSubscriptionLicenseId;
   private boolean payg;
   private OffsetDateTime beginning;
   private OffsetDateTime ending;

@@ -264,6 +264,7 @@ public class ContractsResource implements DefaultApi {
             .beginning(date.minusHours(1))
             .ending(date)
             .licenseId(licenseId)
+            .useSubscriptionLicenseId(featureFlags.useSubscriptions())
             .build();
     return usageContextSubscriptionProvider.getSubscription(criteria);
   }
