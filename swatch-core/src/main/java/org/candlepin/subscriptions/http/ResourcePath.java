@@ -18,16 +18,27 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.rbac;
+package org.candlepin.subscriptions.http;
 
-import java.util.List;
-import org.candlepin.subscriptions.rbac.model.Access;
+import java.io.IOException;
+import org.springframework.core.io.Resource;
 
-/** Defines wrapper functions around all RBAC API calls that we want to make. */
-public interface RbacApi {
+public final class ResourcePath {
 
-  List<Access> getCurrentUserAccess(String applicationName) throws RbacApiException;
+  private ResourcePath() {}
 
-  List<Access> getCurrentIdentityAccess(String rbacAppName, String identity)
-      throws RbacApiException;
+  public static String from(Resource resource) {
+    if (resource == null || !resource.exists()) {
+      return null;
+    }
+    try {
+      return resource.getURL().toString();
+    } catch (IOException e) {
+      try {
+        return resource.getFile().getAbsolutePath();
+      } catch (IOException nested) {
+        return null;
+      }
+    }
+  }
 }

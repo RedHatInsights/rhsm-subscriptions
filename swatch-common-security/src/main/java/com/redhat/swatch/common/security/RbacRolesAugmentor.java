@@ -20,9 +20,8 @@
  */
 package com.redhat.swatch.common.security;
 
-import com.redhat.swatch.clients.rbac.api.model.Access;
-import com.redhat.swatch.clients.rbac.api.resources.AccessApi;
-import com.redhat.swatch.clients.rbac.api.resources.ApiException;
+import com.redhat.swatch.clients.rbac.RbacApiException;
+import com.redhat.swatch.clients.rbac.RbacService;
 import io.getunleash.Unleash;
 import io.quarkus.arc.properties.IfBuildProperty;
 import io.quarkus.security.identity.AuthenticationRequestContext;
@@ -39,7 +38,6 @@ import java.util.Set;
 import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 /** Component that adds roles from RBAC service to customer and service account principals. */
 @Slf4j
@@ -56,7 +54,7 @@ public class RbacRolesAugmentor implements SecurityIdentityAugmentor {
   boolean rbacEnabled;
 
   @Inject Unleash unleash;
-  @Inject @RestClient AccessApi accessApi;
+  @Inject RbacService rbacService;
 
   @Override
   public Uni<SecurityIdentity> augment(
@@ -141,13 +139,8 @@ public class RbacRolesAugmentor implements SecurityIdentityAugmentor {
     return Objects.equals("ServiceAccount", principal.getIdentity().getType());
   }
 
-  public List<String> getPermissions(RhIdentityPrincipal principal) throws ApiException {
+  public List<String> getPermissions(RhIdentityPrincipal principal) throws RbacApiException {
     // Get all permissions for the hardcoded application name.
-    return accessApi
-        .getPrincipalAccess(RBAC_APP_NAME, null, principal.getHeaderValue(), null, null)
-        .getData()
-        .stream()
-        .map(Access::getPermission)
-        .toList();
+    return rbacService.getPermissions(RBAC_APP_NAME, principal.getHeaderValue());
   }
 }

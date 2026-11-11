@@ -102,10 +102,6 @@
     </dependency>
     <dependency>
       <groupId>com.redhat.swatch.clients.quarkus</groupId>
-      <artifactId>rbac-client</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.redhat.swatch.clients.quarkus</groupId>
       <artifactId>product-client</artifactId>
     </dependency>
     <dependency>

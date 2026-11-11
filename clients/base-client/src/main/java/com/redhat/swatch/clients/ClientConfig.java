@@ -36,6 +36,7 @@ public class ClientConfig {
   private final char[] trustStorePassword;
   private final String trustStoreType;
   private final Duration readTimeout;
+  private final Integer maxConnections;
 
   public ClientConfig(
       String name,
@@ -46,6 +47,28 @@ public class ClientConfig {
       char[] trustStorePassword,
       String trustStoreType,
       Duration readTimeout) {
+    this(
+        name,
+        psk,
+        uri,
+        authenticated,
+        trustStorePath,
+        trustStorePassword,
+        trustStoreType,
+        readTimeout,
+        null);
+  }
+
+  public ClientConfig(
+      String name,
+      String psk,
+      String uri,
+      Boolean authenticated,
+      String trustStorePath,
+      char[] trustStorePassword,
+      String trustStoreType,
+      Duration readTimeout,
+      Integer maxConnections) {
     this.name = Objects.requireNonNull(name, "name");
     this.psk = psk;
     this.uri = uri;
@@ -54,6 +77,7 @@ public class ClientConfig {
     this.trustStorePassword = trustStorePassword;
     this.trustStoreType = trustStoreType;
     this.readTimeout = readTimeout;
+    this.maxConnections = maxConnections;
   }
 
   public boolean hasUri() {

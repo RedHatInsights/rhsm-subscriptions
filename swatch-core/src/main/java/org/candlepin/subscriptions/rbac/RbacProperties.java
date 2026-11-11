@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.rbac;
 
-import java.util.List;
+import java.time.Duration;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -32,8 +32,8 @@ import org.candlepin.subscriptions.http.HttpClientProperties;
 @ToString(callSuper = true)
 public class RbacProperties extends HttpClientProperties {
 
-  /** The list of permissions to return when using the stub */
-  private List<String> stubPermissions;
+  /** RESTEasy read timeout for RBAC service calls. */
+  private Duration readTimeout = Duration.ofSeconds(120);
 
   /** The RBAC application name that defines the permissions for this application. */
   private String applicationName = "subscriptions";

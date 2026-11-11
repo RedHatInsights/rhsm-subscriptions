@@ -18,12 +18,11 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.rbac;
+package com.redhat.swatch.clients.rbac;
 
-/** Thrown when an error occurs making an RBAC API call. */
 public class RbacApiException extends Exception {
 
-  public RbacApiException(String message, Throwable t) {
-    super(message, t);
+  public RbacApiException(String message, Throwable cause) {
+    super(message, cause);
   }
 }

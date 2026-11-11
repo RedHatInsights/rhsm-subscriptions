@@ -70,11 +70,6 @@
       </dependency>
       <dependency>
         <groupId>com.redhat.swatch.clients.quarkus</groupId>
-        <artifactId>rbac-client</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.redhat.swatch.clients.quarkus</groupId>
         <artifactId>subscription-client</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -86,6 +81,11 @@
       <dependency>
         <groupId>com.redhat.swatch.clients.quarkus</groupId>
         <artifactId>azure-marketplace-client</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.redhat.swatch.clients</groupId>
+        <artifactId>rbac-client</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
