@@ -19,7 +19,6 @@
     <module>contracts-client</module>
     <module>product-client</module>
     <module>prometheus-client</module>
-    <module>rbac-client</module>
     <module>rh-partner-gateway-client</module>
     <module>subscription-client</module>
   </modules>

@@ -90,11 +90,6 @@
     </dependency>
     <dependency>
       <groupId>com.redhat.swatch.clients.quarkus</groupId>
-      <artifactId>rbac-client</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.redhat.swatch.clients.quarkus</groupId>
       <artifactId>subscription-client</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -179,7 +174,7 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.redhat.swatch.clients.spring</groupId>
+      <groupId>com.redhat.swatch.clients</groupId>
       <artifactId>rbac-client</artifactId>
       <version>${project.version}</version>
     </dependency>

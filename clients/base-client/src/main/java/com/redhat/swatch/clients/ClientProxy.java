@@ -93,6 +93,14 @@ public class ClientProxy<CLIENT> {
       httpClientBuilder =
           httpClientBuilder.readTimeout(readTimeout.toMillis(), TimeUnit.MILLISECONDS);
     }
+
+    Integer maxConnections = config.getMaxConnections();
+    if (maxConnections != null
+        && maxConnections > 0
+        && httpClientBuilder instanceof ResteasyClientBuilder resteasyClientBuilder) {
+      httpClientBuilder = resteasyClientBuilder.connectionPoolSize(maxConnections);
+    }
+
     KeyStore trustStore = loadTrustStore(config);
     if (trustStore != null) {
       try {

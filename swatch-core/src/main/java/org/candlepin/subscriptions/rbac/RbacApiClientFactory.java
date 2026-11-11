@@ -20,30 +20,27 @@
  */
 package org.candlepin.subscriptions.rbac;
 
-import java.util.List;
-import java.util.stream.Collectors;
-import org.candlepin.subscriptions.rbac.model.Access;
+import com.redhat.swatch.clients.ClientConfig;
+import com.redhat.swatch.clients.rbac.SwatchRbacApi;
+import java.util.Objects;
+import org.springframework.beans.factory.FactoryBean;
 
-/** Stub implementation of the RbacApi. */
-public class StubRbacApi implements RbacApi {
+/** FactoryBean that exposes the configured RBAC client. */
+public class RbacApiClientFactory implements FactoryBean<SwatchRbacApi> {
 
-  private final RbacProperties serviceProperties;
+  private final ClientConfig config;
 
-  public StubRbacApi(RbacProperties serviceProperties) {
-    this.serviceProperties = serviceProperties;
+  public RbacApiClientFactory(ClientConfig config) {
+    this.config = Objects.requireNonNull(config, "config");
   }
 
   @Override
-  public List<Access> getCurrentUserAccess(String applicationName) throws RbacApiException {
-    return serviceProperties.getStubPermissions().stream()
-        .map(p -> new Access().permission(p))
-        .collect(Collectors.toList());
+  public SwatchRbacApi getObject() {
+    return new SwatchRbacApi(config);
   }
 
   @Override
-  public List<Access> getCurrentIdentityAccess(String rbacAppName, String identity) {
-    return serviceProperties.getStubPermissions().stream()
-        .map(p -> new Access().permission(p))
-        .collect(Collectors.toList());
+  public Class<?> getObjectType() {
+    return SwatchRbacApi.class;
   }
 }

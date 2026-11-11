@@ -20,10 +20,13 @@
  */
 package com.redhat.swatch.clients.rbac;
 
-/** Thrown when an error occurs making an RBAC API call. */
-public class RbacApiException extends Exception {
+import com.redhat.swatch.clients.rbac.api.model.Access;
+import java.util.List;
 
-  public RbacApiException(String message, Throwable t) {
-    super(message, t);
-  }
+public interface RbacApi {
+
+  List<Access> getCurrentUserAccess(String applicationName) throws RbacApiException;
+
+  List<Access> getCurrentIdentityAccess(String applicationName, String identity)
+      throws RbacApiException;
 }

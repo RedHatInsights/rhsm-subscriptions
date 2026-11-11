@@ -43,6 +43,9 @@ class DependenciesInfoContributorTest {
   @ConfigProperty(name = "EXPORT_SERVICE_ENDPOINT")
   String exportServiceEndpoint;
 
+  @ConfigProperty(name = "RBAC_API_ENDPOINT")
+  String rbacApiEndpoint;
+
   @Test
   void wiresExportServiceAsClientInfoAndContributesDependenciesInfo() {
     assertFalse(StreamSupport.stream(clients.spliterator(), false).toList().isEmpty());
@@ -60,5 +63,20 @@ class DependenciesInfoContributorTest {
     Map<String, Object> exportInfo = (Map<String, Object>) section.get("export-service");
     assertFalse(exportInfo.containsKey("trustStorePassword"));
     assertEquals(exportServiceEndpoint, exportInfo.get("uri"));
+  }
+
+  @Test
+  void wiresRbacServiceAsClientInfoAndContributesDependenciesInfo() {
+    assertFalse(StreamSupport.stream(clients.spliterator(), false).toList().isEmpty());
+    assertTrue(
+        StreamSupport.stream(clients.spliterator(), false)
+            .anyMatch(client -> "rbac-service".equals(client.name())));
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> section = (Map<String, Object>) contributor.data();
+    assertTrue(section.containsKey("rbac-service"));
+    @SuppressWarnings("unchecked")
+    Map<String, Object> rbacInfo = (Map<String, Object>) section.get("rbac-service");
+    assertEquals(rbacApiEndpoint, rbacInfo.get("uri"));
   }
 }

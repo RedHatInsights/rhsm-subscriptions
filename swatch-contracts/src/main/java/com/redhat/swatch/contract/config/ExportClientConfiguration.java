@@ -43,6 +43,7 @@ import com.redhat.swatch.export.JsonExportFileWriter;
 import com.redhat.swatch.export.api.ExportDelegate;
 import com.redhat.swatch.export.api.ExportDelegateImpl;
 import com.redhat.swatch.export.api.RbacDelegate;
+import io.smallrye.common.annotation.Identifier;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import jakarta.enterprise.inject.Typed;
@@ -66,6 +67,9 @@ public class ExportClientConfiguration {
   @ConfigProperty(name = "EXPORT_SERVICE_READ_TIMEOUT", defaultValue = "120s")
   Duration readTimeout;
 
+  @ConfigProperty(name = "EXPORT_SERVICE_MAX_CONNECTIONS", defaultValue = "100")
+  int maxConnections;
+
   @ConfigProperty(name = "EXPORT_SERVICE_ENDPOINT")
   Optional<String> uri;
 
@@ -82,6 +86,7 @@ public class ExportClientConfiguration {
   Optional<String> trustStoreType;
 
   @Produces
+  @Identifier(EXPORT_SERVICE)
   @ApplicationScoped
   ClientConfig exportServiceClientConfig() {
     return new ClientConfig(
@@ -92,7 +97,8 @@ public class ExportClientConfiguration {
         trustStorePath.orElse(null),
         toPasswordChars(trustStorePassword.orElse(null)),
         trustStoreType.orElse(null),
-        readTimeout);
+        readTimeout,
+        maxConnections);
   }
 
   @Produces
@@ -107,7 +113,8 @@ public class ExportClientConfiguration {
   @Produces
   @ApplicationScoped
   SwatchExportApi swatchExportApi(
-      ClientConfig exportServiceClientConfig, TokenProvider tokenProvider) {
+      @Identifier(EXPORT_SERVICE) ClientConfig exportServiceClientConfig,
+      TokenProvider tokenProvider) {
     return new SwatchExportApi(exportServiceClientConfig, tokenProvider);
   }
 

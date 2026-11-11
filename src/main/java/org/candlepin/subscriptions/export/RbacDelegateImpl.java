@@ -20,13 +20,13 @@
  */
 package org.candlepin.subscriptions.export;
 
+import com.redhat.swatch.clients.rbac.RbacApiException;
+import com.redhat.swatch.clients.rbac.RbacService;
 import com.redhat.swatch.export.ExportServiceException;
 import com.redhat.swatch.export.api.RbacDelegate;
 import jakarta.ws.rs.core.Response;
 import java.util.List;
 import lombok.AllArgsConstructor;
-import org.candlepin.subscriptions.rbac.RbacApiException;
-import org.candlepin.subscriptions.rbac.RbacService;
 import org.springframework.stereotype.Service;
 
 @AllArgsConstructor
