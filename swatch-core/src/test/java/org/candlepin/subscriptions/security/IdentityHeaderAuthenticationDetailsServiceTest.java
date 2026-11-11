@@ -29,12 +29,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.redhat.swatch.clients.rbac.RbacApiException;
+import com.redhat.swatch.clients.rbac.RbacService;
 import com.redhat.swatch.kessel.KesselAuthorizationClient;
 import io.getunleash.Unleash;
 import java.util.List;
-import org.candlepin.subscriptions.rbac.RbacApiException;
 import org.candlepin.subscriptions.rbac.RbacProperties;
-import org.candlepin.subscriptions.rbac.RbacService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

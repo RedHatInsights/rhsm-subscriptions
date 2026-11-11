@@ -21,11 +21,11 @@
 package org.candlepin.subscriptions.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.redhat.swatch.clients.rbac.RbacService;
 import com.redhat.swatch.kessel.KesselAuthorizationClient;
 import io.getunleash.Unleash;
 import jakarta.servlet.http.HttpServletRequest;
 import org.candlepin.subscriptions.rbac.RbacProperties;
-import org.candlepin.subscriptions.rbac.RbacService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.actuate.autoconfigure.web.server.ManagementServerProperties;

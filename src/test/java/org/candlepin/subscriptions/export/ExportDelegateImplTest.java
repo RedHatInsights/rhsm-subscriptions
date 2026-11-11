@@ -70,15 +70,12 @@ class ExportDelegateImplTest {
     wireMockServer.stubFor(post(urlPathMatching("/internal/export/.*")).willReturn(ok()));
 
     ClientConfig config =
-        new ClientConfig(
-            "export-service",
-            "placeholder",
-            wireMockServer.baseUrl(),
-            false,
-            null,
-            null,
-            null,
-            null);
+        ClientConfig.builder()
+            .name("export-service")
+            .psk("placeholder")
+            .uri(wireMockServer.baseUrl())
+            .authenticated(false)
+            .build();
     exportDelegate = new ExportDelegateImpl(new SwatchExportApi(config, () -> "unused"));
   }
 

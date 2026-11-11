@@ -35,7 +35,7 @@ Add to your Quarkus module's `pom.xml`:
 </dependency>
 
 <dependency>
-    <groupId>com.redhat.swatch.clients.quarkus</groupId>    
+    <groupId>com.redhat.swatch.clients</groupId>    
     <artifactId>rbac-client</artifactId>
 </dependency>
 ```
