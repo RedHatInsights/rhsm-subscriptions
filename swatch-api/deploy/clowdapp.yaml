@@ -23,6 +23,8 @@ parameters:
     value: WARN
   - name: LOGGING_LEVEL
     value: INFO
+  - name: LOGGING_LEVEL_COM_REDHAT_SWATCH_KESSEL
+    value: DEBUG
   - name: LOGGING_SHOW_SQL_QUERIES
     value: 'false'
   - name: REPLICAS
@@ -188,6 +190,8 @@ objects:
                 value: ${LOGGING_LEVEL}
               - name: LOGGING_LEVEL_COM_REDHAT_SWATCH
                 value: ${LOGGING_LEVEL}
+              - name: LOGGING_LEVEL_COM_REDHAT_SWATCH_KESSEL
+                value: ${LOGGING_LEVEL_COM_REDHAT_SWATCH_KESSEL}
               - name: LOGGING_SHOW_SQL_QUERIES
                 value: ${LOGGING_SHOW_SQL_QUERIES}
               - name: DATABASE_HOST
