@@ -36,6 +36,10 @@ io:
 #TODO remove this. Fixed in next release
 logging:
   level:
+    com:
+      redhat:
+        swatch:
+          kessel: ${LOGGING_LEVEL_COM_REDHAT_SWATCH_KESSEL:INFO}
     org:
       springframework:
         kafka:
