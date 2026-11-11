@@ -220,12 +220,24 @@ public class KesselAuthorizationClient {
    */
   public boolean checkAccess(String subjectId, String permission, String orgId) {
     if (stub == null) {
-      log.warn("Kessel client not initialized; denying access for subject={}", subjectId);
+      log.warn(
+          "Kessel authorization denied: client_not_initialized subject={} orgId={} permission={}",
+          subjectId,
+          orgId,
+          permission);
       recordCheckMetric(false, METRICS_CLIENT_NOT_INITIALIZED);
       return false;
     }
     var relation = mapPermissionToRelation(permission);
     var workspaceId = workspaceResolver.getDefaultWorkspaceId(orgId);
+
+    log.debug(
+        "Kessel authorization check subject={} orgId={} workspace={} permission={} relation={}",
+        subjectId,
+        orgId,
+        workspaceId,
+        permission,
+        relation);
 
     var request =
         CheckRequest.newBuilder()
@@ -234,13 +246,14 @@ public class KesselAuthorizationClient {
             .setObject(Utils.workspaceResource(workspaceId))
             .build();
 
-    return executeCheckWithRetry(request, subjectId, permission, relation, workspaceId);
+    return executeCheckWithRetry(request, subjectId, orgId, permission, relation, workspaceId);
   }
 
   /** Executes the permission check with automatic retry on transient failures. */
   private boolean executeCheckWithRetry(
       CheckRequest request,
       String subjectId,
+      String orgId,
       String permission,
       String relation,
       String workspaceId) {
@@ -258,17 +271,34 @@ public class KesselAuthorizationClient {
         recordPermissionResult(isAllowed);
 
         log.debug(
-            "Kessel {} subject={}/{} relation={} on workspace={} (permission={})",
+            "Kessel authorization decision={} subject={}/{} orgId={} relation={} workspace={} "
+                + "permission={} attempt={} reason={}",
             isAllowed ? "allowed" : "denied",
             KESSEL_DOMAIN,
             subjectId,
+            orgId,
             relation,
             workspaceId,
-            permission);
+            permission,
+            attempt + 1,
+            isAllowed ? "permission_granted" : "permission_denied");
         return isAllowed;
       } catch (StatusRuntimeException e) {
         RuntimeException exception =
             handleGrpcException(e, hasRetriedUnauthenticated, attemptChannel);
+
+        log.debug(
+            "Kessel authorization check failed subject={}/{} orgId={} relation={} workspace={} "
+                + "permission={} attempt={} grpc_status={} retryable={}",
+            KESSEL_DOMAIN,
+            subjectId,
+            orgId,
+            relation,
+            workspaceId,
+            permission,
+            attempt + 1,
+            e.getStatus().getCode(),
+            exception instanceof KesselTransientException);
 
         // If non-transient, don't retry
         if (!(exception instanceof KesselTransientException)) {
@@ -292,10 +322,13 @@ public class KesselAuthorizationClient {
 
     log.warn(
         "Kessel check failed after {} retries (transient connection issue persists) for"
-            + " subject={}/{}, permission={}: {}",
+            + " subject={}/{}, orgId={}, workspace={}, relation={}, permission={}: {}",
         MAX_RETRIES,
         KESSEL_DOMAIN,
         subjectId,
+        orgId,
+        workspaceId,
+        relation,
         permission,
         lastTransientException.getCause().getStatus());
     recordCheckMetric(false, METRICS_FAILURE_RETRIES_EXHAUSTED);
@@ -424,13 +457,18 @@ public class KesselAuthorizationClient {
    */
   public List<String> getPermissions(String subjectId, String orgId) {
     if (subjectId == null || subjectId.isBlank()) {
-      log.warn("Missing Kessel subject id; denying access");
+      log.warn("Kessel authorization denied: missing subject id orgId={}", orgId);
       return List.of();
     }
-    if (checkAccess(subjectId, RBAC_READER_PERMISSION, orgId)) {
-      return List.of(RBAC_READER_PERMISSION);
-    }
-    return List.of();
+    boolean allowed = checkAccess(subjectId, RBAC_READER_PERMISSION, orgId);
+    List<String> permissions = allowed ? List.of(RBAC_READER_PERMISSION) : List.of();
+    log.debug(
+        "Kessel permissions resolved subject={} orgId={} permission={} result={}",
+        subjectId,
+        orgId,
+        RBAC_READER_PERMISSION,
+        permissions);
+    return permissions;
   }
 
   /**
