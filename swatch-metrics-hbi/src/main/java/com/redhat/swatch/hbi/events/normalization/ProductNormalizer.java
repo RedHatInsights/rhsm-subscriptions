@@ -187,4 +187,112 @@ public class ProductNormalizer {
   private boolean isRhelVariant(String product) {
     return product.startsWith("RHEL ") && !product.startsWith("RHEL for ");
   }
+
+  /**
+   * Get product tags for a specific metric by applying all ProductNormalizer rules. This is used
+   * when determining products per-measurement rather than globally.
+   *
+   * @param metricId Specific metric ID (e.g., "Cores" or "Sockets")
+   * @param systemProfileFacts System profile facts from HBI
+   * @param rhsmFacts RHSM facts (optional)
+   * @param satelliteFacts Satellite facts (optional)
+   * @param qpcFacts QPC facts (optional)
+   * @param skipRhsmFacts Whether to skip RHSM facts
+   * @return Set of product tags that support this specific metric
+   */
+  public static Set<String> getProductTagsForMetric(
+      String metricId,
+      SystemProfileFacts systemProfileFacts,
+      Optional<RhsmFacts> rhsmFacts,
+      Optional<SatelliteFacts> satelliteFacts,
+      Optional<QpcFacts> qpcFacts,
+      boolean skipRhsmFacts) {
+
+    Set<String> productTags = new HashSet<>();
+    Set<String> metricIds = Set.of(metricId);
+
+    // Apply system profile products with specific metric
+    Set<String> systemProfileProductIds = systemProfileFacts.getProductIds();
+    if (systemProfileProductIds != null) {
+      var lookupParams =
+          ProductTagLookupParams.builder()
+              .engIds(systemProfileProductIds)
+              .metricIds(metricIds)
+              .is3rdPartyMigration(systemProfileFacts.getIs3rdPartyMigrated())
+              .isPaygEligibleProduct(false)
+              .build();
+      productTags.addAll(SubscriptionDefinition.getAllProductTags(lookupParams));
+    }
+
+    // Apply satellite role products with specific metric
+    String satelliteRole = satelliteFacts.map(SatelliteFacts::getRole).orElse(null);
+    if (satelliteRole != null) {
+      var lookupParams =
+          ProductTagLookupParams.builder()
+              .role(satelliteRole)
+              .metricIds(metricIds)
+              .is3rdPartyMigration(systemProfileFacts.getIs3rdPartyMigrated())
+              .isPaygEligibleProduct(false)
+              .build();
+      productTags.addAll(SubscriptionDefinition.getAllProductTags(lookupParams));
+    }
+
+    // Apply RHSM products with specific metric
+    if (!skipRhsmFacts) {
+      String systemPurposeRole = rhsmFacts.map(RhsmFacts::getSystemPurposeRole).orElse(null);
+      Set<String> rhsmProducts = rhsmFacts.map(RhsmFacts::getProductIds).orElse(Set.of());
+      if (systemPurposeRole != null || !rhsmProducts.isEmpty()) {
+        var lookupParams =
+            ProductTagLookupParams.builder()
+                .engIds(rhsmProducts)
+                .role(systemPurposeRole)
+                .metricIds(metricIds)
+                .is3rdPartyMigration(systemProfileFacts.getIs3rdPartyMigrated())
+                .isPaygEligibleProduct(false)
+                .build();
+        productTags.addAll(SubscriptionDefinition.getAllProductTags(lookupParams));
+      }
+    }
+
+    // Apply QPC products
+    Set<String> qpcTags = new HashSet<>();
+    Set<String> qpcProducts = qpcFacts.map(QpcFacts::getProducts).orElse(null);
+    if (qpcProducts != null && qpcProducts.contains("RHEL")) {
+      boolean hasNoSystemProfileProduct =
+          Optional.ofNullable(systemProfileFacts.getProductIds()).orElse(Set.of()).isEmpty();
+      String arch = systemProfileFacts.getArch();
+      if (arch != null && hasNoSystemProfileProduct) {
+        switch (arch) {
+          case "x86_64", "i686", "i386":
+            qpcTags.add("RHEL for x86");
+            break;
+          case "aarch64":
+            qpcTags.add("RHEL for ARM");
+            break;
+          case "ppc64le":
+            qpcTags.add("RHEL for IBM Power");
+            break;
+          default:
+            break;
+        }
+      }
+      qpcTags.add("RHEL");
+      productTags.addAll(qpcTags);
+    }
+
+    // Apply RHEL variant normalization
+    long variantCount =
+        productTags.stream()
+            .filter(tag -> tag.startsWith("RHEL ") && !tag.startsWith("RHEL for "))
+            .count();
+    boolean hasRhel = productTags.contains("RHEL");
+    if ((variantCount == 0 && hasRhel) || variantCount > 1) {
+      productTags.add("RHEL Ungrouped");
+    }
+
+    // Prune included products
+    SubscriptionDefinition.pruneIncludedProducts(productTags);
+
+    return productTags;
+  }
 }
