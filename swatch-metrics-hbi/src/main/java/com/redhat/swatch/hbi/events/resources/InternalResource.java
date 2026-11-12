@@ -30,6 +30,7 @@ import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.context.ManagedExecutor;
 
@@ -39,6 +40,7 @@ public class InternalResource implements DefaultApi {
 
   public static final String SYNCHRONOUS_REQUEST_HEADER = "x-rh-swatch-synchronous-request";
   private final AtomicBoolean flushInProgress = new AtomicBoolean(false);
+  private final AtomicLong flushCount = new AtomicLong(0);
 
   @Inject ManagedExecutor executor;
 
@@ -92,7 +94,7 @@ public class InternalResource implements DefaultApi {
         io.vertx.core.Context.isOnWorkerThread());
     try {
       log.info("Flushing outbox records!");
-      long count = outboxService.flushOutboxRecords();
+      long count = outboxService.flushOutboxRecords(flushCount);
       log.info("Flushed {} outbox records!", count);
       return count;
     } finally {

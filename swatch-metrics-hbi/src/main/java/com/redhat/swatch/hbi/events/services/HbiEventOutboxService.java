@@ -30,6 +30,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import lombok.AllArgsConstructor;
 import lombok.Synchronized;
 import lombok.extern.slf4j.Slf4j;
@@ -56,38 +57,51 @@ public class HbiEventOutboxService {
   }
 
   @Synchronized
-  public long flushOutboxRecords() {
+  public long flushOutboxRecords(AtomicLong flushCount) {
     log.info("Flushing outbox records in batches of {}", config.getOutboxFlushBatchSize());
-    long flushCount = 0;
+    int throttleCount = config.getEventThrottleCount();
+    long runCount = 0L;
+
     // Process all existing outbox records in batches.
     while (true) {
       log.debug("Flushing next batch of {} records", config.getOutboxFlushBatchSize());
-      long batchCount = flushNextBatch();
-      flushCount += batchCount;
+      long batchSize = flushNextBatch(flushCount, throttleCount);
 
       // No more records to flush, so we are done.
-      if (batchCount == 0) {
+      if (batchSize == 0) {
         break;
       }
+
+      runCount += batchSize;
     }
     log.info("Flushed {} outbox record(s)", flushCount);
-    return flushCount;
+    return runCount;
   }
 
   @Transactional
-  long flushNextBatch() {
-    List<HbiEventOutbox> next = repository.findAllWithLock(config.getOutboxFlushBatchSize());
-    for (HbiEventOutbox entity : next) {
-      if (featureFlags.emitEvents()) {
+  long flushNextBatch(AtomicLong flushCount, int throttleCount) {
+    List<HbiEventOutbox> batch = repository.findAllWithLock(config.getOutboxFlushBatchSize());
+
+    for (HbiEventOutbox entity : batch) {
+      if (featureFlags.emitEvents()
+          && (!featureFlags.enableEventThrottling()
+              || flushCount.intValue() % throttleCount == 0
+              || flushCount.intValue() == 0L)) {
         log.debug("Sending swatch event: {}", entity.getSwatchEventJson());
+        if (flushCount.intValue() % throttleCount == 0) {
+          flushCount.set(0L);
+        }
         sendSwatchEvent(entity.getSwatchEventJson());
       } else {
         log.debug(
-            "Swatch event sending disabled. Would have sent: {}", entity.getSwatchEventJson());
+            "Swatch event sending {}. Would have sent: {}",
+            featureFlags.emitEvents() ? "throttled" : "disabled",
+            entity.getSwatchEventJson());
       }
       repository.delete(entity);
+      flushCount.incrementAndGet();
     }
-    return next.size();
+    return batch.size();
   }
 
   private void sendSwatchEvent(Event eventToSend) {
