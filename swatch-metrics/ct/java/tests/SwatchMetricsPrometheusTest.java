@@ -30,14 +30,19 @@ import com.redhat.swatch.component.tests.utils.RandomUtils;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.util.UUID;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Measurement;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 class SwatchMetricsPrometheusTest extends BaseMetricsComponentTest {
 
   /** Must match product definition used by metering and event assertions in this class. */
   private static final String RHEL_PAYG_ADDON_PRODUCT_TAG = "rhel-for-x86-els-payg-addon";
+
+  private static final String ROSA_PRODUCT_TAG = "rosa";
 
   /**
    * POST {@code rangeInMinutes} for internal metering: large enough that after the controller
@@ -92,6 +97,56 @@ class SwatchMetricsPrometheusTest extends BaseMetricsComponentTest {
     thenEventHasCorrectMeasurements(event, metricId, expectedVcpu);
   }
 
+  @TestPlanName("swatch-metrics-prometheus-TC008")
+  @ParameterizedTest
+  @CsvSource({
+    "Cores, rosa:cluster:vcpu_hours, moa",
+    "Instance-hours, cluster:usage:workload:capacity_physical_instance_hours, moa-hostedcontrolplane"
+  })
+  void shouldCreateRosaMeteringEventsFromPrometheus(
+      String metricId, String prometheusMetric, String product) {
+    // Given: Rosa metrics will be returned from mock Prometheus
+    String clusterId = UUID.randomUUID().toString();
+    String billingProvider = "aws";
+    String billingAccountId = "test-" + RandomUtils.generateRandom();
+    double expectedValue = 1.0;
+
+    OffsetDateTime meteringEnd = currentUtcHourStart();
+
+    wiremock
+        .forPrometheus()
+        .metric(prometheusMetric)
+        .label("_id", clusterId)
+        .orgId(orgId)
+        .product(product)
+        .displayName(clusterId)
+        .billingProvider(billingProvider)
+        .billingAccountId(billingAccountId)
+        .label("support", "Premium")
+        .label("usage", "Production")
+        .value(expectedValue)
+        .stub();
+
+    // When: Internal metering is triggered
+    service.triggerInternalMetering(
+        ROSA_PRODUCT_TAG, orgId, meteringEnd, METERING_API_RANGE_MINUTES);
+
+    // Then: Metering events are produced with correct data
+    var events = thenEventsAreProduced(clusterId, metricId);
+    assertFalse(events.isEmpty(), "Events should be produced");
+
+    Event event = events.get(0);
+    assertEquals(orgId, event.getOrgId());
+    assertEquals(clusterId, event.getInstanceId());
+    assertEquals(clusterId, event.getDisplayName().orElse(null));
+    assertEquals(Event.BillingProvider.AWS, event.getBillingProvider());
+    assertEquals(billingAccountId, event.getBillingAccountId().orElse(null));
+    assertTrue(event.getProductTag().contains(ROSA_PRODUCT_TAG));
+    assertEquals("rosa Instance", event.getServiceType());
+
+    thenEventHasCorrectMeasurements(event, metricId, expectedValue);
+  }
+
   /**
    * Same boundary as {@code InternalMeteringResource}: end of the metering window on an hour in
    * UTC. Using the next hour would put {@code endDate} in the future so imported samples sit past
@@ -139,11 +194,12 @@ class SwatchMetricsPrometheusTest extends BaseMetricsComponentTest {
   }
 
   private void thenEventHasCorrectMeasurements(Event event, String metricId, double expectedValue) {
-    assertFalse(event.getMeasurements().isEmpty(), "measurements should not be empty");
+    Measurement measurement =
+        event.getMeasurements().stream()
+            .filter(m -> metricId.equals(m.getMetricId()))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError(metricId + " measurement should be present"));
 
-    Measurement measurement = event.getMeasurements().get(0);
-    assertEquals(metricId, measurement.getMetricId(), "metric_id should match");
-    assertTrue(measurement.getValue() > 0.0, "metric value should be greater than 0");
     assertEquals(expectedValue, measurement.getValue(), 0.01, "metric value should match");
   }
 }
