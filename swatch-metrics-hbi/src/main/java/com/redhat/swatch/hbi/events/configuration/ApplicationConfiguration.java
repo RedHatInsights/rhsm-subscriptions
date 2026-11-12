@@ -23,6 +23,7 @@ package com.redhat.swatch.hbi.events.configuration;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.hbi.events.normalization.MeasurementNormalizer;
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import java.time.Duration;
@@ -35,6 +36,14 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 @Getter
 @Setter
 public class ApplicationConfiguration {
+
+  @PostConstruct
+  void validateConfiguration() {
+    if (eventThrottleCount <= 0) {
+      throw new IllegalStateException(
+          "swatch-metrics-hbi.event-throttle-count must be positive, got: " + eventThrottleCount);
+    }
+  }
 
   @Produces
   public ApplicationClock applicationClock() {
@@ -82,4 +91,7 @@ public class ApplicationConfiguration {
 
   @ConfigProperty(name = "swatch-metrics-hbi.outbox-flush-batch-size")
   int outboxFlushBatchSize;
+
+  @ConfigProperty(name = "swatch-metrics-hbi.event-throttle-count", defaultValue = "10000")
+  int eventThrottleCount;
 }

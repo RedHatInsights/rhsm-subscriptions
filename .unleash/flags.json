@@ -17,6 +17,22 @@
             "createdAt": "2024-10-01T09:18:27.111Z"
         },
         {
+            "name": "swatch.swatch-metrics-hbi.enable-event-throttling",
+            "description": "Enable throttling of swatch events emitted by swatch-metrics-hbi. When enabled, only every nth event is sent based on the configured throttle count. Defaults to true in production, false elsewhere.",
+            "type": "operational",
+            "project": "default",
+            "enabled": false,
+            "stale": false,
+            "strategies": [
+                {
+                    "name": "default",
+                    "parameters": {}
+                }
+            ],
+            "variants": [],
+            "createdAt": "2026-11-12T13:14:26.000Z"
+        },
+        {
           "name": "swatch.swatch-notifications.send-notifications",
           "description": "Enable sending of over-usage notifications to platform.notifications.ingress",
           "type": "operational",
