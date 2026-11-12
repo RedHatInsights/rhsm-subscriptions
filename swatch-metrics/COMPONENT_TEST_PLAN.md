@@ -173,3 +173,22 @@ Test cases should be testable locally and in ephemeral environments.
   - HTTP 204 response from metering API
   - Self-managed events produced with vCPUs-self-managed metric value of 12.0
   - No managed (vCPUs) event produced, demonstrating productLabelRegex filtering
+
+**swatch-metrics-prometheus-TC008 - Process ROSA metrics from Prometheus**
+
+- **Description**: Verify swatch-metrics translates both ROSA Prometheus metrics into metering events: `Cores` through the ROSA query template, and `Instance-hours` through the default query template.
+- **Setup**:
+  - Parameterized case for `Cores`: mock Prometheus returns `rosa:cluster:vcpu_hours` with value 1.0 and `product=moa`.
+  - Parameterized case for `Instance-hours`: mock Prometheus returns `cluster:usage:workload:capacity_physical_instance_hours` with value 1.0 and `product=moa-hostedcontrolplane`.
+  - Both cases include `_id` (cluster ID), `external_organization` (org ID), `display_name`, `billing_marketplace=aws`, `billing_marketplace_account`, `support=Premium`, and `usage=Production` labels.
+  - Cluster ID, org ID, and AWS billing account ID are randomly generated for each case.
+- **Action**:
+  - For each parameterized case, trigger the internal metering API for product tag `rosa`.
+- **Verification**:
+  - Wait for a metering event on `service-instance-ingress` filtered by cluster ID and the case's metric ID.
+  - Verify event org ID, instance ID, and display name match the stubbed labels.
+  - Verify billing provider is AWS, billing account ID matches, and product tag contains `rosa`.
+  - Verify the measurement metric ID matches the case (`Cores` or `Instance-hours`) and its value is 1.0.
+- **Expected Result**:
+  - Each metering request returns HTTP 204.
+  - A ROSA event is produced for each metric case with value 1.0 and the expected AWS billing information.
