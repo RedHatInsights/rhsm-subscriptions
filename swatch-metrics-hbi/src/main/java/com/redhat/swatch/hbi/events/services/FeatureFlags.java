@@ -26,24 +26,33 @@ import com.redhat.swatch.info.model.InfoFeatureFlags;
 import io.getunleash.Unleash;
 import jakarta.enterprise.context.ApplicationScoped;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @Slf4j
 @ApplicationScoped
 public class FeatureFlags implements InfoFeatureFlagContributor {
   public static final String EMIT_EVENTS = "swatch.swatch-metrics-hbi.emit-events";
+  public static final String ENABLE_EVENT_THROTTLING =
+      "swatch.swatch-metrics-hbi.enable-event-throttling";
 
   private final Unleash unleash;
+  private final String profile;
 
-  public FeatureFlags(Unleash unleash) {
+  public FeatureFlags(Unleash unleash, @ConfigProperty(name = "quarkus.profile") String profile) {
     this.unleash = unleash;
+    this.profile = profile;
   }
 
   public boolean emitEvents() {
     return unleash.isEnabled(FeatureFlags.EMIT_EVENTS);
   }
 
+  public boolean enableEventThrottling() {
+    return unleash.isEnabled(FeatureFlags.ENABLE_EVENT_THROTTLING);
+  }
+
   @Override
   public InfoFeatureFlags getFeatureFlags() {
-    return UnleashInfoFeatureFlags.snapshot(unleash, EMIT_EVENTS);
+    return UnleashInfoFeatureFlags.snapshot(unleash, EMIT_EVENTS, ENABLE_EVENT_THROTTLING);
   }
 }
