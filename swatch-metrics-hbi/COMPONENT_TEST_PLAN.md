@@ -222,6 +222,40 @@ Test cases should be testable locally and in deployed environments.
   - Sockets measurements are omitted from the SWatch event as dictated by the "Cores/vCPU" system purpose units override
   - Resulting SWatch event is consistent between `created` and `updated` besides for the event type
 
+**metrics-hbi-physical-TC007 \- Physical RHEL host with multiple product variants**
+
+- **Description**: Verify that when a host has multiple product IDs that map to different RHEL product variants, the service creates separate measurement entries for each product variant, each with the same metric_id and value but different product_tag field. Each measurement should only include metric IDs that the product variant supports according to product configuration.
+- **Setup**:
+  - Ensure `EMIT_EVENTS` feature flag is enabled
+  - Kafka topics for HBI events and service instance ingress are available
+  - Prepare test host data representing a physical RHEL host with RHSM facts containing multiple product IDs that map to different variants: RH_PROD = ["69", "71", "76", "83"]
+    - 69 → "RHEL for x86"
+    - 71 → "RHEL Workstation"
+    - 76 → "RHEL Compute Node"
+    - 83 → "rhel-for-x86-ha"
+  - All RHEL variants only support the Sockets metric (not Cores)
+- **Action**:
+  - Produce `HbiHostCreateUpdateEvent` with event type `created` to HBI event Kafka topic
+  - Trigger outbox flush via internal API
+- **Verification**:
+  - Confirm outbox record is created after the event is ingested
+  - Message is consumed from the service instance ingress Kafka topic and captured in a SWatch event message
+  - Verify SWatch event message exists and matches the expected values derived from the HBI event
+  - Verify measurements array contains exactly 4 entries, all with metric_id "Sockets" and the same value, but each with a different product_tag
+- **Expected Result**:
+  - Service successfully ingests the HBI event for the multi-product host
+  - Exactly one SWatch event is produced after being written to the outbox and published to the service instance ingress topic
+  - SWatch event contains:
+    - Event-level productTag set: ["RHEL for x86", "RHEL Workstation", "RHEL Compute Node", "rhel-for-x86-ha"]
+    - Event-level productIds list: ["69", "71", "76", "83"]
+    - Measurements array with 4 entries:
+      - {metric_id: "Sockets", value: 24.0, product_tag: "RHEL for x86"}
+      - {metric_id: "Sockets", value: 24.0, product_tag: "RHEL Workstation"}
+      - {metric_id: "Sockets", value: 24.0, product_tag: "RHEL Compute Node"}
+      - {metric_id: "Sockets", value: 24.0, product_tag: "rhel-for-x86-ha"}
+  - Each measurement includes only the Sockets metric because RHEL products do not support Cores metric
+  - This validates the per-measurement product_tag feature where multiple products supporting the same metric result in separate measurement entries
+
 ### Virtual RHEL
 
 **metrics-hbi-virtual-TC001 \- Virtual RHEL unmapped guest host event from threads per core**

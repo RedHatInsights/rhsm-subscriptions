@@ -113,8 +113,23 @@ public class SwatchEventTestHelper {
 
   public List<Measurement> buildMeasurements(double cores, double sockets) {
     return List.of(
-        new Measurement().withMetricId("cores").withValue(cores),
-        new Measurement().withMetricId("sockets").withValue(sockets));
+        new Measurement().withMetricId("Cores").withValue(cores),
+        new Measurement().withMetricId("Sockets").withValue(sockets));
+  }
+
+  /**
+   * Builds measurements for RHEL products. RHEL only supports Sockets metric (not Cores). Each
+   * product that supports the metric gets its own measurement entry with product_tag.
+   *
+   * @param sockets Socket count
+   * @param productTags Product tags that support Sockets (e.g., "RHEL for x86")
+   * @return List of measurements, one per product tag
+   */
+  public List<Measurement> buildRhelMeasurements(double sockets, List<String> productTags) {
+    return productTags.stream()
+        .map(productTag ->
+            new Measurement().withMetricId("Sockets").withValue(sockets).withProductTag(productTag))
+        .toList();
   }
 
   public Event createMinimalDeleteEvent(HbiHostDeleteEvent deleteEvent) {

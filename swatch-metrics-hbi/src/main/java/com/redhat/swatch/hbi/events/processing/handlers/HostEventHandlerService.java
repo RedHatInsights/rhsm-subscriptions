@@ -34,6 +34,7 @@ import com.redhat.swatch.hbi.events.normalization.MeasurementNormalizer;
 import com.redhat.swatch.hbi.events.normalization.NormalizedEventType;
 import com.redhat.swatch.hbi.events.normalization.NormalizedFacts;
 import com.redhat.swatch.hbi.events.normalization.NormalizedMeasurements;
+import com.redhat.swatch.hbi.events.normalization.ProductNormalizer;
 import com.redhat.swatch.hbi.events.repository.HbiHostRelationship;
 import com.redhat.swatch.hbi.events.services.HbiHostRelationshipService;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -42,6 +43,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
@@ -251,7 +253,7 @@ public class HostEventHandlerService {
         .withHardwareType(facts.getHardwareType())
         .withProductIds(facts.getProductIds().stream().toList())
         .withProductTag(facts.getProductTags())
-        .withMeasurements(convertMeasurements(measurements))
+        .withMeasurements(convertMeasurements(measurements, hbiHost))
         .withIsVirtual(facts.isVirtual())
         .withIsUnmappedGuest(facts.isUnmappedGuest())
         .withIsHypervisor(facts.isHypervisor())
@@ -279,18 +281,52 @@ public class HostEventHandlerService {
         .withInsightsId(Optional.ofNullable(insightsId));
   }
 
-  private List<Measurement> convertMeasurements(NormalizedMeasurements measurements) {
+  private List<Measurement> convertMeasurements(NormalizedMeasurements measurements, Host host) {
     List<Measurement> applicableMeasurements = new ArrayList<>();
+    boolean skipRhsmFacts = host.getRhsmFacts().isEmpty();
+
     measurements
         .getCores()
-        .ifPresent(cores ->
-            applicableMeasurements.add(
-                new Measurement().withMetricId("cores").withValue(Double.valueOf(cores))));
+        .ifPresent(value ->
+            applicableMeasurements.addAll(
+                createMeasurementsForMetric("Cores", value, host, skipRhsmFacts)));
+
     measurements
         .getSockets()
-        .ifPresent(sockets ->
-            applicableMeasurements.add(
-                new Measurement().withMetricId("sockets").withValue(Double.valueOf(sockets))));
+        .ifPresent(value ->
+            applicableMeasurements.addAll(
+                createMeasurementsForMetric("Sockets", value, host, skipRhsmFacts)));
+
     return applicableMeasurements;
+  }
+
+  /**
+   * Creates measurement entries for a specific metric by determining which products support it.
+   * Applies all ProductNormalizer rules (role, engIds, QPC, etc.) for the given metric.
+   *
+   * @param metricId The metric identifier (e.g., "Cores", "Sockets")
+   * @param value The measurement value
+   * @param host The HBI host containing all facts
+   * @param skipRhsmFacts Whether to skip RHSM facts during product determination
+   * @return List of measurements, one per product that supports this metric
+   */
+  private List<Measurement> createMeasurementsForMetric(
+      String metricId, Integer value, Host host, boolean skipRhsmFacts) {
+    Set<String> productTags =
+        ProductNormalizer.getProductTagsForMetric(
+            metricId,
+            host.getSystemProfileFacts(),
+            host.getRhsmFacts(),
+            host.getSatelliteFacts(),
+            host.getQpcFacts(),
+            skipRhsmFacts);
+
+    return productTags.stream()
+        .map(productTag ->
+            new Measurement()
+                .withMetricId(metricId)
+                .withValue(Double.valueOf(value))
+                .withProductTag(productTag))
+        .toList();
   }
 }
