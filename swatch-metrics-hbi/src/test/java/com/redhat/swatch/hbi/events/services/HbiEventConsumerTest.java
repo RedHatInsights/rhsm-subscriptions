@@ -118,7 +118,7 @@ class HbiEventConsumerTest {
             NormalizedEventType.INSTANCE_CREATED,
             eventTimestamp,
             false,
-            buildMeasurements(2.0, 2.0));
+            buildRhelMeasurements(2.0, List.of("RHEL for x86")));
     hbiEventsIn.send(hbiEvent);
 
     assertOutboxState(expected);
@@ -152,7 +152,7 @@ class HbiEventConsumerTest {
             hypervisorUuid,
             List.of("69", "408"),
             Set.of("RHEL for x86"),
-            buildMeasurements(6.0, 1.0));
+            buildRhelMeasurements(1.0, List.of("RHEL for x86")));
 
     hbiEventsIn.send(hbiEvent);
 
@@ -172,6 +172,8 @@ class HbiEventConsumerTest {
 
     // No expected product tags/ids, sla, usage are null since 'rhsm' facts would be skipped because
     // the host will be considered unregistered due to lastCheckinDate.
+    // However, measurements are still created based on hardware facts (sockets) for any products
+    // that can be determined from non-RHSM sources.
     Event expected =
         swatchEventTestHelper
             .buildPhysicalRhelEvent(
@@ -179,7 +181,7 @@ class HbiEventConsumerTest {
                 NormalizedEventType.INSTANCE_CREATED,
                 eventTimestamp,
                 false,
-                buildMeasurements(2.0, 2.0))
+                buildRhelMeasurements(2.0, List.of("RHEL for x86")))
             .withProductIds(List.of())
             .withProductTag(Set.of())
             .withSla(null)
@@ -213,8 +215,70 @@ class HbiEventConsumerTest {
             false,
             null,
             List.of(),
-            Set.of("RHEL Ungrouped", "RHEL for x86", "RHEL"),
-            buildMeasurements(4.0, 4.0));
+            Set.of("RHEL for x86"),
+            buildRhelMeasurements(4.0, List.of("RHEL for x86")));
+
+    hbiEventsIn.send(hbiEvent);
+    assertOutboxState(expected);
+
+    assertEquals(1, repo.count());
+    assertRelationshipExists(expectedRelationship);
+  }
+
+  /**
+   * Tests that when a host has multiple product IDs that map to different RHEL variants, separate
+   * measurements are created for each product with the metric_id that the product supports. Product
+   * IDs: 69 → "RHEL for x86", 71 → "RHEL Workstation", 76 → "RHEL Compute Node", 83 →
+   * "rhel-for-x86-ha". All RHEL products only support Sockets metric (not Cores).
+   */
+  @Test
+  void testMultipleRhelVariantProducts() throws Exception {
+    var hbiEvent =
+        hbiEventTestHelper.getCreateUpdateEvent(
+            HbiEventTestData.getMultipleRhelVariantHostCreatedEvent());
+
+    HbiHostRelationship expectedRelationship =
+        hbiEventTestHelper.relationshipFromHbiEvent(hbiEvent);
+
+    OffsetDateTime eventTimestamp = hbiEvent.getTimestamp().toOffsetDateTime();
+
+    // All RHEL variant products only support Sockets metric
+    // Expected: 4 measurements, all with Sockets=24.0, each with different product_tag
+    // Order matches the actual output from the product normalization logic
+    List<Measurement> expectedMeasurements = new java.util.ArrayList<>();
+    expectedMeasurements.add(
+        new Measurement()
+            .withMetricId("Sockets")
+            .withValue(24.0)
+            .withProductTag("rhel-for-x86-ha"));
+    expectedMeasurements.add(
+        new Measurement()
+            .withMetricId("Sockets")
+            .withValue(24.0)
+            .withProductTag("RHEL Workstation"));
+    expectedMeasurements.add(
+        new Measurement()
+            .withMetricId("Sockets")
+            .withValue(24.0)
+            .withProductTag("RHEL Compute Node"));
+    expectedMeasurements.add(
+        new Measurement().withMetricId("Sockets").withValue(24.0).withProductTag("RHEL for x86"));
+
+    Event expected =
+        swatchEventTestHelper.createExpectedEvent(
+            hbiEvent.getHost(),
+            NormalizedEventType.INSTANCE_CREATED,
+            eventTimestamp,
+            Sla.SELF_SUPPORT,
+            Usage.PRODUCTION,
+            HardwareType.PHYSICAL,
+            false,
+            false,
+            false,
+            null,
+            List.of("69", "71", "83", "76"),
+            Set.of("RHEL for x86", "RHEL Workstation", "RHEL Compute Node", "rhel-for-x86-ha"),
+            expectedMeasurements);
 
     hbiEventsIn.send(hbiEvent);
     assertOutboxState(expected);
@@ -259,7 +323,7 @@ class HbiEventConsumerTest {
             hypervisorEvent.getHost().getSubscriptionManagerId(),
             List.of("69"),
             Set.of("RHEL for x86"),
-            buildMeasurements(1.0, 1.0));
+            buildRhelMeasurements(1.0, List.of("RHEL for x86")));
 
     OffsetDateTime hypervisorEventTimestamp = hypervisorEvent.getTimestamp().toOffsetDateTime();
     var hypervisorHbiHost = hypervisorEvent.getHost();
@@ -270,7 +334,7 @@ class HbiEventConsumerTest {
             NormalizedEventType.INSTANCE_CREATED,
             hypervisorEventTimestamp,
             true,
-            buildMeasurements(2.0, 2.0));
+            buildRhelMeasurements(2.0, List.of("RHEL for x86")));
 
     Event expectedMappedGuestEvent =
         swatchEventTestHelper.createExpectedEvent(
@@ -286,7 +350,7 @@ class HbiEventConsumerTest {
             hypervisorEvent.getHost().getSubscriptionManagerId(),
             List.of("69"),
             Set.of("RHEL for x86"),
-            buildMeasurements(1.0, 2.0));
+            buildRhelMeasurements(2.0, List.of("RHEL for x86")));
 
     // Send the guest event. Results in an unmapped guest swatch event.
     hbiEventsIn.send(virtualHostHbiEvent);
@@ -325,7 +389,7 @@ class HbiEventConsumerTest {
             NormalizedEventType.INSTANCE_CREATED,
             initialHypervisorEventTimestamp,
             false,
-            buildMeasurements(2.0, 2.0));
+            buildRhelMeasurements(2.0, List.of("RHEL for x86")));
 
     // Send the initial HBI hypervisor event.
     hbiEventsIn.send(hypervisorHostHbiEvent);
@@ -350,7 +414,7 @@ class HbiEventConsumerTest {
             hypervisorHostHbiEvent.getHost().getSubscriptionManagerId(),
             List.of("69"),
             Set.of("RHEL for x86"),
-            buildMeasurements(1.0, 2.0));
+            buildRhelMeasurements(2.0, List.of("RHEL for x86")));
 
     // The hypervisor update event will have the same timestamp as the incoming guest event
     // since this is time that we determined a change to the hypervisor host's state.
@@ -360,7 +424,7 @@ class HbiEventConsumerTest {
             NormalizedEventType.INSTANCE_UPDATED,
             virtualGuestTimestamp,
             true,
-            buildMeasurements(2.0, 2.0));
+            buildRhelMeasurements(2.0, List.of("RHEL for x86")));
 
     hbiEventsIn.send(virtualHostHbiEvent);
 
@@ -415,7 +479,7 @@ class HbiEventConsumerTest {
             hypervisorEvent.getHost().getSubscriptionManagerId(),
             List.of("69"),
             Set.of("RHEL for x86"),
-            buildMeasurements(1.0, 1.0));
+            buildRhelMeasurements(1.0, List.of("RHEL for x86")));
     hbiEventsIn.send(virtualHostHbiEvent);
     assertOutboxState(initialUnmappedGuestEvent);
     clearOutboxRecords();
@@ -436,14 +500,14 @@ class HbiEventConsumerTest {
             hypervisorEvent.getHost().getSubscriptionManagerId(),
             List.of("69"),
             Set.of("RHEL for x86"),
-            buildMeasurements(1.0, 2.0));
+            buildRhelMeasurements(2.0, List.of("RHEL for x86")));
     Event initalHypervisorSwatchEvent =
         swatchEventTestHelper.buildPhysicalRhelEvent(
             hypervisorEvent.getHost(),
             NormalizedEventType.INSTANCE_CREATED,
             hypervisorEvent.getTimestamp().toOffsetDateTime(),
             true,
-            buildMeasurements(2.0, 2.0));
+            buildRhelMeasurements(2.0, List.of("RHEL for x86")));
     hbiEventsIn.send(hypervisorEvent);
     assertOutboxState(initialMappedGuestEvent, initalHypervisorSwatchEvent);
     clearOutboxRecords();
@@ -465,7 +529,7 @@ class HbiEventConsumerTest {
             NormalizedEventType.INSTANCE_DELETED,
             expectedDeleteEventTimestamp,
             true,
-            buildMeasurements(2.0, 2.0));
+            buildRhelMeasurements(2.0, List.of("RHEL for x86")));
 
     Event expectedMappedGuestUpdateEvent =
         swatchEventTestHelper.createExpectedEvent(
@@ -481,7 +545,7 @@ class HbiEventConsumerTest {
             hypervisorEvent.getHost().getSubscriptionManagerId(),
             List.of("69"),
             Set.of("RHEL for x86"),
-            buildMeasurements(1.0, 1.0));
+            buildRhelMeasurements(1.0, List.of("RHEL for x86")));
 
     assertOutboxState(expectedHypervisorDeletedEvent, expectedMappedGuestUpdateEvent);
 
@@ -524,7 +588,7 @@ class HbiEventConsumerTest {
             NormalizedEventType.INSTANCE_CREATED,
             hbiEvent.getTimestamp().toOffsetDateTime(),
             false,
-            buildMeasurements(2.0, 2.0)));
+            buildRhelMeasurements(2.0, List.of("RHEL for x86"))));
     // then
     thenTimedMetricExists();
     thenCounterMetricExists(hbiEvent.getType());
@@ -541,8 +605,19 @@ class HbiEventConsumerTest {
 
   private List<Measurement> buildMeasurements(double cores, double sockets) {
     return List.of(
-        new Measurement().withMetricId("cores").withValue(cores),
-        new Measurement().withMetricId("sockets").withValue(sockets));
+        new Measurement().withMetricId("Cores").withValue(cores),
+        new Measurement().withMetricId("Sockets").withValue(sockets));
+  }
+
+  /**
+   * Builds measurements for RHEL products. RHEL only supports Sockets metric (not Cores). Each
+   * product that supports the metric gets its own measurement entry with product_tag.
+   */
+  private List<Measurement> buildRhelMeasurements(double sockets, List<String> productTags) {
+    return productTags.stream()
+        .map(productTag ->
+            new Measurement().withMetricId("Sockets").withValue(sockets).withProductTag(productTag))
+        .toList();
   }
 
   private void assertOutboxState(Event... expected) {
