@@ -42,7 +42,6 @@ import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.HardwareType;
@@ -167,7 +166,6 @@ class DeleteHostHandlerTest {
             false,
             hypervisorRelationship.getSubscriptionManagerId(),
             List.of("69"),
-            Set.of("RHEL for x86"),
             swatchEventHelper.buildRhelMeasurements(1.0, List.of("RHEL for x86")));
 
     Event expectedGuest2Event =
@@ -184,7 +182,6 @@ class DeleteHostHandlerTest {
             false,
             hypervisorRelationship.getSubscriptionManagerId(),
             List.of("69"),
-            Set.of("RHEL for x86"),
             swatchEventHelper.buildRhelMeasurements(1.0, List.of("RHEL for x86")));
 
     List<Event> events = handler.handleEvent(hypervisorHostDeleteEvent);
@@ -255,7 +252,6 @@ class DeleteHostHandlerTest {
             false,
             hypervisorRelationship.getSubscriptionManagerId(),
             List.of("69"),
-            Set.of("RHEL for x86"),
             swatchEventHelper.buildRhelMeasurements(2.0, List.of("RHEL for x86")));
 
     Event expectedHypervisorEvent =

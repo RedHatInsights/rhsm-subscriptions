@@ -31,7 +31,6 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.HardwareType;
@@ -66,7 +65,6 @@ public class SwatchEventTestHelper {
         isHypervisor,
         null,
         List.of("69"),
-        Set.of("RHEL for x86"),
         measurements);
   }
 
@@ -82,7 +80,6 @@ public class SwatchEventTestHelper {
       boolean isHypervisor,
       String hypervisorUuid,
       List<String> productIds,
-      Set<String> tags,
       List<Measurement> measurements) {
     OffsetDateTime eventTimestamp = clock.startOfHour(timestamp);
     return new Event()
@@ -103,7 +100,6 @@ public class SwatchEventTestHelper {
         .withCloudProvider(null)
         .withHardwareType(hardwareType)
         .withHypervisorUuid(Optional.ofNullable(hypervisorUuid))
-        .withProductTag(tags)
         .withProductIds(productIds)
         .withIsVirtual(isVirtual)
         .withIsUnmappedGuest(isUnmappedGuest)

@@ -252,7 +252,6 @@ public class HostEventHandlerService {
         .withCloudProvider(facts.getCloudProvider())
         .withHardwareType(facts.getHardwareType())
         .withProductIds(facts.getProductIds().stream().toList())
-        .withProductTag(facts.getProductTags())
         .withMeasurements(convertMeasurements(measurements, hbiHost))
         .withIsVirtual(facts.isVirtual())
         .withIsUnmappedGuest(facts.isUnmappedGuest())

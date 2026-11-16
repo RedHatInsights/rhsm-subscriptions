@@ -61,7 +61,6 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import org.awaitility.Awaitility;
 import org.candlepin.clock.ApplicationClock;
@@ -151,7 +150,6 @@ class HbiEventConsumerTest {
             false,
             hypervisorUuid,
             List.of("69", "408"),
-            Set.of("RHEL for x86"),
             buildRhelMeasurements(1.0, List.of("RHEL for x86")));
 
     hbiEventsIn.send(hbiEvent);
@@ -183,7 +181,6 @@ class HbiEventConsumerTest {
                 false,
                 buildRhelMeasurements(2.0, List.of("RHEL for x86")))
             .withProductIds(List.of())
-            .withProductTag(Set.of())
             .withSla(null)
             .withUsage(null);
 
@@ -215,7 +212,6 @@ class HbiEventConsumerTest {
             false,
             null,
             List.of(),
-            Set.of("RHEL for x86"),
             buildRhelMeasurements(4.0, List.of("RHEL for x86")));
 
     hbiEventsIn.send(hbiEvent);
@@ -277,7 +273,6 @@ class HbiEventConsumerTest {
             false,
             null,
             List.of("69", "71", "83", "76"),
-            Set.of("RHEL for x86", "RHEL Workstation", "RHEL Compute Node", "rhel-for-x86-ha"),
             expectedMeasurements);
 
     hbiEventsIn.send(hbiEvent);
@@ -322,7 +317,6 @@ class HbiEventConsumerTest {
             false,
             hypervisorEvent.getHost().getSubscriptionManagerId(),
             List.of("69"),
-            Set.of("RHEL for x86"),
             buildRhelMeasurements(1.0, List.of("RHEL for x86")));
 
     OffsetDateTime hypervisorEventTimestamp = hypervisorEvent.getTimestamp().toOffsetDateTime();
@@ -349,7 +343,6 @@ class HbiEventConsumerTest {
             false,
             hypervisorEvent.getHost().getSubscriptionManagerId(),
             List.of("69"),
-            Set.of("RHEL for x86"),
             buildRhelMeasurements(2.0, List.of("RHEL for x86")));
 
     // Send the guest event. Results in an unmapped guest swatch event.
@@ -413,7 +406,6 @@ class HbiEventConsumerTest {
             false,
             hypervisorHostHbiEvent.getHost().getSubscriptionManagerId(),
             List.of("69"),
-            Set.of("RHEL for x86"),
             buildRhelMeasurements(2.0, List.of("RHEL for x86")));
 
     // The hypervisor update event will have the same timestamp as the incoming guest event
@@ -478,7 +470,6 @@ class HbiEventConsumerTest {
             false,
             hypervisorEvent.getHost().getSubscriptionManagerId(),
             List.of("69"),
-            Set.of("RHEL for x86"),
             buildRhelMeasurements(1.0, List.of("RHEL for x86")));
     hbiEventsIn.send(virtualHostHbiEvent);
     assertOutboxState(initialUnmappedGuestEvent);
@@ -499,7 +490,6 @@ class HbiEventConsumerTest {
             false,
             hypervisorEvent.getHost().getSubscriptionManagerId(),
             List.of("69"),
-            Set.of("RHEL for x86"),
             buildRhelMeasurements(2.0, List.of("RHEL for x86")));
     Event initalHypervisorSwatchEvent =
         swatchEventTestHelper.buildPhysicalRhelEvent(
@@ -544,7 +534,6 @@ class HbiEventConsumerTest {
             false,
             hypervisorEvent.getHost().getSubscriptionManagerId(),
             List.of("69"),
-            Set.of("RHEL for x86"),
             buildRhelMeasurements(1.0, List.of("RHEL for x86")));
 
     assertOutboxState(expectedHypervisorDeletedEvent, expectedMappedGuestUpdateEvent);

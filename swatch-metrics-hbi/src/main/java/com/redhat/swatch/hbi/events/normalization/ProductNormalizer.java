@@ -105,9 +105,9 @@ public class ProductNormalizer {
   }
 
   /**
-   * Core logic for determining product tags based on all ProductNormalizer rules. This is shared by
-   * both the constructor (for all applicable metrics) and getProductTagsForMetric (for a specific
-   * metric).
+   * Core logic for determining product tags based on all ProductNormalizer rules. This orchestrates
+   * the application of products from various sources (system profile, RHSM, satellite, QPC) and
+   * applies normalization rules.
    *
    * @param metricIds Set of metric IDs to filter products by
    * @param systemProfileFacts System profile facts from HBI
@@ -127,103 +127,124 @@ public class ProductNormalizer {
 
     Set<String> productTags = new HashSet<>();
 
-    // Apply system profile products
-    Set<String> systemProfileProductIds = systemProfileFacts.getProductIds();
-    if (systemProfileProductIds != null && !systemProfileProductIds.isEmpty()) {
-      var lookupParams =
-          ProductTagLookupParams.builder()
-              .engIds(systemProfileProductIds)
-              .metricIds(metricIds)
-              .is3rdPartyMigration(systemProfileFacts.getIs3rdPartyMigrated())
-              .isPaygEligibleProduct(false)
-              .build();
-      productTags.addAll(SubscriptionDefinition.getAllProductTags(lookupParams));
-    }
-
-    // Apply satellite role products
-    String satelliteRole = satelliteFacts.map(SatelliteFacts::getRole).orElse(null);
-    if (satelliteRole != null && !satelliteRole.isEmpty()) {
-      var lookupParams =
-          ProductTagLookupParams.builder()
-              .role(satelliteRole)
-              .metricIds(metricIds)
-              .is3rdPartyMigration(systemProfileFacts.getIs3rdPartyMigrated())
-              .isPaygEligibleProduct(false)
-              .build();
-      productTags.addAll(SubscriptionDefinition.getAllProductTags(lookupParams));
-    }
-
-    // Apply RHSM products
+    applySystemProfileProducts(productTags, metricIds, systemProfileFacts);
+    applySatelliteRoleProducts(productTags, metricIds, systemProfileFacts, satelliteFacts);
     if (!skipRhsmFacts) {
-      String systemPurposeRole = rhsmFacts.map(RhsmFacts::getSystemPurposeRole).orElse(null);
-      Set<String> rhsmProducts = rhsmFacts.map(RhsmFacts::getProductIds).orElse(Set.of());
-      if (systemPurposeRole != null || !rhsmProducts.isEmpty()) {
-        var lookupParams =
-            ProductTagLookupParams.builder()
-                .engIds(rhsmProducts)
-                .role(systemPurposeRole)
-                .metricIds(metricIds)
-                .is3rdPartyMigration(systemProfileFacts.getIs3rdPartyMigrated())
-                .isPaygEligibleProduct(false)
-                .build();
-        productTags.addAll(SubscriptionDefinition.getAllProductTags(lookupParams));
-      }
+      applyRhsmProducts(productTags, metricIds, systemProfileFacts, rhsmFacts);
+    }
+    applyQpcProducts(productTags, systemProfileFacts, qpcFacts);
+    normalizeRhelVariants(productTags);
+    SubscriptionDefinition.pruneIncludedProducts(productTags);
+
+    return productTags;
+  }
+
+  private static void applySystemProfileProducts(
+      Set<String> productTags, Set<String> metricIds, SystemProfileFacts systemProfileFacts) {
+    Set<String> systemProfileProductIds = systemProfileFacts.getProductIds();
+    if (systemProfileProductIds == null || systemProfileProductIds.isEmpty()) {
+      return;
     }
 
-    // Apply QPC products
+    var lookupParams =
+        ProductTagLookupParams.builder()
+            .engIds(systemProfileProductIds)
+            .metricIds(metricIds)
+            .is3rdPartyMigration(systemProfileFacts.getIs3rdPartyMigrated())
+            .isPaygEligibleProduct(false)
+            .build();
+    productTags.addAll(SubscriptionDefinition.getAllProductTags(lookupParams));
+  }
+
+  private static void applySatelliteRoleProducts(
+      Set<String> productTags,
+      Set<String> metricIds,
+      SystemProfileFacts systemProfileFacts,
+      Optional<SatelliteFacts> satelliteFacts) {
+    String satelliteRole = satelliteFacts.map(SatelliteFacts::getRole).orElse(null);
+    if (satelliteRole == null || satelliteRole.isEmpty()) {
+      return;
+    }
+
+    var lookupParams =
+        ProductTagLookupParams.builder()
+            .role(satelliteRole)
+            .metricIds(metricIds)
+            .is3rdPartyMigration(systemProfileFacts.getIs3rdPartyMigrated())
+            .isPaygEligibleProduct(false)
+            .build();
+    productTags.addAll(SubscriptionDefinition.getAllProductTags(lookupParams));
+  }
+
+  private static void applyRhsmProducts(
+      Set<String> productTags,
+      Set<String> metricIds,
+      SystemProfileFacts systemProfileFacts,
+      Optional<RhsmFacts> rhsmFacts) {
+    String systemPurposeRole = rhsmFacts.map(RhsmFacts::getSystemPurposeRole).orElse(null);
+    Set<String> rhsmProducts = rhsmFacts.map(RhsmFacts::getProductIds).orElse(Set.of());
+
+    if (systemPurposeRole == null && rhsmProducts.isEmpty()) {
+      return;
+    }
+
+    var lookupParams =
+        ProductTagLookupParams.builder()
+            .engIds(rhsmProducts)
+            .role(systemPurposeRole)
+            .metricIds(metricIds)
+            .is3rdPartyMigration(systemProfileFacts.getIs3rdPartyMigrated())
+            .isPaygEligibleProduct(false)
+            .build();
+    productTags.addAll(SubscriptionDefinition.getAllProductTags(lookupParams));
+  }
+
+  private static void applyQpcProducts(
+      Set<String> productTags, SystemProfileFacts systemProfileFacts, Optional<QpcFacts> qpcFacts) {
     Set<String> qpcProducts = qpcFacts.map(QpcFacts::getProducts).orElse(null);
-    if (qpcProducts != null && qpcProducts.contains("RHEL")) {
-      boolean hasNoSystemProfileProduct =
-          Optional.ofNullable(systemProfileFacts.getProductIds()).orElse(Set.of()).isEmpty();
-      String arch = systemProfileFacts.getArch();
-      if (arch != null && hasNoSystemProfileProduct) {
-        switch (arch) {
-          case "x86_64", "i686", "i386":
-            productTags.add("RHEL for x86");
-            break;
-          case "aarch64":
-            productTags.add("RHEL for ARM");
-            break;
-          case "ppc64le":
-            productTags.add("RHEL for IBM Power");
-            break;
-          default:
-            break;
-        }
-      }
-      productTags.add("RHEL");
+    if (qpcProducts == null || !qpcProducts.contains("RHEL")) {
+      return;
     }
 
-    // Normalize RHEL variants
+    boolean hasNoSystemProfileProduct =
+        Optional.ofNullable(systemProfileFacts.getProductIds()).orElse(Set.of()).isEmpty();
+    String arch = systemProfileFacts.getArch();
+
+    if (arch != null && hasNoSystemProfileProduct) {
+      String rhelVariant = mapArchitectureToRhelVariant(arch);
+      if (rhelVariant != null) {
+        productTags.add(rhelVariant);
+      }
+    }
+    productTags.add("RHEL");
+  }
+
+  private static String mapArchitectureToRhelVariant(String arch) {
+    return switch (arch) {
+      case "x86_64", "i686", "i386" -> "RHEL for x86";
+      case "aarch64" -> "RHEL for ARM";
+      case "ppc64le" -> "RHEL for IBM Power";
+      default -> null;
+    };
+  }
+
+  private static void normalizeRhelVariants(Set<String> productTags) {
     long variantCount =
         productTags.stream()
             .filter(tag -> tag.startsWith("RHEL ") && !tag.startsWith("RHEL for "))
             .count();
     boolean hasRhel = productTags.contains("RHEL");
+
     if ((variantCount == 0 && hasRhel) || variantCount > 1) {
       productTags.add("RHEL Ungrouped");
     }
-
-    // Prune included products
-    SubscriptionDefinition.pruneIncludedProducts(productTags);
-
-    // Filter to only include product tags that actually support the requested metrics
-    // This removes normalization artifacts like "RHEL" and "RHEL Ungrouped" that aren't real
-    // products
-    productTags =
-        productTags.stream()
-            .filter(tag ->
-                metricIds.stream()
-                    .anyMatch(
-                        metricId -> SubscriptionDefinition.variantSupportsMetric(tag, metricId)))
-            .collect(java.util.stream.Collectors.toSet());
-
-    return productTags;
   }
 
   /**
-   * Get product tags for a specific metric by applying all ProductNormalizer rules. This is used
-   * when determining products per-measurement rather than globally.
+   * Get product tags for a specific metric by applying all ProductNormalizer rules and filtering
+   * out normalization artifacts. This is used when determining products per-measurement rather than
+   * globally. Only returns real product variants that exist in the subscription definition registry
+   * and support the specified metric.
    *
    * @param metricId Specific metric ID (e.g., "Cores" or "Sockets")
    * @param systemProfileFacts System profile facts from HBI
@@ -231,7 +252,7 @@ public class ProductNormalizer {
    * @param satelliteFacts Satellite facts (optional)
    * @param qpcFacts QPC facts (optional)
    * @param skipRhsmFacts Whether to skip RHSM facts
-   * @return Set of product tags that support this specific metric
+   * @return Set of real product variant tags that support this specific metric
    */
   public static Set<String> getProductTagsForMetric(
       String metricId,
@@ -240,7 +261,19 @@ public class ProductNormalizer {
       Optional<SatelliteFacts> satelliteFacts,
       Optional<QpcFacts> qpcFacts,
       boolean skipRhsmFacts) {
-    return collectProductTags(
-        Set.of(metricId), systemProfileFacts, rhsmFacts, satelliteFacts, qpcFacts, skipRhsmFacts);
+    Set<String> allTags =
+        collectProductTags(
+            Set.of(metricId),
+            systemProfileFacts,
+            rhsmFacts,
+            satelliteFacts,
+            qpcFacts,
+            skipRhsmFacts);
+
+    // Filter to only include real product variants that support the metric
+    // This removes normalization artifacts like "RHEL" and "RHEL Ungrouped"
+    return allTags.stream()
+        .filter(tag -> SubscriptionDefinition.variantSupportsMetric(tag, metricId))
+        .collect(java.util.stream.Collectors.toSet());
   }
 }
