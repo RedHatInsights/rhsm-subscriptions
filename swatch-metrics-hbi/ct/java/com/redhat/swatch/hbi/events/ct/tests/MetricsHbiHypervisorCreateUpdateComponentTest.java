@@ -21,9 +21,9 @@
 package com.redhat.swatch.hbi.events.ct.tests;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
-import com.redhat.swatch.component.tests.utils.Topics;
+import com.redhat.swatch.component.tests.api.hbi.HostBuilder;
+import com.redhat.swatch.component.tests.api.hbi.HostTemplates;
 import com.redhat.swatch.hbi.events.ct.api.MessageValidators;
-import com.redhat.swatch.hbi.events.ct.utils.HbiEventHelper;
 import com.redhat.swatch.hbi.events.ct.utils.SwatchEventHelper;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.normalization.NormalizedEventType;
@@ -55,20 +55,25 @@ class MetricsHbiHypervisorCreateUpdateComponentTest extends BaseSMHBIComponentTe
   void shouldTransitionPhysicalHostToHypervisorWhenGuestIsKnown(
       String hbiEventType, NormalizedEventType swatchEventType) {
     // Given: A physical hypervisor host and a mapped guest host
-    List<HbiHostCreateUpdateEvent> hbiEvents =
-        HbiEventHelper.getHypervisorAndGuestEvents(
-            hbiEventType,
-            List.of("69"),
-            OffsetDateTime.now(ZoneOffset.UTC),
-            "Self-Support",
-            "Development/Test",
-            1,
-            1,
-            1,
-            3);
-
-    HbiHostCreateUpdateEvent hypervisorEvent = hbiEvents.get(0);
-    HbiHostCreateUpdateEvent guestEvent = hbiEvents.get(1);
+    OffsetDateTime timestamp = OffsetDateTime.now(ZoneOffset.UTC);
+    HbiHostCreateUpdateEvent hypervisorEvent =
+        hostEvents
+            .createHost(orgId)
+            .apply(HostTemplates.conduitPhysicalRhelSelfSupportDevTest(1, 1))
+            .toEvent()
+            .type(hbiEventType)
+            .timestamp(timestamp)
+            .buildCreateUpdate();
+    String hypervisorSubManId = hypervisorEvent.getHost().getSubscriptionManagerId();
+    HbiHostCreateUpdateEvent guestEvent =
+        hostEvents
+            .createHost(orgId)
+            .apply(
+                HostTemplates.conduitVirtualRhelGuestSelfSupportDevTest(1, 3, hypervisorSubManId))
+            .toEvent()
+            .type(hbiEventType)
+            .timestamp(timestamp)
+            .buildCreateUpdate();
 
     Event swatchEventHypervisor =
         SwatchEventHelper.createExpectedEvent(
@@ -86,8 +91,8 @@ class MetricsHbiHypervisorCreateUpdateComponentTest extends BaseSMHBIComponentTe
             true);
 
     // When: Hypervisor and guest events are produced to Kafka
-    kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hypervisorEvent);
-    kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, guestEvent);
+    hostEvents.publish(hypervisorEvent);
+    hostEvents.publish(guestEvent);
 
     // Then: Three SWatch events should be produced (hypervisor, guest, updated hypervisor)
     thenSwatchEventsAppear(
@@ -102,20 +107,25 @@ class MetricsHbiHypervisorCreateUpdateComponentTest extends BaseSMHBIComponentTe
   void shouldTransitionUnmappedGuestToMappedGuest(
       String hbiEventType, NormalizedEventType swatchEventType) {
     // Given: A virtual unmapped guest and a hypervisor host
-    List<HbiHostCreateUpdateEvent> hbiEvents =
-        HbiEventHelper.getHypervisorAndGuestEvents(
-            hbiEventType,
-            List.of("69"),
-            OffsetDateTime.now(ZoneOffset.UTC),
-            "Self-Support",
-            "Development/Test",
-            1,
-            1,
-            1,
-            3);
-
-    HbiHostCreateUpdateEvent hypervisorEvent = hbiEvents.get(0);
-    HbiHostCreateUpdateEvent guestEvent = hbiEvents.get(1);
+    OffsetDateTime timestamp = OffsetDateTime.now(ZoneOffset.UTC);
+    HbiHostCreateUpdateEvent hypervisorEvent =
+        hostEvents
+            .createHost(orgId)
+            .apply(HostTemplates.conduitPhysicalRhelSelfSupportDevTest(1, 1))
+            .toEvent()
+            .type(hbiEventType)
+            .timestamp(timestamp)
+            .buildCreateUpdate();
+    String hypervisorSubManId = hypervisorEvent.getHost().getSubscriptionManagerId();
+    HbiHostCreateUpdateEvent guestEvent =
+        hostEvents
+            .createHost(orgId)
+            .apply(
+                HostTemplates.conduitVirtualRhelGuestSelfSupportDevTest(1, 3, hypervisorSubManId))
+            .toEvent()
+            .type(hbiEventType)
+            .timestamp(timestamp)
+            .buildCreateUpdate();
 
     Event swatchEventUnmappedGuest =
         SwatchEventHelper.createExpectedEvent(
@@ -133,8 +143,8 @@ class MetricsHbiHypervisorCreateUpdateComponentTest extends BaseSMHBIComponentTe
             false);
 
     // When: Guest event is produced first, then hypervisor event
-    kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, guestEvent);
-    kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hypervisorEvent);
+    hostEvents.publish(guestEvent);
+    hostEvents.publish(hypervisorEvent);
 
     // Then: Three SWatch events should be produced (unmapped guest, hypervisor, mapped guest)
     thenSwatchEventsAppear(
@@ -151,28 +161,30 @@ class MetricsHbiHypervisorCreateUpdateComponentTest extends BaseSMHBIComponentTe
     // Given: Hypervisor A with mapped guest, and hypervisor B with no guests
     OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
 
-    List<HbiHostCreateUpdateEvent> initialEvents =
-        HbiEventHelper.getHypervisorAndGuestEvents(
-            hbiEventType, List.of("69"), now, "Self-Support", "Development/Test", 1, 1, 1, 3);
-
-    HbiHostCreateUpdateEvent hypervisorAEvent = initialEvents.get(0);
-    HbiHostCreateUpdateEvent guestEvent = initialEvents.get(1);
-
+    HbiHostCreateUpdateEvent hypervisorAEvent =
+        hostEvents
+            .createHost(orgId)
+            .apply(HostTemplates.conduitPhysicalRhelSelfSupportDevTest(1, 1))
+            .toEvent()
+            .type(hbiEventType)
+            .timestamp(now)
+            .buildCreateUpdate();
+    HostBuilder guestHost =
+        hostEvents
+            .createHost(orgId)
+            .apply(
+                HostTemplates.conduitVirtualRhelGuestSelfSupportDevTest(
+                    1, 3, hypervisorAEvent.getHost().getSubscriptionManagerId()));
+    HbiHostCreateUpdateEvent guestEvent =
+        guestHost.toEvent().type(hbiEventType).timestamp(now).buildCreateUpdate();
     HbiHostCreateUpdateEvent hypervisorBEvent =
-        HbiEventHelper.getRhsmHostEvent(
-            hbiEventType,
-            null,
-            List.of("69"),
-            false,
-            "x86_64",
-            now,
-            "Self-Support",
-            "Development/Test",
-            1,
-            1,
-            null,
-            null,
-            null);
+        hostEvents
+            .createHost(orgId)
+            .apply(HostTemplates.conduitPhysicalRhelSelfSupportDevTest(1, 1))
+            .toEvent()
+            .type(hbiEventType)
+            .timestamp(now)
+            .buildCreateUpdate();
     String hypervisorBSubManId = hypervisorBEvent.getHost().getSubscriptionManagerId();
 
     Event swatchHypervisorA =
@@ -194,9 +206,9 @@ class MetricsHbiHypervisorCreateUpdateComponentTest extends BaseSMHBIComponentTe
             hypervisorBEvent, swatchEventType, List.of("69"), Set.of("RHEL for x86"), false, false);
 
     // When: Phase 1 - Hypervisor A, guest, and hypervisor B events are produced
-    kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hypervisorAEvent);
-    kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, guestEvent);
-    kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hypervisorBEvent);
+    hostEvents.publish(hypervisorAEvent);
+    hostEvents.publish(guestEvent);
+    hostEvents.publish(hypervisorBEvent);
 
     // Then: Four SWatch events should be produced
     thenSwatchEventsAppear(
@@ -206,12 +218,14 @@ class MetricsHbiHypervisorCreateUpdateComponentTest extends BaseSMHBIComponentTe
         MessageValidators.swatchEventEquals(swatchHypervisorB));
 
     // Given: Guest is re-mapped from hypervisor A to hypervisor B
-    guestEvent.getHost().getSystemProfile().setHypervisorUuid(hypervisorBSubManId);
-    guestEvent.setType("updated");
+    guestHost.systemProfileFacts(
+        guestHost.getSystemProfileFacts().toBuilder().hypervisorUuid(hypervisorBSubManId).build());
+    HbiHostCreateUpdateEvent remappedGuestEvent =
+        guestHost.toEvent().type("updated").timestamp(now).buildCreateUpdate();
 
     Event swatchGuestRemapped =
         SwatchEventHelper.createExpectedEvent(
-            guestEvent,
+            remappedGuestEvent,
             NormalizedEventType.INSTANCE_UPDATED,
             List.of("69"),
             Set.of("RHEL for x86"),
@@ -227,7 +241,7 @@ class MetricsHbiHypervisorCreateUpdateComponentTest extends BaseSMHBIComponentTe
             true);
 
     // When: Phase 2 - Updated guest event is produced with new hypervisor mapping
-    kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, guestEvent);
+    hostEvents.publish(remappedGuestEvent);
 
     // Then: Two SWatch events should be produced (re-mapped guest, updated hypervisor B)
     thenSwatchEventsAppear(
