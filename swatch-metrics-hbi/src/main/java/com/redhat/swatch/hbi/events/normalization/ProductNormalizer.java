@@ -236,7 +236,10 @@ public class ProductNormalizer {
     boolean hasRhel = productTags.contains("RHEL");
 
     if ((variantCount == 0 && hasRhel) || variantCount > 1) {
-      productTags.add("RHEL Ungrouped");
+      log.debug(
+          "RHEL with {} variants (expected 1): {}. Not adding 'RHEL Ungrouped' - not a supported product",
+          variantCount,
+          productTags);
     }
   }
 
@@ -271,7 +274,7 @@ public class ProductNormalizer {
             skipRhsmFacts);
 
     // Filter to only include real product variants that support the metric
-    // This removes normalization artifacts like "RHEL" and "RHEL Ungrouped"
+    // This removes normalization artifacts like "RHEL" (no metric support)
     return allTags.stream()
         .filter(tag -> SubscriptionDefinition.variantSupportsMetric(tag, metricId))
         .collect(java.util.stream.Collectors.toSet());

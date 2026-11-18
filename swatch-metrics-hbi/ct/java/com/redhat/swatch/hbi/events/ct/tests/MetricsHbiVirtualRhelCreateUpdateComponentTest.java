@@ -22,6 +22,7 @@ package com.redhat.swatch.hbi.events.ct.tests;
 
 import static com.redhat.swatch.hbi.events.ct.utils.SwatchEventHelper.getMeasurementValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
@@ -67,9 +68,7 @@ class MetricsHbiVirtualRhelCreateUpdateComponentTest extends BaseSMHBIComponentT
                     2, 2, "non-existent-hypervisor-uuid"))
             .apply(b ->
                 b.systemProfileFacts(
-                    b.getSystemProfileFacts().toBuilder()
-                        .threadsPerCore(4) // Extend template: add threadsPerCore for this test
-                        .build()))
+                    b.getSystemProfileFacts().toBuilder().threadsPerCore(4).build()))
             .toEvent()
             .type(hbiEventType)
             .timestamp(OffsetDateTime.now(ZoneOffset.UTC))
@@ -86,11 +85,19 @@ class MetricsHbiVirtualRhelCreateUpdateComponentTest extends BaseSMHBIComponentT
     assertEquals(1, actualEvents.size(), "Expected exactly 1 event");
     Event actualEvent = actualEvents.getFirst();
 
-    // Then: Assert specific measurement values on ACTUAL event from Kafka: cores=1, sockets=1
-    assertEquals(1.0, getMeasurementValue(actualEvent, "cores"), "cores should be 1.0");
-    assertEquals(1.0, getMeasurementValue(actualEvent, "sockets"), "sockets should be 1.0");
+    // Then: Assert specific measurement values on ACTUAL event from Kafka: sockets=1
+    assertNull(
+        getMeasurementValue(actualEvent, "Cores"),
+        "Cores should not be present - RHEL products only support Sockets metric");
+    assertEquals(1.0, getMeasurementValue(actualEvent, "Sockets"), "Sockets should be 1.0");
+    assertTrue(
+        actualEvent.getMeasurements().stream()
+            .anyMatch(
+                m -> "Sockets".equals(m.getMetricId()) && "RHEL for x86".equals(m.getProductTag())),
+        "Sockets measurement should have RHEL for x86 product_tag");
     assertTrue(actualEvent.getIsUnmappedGuest(), "Should be unmapped guest");
-    assertTrue(actualEvent.getProductTag().contains("RHEL for x86"), "Should have x86 product tag");
+    assertEquals(Event.Sla.SELF_SUPPORT, actualEvent.getSla(), "SLA should be Self-Support");
+    assertEquals(Event.Usage.DEVELOPMENT_TEST, actualEvent.getUsage(), "Usage should be Dev/Test");
 
     // Then: Verify full event matches expected structure
     Event expectedEvent =
@@ -136,13 +143,19 @@ class MetricsHbiVirtualRhelCreateUpdateComponentTest extends BaseSMHBIComponentT
     assertEquals(1, actualEvents.size(), "Expected exactly 1 event");
     Event actualEvent = actualEvents.getFirst();
 
-    // Then: Assert specific measurement values on ACTUAL event from Kafka: cores=4, sockets=1
-    assertEquals(4.0, getMeasurementValue(actualEvent, "cores"), "cores should be 4.0");
-    assertEquals(1.0, getMeasurementValue(actualEvent, "sockets"), "sockets should be 1.0");
+    // Then: Assert specific measurement values on ACTUAL event from Kafka: sockets=1
+    assertNull(
+        getMeasurementValue(actualEvent, "Cores"),
+        "Cores should not be present - RHEL products only support Sockets metric");
+    assertEquals(1.0, getMeasurementValue(actualEvent, "Sockets"), "Sockets should be 1.0");
+    assertTrue(
+        actualEvent.getMeasurements().stream()
+            .anyMatch(
+                m -> "Sockets".equals(m.getMetricId()) && "RHEL for x86".equals(m.getProductTag())),
+        "Sockets measurement should have RHEL for x86 product_tag");
     assertTrue(actualEvent.getIsUnmappedGuest(), "Should be unmapped guest");
     assertEquals(Event.Sla.SELF_SUPPORT, actualEvent.getSla(), "SLA should be Self-Support");
     assertEquals(Event.Usage.DEVELOPMENT_TEST, actualEvent.getUsage(), "Usage should be Dev/Test");
-    assertTrue(actualEvent.getProductTag().contains("RHEL for x86"), "Should have x86 product tag");
 
     // Then: Verify full event matches expected structure
     Event expectedEvent =
@@ -166,7 +179,7 @@ class MetricsHbiVirtualRhelCreateUpdateComponentTest extends BaseSMHBIComponentT
             .apply(b ->
                 b.rhsmFacts(
                     b.rhsmFacts().toBuilder()
-                        .product("419") // Override: ARM product instead of x86
+                        .product("419") // Add ARM product along with x86
                         .build()))
             .apply(b ->
                 b.systemProfileFacts(
@@ -190,12 +203,21 @@ class MetricsHbiVirtualRhelCreateUpdateComponentTest extends BaseSMHBIComponentT
     assertEquals(1, actualEvents.size(), "Expected exactly 1 event");
     Event actualEvent = actualEvents.getFirst();
 
-    // Then: Assert specific measurement values on ACTUAL event from Kafka: cores=4 (physical calc:
-    // 2×2),
-    // sockets=2
-    assertEquals(4.0, getMeasurementValue(actualEvent, "cores"), "cores should be 4.0");
-    assertEquals(2.0, getMeasurementValue(actualEvent, "sockets"), "sockets should be 2.0");
-    assertTrue(actualEvent.getProductTag().contains("RHEL for ARM"), "Should have ARM product tag");
+    // Then: Assert specific measurement values on ACTUAL event from Kafka: sockets=2
+    assertNull(
+        getMeasurementValue(actualEvent, "Cores"),
+        "Cores should not be present - RHEL products only support Sockets metric");
+    assertEquals(2.0, getMeasurementValue(actualEvent, "Sockets"), "Sockets should be 2.0");
+    assertTrue(
+        actualEvent.getMeasurements().stream()
+            .anyMatch(
+                m -> "Sockets".equals(m.getMetricId()) && "RHEL for x86".equals(m.getProductTag())),
+        "Sockets measurement should have RHEL for x86 product_tag");
+    assertTrue(
+        actualEvent.getMeasurements().stream()
+            .anyMatch(
+                m -> "Sockets".equals(m.getMetricId()) && "RHEL for ARM".equals(m.getProductTag())),
+        "Sockets measurement should have RHEL for ARM product_tag");
 
     // Then: Verify full event matches expected structure
     // Note: defaultFacts() adds product "69", so actual event has both 69 and 419
@@ -247,7 +269,15 @@ class MetricsHbiVirtualRhelCreateUpdateComponentTest extends BaseSMHBIComponentT
 
     // Then: Assert specific measurement values on ACTUAL event from Kafka: sockets=1 (cloud
     // override)
-    assertEquals(1.0, getMeasurementValue(actualEvent, "sockets"), "sockets should be 1.0");
+    assertNull(
+        getMeasurementValue(actualEvent, "Cores"),
+        "Cores should not be present - RHEL products only support Sockets metric");
+    assertEquals(1.0, getMeasurementValue(actualEvent, "Sockets"), "Sockets should be 1.0");
+    assertTrue(
+        actualEvent.getMeasurements().stream()
+            .anyMatch(
+                m -> "Sockets".equals(m.getMetricId()) && "RHEL for x86".equals(m.getProductTag())),
+        "Sockets measurement should have RHEL for x86 product_tag");
     assertEquals(Event.CloudProvider.AWS, actualEvent.getCloudProvider(), "Should be AWS");
     assertEquals(Event.HardwareType.CLOUD, actualEvent.getHardwareType(), "Should be CLOUD type");
 
@@ -295,17 +325,80 @@ class MetricsHbiVirtualRhelCreateUpdateComponentTest extends BaseSMHBIComponentT
 
     // Then: Assert specific measurement values on ACTUAL event from Kafka
     // With coresPerSocket=2, sockets=2, and default threadsPerCore=2.0:
-    // cores = ceil((2 * 2) / 2.0) = ceil(4 / 2.0) = ceil(2.0) = 2
+    // cores = ceil((2 * 2) / 2.0) = ceil(4 / 2.0) = ceil(2.0) = 2 (but not in measurements - RHEL
+    // only supports Sockets)
     // sockets = 1 (unmapped virtual RHEL guest rule)
-    assertEquals(2.0, getMeasurementValue(actualEvent, "cores"), "cores should be 2.0");
-    assertEquals(1.0, getMeasurementValue(actualEvent, "sockets"), "sockets should be 1.0");
+    assertNull(
+        getMeasurementValue(actualEvent, "Cores"),
+        "Cores should not be present - RHEL products only support Sockets metric");
+    assertEquals(1.0, getMeasurementValue(actualEvent, "Sockets"), "Sockets should be 1.0");
+    assertTrue(
+        actualEvent.getMeasurements().stream()
+            .anyMatch(
+                m -> "Sockets".equals(m.getMetricId()) && "RHEL for x86".equals(m.getProductTag())),
+        "Sockets measurement should have RHEL for x86 product_tag");
     assertTrue(actualEvent.getIsUnmappedGuest(), "Should be unmapped guest");
-    assertTrue(actualEvent.getProductTag().contains("RHEL for x86"), "Should have x86 product tag");
 
     // Then: Verify full event matches expected structure
     Event expectedEvent =
         SwatchEventHelper.createExpectedEvent(
             hbiEvent, swatchEventType, List.of("69"), Set.of("RHEL for x86"), true, false);
+    assertTrue(
+        SwatchEventHelper.eventsMatch(expectedEvent, actualEvent),
+        "Full event should match expected structure");
+  }
+
+  @TestPlanName("metrics-hbi-virtual-TC006")
+  @ParameterizedTest
+  @CsvSource({"created, INSTANCE_CREATED", "updated, INSTANCE_UPDATED"})
+  void shouldNotApplyModulo2RoundingForVirtualHostWithOddSockets(
+      String hbiEventType, NormalizedEventType swatchEventType) {
+    // Given: A virtual RHEL for x86 host with odd number of sockets (3)
+    // Purpose: Prove virtual hosts do NOT apply modulo-2 rounding (compare with Physical TC002:
+    // 3→4)
+    HbiHostCreateUpdateEvent hbiEvent =
+        hostEvents
+            .createHost(orgId)
+            .apply(HostTemplates.conduitVirtualRhelGuestSelfSupportDevTest(2, 3, null))
+            .apply(b ->
+                b.systemProfileFacts(
+                    b.getSystemProfileFacts().toBuilder()
+                        .hypervisorUuid(null) // Not a guest, avoid unmapped guest logic
+                        .build()))
+            .toEvent()
+            .type(hbiEventType)
+            .timestamp(OffsetDateTime.now(ZoneOffset.UTC))
+            .buildCreateUpdate();
+
+    // When: HBI event is produced to Kafka
+    hostEvents.publish(hbiEvent);
+
+    // Then: Wait for and capture the actual SWatch event from Kafka
+    String instanceId = hbiEvent.getHost().getId().toString();
+    List<Event> actualEvents =
+        thenSwatchEventsAppear(
+            MessageValidators.swatchEventMatches(orgId, instanceId, swatchEventType.toString()));
+    assertEquals(1, actualEvents.size(), "Expected exactly 1 event");
+    Event actualEvent = actualEvents.getFirst();
+
+    // Then: Assert sockets=3 (NOT rounded to 4 - virtual hosts don't apply modulo-2 rounding)
+    assertNull(
+        getMeasurementValue(actualEvent, "Cores"),
+        "Cores should not be present - RHEL products only support Sockets metric");
+    assertEquals(
+        3.0,
+        getMeasurementValue(actualEvent, "Sockets"),
+        "Sockets should be 3.0 (virtual hosts do NOT round odd sockets)");
+    assertTrue(
+        actualEvent.getMeasurements().stream()
+            .anyMatch(
+                m -> "Sockets".equals(m.getMetricId()) && "RHEL for x86".equals(m.getProductTag())),
+        "Sockets measurement should have RHEL for x86 product_tag");
+
+    // Then: Verify full event matches expected structure
+    Event expectedEvent =
+        SwatchEventHelper.createExpectedEvent(
+            hbiEvent, swatchEventType, List.of("69"), Set.of("RHEL for x86"), false, false);
     assertTrue(
         SwatchEventHelper.eventsMatch(expectedEvent, actualEvent),
         "Full event should match expected structure");

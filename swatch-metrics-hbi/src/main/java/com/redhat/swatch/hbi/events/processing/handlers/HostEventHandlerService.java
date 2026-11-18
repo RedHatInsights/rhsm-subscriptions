@@ -252,7 +252,7 @@ public class HostEventHandlerService {
         .withCloudProvider(facts.getCloudProvider())
         .withHardwareType(facts.getHardwareType())
         .withProductIds(facts.getProductIds().stream().toList())
-        .withMeasurements(convertMeasurements(measurements, hbiHost))
+        .withMeasurements(convertMeasurements(measurements, hbiHost, facts))
         .withIsVirtual(facts.isVirtual())
         .withIsUnmappedGuest(facts.isUnmappedGuest())
         .withIsHypervisor(facts.isHypervisor())
@@ -280,9 +280,13 @@ public class HostEventHandlerService {
         .withInsightsId(Optional.ofNullable(insightsId));
   }
 
-  private List<Measurement> convertMeasurements(NormalizedMeasurements measurements, Host host) {
+  private List<Measurement> convertMeasurements(
+      NormalizedMeasurements measurements, Host host, NormalizedFacts facts) {
     List<Measurement> applicableMeasurements = new ArrayList<>();
-    boolean skipRhsmFacts = host.getRhsmFacts().isEmpty();
+
+    // Use the same skipRhsmFacts decision from fact normalization
+    // (which checks stale timestamp) instead of recalculating based on isEmpty()
+    boolean skipRhsmFacts = facts.isSkipRhsmFacts();
 
     measurements
         .getCores()

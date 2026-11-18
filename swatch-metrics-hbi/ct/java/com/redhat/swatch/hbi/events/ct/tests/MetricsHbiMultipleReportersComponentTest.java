@@ -23,6 +23,7 @@ package com.redhat.swatch.hbi.events.ct.tests;
 import static com.redhat.swatch.hbi.events.ct.utils.SwatchEventHelper.getMeasurementValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
@@ -42,10 +43,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.Sla;
 import org.candlepin.subscriptions.json.Event.Usage;
+import org.candlepin.subscriptions.json.Measurement;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -93,6 +96,7 @@ class MetricsHbiMultipleReportersComponentTest extends BaseSMHBIComponentTest {
     hostEvents.publish(hbiEvent);
 
     // Then: Recent RHSM values take precedence and product IDs from both sources are retained
+    // NOTE: Only "Satellite Server" product_tag - "RHEL for x86" is pruned (included subscription)
     Event swatchEvent =
         expectedEvent(
             hbiEvent,
@@ -143,6 +147,65 @@ class MetricsHbiMultipleReportersComponentTest extends BaseSMHBIComponentTest {
             "Development/Test");
 
     thenSwatchEventAppears(hbiEvent, swatchEventType, swatchEvent);
+  }
+
+  @TestPlanName("metrics-hbi-multiple-reporters-TC002b")
+  @ParameterizedTest
+  @CsvSource({"created, INSTANCE_CREATED", "updated, INSTANCE_UPDATED"})
+  void shouldSkipStaleRhsmProductsInMeasurements(
+      String hbiEventType, NormalizedEventType swatchEventType) {
+    // Simple test: ONLY stale RHSM (no Satellite to confuse things)
+    // This directly tests if skipRhsmFacts is used consistently for measurements
+    OffsetDateTime timestamp = OffsetDateTime.now(ZoneOffset.UTC);
+
+    HbiHostCreateUpdateEvent hbiEvent =
+        hostEvents
+            .createHost(orgId)
+            .subscriptionManagerId(UUID.randomUUID().toString())
+            .rhsmFacts(
+                RhsmFacts.builder()
+                    .defaultFacts() // Adds product "69" (RHEL for x86)
+                    .sla("Premium")
+                    .usage("Production")
+                    .syncTimestamp(timestamp.minusDays(30).toString()) // STALE!
+                    .build())
+            .systemProfileFacts(
+                SystemProfileFacts.builder()
+                    .infrastructureType("physical")
+                    .arch("x86_64")
+                    .coresPerSocket(2)
+                    .numberOfSockets(2)
+                    .build())
+            .toEvent()
+            .type(hbiEventType)
+            .timestamp(timestamp)
+            .buildCreateUpdate();
+
+    // When: HBI event is produced to Kafka
+    hostEvents.publish(hbiEvent);
+
+    // Then: Stale RHSM should be skipped - NO measurements (RHEL only supports Sockets, but
+    // should be excluded)
+    String instanceId = hbiEvent.getHost().getId().toString();
+    List<Event> actualEvents =
+        kafkaBridge.waitForKafkaMessage(
+            Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
+            MessageValidators.swatchEventMatches(orgId, instanceId, swatchEventType.toString()),
+            1,
+            AwaitilitySettings.defaults().onConditionNotMet(service::flushOutboxSynchronously));
+
+    assertEquals(1, actualEvents.size(), "Expected exactly one matching SWatch event");
+    Event actualEvent = actualEvents.getFirst();
+
+    // Product IDs should be empty (stale RHSM excluded)
+    assertTrue(
+        actualEvent.getProductIds() == null || actualEvent.getProductIds().isEmpty(),
+        "Product IDs should be empty - stale RHSM should be excluded");
+
+    // Measurements should be empty (no products means no measurements)
+    assertTrue(
+        actualEvent.getMeasurements() == null || actualEvent.getMeasurements().isEmpty(),
+        "Measurements should be empty - stale RHSM products should not appear in measurements");
   }
 
   private static Stream<Arguments> rhsmSlaAndUsageFallbackCases() {
@@ -299,10 +362,32 @@ class MetricsHbiMultipleReportersComponentTest extends BaseSMHBIComponentTest {
 
     assertEquals(1, actualEvents.size(), "Expected exactly one matching SWatch event");
     Event actualEvent = actualEvents.getFirst();
-    assertEquals(expectedEvent.getProductTag(), actualEvent.getProductTag());
     assertEquals(expectedEvent.getProductIds(), actualEvent.getProductIds());
-    assertEquals(2.0, getMeasurementValue(actualEvent, "sockets"));
-    assertEquals(4.0, getMeasurementValue(actualEvent, "cores"));
+    assertNull(
+        getMeasurementValue(actualEvent, "Cores"),
+        "Cores should not be present - RHEL/Satellite products only support Sockets metric");
+    assertEquals(2.0, getMeasurementValue(actualEvent, "Sockets"), "Sockets should be 2.0");
+
+    // Verify Sockets measurements have the expected product_tags
+    Set<String> actualProductTags =
+        actualEvent.getMeasurements().stream()
+            .filter(m -> "Sockets".equals(m.getMetricId()))
+            .map(Measurement::getProductTag)
+            .filter(tag -> tag != null && !tag.isEmpty())
+            .collect(Collectors.toSet());
+
+    Set<String> expectedProductTags =
+        expectedEvent.getMeasurements().stream()
+            .filter(m -> "Sockets".equals(m.getMetricId()))
+            .map(Measurement::getProductTag)
+            .filter(tag -> tag != null && !tag.isEmpty())
+            .collect(Collectors.toSet());
+
+    assertEquals(
+        expectedProductTags,
+        actualProductTags,
+        "Sockets measurements should have expected product_tags");
+
     assertFalse(actualEvent.getIsVirtual(), "Should be a physical host");
     assertEquals(expectedEvent.getSla(), actualEvent.getSla());
     assertEquals(expectedEvent.getUsage(), actualEvent.getUsage());
@@ -354,11 +439,11 @@ class MetricsHbiMultipleReportersComponentTest extends BaseSMHBIComponentTest {
       HbiHostCreateUpdateEvent hbiEvent,
       NormalizedEventType swatchEventType,
       List<String> productIds,
-      Set<String> productTags,
+      Set<String> expectedProductTags,
       String sla,
       String usage) {
     return SwatchEventHelper.createExpectedEvent(
-            hbiEvent, swatchEventType, productIds, productTags, false, false)
+            hbiEvent, swatchEventType, productIds, expectedProductTags, false, false)
         .withSla(Sla.fromValue(sla))
         .withUsage(Usage.fromValue(usage));
   }

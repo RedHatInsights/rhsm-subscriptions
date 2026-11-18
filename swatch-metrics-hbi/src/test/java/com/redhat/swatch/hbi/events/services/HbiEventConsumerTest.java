@@ -170,8 +170,8 @@ class HbiEventConsumerTest {
 
     // No expected product tags/ids, sla, usage are null since 'rhsm' facts would be skipped because
     // the host will be considered unregistered due to lastCheckinDate.
-    // However, measurements are still created based on hardware facts (sockets) for any products
-    // that can be determined from non-RHSM sources.
+    // Since there are no non-RHSM product sources in this test data (only RHSM product "69"),
+    // measurements should also be empty when RHSM is skipped.
     Event expected =
         swatchEventTestHelper
             .buildPhysicalRhelEvent(
@@ -179,7 +179,7 @@ class HbiEventConsumerTest {
                 NormalizedEventType.INSTANCE_CREATED,
                 eventTimestamp,
                 false,
-                buildRhelMeasurements(2.0, List.of("RHEL for x86")))
+                List.of())
             .withProductIds(List.of())
             .withSla(null)
             .withUsage(null);
@@ -592,15 +592,13 @@ class HbiEventConsumerTest {
     return event;
   }
 
-  private List<Measurement> buildMeasurements(double cores, double sockets) {
-    return List.of(
-        new Measurement().withMetricId("Cores").withValue(cores),
-        new Measurement().withMetricId("Sockets").withValue(sockets));
-  }
-
   /**
    * Builds measurements for RHEL products. RHEL only supports Sockets metric (not Cores). Each
    * product that supports the metric gets its own measurement entry with product_tag.
+   *
+   * @param sockets Socket count
+   * @param productTags Product tags that support Sockets (e.g., "RHEL for x86")
+   * @return List of measurements, one per product tag
    */
   private List<Measurement> buildRhelMeasurements(double sockets, List<String> productTags) {
     return productTags.stream()

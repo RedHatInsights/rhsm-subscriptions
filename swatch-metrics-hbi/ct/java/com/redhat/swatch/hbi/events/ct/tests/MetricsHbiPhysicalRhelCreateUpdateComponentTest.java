@@ -36,6 +36,7 @@ import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.normalization.NormalizedEventType;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -99,12 +100,18 @@ class MetricsHbiPhysicalRhelCreateUpdateComponentTest extends BaseSMHBIComponent
 
     Event actualEvent = actualEvents.getFirst();
 
-    // Then: Assert specific measurement values on ACTUAL event from Kafka: cores=4, sockets=2
-    assertEquals(4.0, getMeasurementValue(actualEvent, "cores"), "cores should be 4.0");
-    assertEquals(2.0, getMeasurementValue(actualEvent, "sockets"), "sockets should be 2.0");
+    // Then: Assert specific measurement values on ACTUAL event from Kafka: sockets=2
+    assertNull(
+        getMeasurementValue(actualEvent, "Cores"),
+        "Cores should not be present - RHEL products only support Sockets metric");
+    assertEquals(2.0, getMeasurementValue(actualEvent, "Sockets"), "Sockets should be 2.0");
+    // Note: Only Sockets metric has product_tag since RHEL products only support Sockets, not Cores
+    assertTrue(
+        actualEvent.getMeasurements().stream()
+            .anyMatch(m ->
+                "Sockets".equals(m.getMetricId()) && "RHEL for x86".equals(m.getProductTag())));
     assertEquals(Event.Sla.SELF_SUPPORT, actualEvent.getSla(), "SLA should be Self-Support");
     assertEquals(Event.Usage.DEVELOPMENT_TEST, actualEvent.getUsage(), "Usage should be Dev/Test");
-    assertTrue(actualEvent.getProductTag().contains("RHEL for x86"), "Should have x86 product tag");
     assertEquals(
         Event.HardwareType.PHYSICAL,
         actualEvent.getHardwareType(),
@@ -158,11 +165,17 @@ class MetricsHbiPhysicalRhelCreateUpdateComponentTest extends BaseSMHBIComponent
 
     Event actualEvent = actualEvents.getFirst();
 
-    // Then: Assert specific measurement values on ACTUAL event from Kafka:
-    // cores=6 (2 cores_per_socket x 3 number_of_sockets separate from socket normalization to 4),
-    // sockets=4
-    assertEquals(6.0, getMeasurementValue(actualEvent, "cores"), "cores should be 6.0");
-    assertEquals(4.0, getMeasurementValue(actualEvent, "sockets"), "sockets should be 4.0");
+    // Then: Assert specific measurement values on ACTUAL event from Kafka: sockets=4 (rounded up
+    // from 3)
+    assertNull(
+        getMeasurementValue(actualEvent, "Cores"),
+        "Cores should not be present - RHEL products only support Sockets metric");
+    assertEquals(4.0, getMeasurementValue(actualEvent, "Sockets"), "Sockets should be 4.0");
+    assertTrue(
+        actualEvent.getMeasurements().stream()
+            .anyMatch(
+                m -> "Sockets".equals(m.getMetricId()) && "RHEL for x86".equals(m.getProductTag())),
+        "Sockets measurement should have RHEL for x86 product_tag");
 
     // Then: Verify full event matches expected structure
     Event expectedEvent =
@@ -216,13 +229,18 @@ class MetricsHbiPhysicalRhelCreateUpdateComponentTest extends BaseSMHBIComponent
 
     Event actualEvent = actualEvents.getFirst();
 
-    // Then: Assert specific measurement values on ACTUAL event from Kafka: cores=4, sockets=2,
+    // Then: Assert specific measurement values on ACTUAL event from Kafka: sockets=2,
     // productTag=converted
-    assertEquals(4.0, getMeasurementValue(actualEvent, "cores"), "cores should be 4.0");
-    assertEquals(2.0, getMeasurementValue(actualEvent, "sockets"), "sockets should be 2.0");
+    assertNull(
+        getMeasurementValue(actualEvent, "Cores"),
+        "Cores should not be present - RHEL products only support Sockets metric");
+    assertEquals(2.0, getMeasurementValue(actualEvent, "Sockets"), "Sockets should be 2.0");
+    // Note: Only Sockets metric has product_tag since RHEL products only support Sockets, not Cores
     assertTrue(
-        actualEvent.getProductTag().contains("rhel-for-x86-els-converted"),
-        "Should have converted product tag");
+        actualEvent.getMeasurements().stream()
+            .anyMatch(m ->
+                "Sockets".equals(m.getMetricId())
+                    && "rhel-for-x86-els-converted".equals(m.getProductTag())));
     assertEquals(
         Boolean.TRUE, actualEvent.getConversion(), "Event should be marked as a conversion");
 
@@ -282,9 +300,16 @@ class MetricsHbiPhysicalRhelCreateUpdateComponentTest extends BaseSMHBIComponent
 
     Event actualEvent = actualEvents.getFirst();
 
-    // Then: Assert specific measurement values on ACTUAL event from Kafka: cores=0, sockets=0
-    assertEquals(0.0, getMeasurementValue(actualEvent, "cores"), "cores should be 0.0");
-    assertEquals(0.0, getMeasurementValue(actualEvent, "sockets"), "sockets should be 0.0");
+    // Then: Assert specific measurement values on ACTUAL event from Kafka: sockets=0
+    assertNull(
+        getMeasurementValue(actualEvent, "Cores"),
+        "Cores should not be present - RHEL products only support Sockets metric");
+    assertEquals(0.0, getMeasurementValue(actualEvent, "Sockets"), "Sockets should be 0.0");
+    assertTrue(
+        actualEvent.getMeasurements().stream()
+            .anyMatch(
+                m -> "Sockets".equals(m.getMetricId()) && "RHEL for x86".equals(m.getProductTag())),
+        "Sockets measurement should have RHEL for x86 product_tag");
 
     // Then: Verify full event matches expected structure
     Event expectedEvent =
@@ -336,9 +361,16 @@ class MetricsHbiPhysicalRhelCreateUpdateComponentTest extends BaseSMHBIComponent
 
     Event actualEvent = actualEvents.getFirst();
 
-    // Then: Assert specific measurement values on ACTUAL event from Kafka: cores omitted, sockets=2
-    assertNull(getMeasurementValue(actualEvent, "cores"), "cores should be omitted");
-    assertEquals(2.0, getMeasurementValue(actualEvent, "sockets"), "sockets should be 2.0");
+    // Then: Assert specific measurement values on ACTUAL event from Kafka: sockets=2
+    assertNull(
+        getMeasurementValue(actualEvent, "Cores"),
+        "Cores should not be present - RHEL products only support Sockets metric");
+    assertEquals(2.0, getMeasurementValue(actualEvent, "Sockets"), "Sockets should be 2.0");
+    assertTrue(
+        actualEvent.getMeasurements().stream()
+            .anyMatch(
+                m -> "Sockets".equals(m.getMetricId()) && "RHEL for x86".equals(m.getProductTag())),
+        "Sockets measurement should have RHEL for x86 product_tag");
 
     // Then: Verify full event matches expected structure
     Event expectedEvent =
@@ -390,14 +422,111 @@ class MetricsHbiPhysicalRhelCreateUpdateComponentTest extends BaseSMHBIComponent
 
     Event actualEvent = actualEvents.getFirst();
 
-    // Then: Assert specific measurement values on ACTUAL event from Kafka: cores=8, sockets omitted
-    assertEquals(8.0, getMeasurementValue(actualEvent, "cores"), "cores should be 8.0");
-    assertNull(getMeasurementValue(actualEvent, "sockets"), "sockets should be omitted");
+    // Then: Assert specific measurement values on ACTUAL event from Kafka
+    // Edge case: System purpose wants Cores/vCPU, but RHEL only supports Sockets metric
+    // Result: Both Cores (not supported by product) and Sockets (suppressed by system purpose) are
+    // omitted
+    assertNull(
+        getMeasurementValue(actualEvent, "Cores"),
+        "Cores should not be present - RHEL products only support Sockets metric");
+    assertNull(
+        getMeasurementValue(actualEvent, "Sockets"),
+        "Sockets should be omitted - suppressed by system purpose units=Cores/vCPU");
 
     // Then: Verify full event matches expected structure
     Event expectedEvent =
         SwatchEventHelper.createExpectedEvent(
             hbiEvent, swatchEventType, List.of("69"), Set.of("RHEL for x86"), false, false);
     assertTrue(SwatchEventHelper.eventsMatch(expectedEvent, actualEvent));
+  }
+
+  @TestPlanName("metrics-hbi-physical-TC007")
+  @ParameterizedTest
+  @CsvSource({"created, INSTANCE_CREATED", "updated, INSTANCE_UPDATED"})
+  void shouldProduceMultipleMeasurementsForMultipleRhelVariants(
+      String hbiEventType, NormalizedEventType swatchEventType) {
+    // Given: A physical RHEL host with RHSM reporting multiple product IDs for different variants
+    // Product IDs: 69 (RHEL for x86), 71 (Workstation), 76 (Compute Node), 83 (HA)
+    HbiHostCreateUpdateEvent hbiEvent =
+        hostEvents
+            .createHost(orgId)
+            .subscriptionManagerId(UUID.randomUUID().toString())
+            .rhsmFacts(
+                RhsmFacts.builder()
+                    .product("69") // RHEL for x86
+                    .product("71") // RHEL Workstation
+                    .product("76") // RHEL Compute Node
+                    .product("83") // rhel-for-x86-ha
+                    .sla("Self-Support")
+                    .usage("Production")
+                    .build())
+            .systemProfileFacts(
+                SystemProfileFacts.builder()
+                    .infrastructureType("physical")
+                    .arch("x86_64")
+                    .coresPerSocket(16)
+                    .numberOfSockets(24)
+                    .build())
+            .toEvent()
+            .type(hbiEventType)
+            .timestamp(OffsetDateTime.now(ZoneOffset.UTC))
+            .buildCreateUpdate();
+
+    // When: HBI event is produced to Kafka
+    hostEvents.publish(hbiEvent);
+
+    // Then: Wait for and capture the actual SWatch event from Kafka
+    String instanceId = hbiEvent.getHost().getId().toString();
+    List<Event> actualEvents =
+        kafkaBridge.waitForKafkaMessage(
+            Topics.SWATCH_SERVICE_INSTANCE_INGRESS,
+            MessageValidators.swatchEventMatches(orgId, instanceId, swatchEventType.toString()),
+            1,
+            AwaitilitySettings.defaults().onConditionNotMet(service::flushOutboxSynchronously));
+
+    Event actualEvent = actualEvents.getFirst();
+
+    // Then: Verify product IDs (all 4 should be present)
+    assertEquals(
+        Set.of("69", "71", "83", "76"),
+        new HashSet<>(actualEvent.getProductIds()),
+        "All 4 product IDs should be present");
+
+    // Then: Verify Sockets measurement exists with correct value
+    assertEquals(
+        24.0, getMeasurementValue(actualEvent, "Sockets"), "Sockets measurement should be 24.0");
+
+    // Then: Verify Cores is NOT present (RHEL products don't support Cores metric)
+    assertNull(
+        getMeasurementValue(actualEvent, "Cores"),
+        "Cores should not be present - RHEL products only support Sockets metric");
+
+    // Then: Verify we have exactly 4 Sockets measurements, one for each variant
+    long socketsCount =
+        actualEvent.getMeasurements().stream()
+            .filter(m -> "Sockets".equals(m.getMetricId()))
+            .count();
+    assertEquals(4, socketsCount, "Should have 4 Sockets measurements, one per variant");
+
+    // Then: Verify each measurement has the correct product_tag
+    Set<String> actualProductTags =
+        actualEvent.getMeasurements().stream()
+            .filter(m -> "Sockets".equals(m.getMetricId()))
+            .map(org.candlepin.subscriptions.json.Measurement::getProductTag)
+            .collect(java.util.stream.Collectors.toSet());
+
+    Set<String> expectedProductTags =
+        Set.of("rhel-for-x86-ha", "RHEL Workstation", "RHEL Compute Node", "RHEL for x86");
+
+    assertEquals(
+        expectedProductTags,
+        actualProductTags,
+        "Each variant should have its own measurement with correct product_tag");
+
+    // Then: Verify each Sockets measurement has the same value
+    actualEvent.getMeasurements().stream()
+        .filter(m -> "Sockets".equals(m.getMetricId()))
+        .forEach(m ->
+            assertEquals(24.0, m.getValue(), "All Sockets measurements should have value 24.0"));
   }
 }

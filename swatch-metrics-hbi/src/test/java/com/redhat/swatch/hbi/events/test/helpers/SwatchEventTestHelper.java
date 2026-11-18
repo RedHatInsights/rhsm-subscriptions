@@ -107,12 +107,6 @@ public class SwatchEventTestHelper {
         .withMeasurements(measurements);
   }
 
-  public List<Measurement> buildMeasurements(double cores, double sockets) {
-    return List.of(
-        new Measurement().withMetricId("Cores").withValue(cores),
-        new Measurement().withMetricId("Sockets").withValue(sockets));
-  }
-
   /**
    * Builds measurements for RHEL products. RHEL only supports Sockets metric (not Cores). Each
    * product that supports the metric gets its own measurement entry with product_tag.
