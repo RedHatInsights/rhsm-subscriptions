@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.redhat.swatch.component.tests.utils.JsonUtils;
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.hbi.events.HbiEventConstants;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHost;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
@@ -65,7 +66,6 @@ public class SwatchEventHelper {
       boolean isHypervisor,
       String hypervisorUuid,
       List<String> productIds,
-      Set<String> tags,
       List<Measurement> measurements,
       boolean conversion) {
     String instanceId = host.getProviderId();
@@ -90,7 +90,6 @@ public class SwatchEventHelper {
         .withCloudProvider(cloudProvider)
         .withHardwareType(hardwareType)
         .withHypervisorUuid(Optional.ofNullable(hypervisorUuid))
-        .withProductTag(tags)
         .withProductIds(productIds)
         .withIsVirtual(isVirtual)
         .withIsUnmappedGuest(isUnmappedGuest)
@@ -130,20 +129,44 @@ public class SwatchEventHelper {
   }
 
   /**
-   * Build measurements list, excluding suppressed metrics.
+   * Build measurements list, excluding suppressed metrics. Each measurement includes product_tag
+   * based on which products from productIds support the metric.
    *
    * @param cores cores value, or null to suppress
    * @param sockets sockets value, or null to suppress
+   * @param host the HBI host containing facts for product determination
    */
   private static List<Measurement> buildMeasurementsWithSuppression(
-      Integer cores, Integer sockets) {
+      Integer cores, Integer sockets, Set<String> expectedProductTags) {
     List<Measurement> measurements = new ArrayList<>();
-    if (cores != null) {
-      measurements.add(new Measurement().withMetricId("cores").withValue(cores.doubleValue()));
+
+    // Create one measurement per product_tag for each metric, but only if the product supports it
+    if (cores != null && expectedProductTags != null) {
+      for (String productTag : expectedProductTags) {
+        // Only add measurement if this product variant actually supports Cores metric
+        if (SubscriptionDefinition.variantSupportsMetric(productTag, "Cores")) {
+          measurements.add(
+              new Measurement()
+                  .withMetricId("Cores")
+                  .withValue(cores.doubleValue())
+                  .withProductTag(productTag));
+        }
+      }
     }
-    if (sockets != null) {
-      measurements.add(new Measurement().withMetricId("sockets").withValue(sockets.doubleValue()));
+
+    if (sockets != null && expectedProductTags != null) {
+      for (String productTag : expectedProductTags) {
+        // Only add measurement if this product variant actually supports Sockets metric
+        if (SubscriptionDefinition.variantSupportsMetric(productTag, "Sockets")) {
+          measurements.add(
+              new Measurement()
+                  .withMetricId("Sockets")
+                  .withValue(sockets.doubleValue())
+                  .withProductTag(productTag));
+        }
+      }
     }
+
     return measurements;
   }
 
@@ -151,7 +174,7 @@ public class SwatchEventHelper {
       HbiHostCreateUpdateEvent hbiEvent,
       NormalizedEventType eventType,
       List<String> productIds,
-      Set<String> tags,
+      Set<String> expectedProductTags,
       boolean isUnmappedGuest,
       boolean isHypervisor) {
     // 1) Normalize context
@@ -172,7 +195,13 @@ public class SwatchEventHelper {
 
     // 3) Measurements
     Integer sockets =
-        computeSockets(sys, isVirtualHost, hasCloudProvider, isUnmappedGuest, isHypervisor, tags);
+        computeSockets(
+            sys,
+            isVirtualHost,
+            hasCloudProvider,
+            isUnmappedGuest,
+            isHypervisor,
+            expectedProductTags);
     Integer cores = computeCores(sys, isVirtualHost);
 
     // Apply marketplace normalization (forces cores and sockets to 0)
@@ -216,8 +245,7 @@ public class SwatchEventHelper {
         isHypervisor,
         hypervisorUuid,
         productIds,
-        tags,
-        buildMeasurementsWithSuppression(cores, sockets),
+        buildMeasurementsWithSuppression(cores, sockets, expectedProductTags),
         conversion);
   }
 
@@ -225,13 +253,18 @@ public class SwatchEventHelper {
       HbiHostCreateUpdateEvent lastKnownHbiEvent,
       HbiHostDeleteEvent deleteEvent,
       List<String> productIds,
-      Set<String> tags,
+      Set<String> expectedProductTags,
       boolean isUnmappedGuest,
       boolean isHypervisor) {
 
     return lastKnownHbiEvent != null
         ? createExpectedDeletedEventFromKnownHost(
-            lastKnownHbiEvent, deleteEvent, productIds, tags, isUnmappedGuest, isHypervisor)
+            lastKnownHbiEvent,
+            deleteEvent,
+            productIds,
+            expectedProductTags,
+            isUnmappedGuest,
+            isHypervisor)
         : createExpectedDeletedEventFromUnseenHost(deleteEvent);
   }
 
@@ -239,7 +272,7 @@ public class SwatchEventHelper {
       HbiHostCreateUpdateEvent lastKnownHbiEvent,
       HbiHostDeleteEvent deleteEvent,
       List<String> productIds,
-      Set<String> tags,
+      Set<String> expectedProductTags,
       boolean isUnmappedGuest,
       boolean isHypervisor) {
 
@@ -254,9 +287,15 @@ public class SwatchEventHelper {
     String hypervisorUuid = sys.getHypervisorUuid();
 
     HardwareType hardwareType = determineHardwareType(hasCloudProvider, isVirtualHost);
-    int sockets =
-        computeSockets(sys, isVirtualHost, hasCloudProvider, isUnmappedGuest, isHypervisor, tags);
-    int cores = computeCores(sys, isVirtualHost);
+    Integer sockets =
+        computeSockets(
+            sys,
+            isVirtualHost,
+            hasCloudProvider,
+            isUnmappedGuest,
+            isHypervisor,
+            expectedProductTags);
+    Integer cores = computeCores(sys, isVirtualHost);
     CloudProvider cloudProvider = resolveCloudProvider(sys, hasCloudProvider);
     boolean conversion = Boolean.TRUE.equals(sys.getIs3rdPartyMigrated());
 
@@ -273,8 +312,7 @@ public class SwatchEventHelper {
         isHypervisor,
         hypervisorUuid,
         productIds,
-        tags,
-        buildMeasurements(cores, sockets),
+        buildMeasurementsWithSuppression(cores, sockets, expectedProductTags),
         conversion);
   }
 
@@ -322,13 +360,13 @@ public class SwatchEventHelper {
       boolean hasCloudProvider,
       boolean isUnmappedGuest,
       boolean isHypervisor,
-      Set<String> tags) {
+      Set<String> expectedProductTags) {
     int sockets = sys.getSockets() != null ? sys.getSockets() : 0;
 
     if (isVirtual) {
       if (hasCloudProvider) {
         sockets = 1;
-      } else if (isUnmappedVirtualRhel(isVirtual, isUnmappedGuest, tags)) {
+      } else if (isUnmappedVirtualRhel(isVirtual, isUnmappedGuest, expectedProductTags)) {
         sockets = 1;
       }
     }
@@ -369,11 +407,11 @@ public class SwatchEventHelper {
   }
 
   private static boolean isUnmappedVirtualRhel(
-      boolean isVirtual, boolean isUnmappedGuest, Set<String> tags) {
-    if (!isVirtual || !isUnmappedGuest) {
+      boolean isVirtual, boolean isUnmappedGuest, Set<String> productTags) {
+    if (!isVirtual || !isUnmappedGuest || productTags == null || productTags.isEmpty()) {
       return false;
     }
-    return tags.stream().anyMatch(t -> t != null && t.toUpperCase().startsWith("RHEL"));
+    return productTags.stream().anyMatch(tag -> tag.toUpperCase().startsWith("RHEL"));
   }
 
   private static int roundSocketsForPhysicalOrHypervisor(
@@ -415,6 +453,23 @@ public class SwatchEventHelper {
         .findFirst()
         .map(Measurement::getValue)
         .orElse(null);
+  }
+
+  /**
+   * Get all product tags from measurements.
+   *
+   * @param event the event to extract product tags from
+   * @return list of all product_tag values from measurements
+   */
+  public static List<String> getMeasurementProductTags(Event event) {
+    if (event.getMeasurements() == null) {
+      return List.of();
+    }
+    return event.getMeasurements().stream()
+        .map(Measurement::getProductTag)
+        .filter(java.util.Objects::nonNull)
+        .distinct()
+        .toList();
   }
 
   /**
