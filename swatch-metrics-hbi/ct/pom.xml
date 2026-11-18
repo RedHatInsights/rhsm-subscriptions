@@ -39,6 +39,10 @@
       <artifactId>swatch-common-models</artifactId>
     </dependency>
     <dependency>
+      <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-product-configuration</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-annotations</artifactId>
     </dependency>

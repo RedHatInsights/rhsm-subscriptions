@@ -133,6 +133,15 @@ properties:
             - Managed-nodes
             - Transfer-gibibytes
             - Storage-gibibyte-months
+        product_tag:
+          description: >
+            Product tag that this specific measurement applies to. When a host has multiple products that support the same metric_id (e.g., both "RHEL for x86" and "rhel-for-x86-els-unconverted" support Sockets), there will be separate measurement entries for each product, each with the same metric_id and value but different product_tag.
+          type: string
+          required: false
+          examples:
+            - RHEL for x86
+            - rhel-for-x86-els-unconverted
+            - OpenShift Container Platform
     required: false
   cloud_provider:
     description: Identifier for the cloud provider of the subject.

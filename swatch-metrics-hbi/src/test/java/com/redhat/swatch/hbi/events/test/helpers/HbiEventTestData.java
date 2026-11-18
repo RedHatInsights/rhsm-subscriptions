@@ -56,6 +56,10 @@ public class HbiEventTestData {
     return loadEventFileAsString("data/hbi_qpc_rhel_host_created_event.json");
   }
 
+  public static String getMultipleRhelVariantHostCreatedEvent() {
+    return loadEventFileAsString("data/hbi_multiple_rhel_variant_host_created_event.json");
+  }
+
   public static String getHostDeletedEvent() {
     return loadEventFileAsString("data/hbi_physical_rhel_host_deleted_event.json");
   }
