@@ -47,40 +47,43 @@ properties:
     format: date-time
     examples:
       - 2024-08-29T12:00:00Z
-  product_tag:
-    description: >
-      Product tag that identifies the subscription product this event is associated with.
-      This should match the 'tag' value of the product in swatch-product-configuration project subscription_configs.
-    type: string
-    examples:
-      - rhel-for-x86
-      - rosa
-      - openshift-cluster
-  measurement:
+  measurements:
     description: Captures a measurement for the service instance. These values are used for tallying an instance's usage.
-    type: object
-    properties:
-      value:
-        description: Measurement value.
-        type: number
-      metric_id:
-        description: >
-          Metric ID for the measurement. This should equal the product's 'metrics->id' values in swatch-product-configuration project subscription_configs.
-          Ex: A rosa instance can contain measurements for 'Cores' or 'Instance-hours' based on rosa.yaml in swatch-product-configuration.
-        type: string
-        examples:
-          - Cores
-          - Sockets
-          - vCPUs
-          - Instance-hours
-          - Managed-nodes
-          - Transfer-gibibytes
-          - Storage-gibibyte-months
+    type: array
+    items:
+      type: object
+      properties:
+        value:
+          description: Measurement value.
+          type: number
+        metric_id:
+          description: >
+            Metric ID for the measurement. This should equal the product's 'metrics->id' values in swatch-product-configuration project subscription_configs.
+            Ex: A rosa instance can contain measurements for 'Cores' or 'Instance-hours' based on rosa.yaml in swatch-product-configuration.
+          type: string
+          examples:
+            - Cores
+            - Sockets
+            - vCPUs
+            - Instance-hours
+            - Managed-nodes
+            - Transfer-gibibytes
+            - Storage-gibibyte-months
+        product_tag:
+          description: >
+            Product tag that this specific measurement applies to. When a host has multiple products that support the same metric_id (e.g., both "RHEL for x86" and "rhel-for-x86-els-unconverted" support Sockets), there will be separate measurement entries for each product, each with the same metric_id and value but different product_tag.
+          type: string
+          examples:
+            - RHEL for x86
+            - rhel-for-x86-els-unconverted
+            - OpenShift Container Platform
     required:
       - value
       - metric_id
+      - product_tag
 required:
   - org_id
   - service_type
   - target_host
   - timestamp
+  - measurements
