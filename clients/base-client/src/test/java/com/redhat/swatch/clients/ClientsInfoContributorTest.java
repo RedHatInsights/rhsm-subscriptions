@@ -32,8 +32,12 @@ class ClientsInfoContributorTest {
   @Test
   void contributesNamedClientDescriptions() {
     ClientConfig config =
-        new ClientConfig(
-            "export-service", "psk", "http://localhost:10000", false, null, null, null, null);
+        ClientConfig.builder()
+            .name("export-service")
+            .psk("psk")
+            .uri("http://localhost:10000")
+            .authenticated(false)
+            .build();
     ClientInfo client =
         new ClientInfo() {
           @Override

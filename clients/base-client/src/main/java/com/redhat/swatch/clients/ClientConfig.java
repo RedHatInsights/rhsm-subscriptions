@@ -21,14 +21,15 @@
 package com.redhat.swatch.clients;
 
 import java.time.Duration;
-import java.util.Objects;
 import lombok.Getter;
+import lombok.NonNull;
+import lombok.experimental.SuperBuilder;
 
-/** Configuration for a single outbound service client. */
 @Getter
+@SuperBuilder
 public class ClientConfig {
 
-  private final String name;
+  @NonNull private final String name;
   private final String psk;
   private final String uri;
   private final Boolean authenticated;
@@ -36,25 +37,8 @@ public class ClientConfig {
   private final char[] trustStorePassword;
   private final String trustStoreType;
   private final Duration readTimeout;
-
-  public ClientConfig(
-      String name,
-      String psk,
-      String uri,
-      Boolean authenticated,
-      String trustStorePath,
-      char[] trustStorePassword,
-      String trustStoreType,
-      Duration readTimeout) {
-    this.name = Objects.requireNonNull(name, "name");
-    this.psk = psk;
-    this.uri = uri;
-    this.authenticated = authenticated;
-    this.trustStorePath = trustStorePath;
-    this.trustStorePassword = trustStorePassword;
-    this.trustStoreType = trustStoreType;
-    this.readTimeout = readTimeout;
-  }
+  private final Integer maxConnections;
+  private final Duration connectionTtl;
 
   public boolean hasUri() {
     return uri != null && !uri.isBlank();

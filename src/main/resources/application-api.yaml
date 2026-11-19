@@ -13,6 +13,7 @@ rhsm-subscriptions:
     truststore-password: ${clowder.endpoints.rbac-service.trust-store-password}
     truststore-type: ${clowder.endpoints.rbac-service.trust-store-type}
     max-connections: ${RHSM_RBAC_MAX_CONNECTIONS:100}
+    connection-ttl: ${RHSM_RBAC_CONNECTION_TTL:5m}
   kessel:
     endpoint: ${KESSEL_ENDPOINT}
     insecure: ${KESSEL_INSECURE:true}

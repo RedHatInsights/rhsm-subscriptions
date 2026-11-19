@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.rbac;
 
-import java.util.List;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -31,9 +30,6 @@ import org.candlepin.subscriptions.http.HttpClientProperties;
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
 public class RbacProperties extends HttpClientProperties {
-
-  /** The list of permissions to return when using the stub */
-  private List<String> stubPermissions;
 
   /** The RBAC application name that defines the permissions for this application. */
   private String applicationName = "subscriptions";

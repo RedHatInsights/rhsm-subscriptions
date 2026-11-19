@@ -43,6 +43,7 @@ import com.redhat.swatch.export.JsonExportFileWriter;
 import com.redhat.swatch.export.api.ExportDelegate;
 import com.redhat.swatch.export.api.ExportDelegateImpl;
 import com.redhat.swatch.export.api.RbacDelegate;
+import io.smallrye.common.annotation.Identifier;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import jakarta.enterprise.inject.Typed;
@@ -66,6 +67,9 @@ public class ExportClientConfiguration {
   @ConfigProperty(name = "EXPORT_SERVICE_READ_TIMEOUT", defaultValue = "120s")
   Duration readTimeout;
 
+  @ConfigProperty(name = "EXPORT_SERVICE_MAX_CONNECTIONS", defaultValue = "100")
+  int maxConnections;
+
   @ConfigProperty(name = "EXPORT_SERVICE_ENDPOINT")
   Optional<String> uri;
 
@@ -82,17 +86,20 @@ public class ExportClientConfiguration {
   Optional<String> trustStoreType;
 
   @Produces
+  @Identifier(EXPORT_SERVICE)
   @ApplicationScoped
   ClientConfig exportServiceClientConfig() {
-    return new ClientConfig(
-        EXPORT_SERVICE,
-        psk,
-        uri.filter(value -> !value.isBlank()).orElse(null),
-        parseAuthenticated(authenticated.orElse(null)),
-        trustStorePath.orElse(null),
-        toPasswordChars(trustStorePassword.orElse(null)),
-        trustStoreType.orElse(null),
-        readTimeout);
+    return ClientConfig.builder()
+        .name(EXPORT_SERVICE)
+        .psk(psk)
+        .uri(uri.filter(value -> !value.isBlank()).orElse(null))
+        .authenticated(parseAuthenticated(authenticated.orElse(null)))
+        .trustStorePath(trustStorePath.orElse(null))
+        .trustStorePassword(toPasswordChars(trustStorePassword.orElse(null)))
+        .trustStoreType(trustStoreType.orElse(null))
+        .readTimeout(readTimeout)
+        .maxConnections(maxConnections)
+        .build();
   }
 
   @Produces
@@ -107,7 +114,8 @@ public class ExportClientConfiguration {
   @Produces
   @ApplicationScoped
   SwatchExportApi swatchExportApi(
-      ClientConfig exportServiceClientConfig, TokenProvider tokenProvider) {
+      @Identifier(EXPORT_SERVICE) ClientConfig exportServiceClientConfig,
+      TokenProvider tokenProvider) {
     return new SwatchExportApi(exportServiceClientConfig, tokenProvider);
   }
 

@@ -130,7 +130,12 @@ class SwatchExportApiTest {
   @Test
   void constructorRejectsNullTokenProvider() {
     ClientConfig config =
-        new ClientConfig("export-service", PSK, server.baseUrl(), true, null, null, null, null);
+        ClientConfig.builder()
+            .name("export-service")
+            .psk(PSK)
+            .uri(server.baseUrl())
+            .authenticated(true)
+            .build();
     assertThrows(NullPointerException.class, () -> new SwatchExportApi(config, null));
   }
 
@@ -156,8 +161,12 @@ class SwatchExportApiTest {
 
   private SwatchExportApi givenClient(Boolean authenticated, TokenProvider tokens) {
     ClientConfig config =
-        new ClientConfig(
-            "export-service", PSK, server.baseUrl(), authenticated, null, null, null, null);
+        ClientConfig.builder()
+            .name("export-service")
+            .psk(PSK)
+            .uri(server.baseUrl())
+            .authenticated(authenticated)
+            .build();
     return new SwatchExportApi(config, tokens);
   }
 }

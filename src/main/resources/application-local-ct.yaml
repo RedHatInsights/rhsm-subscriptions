@@ -6,6 +6,3 @@ RHSM_RBAC_URL: http://localhost:8006
 KESSEL_ENDPOINT: localhost:8006
 KESSEL_INSECURE: true  # Wiremock doesn't use TLS
 UNLEASH_FETCH_TOGGLES_INTERVAL: 1S
-rhsm-subscriptions:
-  rbac-service:
-    use-stub: false  # CT tests against wiremock RBAC, not stub

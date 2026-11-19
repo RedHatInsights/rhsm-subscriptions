@@ -24,7 +24,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import jakarta.ws.rs.client.Client;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.KeyStore;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.jar.JarEntry;
+import java.util.jar.JarOutputStream;
 import org.junit.jupiter.api.Test;
 
 class ClientProxyTest {
@@ -33,8 +39,12 @@ class ClientProxyTest {
   void clientIsBuiltLazilyAndCached() throws Exception {
     AtomicInteger builds = new AtomicInteger();
     ClientConfig config =
-        new ClientConfig(
-            "export-service", "psk", "https://export.example", true, null, null, null, null);
+        ClientConfig.builder()
+            .name("export-service")
+            .psk("psk")
+            .uri("https://export.example")
+            .authenticated(true)
+            .build();
     ClientProxy<String> proxy =
         new ClientProxy<>(
             config,
@@ -51,8 +61,39 @@ class ClientProxyTest {
   @Test
   void missingUriFailsClosed() {
     ClientConfig config =
-        new ClientConfig("export-service", "psk", null, false, null, null, null, null);
+        ClientConfig.builder().name("export-service").psk("psk").authenticated(false).build();
     ClientProxy<String> proxy = new ClientProxy<>(config, unused -> "client");
     assertThrows(IllegalStateException.class, proxy::client);
+  }
+
+  @Test
+  void loadsStoreFromJarUrl() throws Exception {
+    char[] password = "changeit".toCharArray();
+    KeyStore store = KeyStore.getInstance("JKS");
+    store.load(null, password);
+    Path jar = Files.createTempFile("client-proxy", ".jar");
+
+    try {
+      try (JarOutputStream output = new JarOutputStream(Files.newOutputStream(jar))) {
+        output.putNextEntry(new JarEntry("truststore.jks"));
+        store.store(output, password);
+        output.closeEntry();
+      }
+
+      ClientConfig config =
+          ClientConfig.builder()
+              .name("rbac-service")
+              .uri("https://rbac.example")
+              .trustStorePath("jar:" + jar.toUri() + "!/truststore.jks")
+              .trustStorePassword(password)
+              .trustStoreType("JKS")
+              .build();
+
+      try (Client ignored = ClientProxy.buildHttpClient(config)) {
+        // The client is built to verify that the JAR resource was loaded successfully.
+      }
+    } finally {
+      Files.deleteIfExists(jar);
+    }
   }
 }

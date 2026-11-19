@@ -21,9 +21,9 @@
 package org.candlepin.subscriptions.conduit.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.redhat.swatch.clients.rbac.RbacService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.candlepin.subscriptions.rbac.RbacProperties;
-import org.candlepin.subscriptions.rbac.RbacService;
 import org.candlepin.subscriptions.security.AntiCsrfFilter;
 import org.candlepin.subscriptions.security.AuthProperties;
 import org.candlepin.subscriptions.security.IdentityHeaderAuthenticationDetailsService;

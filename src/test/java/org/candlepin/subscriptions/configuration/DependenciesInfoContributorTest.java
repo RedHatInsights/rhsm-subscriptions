@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.configuration;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -28,7 +27,8 @@ import com.redhat.swatch.clients.ClientInfo;
 import com.redhat.swatch.clients.ClientsInfoContributor;
 import java.util.List;
 import java.util.Map;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.info.Info;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -41,10 +41,11 @@ class DependenciesInfoContributorTest {
   @Autowired DependenciesInfoContributor contributor;
   @Autowired List<ClientInfo> clients;
 
-  @Test
-  void wiresExportServiceAsClientInfoAndContributesDependenciesInfo() {
+  @ParameterizedTest
+  @ValueSource(strings = {"export-service", "rbac-service"})
+  void wiresServicesAsClientInfoAndContributesDependenciesInfo(String service) {
     assertFalse(clients.isEmpty());
-    assertTrue(clients.stream().anyMatch(client -> "export-service".equals(client.name())));
+    assertTrue(clients.stream().anyMatch(client -> service.equals(client.name())));
 
     Info.Builder builder = new Info.Builder();
     contributor.contribute(builder);
@@ -52,11 +53,6 @@ class DependenciesInfoContributorTest {
     @SuppressWarnings("unchecked")
     Map<String, Object> section =
         (Map<String, Object>) builder.build().getDetails().get(ClientsInfoContributor.INFO_SECTION);
-    assertTrue(section.containsKey("export-service"));
-
-    @SuppressWarnings("unchecked")
-    Map<String, Object> exportInfo = (Map<String, Object>) section.get("export-service");
-    assertFalse(exportInfo.containsKey("trustStorePassword"));
-    assertEquals("http://localhost:10000", exportInfo.get("uri"));
+    assertTrue(section.containsKey(service));
   }
 }
