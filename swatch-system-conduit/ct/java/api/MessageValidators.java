@@ -20,10 +20,20 @@
  */
 package api;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.redhat.swatch.component.tests.api.DefaultMessageValidator;
 import models.CreateUpdateHostMessage;
 
 public class MessageValidators {
+
+  public static DefaultMessageValidator<JsonNode> addHostJsonMessageMatchesOrgId(String orgId) {
+    return new DefaultMessageValidator<>(
+        message ->
+            message != null
+                && "add_host".equals(message.path("operation").asText())
+                && orgId.equals(message.path("data").path("org_id").asText()),
+        JsonNode.class);
+  }
 
   /**
    * Creates a validator that matches CreateUpdateHostMessage messages for a specific orgId.
