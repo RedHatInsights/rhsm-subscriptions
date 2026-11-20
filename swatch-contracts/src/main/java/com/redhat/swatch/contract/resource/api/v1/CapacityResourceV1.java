@@ -28,6 +28,7 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinitionGranularity;
 import com.redhat.swatch.configuration.registry.Variant;
+import com.redhat.swatch.contract.config.FeatureFlags;
 import com.redhat.swatch.contract.openapi.model.CapacityReportByMetricId;
 import com.redhat.swatch.contract.openapi.model.CapacityReportByMetricIdMeta;
 import com.redhat.swatch.contract.openapi.model.CapacitySnapshotByMetricId;
@@ -83,6 +84,7 @@ public class CapacityResourceV1 implements CapacityApi {
   private final SubscriptionRepository subscriptionRepository;
   private final PageLinkCreator pageLinkCreator;
   private final ApplicationClock clock;
+  private final FeatureFlags featureFlags;
 
   @Context UriInfo uriInfo;
   @Context SecurityContext securityContext;
@@ -93,11 +95,13 @@ public class CapacityResourceV1 implements CapacityApi {
       ApiModelMapperV1 apiModelMapper,
       SubscriptionRepository subscriptionRepository,
       PageLinkCreator pageLinkCreator,
-      ApplicationClock clock) {
+      ApplicationClock clock,
+      FeatureFlags featureFlags) {
     this.mapper = apiModelMapper;
     this.subscriptionRepository = subscriptionRepository;
     this.pageLinkCreator = pageLinkCreator;
     this.clock = clock;
+    this.featureFlags = featureFlags;
   }
 
   @Override
@@ -227,6 +231,7 @@ public class CapacityResourceV1 implements CapacityApi {
             .hypervisorReportCategory(hypervisorReportCategory)
             .metricId(metricId == null ? null : metricId.toString())
             .billingAccountId(billingAccountId)
+            .resolvedSlaUsageFiltering(featureFlags.isResolvedSlaUsageFilteringEnabled())
             .build();
 
     var subscriptions = subscriptionRepository.findByCriteria(dbReportCriteria, Sort.empty());

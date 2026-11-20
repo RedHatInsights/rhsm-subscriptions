@@ -41,6 +41,9 @@ public class FeatureFlags implements InfoFeatureFlagContributor, ReadOnlyProvide
   protected static final boolean DEFAULT_READ_ONLY_FLAG_VALUE = false;
   public static final String USE_SUBSCRIPTIONS_FLAG = "swatch.swatch-contracts.use-subscriptions";
   protected static final boolean DEFAULT_USE_SUBSCRIPTIONS_FLAG_VALUE = false;
+  public static final String RESOLVED_SLA_USAGE_FILTERING_FLAG =
+      "swatch.ui.resolved-sla-usage-filtering";
+  protected static final boolean DEFAULT_RESOLVED_SLA_USAGE_FLAG_VALUE = false;
 
   private final Unleash unleash;
 
@@ -55,6 +58,12 @@ public class FeatureFlags implements InfoFeatureFlagContributor, ReadOnlyProvide
     return unleash.isEnabled(USE_SUBSCRIPTIONS_FLAG, DEFAULT_USE_SUBSCRIPTIONS_FLAG_VALUE);
   }
 
+  /** Whether missing offering SLA/usage should resolve to the Subscription Watch defaults. */
+  public boolean isResolvedSlaUsageFilteringEnabled() {
+    return unleash.isEnabled(
+        RESOLVED_SLA_USAGE_FILTERING_FLAG, DEFAULT_RESOLVED_SLA_USAGE_FLAG_VALUE);
+  }
+
   @Override
   public InfoFeatureFlags getFeatureFlags() {
     return new InfoFeatureFlags()
@@ -62,6 +71,10 @@ public class FeatureFlags implements InfoFeatureFlagContributor, ReadOnlyProvide
             List.of(
                 toFlag(unleash, KESSEL_FLAG, null),
                 toFlag(unleash, READ_ONLY_FLAG, DEFAULT_READ_ONLY_FLAG_VALUE),
-                toFlag(unleash, USE_SUBSCRIPTIONS_FLAG, DEFAULT_USE_SUBSCRIPTIONS_FLAG_VALUE)));
+                toFlag(unleash, USE_SUBSCRIPTIONS_FLAG, DEFAULT_USE_SUBSCRIPTIONS_FLAG_VALUE),
+                toFlag(
+                    unleash,
+                    RESOLVED_SLA_USAGE_FILTERING_FLAG,
+                    DEFAULT_RESOLVED_SLA_USAGE_FLAG_VALUE)));
   }
 }

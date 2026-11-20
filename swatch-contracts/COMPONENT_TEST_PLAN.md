@@ -1455,6 +1455,24 @@ This section verifies the automatic contract termination behavior when contracts
   - Callers can distinguish upstream unavailability from “offering not found”; status code reflects the product API response.
 
 
+**offering-sync-TC006: Default absent or blank SLA and usage when the feature flag is enabled**
+- **Description:** Verify that missing or blank upstream SERVICE_TYPE and USAGE values resolve to Premium and Production.
+- **Setup:** Enable swatch.ui.resolved-sla-usage-filtering; stub a product tree with blank SERVICE_TYPE and absent USAGE.
+- **Action:** Sync the offering, create a subscription for its SKU, and query the V2 subscription report.
+- **Verification:** Check the offering's SLA and usage in the subscription report.
+- **Expected Result:**
+  - SLA is Premium.
+  - Usage is Production.
+
+**offering-sync-TC007: Keep non-empty unmapped SLA and usage as EMPTY when the feature flag is enabled**
+- **Description:** Verify that non-empty upstream values SWATCH cannot map remain unclassified.
+- **Setup:** Enable swatch.ui.resolved-sla-usage-filtering; stub a product tree with non-empty, unsupported SERVICE_TYPE and USAGE values.
+- **Action:** Sync the offering, create a subscription for its SKU, and query the V2 subscription report.
+- **Verification:** Check the offering's SLA and usage in the subscription report.
+- **Expected Result:**
+  - SLA is EMPTY.
+  - Usage is EMPTY.
+
 ## IT Product Service Kafka consumer
 
 **product-kafka-TC001 - Process valid parent SKU message from Kafka**

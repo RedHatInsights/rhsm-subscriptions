@@ -29,17 +29,21 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.redhat.swatch.common.model.ServiceLevel;
 import com.redhat.swatch.common.model.Usage;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
+import com.redhat.swatch.contract.config.FeatureFlags;
 import com.redhat.swatch.contract.openapi.model.CapacityReportByMetricId;
 import com.redhat.swatch.contract.openapi.model.CapacitySnapshotByMetricId;
 import com.redhat.swatch.contract.openapi.model.GranularityType;
 import com.redhat.swatch.contract.openapi.model.ReportCategory;
 import com.redhat.swatch.contract.openapi.model.ServiceLevelType;
 import com.redhat.swatch.contract.openapi.model.UsageType;
+import com.redhat.swatch.contract.repository.DbReportCriteria;
 import com.redhat.swatch.contract.repository.HypervisorReportCategory;
 import com.redhat.swatch.contract.repository.OfferingEntity;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
@@ -62,6 +66,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 
 @QuarkusTest
 @TestProfile(DisableRbacResource.class)
@@ -77,6 +83,7 @@ class CapacityResourceV1Test {
   private static final MetricId METRIC_ID_SOCKETS = MetricId.fromString("Sockets");
 
   @InjectMock SubscriptionRepository subscriptionRepository;
+  @InjectMock FeatureFlags featureFlags;
 
   private static SubscriptionEntity datedSubscription(OffsetDateTime start, OffsetDateTime end) {
     return SubscriptionEntity.builder()
@@ -206,6 +213,44 @@ class CapacityResourceV1Test {
             .as(CapacityReportByMetricId.class);
 
     assertEquals(9, report.getData().size());
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void testReportByMetricIdShouldHonorSlaUsageFilteringFlag(boolean enabled) {
+    when(featureFlags.isResolvedSlaUsageFilteringEnabled()).thenReturn(enabled);
+    when(subscriptionRepository.findByCriteria(any(DbReportCriteria.class), any(Sort.class)))
+        .thenReturn(List.of(basicSubscription()));
+
+    CapacityReportByMetricId report =
+        given()
+            .queryParams(
+                "granularity", GranularityType.DAILY.toString(),
+                "beginning", min.withOffsetSameInstant(ZoneOffset.UTC).toString(),
+                "ending", max.withOffsetSameInstant(ZoneOffset.UTC).toString(),
+                "sla", ServiceLevelType.PREMIUM.toString(),
+                "usage", UsageType.PRODUCTION.toString())
+            .header(RH_IDENTITY_HEADER, CUSTOMER_IDENTITY_HEADER)
+            .get(
+                String.format(
+                    "/api/rhsm-subscriptions/v1/capacity/products/%s/%s",
+                    RHEL_FOR_ARM.getValue(), METRIC_ID_CORES.getValue()))
+            .then()
+            .statusCode(200)
+            .extract()
+            .as(CapacityReportByMetricId.class);
+
+    assertEquals(9, report.getData().size());
+    assertEquals(42, report.getData().getFirst().getValue());
+    assertTrue(report.getData().getFirst().getHasData());
+
+    var criteria = ArgumentCaptor.forClass(DbReportCriteria.class);
+    verify(subscriptionRepository).findByCriteria(criteria.capture(), any(Sort.class));
+    var reportCriteria = criteria.getValue();
+    assertEquals(enabled, reportCriteria.isResolvedSlaUsageFiltering());
+    assertEquals(ServiceLevel.PREMIUM, reportCriteria.getServiceLevel());
+    assertEquals(Usage.PRODUCTION, reportCriteria.getUsage());
+    verify(subscriptionRepository).findUnlimited(reportCriteria);
   }
 
   @Test

@@ -24,9 +24,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.clients.product.JsonProductDataSource;
 import com.redhat.swatch.clients.product.ProductService;
 import com.redhat.swatch.contract.config.Channels;
+import com.redhat.swatch.contract.config.FeatureFlags;
 import com.redhat.swatch.contract.config.ProductDenylist;
 import com.redhat.swatch.contract.exception.ServiceException;
 import com.redhat.swatch.contract.model.OfferingSyncTask;
+import com.redhat.swatch.contract.model.SlaUsageDefaults;
 import com.redhat.swatch.contract.model.SyncResult;
 import com.redhat.swatch.contract.openapi.model.OperationalProductEvent;
 import com.redhat.swatch.contract.product.UpstreamProductData;
@@ -64,6 +66,7 @@ public class OfferingSyncService {
       "{} for offeringSku=\"{}\" in offeringSyncTimeMillis={}.";
 
   private final OfferingRepository offeringRepository;
+  private final FeatureFlags featureFlags;
   private final ProductDenylist productDenylist;
   private final ProductService productService;
   private final CapacityReconciliationService capacityReconciliationService;
@@ -77,6 +80,7 @@ public class OfferingSyncService {
   @Inject
   public OfferingSyncService(
       OfferingRepository offeringRepository,
+      FeatureFlags featureFlags,
       ProductDenylist productDenylist,
       ProductService productService,
       CapacityReconciliationService capacityReconciliationService,
@@ -86,6 +90,7 @@ public class OfferingSyncService {
       OfferingProductTagLookupService offeringProductTagLookupService,
       TransactionSynchronizationRegistry txRegistry) {
     this.offeringRepository = offeringRepository;
+    this.featureFlags = featureFlags;
     this.productDenylist = productDenylist;
     this.productService = productService;
     this.capacityReconciliationService = capacityReconciliationService;
@@ -158,6 +163,7 @@ public class OfferingSyncService {
 
   private SyncResult syncOffering(
       OfferingEntity newState, Optional<OfferingEntity> persistedOffering) {
+    applySlaUsageDefaults(newState);
     log.debug("New state of offering to save: {}", newState);
     if (alreadySynced(persistedOffering, newState)) {
       return SyncResult.SKIPPED_MATCHING;
@@ -210,14 +216,23 @@ public class OfferingSyncService {
   }
 
   /**
-   * Enqueues all offerings listed not in the product denylist to be synced with upstream.
+   * Enqueues offerings for upstream sync. The consumer checks the denylist.
    *
    * @return number of enqueued products
    */
   public int syncAllOfferings() {
     Timer.Sample enqueueTime = Timer.start();
-
     Set<String> products = offeringRepository.findAllDistinctSkus();
+
+    if (!products.isEmpty()
+        && featureFlags.isResolvedSlaUsageFilteringEnabled()
+        && !featureFlags.isReadOnly()) {
+      var eligibleSkus =
+          products.stream().filter(sku -> !productDenylist.productIdMatches(sku)).toList();
+      int updated = offeringRepository.applySlaUsageDefaults(eligibleSkus);
+      log.info("Applied defaults to {} unset offering SLA/usage fields", updated);
+    }
+
     products.forEach(this::enqueueOfferingSyncTask);
 
     Duration enqueueDuration = Duration.ofNanos(enqueueTime.stop(enqueueAllTimer));
@@ -256,8 +271,24 @@ public class OfferingSyncService {
         .map(sku -> enrichUpstreamOfferingData(sku, productDataSource))
         .filter(Optional::isPresent)
         .map(Optional::get)
-        .forEach(offeringRepository::persist);
+        .forEach(offering -> {
+          applySlaUsageDefaults(offering);
+          offeringRepository.persist(offering);
+        });
     return productDataSource.getTopLevelSkus();
+  }
+
+  private void applySlaUsageDefaults(OfferingEntity offering) {
+    if (!featureFlags.isResolvedSlaUsageFilteringEnabled()
+        || productDenylist.productIdMatches(offering.getSku())) {
+      return;
+    }
+    if (offering.getServiceLevel() == null) {
+      offering.setServiceLevel(SlaUsageDefaults.SERVICE_LEVEL);
+    }
+    if (offering.getUsage() == null) {
+      offering.setUsage(SlaUsageDefaults.USAGE);
+    }
   }
 
   private Optional<OfferingEntity> enrichUpstreamOfferingData(

@@ -24,6 +24,8 @@ import com.redhat.swatch.common.model.ServiceLevel;
 import com.redhat.swatch.common.model.Usage;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
+import com.redhat.swatch.contract.config.FeatureFlags;
+import com.redhat.swatch.contract.model.SlaUsageDefaults;
 import com.redhat.swatch.contract.model.SubscriptionsExportJsonMeasurement;
 import com.redhat.swatch.contract.openapi.model.ReportCategory;
 import com.redhat.swatch.contract.repository.BillingProvider;
@@ -47,7 +49,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
@@ -62,27 +64,29 @@ public class SubscriptionDataExporterService
   static final String PRODUCT_ID = "product_id";
   static final String METRIC_ID = "metric_id";
   static final String CATEGORY = "category";
-  private final Map<String, Function<String, Specification<SubscriptionCapacityView>>> filters =
-      Map.of(
-          PRODUCT_ID,
-          SubscriptionDataExporterService::handleProductIdFilter,
-          "usage",
-          SubscriptionDataExporterService::handleUsageFilter,
-          CATEGORY,
-          this::handleCategoryFilter,
-          "sla",
-          SubscriptionDataExporterService::handleSlaFilter,
-          METRIC_ID,
-          SubscriptionDataExporterService::handleMetricIdFilter,
-          "billing_provider",
-          SubscriptionDataExporterService::handleBillingProviderFilter,
-          "billing_account_id",
-          SubscriptionDataExporterService::handleBillingAccountIdFilter);
+  private final Map<String, BiFunction<String, Boolean, Specification<SubscriptionCapacityView>>>
+      filters =
+          Map.of(
+              PRODUCT_ID,
+              (value, ignored) -> handleProductIdFilter(value),
+              "usage",
+              SubscriptionDataExporterService::handleUsageFilter,
+              CATEGORY,
+              (value, ignored) -> handleCategoryFilter(value),
+              "sla",
+              SubscriptionDataExporterService::handleSlaFilter,
+              METRIC_ID,
+              (value, ignored) -> handleMetricIdFilter(value),
+              "billing_provider",
+              (value, ignored) -> handleBillingProviderFilter(value),
+              "billing_account_id",
+              (value, ignored) -> handleBillingAccountIdFilter(value));
 
   private final ApiModelMapperV1 mapper;
   private final SubscriptionCapacityViewRepository repository;
   private final SubscriptionJsonDataMapperService jsonDataMapperService;
   private final SubscriptionCsvDataMapperService csvDataMapperService;
+  private final FeatureFlags featureFlags;
 
   @Override
   public boolean handles(ExportServiceRequest request) {
@@ -92,7 +96,10 @@ public class SubscriptionDataExporterService
   @Override
   public Stream<SubscriptionCapacityView> fetchData(ExportServiceRequest request) {
     log.debug("Fetching data for {}", request.getOrgId());
-    return repository.streamBy(extractExportFilter(request));
+    boolean resolveMissingSlaUsage = featureFlags.isResolvedSlaUsageFilteringEnabled();
+    return repository
+        .streamBy(extractExportFilter(request, resolveMissingSlaUsage))
+        .map(dataItem -> resolveSlaUsage(dataItem, resolveMissingSlaUsage));
   }
 
   @Override
@@ -104,7 +111,7 @@ public class SubscriptionDataExporterService
   }
 
   private Specification<SubscriptionCapacityView> extractExportFilter(
-      ExportServiceRequest request) {
+      ExportServiceRequest request, boolean resolveMissingSlaUsage) {
     Specification<SubscriptionCapacityView> criteria =
         SubscriptionCapacityViewRepository.buildSearchSpecification(request.getOrgId());
     if (request.getFilters() != null) {
@@ -115,7 +122,8 @@ public class SubscriptionDataExporterService
           if (filterHandler == null) {
             log.warn("Filter '{}' isn't currently supported. Ignoring.", entry.getKey());
           } else if (entry.getValue() != null) {
-            var condition = filterHandler.apply(entry.getValue().toString());
+            var condition =
+                filterHandler.apply(entry.getValue().toString(), resolveMissingSlaUsage);
             if (condition != null) {
               criteria = criteria.and(condition);
             }
@@ -132,15 +140,23 @@ public class SubscriptionDataExporterService
     return criteria;
   }
 
+  private static SubscriptionCapacityView resolveSlaUsage(
+      SubscriptionCapacityView dataItem, boolean resolveMissingSlaUsage) {
+    return dataItem.copyWithServiceLevelAndUsage(
+        SlaUsageDefaults.resolveServiceLevel(dataItem.getServiceLevel(), resolveMissingSlaUsage),
+        SlaUsageDefaults.resolveUsage(dataItem.getUsage(), resolveMissingSlaUsage));
+  }
+
   private static Specification<SubscriptionCapacityView> handleProductIdFilter(String value) {
     return SubscriptionCapacityViewRepository.productIdEquals(ProductId.fromString(value));
   }
 
-  private static Specification<SubscriptionCapacityView> handleUsageFilter(String value) {
+  private static Specification<SubscriptionCapacityView> handleUsageFilter(
+      String value, boolean resolveMissingSlaUsage) {
     Usage usage = Usage.fromString(value);
     if (value.equalsIgnoreCase(usage.getValue())) {
       if (!Usage._ANY.equals(usage)) {
-        return SubscriptionCapacityViewRepository.usageEquals(usage);
+        return SubscriptionCapacityViewRepository.usageEquals(usage, resolveMissingSlaUsage);
       }
     } else {
       throw new IllegalArgumentException(String.format("usage: %s not supported", value));
@@ -149,11 +165,12 @@ public class SubscriptionDataExporterService
     return null;
   }
 
-  private static Specification<SubscriptionCapacityView> handleSlaFilter(String value) {
+  private static Specification<SubscriptionCapacityView> handleSlaFilter(
+      String value, boolean resolveMissingSlaUsage) {
     ServiceLevel serviceLevel = ServiceLevel.fromString(value);
     if (value.equalsIgnoreCase(serviceLevel.getValue())) {
       if (!ServiceLevel._ANY.equals(serviceLevel)) {
-        return SubscriptionCapacityViewRepository.slaEquals(serviceLevel);
+        return SubscriptionCapacityViewRepository.slaEquals(serviceLevel, resolveMissingSlaUsage);
       }
     } else {
       throw new IllegalArgumentException(String.format("sla: %s not supported", value));
