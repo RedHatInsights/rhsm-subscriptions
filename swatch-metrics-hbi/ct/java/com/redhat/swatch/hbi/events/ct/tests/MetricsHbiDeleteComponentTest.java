@@ -96,10 +96,16 @@ class MetricsHbiDeleteComponentTest extends BaseSMHBIComponentTest {
         "Event type should be INSTANCE_DELETED");
     assertEquals(orgId, actualDeleteEvent.getOrgId(), "orgId should match");
     assertEquals(instanceId, actualDeleteEvent.getInstanceId(), "instanceId should match");
-    assertEquals(4.0, getMeasurementValue(actualDeleteEvent, "cores"), "cores should be 4.0");
-    assertEquals(2.0, getMeasurementValue(actualDeleteEvent, "sockets"), "sockets should be 2.0");
+    assertNull(
+        getMeasurementValue(actualDeleteEvent, "Cores"),
+        "Cores should not be present - RHEL products only support Sockets metric");
+    assertEquals(2.0, getMeasurementValue(actualDeleteEvent, "Sockets"), "Sockets should be 2.0");
+    assertTrue(
+        actualDeleteEvent.getMeasurements().stream()
+            .anyMatch(
+                m -> "Sockets".equals(m.getMetricId()) && "RHEL for x86".equals(m.getProductTag())),
+        "Sockets measurement should have RHEL for x86 product_tag");
     assertFalse(actualDeleteEvent.getIsVirtual(), "Should not be virtual");
-    assertTrue(actualDeleteEvent.getProductTag().contains("RHEL for x86"), "Should have x86 tag");
 
     // Then: Verify full delete event matches expected structure
     Event expectedDeleteEvent =
@@ -152,8 +158,16 @@ class MetricsHbiDeleteComponentTest extends BaseSMHBIComponentTest {
         NormalizedEventType.INSTANCE_DELETED.toString(),
         actualHypervisorDeleteEvent.getEventType());
     assertTrue(actualHypervisorDeleteEvent.getIsHypervisor(), "Should still show as hypervisor");
-    assertEquals(2.0, getMeasurementValue(actualHypervisorDeleteEvent, "cores"));
-    assertEquals(2.0, getMeasurementValue(actualHypervisorDeleteEvent, "sockets"));
+    assertNull(
+        getMeasurementValue(actualHypervisorDeleteEvent, "Cores"),
+        "Cores should not be present - RHEL products only support Sockets metric");
+    assertEquals(
+        2.0, getMeasurementValue(actualHypervisorDeleteEvent, "Sockets"), "Sockets should be 2.0");
+    assertTrue(
+        actualHypervisorDeleteEvent.getMeasurements().stream()
+            .anyMatch(
+                m -> "Sockets".equals(m.getMetricId()) && "RHEL for x86".equals(m.getProductTag())),
+        "Sockets measurement should have RHEL for x86 product_tag");
 
     // Then: Wait for and capture the guest update event (becomes unmapped)
     List<Event> guestUpdateEvents =
@@ -169,8 +183,16 @@ class MetricsHbiDeleteComponentTest extends BaseSMHBIComponentTest {
     // Then: Assert specific fields on guest update event
     assertTrue(actualGuestUpdateEvent.getIsVirtual(), "Should be virtual");
     assertTrue(actualGuestUpdateEvent.getIsUnmappedGuest(), "Should now be unmapped");
+    assertNull(
+        getMeasurementValue(actualGuestUpdateEvent, "Cores"),
+        "Cores should not be present - RHEL products only support Sockets metric");
     assertEquals(
-        1.0, getMeasurementValue(actualGuestUpdateEvent, "sockets"), "Unmapped guest sockets=1");
+        1.0, getMeasurementValue(actualGuestUpdateEvent, "Sockets"), "Unmapped guest sockets=1");
+    assertTrue(
+        actualGuestUpdateEvent.getMeasurements().stream()
+            .anyMatch(
+                m -> "Sockets".equals(m.getMetricId()) && "RHEL for x86".equals(m.getProductTag())),
+        "Sockets measurement should have RHEL for x86 product_tag");
 
     // Then: Verify full events match expected structure
     Event expectedHypervisorDeleteEvent =
@@ -234,8 +256,16 @@ class MetricsHbiDeleteComponentTest extends BaseSMHBIComponentTest {
     assertEquals(
         NormalizedEventType.INSTANCE_DELETED.toString(), actualGuestDeleteEvent.getEventType());
     assertTrue(actualGuestDeleteEvent.getIsVirtual(), "Should be virtual");
-    assertEquals(2.0, getMeasurementValue(actualGuestDeleteEvent, "cores"));
-    assertEquals(3.0, getMeasurementValue(actualGuestDeleteEvent, "sockets"));
+    assertNull(
+        getMeasurementValue(actualGuestDeleteEvent, "Cores"),
+        "Cores should not be present - RHEL products only support Sockets metric");
+    assertEquals(
+        3.0, getMeasurementValue(actualGuestDeleteEvent, "Sockets"), "Sockets should be 3.0");
+    assertTrue(
+        actualGuestDeleteEvent.getMeasurements().stream()
+            .anyMatch(
+                m -> "Sockets".equals(m.getMetricId()) && "RHEL for x86".equals(m.getProductTag())),
+        "Sockets measurement should have RHEL for x86 product_tag");
 
     // Then: Wait for and capture the hypervisor update event (becomes non-hypervisor)
     // Note: There's already an INSTANCE_UPDATED event from setup (isHypervisor=true)
@@ -329,7 +359,8 @@ class MetricsHbiDeleteComponentTest extends BaseSMHBIComponentTest {
 
     // Then: Verify full delete event matches expected structure
     Event expectedDeleteEvent =
-        SwatchEventHelper.createExpectedDeletedEvent(null, deleteEvent, null, null, false, false);
+        SwatchEventHelper.createExpectedDeletedEvent(
+            null, deleteEvent, List.of(), Set.of(), false, false);
     assertTrue(
         SwatchEventHelper.eventsMatch(expectedDeleteEvent, actualDeleteEvent),
         "Unseen host delete event should match expected minimal structure");

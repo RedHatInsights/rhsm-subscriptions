@@ -20,8 +20,10 @@
  */
 package com.redhat.swatch.hbi.events.ct.tests;
 
+import static com.redhat.swatch.hbi.events.ct.utils.SwatchEventHelper.getMeasurementValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
@@ -94,19 +96,29 @@ class MetricsHbiSatelliteCreateUpdateComponentTest extends BaseSMHBIComponentTes
             AwaitilitySettings.defaults().onConditionNotMet(service::flushOutboxSynchronously));
 
     assertEquals(1, actualEvents.size(), "Expected exactly one matching SWatch event");
-    Set<String> expectedTags = Set.of("Satellite Server");
     List<String> expectedProductIds = List.of("250");
 
     Event actualEvent = actualEvents.getFirst();
-    assertEquals(expectedTags, actualEvent.getProductTag());
     assertEquals(expectedProductIds, actualEvent.getProductIds());
-    assertEquals(2.0, SwatchEventHelper.getMeasurementValue(actualEvent, "sockets"));
-    assertEquals(8.0, SwatchEventHelper.getMeasurementValue(actualEvent, "cores"));
+    assertNull(
+        getMeasurementValue(actualEvent, "Cores"),
+        "Cores should not be present - Satellite product only support Sockets metric");
+    assertEquals(2.0, getMeasurementValue(actualEvent, "Sockets"), "Sockets should be 2.0");
+    assertTrue(
+        actualEvent.getMeasurements().stream()
+            .anyMatch(m ->
+                "Sockets".equals(m.getMetricId()) && "Satellite Server".equals(m.getProductTag())),
+        "Sockets measurement should have Satellite Server product_tag");
     assertFalse(actualEvent.getIsVirtual(), "Should be a physical host");
 
     Event expectedEvent =
         SwatchEventHelper.createExpectedEvent(
-            hbiEvent, swatchEventType, expectedProductIds, expectedTags, false, false);
+            hbiEvent,
+            swatchEventType,
+            expectedProductIds,
+            Set.of("Satellite Server"),
+            false,
+            false);
     assertTrue(SwatchEventHelper.eventsMatch(expectedEvent, actualEvent));
   }
 }

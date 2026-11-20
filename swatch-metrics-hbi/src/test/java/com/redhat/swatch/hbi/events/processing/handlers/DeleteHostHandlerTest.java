@@ -42,7 +42,6 @@ import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.HardwareType;
@@ -86,7 +85,7 @@ class DeleteHostHandlerTest {
             NormalizedEventType.INSTANCE_DELETED,
             physicalHostDeleteEvent.getTimestamp().toOffsetDateTime(),
             false,
-            swatchEventHelper.buildMeasurements(2.0, 2.0));
+            swatchEventHelper.buildRhelMeasurements(2.0, List.of("RHEL for x86")));
 
     List<Event> events = handler.handleEvent(physicalHostDeleteEvent);
     // Only expecting a swatch event for the deleted instance.
@@ -151,7 +150,7 @@ class DeleteHostHandlerTest {
             NormalizedEventType.INSTANCE_DELETED,
             hypervisorHostDeleteEvent.getTimestamp().toOffsetDateTime(),
             true,
-            swatchEventHelper.buildMeasurements(2.0, 2.0));
+            swatchEventHelper.buildRhelMeasurements(2.0, List.of("RHEL for x86")));
 
     Event expectedGuest1Event =
         swatchEventHelper.createExpectedEvent(
@@ -167,8 +166,7 @@ class DeleteHostHandlerTest {
             false,
             hypervisorRelationship.getSubscriptionManagerId(),
             List.of("69"),
-            Set.of("RHEL for x86"),
-            swatchEventHelper.buildMeasurements(1.0, 1.0));
+            swatchEventHelper.buildRhelMeasurements(1.0, List.of("RHEL for x86")));
 
     Event expectedGuest2Event =
         swatchEventHelper.createExpectedEvent(
@@ -184,8 +182,7 @@ class DeleteHostHandlerTest {
             false,
             hypervisorRelationship.getSubscriptionManagerId(),
             List.of("69"),
-            Set.of("RHEL for x86"),
-            swatchEventHelper.buildMeasurements(1.0, 1.0));
+            swatchEventHelper.buildRhelMeasurements(1.0, List.of("RHEL for x86")));
 
     List<Event> events = handler.handleEvent(hypervisorHostDeleteEvent);
     assertEquals(3, events.size());
@@ -255,8 +252,7 @@ class DeleteHostHandlerTest {
             false,
             hypervisorRelationship.getSubscriptionManagerId(),
             List.of("69"),
-            Set.of("RHEL for x86"),
-            swatchEventHelper.buildMeasurements(1.0, 2.0));
+            swatchEventHelper.buildRhelMeasurements(2.0, List.of("RHEL for x86")));
 
     Event expectedHypervisorEvent =
         swatchEventHelper.buildPhysicalRhelEvent(
@@ -264,7 +260,7 @@ class DeleteHostHandlerTest {
             NormalizedEventType.INSTANCE_UPDATED,
             guestHostDeleteEvent.getTimestamp().toOffsetDateTime(),
             true,
-            swatchEventHelper.buildMeasurements(2.0, 2.0));
+            swatchEventHelper.buildRhelMeasurements(2.0, List.of("RHEL for x86")));
 
     List<Event> events = handler.handleEvent(guestHostDeleteEvent);
     assertEquals(2, events.size());

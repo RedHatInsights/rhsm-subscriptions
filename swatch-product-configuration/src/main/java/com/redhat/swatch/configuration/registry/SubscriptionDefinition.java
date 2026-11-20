@@ -249,6 +249,22 @@ public class SubscriptionDefinition {
   }
 
   /**
+   * Check if a product variant supports a given metric ID.
+   *
+   * @param productTag The product tag to check
+   * @param metricId The metric ID (e.g., "Cores", "Sockets")
+   * @return true if the product supports this metric, false otherwise
+   */
+  public static boolean variantSupportsMetric(String productTag, String metricId) {
+    return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
+        .flatMap(subscription -> subscription.getVariants().stream())
+        .filter(variant -> productTag.equals(variant.getTag()))
+        .findFirst()
+        .map(variant -> variant.getSubscription().getMetricIds().contains(metricId))
+        .orElse(false);
+  }
+
+  /**
    * In order to get a product tag, you must supply either level, role, or engId data.
    *
    * @param params the search parameters to use
