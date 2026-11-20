@@ -4,7 +4,7 @@ services:
     hostname: moto
     container_name: moto
     ports:
-      - '5000:5000'
+      - '5001:5000'
   nginx:
     image: docker.io/nginx:latest
     links:

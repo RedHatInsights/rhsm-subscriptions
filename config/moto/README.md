@@ -14,7 +14,7 @@ podman-compose up -d moto
 ```
 
 Override the endpoints for any AWS services you wish to mock to
-http://localhost:5000.
+http://localhost:5001.
 
 With TLS
 --------
