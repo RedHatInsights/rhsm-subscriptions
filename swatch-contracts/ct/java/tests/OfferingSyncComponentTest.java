@@ -29,10 +29,16 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.component.tests.api.TestPlanName;
+import com.redhat.swatch.component.tests.utils.AwaitilityUtils;
 import com.redhat.swatch.component.tests.utils.RandomUtils;
 import com.redhat.swatch.contract.test.model.OfferingProductTags;
+import com.redhat.swatch.contract.test.model.SkuCapacityV2;
 import domain.Offering;
+import domain.Product;
+import domain.Subscription;
 import io.restassured.response.Response;
+import java.util.Map;
+import java.util.Optional;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.Test;
 
@@ -164,6 +170,61 @@ public class OfferingSyncComponentTest extends BaseContractComponentTest {
         HttpStatus.SC_SERVICE_UNAVAILABLE,
         syncResponse.statusCode(),
         "syncOffering should return 503 when upstream product service returns 503");
+  }
+
+  @TestPlanName("offering-sync-TC006")
+  @Test
+  void shouldDefaultMissingOrBlankSlaUsageWhenFlagIsEnabled() {
+    String sku = "SLA_USAGE_MISSING_" + RandomUtils.generateRandom();
+    Offering offering = Offering.buildRhelOffering(sku, null, 1.0);
+
+    unleash.enableResolvedSlaUsageFiltering();
+    try {
+      var capacity = syncOfferingAndGetCapacity(offering, "", null);
+
+      assertEquals("Premium", String.valueOf(capacity.getServiceLevel()));
+      assertEquals("Production", String.valueOf(capacity.getUsage()));
+    } finally {
+      unleash.disableResolvedSlaUsageFiltering();
+    }
+  }
+
+  @TestPlanName("offering-sync-TC007")
+  @Test
+  void shouldKeepUnmappedSlaUsageEmptyWhenFlagIsEnabled() {
+    String sku = "SLA_USAGE_UNMAPPED_" + RandomUtils.generateRandom();
+    Offering offering = Offering.buildRhelOffering(sku, null, 1.0);
+
+    unleash.enableResolvedSlaUsageFiltering();
+    try {
+      var capacity = syncOfferingAndGetCapacity(offering, "Unmapped SLA", "Unmapped usage");
+
+      assertEquals("", String.valueOf(capacity.getServiceLevel()));
+      assertEquals("", String.valueOf(capacity.getUsage()));
+    } finally {
+      unleash.disableResolvedSlaUsageFiltering();
+    }
+  }
+
+  private SkuCapacityV2 syncOfferingAndGetCapacity(
+      Offering offering, String rawServiceType, String rawUsage) {
+    wiremock.forProductAPI().stubOfferingData(offering, rawServiceType, rawUsage);
+    Response syncResponse = whenOfferingIsSynced(offering.getSku());
+    assertEquals(HttpStatus.SC_OK, syncResponse.statusCode(), "Offering sync should succeed");
+
+    Subscription subscription =
+        Subscription.buildRhelSubscriptionUsingSku(orgId, Map.of(SOCKETS, 1.0), offering.getSku());
+    Response saveResponse = service.saveSubscriptions(true, subscription);
+    assertEquals(
+        HttpStatus.SC_OK, saveResponse.statusCode(), "Subscription creation should succeed");
+
+    Optional<SkuCapacityV2> capacity =
+        AwaitilityUtils.until(
+            () ->
+                service.getSkuCapacityByProductIdForOrgAndSku(
+                    Product.RHEL, orgId, offering.getSku()),
+            Optional::isPresent);
+    return capacity.orElseThrow();
   }
 
   /**

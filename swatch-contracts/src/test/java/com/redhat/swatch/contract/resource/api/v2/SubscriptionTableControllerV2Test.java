@@ -33,6 +33,7 @@ import com.redhat.swatch.common.model.Usage;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
+import com.redhat.swatch.contract.config.FeatureFlags;
 import com.redhat.swatch.contract.exception.SubscriptionsException;
 import com.redhat.swatch.contract.openapi.model.ReportCategory;
 import com.redhat.swatch.contract.openapi.model.ServiceLevelType;
@@ -69,6 +70,7 @@ class SubscriptionTableControllerV2Test {
   private static final String ORG_ID = "123456";
 
   @InjectMock SubscriptionCapacityViewRepository repository;
+  @InjectMock FeatureFlags featureFlags;
   @Inject SubscriptionTableControllerV2 subscriptionTableControllerV2;
 
   private static final MeasurementSpec RH0180191 =
@@ -160,6 +162,38 @@ class SubscriptionTableControllerV2Test {
         expectedSub.getBillingAccountId(),
         actualItem.getBillingAccountId(),
         "Wrong billing account ID");
+  }
+
+  @Test
+  void resolvesMissingOfferingSlaAndUsageWhenFilteringByDefaults() {
+    when(featureFlags.isResolvedSlaUsageFilteringEnabled()).thenReturn(true);
+    var productId = RHEL_FOR_X86;
+    var subscription = stubSubscription("defaulted-sub", 1);
+    var spec =
+        MeasurementSpec.offering("DEFAULTED_SKU", "RHEL Server", 2, 0, null, null, false)
+            .withSub(subscription);
+    givenCapacities(productId, spec);
+    givenSubscriptionsInRepository(subscription);
+    givenOfferings(spec);
+
+    var report =
+        subscriptionTableControllerV2.capacityReportBySkuV2(
+            ORG_ID,
+            productId,
+            null,
+            null,
+            null,
+            ServiceLevelType.PREMIUM,
+            UsageType.PRODUCTION,
+            null,
+            null,
+            null,
+            null,
+            null);
+
+    assertEquals(1, report.getData().size());
+    assertEquals(ServiceLevelType.PREMIUM, report.getData().get(0).getServiceLevel());
+    assertEquals(UsageType.PRODUCTION, report.getData().get(0).getUsage());
   }
 
   @Test

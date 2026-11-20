@@ -22,7 +22,9 @@ package com.redhat.swatch.contract.config;
 
 import static com.redhat.swatch.common.security.KesselRolesAugmentor.KESSEL_FLAG;
 import static com.redhat.swatch.contract.config.FeatureFlags.DEFAULT_READ_ONLY_FLAG_VALUE;
+import static com.redhat.swatch.contract.config.FeatureFlags.DEFAULT_RESOLVED_SLA_USAGE_FLAG_VALUE;
 import static com.redhat.swatch.contract.config.FeatureFlags.READ_ONLY_FLAG;
+import static com.redhat.swatch.contract.config.FeatureFlags.RESOLVED_SLA_USAGE_FILTERING_FLAG;
 import static com.redhat.swatch.contract.config.FeatureFlags.USE_SUBSCRIPTIONS_FLAG;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -65,10 +67,28 @@ class FeatureFlagsTest {
   }
 
   @Test
+  void resolvedSlaUsageFilteringMapsToToggleName() {
+    when(unleash.isEnabled(
+            RESOLVED_SLA_USAGE_FILTERING_FLAG, DEFAULT_RESOLVED_SLA_USAGE_FLAG_VALUE))
+        .thenReturn(true);
+    assertTrue(featureFlags.isResolvedSlaUsageFilteringEnabled());
+
+    when(unleash.isEnabled(
+            RESOLVED_SLA_USAGE_FILTERING_FLAG, DEFAULT_RESOLVED_SLA_USAGE_FLAG_VALUE))
+        .thenReturn(false);
+    assertFalse(featureFlags.isResolvedSlaUsageFilteringEnabled());
+  }
+
+  @Test
   void infoContributorExposesReadOnlyFlag() {
     when(unleash.isEnabled(READ_ONLY_FLAG, DEFAULT_READ_ONLY_FLAG_VALUE)).thenReturn(true);
+    when(unleash.isEnabled(
+            RESOLVED_SLA_USAGE_FILTERING_FLAG, DEFAULT_RESOLVED_SLA_USAGE_FLAG_VALUE))
+        .thenReturn(true);
     when(unleash.getVariant(READ_ONLY_FLAG)).thenReturn(Variant.DISABLED_VARIANT);
     when(unleash.getVariant(USE_SUBSCRIPTIONS_FLAG)).thenReturn(Variant.DISABLED_VARIANT);
+    when(unleash.getVariant(RESOLVED_SLA_USAGE_FILTERING_FLAG))
+        .thenReturn(Variant.DISABLED_VARIANT);
 
     InfoFeatureFlags info = featureFlags.getFeatureFlags();
     InfoFeatureFlag flag =
@@ -79,5 +99,12 @@ class FeatureFlagsTest {
 
     assertEquals(READ_ONLY_FLAG, flag.getName());
     assertTrue(flag.getEnabled());
+
+    InfoFeatureFlag resolvedSlaUsageFlag =
+        info.getFlags().stream()
+            .filter(entry -> RESOLVED_SLA_USAGE_FILTERING_FLAG.equals(entry.getName()))
+            .findFirst()
+            .orElseThrow();
+    assertTrue(resolvedSlaUsageFlag.getEnabled());
   }
 }

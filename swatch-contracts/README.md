@@ -73,6 +73,44 @@ scheduled cron job triggers the sync process, which:
 Offering definitions determine which products are tracked by SWATCH, what metrics are measured, and
 how usage data should be interpreted.
 
+#### SLA and usage defaults
+
+The existing flag `swatch.ui.resolved-sla-usage-filtering` controls the rollout of
+Premium SLA and Production usage for offerings whose upstream `SERVICE_TYPE` or
+`USAGE` attribute is absent or blank. When enabled, successful offering syncs,
+product events, and JSON imports persist these defaults for null values. Non-empty
+values that SWATCH cannot map remain `EMPTY`. Product placeholders such as `n/a`
+still allow a child or derived SKU to supply the value.
+
+When the flag is disabled, absent or blank upstream values stay null in persisted
+offerings. API reports and subscription exports continue to normalize null values
+to `EMPTY`; with the flag enabled, they resolve nulls to Premium and Production.
+Utilization keeps treating `EMPTY` as a wildcard. With the flag enabled, null
+values in utilization match Premium and Production respectively.
+
+Offerings are shared across organizations. Enable this flag consistently for the
+frontend and backend using a global strategy: the backend evaluates it without
+user or organization context, and persisted defaults affect every organization
+using an offering. A targeted or percentage rollout cannot isolate this backfill
+to selected organizations.
+
+The existing `POST /api/swatch-contracts/internal/rpc/offerings/sync` operation also
+backfills null SLA and usage columns for eligible SKUs before enqueueing their
+upstream sync tasks. The scheduled offering-sync job calls this operation. The
+backfill runs only while the flag is enabled and the service is writable. It
+updates `last_modified` and is safe to repeat.
+
+Legacy `EMPTY` values are ambiguous: they may represent an absent upstream
+attribute or a non-empty value that SWATCH could not map. A successful upstream
+refresh is required to classify them. Product events that omit an attribute stored
+as `EMPTY` trigger that refresh before defaults are applied. If the product service
+is unavailable, the ambiguous `EMPTY` value remains unclassified. The bulk
+backfill changes only null columns on SKUs outside the denylist.
+
+Disabling the flag stops applying defaults to incoming null values. Defaults
+already persisted remain until a successful sync replaces them with the current
+upstream values, which may be null when an attribute is absent or blank.
+
 ### Product Status Kafka Consumer
 The service consumes product status events from the IT Product Service Kafka topic
 (product-service.operationalproduct.protected) to receive real-time notifications about changes to

@@ -21,11 +21,11 @@
 package com.redhat.swatch.contract.resource.api.v2;
 
 import com.redhat.swatch.common.model.HardwareMeasurementType;
-import com.redhat.swatch.common.model.ServiceLevel;
-import com.redhat.swatch.common.model.Usage;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
+import com.redhat.swatch.contract.config.FeatureFlags;
+import com.redhat.swatch.contract.model.SlaUsageDefaults;
 import com.redhat.swatch.contract.openapi.model.BillingProviderType;
 import com.redhat.swatch.contract.openapi.model.ReportCategory;
 import com.redhat.swatch.contract.openapi.model.ServiceLevelType;
@@ -70,15 +70,18 @@ public class SubscriptionTableControllerV2 {
   private final ApiModelMapperV2 mapper;
   private final SubscriptionCapacityViewRepository repository;
   private final ApplicationClock clock;
+  private final FeatureFlags featureFlags;
 
   @Inject
   SubscriptionTableControllerV2(
       ApiModelMapperV2 mapper,
       SubscriptionCapacityViewRepository repository,
-      ApplicationClock clock) {
+      ApplicationClock clock,
+      FeatureFlags featureFlags) {
     this.mapper = mapper;
     this.repository = repository;
     this.clock = clock;
+    this.featureFlags = featureFlags;
   }
 
   @SuppressWarnings("java:S107")
@@ -108,6 +111,7 @@ public class SubscriptionTableControllerV2 {
         billingProviderType,
         billingAccountId,
         metricId);
+    boolean resolveMissingSlaUsage = featureFlags.isResolvedSlaUsageFilteringEnabled();
     var subscriptionSpec =
         SubscriptionCapacityViewRepository.buildSearchSpecification(
             orgId,
@@ -117,7 +121,8 @@ public class SubscriptionTableControllerV2 {
             mapper.map(usage),
             mapper.map(billingProviderType),
             billingAccountId,
-            metricId);
+            metricId,
+            resolveMissingSlaUsage);
     MetricsMeta metrics = new MetricsMeta(metricId, productId);
     Map<InventoryKey, SkuCapacityV2> reportItemsBySku = new HashMap<>();
     repository
@@ -127,7 +132,10 @@ public class SubscriptionTableControllerV2 {
 
           SkuCapacityV2 inventory =
               reportItemsBySku.computeIfAbsent(
-                  inventoryKey, s -> initializeSkuCapacity(subscription, metrics, category));
+                  inventoryKey,
+                  s ->
+                      initializeSkuCapacity(
+                          subscription, metrics, category, resolveMissingSlaUsage));
           calculateNextEvent(subscription, inventory);
           if (productId.isOnDemand()) {
             addOnDemandSubscriptionInformation(subscription, inventory);
@@ -255,14 +263,17 @@ public class SubscriptionTableControllerV2 {
   private SkuCapacityV2 initializeSkuCapacity(
       @Nonnull SubscriptionCapacityView sub,
       @Nonnull MetricsMeta metrics,
-      ReportCategory category) {
+      ReportCategory category,
+      boolean resolveMissingSlaUsage) {
     var inventory = new SkuCapacityV2();
     inventory.setSubscriptions(new ArrayList<>());
     inventory.setSku(sub.getSku());
     inventory.setProductName(sub.getProductName());
     inventory.setServiceLevel(
-        mapper.map(Optional.ofNullable(sub.getServiceLevel()).orElse(ServiceLevel.EMPTY)));
-    inventory.setUsage(mapper.map(Optional.ofNullable(sub.getUsage()).orElse(Usage.EMPTY)));
+        mapper.map(
+            SlaUsageDefaults.resolveServiceLevel(sub.getServiceLevel(), resolveMissingSlaUsage)));
+    inventory.setUsage(
+        mapper.map(SlaUsageDefaults.resolveUsage(sub.getUsage(), resolveMissingSlaUsage)));
     inventory.setHasInfiniteQuantity(sub.getHasUnlimitedUsage());
     inventory.setBillingAccountId(sub.getBillingAccountId());
     inventory.setBillingProvider(
