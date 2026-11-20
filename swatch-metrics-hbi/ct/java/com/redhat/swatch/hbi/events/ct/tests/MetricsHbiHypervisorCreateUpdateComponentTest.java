@@ -20,16 +20,22 @@
  */
 package com.redhat.swatch.hbi.events.ct.tests;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import com.redhat.swatch.component.tests.api.DefaultMessageValidator;
 import com.redhat.swatch.component.tests.api.TestPlanName;
-import com.redhat.swatch.component.tests.utils.Topics;
-import com.redhat.swatch.hbi.events.ct.api.MessageValidators;
-import com.redhat.swatch.hbi.events.ct.utils.HbiEventHelper;
+import com.redhat.swatch.component.tests.api.hbi.HostBuilder;
+import com.redhat.swatch.component.tests.api.hbi.HostTemplates;
 import com.redhat.swatch.hbi.events.ct.utils.SwatchEventHelper;
 import com.redhat.swatch.hbi.events.dtos.hbi.HbiHostCreateUpdateEvent;
 import com.redhat.swatch.hbi.events.normalization.NormalizedEventType;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import org.candlepin.subscriptions.json.Event;
 import org.junit.jupiter.api.AfterAll;
@@ -55,20 +61,11 @@ class MetricsHbiHypervisorCreateUpdateComponentTest extends BaseSMHBIComponentTe
   void shouldTransitionPhysicalHostToHypervisorWhenGuestIsKnown(
       String hbiEventType, NormalizedEventType swatchEventType) {
     // Given: A physical hypervisor host and a mapped guest host
-    List<HbiHostCreateUpdateEvent> hbiEvents =
-        HbiEventHelper.getHypervisorAndGuestEvents(
-            hbiEventType,
-            List.of("69"),
-            OffsetDateTime.now(ZoneOffset.UTC),
-            "Self-Support",
-            "Development/Test",
-            1,
-            1,
-            1,
-            3);
-
-    HbiHostCreateUpdateEvent hypervisorEvent = hbiEvents.get(0);
-    HbiHostCreateUpdateEvent guestEvent = hbiEvents.get(1);
+    OffsetDateTime timestamp = OffsetDateTime.now(ZoneOffset.UTC);
+    HypervisorGuestEvents hosts = createHypervisorAndGuest(hbiEventType, timestamp);
+    HbiHostCreateUpdateEvent hypervisorEvent = hosts.hypervisorEvent();
+    HbiHostCreateUpdateEvent guestEvent = hosts.guestEvent();
+    String hypervisorSubManId = hypervisorEvent.getHost().getSubscriptionManagerId();
 
     Event swatchEventHypervisor =
         SwatchEventHelper.createExpectedEvent(
@@ -86,14 +83,23 @@ class MetricsHbiHypervisorCreateUpdateComponentTest extends BaseSMHBIComponentTe
             true);
 
     // When: Hypervisor and guest events are produced to Kafka
-    kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hypervisorEvent);
-    kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, guestEvent);
+    hostEvents.publish(hypervisorEvent);
+    hostEvents.publish(guestEvent);
 
     // Then: Three SWatch events should be produced (hypervisor, guest, updated hypervisor)
-    thenSwatchEventsAppear(
-        MessageValidators.swatchEventEquals(swatchEventHypervisor),
-        MessageValidators.swatchEventEquals(swatchEventMappedGuest),
-        MessageValidators.swatchEventEquals(swatchEventUpdatedHypervisor));
+    List<Event> actualEvents =
+        thenSwatchEventsAppear(
+            swatchEventMatchesExpectedState(swatchEventHypervisor),
+            swatchEventMatchesExpectedState(swatchEventMappedGuest),
+            swatchEventMatchesExpectedState(swatchEventUpdatedHypervisor));
+    assertFalse(actualEvents.get(0).getIsVirtual(), "Hypervisor should be physical");
+    assertTrue(actualEvents.get(1).getIsVirtual(), "Mapped guest should be virtual");
+    assertFalse(actualEvents.get(1).getIsUnmappedGuest(), "Guest should be mapped");
+    assertEquals(Optional.of(hypervisorSubManId), actualEvents.get(1).getHypervisorUuid());
+    assertTrue(actualEvents.get(2).getIsHypervisor(), "Hypervisor should be marked after mapping");
+    assertMatches(swatchEventHypervisor, actualEvents.get(0));
+    assertMatches(swatchEventMappedGuest, actualEvents.get(1));
+    assertMatches(swatchEventUpdatedHypervisor, actualEvents.get(2));
   }
 
   @TestPlanName("metrics-hbi-hypervisor-TC002")
@@ -102,20 +108,11 @@ class MetricsHbiHypervisorCreateUpdateComponentTest extends BaseSMHBIComponentTe
   void shouldTransitionUnmappedGuestToMappedGuest(
       String hbiEventType, NormalizedEventType swatchEventType) {
     // Given: A virtual unmapped guest and a hypervisor host
-    List<HbiHostCreateUpdateEvent> hbiEvents =
-        HbiEventHelper.getHypervisorAndGuestEvents(
-            hbiEventType,
-            List.of("69"),
-            OffsetDateTime.now(ZoneOffset.UTC),
-            "Self-Support",
-            "Development/Test",
-            1,
-            1,
-            1,
-            3);
-
-    HbiHostCreateUpdateEvent hypervisorEvent = hbiEvents.get(0);
-    HbiHostCreateUpdateEvent guestEvent = hbiEvents.get(1);
+    OffsetDateTime timestamp = OffsetDateTime.now(ZoneOffset.UTC);
+    HypervisorGuestEvents hosts = createHypervisorAndGuest(hbiEventType, timestamp);
+    HbiHostCreateUpdateEvent hypervisorEvent = hosts.hypervisorEvent();
+    HbiHostCreateUpdateEvent guestEvent = hosts.guestEvent();
+    String hypervisorSubManId = hypervisorEvent.getHost().getSubscriptionManagerId();
 
     Event swatchEventUnmappedGuest =
         SwatchEventHelper.createExpectedEvent(
@@ -133,14 +130,24 @@ class MetricsHbiHypervisorCreateUpdateComponentTest extends BaseSMHBIComponentTe
             false);
 
     // When: Guest event is produced first, then hypervisor event
-    kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, guestEvent);
-    kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hypervisorEvent);
+    hostEvents.publish(guestEvent);
+    hostEvents.publish(hypervisorEvent);
 
     // Then: Three SWatch events should be produced (unmapped guest, hypervisor, mapped guest)
-    thenSwatchEventsAppear(
-        MessageValidators.swatchEventEquals(swatchEventUnmappedGuest),
-        MessageValidators.swatchEventEquals(swatchEventHypervisor),
-        MessageValidators.swatchEventEquals(swatchEventUpdatedMappedGuest));
+    List<Event> actualEvents =
+        thenSwatchEventsAppear(
+            swatchEventMatchesExpectedState(swatchEventUnmappedGuest),
+            swatchEventMatchesExpectedState(swatchEventHypervisor),
+            swatchEventMatchesExpectedState(swatchEventUpdatedMappedGuest));
+    assertTrue(actualEvents.getFirst().getIsVirtual(), "Guest should be virtual");
+    assertTrue(actualEvents.get(0).getIsUnmappedGuest(), "Guest should initially be unmapped");
+    assertEquals(Optional.of(hypervisorSubManId), actualEvents.get(0).getHypervisorUuid());
+    assertTrue(actualEvents.get(1).getIsHypervisor(), "Hypervisor should be marked after mapping");
+    assertFalse(actualEvents.get(2).getIsUnmappedGuest(), "Guest should be mapped");
+    assertEquals(Optional.of(hypervisorSubManId), actualEvents.get(2).getHypervisorUuid());
+    assertMatches(swatchEventUnmappedGuest, actualEvents.get(0));
+    assertMatches(swatchEventHypervisor, actualEvents.get(1));
+    assertMatches(swatchEventUpdatedMappedGuest, actualEvents.get(2));
   }
 
   @TestPlanName("metrics-hbi-hypervisor-TC003")
@@ -151,28 +158,18 @@ class MetricsHbiHypervisorCreateUpdateComponentTest extends BaseSMHBIComponentTe
     // Given: Hypervisor A with mapped guest, and hypervisor B with no guests
     OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
 
-    List<HbiHostCreateUpdateEvent> initialEvents =
-        HbiEventHelper.getHypervisorAndGuestEvents(
-            hbiEventType, List.of("69"), now, "Self-Support", "Development/Test", 1, 1, 1, 3);
-
-    HbiHostCreateUpdateEvent hypervisorAEvent = initialEvents.get(0);
-    HbiHostCreateUpdateEvent guestEvent = initialEvents.get(1);
-
+    HypervisorGuestEvents hosts = createHypervisorAndGuest(hbiEventType, now);
+    HbiHostCreateUpdateEvent hypervisorAEvent = hosts.hypervisorEvent();
+    HostBuilder guestHost = hosts.guestHost();
+    HbiHostCreateUpdateEvent guestEvent = hosts.guestEvent();
     HbiHostCreateUpdateEvent hypervisorBEvent =
-        HbiEventHelper.getRhsmHostEvent(
-            hbiEventType,
-            null,
-            List.of("69"),
-            false,
-            "x86_64",
-            now,
-            "Self-Support",
-            "Development/Test",
-            1,
-            1,
-            null,
-            null,
-            null);
+        hostEvents
+            .createHost(orgId)
+            .apply(HostTemplates.conduitPhysicalRhelSelfSupportDevTest(1, 1))
+            .toEvent()
+            .type(hbiEventType)
+            .timestamp(now)
+            .buildCreateUpdate();
     String hypervisorBSubManId = hypervisorBEvent.getHost().getSubscriptionManagerId();
 
     Event swatchHypervisorA =
@@ -194,24 +191,39 @@ class MetricsHbiHypervisorCreateUpdateComponentTest extends BaseSMHBIComponentTe
             hypervisorBEvent, swatchEventType, List.of("69"), Set.of("RHEL for x86"), false, false);
 
     // When: Phase 1 - Hypervisor A, guest, and hypervisor B events are produced
-    kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hypervisorAEvent);
-    kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, guestEvent);
-    kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, hypervisorBEvent);
+    hostEvents.publish(hypervisorAEvent);
+    hostEvents.publish(guestEvent);
+    hostEvents.publish(hypervisorBEvent);
 
     // Then: Four SWatch events should be produced
-    thenSwatchEventsAppear(
-        MessageValidators.swatchEventEquals(swatchHypervisorA),
-        MessageValidators.swatchEventEquals(swatchGuestMapped),
-        MessageValidators.swatchEventEquals(swatchHypervisorAUpdated),
-        MessageValidators.swatchEventEquals(swatchHypervisorB));
+    List<Event> actualEvents =
+        thenSwatchEventsAppear(
+            swatchEventMatchesExpectedState(swatchHypervisorA),
+            swatchEventMatchesExpectedState(swatchGuestMapped),
+            swatchEventMatchesExpectedState(swatchHypervisorAUpdated),
+            swatchEventMatchesExpectedState(swatchHypervisorB));
+    assertTrue(actualEvents.get(1).getIsVirtual(), "Mapped guest should be virtual");
+    assertFalse(actualEvents.get(1).getIsUnmappedGuest(), "Guest should be mapped to hypervisor A");
+    assertEquals(
+        Optional.of(hypervisorAEvent.getHost().getSubscriptionManagerId()),
+        actualEvents.get(1).getHypervisorUuid());
+    assertTrue(
+        actualEvents.get(2).getIsHypervisor(), "Hypervisor A should be marked as hypervisor");
+    assertFalse(actualEvents.get(3).getIsHypervisor(), "Hypervisor B should not yet have guests");
+    assertMatches(swatchHypervisorA, actualEvents.get(0));
+    assertMatches(swatchGuestMapped, actualEvents.get(1));
+    assertMatches(swatchHypervisorAUpdated, actualEvents.get(2));
+    assertMatches(swatchHypervisorB, actualEvents.get(3));
 
     // Given: Guest is re-mapped from hypervisor A to hypervisor B
-    guestEvent.getHost().getSystemProfile().setHypervisorUuid(hypervisorBSubManId);
-    guestEvent.setType("updated");
+    guestHost.systemProfileFacts(
+        guestHost.getSystemProfileFacts().toBuilder().hypervisorUuid(hypervisorBSubManId).build());
+    HbiHostCreateUpdateEvent remappedGuestEvent =
+        guestHost.toEvent().type("updated").timestamp(now).buildCreateUpdate();
 
     Event swatchGuestRemapped =
         SwatchEventHelper.createExpectedEvent(
-            guestEvent,
+            remappedGuestEvent,
             NormalizedEventType.INSTANCE_UPDATED,
             List.of("69"),
             Set.of("RHEL for x86"),
@@ -227,11 +239,70 @@ class MetricsHbiHypervisorCreateUpdateComponentTest extends BaseSMHBIComponentTe
             true);
 
     // When: Phase 2 - Updated guest event is produced with new hypervisor mapping
-    kafkaBridge.produceKafkaMessage(Topics.HBI_EVENT_IN, guestEvent);
+    hostEvents.publish(remappedGuestEvent);
 
     // Then: Two SWatch events should be produced (re-mapped guest, updated hypervisor B)
-    thenSwatchEventsAppear(
-        MessageValidators.swatchEventEquals(swatchGuestRemapped),
-        MessageValidators.swatchEventEquals(swatchHypervisorBUpdated));
+    actualEvents =
+        thenSwatchEventsAppear(
+            swatchEventMatchesExpectedState(swatchGuestRemapped, true),
+            swatchEventMatchesExpectedState(swatchHypervisorBUpdated));
+    assertTrue(actualEvents.getFirst().getIsVirtual(), "Remapped guest should remain virtual");
+    assertFalse(actualEvents.get(0).getIsUnmappedGuest(), "Guest should be mapped to hypervisor B");
+    assertEquals(Optional.of(hypervisorBSubManId), actualEvents.get(0).getHypervisorUuid());
+    assertTrue(
+        actualEvents.get(1).getIsHypervisor(), "Hypervisor B should be marked as hypervisor");
+    assertMatches(swatchGuestRemapped, actualEvents.get(0));
+    assertMatches(swatchHypervisorBUpdated, actualEvents.get(1));
+  }
+
+  private HypervisorGuestEvents createHypervisorAndGuest(
+      String hbiEventType, OffsetDateTime timestamp) {
+    HostBuilder hypervisorHost =
+        hostEvents
+            .createHost(orgId)
+            .apply(HostTemplates.conduitPhysicalRhelSelfSupportDevTest(1, 1));
+    HbiHostCreateUpdateEvent hypervisorEvent =
+        hypervisorHost.toEvent().type(hbiEventType).timestamp(timestamp).buildCreateUpdate();
+    HostBuilder guestHost =
+        hostEvents
+            .createHost(orgId)
+            .apply(
+                HostTemplates.conduitVirtualRhelGuestSelfSupportDevTest(
+                    1, 3, hypervisorEvent.getHost().getSubscriptionManagerId()));
+    HbiHostCreateUpdateEvent guestEvent =
+        guestHost.toEvent().type(hbiEventType).timestamp(timestamp).buildCreateUpdate();
+    return new HypervisorGuestEvents(hypervisorEvent, guestHost, guestEvent);
+  }
+
+  private record HypervisorGuestEvents(
+      HbiHostCreateUpdateEvent hypervisorEvent,
+      HostBuilder guestHost,
+      HbiHostCreateUpdateEvent guestEvent) {}
+
+  private DefaultMessageValidator<Event> swatchEventMatchesExpectedState(Event expectedEvent) {
+    return swatchEventMatchesExpectedState(expectedEvent, false);
+  }
+
+  private DefaultMessageValidator<Event> swatchEventMatchesExpectedState(
+      Event expectedEvent, boolean matchHypervisorUuid) {
+    return new DefaultMessageValidator<>(
+        actualEvent ->
+            expectedEvent.getOrgId().equals(actualEvent.getOrgId())
+                && expectedEvent.getInstanceId().equals(actualEvent.getInstanceId())
+                && expectedEvent.getEventType().equals(actualEvent.getEventType())
+                && Objects.equals(expectedEvent.getIsVirtual(), actualEvent.getIsVirtual())
+                && Objects.equals(
+                    expectedEvent.getIsUnmappedGuest(), actualEvent.getIsUnmappedGuest())
+                && Objects.equals(expectedEvent.getIsHypervisor(), actualEvent.getIsHypervisor())
+                && (!matchHypervisorUuid
+                    || Objects.equals(
+                        expectedEvent.getHypervisorUuid(), actualEvent.getHypervisorUuid())),
+        Event.class);
+  }
+
+  private void assertMatches(Event expectedEvent, Event actualEvent) {
+    assertTrue(
+        SwatchEventHelper.eventsMatch(expectedEvent, actualEvent),
+        "SWatch event should match expected structure");
   }
 }
