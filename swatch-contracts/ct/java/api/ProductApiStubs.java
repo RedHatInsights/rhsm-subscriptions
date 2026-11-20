@@ -47,7 +47,15 @@ public class ProductApiStubs {
    * @param offering the offering test data containing SKU and product attributes
    */
   public void stubOfferingData(Offering offering) {
-    stubUpstreamProductData(offering);
+    stubOfferingData(
+        offering,
+        offering.getServiceLevel() == null ? null : offering.getServiceLevel().toDataModel(),
+        offering.getUsage() == null ? null : offering.getUsage().toDataModel());
+  }
+
+  /** Stub offering data with raw upstream SLA and usage strings. Null omits the attribute. */
+  public void stubOfferingData(Offering offering, String serviceType, String usage) {
+    stubUpstreamProductData(offering, serviceType, usage);
     stubEngineeringProducts(offering);
   }
 
@@ -72,6 +80,14 @@ public class ProductApiStubs {
    * @param offering the offering to stub
    */
   public void stubUpstreamProductData(Offering offering) {
+    stubUpstreamProductData(
+        offering,
+        offering.getServiceLevel() == null ? null : offering.getServiceLevel().toDataModel(),
+        offering.getUsage() == null ? null : offering.getUsage().toDataModel());
+  }
+
+  /** Stub the product tree with raw SLA and usage strings. Null omits the corresponding field. */
+  public void stubUpstreamProductData(Offering offering, String serviceType, String usage) {
     var attributes = new ArrayList<Map<String, String>>();
 
     // For unlimited offerings, send "Unlimited" as the attribute value
@@ -111,12 +127,11 @@ public class ProductApiStubs {
     if (offering.getMetered() != null) {
       attributes.add(Map.of("code", "METERED", "value", offering.getMetered()));
     }
-    if (offering.getServiceLevel() != null) {
-      attributes.add(
-          Map.of("code", "SERVICE_TYPE", "value", offering.getServiceLevel().toDataModel()));
+    if (serviceType != null) {
+      attributes.add(Map.of("code", "SERVICE_TYPE", "value", serviceType));
     }
-    if (offering.getUsage() != null) {
-      attributes.add(Map.of("code", "USAGE", "value", offering.getUsage().toDataModel()));
+    if (usage != null) {
+      attributes.add(Map.of("code", "USAGE", "value", usage));
     }
     if (offering.getRole() != null) {
       attributes.add(Map.of("code", "X_ROLE", "value", offering.getRole()));

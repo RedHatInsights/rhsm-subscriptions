@@ -23,9 +23,13 @@ package com.redhat.swatch.contract.repository;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.redhat.swatch.common.model.ServiceLevel;
+import com.redhat.swatch.common.model.Usage;
+import io.quarkus.test.TestTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
+import java.time.Instant;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
@@ -35,7 +39,49 @@ class OfferingRepositoryTest {
   @Inject OfferingRepository repository;
 
   @Test
-  @Transactional
+  @TestTransaction
+  void testApplySlaUsageDefaults() {
+    var missing = offering("defaults-null", null, null);
+    var unmapped = offering("defaults-unmapped", ServiceLevel.EMPTY, Usage.EMPTY);
+    var standard = offering("defaults-standard", ServiceLevel.STANDARD, null);
+    var development = offering("defaults-development", null, Usage.DEVELOPMENT_TEST);
+    var explicit =
+        offering("defaults-explicit", ServiceLevel.SELF_SUPPORT, Usage.DISASTER_RECOVERY);
+    var wildcard = offering("defaults-wildcard", ServiceLevel._ANY, Usage._ANY);
+    var excluded = offering("defaults-excluded", null, null);
+    var candidates = List.of(missing, unmapped, standard, development, explicit, wildcard);
+    candidates.forEach(repository::persist);
+    repository.persist(excluded);
+    repository.flush();
+    repository.update("lastModified = ?1 where sku = ?2", Instant.EPOCH, missing.getSku());
+
+    var eligibleSkus = candidates.stream().map(OfferingEntity::getSku).toList();
+    assertEquals(4, repository.applySlaUsageDefaults(eligibleSkus));
+    repository.getEntityManager().clear();
+
+    assertOffering(missing.getSku(), ServiceLevel.PREMIUM, Usage.PRODUCTION);
+    assertOffering(unmapped.getSku(), ServiceLevel.EMPTY, Usage.EMPTY);
+    assertOffering(standard.getSku(), ServiceLevel.STANDARD, Usage.PRODUCTION);
+    assertOffering(development.getSku(), ServiceLevel.PREMIUM, Usage.DEVELOPMENT_TEST);
+    assertOffering(explicit.getSku(), ServiceLevel.SELF_SUPPORT, Usage.DISASTER_RECOVERY);
+    assertOffering(wildcard.getSku(), ServiceLevel._ANY, Usage._ANY);
+    assertOffering(excluded.getSku(), null, null);
+    assertTrue(repository.findById(missing.getSku()).getLastModified().isAfter(Instant.EPOCH));
+    assertEquals(0, repository.applySlaUsageDefaults(eligibleSkus));
+  }
+
+  private OfferingEntity offering(String sku, ServiceLevel serviceLevel, Usage usage) {
+    return OfferingEntity.builder().sku(sku).serviceLevel(serviceLevel).usage(usage).build();
+  }
+
+  private void assertOffering(String sku, ServiceLevel serviceLevel, Usage usage) {
+    var offering = repository.findById(sku);
+    assertEquals(serviceLevel, offering.getServiceLevel());
+    assertEquals(usage, offering.getUsage());
+  }
+
+  @Test
+  @TestTransaction
   void testFindSkusForDerivedSkus() {
     var expectedOffering = OfferingEntity.builder().sku("foo").derivedSku("derived").build();
     var extra = OfferingEntity.builder().sku("foo2").build();
@@ -46,7 +92,7 @@ class OfferingRepositoryTest {
   }
 
   @Test
-  @Transactional
+  @TestTransaction
   void testFindSkusForChildSkus() {
     var expectedOffering = OfferingEntity.builder().sku("foo").childSkus(Set.of("child")).build();
     var extra = OfferingEntity.builder().sku("foo2").build();
@@ -57,7 +103,7 @@ class OfferingRepositoryTest {
   }
 
   @Test
-  @Transactional
+  @TestTransaction
   void testFindAllDistinctSkus() {
     var offering1 = OfferingEntity.builder().sku("foo").build();
     var offering2 = OfferingEntity.builder().sku("foo2").build();

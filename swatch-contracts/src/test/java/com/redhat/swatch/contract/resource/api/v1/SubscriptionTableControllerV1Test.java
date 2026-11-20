@@ -36,6 +36,7 @@ import com.redhat.swatch.common.model.Usage;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
+import com.redhat.swatch.contract.config.FeatureFlags;
 import com.redhat.swatch.contract.exception.SubscriptionsException;
 import com.redhat.swatch.contract.openapi.model.BillingProviderType;
 import com.redhat.swatch.contract.openapi.model.ReportCategory;
@@ -78,6 +79,7 @@ class SubscriptionTableControllerV1Test {
   private static final String ORG_ID = "123456";
 
   @InjectMock SubscriptionRepository subscriptionRepository;
+  @InjectMock FeatureFlags featureFlags;
   @Inject ApplicationClock clock;
   @Inject SubscriptionTableControllerV1 subscriptionTableControllerV1;
 
@@ -207,6 +209,46 @@ class SubscriptionTableControllerV1Test {
         "Wrong upcoming event type");
     assertEquals(
         expectedSub.getEndDate(), actualItem.getNextEventDate(), "Wrong upcoming event date");
+  }
+
+  @Test
+  void resolvesMissingOfferingSlaAndUsageWhenFilteringByDefaults() {
+    when(featureFlags.isResolvedSlaUsageFilteringEnabled()).thenReturn(true);
+    var productId = RHEL_FOR_X86;
+    var subscription = stubSubscription("defaulted-sub", 1);
+    var spec =
+        MeasurementSpec.offering("DEFAULTED_SKU", "RHEL Server", 2, 0, 0, 0, null, null, false)
+            .withSub(subscription);
+    givenCapacities(Org.STANDARD, productId, spec);
+    givenSubscriptionsInRepository(subscription);
+    givenOfferings(spec);
+
+    SkuCapacityReportV1 report =
+        subscriptionTableControllerV1.capacityReportBySkuV1(
+            ORG_ID,
+            productId,
+            null,
+            null,
+            null,
+            ServiceLevelType.PREMIUM,
+            UsageType.PRODUCTION,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null);
+
+    assertEquals(1, report.getData().size());
+    assertEquals(ServiceLevelType.PREMIUM, report.getData().get(0).getServiceLevel());
+    assertEquals(UsageType.PRODUCTION, report.getData().get(0).getUsage());
+    verify(subscriptionRepository, Mockito.times(1))
+        .findByCriteria(
+            Mockito.argThat(criteria ->
+                criteria.isResolvedSlaUsageFiltering()
+                    && criteria.getServiceLevel() == ServiceLevel.PREMIUM
+                    && criteria.getUsage() == Usage.PRODUCTION));
   }
 
   @Test

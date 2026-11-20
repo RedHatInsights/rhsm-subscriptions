@@ -22,6 +22,7 @@ package com.redhat.swatch.contract.repository;
 
 import com.redhat.swatch.common.model.ServiceLevel;
 import com.redhat.swatch.common.model.Usage;
+import com.redhat.swatch.contract.model.SlaUsageDefaults;
 import com.redhat.swatch.panache.ModificationTrackedEntity;
 import com.redhat.swatch.panache.Specification;
 import jakarta.persistence.CollectionTable;
@@ -312,17 +313,39 @@ public class SubscriptionEntity extends ModificationTrackedEntity {
     return builder.and(predicates.toArray(Predicate[]::new));
   }
 
-  private static Specification<SubscriptionEntity> slaEquals(ServiceLevel sla) {
+  private static Specification<SubscriptionEntity> slaEquals(
+      ServiceLevel sla, boolean resolveMissingValues) {
+    if (resolveMissingValues && SlaUsageDefaults.isMissing(sla)) {
+      return (root, query, builder) -> builder.disjunction();
+    }
     return (root, query, builder) -> {
       var offeringRoot = root.get(SubscriptionEntity_.offering);
-      return builder.equal(offeringRoot.get(OfferingEntity_.serviceLevel), sla);
+      var serviceLevelPath = offeringRoot.get(OfferingEntity_.serviceLevel);
+      if (resolveMissingValues && sla == SlaUsageDefaults.SERVICE_LEVEL) {
+        return builder.or(builder.equal(serviceLevelPath, sla), builder.isNull(serviceLevelPath));
+      }
+      if (!resolveMissingValues && sla == ServiceLevel.EMPTY) {
+        return builder.or(builder.equal(serviceLevelPath, sla), builder.isNull(serviceLevelPath));
+      }
+      return builder.equal(serviceLevelPath, sla);
     };
   }
 
-  private static Specification<SubscriptionEntity> usageEquals(Usage usage) {
+  private static Specification<SubscriptionEntity> usageEquals(
+      Usage usage, boolean resolveMissingValues) {
+    if (resolveMissingValues && SlaUsageDefaults.isMissing(usage)) {
+      return (root, query, builder) -> builder.disjunction();
+    }
     return (root, query, builder) -> {
       var offeringRoot = root.get(SubscriptionEntity_.offering);
-      return builder.equal(offeringRoot.get(OfferingEntity_.usage), usage);
+      var usagePath = offeringRoot.get(OfferingEntity_.usage);
+      if (resolveMissingValues && usage == SlaUsageDefaults.USAGE) {
+        return builder.or(builder.equal(usagePath, usage), builder.isNull(usagePath));
+      }
+      if (!resolveMissingValues && usage == Usage.EMPTY) {
+        return builder.or(builder.equal(usagePath, usage), builder.isNull(usagePath));
+      }
+      return builder.equal(usagePath, usage);
     };
   }
 
@@ -430,11 +453,18 @@ public class SubscriptionEntity extends ModificationTrackedEntity {
     }
     if (Objects.nonNull(dbReportCriteria.getServiceLevel())
         && !dbReportCriteria.getServiceLevel().equals(ServiceLevel._ANY)) {
-      searchCriteria = searchCriteria.and(slaEquals(dbReportCriteria.getServiceLevel()));
+      searchCriteria =
+          searchCriteria.and(
+              slaEquals(
+                  dbReportCriteria.getServiceLevel(),
+                  dbReportCriteria.isResolvedSlaUsageFiltering()));
     }
     if (Objects.nonNull(dbReportCriteria.getUsage())
         && !dbReportCriteria.getUsage().equals(Usage._ANY)) {
-      searchCriteria = searchCriteria.and(usageEquals(dbReportCriteria.getUsage()));
+      searchCriteria =
+          searchCriteria.and(
+              usageEquals(
+                  dbReportCriteria.getUsage(), dbReportCriteria.isResolvedSlaUsageFiltering()));
     }
     if (Objects.nonNull(dbReportCriteria.getBillingProvider())
         && !dbReportCriteria.getBillingProvider().equals(BillingProvider._ANY)) {

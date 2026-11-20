@@ -95,4 +95,24 @@ public class SubscriptionCapacityView implements Serializable {
   @Column(name = "metrics", insertable = false, updatable = false, columnDefinition = "jsonb")
   @Convert(converter = SubscriptionCapacityViewMetricConverter.class)
   private Set<SubscriptionCapacityViewMetric> metrics = new HashSet<>();
+
+  public SubscriptionCapacityView copyWithServiceLevelAndUsage(
+      ServiceLevel resolvedServiceLevel, Usage resolvedUsage) {
+    return new SubscriptionCapacityView(
+        subscriptionNumber,
+        startDate,
+        endDate,
+        sku,
+        hasUnlimitedUsage,
+        productName,
+        resolvedServiceLevel,
+        resolvedUsage,
+        orgId,
+        billingProvider,
+        billingProviderId,
+        billingAccountId,
+        productTag,
+        quantity,
+        metrics);
+  }
 }

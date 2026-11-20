@@ -46,8 +46,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
@@ -97,7 +97,7 @@ public class UpstreamProductData {
       Arrays.stream(Attr.values())
           .collect(Collectors.toUnmodifiableMap(Attr::name, attr -> attr, (a1, a2) -> a1));
 
-  /** Ignore any product attribute whose value is in this set. */
+  /** Placeholders that can be replaced by inherited attributes. */
   private static final Set<String> ATTRIBUTE_DISALLOWED_VALUES = Set.of("n/a", "0", "none");
 
   private UpstreamProductData(String sku) {
@@ -109,6 +109,7 @@ public class UpstreamProductData {
   private SortedSet<String> derivedChildren = new TreeSet<>();
   private SortedSet<Integer> engOids = new TreeSet<>();
   private EnumMap<Attr, String> attrs = new EnumMap<>(Attr.class);
+  private final EnumMap<Attr, String> slaUsagePlaceholders = new EnumMap<>(Attr.class);
   private List<String> conflicts = new ArrayList<>();
 
   /**
@@ -164,9 +165,7 @@ public class UpstreamProductData {
     }
     if (parent.getAttributes() != null) {
       offer.mapAttributes(
-          parent.getAttributes().stream()
-              .filter(attr -> attributeIsAllowed(attr.getValue()))
-              .collect(Collectors.toMap(AttributeValue::getCode, AttributeValue::getValue)));
+          parent.getAttributes(), AttributeValue::getCode, AttributeValue::getValue);
     }
 
     // For each child, merge its unconflicting information into the parent.
@@ -206,6 +205,16 @@ public class UpstreamProductData {
       return offeringUpstream(product.getSku(), productDataSource);
     }
     UpstreamProductData umbData = createFromUmbMessage(product);
+    if ((existingData.getServiceLevel() == ServiceLevel.EMPTY
+            && !umbData.attrs.containsKey(Attr.SERVICE_TYPE))
+        || (existingData.getUsage() == Usage.EMPTY && !umbData.attrs.containsKey(Attr.USAGE))) {
+      // EMPTY may represent either a missing upstream value or a non-empty value that SWATCH
+      // could not map. The event has no value to disambiguate those cases, so refresh upstream.
+      log.debug(
+          "Must sync SKU={} from data source because the product event omits an SLA or usage value that is stored as EMPTY",
+          product.getSku());
+      return offeringUpstream(product.getSku(), productDataSource);
+    }
     UpstreamProductData existingProductData = UpstreamProductData.createFromOffering(existingData);
     for (Attr attr : existingProductData.attrs.keySet()) {
       if (!umbData.attrs.containsKey(attr)) {
@@ -258,9 +267,9 @@ public class UpstreamProductData {
     }
     if (product.getAttributes() != null) {
       data.mapAttributes(
-          Stream.of(product.getAttributes())
-              .filter(attr -> attributeIsAllowed(attr.getValue()))
-              .collect(Collectors.toMap(ProductAttribute::getCode, ProductAttribute::getValue)));
+          Arrays.asList(product.getAttributes()),
+          ProductAttribute::getCode,
+          ProductAttribute::getValue);
     }
 
     data.attrs.put(Attr.X_DESCRIPTION, product.getSkuDescription());
@@ -356,26 +365,27 @@ public class UpstreamProductData {
     Note 2: ServiceLevel does not represent all values of SERVICE_TYPE seen in prod, which includes:
     Basic, Dev-Professional, Layered, Premium, RHX Basic, Self-Support, Standard.
 
-    Any unmapped SERVICE_TYPEs default to ServiceLevel.EMPTY.
+    Absent or blank SERVICE_TYPE values stay null. Non-empty unmapped values map to
+    ServiceLevel.EMPTY.
 
     For discussions on this topic, see:
     https://docs.google.com/document/d/1t5OlyWanEpwXOA7ysPKuZW61cvYnIScwRMl--hmajXY/edit#heading=h.8dadhnye8ysf
     */
-    var serviceType = attrs.get(Attr.SERVICE_TYPE);
-    var level = ServiceLevel.fromString(serviceType);
+    var serviceType = getSlaUsageAttribute(Attr.SERVICE_TYPE);
+    var level = hasText(serviceType) ? ServiceLevel.fromString(serviceType) : null;
     offering.setServiceLevel(level);
     // If the string-based serviceType had a value, but the ServiceLevel result is still empty,
     // then warn about the unsupported value.
-    if (serviceType != null && level == ServiceLevel.EMPTY) {
+    if (hasText(serviceType) && level == ServiceLevel.EMPTY) {
       log.warn("offeringSku=\"{}\" has unsupported SERVICE_TYPE=\"{}\"", sku, serviceType);
     }
 
-    var usageVal = attrs.get(Attr.USAGE);
-    var usage = Usage.fromString(usageVal);
+    var usageVal = getSlaUsageAttribute(Attr.USAGE);
+    var usage = hasText(usageVal) ? Usage.fromString(usageVal) : null;
     offering.setUsage(usage);
     // If the string-based usageVal had a value, but the Usage result is still empty, then warn
     // about the unsupported value.
-    if (usageVal != null && usage == Usage.EMPTY) {
+    if (hasText(usageVal) && usage == Usage.EMPTY) {
       log.warn("offeringSku=\"{}\" has unsupported USAGE=\"{}\"", sku, usageVal);
     }
 
@@ -412,7 +422,7 @@ public class UpstreamProductData {
           log.warn("No tree found for derivedSku=\"{}\" of offeringSku=\"{}\"", derivedSku, sku);
         } else {
           derivedChildren.addAll(derived.get().children);
-          derived.get().attrs.forEach(this::putIfNoConflict);
+          mergeAttributes(derived.get());
         }
       } catch (ApiException e) {
         throw new ServiceException(
@@ -555,10 +565,7 @@ public class UpstreamProductData {
   private static UpstreamProductData createFromProduct(OperationalProduct product) {
     var mid = new UpstreamProductData(product.getSku());
     if (product.getAttributes() != null) {
-      mid.mapAttributes(
-          product.getAttributes().stream()
-              .filter(attr -> attributeIsAllowed(attr.getValue()))
-              .collect(Collectors.toMap(AttributeValue::getCode, AttributeValue::getValue)));
+      mid.mapAttributes(product.getAttributes(), AttributeValue::getCode, AttributeValue::getValue);
     }
 
     return mid;
@@ -576,10 +583,19 @@ public class UpstreamProductData {
     children.addAll(child.children);
 
     // Values already set by the parent (or by previous children) should not be overwritten.
-    child.attrs.forEach(this::putIfNoConflict);
+    mergeAttributes(child);
 
     // Eng OIDs from the child are not added since they haven't been collected yet. Instead all of
     // the SKUs are collected (parent, children, derived) first and then all Eng OIDs are fetched.
+  }
+
+  private void mergeAttributes(UpstreamProductData source) {
+    source.attrs.forEach(this::putIfNoConflict);
+    source.slaUsagePlaceholders.forEach(slaUsagePlaceholders::putIfAbsent);
+  }
+
+  private String getSlaUsageAttribute(Attr attr) {
+    return attrs.getOrDefault(attr, slaUsagePlaceholders.get(attr));
   }
 
   /**
@@ -601,22 +617,32 @@ public class UpstreamProductData {
     }
   }
 
-  private void mapAttributes(Map<String, String> attributes) {
-    for (Map.Entry<String, String> source : attributes.entrySet()) {
-      Attr destAttr = CODE_TO_ENUM.get(source.getKey());
-      String value = source.getValue();
-      if (destAttr != null && attributeIsAllowed(value)) {
-        putIfNoConflict(destAttr, value);
+  private <T> void mapAttributes(
+      List<T> source, Function<T, String> code, Function<T, String> value) {
+    var attributes =
+        source.stream()
+            .filter(attribute -> attributeIsAllowed(value.apply(attribute)))
+            .collect(Collectors.toMap(code, value));
+    attributes.forEach((key, rawValue) -> {
+      Attr attr = CODE_TO_ENUM.get(key);
+      if (attr != null) {
+        putIfNoConflict(attr, rawValue);
+      }
+    });
+
+    // Keep ignored SLA and usage values for mapping to EMPTY after inheritance.
+    for (T attribute : source) {
+      String key = code.apply(attribute);
+      String rawValue = value.apply(attribute);
+      if (key != null && rawValue != null && !attributeIsAllowed(rawValue)) {
+        Attr attr = CODE_TO_ENUM.get(key);
+        if (attr == Attr.SERVICE_TYPE || attr == Attr.USAGE) {
+          slaUsagePlaceholders.putIfAbsent(attr, rawValue);
+        }
       }
     }
   }
 
-  /**
-   * Checks if the value from the upstream product attribute is non-null and not an "empty" value.
-   *
-   * @param value The attribute value to check
-   * @return true if the value can be used, false if not.
-   */
   private static boolean attributeIsAllowed(String value) {
     return value != null && !ATTRIBUTE_DISALLOWED_VALUES.contains(value.toLowerCase(Locale.US));
   }

@@ -31,6 +31,7 @@ import static com.redhat.swatch.contract.repository.SubscriptionCapacityViewRepo
 import com.redhat.swatch.common.model.ServiceLevel;
 import com.redhat.swatch.common.model.Usage;
 import com.redhat.swatch.configuration.registry.ProductId;
+import com.redhat.swatch.contract.config.FeatureFlags;
 import com.redhat.swatch.contract.model.TallySnapshot;
 import com.redhat.swatch.contract.model.TallySummary;
 import com.redhat.swatch.contract.repository.BillingProvider;
@@ -52,19 +53,23 @@ import lombok.extern.slf4j.Slf4j;
 public class SubscriptionCapacityService {
 
   private final SubscriptionCapacityViewRepository capacityRepository;
+  private final FeatureFlags featureFlags;
 
   @Inject
-  public SubscriptionCapacityService(SubscriptionCapacityViewRepository capacityRepository) {
+  public SubscriptionCapacityService(
+      SubscriptionCapacityViewRepository capacityRepository, FeatureFlags featureFlags) {
     this.capacityRepository = capacityRepository;
+    this.featureFlags = featureFlags;
   }
 
   @Transactional
   public Map<TallySnapshot, List<SubscriptionCapacityView>> getCapacityForTallySummary(
       TallySummary tallySummary) {
     var capacities = new HashMap<TallySnapshot, List<SubscriptionCapacityView>>();
+    boolean resolveMissingSlaUsage = featureFlags.isResolvedSlaUsageFilteringEnabled();
     for (var tallySnapshot : tallySummary.getTallySnapshots()) {
       try (Stream<SubscriptionCapacityView> resultStream =
-          streamCapacities(tallySummary, tallySnapshot)) {
+          streamCapacities(tallySummary, tallySnapshot, resolveMissingSlaUsage)) {
         resultStream.forEach(capacity ->
             capacities.computeIfAbsent(tallySnapshot, k -> new ArrayList<>()).add(capacity));
       }
@@ -74,14 +79,15 @@ public class SubscriptionCapacityService {
   }
 
   private Stream<SubscriptionCapacityView> streamCapacities(
-      TallySummary tallySummary, TallySnapshot tallySnapshot) {
+      TallySummary tallySummary, TallySnapshot tallySnapshot, boolean resolveMissingSlaUsage) {
     Specification<SubscriptionCapacityView> criteria =
-        buildSpecificationForSnapshot(tallySummary.getOrgId(), tallySnapshot);
+        buildSpecificationForSnapshot(
+            tallySummary.getOrgId(), tallySnapshot, resolveMissingSlaUsage);
     return capacityRepository.streamBy(criteria);
   }
 
   private Specification<SubscriptionCapacityView> buildSpecificationForSnapshot(
-      String orgId, TallySnapshot snapshot) {
+      String orgId, TallySnapshot snapshot, boolean resolveMissingSlaUsage) {
     ProductId productId = ProductId.fromString(snapshot.getProductId());
     BillingProvider billingProvider = mapBillingProvider(snapshot.getBillingProvider());
     ServiceLevel serviceLevel = mapServiceLevel(snapshot.getSla());
@@ -92,8 +98,8 @@ public class SubscriptionCapacityService {
     if (productId.isOnDemand()) {
       spec = spec.and(hasBillingProviderId());
     }
-    spec = spec.and(whereServiceLevelAnyOrEqualTo(serviceLevel));
-    spec = spec.and(whereUsageAnyOrEqualTo(usage));
+    spec = spec.and(whereServiceLevelAnyOrEqualTo(serviceLevel, resolveMissingSlaUsage));
+    spec = spec.and(whereUsageAnyOrEqualTo(usage, resolveMissingSlaUsage));
     if (productId.isPayg()) {
       spec = spec.and(whereBillingProviderNullSafeEqual(billingProvider));
       spec = spec.and(whereBillingAccountIdNullSafeEqual(snapshot.getBillingAccountId()));

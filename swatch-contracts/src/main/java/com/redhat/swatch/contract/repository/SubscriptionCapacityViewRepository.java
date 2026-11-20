@@ -30,6 +30,7 @@ import com.redhat.swatch.common.model.ServiceLevel;
 import com.redhat.swatch.common.model.Usage;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
+import com.redhat.swatch.contract.model.SlaUsageDefaults;
 import com.redhat.swatch.panache.PanacheSpecificationSupport;
 import com.redhat.swatch.panache.Specification;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -49,7 +50,7 @@ public class SubscriptionCapacityViewRepository
   }
 
   public static Specification<SubscriptionCapacityView> buildSearchSpecification(String orgId) {
-    return buildSearchSpecification(orgId, null, null, null, null, null, null, null);
+    return buildSearchSpecification(orgId, null, null, null, null, null, null, null, false);
   }
 
   @SuppressWarnings("java:S107")
@@ -62,6 +63,29 @@ public class SubscriptionCapacityViewRepository
       BillingProvider billingProvider,
       String billingAccountId,
       String metricId) {
+    return buildSearchSpecification(
+        orgId,
+        productId,
+        category,
+        serviceLevel,
+        usage,
+        billingProvider,
+        billingAccountId,
+        metricId,
+        false);
+  }
+
+  @SuppressWarnings("java:S107")
+  public static Specification<SubscriptionCapacityView> buildSearchSpecification(
+      String orgId,
+      ProductId productId,
+      ReportCategory category,
+      ServiceLevel serviceLevel,
+      Usage usage,
+      BillingProvider billingProvider,
+      String billingAccountId,
+      String metricId,
+      boolean resolveMissingSlaUsage) {
     ServiceLevel sanitizedServiceLevel = sanitizeServiceLevel(serviceLevel);
     Usage sanitizedUsage = sanitizeUsage(usage);
     BillingProvider sanitizedBillingProvider = sanitizeBillingProvider(billingProvider);
@@ -80,10 +104,10 @@ public class SubscriptionCapacityViewRepository
     }
     if (Objects.nonNull(sanitizedServiceLevel)
         && !sanitizedServiceLevel.equals(ServiceLevel._ANY)) {
-      searchCriteria = searchCriteria.and(slaEquals(sanitizedServiceLevel));
+      searchCriteria = searchCriteria.and(slaEquals(sanitizedServiceLevel, resolveMissingSlaUsage));
     }
     if (Objects.nonNull(sanitizedUsage) && !sanitizedUsage.equals(Usage._ANY)) {
-      searchCriteria = searchCriteria.and(usageEquals(sanitizedUsage));
+      searchCriteria = searchCriteria.and(usageEquals(sanitizedUsage, resolveMissingSlaUsage));
     }
     if (Objects.nonNull(sanitizedBillingProvider)
         && !sanitizedBillingProvider.equals(BillingProvider._ANY)) {
@@ -124,14 +148,46 @@ public class SubscriptionCapacityViewRepository
         builder.like(root.get(SubscriptionCapacityView_.billingAccountId), value + "%");
   }
 
+  public static Specification<SubscriptionCapacityView> slaEquals(
+      ServiceLevel sla, boolean resolveMissingValues) {
+    if (resolveMissingValues && SlaUsageDefaults.isMissing(sla)) {
+      return (root, query, builder) -> builder.disjunction();
+    }
+    return (root, query, builder) -> {
+      var serviceLevelPath = root.get(SubscriptionCapacityView_.serviceLevel);
+      if (resolveMissingValues && sla == SlaUsageDefaults.SERVICE_LEVEL) {
+        return builder.or(builder.equal(serviceLevelPath, sla), builder.isNull(serviceLevelPath));
+      }
+      if (!resolveMissingValues && sla == ServiceLevel.EMPTY) {
+        return builder.or(builder.equal(serviceLevelPath, sla), builder.isNull(serviceLevelPath));
+      }
+      return builder.equal(serviceLevelPath, sla);
+    };
+  }
+
   public static Specification<SubscriptionCapacityView> slaEquals(ServiceLevel sla) {
-    return (root, query, builder) ->
-        builder.equal(root.get(SubscriptionCapacityView_.serviceLevel), sla);
+    return slaEquals(sla, false);
+  }
+
+  public static Specification<SubscriptionCapacityView> usageEquals(
+      Usage usage, boolean resolveMissingValues) {
+    if (resolveMissingValues && SlaUsageDefaults.isMissing(usage)) {
+      return (root, query, builder) -> builder.disjunction();
+    }
+    return (root, query, builder) -> {
+      var usagePath = root.get(SubscriptionCapacityView_.usage);
+      if (resolveMissingValues && usage == SlaUsageDefaults.USAGE) {
+        return builder.or(builder.equal(usagePath, usage), builder.isNull(usagePath));
+      }
+      if (!resolveMissingValues && usage == Usage.EMPTY) {
+        return builder.or(builder.equal(usagePath, usage), builder.isNull(usagePath));
+      }
+      return builder.equal(usagePath, usage);
+    };
   }
 
   public static Specification<SubscriptionCapacityView> usageEquals(Usage usage) {
-    return (root, query, builder) ->
-        builder.equal(root.get(SubscriptionCapacityView_.usage), usage);
+    return usageEquals(usage, false);
   }
 
   public static Specification<SubscriptionCapacityView> billingProviderEquals(
@@ -187,9 +243,16 @@ public class SubscriptionCapacityViewRepository
   }
 
   public static Specification<SubscriptionCapacityView> whereServiceLevelAnyOrEqualTo(
-      ServiceLevel requested) {
+      ServiceLevel requested, boolean resolveMissingValues) {
     if (!hasConcreteServiceLevel(requested)) {
       return (root, query, cb) -> cb.conjunction();
+    }
+    if (resolveMissingValues) {
+      // Utilization treats unmapped values and explicit _ANY as wildcards.
+      return slaEquals(requested, true)
+          .or((root, query, cb) ->
+              root.get(SubscriptionCapacityView_.serviceLevel)
+                  .in(ServiceLevel._ANY, ServiceLevel.EMPTY));
     }
     return (root, query, cb) -> {
       var path = root.get(SubscriptionCapacityView_.serviceLevel);
@@ -197,14 +260,29 @@ public class SubscriptionCapacityViewRepository
     };
   }
 
-  public static Specification<SubscriptionCapacityView> whereUsageAnyOrEqualTo(Usage requested) {
+  public static Specification<SubscriptionCapacityView> whereServiceLevelAnyOrEqualTo(
+      ServiceLevel requested) {
+    return whereServiceLevelAnyOrEqualTo(requested, false);
+  }
+
+  public static Specification<SubscriptionCapacityView> whereUsageAnyOrEqualTo(
+      Usage requested, boolean resolveMissingValues) {
     if (!hasConcreteUsage(requested)) {
       return (root, query, cb) -> cb.conjunction();
+    }
+    if (resolveMissingValues) {
+      return usageEquals(requested, true)
+          .or((root, query, cb) ->
+              root.get(SubscriptionCapacityView_.usage).in(Usage._ANY, Usage.EMPTY));
     }
     return (root, query, cb) -> {
       var path = root.get(SubscriptionCapacityView_.usage);
       return cb.or(cb.isNull(path), path.in(Usage._ANY, Usage.EMPTY, requested));
     };
+  }
+
+  public static Specification<SubscriptionCapacityView> whereUsageAnyOrEqualTo(Usage requested) {
+    return whereUsageAnyOrEqualTo(requested, false);
   }
 
   public static Specification<SubscriptionCapacityView> whereBillingProviderNullSafeEqual(

@@ -22,6 +22,7 @@ package com.redhat.swatch.contract.service;
 
 import static com.redhat.swatch.contract.config.Channels.OFFERING_SYNC;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -33,12 +34,14 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.redhat.swatch.clients.product.api.model.AttributeValue;
 import com.redhat.swatch.clients.product.api.model.EngineeringProductMap;
 import com.redhat.swatch.clients.product.api.model.OperationalProduct;
 import com.redhat.swatch.clients.product.api.model.RESTProductTree;
 import com.redhat.swatch.clients.product.api.model.SkuEngProduct;
 import com.redhat.swatch.common.model.ServiceLevel;
 import com.redhat.swatch.common.model.Usage;
+import com.redhat.swatch.contract.config.FeatureFlags;
 import com.redhat.swatch.contract.config.ProductDenylist;
 import com.redhat.swatch.contract.model.OfferingSyncTask;
 import com.redhat.swatch.contract.model.SyncResult;
@@ -70,6 +73,7 @@ import org.mockito.Mockito;
 class OfferingSyncServiceTest {
 
   @InjectMock OfferingRepository repo;
+  @InjectMock FeatureFlags featureFlags;
   @InjectMock ProductDenylist denylist;
   @InjectMock CapacityReconciliationService capController;
   @InjectMock OfferingProductTagLookupService offeringProductTagLookupService;
@@ -101,6 +105,61 @@ class OfferingSyncServiceTest {
     assertEquals(SyncResult.FETCHED_AND_SYNCED, result);
     verify(repo).merge(any(OfferingEntity.class));
     verify(capController).enqueueReconcileCapacityForOffering("MW01485");
+  }
+
+  @Test
+  void testSyncOfferingPersistsDefaultsWhenEnabled() {
+    when(featureFlags.isResolvedSlaUsageFilteringEnabled()).thenReturn(true);
+    when(repo.findByIdOptional(anyString())).thenReturn(Optional.empty());
+
+    assertEquals(SyncResult.FETCHED_AND_SYNCED, subject.syncOffering("MW01485"));
+
+    var offering = ArgumentCaptor.forClass(OfferingEntity.class);
+    verify(repo).merge(offering.capture());
+    assertEquals(ServiceLevel.PREMIUM, offering.getValue().getServiceLevel());
+    assertEquals(Usage.PRODUCTION, offering.getValue().getUsage());
+  }
+
+  @Test
+  void testSyncOfferingKeepsMissingUsageWhenDisabled() {
+    when(featureFlags.isResolvedSlaUsageFilteringEnabled()).thenReturn(false);
+    when(repo.findByIdOptional(anyString())).thenReturn(Optional.empty());
+
+    subject.syncOffering("MW01485");
+
+    var offering = ArgumentCaptor.forClass(OfferingEntity.class);
+    verify(repo).merge(offering.capture());
+    assertEquals(ServiceLevel.PREMIUM, offering.getValue().getServiceLevel());
+    assertNull(offering.getValue().getUsage());
+  }
+
+  @Test
+  void testSyncOfferingComparesNormalizedValuesBeforePersisting() {
+    when(featureFlags.isResolvedSlaUsageFilteringEnabled()).thenReturn(true);
+    var persisted = createStubProductApiOffering();
+    persisted.setUsage(Usage.PRODUCTION);
+    when(repo.findByIdOptional("MW01485")).thenReturn(Optional.of(persisted));
+
+    assertEquals(SyncResult.SKIPPED_MATCHING, subject.syncOffering("MW01485"));
+
+    verify(repo, never()).merge(any(OfferingEntity.class));
+    verifyNoInteractions(capController);
+  }
+
+  @Test
+  void testSyncOfferingRemovesUpstreamUsageWhenFlagIsDisabled() {
+    when(featureFlags.isResolvedSlaUsageFilteringEnabled()).thenReturn(false);
+    var persisted = createStubProductApiOffering();
+    persisted.setUsage(Usage.PRODUCTION);
+    when(repo.findByIdOptional("MW01485")).thenReturn(Optional.of(persisted));
+
+    assertEquals(SyncResult.FETCHED_AND_SYNCED, subject.syncOffering("MW01485"));
+
+    var offering = ArgumentCaptor.forClass(OfferingEntity.class);
+    verify(repo).merge(offering.capture());
+    assertEquals(ServiceLevel.PREMIUM, offering.getValue().getServiceLevel());
+    assertNull(offering.getValue().getUsage());
+    verifyNoInteractions(capController);
   }
 
   @Test
@@ -143,7 +202,7 @@ class OfferingSyncServiceTest {
             491, 311, 194, 197, 317, 318, 201, 205, 326, 329, 271, 518, 579, 519, 458, 645, 588,
             408, 290, 473, 479, 240, 603, 604, 185, 546, 608, 69, 70, 610));
     persisted.setServiceLevel(ServiceLevel.PREMIUM);
-    persisted.setUsage(Usage.EMPTY);
+    persisted.setUsage(null);
     persisted.setHasUnlimitedUsage(false);
     persisted.setMetered(false);
 
@@ -205,6 +264,29 @@ class OfferingSyncServiceTest {
     assertEquals(
         2, numEnqueued, "Number of enqueued offerings should match distinct skus in repo.");
     assertEquals(2, offeringSyncTaskSink.received().size());
+    verify(repo, never()).applySlaUsageDefaults(any());
+  }
+
+  @Test
+  void testSyncAllOfferingsBackfillsOnlyEligibleSkus() {
+    when(featureFlags.isResolvedSlaUsageFilteringEnabled()).thenReturn(true);
+    when(repo.findAllDistinctSkus()).thenReturn(Set.of("RH00604F5", "denied"));
+    when(denylist.productIdMatches("denied")).thenReturn(true);
+
+    assertEquals(2, subject.syncAllOfferings());
+
+    verify(repo).applySlaUsageDefaults(List.of("RH00604F5"));
+  }
+
+  @Test
+  void testSyncAllOfferingsSkipsBackfillWhenReadOnly() {
+    when(featureFlags.isResolvedSlaUsageFilteringEnabled()).thenReturn(true);
+    when(featureFlags.isReadOnly()).thenReturn(true);
+    when(repo.findAllDistinctSkus()).thenReturn(Set.of("RH00604F5"));
+
+    subject.syncAllOfferings();
+
+    verify(repo, never()).applySlaUsageDefaults(any());
   }
 
   @Test
@@ -222,9 +304,48 @@ class OfferingSyncServiceTest {
 
   @Test
   void testSaveOffering() throws JsonProcessingException {
+    saveOfferingFromJson();
+    var offering = ArgumentCaptor.forClass(OfferingEntity.class);
+    verify(repo).persist(offering.capture());
+    assertNull(offering.getValue().getServiceLevel());
+    assertNull(offering.getValue().getUsage());
+  }
+
+  @Test
+  void testSaveOfferingPersistsDefaultsWhenEnabled() throws JsonProcessingException {
+    when(featureFlags.isResolvedSlaUsageFilteringEnabled()).thenReturn(true);
+
+    saveOfferingFromJson();
+
+    var offering = ArgumentCaptor.forClass(OfferingEntity.class);
+    verify(repo).persist(offering.capture());
+    assertEquals(ServiceLevel.PREMIUM, offering.getValue().getServiceLevel());
+    assertEquals(Usage.PRODUCTION, offering.getValue().getUsage());
+  }
+
+  @Test
+  void testSaveOfferingKeepsUnmappedValuesEmptyWhenEnabled() throws JsonProcessingException {
+    when(featureFlags.isResolvedSlaUsageFilteringEnabled()).thenReturn(true);
+
+    saveOfferingFromJson(
+        new AttributeValue().code("SERVICE_TYPE").value("Unmapped SLA"),
+        new AttributeValue().code("USAGE").value("Unmapped usage"));
+
+    var offering = ArgumentCaptor.forClass(OfferingEntity.class);
+    verify(repo).persist(offering.capture());
+    assertEquals(ServiceLevel.EMPTY, offering.getValue().getServiceLevel());
+    assertEquals(Usage.EMPTY, offering.getValue().getUsage());
+  }
+
+  private void saveOfferingFromJson(AttributeValue... attributes) throws JsonProcessingException {
     ObjectMapper objectMapper = new ObjectMapper();
     RESTProductTree product =
-        new RESTProductTree().addProductsItem(new OperationalProduct().sku("sku").roles(List.of()));
+        new RESTProductTree()
+            .addProductsItem(
+                new OperationalProduct()
+                    .sku("sku")
+                    .roles(List.of())
+                    .attributes(List.of(attributes)));
     RESTProductTree[] offerings = new RESTProductTree[] {product};
     EngineeringProductMap engProductMap =
         new EngineeringProductMap().addEntriesItem(new SkuEngProduct().sku("sku"));
@@ -232,7 +353,6 @@ class OfferingSyncServiceTest {
     String offeringsJson = objectMapper.writeValueAsString(offerings);
     String engProdJson = objectMapper.writeValueAsString(engProds);
     subject.saveOfferings(offeringsJson, offeringsJson, engProdJson);
-    verify(repo).persist(any(OfferingEntity.class));
   }
 
   @Test
@@ -276,6 +396,36 @@ class OfferingSyncServiceTest {
     verify(repo).merge(actual.capture());
     // this shows that the eng ids were derived from the product service's definition of the SVC sku
     assertEquals(30, actual.getValue().getProductIds().size());
+  }
+
+  @Test
+  void testSyncProductEventPersistsDefaultsWhenEnabled() {
+    when(featureFlags.isResolvedSlaUsageFilteringEnabled()).thenReturn(true);
+    when(repo.findByIdOptional("MW01485")).thenReturn(Optional.empty());
+
+    assertEquals(
+        SyncResult.FETCHED_AND_SYNCED,
+        subject.syncProductFromEvent(new OperationalProductEvent().productCode("MW01485")));
+
+    var offering = ArgumentCaptor.forClass(OfferingEntity.class);
+    verify(repo).merge(offering.capture());
+    assertEquals(ServiceLevel.PREMIUM, offering.getValue().getServiceLevel());
+    assertEquals(Usage.PRODUCTION, offering.getValue().getUsage());
+  }
+
+  @Test
+  void testSyncProductEventLeavesDenylistedUsageUnset() {
+    when(featureFlags.isResolvedSlaUsageFilteringEnabled()).thenReturn(true);
+    when(denylist.productIdMatches("MW01485")).thenReturn(true);
+    when(repo.findByIdOptional("MW01485")).thenReturn(Optional.empty());
+
+    assertEquals(
+        SyncResult.FETCHED_AND_SYNCED,
+        subject.syncProductFromEvent(new OperationalProductEvent().productCode("MW01485")));
+
+    var offering = ArgumentCaptor.forClass(OfferingEntity.class);
+    verify(repo).merge(offering.capture());
+    assertNull(offering.getValue().getUsage());
   }
 
   @Test
@@ -330,7 +480,7 @@ class OfferingSyncServiceTest {
             608, 546, 185, 604, 603, 240, 479, 473, 290, 408, 588, 645));
     expectedOffering.setServiceLevel(ServiceLevel.PREMIUM);
     expectedOffering.setHasUnlimitedUsage(false);
-    expectedOffering.setUsage(Usage.EMPTY);
+    expectedOffering.setUsage(null);
     expectedOffering.setMetered(false);
     return expectedOffering;
   }
