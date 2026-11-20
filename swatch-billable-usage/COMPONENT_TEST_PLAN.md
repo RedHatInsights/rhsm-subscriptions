@@ -693,6 +693,23 @@ These scenarios verify that contract coverage applies independently to managed a
 - **Expected Result:**
   - Contract validity follows snapshot date, not message arrival time
 
+**billable-usage-contract-adjustment-TC015 - Monthly covered usage is retained when one of two contracts expires**
+
+- **Description:** Contract validity is evaluated at the tally snapshot date. When one of two overlapping contracts expires, its previously booked `COVERED` usage still counts toward the month's total, but only the active contract can cover additional usage.
+- **Setup:**
+  - ROSA Instance-hours only; all snapshots fall in the same UTC billing month.
+  - The contracts start together, but `license-a` (capacity 40) ends before `license-b` (capacity 30). The stub returns both contracts throughout the test.
+- **Action:**
+  - Phase 1: Publish a tally with `current_total=55` while both contracts are active.
+  - Phase 2: Publish a tally with `current_total=70` at `license-a`'s exclusive end.
+  - Phase 3: Publish a tally with `current_total=85` while only `license-b` is active.
+- **Verification:**
+  - After phase 1: overage **0**; `COVERED` **55** (earlier-ending `license-a`: 40, `license-b`: 15).
+  - After phase 2: overage **0**; `COVERED` **70** (`license-a`: 40 unchanged, `license-b`: 30 after using its remaining 15).
+  - After phase 3: total overage **15**, attributed to `license-b`; `COVERED` remains **70**.
+- **Expected Result:**
+  - Expiration does not make previously covered usage billable again. Once the active contract runs out of capacity, only the uncovered increment is remitted.
+
 ---
 
 ## Hourly Aggregation (Kafka Streams)
