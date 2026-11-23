@@ -121,3 +121,7 @@ The service exposes several metrics for monitoring:
 - `swatch_aws_marketplace_batch_rejected_total`: Count of usage records rejected by AWS
 - `swatch_aws_marketplace_batch_ignored_total`: Count of usage records ignored (dry run, validation failures)
 - `swatch_producer_metered_total`: Total usage metered by product, metric, and billing provider
+- `swatch_producer_aws_remittance_attempts_total`: Count of remittance attempts (one per processed
+  aggregate) by product, metric, billing provider, status, error code, and `quantity`
+  (`zero` or `non_zero`). Use this metric to observe zero-quantity remittances, which do not change
+  `swatch_producer_metered_total`.
