@@ -40,6 +40,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 class UpstreamProductDataTest {
 
@@ -77,13 +79,14 @@ class UpstreamProductDataTest {
     assertEquals(Usage.EMPTY, offering.getUsage());
   }
 
-  @Test
-  void inheritsSlaAndUsageOverPlaceholders() {
+  @ParameterizedTest
+  @CsvSource({"n/a, none", "'  ', ''"})
+  void inheritsSlaAndUsageOverPlaceholders(String parentSla, String parentUsage) {
     String derivedSku = "sla-usage-derived";
     var tree =
         productTree(
-            attribute("SERVICE_TYPE", "n/a"),
-            attribute("USAGE", "none"),
+            attribute("SERVICE_TYPE", parentSla),
+            attribute("USAGE", parentUsage),
             attribute("DERIVED_SKU", derivedSku));
     var standard = attribute("SERVICE_TYPE", "Standard");
     tree.addProductsItem(product("SVC-child", standard));
@@ -98,6 +101,18 @@ class UpstreamProductDataTest {
 
     assertEquals(ServiceLevel.STANDARD, offering.getServiceLevel());
     assertEquals(Usage.DEVELOPMENT_TEST, offering.getUsage());
+  }
+
+  @Test
+  void retainsParentSlaAndUsagePlaceholdersOverBlankChildValues() {
+    var tree = productTree(attribute("SERVICE_TYPE", "n/a"), attribute("USAGE", "none"));
+    tree.addProductsItem(
+        product("SVC-child", attribute("SERVICE_TYPE", "  "), attribute("USAGE", "")));
+
+    var offering = offeringFromTree(tree);
+
+    assertEquals(ServiceLevel.EMPTY, offering.getServiceLevel());
+    assertEquals(Usage.EMPTY, offering.getUsage());
   }
 
   @Test
@@ -156,8 +171,8 @@ class UpstreamProductDataTest {
     return new RESTProductTree().addProductsItem(product);
   }
 
-  private static OperationalProduct product(String sku, AttributeValue attr) {
-    return new OperationalProduct().sku(sku).attributes(List.of(attr));
+  private static OperationalProduct product(String sku, AttributeValue... attributes) {
+    return new OperationalProduct().sku(sku).attributes(List.of(attributes));
   }
 
   private static AttributeValue attribute(String code, String value) {

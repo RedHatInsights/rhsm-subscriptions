@@ -195,6 +195,7 @@ public class UpstreamProductData {
    * @param existingData existing offering from swatch DB if present, or null
    * @param productDataSource external data source used to lookup SKU info when needed
    * @return the resulting offering, or Optional.empty() if the SKU doesn't exist in data source
+   * @throws ServiceException if the upstream product service returns an error
    */
   public static Optional<OfferingEntity> offeringFromUmbData(
       UmbOperationalProduct product,
@@ -202,7 +203,7 @@ public class UpstreamProductData {
       ProductDataSource productDataSource) {
     if (existingData == null) {
       log.debug("Must sync SKU={} from data source because no existing data", product.getSku());
-      return offeringUpstream(product.getSku(), productDataSource);
+      return offeringFromUpstream(product.getSku(), productDataSource);
     }
     UpstreamProductData umbData = createFromUmbMessage(product);
     if ((existingData.getServiceLevel() == ServiceLevel.EMPTY
@@ -213,7 +214,7 @@ public class UpstreamProductData {
       log.debug(
           "Must sync SKU={} from data source because the product event omits an SLA or usage value that is stored as EMPTY",
           product.getSku());
-      return offeringUpstream(product.getSku(), productDataSource);
+      return offeringFromUpstream(product.getSku(), productDataSource);
     }
     UpstreamProductData existingProductData = UpstreamProductData.createFromOffering(existingData);
     for (Attr attr : existingProductData.attrs.keySet()) {
@@ -224,7 +225,7 @@ public class UpstreamProductData {
             "Must sync SKU={} from data source because attribute={} is not defined in UMB message, but may be defined in child/derived SKU",
             product.getSku(),
             attr);
-        return offeringUpstream(product.getSku(), productDataSource);
+        return offeringFromUpstream(product.getSku(), productDataSource);
       }
     }
     if (!Objects.equals(umbData.children, existingProductData.children)) {
@@ -233,7 +234,7 @@ public class UpstreamProductData {
           product.getSku(),
           existingProductData.children,
           umbData.children);
-      return offeringUpstream(product.getSku(), productDataSource);
+      return offeringFromUpstream(product.getSku(), productDataSource);
     }
     String umbDerivedSku = umbData.attrs.get(Attr.DERIVED_SKU);
     String existingDerivedSku = existingProductData.attrs.get(Attr.DERIVED_SKU);
@@ -243,21 +244,11 @@ public class UpstreamProductData {
           product.getSku(),
           existingDerivedSku,
           umbDerivedSku);
-      return offeringUpstream(product.getSku(), productDataSource);
+      return offeringFromUpstream(product.getSku(), productDataSource);
     }
     existingProductData.attrs.forEach(umbData::putIfNoConflict);
     umbData.engOids.addAll(existingProductData.engOids);
     return Optional.of(umbData.toOffering());
-  }
-
-  private static Optional<OfferingEntity> offeringUpstream(
-      String sku, ProductDataSource productDataSource) {
-    try {
-      return UpstreamProductData.offeringFromUpstream(sku, productDataSource);
-    } catch (ServiceException e) {
-      log.warn("Error enriching upstream offering data for SKU: {}", sku, e);
-      return Optional.empty();
-    }
   }
 
   private static UpstreamProductData createFromUmbMessage(UmbOperationalProduct product) {
@@ -621,7 +612,7 @@ public class UpstreamProductData {
       List<T> source, Function<T, String> code, Function<T, String> value) {
     var attributes =
         source.stream()
-            .filter(attribute -> attributeIsAllowed(value.apply(attribute)))
+            .filter(attribute -> attributeIsAllowed(code.apply(attribute), value.apply(attribute)))
             .collect(Collectors.toMap(code, value));
     attributes.forEach((key, rawValue) -> {
       Attr attr = CODE_TO_ENUM.get(key);
@@ -630,21 +621,24 @@ public class UpstreamProductData {
       }
     });
 
-    // Keep ignored SLA and usage values for mapping to EMPTY after inheritance.
+    // Keep SLA and usage placeholders as fallbacks after inheritance.
     for (T attribute : source) {
       String key = code.apply(attribute);
       String rawValue = value.apply(attribute);
-      if (key != null && rawValue != null && !attributeIsAllowed(rawValue)) {
-        Attr attr = CODE_TO_ENUM.get(key);
-        if (attr == Attr.SERVICE_TYPE || attr == Attr.USAGE) {
-          slaUsagePlaceholders.putIfAbsent(attr, rawValue);
-        }
+      if (isSlaOrUsage(key) && rawValue != null && !attributeIsAllowed(key, rawValue)) {
+        slaUsagePlaceholders.putIfAbsent(CODE_TO_ENUM.get(key), rawValue);
       }
     }
   }
 
-  private static boolean attributeIsAllowed(String value) {
-    return value != null && !ATTRIBUTE_DISALLOWED_VALUES.contains(value.toLowerCase(Locale.US));
+  private static boolean attributeIsAllowed(String code, String value) {
+    return value != null
+        && (!isSlaOrUsage(code) || !value.isBlank())
+        && !ATTRIBUTE_DISALLOWED_VALUES.contains(value.toLowerCase(Locale.US));
+  }
+
+  private static boolean isSlaOrUsage(String code) {
+    return Attr.SERVICE_TYPE.name().equals(code) || Attr.USAGE.name().equals(code);
   }
 
   private static boolean hasText(String str) {

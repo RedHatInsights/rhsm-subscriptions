@@ -20,25 +20,36 @@
  */
 package com.redhat.swatch.contract.service;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static com.redhat.swatch.contract.config.Channels.IT_OFFERING_SYNC;
 import static com.redhat.swatch.contract.config.Channels.OFFERING_SYNC;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.tomakehurst.wiremock.WireMockServer;
+import com.redhat.swatch.clients.product.ProductService;
 import com.redhat.swatch.clients.product.api.model.AttributeValue;
 import com.redhat.swatch.clients.product.api.model.EngineeringProductMap;
 import com.redhat.swatch.clients.product.api.model.OperationalProduct;
 import com.redhat.swatch.clients.product.api.model.RESTProductTree;
 import com.redhat.swatch.clients.product.api.model.SkuEngProduct;
+import com.redhat.swatch.clients.product.api.resources.ApiException;
 import com.redhat.swatch.common.model.ServiceLevel;
 import com.redhat.swatch.common.model.Usage;
 import com.redhat.swatch.contract.config.FeatureFlags;
@@ -48,21 +59,29 @@ import com.redhat.swatch.contract.model.SyncResult;
 import com.redhat.swatch.contract.openapi.model.OperationalProductEvent;
 import com.redhat.swatch.contract.repository.OfferingEntity;
 import com.redhat.swatch.contract.repository.OfferingRepository;
+import com.redhat.swatch.contract.test.resources.InjectWireMock;
 import com.redhat.swatch.contract.test.resources.WireMockResource;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.mockito.InjectSpy;
 import io.smallrye.reactive.messaging.memory.InMemoryConnector;
 import io.smallrye.reactive.messaging.memory.InMemorySink;
 import jakarta.enterprise.inject.Any;
 import jakarta.inject.Inject;
 import jakarta.persistence.PersistenceException;
+import jakarta.ws.rs.ProcessingException;
+import jakarta.ws.rs.core.Response;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.SocketTimeoutException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -77,8 +96,10 @@ class OfferingSyncServiceTest {
   @InjectMock ProductDenylist denylist;
   @InjectMock CapacityReconciliationService capController;
   @InjectMock OfferingProductTagLookupService offeringProductTagLookupService;
+  @InjectSpy ProductService productService;
   @Inject @Any InMemoryConnector connector;
   @Inject OfferingSyncService subject;
+  @InjectWireMock WireMockServer wireMockServer;
 
   InMemorySink<OfferingSyncTask> offeringSyncTaskSink;
 
@@ -396,6 +417,59 @@ class OfferingSyncServiceTest {
     verify(repo).merge(actual.capture());
     // this shows that the eng ids were derived from the product service's definition of the SVC sku
     assertEquals(30, actual.getValue().getProductIds().size());
+  }
+
+  @Test
+  void testProductEventIsAcknowledgedAfterRetryingUpstreamLookup() throws Exception {
+    var stored = createTestOffering();
+    stored.setServiceLevel(ServiceLevel.EMPTY);
+    stored.setUsage(Usage.EMPTY);
+    stored.setSockets(1);
+    String sku = stored.getSku();
+    when(repo.findByIdOptional(sku)).thenReturn(Optional.of(stored));
+
+    doThrow(new ApiException(Response.status(Response.Status.SERVICE_UNAVAILABLE).build()))
+        .doCallRealMethod()
+        .when(productService)
+        .getTree(sku);
+
+    var acknowledged = new CompletableFuture<Void>();
+    connector
+        .source(IT_OFFERING_SYNC)
+        .send(
+            Message.of(
+                read(),
+                () -> {
+                  acknowledged.complete(null);
+                  return acknowledged;
+                }));
+    acknowledged.get(10, TimeUnit.SECONDS);
+
+    verify(productService, times(2)).getTree(sku);
+    var offering = ArgumentCaptor.forClass(OfferingEntity.class);
+    verify(repo).merge(offering.capture());
+    assertEquals(ServiceLevel.STANDARD, offering.getValue().getServiceLevel());
+    assertEquals(Usage.PRODUCTION, offering.getValue().getUsage());
+    assertEquals(2, offering.getValue().getSockets());
+    verify(capController).enqueueReconcileCapacityForOffering(sku);
+  }
+
+  @Test
+  void testProductLookupDoesNotRetryUnreadableResponse() {
+    String sku = "unreadable-product-tree";
+    wireMockServer.stubFor(
+        get(urlPathEqualTo("/mock/product/products/" + sku + "/tree"))
+            .willReturn(okJson("{\"products\":{}}")));
+
+    var failure = assertThrows(ProcessingException.class, () -> productService.getTree(sku));
+    var retry = new ProductStatusKafkaMessageConsumer.TransientProductLookupFailure().test(failure);
+    assertFalse(retry, failure::toString);
+  }
+
+  @Test
+  void testProductLookupRetriesSocketTimeout() {
+    var failure = new ProcessingException(new SocketTimeoutException());
+    assertTrue(new ProductStatusKafkaMessageConsumer.TransientProductLookupFailure().test(failure));
   }
 
   @Test

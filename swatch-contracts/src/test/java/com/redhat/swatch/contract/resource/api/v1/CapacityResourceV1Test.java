@@ -707,10 +707,11 @@ class CapacityResourceV1Test {
     assertEquals(expected, actual.body().jsonPath().getList("data").size());
   }
 
-  @Test
-  void testReportByMetricIdShouldCalculateCapacityEvenWhenUnlimited() {
+  @ParameterizedTest
+  @ValueSource(booleans = {false, true})
+  void testReportByMetricIdShouldCalculateCapacityEvenWhenUnlimited(boolean openEnded) {
     var begin = min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1);
-    var unlimited = datedSubscription(begin, max);
+    var unlimited = datedSubscription(begin, openEnded ? null : max);
     unlimited.setSubscriptionNumber("unlimited123");
     var unlimitedOffering =
         OfferingEntity.builder().sku("unlimitedsku").hasUnlimitedUsage(true).build();
@@ -754,6 +755,7 @@ class CapacityResourceV1Test {
 
     CapacitySnapshotByMetricId capacitySnapshot = report.getData().get(0);
     assertEquals(4, capacitySnapshot.getValue());
+    assertTrue(capacitySnapshot.getHasInfiniteQuantity());
   }
 
   @Test

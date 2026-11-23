@@ -194,7 +194,9 @@ public class CapacityResourceV1 implements CapacityApi {
   private boolean hasInfiniteQuantity(
       OffsetDateTime date, List<SubscriptionEntity> unlimitedSubscriptions) {
     for (SubscriptionEntity subscription : unlimitedSubscriptions) {
-      if (subscription.getStartDate().isBefore(date) && subscription.getEndDate().isAfter(date)) {
+      var endDate = subscription.getEndDate();
+      if (subscription.getStartDate().isBefore(date)
+          && (Objects.isNull(endDate) || endDate.isAfter(date))) {
         return true;
       }
     }
