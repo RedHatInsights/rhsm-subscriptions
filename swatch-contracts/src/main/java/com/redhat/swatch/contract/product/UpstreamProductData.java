@@ -30,8 +30,6 @@ import com.redhat.swatch.common.model.ServiceLevel;
 import com.redhat.swatch.common.model.Usage;
 import com.redhat.swatch.contract.exception.ErrorCode;
 import com.redhat.swatch.contract.exception.ServiceException;
-import com.redhat.swatch.contract.product.umb.ProductAttribute;
-import com.redhat.swatch.contract.product.umb.UmbOperationalProduct;
 import com.redhat.swatch.contract.repository.OfferingEntity;
 import jakarta.ws.rs.core.Response;
 import java.util.ArrayList;
@@ -174,154 +172,28 @@ public class UpstreamProductData {
     return offer;
   }
 
-  /**
-   * Compose offering data using a UMB message, using external data source if needed.
-   *
-   * <p>There are 4 use cases where we must an external data source:
-   *
-   * <ul>
-   *   <li>Offering not seen before - we need to fetch eng IDs and attributes for any child/derived
-   *       SKUs
-   *   <li>Offering has child SKU changes - we need to fetch eng IDs and attributes for child SKUs
-   *   <li>Offering has derived SKU changes - we need to fetch eng IDs and attributes for derived
-   *       SKU and its children
-   *   <li>Offering has attributes not present in the UMB message - we must assume these may have
-   *       been "inherited" from a child/derived SKU.
-   * </ul>
-   *
-   * <p>(Future work could cache more information to reduce data source usage).
-   *
-   * @param product umb data for the offering
-   * @param existingData existing offering from swatch DB if present, or null
-   * @param productDataSource external data source used to lookup SKU info when needed
-   * @return the resulting offering, or Optional.empty() if the SKU doesn't exist in data source
-   * @throws ServiceException if the upstream product service returns an error
-   */
-  public static Optional<OfferingEntity> offeringFromUmbData(
-      UmbOperationalProduct product,
-      OfferingEntity existingData,
-      ProductDataSource productDataSource) {
-    if (existingData == null) {
-      log.debug("Must sync SKU={} from data source because no existing data", product.getSku());
-      return offeringFromUpstream(product.getSku(), productDataSource);
+  /** Whether a SKU-only event should fetch the offering from the product service. */
+  public static boolean shouldRefreshOnProductEvent(OfferingEntity offering) {
+    if (offering == null) {
+      return true;
     }
-    UpstreamProductData umbData = createFromUmbMessage(product);
-    if ((existingData.getServiceLevel() == ServiceLevel.EMPTY
-            && !umbData.attrs.containsKey(Attr.SERVICE_TYPE))
-        || (existingData.getUsage() == Usage.EMPTY && !umbData.attrs.containsKey(Attr.USAGE))) {
-      // EMPTY may represent either a missing upstream value or a non-empty value that SWATCH
-      // could not map. The event has no value to disambiguate those cases, so refresh upstream.
-      log.debug(
-          "Must sync SKU={} from data source because the product event omits an SLA or usage value that is stored as EMPTY",
-          product.getSku());
-      return offeringFromUpstream(product.getSku(), productDataSource);
-    }
-    UpstreamProductData existingProductData = UpstreamProductData.createFromOffering(existingData);
-    for (Attr attr : existingProductData.attrs.keySet()) {
-      if (!umbData.attrs.containsKey(attr)) {
-        // when there are attributes that exist in the DB but not in UMB message, we assume they may
-        // come from child SKUs or derived SKUs
-        log.debug(
-            "Must sync SKU={} from data source because attribute={} is not defined in UMB message, but may be defined in child/derived SKU",
-            product.getSku(),
-            attr);
-        return offeringFromUpstream(product.getSku(), productDataSource);
-      }
-    }
-    if (!Objects.equals(umbData.children, existingProductData.children)) {
-      log.debug(
-          "Must sync SKU={} from data source because child SKUs changed from {} to {}",
-          product.getSku(),
-          existingProductData.children,
-          umbData.children);
-      return offeringFromUpstream(product.getSku(), productDataSource);
-    }
-    String umbDerivedSku = umbData.attrs.get(Attr.DERIVED_SKU);
-    String existingDerivedSku = existingProductData.attrs.get(Attr.DERIVED_SKU);
-    if (!Objects.equals(umbDerivedSku, existingDerivedSku)) {
-      log.debug(
-          "Must sync SKU={} from data source because derived SKU changed from {} to {}",
-          product.getSku(),
-          existingDerivedSku,
-          umbDerivedSku);
-      return offeringFromUpstream(product.getSku(), productDataSource);
-    }
-    existingProductData.attrs.forEach(umbData::putIfNoConflict);
-    umbData.engOids.addAll(existingProductData.engOids);
-    return Optional.of(umbData.toOffering());
-  }
-
-  private static UpstreamProductData createFromUmbMessage(UmbOperationalProduct product) {
-    UpstreamProductData data = new UpstreamProductData(product.getSku());
-    if (product.getChildSkus() != null) {
-      data.children.addAll(product.getChildSkus());
-    }
-    if (product.getAttributes() != null) {
-      data.mapAttributes(
-          Arrays.asList(product.getAttributes()),
-          ProductAttribute::getCode,
-          ProductAttribute::getValue);
-    }
-
-    data.attrs.put(Attr.X_DESCRIPTION, product.getSkuDescription());
-    data.attrs.put(Attr.X_ROLE, product.getRole());
-    return data;
-  }
-
-  @SuppressWarnings("java:S3776")
-  private static UpstreamProductData createFromOffering(OfferingEntity offering) {
-    UpstreamProductData data = new UpstreamProductData(offering.getSku());
-    data.children.addAll(offering.getChildSkus());
-    data.engOids.addAll(offering.getProductIds());
-    if (hasText(offering.getRole())) {
-      data.attrs.put(Attr.X_ROLE, offering.getRole());
-    }
-    if (hasText(offering.getProductFamily())) {
-      data.attrs.put(Attr.PRODUCT_FAMILY, offering.getProductFamily());
-    }
-    if (hasText(offering.getProductName())) {
-      data.attrs.put(Attr.PRODUCT_NAME, offering.getProductName());
-    }
-    if (hasText(offering.getDescription())) {
-      data.attrs.put(Attr.X_DESCRIPTION, offering.getDescription());
-    }
-    if (hasText(offering.getDerivedSku())) {
-      data.attrs.put(Attr.DERIVED_SKU, offering.getDerivedSku());
-    }
-    // NOTE: an offering will only have either sockets OR hypervisor sockets, never both
-    if (offering.getSockets() != null) {
-      data.attrs.put(Attr.SOCKET_LIMIT, offering.getSockets().toString());
-    }
-    if (offering.getHypervisorSockets() != null) {
-      data.attrs.put(Attr.SOCKET_LIMIT, offering.getHypervisorSockets().toString());
-    }
-    // NOTE: an offering will only have either cores OR hypervisor cores, never both
-    if (offering.getCores() != null) {
-      data.attrs.put(Attr.CORES, offering.getCores().toString());
-    }
-    if (offering.getHypervisorCores() != null) {
-      data.attrs.put(Attr.CORES, offering.getHypervisorCores().toString());
-    }
-    if (offering.isHasUnlimitedUsage()) {
-      data.attrs.put(Attr.CORES, UNLIMITED_CORES_OR_SOCKETS);
-      data.attrs.put(Attr.SOCKET_LIMIT, UNLIMITED_CORES_OR_SOCKETS);
-    }
-    if (offering.getServiceLevel() != null && offering.getServiceLevel() != ServiceLevel.EMPTY) {
-      data.attrs.put(Attr.SERVICE_TYPE, offering.getServiceLevel().getValue());
-    }
-    if (hasText(offering.getLevel1())) {
-      data.attrs.put(Attr.LEVEL_1, offering.getLevel1());
-    }
-    if (hasText(offering.getLevel2())) {
-      data.attrs.put(Attr.LEVEL_2, offering.getLevel2());
-    }
-    if (offering.getUsage() != null && offering.getUsage() != Usage.EMPTY) {
-      data.attrs.put(Attr.USAGE, offering.getUsage().getValue());
-    }
-    if (offering.getEntitlementQuantity() != null) {
-      data.attrs.put(Attr.ENTITLEMENT_QTY, offering.getEntitlementQuantity());
-    }
-    return data;
+    var serviceLevel = offering.getServiceLevel();
+    var usage = offering.getUsage();
+    return offering.isMetered()
+        || !offering.getChildSkus().isEmpty()
+        || hasText(offering.getDerivedSku())
+        || hasText(offering.getProductFamily())
+        || hasText(offering.getProductName())
+        || hasText(offering.getLevel1())
+        || hasText(offering.getLevel2())
+        || offering.getSockets() != null
+        || offering.getHypervisorSockets() != null
+        || offering.getCores() != null
+        || offering.getHypervisorCores() != null
+        || offering.isHasUnlimitedUsage()
+        || offering.getEntitlementQuantity() != null
+        || (serviceLevel != null && serviceLevel != ServiceLevel.EMPTY)
+        || (usage != null && usage != Usage.EMPTY);
   }
 
   private OfferingEntity toOffering() {

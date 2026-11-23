@@ -195,7 +195,7 @@ public class CapacityResourceV1 implements CapacityApi {
       OffsetDateTime date, List<SubscriptionEntity> unlimitedSubscriptions) {
     for (SubscriptionEntity subscription : unlimitedSubscriptions) {
       var endDate = subscription.getEndDate();
-      if (subscription.getStartDate().isBefore(date)
+      if (!subscription.getStartDate().isAfter(date)
           && (Objects.isNull(endDate) || endDate.isAfter(date))) {
         return true;
       }

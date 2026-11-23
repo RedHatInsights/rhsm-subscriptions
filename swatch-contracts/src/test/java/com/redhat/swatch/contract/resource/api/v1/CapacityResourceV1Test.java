@@ -26,6 +26,7 @@ import static io.restassured.RestAssured.given;
 import static java.util.Objects.isNull;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.any;
@@ -710,7 +711,7 @@ class CapacityResourceV1Test {
   @ParameterizedTest
   @ValueSource(booleans = {false, true})
   void testReportByMetricIdShouldCalculateCapacityEvenWhenUnlimited(boolean openEnded) {
-    var begin = min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1);
+    var begin = min.truncatedTo(ChronoUnit.DAYS).plusDays(1);
     var unlimited = datedSubscription(begin, openEnded ? null : max);
     unlimited.setSubscriptionNumber("unlimited123");
     var unlimitedOffering =
@@ -753,7 +754,9 @@ class CapacityResourceV1Test {
             .extract()
             .as(CapacityReportByMetricId.class);
 
-    CapacitySnapshotByMetricId capacitySnapshot = report.getData().get(0);
+    assertFalse(report.getData().get(0).getHasInfiniteQuantity());
+    CapacitySnapshotByMetricId capacitySnapshot = report.getData().get(1);
+    assertEquals(begin, capacitySnapshot.getDate());
     assertEquals(4, capacitySnapshot.getValue());
     assertTrue(capacitySnapshot.getHasInfiniteQuantity());
   }

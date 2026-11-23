@@ -102,10 +102,11 @@ updates `last_modified` and is safe to repeat.
 
 Legacy `EMPTY` values are ambiguous: they may represent an absent upstream
 attribute or a non-empty value that SWATCH could not map. A successful upstream
-refresh is required to classify them. Product events that omit an attribute stored
-as `EMPTY` trigger that refresh before defaults are applied. If the product service
-is unavailable, the ambiguous `EMPTY` value remains unclassified. The bulk
-backfill changes only null columns on SKUs outside the denylist.
+refresh classifies them. The scheduled or manually triggered offering sync can
+refresh stored offerings. SKU-only events still trigger full refreshes for metered
+offerings and offerings with other product attributes or SKU relationships that
+require an upstream lookup. A deferred event leaves the stored offering intact.
+The bulk backfill changes only null columns on SKUs outside the denylist.
 
 Disabling the flag stops applying defaults to incoming null values. Defaults
 already persisted remain until a successful sync replaces them with the current

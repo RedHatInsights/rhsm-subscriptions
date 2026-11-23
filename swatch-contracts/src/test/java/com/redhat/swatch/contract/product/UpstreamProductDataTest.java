@@ -22,7 +22,6 @@ package com.redhat.swatch.contract.product;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.clients.product.ProductDataSource;
 import com.redhat.swatch.clients.product.api.model.AttributeValue;
@@ -31,14 +30,11 @@ import com.redhat.swatch.clients.product.api.model.OperationalProduct;
 import com.redhat.swatch.clients.product.api.model.RESTProductTree;
 import com.redhat.swatch.common.model.ServiceLevel;
 import com.redhat.swatch.common.model.Usage;
-import com.redhat.swatch.contract.product.umb.ProductAttribute;
-import com.redhat.swatch.contract.product.umb.UmbOperationalProduct;
 import com.redhat.swatch.contract.repository.OfferingEntity;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -94,7 +90,7 @@ class UpstreamProductDataTest {
     var development = attribute("USAGE", "Development/Test");
     derived.addProductsItem(product(derivedSku, development));
     var trees = Map.of(SKU, tree, derivedSku, derived);
-    var source = dataSource(trees, new AtomicInteger());
+    var source = dataSource(trees);
 
     var result = UpstreamProductData.offeringFromUpstream(SKU, source);
     var offering = result.orElseThrow();
@@ -115,50 +111,8 @@ class UpstreamProductDataTest {
     assertEquals(Usage.EMPTY, offering.getUsage());
   }
 
-  @Test
-  void refreshesExistingEmptyValuesWhenProductEventOmitsThem() {
-    var requests = new AtomicInteger();
-    var stored =
-        OfferingEntity.builder()
-            .sku(SKU)
-            .serviceLevel(ServiceLevel.EMPTY)
-            .usage(Usage.EMPTY)
-            .build();
-    var event =
-        UmbOperationalProduct.builder().sku(SKU).attributes(new ProductAttribute[0]).build();
-    var source = dataSource(Map.of(SKU, productTree()), requests);
-
-    var result = UpstreamProductData.offeringFromUmbData(event, stored, source);
-    var refreshed = result.orElseThrow();
-
-    assertEquals(1, requests.get());
-    assertNull(refreshed.getServiceLevel());
-    assertNull(refreshed.getUsage());
-  }
-
-  @Test
-  void keepsExistingEmptyValuesWhenProductEventRefreshCannotFindTheSku() {
-    var requests = new AtomicInteger();
-    var stored =
-        OfferingEntity.builder()
-            .sku(SKU)
-            .serviceLevel(ServiceLevel.EMPTY)
-            .usage(Usage.EMPTY)
-            .build();
-    var event =
-        UmbOperationalProduct.builder().sku(SKU).attributes(new ProductAttribute[0]).build();
-    var source = dataSource(Map.of(), requests);
-
-    var result = UpstreamProductData.offeringFromUmbData(event, stored, source);
-
-    assertTrue(result.isEmpty());
-    assertEquals(1, requests.get());
-    assertEquals(ServiceLevel.EMPTY, stored.getServiceLevel());
-    assertEquals(Usage.EMPTY, stored.getUsage());
-  }
-
   private static OfferingEntity offeringFromTree(RESTProductTree tree) {
-    var source = dataSource(Map.of(SKU, tree), new AtomicInteger());
+    var source = dataSource(Map.of(SKU, tree));
     var result = UpstreamProductData.offeringFromUpstream(SKU, source);
     return result.orElseThrow();
   }
@@ -179,12 +133,10 @@ class UpstreamProductDataTest {
     return new AttributeValue().code(code).value(value);
   }
 
-  private static ProductDataSource dataSource(
-      Map<String, RESTProductTree> trees, AtomicInteger requests) {
+  private static ProductDataSource dataSource(Map<String, RESTProductTree> trees) {
     return new ProductDataSource() {
       @Override
       public Optional<RESTProductTree> getTree(String sku) {
-        requests.incrementAndGet();
         return Optional.ofNullable(trees.get(sku));
       }
 

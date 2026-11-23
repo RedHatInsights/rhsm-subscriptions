@@ -24,22 +24,11 @@ import static com.redhat.swatch.contract.config.Channels.IT_OFFERING_SYNC;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.redhat.swatch.clients.product.api.resources.ApiException;
-import com.redhat.swatch.contract.exception.ServiceException;
 import com.redhat.swatch.contract.openapi.model.OperationalProductEvent;
 import io.smallrye.common.annotation.Blocking;
-import io.smallrye.faulttolerance.api.ExponentialBackoff;
-import io.smallrye.faulttolerance.api.RetryWhen;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.ProcessingException;
-import jakarta.ws.rs.core.Response.Status;
-import jakarta.ws.rs.core.Response.Status.Family;
-import java.io.IOException;
-import java.util.function.Predicate;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 
 @ApplicationScoped
@@ -51,9 +40,6 @@ public class ProductStatusKafkaMessageConsumer {
 
   @Blocking
   @Incoming(IT_OFFERING_SYNC)
-  @Retry(delay = 1000, maxRetries = -1, maxDuration = 0)
-  @ExponentialBackoff
-  @RetryWhen(exception = TransientProductLookupFailure.class)
   public void consumeMessage(String message) throws JsonProcessingException {
     log.debug("IT Product Kafka consumer was called");
     if (message == null) {
@@ -86,26 +72,5 @@ public class ProductStatusKafkaMessageConsumer {
 
   private static boolean isChildSku(String productCode) {
     return productCode != null && productCode.startsWith("SVC");
-  }
-
-  public static class TransientProductLookupFailure implements Predicate<Throwable> {
-    @Override
-    public boolean test(Throwable failure) {
-      if (failure instanceof ProcessingException) {
-        var cause = ExceptionUtils.getRootCause(failure);
-        return cause instanceof IOException && !(cause instanceof JsonProcessingException);
-      }
-      if (!(failure instanceof ServiceException serviceFailure)) {
-        return false;
-      }
-      // Derived SKU and engineering product lookups can map the original status to 500.
-      int status =
-          serviceFailure.getCause() instanceof ApiException apiFailure
-              ? apiFailure.getResponse().getStatus()
-              : serviceFailure.getStatus().getStatusCode();
-      return Family.familyOf(status) == Family.SERVER_ERROR
-          || status == Status.REQUEST_TIMEOUT.getStatusCode()
-          || status == Status.TOO_MANY_REQUESTS.getStatusCode();
-    }
   }
 }

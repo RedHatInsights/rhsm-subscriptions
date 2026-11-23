@@ -32,8 +32,6 @@ import com.redhat.swatch.contract.model.SlaUsageDefaults;
 import com.redhat.swatch.contract.model.SyncResult;
 import com.redhat.swatch.contract.openapi.model.OperationalProductEvent;
 import com.redhat.swatch.contract.product.UpstreamProductData;
-import com.redhat.swatch.contract.product.umb.ProductAttribute;
-import com.redhat.swatch.contract.product.umb.UmbOperationalProduct;
 import com.redhat.swatch.contract.repository.OfferingEntity;
 import com.redhat.swatch.contract.repository.OfferingRepository;
 import io.micrometer.core.annotation.Timed;
@@ -313,56 +311,37 @@ public class OfferingSyncService {
    */
   @Transactional
   public SyncResult syncProductFromEvent(OperationalProductEvent productEvent) {
-
-    // The event from the Product Service topic only has the SKU and no attributes
-    UmbOperationalProduct product =
-        UmbOperationalProduct.builder()
-            .sku(productEvent.getProductCode())
-            .attributes(new ProductAttribute[] {})
-            .build();
-
-    return syncUmbProduct(product);
-  }
-
-  private SyncResult syncUmbProduct(UmbOperationalProduct umbOperationalProduct) {
-    log.info("Received product message for productSku={}", umbOperationalProduct.getSku());
-    if (umbOperationalProduct.getSku().startsWith("SVC")) {
-      syncChildSku(umbOperationalProduct.getSku());
+    String sku = productEvent.getProductCode();
+    log.info("Received product message for productSku={}", sku);
+    if (sku.startsWith("SVC")) {
+      syncChildSku(sku);
       return SyncResult.FETCHED_AND_SYNCED;
-    } else {
-      SyncResult result = syncRootSku(umbOperationalProduct);
-      if (result == SyncResult.FETCHED_AND_SYNCED) {
-        // we must assume that any SKU we get a message for may be a derived SKU,
-        // but we'll check our cache of product data and only actually operate on offerings having
-        // the SKU as a derived SKU
-        syncDerivedSku(umbOperationalProduct.getSku());
-      }
-      return result;
     }
+
+    SyncResult result = syncRootSku(sku);
+    if (result == SyncResult.FETCHED_AND_SYNCED
+        || result == SyncResult.DEFERRED_TO_SCHEDULED_SYNC) {
+      // Offerings derived from this SKU may need a refresh even if its own update was deferred.
+      syncDerivedSku(sku);
+    }
+    return result;
   }
 
-  /**
-   * Sync the offering state using only the UMB message if possible, otherwise sync the offering
-   * from the RHIT product service.
-   *
-   * @param umbOperationalProduct product definition from a UMB message
-   * @see UpstreamProductData#offeringFromUmbData
-   */
-  private SyncResult syncRootSku(UmbOperationalProduct umbOperationalProduct) {
-    Optional<OfferingEntity> existing =
-        offeringRepository.findByIdOptional(umbOperationalProduct.getSku());
-    Optional<OfferingEntity> newState =
-        UpstreamProductData.offeringFromUmbData(
-            umbOperationalProduct, existing.orElse(null), productService);
-    if (newState.isPresent()) {
-      discoverProductTagsBySku(newState);
-      return syncOffering(newState.get(), existing);
-    } else {
+  private SyncResult syncRootSku(String sku) {
+    Optional<OfferingEntity> existing = offeringRepository.findByIdOptional(sku);
+    if (!UpstreamProductData.shouldRefreshOnProductEvent(existing.orElse(null))) {
+      // The SKU-only event has no offering attributes. Preserve the stored offering until refresh.
+      return SyncResult.DEFERRED_TO_SCHEDULED_SYNC;
+    }
+
+    Optional<OfferingEntity> newState = getUpstreamOffering(sku);
+    if (newState.isEmpty()) {
       log.warn(
           "Unable to sync offering from product message for sku={}, because product service has no records for it",
-          umbOperationalProduct.getSku());
+          sku);
       return SyncResult.SKIPPED_NOT_FOUND;
     }
+    return syncOffering(newState.get(), existing);
   }
 
   private void discoverProductTagsBySku(Optional<OfferingEntity> newState) {
