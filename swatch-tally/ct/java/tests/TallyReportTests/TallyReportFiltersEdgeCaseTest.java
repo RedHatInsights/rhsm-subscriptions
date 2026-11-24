@@ -35,9 +35,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.candlepin.subscriptions.json.Event;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.params.Parameter;
+import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.ValueSource;
 
 /**
@@ -46,6 +51,7 @@ import org.junit.jupiter.params.provider.ValueSource;
  * <p>Tests: - TC009: Multiple events aggregation (same filter attributes) - TC010: Three distinct
  * SLA values - TC023: Billing account change for same instance
  */
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class TallyReportFiltersEdgeCaseTest extends BaseTallyComponentTest {
   private static String testOrgId;
 
@@ -157,101 +163,117 @@ public class TallyReportFiltersEdgeCaseTest extends BaseTallyComponentTest {
     service.performHourlyTallyForOrg(testOrgId);
   }
 
-  @ParameterizedTest(name = "with primaryRowSearches={0}")
-  @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-payg-TC009")
-  void shouldAggregateMultipleEventsWithSameFilters(boolean enablePrimaryRowSearches) {
-    // Given: Three PREMIUM events at the same hour are tallied
-    givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
-
-    Map<String, Object> queryParams =
-        Map.of(
-            "granularity", "Hourly",
-            "beginning", aggregationTest.beginning().toString(),
-            "ending", aggregationTest.ending().toString(),
-            "sla", ServiceLevelType.PREMIUM.toString());
-
-    // When: Hourly report is fetched for that hour with SLA=PREMIUM
-    TallyReportData response =
-        service.getTallyReportData(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams);
-
-    // Then: Values aggregate to 50 (15+25+10)
-    double total =
-        response.getData() == null
-            ? 0.0
-            : response.getData().stream().mapToInt(d -> d.getValue()).sum();
-
-    assertEquals(50.0, total, 0.0001, "Should aggregate all three PREMIUM events (15+25+10)");
+  @AfterAll
+  void resetPrimaryRowSearches() {
+    givenFeatureFlagIsConfigured(false);
   }
 
-  @ParameterizedTest(name = "with primaryRowSearches={0}")
+  @Nested
+  @ParameterizedClass(name = "primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-payg-TC010")
-  void shouldFilterWithThreeDistinctSlaValues(boolean enablePrimaryRowSearches) {
-    // Given: Three SLA events at the same hour are tallied
-    givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
+  class PrimaryRowSearches {
+    @Parameter boolean primaryRowSearches;
 
-    Map<String, Object> queryParams =
-        Map.of(
-            "granularity", "Hourly",
-            "beginning", threeSlaTest.beginning().toString(),
-            "ending", threeSlaTest.ending().toString(),
-            "sla", ServiceLevelType.SELF_SUPPORT.toString());
+    // This nested class runs its @BeforeAll once per injected flag value.
+    @Nested
+    @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+    class EdgeCaseTests {
+      @BeforeAll
+      void configurePrimaryRowSearches() {
+        givenFeatureFlagIsConfigured(primaryRowSearches);
+      }
 
-    // When: Hourly report is fetched with SLA=SELF_SUPPORT
-    TallyReportData response =
-        service.getTallyReportData(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams);
+      @Test
+      @TestPlanName("tally-report-filters-payg-TC009")
+      void shouldAggregateMultipleEventsWithSameFilters() {
+        // Given: Three PREMIUM events at the same hour are tallied
 
-    // Then: Only the Self-Support event is included (30)
-    double total =
-        response.getData() == null
-            ? 0.0
-            : response.getData().stream().mapToInt(d -> d.getValue()).sum();
+        Map<String, Object> queryParams =
+            Map.of(
+                "granularity", "Hourly",
+                "beginning", aggregationTest.beginning().toString(),
+                "ending", aggregationTest.ending().toString(),
+                "sla", ServiceLevelType.PREMIUM.toString());
 
-    assertEquals(30.0, total, 0.0001, "Self-Support SLA should total 30");
-  }
+        // When: Hourly report is fetched for that hour with SLA=PREMIUM
+        TallyReportData response =
+            service.getTallyReportData(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams);
 
-  @ParameterizedTest(name = "with primaryRowSearches={0}")
-  @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-payg-TC023")
-  void shouldTrackBillingAccountChangeForSameInstance(boolean enablePrimaryRowSearches) {
-    // Given: Same instance reported usage under two billing accounts
-    givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
+        // Then: Values aggregate to 50 (15+25+10)
+        double total =
+            response.getData() == null
+                ? 0.0
+                : response.getData().stream().mapToInt(d -> d.getValue()).sum();
 
-    Map<String, Object> queryParams1 =
-        Map.of(
-            "granularity", "Daily",
-            "beginning", billingChangeTest.beginning().toString(),
-            "ending", billingChangeTest.ending().toString(),
-            "billing_account_id", billingChangeTest.billingAccount1());
+        assertEquals(50.0, total, 0.0001, "Should aggregate all three PREMIUM events (15+25+10)");
+      }
 
-    // When: Daily reports are fetched per billing account
-    TallyReportData response1 =
-        service.getTallyReportData(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams1);
+      @Test
+      @TestPlanName("tally-report-filters-payg-TC010")
+      void shouldFilterWithThreeDistinctSlaValues() {
+        // Given: Three SLA events at the same hour are tallied
 
-    double account1Total =
-        response1.getData() == null
-            ? 0.0
-            : response1.getData().stream().mapToInt(d -> d.getValue()).sum();
+        Map<String, Object> queryParams =
+            Map.of(
+                "granularity", "Hourly",
+                "beginning", threeSlaTest.beginning().toString(),
+                "ending", threeSlaTest.ending().toString(),
+                "sla", ServiceLevelType.SELF_SUPPORT.toString());
 
-    Map<String, Object> queryParams2 =
-        Map.of(
-            "granularity", "Daily",
-            "beginning", billingChangeTest.beginning().toString(),
-            "ending", billingChangeTest.ending().toString(),
-            "billing_account_id", billingChangeTest.billingAccount2());
+        // When: Hourly report is fetched with SLA=SELF_SUPPORT
+        TallyReportData response =
+            service.getTallyReportData(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams);
 
-    TallyReportData response2 =
-        service.getTallyReportData(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams2);
+        // Then: Only the Self-Support event is included (30)
+        double total =
+            response.getData() == null
+                ? 0.0
+                : response.getData().stream().mapToInt(d -> d.getValue()).sum();
 
-    double account2Total =
-        response2.getData() == null
-            ? 0.0
-            : response2.getData().stream().mapToInt(d -> d.getValue()).sum();
+        assertEquals(30.0, total, 0.0001, "Self-Support SLA should total 30");
+      }
 
-    // Then: Each billing account total matches its event
-    assertEquals(5.0, account1Total, 0.0001, "Billing account 1 should total 5");
-    assertEquals(8.0, account2Total, 0.0001, "Billing account 2 should total 8");
+      @Test
+      @TestPlanName("tally-report-filters-payg-TC023")
+      void shouldTrackBillingAccountChangeForSameInstance() {
+        // Given: Same instance reported usage under two billing accounts
+
+        Map<String, Object> queryParams1 =
+            Map.of(
+                "granularity", "Daily",
+                "beginning", billingChangeTest.beginning().toString(),
+                "ending", billingChangeTest.ending().toString(),
+                "billing_account_id", billingChangeTest.billingAccount1());
+
+        // When: Daily reports are fetched per billing account
+        TallyReportData response1 =
+            service.getTallyReportData(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams1);
+
+        double account1Total =
+            response1.getData() == null
+                ? 0.0
+                : response1.getData().stream().mapToInt(d -> d.getValue()).sum();
+
+        Map<String, Object> queryParams2 =
+            Map.of(
+                "granularity", "Daily",
+                "beginning", billingChangeTest.beginning().toString(),
+                "ending", billingChangeTest.ending().toString(),
+                "billing_account_id", billingChangeTest.billingAccount2());
+
+        TallyReportData response2 =
+            service.getTallyReportData(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams2);
+
+        double account2Total =
+            response2.getData() == null
+                ? 0.0
+                : response2.getData().stream().mapToInt(d -> d.getValue()).sum();
+
+        // Then: Each billing account total matches its event
+        assertEquals(5.0, account1Total, 0.0001, "Billing account 1 should total 5");
+        assertEquals(8.0, account2Total, 0.0001, "Billing account 2 should total 8");
+      }
+    }
   }
 
   private static void givenPaygEventPublished(
