@@ -25,6 +25,7 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.configuration.util.ProductTagLookupParams;
+import com.redhat.swatch.hbi.events.HbiEventConstants;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -42,6 +43,7 @@ import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.candlepin.subscriptions.configuration.FeatureFlags;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.db.model.config.OptInType;
@@ -68,6 +70,8 @@ public class EventController {
   private final EventConflictResolver eventConflictResolver;
   private final EventNormalizer eventNormalizer;
   private final MeterRegistry meterRegistry;
+  private final FeatureFlags featureFlags;
+  private final UsageEventProducer usageEventProducer;
 
   public EventController(
       EventRecordRepository repo,
@@ -76,7 +80,9 @@ public class EventController {
       TransactionHandler transactionHandler,
       EventConflictResolver eventConflictResolver,
       EventNormalizer eventNormalizer,
-      MeterRegistry meterRegistry) {
+      MeterRegistry meterRegistry,
+      FeatureFlags featureFlags,
+      UsageEventProducer usageEventProducer) {
     this.repo = repo;
     this.objectMapper = objectMapper;
     this.optInController = optInController;
@@ -84,6 +90,8 @@ public class EventController {
     this.eventConflictResolver = eventConflictResolver;
     this.eventNormalizer = eventNormalizer;
     this.meterRegistry = meterRegistry;
+    this.featureFlags = featureFlags;
+    this.usageEventProducer = usageEventProducer;
   }
 
   /**
@@ -175,6 +183,43 @@ public class EventController {
   public void persistServiceInstances(List<String> eventJsonList)
       throws BatchListenerFailedException {
     ServiceInstancesResult result = parseServiceInstancesResult(eventJsonList);
+
+    // Check the feature flag FIRST - before conflict resolution
+    boolean flagEnabled = featureFlags.isEnabled(FeatureFlags.ENABLE_EVENT_DRIVEN_TALLY, false);
+
+    if (flagEnabled) {
+      // Event-driven path: Flatten for db compatibility, skip conflict resolution then produce
+      // UsageEvents
+
+      // Flatten Events
+      List<Event> originalEvents = result.indexedEvents.stream().map(Pair::getKey).toList();
+      List<EventRecord> flattenEventRecords = new ArrayList<>();
+      List<EventRecord> originalEventRecords = new ArrayList<>();
+
+      for (Event event : originalEvents) {
+        List<Event> flattenedEvents = eventNormalizer.flattenEventUsage(event);
+        // Create EventRecords from original Events (for UsageEvent mapper)
+        originalEventRecords.add(new EventRecord(event));
+
+        // convert to EventRecords
+        for (Event flatEvent : flattenedEvents) {
+          flattenEventRecords.add(new EventRecord(flatEvent));
+        }
+      }
+
+      // Save to DB without conflict resolution
+      List<EventRecord> savedRecords =
+          transactionHandler.runInNewTransaction(() -> repo.saveAll(flattenEventRecords));
+      // Produce UsageEvents from original Events
+      usageEventProducer.produceUsageEvents(originalEventRecords);
+
+      // Update the ingested usage metrics for created events
+      updateIngestedUsage(savedRecords);
+      return;
+    }
+
+    log.info(
+        "Feature flag DISABLED - using traditional flow (conflict resolution & DB persistence, NO UsageEvents)");
     List<EventRecord> savedEvents = new ArrayList<>();
     try {
       if (!result.indexedEvents.isEmpty()) {
@@ -255,21 +300,29 @@ public class EventController {
       return Optional.empty();
     }
 
-    // Events coming from HBI must be checked to ensure that the org is opted in.
-    // An org that has not been opted-in will not get tallied nightly, so there is no reason
-    // to further process and store the event.
-    boolean isHbiEvent = "HBI_HOST".equalsIgnoreCase(eventToProcess.getServiceType());
-    if (isHbiEvent && !optInController.isOptedIn(eventToProcess.getOrgId())) {
-      log.debug("Skipping HBI event because the org was not opted-in");
-      return Optional.empty();
+    boolean isHbiEvent =
+        HbiEventConstants.EVENT_SERVICE_TYPE.equalsIgnoreCase(eventToProcess.getServiceType());
+
+    boolean isEventDrivenTallyEnabled =
+        featureFlags.isEnabled(FeatureFlags.ENABLE_EVENT_DRIVEN_TALLY, false);
+
+    // If event driven tally is disabled (Traditional flow)
+    if (!isEventDrivenTallyEnabled) {
+      // If the event is an HBI event and the org is NOT opted in, skip it.
+      if (isHbiEvent && !optInController.isOptedIn(eventToProcess.getOrgId())) {
+        log.debug("Skipping HBI event because the org was not opted-in (Traditional flow)");
+        return Optional.empty();
+      }
+
+      // If the event is NOT and HBI event and the org ID is present then ensure it is opted-in.
+      if (StringUtils.hasText(eventToProcess.getOrgId()) && !isHbiEvent) {
+        log.debug(
+            "Ensuring orgId={} has been set up for syncing/reporting.", eventToProcess.getOrgId());
+        ensureOptIn(eventToProcess.getOrgId());
+      }
     }
 
-    if (StringUtils.hasText(eventToProcess.getOrgId()) && !isHbiEvent) {
-      log.debug(
-          "Ensuring orgId={} has been set up for syncing/reporting.", eventToProcess.getOrgId());
-      ensureOptIn(eventToProcess.getOrgId());
-    }
-
+    // Handle Azure subscription ID
     Optional<String> azureSubscriptionId = eventToProcess.getAzureSubscriptionId();
     if (azureSubscriptionId != null && azureSubscriptionId.isPresent()) { // NOSONAR
       eventToProcess.setBillingAccountId(eventToProcess.getAzureSubscriptionId());
@@ -311,15 +364,44 @@ public class EventController {
   private boolean isValidProductTag(Event event) {
     boolean isValid = true;
 
-    // If product tag is already present in the event then verify whether it is present in our
-    // config
-    if (Objects.nonNull(event.getProductTag()) && !event.getProductTag().isEmpty()) {
-      isValid =
-          event.getProductTag().stream().findFirst().map(Variant::isValidProductTag).orElse(false);
-      if (!isValid) {
-        log.warn("Product tag {} is invalid.", event.getProductTag().stream().findFirst());
+    boolean hasTopLevelProductTag =
+        Objects.nonNull(event.getProductTag()) && !event.getProductTag().isEmpty();
+    boolean hasMeasurementsTags =
+        Objects.nonNull(event.getMeasurements())
+            && event.getMeasurements().stream()
+                .anyMatch(m -> Objects.nonNull(m.getProductTag()) && !m.getProductTag().isBlank());
+
+    // If product tags are present (either top-level or in measurements), validate them
+    if (hasTopLevelProductTag || hasMeasurementsTags) {
+      // Validate top-level product tags if present
+      if (hasTopLevelProductTag) {
+        isValid =
+            event.getProductTag().stream()
+                .findFirst()
+                .map(Variant::isValidProductTag)
+                .orElse(false);
+        if (!isValid) {
+          log.warn("Product tag {} is invalid.", event.getProductTag().stream().findFirst());
+          return false;
+        }
       }
+
+      // Validate measurement-level product tags if present
+      if (hasMeasurementsTags) {
+        for (Measurement measurement : event.getMeasurements()) {
+          if (Objects.nonNull(measurement.getProductTag())
+              && !measurement.getProductTag().isBlank()) {
+            if (!Variant.isValidProductTag(measurement.getProductTag())) {
+              log.warn("Measurement product tag {} is invalid.", measurement.getProductTag());
+              return false;
+            }
+          }
+        }
+      }
+
+      return true;
     } else {
+      // No product tags present - try to autopopulate based on event data
       String role = event.getRole() != null ? event.getRole().toString() : null;
 
       var lookupParams =

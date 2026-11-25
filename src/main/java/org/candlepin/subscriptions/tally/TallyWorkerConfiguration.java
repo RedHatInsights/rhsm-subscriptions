@@ -241,6 +241,29 @@ public class TallyWorkerConfiguration {
     return kafkaTemplate;
   }
 
+  @Bean
+  public ProducerFactory<String, UsageEvent> usageEventProducerFactory(
+      KafkaProperties kafkaProperties, ObjectMapper objectMapper) {
+    DefaultKafkaProducerFactory<String, UsageEvent> factory =
+        new DefaultKafkaProducerFactory<>(getProducerProperties(kafkaProperties));
+    /*
+    Use our customized ObjectMapper. Notably, the spring-kafka default ObjectMapper writes dates as
+    timestamps, which produces messages not compatible with JSON-B deserialization.
+     */
+    factory.setValueSerializer(new JsonSerializer<>(objectMapper));
+    return factory;
+  }
+
+  @Bean
+  public KafkaTemplate<String, UsageEvent> usageEventKafkaTemplate(
+      ProducerFactory<String, UsageEvent> usageEventProducerFactory,
+      KafkaProperties kafkaProperties) {
+    KafkaTemplate<String, UsageEvent> kafkaTemplate =
+        new KafkaTemplate<>(usageEventProducerFactory);
+    kafkaTemplate.setObservationEnabled(kafkaProperties.getTemplate().isObservationEnabled());
+    return kafkaTemplate;
+  }
+
   @Bean(name = "updatePrimaryTaskExecutor")
   public Executor getAsyncExecutor() {
     ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();

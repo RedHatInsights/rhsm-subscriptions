@@ -86,10 +86,20 @@ public class EventNormalizer {
    * @return list of flattened events containing only valid tag-measurement pairs
    */
   public List<Event> flattenEventUsage(Event event) {
-    Set<String> tags = Objects.isNull(event.getProductTag()) ? Set.of() : event.getProductTag();
+    Set<String> topLevelTags =
+        Objects.isNull(event.getProductTag()) ? Set.of() : event.getProductTag();
     Set<Measurement> measurements =
         Objects.isNull(event.getMeasurements()) ? Set.of() : new HashSet<>(event.getMeasurements());
+    // Extract product_tags from measurements if present
+    Set<String> measurementTags =
+        measurements.stream()
+            .map(Measurement::getProductTag)
+            .filter(tag -> tag != null && !tag.isBlank())
+            .collect(Collectors.toSet());
 
+    // Use measurement-level tags if present, otherwise fall back to top-level tags
+    Set<String> tags = !measurementTags.isEmpty() ? measurementTags : topLevelTags;
+    log.warn("Tags: {}", tags);
     return tags.stream()
         .flatMap(tag -> {
           // Get the metrics supported by this tag from the product configuration

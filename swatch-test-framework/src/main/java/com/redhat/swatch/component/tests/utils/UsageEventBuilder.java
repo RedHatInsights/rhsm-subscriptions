@@ -21,6 +21,7 @@
 package com.redhat.swatch.component.tests.utils;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.TargetHost;
@@ -84,10 +85,10 @@ public class UsageEventBuilder {
   }
 
   public UsageEventBuilder withMeasurement(String metricId, double value) {
-    Measurement measurement = new Measurement();
-    measurement.setMetricId(metricId);
-    measurement.setValue(value);
-    this.measurement = measurement;
+    Measurement newMeasurement = new Measurement();
+    newMeasurement.setMetricId(metricId);
+    newMeasurement.setValue(value);
+    this.measurement = newMeasurement;
     return this;
   }
 
@@ -96,11 +97,35 @@ public class UsageEventBuilder {
     return this;
   }
 
+  private String resolveProductTag() {
+    if (productTag != null) {
+      return productTag;
+    }
+
+    if ("RHEL System".equals(serviceType)) {
+      return "rhel-for-x86";
+    } else if ("OpenShift Cluster".equals(serviceType)) {
+      return "OpenShift-dedicated-metrics";
+    }
+
+    return "test-product";
+  }
+
   public UsageEvent build() {
     UsageEvent event = new UsageEvent();
+
+    if (measurement != null) {
+      if (measurement.getProductTag() == null) {
+        measurement.setProductTag(resolveProductTag());
+      }
+      event.setMeasurements(List.of(measurement));
+    } else {
+      event.setMeasurements(List.of());
+    }
     if (eventRecordId != null) {
       event.setEventRecordId(eventRecordId);
     }
+
     event.setOrgId(orgId);
     event.setServiceType(serviceType);
 
@@ -112,12 +137,16 @@ public class UsageEventBuilder {
     event.setTargetHost(targetHost);
 
     event.setTimestamp(timestamp);
-    if (productTag != null) {
-      event.setProductTag(productTag);
-    }
+
     if (measurement != null) {
-      event.setMeasurement(measurement);
+      if (measurement.getProductTag() == null) {
+        measurement.setProductTag(resolveProductTag());
+      }
+      event.setMeasurements(List.of(measurement));
+    } else {
+      event.setMeasurements(List.of());
     }
+
     return event;
   }
 }

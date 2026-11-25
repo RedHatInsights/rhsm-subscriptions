@@ -80,7 +80,6 @@ properties:
     required:
       - value
       - metric_id
-      - product_tag
 required:
   - org_id
   - service_type

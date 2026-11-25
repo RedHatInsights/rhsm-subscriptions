@@ -101,11 +101,11 @@
     </dependency>
     <dependency>
       <groupId>com.redhat.swatch</groupId>
-      <artifactId>swatch-core</artifactId>
+      <artifactId>swatch-model-usage-events</artifactId>
     </dependency>
     <dependency>
       <groupId>com.redhat.swatch</groupId>
-      <artifactId>swatch-model-usage-events</artifactId>
+      <artifactId>swatch-core</artifactId>
     </dependency>
     <dependency>
       <groupId>com.redhat.swatch</groupId>
@@ -246,6 +246,10 @@
     <dependency>
         <groupId>org.liquibase</groupId>
         <artifactId>liquibase-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.redhat.swatch</groupId>
+      <artifactId>swatch-model-metrics-hbi</artifactId>
     </dependency>
   </dependencies>
 
