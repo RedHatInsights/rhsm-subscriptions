@@ -119,7 +119,7 @@ public class PublicCloudConduitComponentTest extends BaseConduitComponentTest {
 
     service.syncConduitByOrgId(orgId);
 
-    verifyHostIdentityWithoutDisplayName(thenAddHostJsonDataReceived());
+    thenHostIdentityWithoutDisplayName(thenAddHostJsonDataReceived());
   }
 
   @Test
@@ -132,7 +132,7 @@ public class PublicCloudConduitComponentTest extends BaseConduitComponentTest {
     service.syncConduitByOrgId(orgId);
 
     JsonNode data = thenAddHostJsonDataReceived();
-    verifyHostIdentityWithoutDisplayName(data);
+    thenHostIdentityWithoutDisplayName(data);
     assertEquals(EXPECTED_OPENSHIFT_CLUSTER_UUID, data.path("openshift_cluster_id").asText());
   }
 
@@ -185,7 +185,7 @@ public class PublicCloudConduitComponentTest extends BaseConduitComponentTest {
     return data;
   }
 
-  private void verifyHostIdentityWithoutDisplayName(JsonNode data) {
+  private void thenHostIdentityWithoutDisplayName(JsonNode data) {
     assertEquals(orgId, data.path("org_id").asText());
     assertEquals(EXPECTED_UUID, data.path("subscription_manager_id").asText());
     assertEquals(EXPECTED_FQDN, data.path("fqdn").asText());

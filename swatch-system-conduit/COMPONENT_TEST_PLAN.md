@@ -12,7 +12,7 @@ This document outlines the component test plan for swatch-system-conduit, includ
 * RHSM consumer retrieval and translation into HBI host messages.
 * Host identity, network, RHSM facts, and system profile mapping.
 * AWS PAYG and BYOS marketplace classification.
-* Omission of `display_name`, regardless of consumer name, OpenShift cluster UUID, or an existing display-name value in conduit facts.
+* Omission of `display_name` for named RHSM consumers with and without an OpenShift cluster UUID.
 
 **Assumptions:**
 
@@ -23,7 +23,6 @@ This document outlines the component test plan for swatch-system-conduit, includ
 
 **Constraints:**
 
-* Testing is limited to swatch-system-conduit at a component level, with the existing display-name serialization regression test documented as supporting coverage.
 * Processing by HBI and preservation of a display name already stored in HBI require integration testing and are outside this plan's component boundary.
 
 # Test Strategy
@@ -44,7 +43,6 @@ See [the component testing guide](ct/README.md) for environment setup and execut
 
 - Implemented component test methods use `@TestPlanName` with the exact case ID below, linking their test reports to this plan. Add the corresponding annotation when implementing a planned component case.
 - `PublicCloudConduitComponentTest` implements the synchronization, marketplace, and display-name omission component cases below.
-- The branch adds `KafkaEnabledInventoryServiceTest.ensureHostPayloadNeverIncludesDisplayName`, a parameterized test under `src/test/java` that verifies omission from serialized JSON for six display-name inputs. It supplies supporting coverage for `system-conduit-display-name-TC001` with a mocked Kafka producer.
 - The component scenarios in `system-conduit-display-name-TC002` and `system-conduit-display-name-TC003` inspect the Kafka message as JSON and explicitly assert that the `display_name` property is absent while identity fields retain their expected values.
 
 # Test Cases
@@ -108,23 +106,7 @@ See [the component testing guide](ct/README.md) for environment setup and execut
 
 Conduit must omit `data.display_name` from inventory messages. Neither an RHSM consumer name nor an OpenShift cluster UUID should populate this property. The host's FQDN and OpenShift cluster identity remain independently mapped to their corresponding fields.
 
-**system-conduit-display-name-TC001 - Omit display_name for every supplied conduit display-name value**
-
-- **Description**: Verify that host serialization never includes `display_name`, even if a display name is explicitly supplied in `ConduitFacts`.
-- **Setup**:
-  - Create `ConduitFacts` with an organization ID.
-  - Parameterize its display name with the six inputs used by the branch's regression test: null, an empty string, a single space, `custom display name`, `host.example.com`, and `550e8400-e29b-41d4-a716-446655440000`.
-  - Use a mocked Kafka producer to capture the outgoing `CreateUpdateHostMessage`.
-- **Action**:
-  - Call `KafkaEnabledInventoryService.sendHostUpdate` for each input.
-  - Serialize the captured message to a JSON tree with the configured `hbiObjectMapper`.
-- **Verification**:
-  - Verify `data.org_id` matches the supplied organization ID.
-  - Assert `data.has("display_name")` is false for every input.
-- **Expected Result**:
-  - All six inputs produce host payloads without a `display_name` property, including inputs containing a non-empty name, hostname, or UUID.
-- **Automated Coverage**:
-  - `KafkaEnabledInventoryServiceTest.ensureHostPayloadNeverIncludesDisplayName` (parameterized unit-level regression coverage added on this branch; no running Kafka broker required).
+The separate unit test `ensureHostPayloadNeverIncludesDisplayName` checks serialization for six values supplied directly to `ConduitFacts`. See [KafkaEnabledInventoryServiceTest.java](src/test/java/org/candlepin/subscriptions/conduit/inventory/kafka/KafkaEnabledInventoryServiceTest.java).
 
 **system-conduit-display-name-TC002 - Omit display_name when the RHSM consumer has a name**
 
