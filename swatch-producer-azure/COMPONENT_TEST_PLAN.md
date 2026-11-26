@@ -383,7 +383,7 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
 
 - **Description:** Verify an invalid windowTimestamp is ignored and does not prevent the following valid aggregate from processing.
 - **Setup:**
-  - Set USAGE_AGGREGATE_FAIL_ON_DESER_FAILURE=false so malformed records are ignored.
+  - Make sure USAGE_AGGREGATE_FAIL_ON_DESER_FAILURE is set to false in the component-test configuration (this is the default), so malformed records are ignored.
   - Prepare a malformed aggregate payload with an invalid windowTimestamp.
 - **Action:** Publish the malformed payload, followed by one valid Azure aggregate with a unique aggregateId.
 - **Verification:** Read the valid aggregate's status and inspect Contracts and Marketplace request journals.
@@ -459,7 +459,7 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
 - **Action:** POST a valid BillableUsage payload to /api/swatch-producer-azure/internal/azure/billable_usage.
 - **Verification:** Inspect the HTTP response and the manual submission topic.
 - **Expected Result:**
-  - HTTP 202 is returned.
+  - HTTP 204 No Content is returned.
   - One message equivalent to the submitted payload is published.
 
 **producer-azure-manual-TC002 - Reject manual submission when it is disabled**
