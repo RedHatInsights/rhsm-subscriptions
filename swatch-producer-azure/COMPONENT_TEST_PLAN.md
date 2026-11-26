@@ -46,19 +46,19 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
 
 | Boundary | Endpoint or topic | Component-test coverage |
 | --- | --- | --- |
-| Azure producer business API | POST /api/swatch-producer-azure/internal/azure/billable_usage | azure-manual-TC001–TC002 |
-| Contracts dependency | GET /api/swatch-contracts/internal/subscriptions/azureUsageContext | azure-contracts-TC001–TC007; azure-filter-TC009 |
-| Azure OAuth dependency | POST {AZURE_OAUTH_TOKEN_URL} (tenant-specific /{tenantId}/oauth2/token) | azure-usage-TC001–TC008; azure-marketplace-TC001–TC006 |
-| Azure Marketplace dependency | POST {AZURE_MARKETPLACE_BASE_URL}/api/usageEvent?api-version={AZURE_MARKETPLACE_API_VERSION} | azure-usage-TC001–TC008; azure-marketplace-TC001–TC006 |
+| Azure producer business API | POST /api/swatch-producer-azure/internal/azure/billable_usage | producer-azure-manual-TC001–TC002 |
+| Contracts dependency | GET /api/swatch-contracts/internal/subscriptions/azureUsageContext | producer-azure-contracts-TC001–TC007; producer-azure-filter-TC009 |
+| Azure OAuth dependency | POST {AZURE_OAUTH_TOKEN_URL} (tenant-specific /{tenantId}/oauth2/token) | producer-azure-usage-TC001–TC008; producer-azure-marketplace-TC001–TC007 |
+| Azure Marketplace dependency | POST {AZURE_MARKETPLACE_BASE_URL}/api/usageEvent?api-version={AZURE_MARKETPLACE_API_VERSION} | producer-azure-usage-TC001–TC008; producer-azure-marketplace-TC001–TC007 |
 | Kafka input | platform.rhsm-subscriptions.billable-usage-hourly-aggregate | Usage, Contracts, Marketplace, and filtering cases |
 | Kafka status output | platform.rhsm-subscriptions.billable-usage.status | Usage, Contracts, Marketplace, filtering, and metrics cases |
-| Manual submission output | platform.rhsm-subscriptions.billable-usage | azure-manual-TC001 |
+| Manual submission output | platform.rhsm-subscriptions.billable-usage | producer-azure-manual-TC001–TC002 |
 
 # Test Cases
 
 ## Azure Usage Submission
 
-**azure-usage-TC001 - Submit a valid Azure usage aggregate**
+**producer-azure-usage-TC001 - Submit a valid Azure usage aggregate**
 
 - **Description:** Verify a valid aggregate is mapped to an Azure usage event and its accepted status is published.
 - **Setup:**
@@ -79,7 +79,7 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
   - When Contracts supplies clientId, Azure receives that optional field.
   - The status preserves the aggregate key and total value as well as the aggregate ID and remittance UUIDs.
 
-**azure-usage-TC002 - Select the Azure credential identified by Contracts**
+**producer-azure-usage-TC002 - Select the Azure credential identified by Contracts**
 
 - **Description:** Verify the Contracts clientId selects the corresponding configured Azure credential.
 - **Setup:**
@@ -93,7 +93,7 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
   - The selected bearer token is used for one Azure usage request.
   - The status is succeeded.
 
-**azure-usage-TC003 - Fall back to another credential after authorization is denied**
+**producer-azure-usage-TC003 - Fall back to another credential after authorization is denied**
 
 - **Description:** Verify credential fallback when Contracts does not identify a configured client.
 - **Setup:**
@@ -105,7 +105,7 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
   - The first and second credentials each make one Azure request, in configured order.
   - The second request succeeds and the status is succeeded.
 
-**azure-usage-TC004 - Report an OAuth token endpoint failure**
+**producer-azure-usage-TC004 - Report an OAuth token endpoint failure**
 
 - **Description:** Verify a token acquisition failure is reported without submitting usage to Azure.
 - **Setup:**
@@ -118,7 +118,7 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
   - No Azure usage event is submitted.
   - The status is failed with errorCode=unknown.
 
-**azure-usage-TC005 - Complete processing in dry-run mode**
+**producer-azure-usage-TC005 - Complete processing in dry-run mode**
 
 - **Description:** Verify dry-run mode reports a successful aggregate without requesting an OAuth token or submitting an Azure usage event.
 - **Setup:**
@@ -130,7 +130,7 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
   - The status is succeeded with no error code.
   - Contracts is called; OAuth and Azure Marketplace are not called.
 
-**azure-usage-TC006 - Do not fall back when the selected credential is rejected**
+**producer-azure-usage-TC006 - Do not fall back when the selected credential is rejected**
 
 - **Description:** Verify a Contracts-selected credential is retried by itself when Azure denies authorization.
 - **Setup:**
@@ -143,7 +143,7 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
   - The other credential receives no request.
   - The status is failed with errorCode=unknown.
 
-**azure-usage-TC007 - Report failure after all fallback credentials are denied**
+**producer-azure-usage-TC007 - Report failure after all fallback credentials are denied**
 
 - **Description:** Verify all configured credentials are tried when Contracts does not identify a client, and the aggregate fails when none succeeds.
 - **Setup:**
@@ -155,7 +155,7 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
   - Each credential receives four requests as the service retries the full fallback sequence.
   - The status is failed with errorCode=unknown.
 
-**azure-usage-TC008 - Report failure when no Azure credentials are configured**
+**producer-azure-usage-TC008 - Report failure when no Azure credentials are configured**
 
 - **Description:** Verify the producer reports failure when its credential list is empty.
 - **Setup:**
@@ -169,7 +169,7 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
 
 ## Contracts Usage Context
 
-**azure-contracts-TC001 - Report a missing Azure subscription**
+**producer-azure-contracts-TC001 - Report a missing Azure subscription**
 
 - **Description:** Verify a generic Contracts 404 becomes a subscription-not-found status for an aggregate inside the configured usage window.
 - **Setup:**
@@ -182,7 +182,7 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
   - The status is failed with errorCode=subscription_not_found.
   - No OAuth token or Azure usage request is made.
 
-**azure-contracts-TC002 - Report a recently terminated Azure subscription**
+**producer-azure-contracts-TC002 - Report a recently terminated Azure subscription**
 
 - **Description:** Verify the Contracts recently-terminated error maps to the subscription-terminated status.
 - **Setup:** Return Contracts HTTP 404 with error code CONTRACTS1005.
@@ -192,7 +192,7 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
   - The status is failed with errorCode=subscription_terminated.
   - No OAuth token or Azure usage request is made.
 
-**azure-contracts-TC003 - Mark an old aggregate inactive when no subscription is found**
+**producer-azure-contracts-TC003 - Mark an old aggregate inactive when no subscription is found**
 
 - **Description:** Verify the producer's 96-hour snapshot window is applied when Contracts returns not found.
 - **Setup:**
@@ -205,7 +205,7 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
   - The status is failed with errorCode=inactive.
   - No OAuth token or Azure usage request is made.
 
-**azure-contracts-TC004 - Treat a snapshot near the 96-hour cutoff as active**
+**producer-azure-contracts-TC004 - Treat a snapshot near the 96-hour cutoff as active**
 
 - **Description:** Verify a snapshot close to the usage-window cutoff is still treated as active.
 - **Setup:**
@@ -216,7 +216,7 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
 - **Verification:** Read the status by aggregateId.
 - **Expected Result:** The status is failed with errorCode=subscription_not_found, not inactive.
 
-**azure-contracts-TC005 - Report a Contracts server error after retries are exhausted**
+**producer-azure-contracts-TC005 - Report a Contracts server error after retries are exhausted**
 
 - **Description:** Verify a persistent Contracts server error is reported as a usage-context lookup failure after the configured retries.
 - **Setup:** Return HTTP 500 for every Contracts usage-context request and set AZURE_USAGE_CONTEXT_LOOKUP_RETRIES=3.
@@ -228,7 +228,7 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
   - No OAuth token or Azure usage request is made.
 
 
-**azure-contracts-TC006 - Report a Contracts transport failure**
+**producer-azure-contracts-TC006 - Report a Contracts transport failure**
 
 - **Description:** Verify a Contracts connection failure before an HTTP response is received is reported as a usage-context lookup failure.
 - **Setup:**
@@ -241,7 +241,7 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
   - WireMock records the Contracts request.
   - No OAuth token or Azure usage request is made.
 
-**azure-contracts-TC007 - Recover from a transient Contracts server error**
+**producer-azure-contracts-TC007 - Recover from a transient Contracts server error**
 
 - **Description:** Verify usage processing continues when a Contracts retry succeeds after a transient server error.
 - **Setup:**
@@ -257,7 +257,7 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
 
 ## Azure Marketplace Responses
 
-**azure-marketplace-TC001 - Recover from a transient Azure server error**
+**producer-azure-marketplace-TC001 - Recover from a transient Azure server error**
 
 - **Description:** Verify a later retry succeeds after a transient Marketplace server error.
 - **Setup:**
@@ -269,7 +269,7 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
   - Azure receives two usage requests.
   - The status is succeeded with no error code.
 
-**azure-marketplace-TC002 - Fail after Azure request timeouts exhaust retries**
+**producer-azure-marketplace-TC002 - Fail after Azure request timeouts exhaust retries**
 
 - **Description:** Verify a request timeout is retried and reported as a failed remittance after the configured attempts.
 - **Setup:**
@@ -281,7 +281,7 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
   - Azure receives four usage requests: one initial request and three retries.
   - The status is failed with errorCode=unknown.
 
-**azure-marketplace-TC003 - Treat a duplicate Azure event as successful**
+**producer-azure-marketplace-TC003 - Treat a duplicate Azure event as successful**
 
 - **Description:** Verify a duplicate response is idempotent when Azure reports an HTTP 409 conflict.
 - **Setup:** Return HTTP 409 from the Azure usage-event endpoint. The producer classifies it by status code and does not inspect the response body.
@@ -291,7 +291,7 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
   - Azure receives one usage request and no retry occurs.
   - The status is succeeded with no error code.
 
-**azure-marketplace-TC004 - Report a Marketplace rate limit**
+**producer-azure-marketplace-TC004 - Report a Marketplace rate limit**
 
 - **Description:** Verify a rate-limit response is retried and then reported as a failed remittance.
 - **Setup:**
@@ -303,12 +303,12 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
   - Azure receives four usage requests: one initial request and three retries.
   - The status is failed with errorCode=unknown.
 
-**azure-marketplace-TC005 - Handle Azure HTTP 400 for an out-of-window event time**
+**producer-azure-marketplace-TC005 - Handle Azure HTTP 400 for a past out-of-window event time**
 
-- **Description:** Verify the producer forwards an out-of-window effective time and publishes the status produced by its Azure HTTP 400 handling.
+- **Description:** Verify the producer forwards a past effective time outside Azure's 24-hour window and publishes the status produced by its HTTP 400 handling.
 - **Setup:**
   - Return a valid Contracts context and a matching configured credential.
-  - Parameterize the aggregate effective time as 25 hours in the past and one hour in the future.
+  - Set the aggregate effective time to 25 hours in the past.
   - Return HTTP 400 for the usage-event request; the producer branches on the status code and does not interpret the error body.
 - **Action:** Publish one Azure aggregate.
 - **Verification:** Inspect the submitted effectiveStartTime, count Azure requests, and read the status by aggregateId.
@@ -317,7 +317,21 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
   - Azure receives one request; HTTP 400 is converted to a non-exception response and is not retried.
   - The status is succeeded with errorCode=null because the consumer publishes success after any non-exception response.
 
-**azure-marketplace-TC006 - Handle Azure HTTP 400 for a non-positive quantity**
+**producer-azure-marketplace-TC006 - Handle Azure HTTP 400 for a future out-of-window event time**
+
+- **Description:** Verify the producer forwards a future effective time outside Azure's accepted window and publishes the status produced by its HTTP 400 handling.
+- **Setup:**
+  - Return a valid Contracts context and a matching configured credential.
+  - Set the aggregate effective time to one hour in the future.
+  - Return HTTP 400 for the usage-event request; the producer branches on the status code and does not interpret the error body.
+- **Action:** Publish one Azure aggregate.
+- **Verification:** Inspect the submitted effectiveStartTime, count Azure requests, and read the status by aggregateId.
+- **Expected Result:**
+  - Azure receives the effective time from the aggregate.
+  - Azure receives one request; HTTP 400 is converted to a non-exception response and is not retried.
+  - The status is succeeded with errorCode=null because the consumer publishes success after any non-exception response.
+
+**producer-azure-marketplace-TC007 - Handle Azure HTTP 400 for a non-positive quantity**
 
 - **Description:** Verify the producer sends a non-positive quantity and publishes the status produced by its Azure HTTP 400 handling.
 - **Setup:**
@@ -333,7 +347,7 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
 
 ## Aggregate Filtering and Input Validation
 
-**azure-filter-TC001 - Ignore aggregates for other billing providers**
+**producer-azure-filter-TC001 - Ignore aggregates for other billing providers**
 
 - **Description:** Verify an AWS aggregate on the shared topic is ignored by the Azure producer.
 - **Setup:**
@@ -345,7 +359,7 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
   - No status or outbound HTTP request is produced for the AWS aggregate.
   - The following Azure aggregate produces one succeeded status and one successful Azure usage request.
 
-**azure-filter-TC002 - Report a metric without an Azure dimension**
+**producer-azure-filter-TC002 - Report a metric without an Azure dimension**
 
 - **Description:** Verify a configured metric without an Azure dimension is reported as unsupported.
 - **Setup:** Use rhel-for-x86-els-payg with its configured vCPUs metric, which has no Azure dimension.
@@ -355,7 +369,7 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
   - The status is failed with errorCode=unsupported_metric.
   - No Contracts, OAuth, or Azure Marketplace request is made.
 
-**azure-filter-TC003 - Report a metric not configured for the product**
+**producer-azure-filter-TC003 - Report a metric not configured for the product**
 
 - **Description:** Verify a globally known metric that is not configured for the selected product is reported as unsupported.
 - **Setup:** Use productId=rosa with the globally known metricId=Storage-gibibyte-months, which is not in that product's metric list.
@@ -365,9 +379,9 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
   - The status is failed with errorCode=unsupported_metric.
   - No Contracts, OAuth, or Azure Marketplace request is made.
 
-**azure-filter-TC004 - Ignore malformed timestamp input and process the next aggregate**
+**producer-azure-filter-TC004 - Continue processing after malformed input**
 
-- **Description:** Verify a Kafka deserialization failure does not stop processing the next valid aggregate.
+- **Description:** Verify an invalid windowTimestamp is ignored and does not prevent the following valid aggregate from processing.
 - **Setup:**
   - Set USAGE_AGGREGATE_FAIL_ON_DESER_FAILURE=false so malformed records are ignored.
   - Prepare a malformed aggregate payload with an invalid windowTimestamp.
@@ -377,7 +391,7 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
   - The malformed payload produces no status or outbound HTTP request.
   - The valid aggregate produces one succeeded status and one Azure usage request.
 
-**azure-filter-TC005 - Ignore an aggregate without an aggregate key**
+**producer-azure-filter-TC005 - Ignore an aggregate without an aggregate key**
 
 - **Description:** Verify a keyless aggregate is ignored without stopping the consumer.
 - **Setup:** Prepare valid JSON for an aggregate whose aggregateKey is null.
@@ -387,7 +401,7 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
   - The keyless aggregate produces no status or outbound HTTP request.
   - The valid aggregate produces one succeeded status and one Azure usage request.
 
-**azure-filter-TC006 - Ignore a null Kafka value**
+**producer-azure-filter-TC006 - Ignore a null Kafka value**
 
 - **Description:** Verify a null Kafka value is ignored without stopping the consumer.
 - **Setup:** Prepare one valid Azure aggregate with a unique aggregateId.
@@ -397,7 +411,7 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
   - The null value produces no status or outbound HTTP request.
   - The valid aggregate produces one succeeded status and one Azure usage request.
 
-**azure-filter-TC007 - Ignore an aggregate with no metric ID**
+**producer-azure-filter-TC007 - Ignore an aggregate with no metric ID**
 
 - **Description:** Verify an aggregate without a metric ID produces no status and does not prevent the next valid aggregate from processing.
 - **Setup:**
@@ -409,7 +423,7 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
   - The aggregate without a metric ID produces no status or outbound HTTP request.
   - The following valid aggregate produces one succeeded status and one successful Azure usage request.
 
-**azure-filter-TC008 - Ignore an aggregate with an unknown metric ID**
+**producer-azure-filter-TC008 - Ignore an aggregate with an unknown metric ID**
 
 - **Description:** Verify an unknown metric ID produces no status and does not prevent the next valid aggregate from processing.
 - **Setup:**
@@ -421,7 +435,7 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
   - The aggregate with an unknown metric ID produces no status or outbound HTTP request.
   - The following valid aggregate produces one succeeded status and one successful Azure usage request.
 
-**azure-filter-TC009 - Report an aggregate without a window timestamp**
+**producer-azure-filter-TC009 - Report an aggregate without a window timestamp**
 
 - **Description:** Verify a missing aggregate timestamp is reported as a Contracts usage-context lookup failure.
 - **Setup:**
@@ -436,7 +450,7 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
 
 ## Manual Billable Usage Submission
 
-**azure-manual-TC001 - Submit billable usage when manual submission is enabled**
+**producer-azure-manual-TC001 - Submit billable usage when manual submission is enabled**
 
 - **Description:** Verify the manual submission endpoint queues a valid billable usage message when enabled.
 - **Setup:**
@@ -448,7 +462,7 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
   - HTTP 202 is returned.
   - One message equivalent to the submitted payload is published.
 
-**azure-manual-TC002 - Reject manual submission when it is disabled**
+**producer-azure-manual-TC002 - Reject manual submission when it is disabled**
 
 - **Description:** Verify manual billable usage is rejected when the feature is disabled.
 - **Setup:** Set AZURE_MANUAL_SUBMISSION_ENABLED=false.
@@ -460,7 +474,7 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
 
 ## Status and Metrics
 
-**azure-status-TC001 - Record metrics for an accepted aggregate**
+**producer-azure-status-TC001 - Record metrics for an accepted aggregate**
 
 - **Description:** Verify accepted usage and metered-total counters increase for a successful aggregate.
 - **Setup:**
@@ -474,7 +488,7 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
   - swatch_producer_metered_total increases by totalValue / billingFactor.
   - Metric tags include the product, metric ID, billing_provider=azure, and status=succeeded.
 
-**azure-status-TC002 - Record metrics after Azure retries are exhausted**
+**producer-azure-status-TC002 - Record metrics after Azure retries are exhausted**
 
 - **Description:** Verify rejected usage and metered-total counters after every Marketplace retry fails.
 - **Setup:**
@@ -487,13 +501,3 @@ Existing Java component tests cover accepted usage, a generic Contracts 404, tim
   - The status is failed with errorCode=unknown.
   - swatch_azure_marketplace_batch_rejected_total increases once after four Azure requests; swatch_azure_marketplace_batch_accepted_total does not increase.
   - swatch_producer_metered_total increases by totalValue / billingFactor with status=failed and error_code=unknown.
-
-# Useful Links
-
-- [Component Testing Framework guide](../docs/component-tests.md)
-- [Azure producer component tests](ct/java/tests)
-- [Contracts component test plan](../swatch-contracts/COMPONENT_TEST_PLAN.md)
-- [Contracts API OpenAPI](../swatch-contracts/src/main/resources/META-INF/openapi.yaml)
-- [Azure Marketplace API specification](../clients/quarkus/azure-marketplace-client/azure-marketplace-api-spec.yaml)
-- [Azure Marketplace metered billing API documentation](https://learn.microsoft.com/en-us/partner-center/marketplace/marketplace-metering-service-apis)
-- [Azure Marketplace authentication documentation](https://learn.microsoft.com/en-us/partner-center/marketplace-offers/marketplace-metering-service-authentication)
