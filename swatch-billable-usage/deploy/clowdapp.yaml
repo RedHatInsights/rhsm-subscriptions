@@ -162,7 +162,8 @@ parameters:
   - prefix: ${FLOORIST_S3_SNOWPIPE_PATH}/billable_usage_remittance/
     chunksize: 50000
     query: >-
-      select * from billable_usage_remittance;
+      select * from billable_usage_remittance
+      where last_modified >= date_trunc('day', now() at time zone 'utc' - interval '2 day')
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1

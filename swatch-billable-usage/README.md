@@ -97,6 +97,27 @@ A remittance record contains the following data:
 * **tally_id**:
   * Reference to the tally snapshot that generated this billable usage.
 
+### Remittance Analytics Export
+Floorist exports `billable_usage_remittance` using the shared FloorPlan query in
+`deploy/clowdapp.yaml`. The recurring export selects rows whose `last_modified` is at or after
+UTC midnight two days ago, matching the existing Floorist lookback convention.
+
+The database trigger refreshes `last_modified` on every insert and update. An old remittance
+receiving a late status update is therefore exported again; the lookback does not need to cover
+the remittance's entire lifecycle. The two-day window assumes exports run at least daily and
+provides overlap for short interruptions while limiting repeated exports. Downstream staging
+must deduplicate by `uuid`, retaining the newest version.
+
+Before deploying this recurring filter in an environment, confirm its initial historical export
+(SWATCH-5286) and ingestion are complete and its Floorist schedule runs at least daily. The
+historical export window is separate from this recurring lookback; do not use this filter for
+an initial load.
+
+The lookback is relative to the current time, not the last successful export. If an interruption
+leaves changes outside the lookback unexported, run a targeted backfill covering the gap and
+confirm ingestion before returning to the recurring query. A wider temporary filter or separate
+export can recover the gap without permanently increasing duplicate exports.
+
 ### Billable Usage Aggregation
 The service includes a Kafka Streams topology that aggregates billable usage messages into
 hourly windows. This aggregation:
