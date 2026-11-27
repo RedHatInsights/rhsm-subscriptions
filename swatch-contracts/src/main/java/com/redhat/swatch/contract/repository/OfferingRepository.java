@@ -20,14 +20,53 @@
  */
 package com.redhat.swatch.contract.repository;
 
+import com.redhat.swatch.contract.model.SlaUsageDefaults;
 import com.redhat.swatch.panache.PanacheSpecificationSupport;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.transaction.Transactional;
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @ApplicationScoped
 public class OfferingRepository implements PanacheSpecificationSupport<OfferingEntity, String> {
+  private static final int BACKFILL_BATCH_SIZE = 1_000;
+
+  /** Backfill null values for the supplied SKUs and count fields updated. */
+  @Transactional
+  public int applySlaUsageDefaults(List<String> skus) {
+    int updatedFields = 0;
+    Instant lastModified = Instant.now();
+    for (int start = 0; start < skus.size(); start += BACKFILL_BATCH_SIZE) {
+      int end = Math.min(start + BACKFILL_BATCH_SIZE, skus.size());
+      var batch = skus.subList(start, end);
+      updatedFields +=
+          update(
+              """
+              set serviceLevel = :sla, lastModified = :lastModified
+              where serviceLevel is null and sku in :skus
+              """,
+              Map.of(
+                  "sla", SlaUsageDefaults.SERVICE_LEVEL,
+                  "lastModified", lastModified,
+                  "skus", batch));
+      updatedFields +=
+          update(
+              """
+              set usage = :usage, lastModified = :lastModified
+              where usage is null and sku in :skus
+              """,
+              Map.of(
+                  "usage", SlaUsageDefaults.USAGE,
+                  "lastModified", lastModified,
+                  "skus", batch));
+    }
+    return updatedFields;
+  }
+
   public Stream<String> findSkusForChildSku(String sku) {
     return find("select sku from OfferingEntity where ?1 member of childSkus", sku)
         .project(String.class)

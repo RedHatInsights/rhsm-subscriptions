@@ -43,4 +43,5 @@ public class DbReportCriteria {
   private OffsetDateTime ending;
   private String metricId;
   private HypervisorReportCategory hypervisorReportCategory;
+  private boolean resolvedSlaUsageFiltering;
 }

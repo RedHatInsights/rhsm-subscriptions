@@ -26,6 +26,7 @@ import static com.redhat.swatch.export.ExportRequestHandler.ADMIN_ROLE;
 import static com.redhat.swatch.export.ExportRequestHandler.MISSING_PERMISSIONS;
 import static com.redhat.swatch.export.ExportRequestHandler.SWATCH_APP;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -42,6 +43,7 @@ import com.redhat.swatch.common.model.ServiceLevel;
 import com.redhat.swatch.common.model.Usage;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import com.redhat.swatch.contract.config.Channels;
+import com.redhat.swatch.contract.config.FeatureFlags;
 import com.redhat.swatch.contract.model.SubscriptionsExportCsvItem;
 import com.redhat.swatch.contract.model.SubscriptionsExportJson;
 import com.redhat.swatch.contract.model.SubscriptionsExportJsonItem;
@@ -56,7 +58,9 @@ import com.redhat.swatch.contract.test.LoggerCaptor;
 import com.redhat.swatch.contract.test.resources.ExportServiceWireMockResource;
 import com.redhat.swatch.contract.test.resources.InMemoryMessageBrokerKafkaResource;
 import com.redhat.swatch.contract.test.resources.InjectWireMock;
+import com.redhat.swatch.export.ExportServiceRequest;
 import io.quarkus.test.InjectMock;
+import io.quarkus.test.TestTransaction;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.reactive.messaging.memory.InMemoryConnector;
@@ -94,12 +98,14 @@ class SubscriptionDataExporterServiceTest {
 
   @Inject SubscriptionRepository subscriptionRepository;
   @Inject SubscriptionCapacityViewRepository subscriptionCapacityViewRepository;
+  @Inject SubscriptionDataExporterService subscriptionDataExporterService;
   @Inject SubscriptionCsvDataMapperService csvDataMapperService;
   @Inject SubscriptionJsonDataMapperService jsonDataMapperService;
   @Inject ObjectMapper objectMapper;
   @Inject CsvMapper csvMapper;
   @Inject OfferingRepository offeringRepository;
   @InjectMock RbacService rbacService;
+  @InjectMock FeatureFlags featureFlags;
   @InjectWireMock ExportServiceWireMockResource wireMockResource;
   @Inject @Any InMemoryConnector connector;
 
@@ -119,6 +125,8 @@ class SubscriptionDataExporterServiceTest {
     wireMockResource.setup();
     exportChannel = connector.source(Channels.EXPORT_REQUESTS_TOPIC);
     parser = new ConsoleCloudEventParser(objectMapper);
+    reset(featureFlags);
+    when(featureFlags.isResolvedSlaUsageFilteringEnabled()).thenReturn(false);
 
     offering = new OfferingEntity();
     offering.setSku("MKU001");
@@ -275,6 +283,125 @@ class SubscriptionDataExporterServiceTest {
     givenExportRequestWithPermissions(Format.CSV);
     whenReceiveExportRequest();
     verifyRequestWasSentToExportService();
+  }
+
+  @ParameterizedTest
+  @CsvSource(
+      value = {
+        "NULL, NULL, true",
+        "NULL, PRODUCTION, true",
+        "PREMIUM, NULL, true",
+        "PREMIUM, PRODUCTION, false"
+      },
+      nullValues = "NULL")
+  @TestTransaction
+  void resolvesMissingSlaAndUsageForDefaultFilteredExport(
+      ServiceLevel serviceLevel, Usage usage, boolean withMeasurements) {
+    when(featureFlags.isResolvedSlaUsageFilteringEnabled()).thenReturn(true);
+    givenOffering(serviceLevel, usage);
+    var subscription = buildSubscription(ORG_ID, RHEL_FOR_X86);
+    subscription.setQuantity(7);
+    if (!withMeasurements) {
+      subscription.setSubscriptionMeasurements(Map.of());
+    }
+    subscriptionRepository.persist(subscription);
+    subscriptionRepository.flush();
+    givenExportRequest(Format.JSON);
+    givenFilterInExportRequest("sla", ServiceLevel.PREMIUM.getValue());
+    givenFilterInExportRequest("usage", Usage.PRODUCTION.getValue());
+    givenFilterInExportRequest(PRODUCT_ID, RHEL_FOR_X86);
+
+    var exportRequest = new ExportServiceRequest(parser.fromJsonString(parser.toJson(request)));
+    assertEquals(ORG_ID, exportRequest.getOrgId());
+    assertEquals(ServiceLevel.PREMIUM.getValue(), exportRequest.getFilters().get("sla"));
+    assertEquals(Usage.PRODUCTION.getValue(), exportRequest.getFilters().get("usage"));
+    assertEquals(RHEL_FOR_X86, exportRequest.getFilters().get(PRODUCT_ID));
+
+    var capacityViewItem =
+        subscriptionCapacityViewRepository
+            .streamBy(SubscriptionCapacityViewRepository.orgIdEquals(ORG_ID))
+            .findFirst()
+            .orElseThrow();
+
+    var data = subscriptionDataExporterService.fetchData(exportRequest).toList();
+
+    assertEquals(1L, data.stream().map(item -> item.getSubscriptionNumber()).distinct().count());
+    data.forEach(item -> {
+      assertEquals(RHEL_FOR_X86, item.getProductTag());
+      assertEquals(ServiceLevel.PREMIUM, item.getServiceLevel());
+      assertEquals(Usage.PRODUCTION, item.getUsage());
+      assertEquals(subscription.getSubscriptionNumber(), item.getSubscriptionNumber());
+      assertEquals(subscription.getStartDate(), item.getStartDate());
+      assertEquals(subscription.getEndDate(), item.getEndDate());
+      assertEquals(BillingProvider.AWS, item.getBillingProvider());
+      assertEquals(BILLING_ACCOUNT_ID, item.getBillingAccountId());
+      assertEquals(7, item.getQuantity());
+      assertEquals(capacityViewItem.getMetrics(), item.getMetrics());
+      var jsonItem =
+          (SubscriptionsExportJsonItem)
+              jsonDataMapperService.mapDataItem(item, exportRequest).get(0);
+      assertEquals(ServiceLevel.PREMIUM.getValue(), jsonItem.getServiceLevel());
+      assertEquals(Usage.PRODUCTION.getValue(), jsonItem.getUsage());
+      if (withMeasurements) {
+        assertEquals(1, jsonItem.getMeasurements().size());
+        assertEquals(5.0, jsonItem.getMeasurements().getFirst().getCapacity());
+        assertEquals("HYPERVISOR", jsonItem.getMeasurements().getFirst().getMeasurementType());
+      }
+      var csvItem =
+          (SubscriptionsExportCsvItem) csvDataMapperService.mapDataItem(item, exportRequest).get(0);
+      assertEquals(ServiceLevel.PREMIUM.getValue(), csvItem.getServiceLevel());
+      assertEquals(Usage.PRODUCTION.getValue(), csvItem.getUsage());
+      assertEquals(7.0, csvItem.getQuantity());
+    });
+
+    assertEquals(serviceLevel, capacityViewItem.getServiceLevel());
+    assertEquals(usage, capacityViewItem.getUsage());
+  }
+
+  @ParameterizedTest
+  @CsvSource(value = {"EMPTY, EMPTY", "EMPTY, PRODUCTION", "PREMIUM, EMPTY"})
+  @TestTransaction
+  void excludesUnmappedEmptyValuesFromDefaultFilteredExport(
+      ServiceLevel serviceLevel, Usage usage) {
+    when(featureFlags.isResolvedSlaUsageFilteringEnabled()).thenReturn(true);
+    givenOffering(serviceLevel, usage);
+    subscriptionRepository.persist(buildSubscription(ORG_ID, RHEL_FOR_X86));
+    subscriptionRepository.flush();
+    givenExportRequest(Format.JSON);
+    givenFilterInExportRequest("sla", ServiceLevel.PREMIUM.getValue());
+    givenFilterInExportRequest("usage", Usage.PRODUCTION.getValue());
+    givenFilterInExportRequest(PRODUCT_ID, RHEL_FOR_X86);
+
+    var exportRequest = new ExportServiceRequest(parser.fromJsonString(parser.toJson(request)));
+    assertEquals(0, subscriptionDataExporterService.fetchData(exportRequest).count());
+  }
+
+  @Test
+  @TestTransaction
+  void normalizesMissingSlaAndUsageAsEmptyWhenFlagIsDisabled() {
+    givenOffering(null, null);
+    subscriptionRepository.persist(buildSubscription(ORG_ID, RHEL_FOR_X86));
+    subscriptionRepository.flush();
+    givenExportRequest(Format.JSON);
+    givenFilterInExportRequest("sla", ServiceLevel.EMPTY.getValue());
+    givenFilterInExportRequest("usage", Usage.EMPTY.getValue());
+    givenFilterInExportRequest(PRODUCT_ID, RHEL_FOR_X86);
+
+    var exportRequest = new ExportServiceRequest(parser.fromJsonString(parser.toJson(request)));
+    var item = subscriptionDataExporterService.fetchData(exportRequest).findFirst().orElseThrow();
+
+    assertEquals(ServiceLevel.EMPTY, item.getServiceLevel());
+    assertEquals(Usage.EMPTY, item.getUsage());
+    var jsonItem =
+        (SubscriptionsExportJsonItem)
+            jsonDataMapperService.mapDataItem(item, exportRequest).getFirst();
+    assertEquals(ServiceLevel.EMPTY.getValue(), jsonItem.getServiceLevel());
+    assertEquals(Usage.EMPTY.getValue(), jsonItem.getUsage());
+    var csvItem =
+        (SubscriptionsExportCsvItem)
+            csvDataMapperService.mapDataItem(item, exportRequest).getFirst();
+    assertEquals(ServiceLevel.EMPTY.getValue(), csvItem.getServiceLevel());
+    assertEquals(Usage.EMPTY.getValue(), csvItem.getUsage());
   }
 
   private void givenExportServiceReturnsGatewayTimeout() {
@@ -449,6 +576,13 @@ class SubscriptionDataExporterServiceTest {
   private void verifyRequestWasSentToExportServiceWithError(
       GenericConsoleCloudEvent<ResourceRequest> request, String message) {
     wireMockResource.verifyRequestWasSentToExportServiceWithError(request, message);
+  }
+
+  private void givenOffering(ServiceLevel serviceLevel, Usage usage) {
+    offering = new OfferingEntity();
+    offering.setSku("sla-usage-export");
+    offering.setServiceLevel(serviceLevel);
+    offering.setUsage(usage);
   }
 
   private void updateOffering() {

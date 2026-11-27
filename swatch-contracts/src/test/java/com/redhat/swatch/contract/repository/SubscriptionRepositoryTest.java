@@ -68,6 +68,7 @@ class SubscriptionRepositoryTest {
 
   @Inject SubscriptionRepository subscriptionRepo;
   @Inject OfferingRepository offeringRepo;
+  @Inject SubscriptionCapacityViewRepository subscriptionCapacityViewRepo;
   @Inject ContractRepository contractRepo;
   @Inject ApplicationClock clock;
 
@@ -341,6 +342,156 @@ class SubscriptionRepositoryTest {
 
     var result = resultList.get(0);
     assertEquals("testSku1", result.getOffering().getSku());
+  }
+
+  @TestTransaction
+  @Test
+  void resolvesMissingOfferingSlaAndUsageWhenFilteringByDefaults() {
+    List<OfferingEntity> offerings =
+        List.of(
+            createOffering("missing-both", PRODUCT_TAG, 1066, null, null, "ocp"),
+            createOffering(
+                "unmapped-both", PRODUCT_TAG, 1066, ServiceLevel.EMPTY, Usage.EMPTY, "ocp"),
+            createOffering("missing-sla", PRODUCT_TAG, 1066, null, Usage.PRODUCTION, "ocp"),
+            createOffering("missing-usage", PRODUCT_TAG, 1066, ServiceLevel.PREMIUM, null, "ocp"),
+            createOffering(
+                "explicit-defaults",
+                PRODUCT_TAG,
+                1066,
+                ServiceLevel.PREMIUM,
+                Usage.PRODUCTION,
+                "ocp"),
+            createOffering(
+                "other-values",
+                PRODUCT_TAG,
+                1066,
+                ServiceLevel.STANDARD,
+                Usage.DEVELOPMENT_TEST,
+                "ocp"));
+    offeringRepo.persist(offerings);
+    offeringRepo.flush();
+
+    List<String> subscriptionNumbers =
+        List.of(
+            "sub-missing-both",
+            "sub-unmapped-both",
+            "sub-missing-sla",
+            "sub-missing-usage",
+            "sub-explicit-defaults",
+            "sub-other-values");
+    for (int i = 0; i < offerings.size(); i++) {
+      SubscriptionEntity subscription =
+          createSubscription(
+              "org-sla-usage-defaults", subscriptionNumbers.get(i), BILLING_ACCOUNT_ID);
+      subscription.setOffering(offerings.get(i));
+      subscriptionRepo.persist(subscription);
+    }
+    subscriptionRepo.flush();
+
+    var criteria =
+        DbReportCriteria.builder()
+            .orgId("org-sla-usage-defaults")
+            .productTag(PRODUCT_TAG)
+            .serviceLevel(ServiceLevel.PREMIUM)
+            .usage(Usage.PRODUCTION)
+            .beginning(now)
+            .ending(now)
+            .resolvedSlaUsageFiltering(true)
+            .build();
+
+    var result = subscriptionRepo.findByCriteria(criteria);
+
+    assertEquals(
+        Set.of("sub-missing-both", "sub-missing-sla", "sub-missing-usage", "sub-explicit-defaults"),
+        result.stream().map(SubscriptionEntity::getSubscriptionNumber).collect(Collectors.toSet()));
+
+    var resolvedCapacityViewCriteria =
+        SubscriptionCapacityViewRepository.buildSearchSpecification(
+            "org-sla-usage-defaults",
+            null,
+            null,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            null,
+            null,
+            null,
+            true);
+    var resolvedCapacityViewResult =
+        subscriptionCapacityViewRepo.streamBy(resolvedCapacityViewCriteria).toList();
+    assertEquals(
+        Set.of("sub-missing-both", "sub-missing-sla", "sub-missing-usage", "sub-explicit-defaults"),
+        resolvedCapacityViewResult.stream()
+            .map(SubscriptionCapacityView::getSubscriptionNumber)
+            .collect(Collectors.toSet()));
+
+    var unmappedCriteria =
+        criteria.toBuilder().serviceLevel(ServiceLevel.EMPTY).usage(Usage.EMPTY).build();
+    var unmappedResult = subscriptionRepo.findByCriteria(unmappedCriteria);
+    assertEquals(
+        Set.of("sub-unmapped-both"),
+        unmappedResult.stream()
+            .map(SubscriptionEntity::getSubscriptionNumber)
+            .collect(Collectors.toSet()));
+
+    var unmappedCapacityViewCriteria =
+        SubscriptionCapacityViewRepository.buildSearchSpecification(
+            "org-sla-usage-defaults",
+            null,
+            null,
+            ServiceLevel.EMPTY,
+            Usage.EMPTY,
+            null,
+            null,
+            null,
+            true);
+    var unmappedCapacityViewResult =
+        subscriptionCapacityViewRepo.streamBy(unmappedCapacityViewCriteria).toList();
+    assertEquals(
+        Set.of("sub-unmapped-both"),
+        unmappedCapacityViewResult.stream()
+            .map(SubscriptionCapacityView::getSubscriptionNumber)
+            .collect(Collectors.toSet()));
+
+    var legacyResult =
+        subscriptionRepo.findByCriteria(
+            criteria.toBuilder().resolvedSlaUsageFiltering(false).build());
+    assertEquals(
+        Set.of("sub-explicit-defaults"),
+        legacyResult.stream()
+            .map(SubscriptionEntity::getSubscriptionNumber)
+            .collect(Collectors.toSet()));
+
+    var legacyEmptyCriteria =
+        criteria.toBuilder()
+            .serviceLevel(ServiceLevel.EMPTY)
+            .usage(Usage.EMPTY)
+            .resolvedSlaUsageFiltering(false)
+            .build();
+    var legacyEmptyResult = subscriptionRepo.findByCriteria(legacyEmptyCriteria);
+    assertEquals(
+        Set.of("sub-missing-both", "sub-unmapped-both"),
+        legacyEmptyResult.stream()
+            .map(SubscriptionEntity::getSubscriptionNumber)
+            .collect(Collectors.toSet()));
+
+    var legacyEmptyCapacityViewCriteria =
+        SubscriptionCapacityViewRepository.buildSearchSpecification(
+            "org-sla-usage-defaults",
+            null,
+            null,
+            ServiceLevel.EMPTY,
+            Usage.EMPTY,
+            null,
+            null,
+            null,
+            false);
+    var legacyEmptyCapacityViewResult =
+        subscriptionCapacityViewRepo.streamBy(legacyEmptyCapacityViewCriteria).toList();
+    assertEquals(
+        Set.of("sub-missing-both", "sub-unmapped-both"),
+        legacyEmptyCapacityViewResult.stream()
+            .map(SubscriptionCapacityView::getSubscriptionNumber)
+            .collect(Collectors.toSet()));
   }
 
   @TestTransaction

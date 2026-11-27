@@ -29,6 +29,8 @@ import com.redhat.swatch.common.model.HardwareMeasurementType;
 import com.redhat.swatch.common.model.ServiceLevel;
 import com.redhat.swatch.common.model.Usage;
 import com.redhat.swatch.configuration.registry.ProductId;
+import com.redhat.swatch.contract.config.FeatureFlags;
+import com.redhat.swatch.contract.model.SlaUsageDefaults;
 import com.redhat.swatch.contract.openapi.model.BillingProviderType;
 import com.redhat.swatch.contract.openapi.model.ReportCategory;
 import com.redhat.swatch.contract.openapi.model.ServiceLevelType;
@@ -74,6 +76,7 @@ public class SubscriptionTableControllerV1 {
   private final ApiModelMapperV1 mapper;
   private final SubscriptionRepository subscriptionRepository;
   private final ApplicationClock clock;
+  private final FeatureFlags featureFlags;
 
   public static final String PHYSICAL = HardwareMeasurementType.PHYSICAL.toString().toUpperCase();
   public static final String HYPERVISOR =
@@ -83,10 +86,12 @@ public class SubscriptionTableControllerV1 {
   SubscriptionTableControllerV1(
       ApiModelMapperV1 mapper,
       SubscriptionRepository subscriptionRepository,
-      ApplicationClock clock) {
+      ApplicationClock clock,
+      FeatureFlags featureFlags) {
     this.mapper = mapper;
     this.subscriptionRepository = subscriptionRepository;
     this.clock = clock;
+    this.featureFlags = featureFlags;
   }
 
   // Transactional annotation necessary to access lazy loaded ElementCollections for Subscription
@@ -120,6 +125,7 @@ public class SubscriptionTableControllerV1 {
     OffsetDateTime reportStart = clock.now();
     ServiceLevel sanitizedServiceLevel = sanitizeServiceLevel(mapper.map(serviceLevel));
     Usage sanitizedUsage = sanitizeUsage(mapper.map(usage));
+    boolean resolveMissingSlaUsage = featureFlags.isResolvedSlaUsageFilteringEnabled();
     BillingProvider sanitizedBillingProvider =
         sanitizeBillingProvider(mapper.map(billingProviderType));
     String sanitizedBillingAccountId = sanitizeBillingAccountId(billingAccountId);
@@ -157,6 +163,7 @@ public class SubscriptionTableControllerV1 {
             .metricId(metricId)
             .hypervisorReportCategory(hypervisorReportCategory)
             .billingProvider(sanitizedBillingProvider)
+            .resolvedSlaUsageFiltering(resolveMissingSlaUsage)
             .build();
     var subscriptions = subscriptionRepository.findByCriteria(reportCriteria);
     List<SubscriptionEntity> unlimitedSubs = subscriptionRepository.findUnlimited(reportCriteria);
@@ -166,7 +173,7 @@ public class SubscriptionTableControllerV1 {
       SkuCapacityV1 inventory =
           reportItemsBySku.computeIfAbsent(
               subscription.getOffering().getSku(),
-              s -> initializeSkuCapacity(subscription, metricId));
+              s -> initializeSkuCapacity(subscription, metricId, resolveMissingSlaUsage));
       calculateNextEvent(subscription, inventory, reportEnd);
       addSubscriptionInformation(subscription, inventory);
       var measurements = subscription.getSubscriptionMeasurements().entrySet().stream();
@@ -199,7 +206,7 @@ public class SubscriptionTableControllerV1 {
         SkuCapacityV1 inventory =
             reportItemsBySku.computeIfAbsent(
                 subscription.getOffering().getSku(),
-                s -> initializeSkuCapacity(subscription, metricId));
+                s -> initializeSkuCapacity(subscription, metricId, resolveMissingSlaUsage));
 
         inventory.setHasInfiniteQuantity(true);
         calculateNextEvent(subscription, inventory, reportCriteria.getEnding());
@@ -221,7 +228,8 @@ public class SubscriptionTableControllerV1 {
               sanitizedBillingProvider,
               sanitizedBillingAccountId,
               reportStart,
-              reportEnd));
+              reportEnd,
+              resolveMissingSlaUsage));
     }
 
     int reportItemCount = reportItems.size();
@@ -252,7 +260,8 @@ public class SubscriptionTableControllerV1 {
       BillingProvider billingProvider,
       String billingAccountId,
       OffsetDateTime reportStart,
-      OffsetDateTime reportEnd) {
+      OffsetDateTime reportEnd,
+      boolean resolveMissingSlaUsage) {
 
     Map<String, SkuCapacityV1> inventories = new HashMap<>();
 
@@ -268,6 +277,7 @@ public class SubscriptionTableControllerV1 {
                 .beginning(reportStart)
                 .ending(reportEnd)
                 .payg(true)
+                .resolvedSlaUsageFiltering(resolveMissingSlaUsage)
                 .build(),
             Sort.empty());
 
@@ -276,7 +286,7 @@ public class SubscriptionTableControllerV1 {
       final SkuCapacityV1 inventory =
           inventories.computeIfAbsent(
               String.format("%s:%s", sku, sub.getBillingProvider()),
-              key -> initializeSkuCapacity(sub, NO_METRIC_ID));
+              key -> initializeSkuCapacity(sub, NO_METRIC_ID, resolveMissingSlaUsage));
       addOnDemandSubscriptionInformation(sub, inventory);
     });
     return inventories.values();
@@ -284,14 +294,22 @@ public class SubscriptionTableControllerV1 {
 
   public SkuCapacityV1 initializeSkuCapacity(
       @Nonnull SubscriptionEntity sub, @Nullable String metricId) {
+    return initializeSkuCapacity(sub, metricId, featureFlags.isResolvedSlaUsageFilteringEnabled());
+  }
+
+  private SkuCapacityV1 initializeSkuCapacity(
+      @Nonnull SubscriptionEntity sub, @Nullable String metricId, boolean resolveMissingSlaUsage) {
     var offering = sub.getOffering();
     var inventory = new SkuCapacityV1();
     inventory.setSubscriptions(new ArrayList<>());
     inventory.setSku(offering.getSku());
     inventory.setProductName(offering.getDescription());
     inventory.setServiceLevel(
-        mapper.map(Optional.ofNullable(offering.getServiceLevel()).orElse(ServiceLevel.EMPTY)));
-    inventory.setUsage(mapper.map(Optional.ofNullable(offering.getUsage()).orElse(Usage.EMPTY)));
+        mapper.map(
+            SlaUsageDefaults.resolveServiceLevel(
+                offering.getServiceLevel(), resolveMissingSlaUsage)));
+    inventory.setUsage(
+        mapper.map(SlaUsageDefaults.resolveUsage(offering.getUsage(), resolveMissingSlaUsage)));
     inventory.setHasInfiniteQuantity(offering.isHasUnlimitedUsage());
     inventory.setBillingProvider(
         mapper.map(Optional.ofNullable(sub.getBillingProvider()).orElse(BillingProvider.EMPTY)));

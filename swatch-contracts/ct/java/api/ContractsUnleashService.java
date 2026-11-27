@@ -33,6 +33,10 @@ public class ContractsUnleashService extends UnleashService {
   /** Matches {@code FeatureFlags.USE_SUBSCRIPTIONS_FLAG} in swatch-contracts. */
   public static final String USE_SUBSCRIPTIONS = "swatch.swatch-contracts.use-subscriptions";
 
+  /** Matches {@code FeatureFlags.RESOLVED_SLA_USAGE_FILTERING_FLAG} in swatch-contracts. */
+  public static final String RESOLVED_SLA_USAGE_FILTERING =
+      "swatch.ui.resolved-sla-usage-filtering";
+
   public void enableKesselRbac() {
     enableFlag(USE_KESSEL_RBAC);
   }
@@ -55,5 +59,13 @@ public class ContractsUnleashService extends UnleashService {
 
   public void disableUseSubscriptions() {
     disableFlag(USE_SUBSCRIPTIONS);
+  }
+
+  public void enableResolvedSlaUsageFiltering() {
+    enableFlag(RESOLVED_SLA_USAGE_FILTERING);
+  }
+
+  public void disableResolvedSlaUsageFiltering() {
+    disableFlag(RESOLVED_SLA_USAGE_FILTERING);
   }
 }

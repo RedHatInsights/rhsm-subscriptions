@@ -26,6 +26,7 @@ import java.util.Set;
 public enum SyncResult {
   FETCHED_AND_SYNCED("Successfully fetched and synced updated value from upstream"),
   FAILED("Failed to fetch and/or sync"),
+  DEFERRED_TO_SCHEDULED_SYNC("Offering refresh deferred to the scheduled sync"),
   SKIPPED_MATCHING("Upstream matches stored item, did not sync"),
   SKIPPED_NOT_FOUND("Was not found upstream, did not sync"),
   SKIPPED_DENYLISTED("In denylist, did not sync");

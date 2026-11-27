@@ -24,14 +24,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.clients.product.JsonProductDataSource;
 import com.redhat.swatch.clients.product.ProductService;
 import com.redhat.swatch.contract.config.Channels;
+import com.redhat.swatch.contract.config.FeatureFlags;
 import com.redhat.swatch.contract.config.ProductDenylist;
 import com.redhat.swatch.contract.exception.ServiceException;
 import com.redhat.swatch.contract.model.OfferingSyncTask;
+import com.redhat.swatch.contract.model.SlaUsageDefaults;
 import com.redhat.swatch.contract.model.SyncResult;
 import com.redhat.swatch.contract.openapi.model.OperationalProductEvent;
 import com.redhat.swatch.contract.product.UpstreamProductData;
-import com.redhat.swatch.contract.product.umb.ProductAttribute;
-import com.redhat.swatch.contract.product.umb.UmbOperationalProduct;
 import com.redhat.swatch.contract.repository.OfferingEntity;
 import com.redhat.swatch.contract.repository.OfferingRepository;
 import io.micrometer.core.annotation.Timed;
@@ -64,6 +64,7 @@ public class OfferingSyncService {
       "{} for offeringSku=\"{}\" in offeringSyncTimeMillis={}.";
 
   private final OfferingRepository offeringRepository;
+  private final FeatureFlags featureFlags;
   private final ProductDenylist productDenylist;
   private final ProductService productService;
   private final CapacityReconciliationService capacityReconciliationService;
@@ -77,6 +78,7 @@ public class OfferingSyncService {
   @Inject
   public OfferingSyncService(
       OfferingRepository offeringRepository,
+      FeatureFlags featureFlags,
       ProductDenylist productDenylist,
       ProductService productService,
       CapacityReconciliationService capacityReconciliationService,
@@ -86,6 +88,7 @@ public class OfferingSyncService {
       OfferingProductTagLookupService offeringProductTagLookupService,
       TransactionSynchronizationRegistry txRegistry) {
     this.offeringRepository = offeringRepository;
+    this.featureFlags = featureFlags;
     this.productDenylist = productDenylist;
     this.productService = productService;
     this.capacityReconciliationService = capacityReconciliationService;
@@ -158,6 +161,7 @@ public class OfferingSyncService {
 
   private SyncResult syncOffering(
       OfferingEntity newState, Optional<OfferingEntity> persistedOffering) {
+    applySlaUsageDefaults(newState);
     log.debug("New state of offering to save: {}", newState);
     if (alreadySynced(persistedOffering, newState)) {
       return SyncResult.SKIPPED_MATCHING;
@@ -210,14 +214,23 @@ public class OfferingSyncService {
   }
 
   /**
-   * Enqueues all offerings listed not in the product denylist to be synced with upstream.
+   * Enqueues offerings for upstream sync. The consumer checks the denylist.
    *
    * @return number of enqueued products
    */
   public int syncAllOfferings() {
     Timer.Sample enqueueTime = Timer.start();
-
     Set<String> products = offeringRepository.findAllDistinctSkus();
+
+    if (!products.isEmpty()
+        && featureFlags.isResolvedSlaUsageFilteringEnabled()
+        && !featureFlags.isReadOnly()) {
+      var eligibleSkus =
+          products.stream().filter(sku -> !productDenylist.productIdMatches(sku)).toList();
+      int updated = offeringRepository.applySlaUsageDefaults(eligibleSkus);
+      log.info("Applied defaults to {} unset offering SLA/usage fields", updated);
+    }
+
     products.forEach(this::enqueueOfferingSyncTask);
 
     Duration enqueueDuration = Duration.ofNanos(enqueueTime.stop(enqueueAllTimer));
@@ -256,8 +269,24 @@ public class OfferingSyncService {
         .map(sku -> enrichUpstreamOfferingData(sku, productDataSource))
         .filter(Optional::isPresent)
         .map(Optional::get)
-        .forEach(offeringRepository::persist);
+        .forEach(offering -> {
+          applySlaUsageDefaults(offering);
+          offeringRepository.persist(offering);
+        });
     return productDataSource.getTopLevelSkus();
+  }
+
+  private void applySlaUsageDefaults(OfferingEntity offering) {
+    if (!featureFlags.isResolvedSlaUsageFilteringEnabled()
+        || productDenylist.productIdMatches(offering.getSku())) {
+      return;
+    }
+    if (offering.getServiceLevel() == null) {
+      offering.setServiceLevel(SlaUsageDefaults.SERVICE_LEVEL);
+    }
+    if (offering.getUsage() == null) {
+      offering.setUsage(SlaUsageDefaults.USAGE);
+    }
   }
 
   private Optional<OfferingEntity> enrichUpstreamOfferingData(
@@ -282,56 +311,37 @@ public class OfferingSyncService {
    */
   @Transactional
   public SyncResult syncProductFromEvent(OperationalProductEvent productEvent) {
-
-    // The event from the Product Service topic only has the SKU and no attributes
-    UmbOperationalProduct product =
-        UmbOperationalProduct.builder()
-            .sku(productEvent.getProductCode())
-            .attributes(new ProductAttribute[] {})
-            .build();
-
-    return syncUmbProduct(product);
-  }
-
-  private SyncResult syncUmbProduct(UmbOperationalProduct umbOperationalProduct) {
-    log.info("Received product message for productSku={}", umbOperationalProduct.getSku());
-    if (umbOperationalProduct.getSku().startsWith("SVC")) {
-      syncChildSku(umbOperationalProduct.getSku());
+    String sku = productEvent.getProductCode();
+    log.info("Received product message for productSku={}", sku);
+    if (sku.startsWith("SVC")) {
+      syncChildSku(sku);
       return SyncResult.FETCHED_AND_SYNCED;
-    } else {
-      SyncResult result = syncRootSku(umbOperationalProduct);
-      if (result == SyncResult.FETCHED_AND_SYNCED) {
-        // we must assume that any SKU we get a message for may be a derived SKU,
-        // but we'll check our cache of product data and only actually operate on offerings having
-        // the SKU as a derived SKU
-        syncDerivedSku(umbOperationalProduct.getSku());
-      }
-      return result;
     }
+
+    SyncResult result = syncRootSku(sku);
+    if (result == SyncResult.FETCHED_AND_SYNCED
+        || result == SyncResult.DEFERRED_TO_SCHEDULED_SYNC) {
+      // Offerings derived from this SKU may need a refresh even if its own update was deferred.
+      syncDerivedSku(sku);
+    }
+    return result;
   }
 
-  /**
-   * Sync the offering state using only the UMB message if possible, otherwise sync the offering
-   * from the RHIT product service.
-   *
-   * @param umbOperationalProduct product definition from a UMB message
-   * @see UpstreamProductData#offeringFromUmbData
-   */
-  private SyncResult syncRootSku(UmbOperationalProduct umbOperationalProduct) {
-    Optional<OfferingEntity> existing =
-        offeringRepository.findByIdOptional(umbOperationalProduct.getSku());
-    Optional<OfferingEntity> newState =
-        UpstreamProductData.offeringFromUmbData(
-            umbOperationalProduct, existing.orElse(null), productService);
-    if (newState.isPresent()) {
-      discoverProductTagsBySku(newState);
-      return syncOffering(newState.get(), existing);
-    } else {
+  private SyncResult syncRootSku(String sku) {
+    Optional<OfferingEntity> existing = offeringRepository.findByIdOptional(sku);
+    if (!UpstreamProductData.shouldRefreshOnProductEvent(existing.orElse(null))) {
+      // The SKU-only event has no offering attributes. Preserve the stored offering until refresh.
+      return SyncResult.DEFERRED_TO_SCHEDULED_SYNC;
+    }
+
+    Optional<OfferingEntity> newState = getUpstreamOffering(sku);
+    if (newState.isEmpty()) {
       log.warn(
           "Unable to sync offering from product message for sku={}, because product service has no records for it",
-          umbOperationalProduct.getSku());
+          sku);
       return SyncResult.SKIPPED_NOT_FOUND;
     }
+    return syncOffering(newState.get(), existing);
   }
 
   private void discoverProductTagsBySku(Optional<OfferingEntity> newState) {

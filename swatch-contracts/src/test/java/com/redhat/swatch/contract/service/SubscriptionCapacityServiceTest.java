@@ -27,6 +27,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.configuration.registry.ProductId;
+import com.redhat.swatch.contract.config.FeatureFlags;
 import com.redhat.swatch.contract.model.TallyMeasurement;
 import com.redhat.swatch.contract.model.TallySnapshot;
 import com.redhat.swatch.contract.model.TallySummary;
@@ -54,12 +55,13 @@ class SubscriptionCapacityServiceTest {
   private static final ProductId ROSA = ProductId.fromString("rosa");
 
   @Mock private SubscriptionCapacityViewRepository capacityRepository;
+  @Mock private FeatureFlags featureFlags;
 
   private SubscriptionCapacityService subscriptionCapacityService;
 
   @BeforeEach
   void setUp() {
-    subscriptionCapacityService = new SubscriptionCapacityService(capacityRepository);
+    subscriptionCapacityService = new SubscriptionCapacityService(capacityRepository, featureFlags);
   }
 
   @Test

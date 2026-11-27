@@ -30,8 +30,6 @@ import com.redhat.swatch.common.model.ServiceLevel;
 import com.redhat.swatch.common.model.Usage;
 import com.redhat.swatch.contract.exception.ErrorCode;
 import com.redhat.swatch.contract.exception.ServiceException;
-import com.redhat.swatch.contract.product.umb.ProductAttribute;
-import com.redhat.swatch.contract.product.umb.UmbOperationalProduct;
 import com.redhat.swatch.contract.repository.OfferingEntity;
 import jakarta.ws.rs.core.Response;
 import java.util.ArrayList;
@@ -46,8 +44,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
@@ -97,7 +95,7 @@ public class UpstreamProductData {
       Arrays.stream(Attr.values())
           .collect(Collectors.toUnmodifiableMap(Attr::name, attr -> attr, (a1, a2) -> a1));
 
-  /** Ignore any product attribute whose value is in this set. */
+  /** Placeholders that can be replaced by inherited attributes. */
   private static final Set<String> ATTRIBUTE_DISALLOWED_VALUES = Set.of("n/a", "0", "none");
 
   private UpstreamProductData(String sku) {
@@ -109,6 +107,7 @@ public class UpstreamProductData {
   private SortedSet<String> derivedChildren = new TreeSet<>();
   private SortedSet<Integer> engOids = new TreeSet<>();
   private EnumMap<Attr, String> attrs = new EnumMap<>(Attr.class);
+  private final EnumMap<Attr, String> slaUsagePlaceholders = new EnumMap<>(Attr.class);
   private List<String> conflicts = new ArrayList<>();
 
   /**
@@ -164,9 +163,7 @@ public class UpstreamProductData {
     }
     if (parent.getAttributes() != null) {
       offer.mapAttributes(
-          parent.getAttributes().stream()
-              .filter(attr -> attributeIsAllowed(attr.getValue()))
-              .collect(Collectors.toMap(AttributeValue::getCode, AttributeValue::getValue)));
+          parent.getAttributes(), AttributeValue::getCode, AttributeValue::getValue);
     }
 
     // For each child, merge its unconflicting information into the parent.
@@ -175,153 +172,28 @@ public class UpstreamProductData {
     return offer;
   }
 
-  /**
-   * Compose offering data using a UMB message, using external data source if needed.
-   *
-   * <p>There are 4 use cases where we must an external data source:
-   *
-   * <ul>
-   *   <li>Offering not seen before - we need to fetch eng IDs and attributes for any child/derived
-   *       SKUs
-   *   <li>Offering has child SKU changes - we need to fetch eng IDs and attributes for child SKUs
-   *   <li>Offering has derived SKU changes - we need to fetch eng IDs and attributes for derived
-   *       SKU and its children
-   *   <li>Offering has attributes not present in the UMB message - we must assume these may have
-   *       been "inherited" from a child/derived SKU.
-   * </ul>
-   *
-   * <p>(Future work could cache more information to reduce data source usage).
-   *
-   * @param product umb data for the offering
-   * @param existingData existing offering from swatch DB if present, or null
-   * @param productDataSource external data source used to lookup SKU info when needed
-   * @return the resulting offering, or Optional.empty() if the SKU doesn't exist in data source
-   */
-  public static Optional<OfferingEntity> offeringFromUmbData(
-      UmbOperationalProduct product,
-      OfferingEntity existingData,
-      ProductDataSource productDataSource) {
-    if (existingData == null) {
-      log.debug("Must sync SKU={} from data source because no existing data", product.getSku());
-      return offeringUpstream(product.getSku(), productDataSource);
+  /** Whether a SKU-only event should fetch the offering from the product service. */
+  public static boolean shouldRefreshOnProductEvent(OfferingEntity offering) {
+    if (offering == null) {
+      return true;
     }
-    UpstreamProductData umbData = createFromUmbMessage(product);
-    UpstreamProductData existingProductData = UpstreamProductData.createFromOffering(existingData);
-    for (Attr attr : existingProductData.attrs.keySet()) {
-      if (!umbData.attrs.containsKey(attr)) {
-        // when there are attributes that exist in the DB but not in UMB message, we assume they may
-        // come from child SKUs or derived SKUs
-        log.debug(
-            "Must sync SKU={} from data source because attribute={} is not defined in UMB message, but may be defined in child/derived SKU",
-            product.getSku(),
-            attr);
-        return offeringUpstream(product.getSku(), productDataSource);
-      }
-    }
-    if (!Objects.equals(umbData.children, existingProductData.children)) {
-      log.debug(
-          "Must sync SKU={} from data source because child SKUs changed from {} to {}",
-          product.getSku(),
-          existingProductData.children,
-          umbData.children);
-      return offeringUpstream(product.getSku(), productDataSource);
-    }
-    String umbDerivedSku = umbData.attrs.get(Attr.DERIVED_SKU);
-    String existingDerivedSku = existingProductData.attrs.get(Attr.DERIVED_SKU);
-    if (!Objects.equals(umbDerivedSku, existingDerivedSku)) {
-      log.debug(
-          "Must sync SKU={} from data source because derived SKU changed from {} to {}",
-          product.getSku(),
-          existingDerivedSku,
-          umbDerivedSku);
-      return offeringUpstream(product.getSku(), productDataSource);
-    }
-    existingProductData.attrs.forEach(umbData::putIfNoConflict);
-    umbData.engOids.addAll(existingProductData.engOids);
-    return Optional.of(umbData.toOffering());
-  }
-
-  private static Optional<OfferingEntity> offeringUpstream(
-      String sku, ProductDataSource productDataSource) {
-    try {
-      return UpstreamProductData.offeringFromUpstream(sku, productDataSource);
-    } catch (ServiceException e) {
-      log.warn("Error enriching upstream offering data for SKU: {}", sku, e);
-      return Optional.empty();
-    }
-  }
-
-  private static UpstreamProductData createFromUmbMessage(UmbOperationalProduct product) {
-    UpstreamProductData data = new UpstreamProductData(product.getSku());
-    if (product.getChildSkus() != null) {
-      data.children.addAll(product.getChildSkus());
-    }
-    if (product.getAttributes() != null) {
-      data.mapAttributes(
-          Stream.of(product.getAttributes())
-              .filter(attr -> attributeIsAllowed(attr.getValue()))
-              .collect(Collectors.toMap(ProductAttribute::getCode, ProductAttribute::getValue)));
-    }
-
-    data.attrs.put(Attr.X_DESCRIPTION, product.getSkuDescription());
-    data.attrs.put(Attr.X_ROLE, product.getRole());
-    return data;
-  }
-
-  @SuppressWarnings("java:S3776")
-  private static UpstreamProductData createFromOffering(OfferingEntity offering) {
-    UpstreamProductData data = new UpstreamProductData(offering.getSku());
-    data.children.addAll(offering.getChildSkus());
-    data.engOids.addAll(offering.getProductIds());
-    if (hasText(offering.getRole())) {
-      data.attrs.put(Attr.X_ROLE, offering.getRole());
-    }
-    if (hasText(offering.getProductFamily())) {
-      data.attrs.put(Attr.PRODUCT_FAMILY, offering.getProductFamily());
-    }
-    if (hasText(offering.getProductName())) {
-      data.attrs.put(Attr.PRODUCT_NAME, offering.getProductName());
-    }
-    if (hasText(offering.getDescription())) {
-      data.attrs.put(Attr.X_DESCRIPTION, offering.getDescription());
-    }
-    if (hasText(offering.getDerivedSku())) {
-      data.attrs.put(Attr.DERIVED_SKU, offering.getDerivedSku());
-    }
-    // NOTE: an offering will only have either sockets OR hypervisor sockets, never both
-    if (offering.getSockets() != null) {
-      data.attrs.put(Attr.SOCKET_LIMIT, offering.getSockets().toString());
-    }
-    if (offering.getHypervisorSockets() != null) {
-      data.attrs.put(Attr.SOCKET_LIMIT, offering.getHypervisorSockets().toString());
-    }
-    // NOTE: an offering will only have either cores OR hypervisor cores, never both
-    if (offering.getCores() != null) {
-      data.attrs.put(Attr.CORES, offering.getCores().toString());
-    }
-    if (offering.getHypervisorCores() != null) {
-      data.attrs.put(Attr.CORES, offering.getHypervisorCores().toString());
-    }
-    if (offering.isHasUnlimitedUsage()) {
-      data.attrs.put(Attr.CORES, UNLIMITED_CORES_OR_SOCKETS);
-      data.attrs.put(Attr.SOCKET_LIMIT, UNLIMITED_CORES_OR_SOCKETS);
-    }
-    if (offering.getServiceLevel() != null && offering.getServiceLevel() != ServiceLevel.EMPTY) {
-      data.attrs.put(Attr.SERVICE_TYPE, offering.getServiceLevel().getValue());
-    }
-    if (hasText(offering.getLevel1())) {
-      data.attrs.put(Attr.LEVEL_1, offering.getLevel1());
-    }
-    if (hasText(offering.getLevel2())) {
-      data.attrs.put(Attr.LEVEL_2, offering.getLevel2());
-    }
-    if (offering.getUsage() != null && offering.getUsage() != Usage.EMPTY) {
-      data.attrs.put(Attr.USAGE, offering.getUsage().getValue());
-    }
-    if (offering.getEntitlementQuantity() != null) {
-      data.attrs.put(Attr.ENTITLEMENT_QTY, offering.getEntitlementQuantity());
-    }
-    return data;
+    var serviceLevel = offering.getServiceLevel();
+    var usage = offering.getUsage();
+    return offering.isMetered()
+        || !offering.getChildSkus().isEmpty()
+        || hasText(offering.getDerivedSku())
+        || hasText(offering.getProductFamily())
+        || hasText(offering.getProductName())
+        || hasText(offering.getLevel1())
+        || hasText(offering.getLevel2())
+        || offering.getSockets() != null
+        || offering.getHypervisorSockets() != null
+        || offering.getCores() != null
+        || offering.getHypervisorCores() != null
+        || offering.isHasUnlimitedUsage()
+        || offering.getEntitlementQuantity() != null
+        || (serviceLevel != null && serviceLevel != ServiceLevel.EMPTY)
+        || (usage != null && usage != Usage.EMPTY);
   }
 
   private OfferingEntity toOffering() {
@@ -356,26 +228,27 @@ public class UpstreamProductData {
     Note 2: ServiceLevel does not represent all values of SERVICE_TYPE seen in prod, which includes:
     Basic, Dev-Professional, Layered, Premium, RHX Basic, Self-Support, Standard.
 
-    Any unmapped SERVICE_TYPEs default to ServiceLevel.EMPTY.
+    Absent or blank SERVICE_TYPE values stay null. Non-empty unmapped values map to
+    ServiceLevel.EMPTY.
 
     For discussions on this topic, see:
     https://docs.google.com/document/d/1t5OlyWanEpwXOA7ysPKuZW61cvYnIScwRMl--hmajXY/edit#heading=h.8dadhnye8ysf
     */
-    var serviceType = attrs.get(Attr.SERVICE_TYPE);
-    var level = ServiceLevel.fromString(serviceType);
+    var serviceType = getSlaUsageAttribute(Attr.SERVICE_TYPE);
+    var level = hasText(serviceType) ? ServiceLevel.fromString(serviceType) : null;
     offering.setServiceLevel(level);
     // If the string-based serviceType had a value, but the ServiceLevel result is still empty,
     // then warn about the unsupported value.
-    if (serviceType != null && level == ServiceLevel.EMPTY) {
+    if (hasText(serviceType) && level == ServiceLevel.EMPTY) {
       log.warn("offeringSku=\"{}\" has unsupported SERVICE_TYPE=\"{}\"", sku, serviceType);
     }
 
-    var usageVal = attrs.get(Attr.USAGE);
-    var usage = Usage.fromString(usageVal);
+    var usageVal = getSlaUsageAttribute(Attr.USAGE);
+    var usage = hasText(usageVal) ? Usage.fromString(usageVal) : null;
     offering.setUsage(usage);
     // If the string-based usageVal had a value, but the Usage result is still empty, then warn
     // about the unsupported value.
-    if (usageVal != null && usage == Usage.EMPTY) {
+    if (hasText(usageVal) && usage == Usage.EMPTY) {
       log.warn("offeringSku=\"{}\" has unsupported USAGE=\"{}\"", sku, usageVal);
     }
 
@@ -412,7 +285,7 @@ public class UpstreamProductData {
           log.warn("No tree found for derivedSku=\"{}\" of offeringSku=\"{}\"", derivedSku, sku);
         } else {
           derivedChildren.addAll(derived.get().children);
-          derived.get().attrs.forEach(this::putIfNoConflict);
+          mergeAttributes(derived.get());
         }
       } catch (ApiException e) {
         throw new ServiceException(
@@ -555,10 +428,7 @@ public class UpstreamProductData {
   private static UpstreamProductData createFromProduct(OperationalProduct product) {
     var mid = new UpstreamProductData(product.getSku());
     if (product.getAttributes() != null) {
-      mid.mapAttributes(
-          product.getAttributes().stream()
-              .filter(attr -> attributeIsAllowed(attr.getValue()))
-              .collect(Collectors.toMap(AttributeValue::getCode, AttributeValue::getValue)));
+      mid.mapAttributes(product.getAttributes(), AttributeValue::getCode, AttributeValue::getValue);
     }
 
     return mid;
@@ -576,10 +446,19 @@ public class UpstreamProductData {
     children.addAll(child.children);
 
     // Values already set by the parent (or by previous children) should not be overwritten.
-    child.attrs.forEach(this::putIfNoConflict);
+    mergeAttributes(child);
 
     // Eng OIDs from the child are not added since they haven't been collected yet. Instead all of
     // the SKUs are collected (parent, children, derived) first and then all Eng OIDs are fetched.
+  }
+
+  private void mergeAttributes(UpstreamProductData source) {
+    source.attrs.forEach(this::putIfNoConflict);
+    source.slaUsagePlaceholders.forEach(slaUsagePlaceholders::putIfAbsent);
+  }
+
+  private String getSlaUsageAttribute(Attr attr) {
+    return attrs.getOrDefault(attr, slaUsagePlaceholders.get(attr));
   }
 
   /**
@@ -601,24 +480,37 @@ public class UpstreamProductData {
     }
   }
 
-  private void mapAttributes(Map<String, String> attributes) {
-    for (Map.Entry<String, String> source : attributes.entrySet()) {
-      Attr destAttr = CODE_TO_ENUM.get(source.getKey());
-      String value = source.getValue();
-      if (destAttr != null && attributeIsAllowed(value)) {
-        putIfNoConflict(destAttr, value);
+  private <T> void mapAttributes(
+      List<T> source, Function<T, String> code, Function<T, String> value) {
+    var attributes =
+        source.stream()
+            .filter(attribute -> attributeIsAllowed(code.apply(attribute), value.apply(attribute)))
+            .collect(Collectors.toMap(code, value));
+    attributes.forEach((key, rawValue) -> {
+      Attr attr = CODE_TO_ENUM.get(key);
+      if (attr != null) {
+        putIfNoConflict(attr, rawValue);
+      }
+    });
+
+    // Keep SLA and usage placeholders as fallbacks after inheritance.
+    for (T attribute : source) {
+      String key = code.apply(attribute);
+      String rawValue = value.apply(attribute);
+      if (isSlaOrUsage(key) && rawValue != null && !attributeIsAllowed(key, rawValue)) {
+        slaUsagePlaceholders.putIfAbsent(CODE_TO_ENUM.get(key), rawValue);
       }
     }
   }
 
-  /**
-   * Checks if the value from the upstream product attribute is non-null and not an "empty" value.
-   *
-   * @param value The attribute value to check
-   * @return true if the value can be used, false if not.
-   */
-  private static boolean attributeIsAllowed(String value) {
-    return value != null && !ATTRIBUTE_DISALLOWED_VALUES.contains(value.toLowerCase(Locale.US));
+  private static boolean attributeIsAllowed(String code, String value) {
+    return value != null
+        && (!isSlaOrUsage(code) || !value.isBlank())
+        && !ATTRIBUTE_DISALLOWED_VALUES.contains(value.toLowerCase(Locale.US));
+  }
+
+  private static boolean isSlaOrUsage(String code) {
+    return Attr.SERVICE_TYPE.name().equals(code) || Attr.USAGE.name().equals(code);
   }
 
   private static boolean hasText(String str) {

@@ -44,6 +44,7 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Map;
+import java.util.UUID;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -218,7 +219,9 @@ public class SubscriptionsSyncComponentTest extends BaseContractComponentTest {
   }
 
   private Subscription givenSubscription() {
-    var subscription = Subscription.buildRhelSubscription(orgId, Map.of(SOCKETS, 1.0));
+    // The local component-test database retains offerings across runs.
+    String sku = "RHEL-" + UUID.randomUUID();
+    var subscription = Subscription.buildRhelSubscriptionUsingSku(orgId, Map.of(SOCKETS, 1.0), sku);
     wiremock.forSearchApi().stubGetSubscriptionBySubscriptionNumber(subscription);
     wiremock.forProductAPI().stubOfferingData(subscription.getOffering());
     return subscription;
