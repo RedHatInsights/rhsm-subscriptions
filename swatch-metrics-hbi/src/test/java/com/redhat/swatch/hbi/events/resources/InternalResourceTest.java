@@ -26,6 +26,7 @@ import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.common.security.SecurityConfiguration;
@@ -47,6 +48,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
@@ -72,7 +74,7 @@ class InternalResourceTest {
     givenTestApisEnabled();
     withValidPskHeader();
     withSynchronousRequestsEnabled(false);
-    when(outboxService.flushOutboxRecords()).thenReturn(1L);
+    when(outboxService.flushOutboxRecords(any(AtomicLong.class))).thenReturn(1L);
   }
 
   @Test
@@ -97,7 +99,8 @@ class InternalResourceTest {
   void testFlushOutboxReportsErrorDuringSynchronousFlush() {
     withSynchronousRequestsEnabled(true);
     withSynchronousRequestHeader(true);
-    when(outboxService.flushOutboxRecords()).thenThrow(new RuntimeException("Forced!"));
+    when(outboxService.flushOutboxRecords(any(AtomicLong.class)))
+        .thenThrow(new RuntimeException("Forced!"));
 
     Error error =
         flushOutbox()
@@ -131,7 +134,7 @@ class InternalResourceTest {
     CountDownLatch firstRequestStarted = new CountDownLatch(1);
     CountDownLatch firstRequestCanComplete = new CountDownLatch(1);
 
-    when(outboxService.flushOutboxRecords())
+    when(outboxService.flushOutboxRecords(any(AtomicLong.class)))
         .thenAnswer(
             (Answer<Long>)
                 invocation -> {
