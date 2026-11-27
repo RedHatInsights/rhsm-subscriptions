@@ -89,6 +89,13 @@ public class AwsBillableUsageAggregateConsumer {
   protected static final String ZERO_QUANTITY = "zero";
   protected static final String NON_ZERO_QUANTITY = "non_zero";
 
+  /**
+   * Counts status messages that could not be published, so a missing terminal status can be alerted
+   * on and reconciled.
+   */
+  protected static final String STATUS_PUBLISH_FAILURES_METRIC =
+      "swatch_producer_status_publish_failures_total";
+
   private final Counter acceptedCounter;
   private final Counter rejectedCounter;
   private final Counter ignoreCounter;
@@ -100,6 +107,7 @@ public class AwsBillableUsageAggregateConsumer {
   private final FeatureFlags featureFlags;
   private final MeterProvider<Counter> meteredTotalCounter;
   private final MeterProvider<Counter> remittanceAttemptsCounter;
+  private final MeterProvider<Counter> statusPublishFailureCounter;
 
   public AwsBillableUsageAggregateConsumer(
       MeterRegistry meterRegistry,
@@ -115,6 +123,8 @@ public class AwsBillableUsageAggregateConsumer {
     this.meteredTotalCounter = Counter.builder(METERED_TOTAL_METRIC).withRegistry(meterRegistry);
     this.remittanceAttemptsCounter =
         Counter.builder(REMITTANCE_ATTEMPTS_TOTAL_METRIC).withRegistry(meterRegistry);
+    this.statusPublishFailureCounter =
+        Counter.builder(STATUS_PUBLISH_FAILURES_METRIC).withRegistry(meterRegistry);
     this.contractsApi = contractsApi;
     this.awsMarketplaceMeteringClientFactory = awsMarketplaceMeteringClientFactory;
     this.isDryRun = isDryRun;
@@ -453,7 +463,7 @@ public class AwsBillableUsageAggregateConsumer {
     usage.setErrorCode(null);
     usage.setBilledOn(OffsetDateTime.now());
     recordRemittanceMetrics(usage);
-    billableUsageStatusProducer.emitStatus(usage);
+    publishStatus(usage);
   }
 
   private void emitErrorStatusOnUsage(
@@ -461,7 +471,42 @@ public class AwsBillableUsageAggregateConsumer {
     usage.setStatus(BillableUsage.Status.FAILED);
     usage.setErrorCode(errorCode);
     recordRemittanceMetrics(usage);
-    billableUsageStatusProducer.emitStatus(usage);
+    publishStatus(usage);
+  }
+
+  /**
+   * Publishes the terminal status of the aggregate to the status topic, which is the only channel
+   * that finalizes the aggregate's remittances in swatch-billable-usage.
+   *
+   * <p>The status is published exactly once and its publication is never allowed to change the
+   * outcome of the metering: a failure is not turned into another status, so usage that AWS
+   * accepted is never reported as failed (a failed status would also wrongly fail its remittances),
+   * and it is not retried, because the incoming channel uses {@code failure-strategy=ignore}: the
+   * exception is logged by the channel, the message is not redelivered, and the already metered
+   * usage is not submitted to AWS again (AWS would answer {@code DUPLICATE_RECORD}).
+   *
+   * <p>A failure is therefore recorded so that the aggregate can be reconciled: the remittances
+   * stay PENDING in swatch-billable-usage, which is the durable record of the missing terminal
+   * status (and can be queried and reset through the internal remittance API), the {@value
+   * #STATUS_PUBLISH_FAILURES_METRIC} counter is incremented so the failure can be alerted on, and
+   * the failure is logged with the aggregate identifiers needed for that reconciliation
+   * (aggregateId, key, window timestamp and remittance UUIDs).
+   */
+  private void publishStatus(BillableUsageAggregate usage) {
+    try {
+      billableUsageStatusProducer.emitStatus(usage);
+    } catch (Exception e) {
+      statusPublishFailureCounter
+          .withTags("status", ofNullable(usage.getStatus()).map(Object::toString).orElse(""))
+          .increment();
+      BillableUsageAggregateLogger.error(
+          log,
+          usage,
+          "Unable to publish status '{}' to the status topic; the aggregate remittances stay pending and must be reconciled",
+          usage.getStatus(),
+          e);
+      throw e;
+    }
   }
 
   private static BillableUsage.ErrorCode errorCodeForAwsUsageResult(

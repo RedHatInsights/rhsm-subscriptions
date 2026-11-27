@@ -106,6 +106,17 @@ swatch-billable-usage whether the usage was successfully billed:
 Status messages include the original billable usage UUID for correlation and error details to aid
 in troubleshooting.
 
+### Status Topic Failures
+If the terminal status cannot be published to the status topic after the Kafka producer retries,
+the failure is logged and counted in `swatch_producer_status_publish_failures_total` instead of
+changing the metering outcome:
+- the status is still the one determined by the AWS response, so accepted usage is never reported as
+  failed
+- the message is not reprocessed (`failure-strategy=ignore`), so the accepted usage is not metered a
+  second time (AWS would answer `DUPLICATE_RECORD`)
+- the aggregate's remittances stay PENDING in swatch-billable-usage, which is the record used to
+  reconcile them (they are not finalized without the terminal status)
+
 ### Error Handling and Retry Logic
 The service implements comprehensive error handling:
 - **Throttling**: Automatic retry with exponential backoff for AWS throttling exceptions
@@ -125,3 +136,6 @@ The service exposes several metrics for monitoring:
   aggregate) by product, metric, billing provider, status, error code, and `quantity`
   (`zero` or `non_zero`). Use this metric to observe zero-quantity remittances, which do not change
   `swatch_producer_metered_total`.
+- `swatch_producer_status_publish_failures_total`: Count of terminal status messages that could not
+  be published to the status topic, by `status`. Remittances of those aggregates stay PENDING until
+  they are reconciled in swatch-billable-usage.
