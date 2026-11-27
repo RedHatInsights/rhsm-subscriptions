@@ -49,10 +49,14 @@ import java.util.Map;
 import java.util.UUID;
 import org.apache.http.HttpStatus;
 import org.candlepin.subscriptions.json.Event;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.params.Parameter;
+import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.ValueSource;
 
 /**
@@ -67,6 +71,7 @@ import org.junit.jupiter.params.provider.ValueSource;
  * usage=Production: 13 - usage=Development: 6 - billing_provider=AWS: 19 - billing_account_id=123:
  * 18 - billing_account_id=223: 1
  */
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
   private static String testOrgId;
 
@@ -200,559 +205,529 @@ public class TallyReportFiltersPaygTest extends BaseTallyComponentTest {
         .truncatedTo(ChronoUnit.DAYS);
   }
 
-  @ParameterizedTest(name = "with primaryRowSearches={0}")
-  @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-payg-TC001")
-  void shouldReturnDailyReportWithAllFilters(boolean enablePrimaryRowSearches) {
-    // Given: Feature flag is configured and events with various attributes exist
-    givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
-
-    // When: Querying daily report with all filter parameters
-    Map<String, Object> queryParams =
-        Map.of(
-            "granularity",
-            "Daily",
-            "beginning",
-            timeRanges.dailyBeginning().toString(),
-            "ending",
-            timeRanges.dailyEnding().toString(),
-            "sla",
-            ServiceLevelType.PREMIUM,
-            "usage",
-            UsageType.PRODUCTION,
-            "billing_provider",
-            BillingProviderType.AWS,
-            "billing_account_id",
-            BILLING_ACCOUNT_123);
-
-    TallyReportData response =
-        service.getTallyReportData(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams);
-
-    // Then: Response metadata reflects all requested filters
-    TallyReportDataMeta meta = response.getMeta();
-    assertNotNull(meta, "Response metadata should not be null");
-    assertEquals(GranularityType.DAILY, meta.getGranularity(), "Granularity should be DAILY");
-    assertEquals(PRODUCT_TAG, meta.getProduct(), "Product tag should match request");
-    assertEquals(METRIC_ID, meta.getMetricId(), "Metric ID should match request");
-    assertEquals(ServiceLevelType.PREMIUM, meta.getServiceLevel(), "SLA should match request");
-    assertEquals(UsageType.PRODUCTION, meta.getUsage(), "Usage should match request");
-    assertEquals(
-        BillingProviderType.AWS, meta.getBillingProvider(), "Billing provider should match");
-    assertEquals(BILLING_ACCOUNT_123, meta.getBillingAcountId(), "Billing account should match");
+  @AfterAll
+  void resetPrimaryRowSearches() {
+    givenFeatureFlagIsConfigured(false);
   }
 
-  @ParameterizedTest(name = "with primaryRowSearches={0}")
+  @Nested
+  @ParameterizedClass(name = "primaryRowSearches={0}")
   @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-payg-TC002")
-  void shouldFilterHourlyReportBySla(boolean enablePrimaryRowSearches) {
-    // Given: Feature flag is configured and events with different SLA values exist
-    givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
+  class PrimaryRowSearches {
+    @Parameter boolean primaryRowSearches;
 
-    // When: Querying hourly reports filtered by SLA
-    double premiumTotal =
-        getReportSum(
-            testOrgId,
-            PRODUCT_TAG,
-            METRIC_ID,
-            "Hourly",
-            timeRanges.hourlyBeginning(),
-            timeRanges.hourlyEnding(),
-            Map.of("sla", ServiceLevelType.PREMIUM.toString()));
+    // This nested class runs its @BeforeAll once per injected flag value.
+    @Nested
+    @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+    class FilterTests {
+      @BeforeAll
+      void configurePrimaryRowSearches() {
+        givenFeatureFlagIsConfigured(primaryRowSearches);
+      }
 
-    double standardTotal =
-        getReportSum(
-            testOrgId,
-            PRODUCT_TAG,
-            METRIC_ID,
-            "Hourly",
-            timeRanges.hourlyBeginning(),
-            timeRanges.hourlyEnding(),
-            Map.of("sla", ServiceLevelType.STANDARD.toString()));
+      @Test
+      @TestPlanName("tally-report-filters-payg-TC001")
+      void shouldReturnDailyReportWithAllFilters() {
+        // Given: Events with various attributes exist
 
-    // Then: Totals match expected values for each SLA
-    assertEquals(4.0, premiumTotal, 0.0001, "Premium SLA should total 4");
-    assertEquals(15.0, standardTotal, 0.0001, "Standard SLA should total 15 (6+8+1)");
-  }
-
-  @ParameterizedTest(name = "with primaryRowSearches={0}")
-  @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-payg-TC003")
-  void shouldFilterHourlyReportByUsage(boolean enablePrimaryRowSearches) {
-    // Given: Feature flag is configured and events with different usage types exist
-    givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
-
-    // When: Querying hourly reports filtered by usage type
-    double productionTotal =
-        getReportSum(
-            testOrgId,
-            PRODUCT_TAG,
-            METRIC_ID,
-            "Hourly",
-            timeRanges.hourlyBeginning(),
-            timeRanges.hourlyEnding(),
-            Map.of("usage", UsageType.PRODUCTION.toString()));
-
-    double developmentTotal =
-        getReportSum(
-            testOrgId,
-            PRODUCT_TAG,
-            METRIC_ID,
-            "Hourly",
-            timeRanges.hourlyBeginning(),
-            timeRanges.hourlyEnding(),
-            Map.of("usage", UsageType.DEVELOPMENT_TEST.toString()));
-
-    // Then: Totals match expected values for each usage type
-    assertEquals(13.0, productionTotal, 0.0001, "Production usage should total 13 (4+8+1)");
-    assertEquals(6.0, developmentTotal, 0.0001, "Development usage should total 6");
-  }
-
-  @ParameterizedTest(name = "with primaryRowSearches={0}")
-  @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-payg-TC004")
-  void shouldFilterHourlyReportByBillingProvider(boolean enablePrimaryRowSearches) {
-    // Given: Feature flag is configured and events with billing provider exist
-    givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
-
-    // When: Querying hourly report filtered by billing provider
-    double awsTotal =
-        getReportSum(
-            testOrgId,
-            PRODUCT_TAG,
-            METRIC_ID,
-            "Hourly",
-            timeRanges.hourlyBeginning(),
-            timeRanges.hourlyEnding(),
-            Map.of("billing_provider", BillingProviderType.AWS.toString()));
-
-    // Then: Total matches all events for the billing provider
-    assertEquals(19.0, awsTotal, 0.0001, "AWS billing provider should total 19 (all events)");
-  }
-
-  @ParameterizedTest(name = "with primaryRowSearches={0}")
-  @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-payg-TC005")
-  void shouldFilterHourlyReportByBillingAccountId(boolean enablePrimaryRowSearches) {
-    // Given: Feature flag is configured and events with different billing accounts exist
-    givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
-
-    // When: Querying hourly reports filtered by billing account ID
-    double account123Total =
-        getReportSum(
-            testOrgId,
-            PRODUCT_TAG,
-            METRIC_ID,
-            "Hourly",
-            timeRanges.hourlyBeginning(),
-            timeRanges.hourlyEnding(),
-            Map.of("billing_account_id", BILLING_ACCOUNT_123));
-
-    double account223Total =
-        getReportSum(
-            testOrgId,
-            PRODUCT_TAG,
-            METRIC_ID,
-            "Hourly",
-            timeRanges.hourlyBeginning(),
-            timeRanges.hourlyEnding(),
-            Map.of("billing_account_id", BILLING_ACCOUNT_223));
-
-    // Then: Totals match expected values for each billing account
-    assertEquals(18.0, account123Total, 0.0001, "Billing account 123 should total 18 (4+6+8)");
-    assertEquals(1.0, account223Total, 0.0001, "Billing account 223 should total 1");
-  }
-
-  @ParameterizedTest(name = "with primaryRowSearches={0}")
-  @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-payg-TC006")
-  void shouldReturnDailyReportWithPartialFilters(boolean enablePrimaryRowSearches) {
-    // Given: Feature flag is configured and events with various attributes exist
-    givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
-
-    // When: Querying daily report with only SLA and usage filters (no billing filters)
-    double total =
-        getReportSum(
-            testOrgId,
-            PRODUCT_TAG,
-            METRIC_ID,
-            "Daily",
-            timeRanges.dailyBeginning(),
-            timeRanges.dailyEnding(),
+        // When: Querying daily report with all filter parameters
+        Map<String, Object> queryParams =
             Map.of(
+                "granularity",
+                "Daily",
+                "beginning",
+                timeRanges.dailyBeginning().toString(),
+                "ending",
+                timeRanges.dailyEnding().toString(),
                 "sla",
-                ServiceLevelType.STANDARD.toString(),
+                ServiceLevelType.PREMIUM,
                 "usage",
-                UsageType.PRODUCTION.toString()));
+                UsageType.PRODUCTION,
+                "billing_provider",
+                BillingProviderType.AWS,
+                "billing_account_id",
+                BILLING_ACCOUNT_123);
 
-    // Then: Total matches events that satisfy both filters
-    assertEquals(9.0, total, 0.0001, "Standard SLA + Production usage should total 9 (8+1)");
-  }
+        TallyReportData response =
+            service.getTallyReportData(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams);
 
-  @ParameterizedTest(name = "with primaryRowSearches={0}")
-  @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-payg-TC007")
-  void shouldReturnHourlyReportWithAllFilters(boolean enablePrimaryRowSearches) {
-    // Given: Feature flag is configured and events with various attributes exist
-    givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
+        // Then: Response metadata reflects all requested filters
+        TallyReportDataMeta meta = response.getMeta();
+        assertNotNull(meta, "Response metadata should not be null");
+        assertEquals(GranularityType.DAILY, meta.getGranularity(), "Granularity should be DAILY");
+        assertEquals(PRODUCT_TAG, meta.getProduct(), "Product tag should match request");
+        assertEquals(METRIC_ID, meta.getMetricId(), "Metric ID should match request");
+        assertEquals(ServiceLevelType.PREMIUM, meta.getServiceLevel(), "SLA should match request");
+        assertEquals(UsageType.PRODUCTION, meta.getUsage(), "Usage should match request");
+        assertEquals(
+            BillingProviderType.AWS, meta.getBillingProvider(), "Billing provider should match");
+        assertEquals(
+            BILLING_ACCOUNT_123, meta.getBillingAcountId(), "Billing account should match");
+      }
 
-    // When: Querying hourly report with all possible filters
-    Map<String, String> filters =
-        Map.of(
-            "sla", ServiceLevelType.STANDARD.toString(),
-            "usage", UsageType.PRODUCTION.toString(),
-            "billing_provider", BillingProviderType.AWS.toString(),
-            "billing_account_id", BILLING_ACCOUNT_123);
+      @Test
+      @TestPlanName("tally-report-filters-payg-TC002")
+      void shouldFilterHourlyReportBySla() {
+        // Given: Events with different SLA values exist
 
-    double total =
-        getReportSum(
-            testOrgId,
-            PRODUCT_TAG,
-            METRIC_ID,
-            "Hourly",
-            timeRanges.hourlyBeginning(),
-            timeRanges.hourlyEnding(),
-            filters);
+        // When: Querying hourly reports filtered by SLA
+        double premiumTotal =
+            getReportSum(
+                testOrgId,
+                PRODUCT_TAG,
+                METRIC_ID,
+                "Hourly",
+                timeRanges.hourlyBeginning(),
+                timeRanges.hourlyEnding(),
+                Map.of("sla", ServiceLevelType.PREMIUM.toString()));
 
-    // Then: Total matches event that satisfies all filters
-    assertEquals(8.0, total, 0.0001, "All filters combined should total 8 (Event 3 only)");
-  }
+        double standardTotal =
+            getReportSum(
+                testOrgId,
+                PRODUCT_TAG,
+                METRIC_ID,
+                "Hourly",
+                timeRanges.hourlyBeginning(),
+                timeRanges.hourlyEnding(),
+                Map.of("sla", ServiceLevelType.STANDARD.toString()));
 
-  @ParameterizedTest(name = "with primaryRowSearches={0}")
-  @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-payg-TC008")
-  void shouldReturnBadRequestWithoutGranularity(boolean enablePrimaryRowSearches) {
-    // Given: Feature flag is configured
-    givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
+        // Then: Totals match expected values for each SLA
+        assertEquals(4.0, premiumTotal, 0.0001, "Premium SLA should total 4");
+        assertEquals(15.0, standardTotal, 0.0001, "Standard SLA should total 15 (6+8+1)");
+      }
 
-    // When: Querying report without required granularity parameter
-    Map<String, Object> queryParams =
-        Map.of(
-            "beginning",
-            timeRanges.dailyBeginning().toString(),
-            "ending",
-            timeRanges.dailyEnding().toString());
+      @Test
+      @TestPlanName("tally-report-filters-payg-TC003")
+      void shouldFilterHourlyReportByUsage() {
+        // Given: Events with different usage types exist
 
-    Response response =
-        service.getTallyReportDataRaw(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams);
+        // When: Querying hourly reports filtered by usage type
+        double productionTotal =
+            getReportSum(
+                testOrgId,
+                PRODUCT_TAG,
+                METRIC_ID,
+                "Hourly",
+                timeRanges.hourlyBeginning(),
+                timeRanges.hourlyEnding(),
+                Map.of("usage", UsageType.PRODUCTION.toString()));
 
-    // Then: API returns 400 Bad Request
-    assertEquals(
-        HttpStatus.SC_BAD_REQUEST,
-        response.getStatusCode(),
-        "Should return 400 Bad Request without granularity");
-  }
+        double developmentTotal =
+            getReportSum(
+                testOrgId,
+                PRODUCT_TAG,
+                METRIC_ID,
+                "Hourly",
+                timeRanges.hourlyBeginning(),
+                timeRanges.hourlyEnding(),
+                Map.of("usage", UsageType.DEVELOPMENT_TEST.toString()));
 
-  @ParameterizedTest(name = "with primaryRowSearches={0}")
-  @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-payg-TC011")
-  void shouldReturnBadRequestWithoutBeginning(boolean enablePrimaryRowSearches) {
-    // Given: Feature flag is configured
-    givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
+        // Then: Totals match expected values for each usage type
+        assertEquals(13.0, productionTotal, 0.0001, "Production usage should total 13 (4+8+1)");
+        assertEquals(6.0, developmentTotal, 0.0001, "Development usage should total 6");
+      }
 
-    // When: Querying report without required beginning parameter
-    Map<String, Object> queryParams =
-        Map.of("granularity", "Daily", "ending", timeRanges.dailyEnding().toString());
+      @Test
+      @TestPlanName("tally-report-filters-payg-TC004")
+      void shouldFilterHourlyReportByBillingProvider() {
+        // Given: Events with billing provider exist
 
-    Response response =
-        service.getTallyReportDataRaw(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams);
+        // When: Querying hourly report filtered by billing provider
+        double awsTotal =
+            getReportSum(
+                testOrgId,
+                PRODUCT_TAG,
+                METRIC_ID,
+                "Hourly",
+                timeRanges.hourlyBeginning(),
+                timeRanges.hourlyEnding(),
+                Map.of("billing_provider", BillingProviderType.AWS.toString()));
 
-    // Then: API returns 400 Bad Request
-    assertEquals(
-        HttpStatus.SC_BAD_REQUEST,
-        response.getStatusCode(),
-        "Should return 400 Bad Request without beginning");
-  }
+        // Then: Total matches all events for the billing provider
+        assertEquals(19.0, awsTotal, 0.0001, "AWS billing provider should total 19 (all events)");
+      }
 
-  @ParameterizedTest(name = "with primaryRowSearches={0}")
-  @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-payg-TC012")
-  void shouldReturnBadRequestWithoutEnding(boolean enablePrimaryRowSearches) {
-    // Given: Feature flag is configured
-    givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
+      @Test
+      @TestPlanName("tally-report-filters-payg-TC005")
+      void shouldFilterHourlyReportByBillingAccountId() {
+        // Given: Events with different billing accounts exist
 
-    // When: Querying report without required ending parameter
-    Map<String, Object> queryParams =
-        Map.of("granularity", "Daily", "beginning", timeRanges.dailyBeginning().toString());
+        // When: Querying hourly reports filtered by billing account ID
+        double account123Total =
+            getReportSum(
+                testOrgId,
+                PRODUCT_TAG,
+                METRIC_ID,
+                "Hourly",
+                timeRanges.hourlyBeginning(),
+                timeRanges.hourlyEnding(),
+                Map.of("billing_account_id", BILLING_ACCOUNT_123));
 
-    Response response =
-        service.getTallyReportDataRaw(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams);
+        double account223Total =
+            getReportSum(
+                testOrgId,
+                PRODUCT_TAG,
+                METRIC_ID,
+                "Hourly",
+                timeRanges.hourlyBeginning(),
+                timeRanges.hourlyEnding(),
+                Map.of("billing_account_id", BILLING_ACCOUNT_223));
 
-    // Then: API returns 400 Bad Request
-    assertEquals(
-        HttpStatus.SC_BAD_REQUEST,
-        response.getStatusCode(),
-        "Should return 400 Bad Request without ending");
-  }
+        // Then: Totals match expected values for each billing account
+        assertEquals(18.0, account123Total, 0.0001, "Billing account 123 should total 18 (4+6+8)");
+        assertEquals(1.0, account223Total, 0.0001, "Billing account 223 should total 1");
+      }
 
-  @ParameterizedTest(name = "with primaryRowSearches={0}")
-  @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-payg-TC013")
-  void shouldReturnNullMetadataWhenFiltersOmitted(boolean enablePrimaryRowSearches) {
-    // Given: Feature flag is configured
-    givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
+      @Test
+      @TestPlanName("tally-report-filters-payg-TC006")
+      void shouldReturnDailyReportWithPartialFilters() {
+        // Given: Events with various attributes exist
 
-    // When: Querying report without optional filter parameters
-    Map<String, Object> queryParams =
-        Map.of(
-            "granularity", "Daily",
-            "beginning", timeRanges.dailyBeginning().toString(),
-            "ending", timeRanges.dailyEnding().toString());
+        // When: Querying daily report with only SLA and usage filters (no billing filters)
+        double total =
+            getReportSum(
+                testOrgId,
+                PRODUCT_TAG,
+                METRIC_ID,
+                "Daily",
+                timeRanges.dailyBeginning(),
+                timeRanges.dailyEnding(),
+                Map.of(
+                    "sla",
+                    ServiceLevelType.STANDARD.toString(),
+                    "usage",
+                    UsageType.PRODUCTION.toString()));
 
-    TallyReportData response =
-        service.getTallyReportData(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams);
+        // Then: Total matches events that satisfy both filters
+        assertEquals(9.0, total, 0.0001, "Standard SLA + Production usage should total 9 (8+1)");
+      }
 
-    // Then: Metadata filter fields are null
-    TallyReportDataMeta meta = response.getMeta();
-    assertNotNull(meta, "Metadata should not be null");
-    assertNull(meta.getServiceLevel(), "SLA should be null when not filtered");
-    assertNull(meta.getUsage(), "Usage should be null when not filtered");
-    assertNull(meta.getBillingProvider(), "Billing provider should be null when not filtered");
-    assertNull(meta.getBillingAcountId(), "Billing account should be null when not filtered");
-  }
+      @Test
+      @TestPlanName("tally-report-filters-payg-TC007")
+      void shouldReturnHourlyReportWithAllFilters() {
+        // Given: Events with various attributes exist
 
-  @ParameterizedTest(name = "with primaryRowSearches={0}")
-  @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-payg-TC014")
-  void shouldReflectEmptyFilterInMetadata(boolean enablePrimaryRowSearches) {
-    // Given: Feature flag is configured
-    givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
+        // When: Querying hourly report with all possible filters
+        Map<String, String> filters =
+            Map.of(
+                "sla", ServiceLevelType.STANDARD.toString(),
+                "usage", UsageType.PRODUCTION.toString(),
+                "billing_provider", BillingProviderType.AWS.toString(),
+                "billing_account_id", BILLING_ACCOUNT_123);
 
-    // When: Querying report with empty filter values
-    Map<String, Object> queryParams =
-        Map.of(
-            "granularity", "Daily",
-            "beginning", timeRanges.dailyBeginning().toString(),
-            "ending", timeRanges.dailyEnding().toString(),
-            "sla", "",
-            "usage", "");
+        double total =
+            getReportSum(
+                testOrgId,
+                PRODUCT_TAG,
+                METRIC_ID,
+                "Hourly",
+                timeRanges.hourlyBeginning(),
+                timeRanges.hourlyEnding(),
+                filters);
 
-    TallyReportData response =
-        service.getTallyReportData(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams);
+        // Then: Total matches event that satisfies all filters
+        assertEquals(8.0, total, 0.0001, "All filters combined should total 8 (Event 3 only)");
+      }
 
-    // Then: Response metadata is still present
-    TallyReportDataMeta meta = response.getMeta();
-    assertNotNull(meta, "Metadata should not be null");
-  }
+      @Test
+      @TestPlanName("tally-report-filters-payg-TC008")
+      void shouldReturnBadRequestWithoutGranularity() {
+        // When: Querying report without required granularity parameter
+        Map<String, Object> queryParams =
+            Map.of(
+                "beginning",
+                timeRanges.dailyBeginning().toString(),
+                "ending",
+                timeRanges.dailyEnding().toString());
 
-  @ParameterizedTest(name = "with primaryRowSearches={0}")
-  @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-payg-TC015")
-  void shouldReturnAllDataWhenNoOptionalFiltersApplied(boolean enablePrimaryRowSearches) {
-    // Given: Feature flag is configured and multiple events exist
-    givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
+        Response response =
+            service.getTallyReportDataRaw(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams);
 
-    // When: Querying report without any optional filters
-    double total =
-        getReportSum(
-            testOrgId,
-            PRODUCT_TAG,
-            METRIC_ID,
-            "Daily",
-            timeRanges.dailyBeginning(),
-            timeRanges.dailyEnding(),
-            null);
+        // Then: API returns 400 Bad Request
+        assertEquals(
+            HttpStatus.SC_BAD_REQUEST,
+            response.getStatusCode(),
+            "Should return 400 Bad Request without granularity");
+      }
 
-    // Then: All events are included in the total
-    assertEquals(19.0, total, 0.0001, "Total without filters should be 19 (4+6+8+1)");
-  }
+      @Test
+      @TestPlanName("tally-report-filters-payg-TC011")
+      void shouldReturnBadRequestWithoutBeginning() {
+        // When: Querying report without required beginning parameter
+        Map<String, Object> queryParams =
+            Map.of("granularity", "Daily", "ending", timeRanges.dailyEnding().toString());
 
-  @ParameterizedTest(name = "with primaryRowSearches={0}")
-  @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-payg-TC016")
-  void shouldFilterDailyReportBySlaAfterNightlyTally(boolean enablePrimaryRowSearches) {
-    // Given: Feature flag is configured and nightly tally has run
-    givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
+        Response response =
+            service.getTallyReportDataRaw(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams);
 
-    // When: Querying daily reports filtered by SLA
-    double premiumTotal =
-        getReportSum(
-            testOrgId,
-            PRODUCT_TAG,
-            METRIC_ID,
-            "Daily",
-            timeRanges.dailyBeginning(),
-            timeRanges.dailyEnding(),
-            Map.of("sla", ServiceLevelType.PREMIUM.toString()));
+        // Then: API returns 400 Bad Request
+        assertEquals(
+            HttpStatus.SC_BAD_REQUEST,
+            response.getStatusCode(),
+            "Should return 400 Bad Request without beginning");
+      }
 
-    double standardTotal =
-        getReportSum(
-            testOrgId,
-            PRODUCT_TAG,
-            METRIC_ID,
-            "Daily",
-            timeRanges.dailyBeginning(),
-            timeRanges.dailyEnding(),
-            Map.of("sla", ServiceLevelType.STANDARD.toString()));
+      @Test
+      @TestPlanName("tally-report-filters-payg-TC012")
+      void shouldReturnBadRequestWithoutEnding() {
+        // When: Querying report without required ending parameter
+        Map<String, Object> queryParams =
+            Map.of("granularity", "Daily", "beginning", timeRanges.dailyBeginning().toString());
 
-    // Then: Daily totals match expected values for each SLA
-    assertEquals(4.0, premiumTotal, 0.0001, "Daily Premium SLA should total 4");
-    assertEquals(15.0, standardTotal, 0.0001, "Daily Standard SLA should total 15 (6+8+1)");
-  }
+        Response response =
+            service.getTallyReportDataRaw(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams);
 
-  @ParameterizedTest(name = "with primaryRowSearches={0}")
-  @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-payg-TC017")
-  void shouldFilterDailyReportByUsageAfterNightlyTally(boolean enablePrimaryRowSearches) {
-    // Given: Feature flag is configured and nightly tally has run
-    givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
+        // Then: API returns 400 Bad Request
+        assertEquals(
+            HttpStatus.SC_BAD_REQUEST,
+            response.getStatusCode(),
+            "Should return 400 Bad Request without ending");
+      }
 
-    // When: Querying daily reports filtered by usage type
-    double productionTotal =
-        getReportSum(
-            testOrgId,
-            PRODUCT_TAG,
-            METRIC_ID,
-            "Daily",
-            timeRanges.dailyBeginning(),
-            timeRanges.dailyEnding(),
-            Map.of("usage", UsageType.PRODUCTION.toString()));
+      @Test
+      @TestPlanName("tally-report-filters-payg-TC013")
+      void shouldReturnNullMetadataWhenFiltersOmitted() {
+        // When: Querying report without optional filter parameters
+        Map<String, Object> queryParams =
+            Map.of(
+                "granularity", "Daily",
+                "beginning", timeRanges.dailyBeginning().toString(),
+                "ending", timeRanges.dailyEnding().toString());
 
-    double developmentTotal =
-        getReportSum(
-            testOrgId,
-            PRODUCT_TAG,
-            METRIC_ID,
-            "Daily",
-            timeRanges.dailyBeginning(),
-            timeRanges.dailyEnding(),
-            Map.of("usage", UsageType.DEVELOPMENT_TEST.toString()));
+        TallyReportData response =
+            service.getTallyReportData(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams);
 
-    // Then: Daily totals match expected values for each usage type
-    assertEquals(13.0, productionTotal, 0.0001, "Daily Production usage should total 13 (4+8+1)");
-    assertEquals(6.0, developmentTotal, 0.0001, "Daily Development usage should total 6");
-  }
+        // Then: Metadata filter fields are null
+        TallyReportDataMeta meta = response.getMeta();
+        assertNotNull(meta, "Metadata should not be null");
+        assertNull(meta.getServiceLevel(), "SLA should be null when not filtered");
+        assertNull(meta.getUsage(), "Usage should be null when not filtered");
+        assertNull(meta.getBillingProvider(), "Billing provider should be null when not filtered");
+        assertNull(meta.getBillingAcountId(), "Billing account should be null when not filtered");
+      }
 
-  @ParameterizedTest(name = "with primaryRowSearches={0}")
-  @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-payg-TC018")
-  void shouldFilterDailyByBillingProviderAfterNightly(boolean enablePrimaryRowSearches) {
-    // Given: Feature flag is configured and nightly tally has run
-    givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
+      @Test
+      @TestPlanName("tally-report-filters-payg-TC014")
+      void shouldReflectEmptyFilterInMetadata() {
+        // When: Querying report with empty filter values
+        Map<String, Object> queryParams =
+            Map.of(
+                "granularity", "Daily",
+                "beginning", timeRanges.dailyBeginning().toString(),
+                "ending", timeRanges.dailyEnding().toString(),
+                "sla", "",
+                "usage", "");
 
-    // When: Querying daily report filtered by billing provider
-    double awsTotal =
-        getReportSum(
-            testOrgId,
-            PRODUCT_TAG,
-            METRIC_ID,
-            "Daily",
-            timeRanges.dailyBeginning(),
-            timeRanges.dailyEnding(),
-            Map.of("billing_provider", BillingProviderType.AWS.toString()));
+        TallyReportData response =
+            service.getTallyReportData(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams);
 
-    // Then: Daily total matches all events for the billing provider
-    assertEquals(19.0, awsTotal, 0.0001, "Daily AWS billing provider should total 19 (all events)");
-  }
+        // Then: Response metadata is still present
+        TallyReportDataMeta meta = response.getMeta();
+        assertNotNull(meta, "Metadata should not be null");
+      }
 
-  @ParameterizedTest(name = "with primaryRowSearches={0}")
-  @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-payg-TC019")
-  void shouldFilterDailyByBillingAccountAfterNightly(boolean enablePrimaryRowSearches) {
-    // Given: Feature flag is configured and nightly tally has run
-    givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
+      @Test
+      @TestPlanName("tally-report-filters-payg-TC015")
+      void shouldReturnAllDataWhenNoOptionalFiltersApplied() {
+        // Given: Multiple events exist
 
-    // When: Querying daily reports filtered by billing account ID
-    double account123Total =
-        getReportSum(
-            testOrgId,
-            PRODUCT_TAG,
-            METRIC_ID,
-            "Daily",
-            timeRanges.dailyBeginning(),
-            timeRanges.dailyEnding(),
-            Map.of("billing_account_id", BILLING_ACCOUNT_123));
+        // When: Querying report without any optional filters
+        double total =
+            getReportSum(
+                testOrgId,
+                PRODUCT_TAG,
+                METRIC_ID,
+                "Daily",
+                timeRanges.dailyBeginning(),
+                timeRanges.dailyEnding(),
+                null);
 
-    double account223Total =
-        getReportSum(
-            testOrgId,
-            PRODUCT_TAG,
-            METRIC_ID,
-            "Daily",
-            timeRanges.dailyBeginning(),
-            timeRanges.dailyEnding(),
-            Map.of("billing_account_id", BILLING_ACCOUNT_223));
+        // Then: All events are included in the total
+        assertEquals(19.0, total, 0.0001, "Total without filters should be 19 (4+6+8+1)");
+      }
 
-    // Then: Daily totals match expected values for each billing account
-    assertEquals(
-        18.0, account123Total, 0.0001, "Daily billing account 123 should total 18 (4+6+8)");
-    assertEquals(1.0, account223Total, 0.0001, "Daily billing account 223 should total 1");
-  }
+      @Test
+      @TestPlanName("tally-report-filters-payg-TC016")
+      void shouldFilterDailyReportBySlaAfterNightlyTally() {
+        // Given: Nightly tally has run
 
-  @ParameterizedTest(name = "with primaryRowSearches={0}")
-  @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-payg-TC020")
-  void shouldReturnMonthlyReportWithAllFilters(boolean enablePrimaryRowSearches) {
-    // Given: Feature flag is configured
-    givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
+        // When: Querying daily reports filtered by SLA
+        double premiumTotal =
+            getReportSum(
+                testOrgId,
+                PRODUCT_TAG,
+                METRIC_ID,
+                "Daily",
+                timeRanges.dailyBeginning(),
+                timeRanges.dailyEnding(),
+                Map.of("sla", ServiceLevelType.PREMIUM.toString()));
 
-    // When: Querying monthly report
-    Map<String, Object> queryParams =
-        Map.of(
-            "granularity", "Monthly",
-            "beginning", timeRanges.monthlyBeginning().toString(),
-            "ending", timeRanges.monthlyEnding().toString());
+        double standardTotal =
+            getReportSum(
+                testOrgId,
+                PRODUCT_TAG,
+                METRIC_ID,
+                "Daily",
+                timeRanges.dailyBeginning(),
+                timeRanges.dailyEnding(),
+                Map.of("sla", ServiceLevelType.STANDARD.toString()));
 
-    TallyReportData response =
-        service.getTallyReportData(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams);
+        // Then: Daily totals match expected values for each SLA
+        assertEquals(4.0, premiumTotal, 0.0001, "Daily Premium SLA should total 4");
+        assertEquals(15.0, standardTotal, 0.0001, "Daily Standard SLA should total 15 (6+8+1)");
+      }
 
-    // Then: Response metadata reflects monthly granularity
-    TallyReportDataMeta meta = response.getMeta();
-    assertNotNull(meta, "Metadata should not be null");
-    assertEquals(GranularityType.MONTHLY, meta.getGranularity(), "Granularity should be MONTHLY");
-  }
+      @Test
+      @TestPlanName("tally-report-filters-payg-TC017")
+      void shouldFilterDailyReportByUsageAfterNightlyTally() {
+        // Given: Nightly tally has run
 
-  @ParameterizedTest(name = "with primaryRowSearches={0}")
-  @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-payg-TC021")
-  void shouldReturnQuarterlyReportWithAllFilters(boolean enablePrimaryRowSearches) {
-    // Given: Feature flag is configured
-    givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
+        // When: Querying daily reports filtered by usage type
+        double productionTotal =
+            getReportSum(
+                testOrgId,
+                PRODUCT_TAG,
+                METRIC_ID,
+                "Daily",
+                timeRanges.dailyBeginning(),
+                timeRanges.dailyEnding(),
+                Map.of("usage", UsageType.PRODUCTION.toString()));
 
-    // When: Querying quarterly report
-    OffsetDateTime beginning = calculateQuarterStart();
-    OffsetDateTime ending = beginning.plusMonths(3).minusNanos(1);
+        double developmentTotal =
+            getReportSum(
+                testOrgId,
+                PRODUCT_TAG,
+                METRIC_ID,
+                "Daily",
+                timeRanges.dailyBeginning(),
+                timeRanges.dailyEnding(),
+                Map.of("usage", UsageType.DEVELOPMENT_TEST.toString()));
 
-    Map<String, Object> queryParams =
-        Map.of(
-            "granularity", "Quarterly",
-            "beginning", beginning.toString(),
-            "ending", ending.toString());
+        // Then: Daily totals match expected values for each usage type
+        assertEquals(
+            13.0, productionTotal, 0.0001, "Daily Production usage should total 13 (4+8+1)");
+        assertEquals(6.0, developmentTotal, 0.0001, "Daily Development usage should total 6");
+      }
 
-    TallyReportData response =
-        service.getTallyReportData(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams);
+      @Test
+      @TestPlanName("tally-report-filters-payg-TC018")
+      void shouldFilterDailyByBillingProviderAfterNightly() {
+        // Given: Nightly tally has run
 
-    // Then: Response metadata reflects quarterly granularity
-    TallyReportDataMeta meta = response.getMeta();
-    assertNotNull(meta, "Metadata should not be null");
-    assertEquals(
-        GranularityType.QUARTERLY, meta.getGranularity(), "Granularity should be QUARTERLY");
-  }
+        // When: Querying daily report filtered by billing provider
+        double awsTotal =
+            getReportSum(
+                testOrgId,
+                PRODUCT_TAG,
+                METRIC_ID,
+                "Daily",
+                timeRanges.dailyBeginning(),
+                timeRanges.dailyEnding(),
+                Map.of("billing_provider", BillingProviderType.AWS.toString()));
 
-  @ParameterizedTest(name = "with primaryRowSearches={0}")
-  @ValueSource(booleans = {true, false})
-  @TestPlanName("tally-report-filters-payg-TC022")
-  void shouldReturnYearlyReportWithAllFilters(boolean enablePrimaryRowSearches) {
-    // Given: Feature flag is configured
-    givenFeatureFlagIsConfigured(enablePrimaryRowSearches);
+        // Then: Daily total matches all events for the billing provider
+        assertEquals(
+            19.0, awsTotal, 0.0001, "Daily AWS billing provider should total 19 (all events)");
+      }
 
-    // When: Querying yearly report
-    OffsetDateTime beginning =
-        OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS).withDayOfYear(1);
-    OffsetDateTime ending = beginning.plusYears(1).minusNanos(1);
+      @Test
+      @TestPlanName("tally-report-filters-payg-TC019")
+      void shouldFilterDailyByBillingAccountAfterNightly() {
+        // Given: Nightly tally has run
 
-    Map<String, Object> queryParams =
-        Map.of(
-            "granularity", "Yearly",
-            "beginning", beginning.toString(),
-            "ending", ending.toString());
+        // When: Querying daily reports filtered by billing account ID
+        double account123Total =
+            getReportSum(
+                testOrgId,
+                PRODUCT_TAG,
+                METRIC_ID,
+                "Daily",
+                timeRanges.dailyBeginning(),
+                timeRanges.dailyEnding(),
+                Map.of("billing_account_id", BILLING_ACCOUNT_123));
 
-    TallyReportData response =
-        service.getTallyReportData(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams);
+        double account223Total =
+            getReportSum(
+                testOrgId,
+                PRODUCT_TAG,
+                METRIC_ID,
+                "Daily",
+                timeRanges.dailyBeginning(),
+                timeRanges.dailyEnding(),
+                Map.of("billing_account_id", BILLING_ACCOUNT_223));
 
-    // Then: Response metadata reflects yearly granularity
-    TallyReportDataMeta meta = response.getMeta();
-    assertNotNull(meta, "Metadata should not be null");
-    assertEquals(GranularityType.YEARLY, meta.getGranularity(), "Granularity should be YEARLY");
+        // Then: Daily totals match expected values for each billing account
+        assertEquals(
+            18.0, account123Total, 0.0001, "Daily billing account 123 should total 18 (4+6+8)");
+        assertEquals(1.0, account223Total, 0.0001, "Daily billing account 223 should total 1");
+      }
+
+      @Test
+      @TestPlanName("tally-report-filters-payg-TC020")
+      void shouldReturnMonthlyReportWithAllFilters() {
+        // When: Querying monthly report
+        Map<String, Object> queryParams =
+            Map.of(
+                "granularity", "Monthly",
+                "beginning", timeRanges.monthlyBeginning().toString(),
+                "ending", timeRanges.monthlyEnding().toString());
+
+        TallyReportData response =
+            service.getTallyReportData(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams);
+
+        // Then: Response metadata reflects monthly granularity
+        TallyReportDataMeta meta = response.getMeta();
+        assertNotNull(meta, "Metadata should not be null");
+        assertEquals(
+            GranularityType.MONTHLY, meta.getGranularity(), "Granularity should be MONTHLY");
+      }
+
+      @Test
+      @TestPlanName("tally-report-filters-payg-TC021")
+      void shouldReturnQuarterlyReportWithAllFilters() {
+        // When: Querying quarterly report
+        OffsetDateTime beginning = calculateQuarterStart();
+        OffsetDateTime ending = beginning.plusMonths(3).minusNanos(1);
+
+        Map<String, Object> queryParams =
+            Map.of(
+                "granularity", "Quarterly",
+                "beginning", beginning.toString(),
+                "ending", ending.toString());
+
+        TallyReportData response =
+            service.getTallyReportData(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams);
+
+        // Then: Response metadata reflects quarterly granularity
+        TallyReportDataMeta meta = response.getMeta();
+        assertNotNull(meta, "Metadata should not be null");
+        assertEquals(
+            GranularityType.QUARTERLY, meta.getGranularity(), "Granularity should be QUARTERLY");
+      }
+
+      @Test
+      @TestPlanName("tally-report-filters-payg-TC022")
+      void shouldReturnYearlyReportWithAllFilters() {
+        // When: Querying yearly report
+        OffsetDateTime beginning =
+            OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS).withDayOfYear(1);
+        OffsetDateTime ending = beginning.plusYears(1).minusNanos(1);
+
+        Map<String, Object> queryParams =
+            Map.of(
+                "granularity", "Yearly",
+                "beginning", beginning.toString(),
+                "ending", ending.toString());
+
+        TallyReportData response =
+            service.getTallyReportData(testOrgId, PRODUCT_TAG, METRIC_ID, queryParams);
+
+        // Then: Response metadata reflects yearly granularity
+        TallyReportDataMeta meta = response.getMeta();
+        assertNotNull(meta, "Metadata should not be null");
+        assertEquals(GranularityType.YEARLY, meta.getGranularity(), "Granularity should be YEARLY");
+      }
+    }
   }
 
   @TestPlanName("tally-report-filters-payg-TC024")
