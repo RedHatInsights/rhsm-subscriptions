@@ -115,6 +115,7 @@ public class FactNormalizer {
         .hypervisorUuid(hypervisorUuid)
         .isHypervisor(isHypervisor)
         .isUnmappedGuest(isUnmappedGuest)
+        .skipRhsmFacts(skipRhsmFacts)
         .productTags(productNormalizer.getProductTags())
         .productIds(productNormalizer.getProductIds())
         .lastSeen(determineLastSeenDate(host))

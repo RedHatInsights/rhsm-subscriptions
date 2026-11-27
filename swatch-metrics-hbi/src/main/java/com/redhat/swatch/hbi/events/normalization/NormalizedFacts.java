@@ -54,6 +54,7 @@ public class NormalizedFacts {
   private OffsetDateTime lastSeen;
   private boolean isHypervisor;
   private boolean isUnmappedGuest;
+  private boolean skipRhsmFacts;
 
   public boolean isGuest() {
     return isVirtual() && StringUtils.isNotEmpty(getHypervisorUuid());

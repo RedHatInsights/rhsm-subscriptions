@@ -426,4 +426,107 @@ class SubscriptionDefinitionTest {
     testDef.setMetrics(Set.of(metric));
     assertTrue(testDef.isPaygEligible());
   }
+
+  @ParameterizedTest
+  @CsvSource({
+    "RHEL for x86, Cores, false", // RHEL only supports Sockets
+    "RHEL for x86, Sockets, true",
+    "RHEL for ARM, Cores, false",
+    "RHEL for ARM, Sockets, true",
+    "RHEL for IBM Power, Cores, false",
+    "RHEL for IBM Power, Sockets, true",
+    "Satellite Server, Cores, false", // Satellite only supports Sockets
+    "Satellite Server, Sockets, true",
+    "OpenShift Container Platform, Cores, true", // OpenShift Container Platform supports both
+    "OpenShift Container Platform, Sockets, true",
+    "OpenShift-dedicated-metrics, Cores, true", // OpenShift Dedicated supports Cores only
+    "OpenShift-dedicated-metrics, Sockets, false",
+    "NonExistentProduct, Cores, false", // Invalid product
+    "NonExistentProduct, Sockets, false"
+  })
+  void testVariantSupportsMetric(String productTag, String metricId, boolean expected) {
+    assertEquals(
+        expected,
+        SubscriptionDefinition.variantSupportsMetric(productTag, metricId),
+        String.format(
+            "Expected %s to %s metric %s",
+            productTag, expected ? "support" : "NOT support", metricId));
+  }
+
+  @Test
+  void testPruneIncludedProductsSatelliteIncludesRhel() {
+    // Satellite Server includes RHEL, so RHEL should be removed
+    Set<String> productTags = new HashSet<>(Set.of("Satellite Server", "RHEL for x86"));
+
+    SubscriptionDefinition.pruneIncludedProducts(productTags);
+
+    assertEquals(
+        Set.of("Satellite Server"), productTags, "RHEL should be pruned (Satellite includes it)");
+  }
+
+  @Test
+  void testPruneIncludedProductsOpenShiftIncludesRhel() {
+    // OpenShift includes RHEL, so RHEL should be removed
+    Set<String> productTags = new HashSet<>(Set.of("OpenShift Container Platform", "RHEL for x86"));
+
+    SubscriptionDefinition.pruneIncludedProducts(productTags);
+
+    assertEquals(
+        Set.of("OpenShift Container Platform"),
+        productTags,
+        "RHEL should be pruned (OpenShift includes it)");
+  }
+
+  @Test
+  void testPruneIncludedProductsMultipleIncludedSubscriptions() {
+    // Test with Satellite (includes RHEL x86), OpenShift (includes RHEL x86), and multiple RHEL
+    // variants
+    // Note: RHEL for ARM is NOT included by either, so it should remain
+    Set<String> productTags =
+        new HashSet<>(
+            Set.of(
+                "Satellite Server",
+                "OpenShift Container Platform",
+                "RHEL for x86",
+                "RHEL for ARM"));
+
+    SubscriptionDefinition.pruneIncludedProducts(productTags);
+
+    assertEquals(
+        Set.of("Satellite Server", "OpenShift Container Platform", "RHEL for ARM"),
+        productTags,
+        "Only RHEL for x86 should be pruned (included by both Satellite and OpenShift)");
+  }
+
+  @Test
+  void testPruneIncludedProductsNoIncludedSubscriptions() {
+    // Only RHEL, no parent that includes it
+    Set<String> productTags = new HashSet<>(Set.of("RHEL for x86"));
+
+    SubscriptionDefinition.pruneIncludedProducts(productTags);
+
+    assertEquals(Set.of("RHEL for x86"), productTags, "RHEL should remain (no parent to prune it)");
+  }
+
+  @Test
+  void testPruneIncludedProductsEmptySet() {
+    Set<String> productTags = new HashSet<>();
+
+    SubscriptionDefinition.pruneIncludedProducts(productTags);
+
+    assertTrue(productTags.isEmpty(), "Empty set should remain empty");
+  }
+
+  @Test
+  void testPruneIncludedProductsOnlyParents() {
+    // Only parents, no children to prune
+    Set<String> productTags = new HashSet<>(Set.of("Satellite Server", "OpenShift Dedicated"));
+
+    SubscriptionDefinition.pruneIncludedProducts(productTags);
+
+    assertEquals(
+        Set.of("Satellite Server", "OpenShift Dedicated"),
+        productTags,
+        "Parents should remain (no children to prune)");
+  }
 }

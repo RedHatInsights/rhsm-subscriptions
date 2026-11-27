@@ -101,11 +101,11 @@ Test cases should be testable locally and in deployed environments.
 
 **metrics-hbi-physical-TC001 \- Physical RHEL host event**
 
-- **Description**: Verify that the service ingests HBI Create/Update events for a physical RHEL for x86 host and produces the corresponding SWatch event with correct measurements.
+- **Description**: Verify that the service ingests HBI Create/Update events for a physical RHEL for x86 host and produces the corresponding SWatch event with correct measurements. RHEL products only support Sockets metric (not Cores).
 - **Setup**:
     - Ensure `EMIT_EVENTS` feature flag is enabled
     - Kafka topics for HBI events and service instance ingress are available
-    - Prepare test host data representing a physical RHEL host
+    - Prepare test host data representing a physical RHEL host (cores_per_socket=2, number_of_sockets=2)
 - **Action**:
     - Two different test runs for event types `created` and `updated`: Produce `HbiHostCreateUpdateEvent` with event type to HBI event Kafka topic
     - Trigger outbox flush via internal API
@@ -113,15 +113,17 @@ Test cases should be testable locally and in deployed environments.
     - Confirm outbox record is created after the event is ingested
     - Message is consumed from the service instance ingress Kafka topic and captured in a SWatch event message
     - Verify SWatch event message exists and matches the expected values derived from the HBI event
+    - Verify Sockets measurement is present with value 2.0 and product_tag "RHEL for x86"
+    - Verify Cores measurement is NOT present (RHEL products only support Sockets metric)
 - **Expected Result**:
     - Service successfully ingests both `created` and `updated` HBI events for the host
     - Exactly one SWatch event is produced after being written to the outbox and published to the service instance ingress topic
-    - SWatch event contains correct identifiers, product tags, and measurements for the physical host
+    - SWatch event contains correct identifiers, product tags, and only Sockets measurement (Cores omitted per product configuration)
     - Resulting SWatch event is consistent between `created` and `updated` besides for the event type
 
 **metrics-hbi-physical-TC002 \- Physical RHEL host event with odd socket value**
 
-- **Description**: Verify that the service ingests HBI Create/Update events for a host with number_of_sockets set to an odd value and produces the corresponding SWatch event with sockets value rounded up to the next even number.
+- **Description**: Verify that the service ingests HBI Create/Update events for a host with number_of_sockets set to an odd value and produces the corresponding SWatch event with sockets value rounded up to the next even number. RHEL products only support Sockets metric (not Cores).
 - **Setup**:
   - Ensure `EMIT_EVENTS` feature flag is enabled
   - Kafka topics for HBI events and service instance ingress are available
@@ -133,15 +135,17 @@ Test cases should be testable locally and in deployed environments.
   - Confirm outbox record is created after the event is ingested
   - Message is consumed from the service instance ingress Kafka topic and captured in a SWatch event message
   - Verify SWatch event message exists and matches the expected values derived from the HBI event
+  - Verify Sockets measurement is present with value 4.0 (rounded up from 3) and product_tag "RHEL for x86"
+  - Verify Cores measurement is NOT present (RHEL products only support Sockets metric)
 - **Expected Result**:
   - Service successfully ingests both `created` and `updated` HBI events for the host
   - Exactly one SWatch event is produced after being written to the outbox and published to the service instance ingress topic
-  - SWatch event contains correct product tags and identifiers, with sockets measurements rounded up to the next even number (e.g. 4)
+  - SWatch event contains correct product tags and identifiers, with only Sockets measurement rounded up to the next even number (e.g. 4)
   - Resulting SWatch event is consistent between `created` and `updated` besides for the event type
 
 **metrics-hbi-physical-TC003 \- Physical RHEL host event with converted tag**
 
-- **Description**: Verify that the service ingests HBI Create/Update events for a RHEL host with conversions.activity set to true in the system profile and engineering ID 204, and produces the corresponding SWatch event with the rhel-for-x86-els-converted product tag.
+- **Description**: Verify that the service ingests HBI Create/Update events for a RHEL host with conversions.activity set to true in the system profile and engineering ID 204, and produces the corresponding SWatch event with the rhel-for-x86-els-converted product tag. RHEL products only support Sockets metric (not Cores).
 - **Setup**:
   - Ensure `EMIT_EVENTS` feature flag is enabled
   - Kafka topics for HBI events and service instance ingress are available
@@ -153,15 +157,18 @@ Test cases should be testable locally and in deployed environments.
   - Confirm outbox record is created after the event is ingested
   - Message is consumed from the service instance ingress Kafka topic and captured in a SWatch event message
   - Verify SWatch event message exists and matches the expected values derived from the HBI event
+  - Verify Sockets measurement is present with product_tag "rhel-for-x86-els-converted"
+  - Verify Cores measurement is NOT present (RHEL products only support Sockets metric)
+  - Verify event conversion flag is set to true
 - **Expected Result**:
   - Service successfully ingests both `created` and `updated` HBI events for the host
   - Exactly one SWatch event is produced after being written to the outbox and published to the service instance ingress topic
-  - SWatch event contains the rhel-for-x86-els-converted product tag, correct identifiers, and measurements for the physical host
+  - SWatch event contains the rhel-for-x86-els-converted product tag, correct identifiers, and only Sockets measurement
   - Resulting SWatch event is consistent between `created` and `updated` besides for the event type
 
 **metrics-hbi-physical-TC004 \- Physical RHEL host event with marketplace flag**
 
-- **Description**: Verify that the service ingests HBI Create/Update events for a host with is_marketplace set to true in the system profile and produces the corresponding SWatch event with cores and sockets forced to 0 despite valid hardware values being present.
+- **Description**: Verify that the service ingests HBI Create/Update events for a host with is_marketplace set to true in the system profile and produces the corresponding SWatch event with sockets forced to 0 despite valid hardware values being present. RHEL products only support Sockets metric (not Cores).
 - **Setup**:
   - Ensure `EMIT_EVENTS` feature flag is enabled
   - Kafka topics for HBI events and service instance ingress are available
@@ -174,15 +181,17 @@ Test cases should be testable locally and in deployed environments.
   - Confirm outbox record is created after the event is ingested
   - Message is consumed from the service instance ingress Kafka topic and captured in a SWatch event message
   - Verify SWatch event message exists and matches the expected values derived from the HBI event
+  - Verify Sockets measurement is present with value 0.0 and product_tag "RHEL for x86"
+  - Verify Cores measurement is NOT present (RHEL products only support Sockets metric)
 - **Expected Result**:
   - Service successfully ingests both `created` and `updated` HBI events for the host
   - Exactly one SWatch event is produced after being written to the outbox and published to the service instance ingress topic
-  - SWatch event contains correct product tags and identifiers, but both cores and sockets measurements are 0 despite the system profile reporting non-zero hardware values
+  - SWatch event contains correct product tags and identifiers, with only Sockets measurement forced to 0 despite the system profile reporting non-zero hardware values
   - Resulting SWatch event is consistent between `created` and `updated` besides for the event type
 
 **metrics-hbi-physical-TC005 \- Physical RHEL host event with system purpose units set to sockets**
 
-- **Description**: Verify that the service ingests HBI Create/Update events for a physical RHEL for x86 host with system purpose units set to "Sockets" and produces the corresponding SWatch event with only socket measurements, with the derived cores measurement suppressed despite non-zero cores_per_socket being present in the system profile.
+- **Description**: Verify that the service ingests HBI Create/Update events for a physical RHEL for x86 host with system purpose units set to "Sockets" and produces the corresponding SWatch event with only Sockets measurement. RHEL products only support Sockets metric (not Cores), so Cores would be omitted anyway, but system purpose units confirms the suppression.
 - **Setup**:
   - Ensure `EMIT_EVENTS` feature flag is enabled
   - Kafka topics for HBI events and service instance ingress are available
@@ -194,16 +203,18 @@ Test cases should be testable locally and in deployed environments.
   - Confirm outbox record is created after the event is ingested
   - Message is consumed from the service instance ingress Kafka topic and captured in a SWatch event message
   - Verify SWatch event message exists and matches the expected values derived from the HBI event
+  - Verify Sockets measurement is present with product_tag "RHEL for x86"
+  - Verify Cores measurement is NOT present (RHEL products only support Sockets metric)
 - **Expected Result**:
   - Service successfully ingests both `created` and `updated` HBI events for the physical RHEL host with system purpose units
   - Exactly one SWatch event is produced after being written to the outbox and published to the service instance ingress topic
-  - SWatch event contains correct identifiers, product tags, and socket measurements for the physical host
-  - Core measurements are omitted from the SWatch event as dictated by the "Sockets" system purpose units override
+  - SWatch event contains correct identifiers, product tags, and only Sockets measurement for the physical host
+  - Cores measurement is omitted (RHEL only supports Sockets metric, confirmed by system purpose units)
   - Resulting SWatch event is consistent between `created` and `updated` besides for the event type
 
-**metrics-hbi-physical-TC006 \- Physical RHEL host event with system purpose units set to cores/vcpus**
+**metrics-hbi-physical-TC006 \- Physical RHEL host event with system purpose units set to cores/vcpus (edge case)**
 
-- **Description**: Verify that the service ingests HBI Create/Update events for a physical RHEL for x86 host with system purpose units set to "Cores/vCPU" and produces the corresponding SWatch event with only cores measurements, with the sockets measurement suppressed despite non-zero number_of_sockets being present in the system profile.
+- **Description**: Verify that the service ingests HBI Create/Update events for a physical RHEL for x86 host with system purpose units set to "Cores/vCPU" and produces the corresponding SWatch event with NO measurements. This is an edge case: system purpose wants Cores/vCPU (which suppresses Sockets), but RHEL products only support Sockets metric (which omits Cores), so both measurements are omitted.
 - **Setup**:
   - Ensure `EMIT_EVENTS` feature flag is enabled
   - Kafka topics for HBI events and service instance ingress are available
@@ -215,114 +226,412 @@ Test cases should be testable locally and in deployed environments.
   - Confirm outbox record is created after the event is ingested
   - Message is consumed from the service instance ingress Kafka topic and captured in a SWatch event message
   - Verify SWatch event message exists and matches the expected values derived from the HBI event
+  - Verify Cores measurement is NOT present (RHEL products only support Sockets metric, not Cores)
+  - Verify Sockets measurement is NOT present (suppressed by system purpose units=Cores/vCPU)
 - **Expected Result**:
   - Service successfully ingests both `created` and `updated` HBI events for the physical RHEL host with system purpose units
   - Exactly one SWatch event is produced after being written to the outbox and published to the service instance ingress topic
-  - SWatch event contains correct identifiers, product tags, and derived cores measurements for the physical host
-  - Sockets measurements are omitted from the SWatch event as dictated by the "Cores/vCPU" system purpose units override
+  - SWatch event contains correct identifiers and product tags but NO measurements (edge case where both Cores and Sockets are omitted)
   - Resulting SWatch event is consistent between `created` and `updated` besides for the event type
 
-### Virtual RHEL
+**metrics-hbi-physical-TC007 \- Physical RHEL host with multiple product variants**
 
-**metrics-hbi-virtual-TC001 \- Virtual RHEL unmapped guest host event from threads per core**
-
-- **Description**: Verify that the service ingests HBI Create/Update events for a virtual RHEL for x86 unmapped guest host with a set threads per core value and produces the corresponding SWatch event with correct measurements.
-- **Setup**:
-    - Ensure `EMIT_EVENTS` feature flag is enabled
-    - Kafka topics for HBI events and service instance ingress are available
-    - Prepare test host data representing a virtual RHEL host with a threads per core value
-- **Action**:
-    - Two different test runs for event types `created` and `updated`: Produce `HbiHostCreateUpdateEvent` with event type to HBI event Kafka topic
-    - Trigger outbox flush via internal API
-- **Verification**:
-    - Confirm outbox record is created after the event is ingested
-    - Message is consumed from the service instance ingress Kafka topic and captured in a SWatch event message
-    - Verify SWatch event message exists and matches the expected values derived from the HBI event
-- **Expected Result**:
-    - Service successfully ingests both `created` and `updated` HBI events for the host
-    - Exactly one SWatch event is produced after being written to the outbox and published to the service instance ingress topic
-    - SWatch event contains correct identifiers, product tags, and measurements for the virtual host based on threads per core value
-    - Resulting SWatch event is consistent between `created` and `updated` besides for the event type
-
-**metrics-hbi-virtual-TC002 \- Virtual RHEL unmapped guest host event from CPUs**
-
-- **Description**: Verify that the service ingests HBI Create/Update events for a virtual RHEL for x86 unmapped guest host with a set CPUs value and produces the corresponding SWatch event with correct measurements.
-- **Setup**:
-    - Ensure `EMIT_EVENTS` feature flag is enabled
-    - Kafka topics for HBI events and service instance ingress are available
-    - Prepare test host data representing a virtual RHEL host with a CPUs value
-- **Action**:
-    - Two different test runs for event types `created` and `updated`: Produce `HbiHostCreateUpdateEvent` with event type to HBI event Kafka topic
-    - Trigger outbox flush via internal API
-- **Verification**:
-    - Confirm outbox record is created after the event is ingested
-    - Message is consumed from the service instance ingress Kafka topic and captured in a SWatch event message
-    - Verify SWatch event message exists and matches the expected values derived from the HBI event
-- **Expected Result**:
-    - Service successfully ingests both `created` and `updated` HBI events for the host
-    - Exactly one SWatch event is produced after being written to the outbox and published to the service instance ingress topic
-    - SWatch event contains correct identifiers, product tags, and measurements for the virtual host based on CPUs value
-    - Resulting SWatch event is consistent between `created` and `updated` besides for the event type
-
-**metrics-hbi-virtual-TC003 \- Virtual ARM host event**
-
-- **Description**: Verify that the service ingests HBI Create/Update events for a virtual RHEL for ARM host and produces the corresponding SWatch event with correct measurements.
-- **Setup**:
-    - Ensure `EMIT_EVENTS` feature flag is enabled
-    - Kafka topics for HBI events and service instance ingress are available
-    - Prepare test host data representing a virtual ARM host
-- **Action**:
-    - Two different test runs for event types `created` and `updated`: Produce `HbiHostCreateUpdateEvent` with event type to HBI event Kafka topic
-    - Trigger outbox flush via internal API
-- **Verification**:
-    - Confirm outbox record is created after the event is ingested
-    - Message is consumed from the service instance ingress Kafka topic and captured in a SWatch event message
-    - Verify SWatch event message exists and matches the expected values derived from the HBI event
-- **Expected Result**:
-    - Service successfully ingests both `created` and `updated` HBI events for the host
-    - Exactly one SWatch event is produced after being written to the outbox and published to the service instance ingress topic
-    - SWatch event contains correct identifiers, product tags, and measurements for the ARM host
-    - Resulting SWatch event is consistent between `created` and `updated` besides for the event type
-
-**metrics-hbi-virtual-TC004 \- Virtual cloud provider host event**
-
-- **Description**: Verify that the service ingests HBI Create/Update events for a virtual host with cloud provider set and produces the corresponding SWatch event with correct measurements.
-- **Setup**:
-    - Ensure `EMIT_EVENTS` feature flag is enabled
-    - Kafka topics for HBI events and service instance ingress are available
-    - Prepare test host data representing a virtual host with a known cloud provider set (e.g. AWS)
-- **Action**:
-    - Two different test runs for event types `created` and `updated`: Produce `HbiHostCreateUpdateEvent` with event type to HBI event Kafka topic
-    - Trigger outbox flush via internal API
-- **Verification**:
-    - Confirm outbox record is created after the event is ingested
-    - Message is consumed from the service instance ingress Kafka topic and captured in a SWatch event message
-    - Verify SWatch event message exists and matches the expected values derived from the HBI event
-- **Expected Result**:
-    - Service successfully ingests both `created` and `updated` HBI events for the host
-    - Exactly one SWatch event is produced after being written to the outbox and published to the service instance ingress topic
-    - SWatch event contains correct identifiers, product tags, and measurements for the host (specifically sockets should be normalized to a value of 1)
-    - Resulting SWatch event is consistent between `created` and `updated` besides for the event type
-
-**metrics-hbi-virtual-TC005 \- Virtual RHEL unmapped guest host event defaulting measurement values**
-
-- **Description**: Verify that the service ingests HBI Create/Update events for a virtual RHEL for x86 unmapped guest host with neither threads per core nor CPUs set and produces the corresponding SWatch event with correct measurements using the default threads per core value of 2.0.
+- **Description**: Verify that when a host has multiple product IDs that map to different RHEL product variants, the service creates separate measurement entries for each product variant, each with the same metric_id and value but different product_tag field. Each measurement should only include metric IDs that the product variant supports according to product configuration.
 - **Setup**:
   - Ensure `EMIT_EVENTS` feature flag is enabled
   - Kafka topics for HBI events and service instance ingress are available
-  - Prepare test host data representing a virtual RHEL host with no threads per core or CPUs value
+  - Prepare test host data representing a physical RHEL host with RHSM facts containing multiple product IDs that map to different variants: RH_PROD = ["69", "71", "76", "83"]
+    - 69 → "RHEL for x86"
+    - 71 → "RHEL Workstation"
+    - 76 → "RHEL Compute Node"
+    - 83 → "rhel-for-x86-ha"
+  - All RHEL variants only support the Sockets metric (not Cores)
+- **Action**:
+  - Produce `HbiHostCreateUpdateEvent` with event type `created` to HBI event Kafka topic
+  - Trigger outbox flush via internal API
+- **Verification**:
+  - Confirm outbox record is created after the event is ingested
+  - Message is consumed from the service instance ingress Kafka topic and captured in a SWatch event message
+  - Verify SWatch event message exists and matches the expected values derived from the HBI event
+  - Verify measurements array contains exactly 4 entries, all with metric_id "Sockets" and the same value, but each with a different product_tag
+- **Expected Result**:
+  - Service successfully ingests the HBI event for the multi-product host
+  - Exactly one SWatch event is produced after being written to the outbox and published to the service instance ingress topic
+  - SWatch event contains:
+    - Event-level productIds list: ["69", "71", "76", "83"]
+    - Measurements array with 4 entries:
+      - {metric_id: "Sockets", value: 24.0, product_tag: "RHEL for x86"}
+      - {metric_id: "Sockets", value: 24.0, product_tag: "RHEL Workstation"}
+      - {metric_id: "Sockets", value: 24.0, product_tag: "RHEL Compute Node"}
+      - {metric_id: "Sockets", value: 24.0, product_tag: "rhel-for-x86-ha"}
+  - Each measurement includes only the Sockets metric because RHEL products do not support Cores metric
+  - This validates the per-measurement product_tag feature where multiple products supporting the same metric result in separate measurement entries
+
+### Physical OpenShift
+
+**Note**: OpenShift Container Platform supports BOTH Cores and Sockets metrics. Physical hosts use the calculation: cores = coresPerSocket × numberOfSockets (no threadsPerCore division like virtual hosts). OpenShift product configuration defines RHEL for x86 as an included subscription, so included subscription pruning removes "RHEL for x86" from product_tags when both are present.
+
+**metrics-hbi-physical-openshift-TC001 \- Physical OpenShift host with both Cores and Sockets metrics**
+
+- **Description**: Verify that physical OpenShift Container Platform hosts produce measurements for BOTH Cores and Sockets metrics with per-measurement product_tags, using physical cores calculation (no threadsPerCore). Also verify included subscription pruning prevents measurements with product_tag="RHEL for x86".
+- **Setup**:
+  - Ensure `EMIT_EVENTS` feature flag is enabled
+  - Kafka topics for HBI events and service instance ingress are available
+  - Prepare test host data with product ID 290 (OpenShift Container Platform) and product ID 69 (RHEL for x86)
+  - Configure as physical host with coresPerSocket=4, numberOfSockets=2
+- **Action**:
+  - Two different test runs for event types `created` and `updated`: Produce `HbiHostCreateUpdateEvent` to HBI event Kafka topic
+  - Trigger outbox flush via internal API
+- **Verification**:
+  - Confirm outbox record is created after the event is ingested
+  - Message is consumed from the service instance ingress Kafka topic and captured in a SWatch event message
+  - Verify SWatch event contains exactly TWO measurements: Cores and Sockets
+  - Verify Cores measurement: value=8.0, product_tag="OpenShift Container Platform" (coresPerSocket × sockets = 4 × 2)
+  - Verify Sockets measurement: value=2.0, product_tag="OpenShift Container Platform"
+  - Verify NO measurement has product_tag="RHEL for x86" (pruned as included subscription)
+  - Verify hardwareType is PHYSICAL
+- **Expected Result**:
+  - Service successfully ingests both `created` and `updated` HBI events for the host
+  - Exactly one SWatch event is produced after being written to the outbox and published to the service instance ingress topic
+  - SWatch event contains both Cores and Sockets measurements
+  - Cores measurement = 8 (physical calculation: 4 × 2)
+  - Sockets measurement = 2
+  - Both measurements have product_tag="OpenShift Container Platform"
+  - Included subscription pruning removes "RHEL for x86" from final product_tags
+  - SWatch event contains correct identifiers, product tags, and measurements
+  - Resulting SWatch event is consistent between `created` and `updated` besides for the event type
+
+**metrics-hbi-physical-openshift-TC002 \- Physical OpenShift host with odd socket rounding**
+
+- **Description**: Verify that physical OpenShift hosts correctly apply modulo-2 socket rounding (odd sockets rounded up to even) while producing both Cores and Sockets measurements.
+- **Setup**:
+  - Ensure `EMIT_EVENTS` feature flag is enabled
+  - Kafka topics for HBI events and service instance ingress are available
+  - Prepare test host with product IDs 290 (OpenShift Container Platform) and 69 (RHEL for x86)
+  - Configure as physical host with coresPerSocket=8, numberOfSockets=3 (odd value)
 - **Action**:
   - Two different test runs for event types `created` and `updated`: Produce `HbiHostCreateUpdateEvent` with event type to HBI event Kafka topic
   - Trigger outbox flush via internal API
 - **Verification**:
   - Confirm outbox record is created after the event is ingested
   - Message is consumed from the service instance ingress Kafka topic and captured in a SWatch event message
-  - Verify SWatch event message exists and matches the expected values derived from the HBI event
+  - Verify Cores calculated as: coresPerSocket × sockets = 8 × 3 = 24
+  - Verify Sockets value is 4 (rounded up from 3 via modulo-2 rounding)
+  - Verify both measurements have product_tag="OpenShift Container Platform"
+  - Verify hardwareType is PHYSICAL
 - **Expected Result**:
   - Service successfully ingests both `created` and `updated` HBI events for the host
   - Exactly one SWatch event is produced after being written to the outbox and published to the service instance ingress topic
-  - SWatch event contains correct identifiers, product tags, and measurements for the host based on the default threads per core value of 2.0
+  - Cores measurement = 24 (physical calculation: 8 × 3)
+  - Sockets measurement = 4 (rounded up from 3)
+  - Both measurements have product_tag="OpenShift Container Platform"
+  - Modulo-2 socket rounding correctly applied to physical hosts
+  - SWatch event contains correct identifiers, product tags, and measurements
   - Resulting SWatch event is consistent between `created` and `updated` besides for the event type
+
+### Virtual RHEL
+
+**metrics-hbi-virtual-TC001 \- Virtual RHEL unmapped guest host event from threads per core**
+
+- **Description**: Verify that RHEL for x86 unmapped guest hosts produce only Sockets measurement (no Cores - RHEL products only support Sockets metric) and that RHEL unmapped guests have sockets overridden to 1.
+- **Setup**:
+    - Ensure `EMIT_EVENTS` feature flag is enabled
+    - Kafka topics for HBI events and service instance ingress are available
+    - Prepare virtual RHEL for x86 unmapped guest with threadsPerCore=4, coresPerSocket=2, numberOfSockets=2
+    - Set hypervisorUuid to non-existent UUID (makes it unmapped guest)
+- **Action**:
+    - Two different test runs for event types `created` and `updated`: Produce `HbiHostCreateUpdateEvent`
+    - Trigger outbox flush
+- **Verification**:
+    - Confirm outbox record is created after the event is ingested
+    - Message is consumed from the service instance ingress Kafka topic and captured in a SWatch event message
+    - Verify Cores measurement is NOT present (RHEL products only support Sockets metric)
+    - Verify Sockets measurement value is 1 (RHEL unmapped guest socket override applies)
+    - Verify Sockets measurement has product_tag="RHEL for x86"
+    - Verify isUnmappedGuest flag is true
+- **Expected Result**:
+    - Service successfully ingests both `created` and `updated` HBI events
+    - Exactly one SWatch event produced and published to service instance ingress topic
+    - Only Sockets measurement present (no Cores - RHEL products only support Sockets metric)
+    - Sockets value is 1 (overridden from calculated 2 due to RHEL-specific unmapped guest rule)
+    - Sockets measurement has product_tag="RHEL for x86"
+    - Resulting SWatch event is consistent between `created` and `updated` besides for the event type
+
+**metrics-hbi-virtual-TC002 \- Virtual RHEL unmapped guest host event from CPUs**
+
+- **Description**: Verify that RHEL unmapped guests with numberOfCpus set (but no threadsPerCore) produce only Sockets measurement and apply RHEL unmapped guest socket override to 1.
+- **Setup**:
+    - Ensure `EMIT_EVENTS` feature flag is enabled
+    - Kafka topics for HBI events and service instance ingress are available
+    - Prepare virtual RHEL for x86 unmapped guest with numberOfCpus=4, coresPerSocket=2, numberOfSockets=2
+    - Do NOT set threadsPerCore (will be calculated from numberOfCpus)
+- **Action**:
+    - Two different test runs for event types `created` and `updated`: Produce `HbiHostCreateUpdateEvent` with event type to HBI event Kafka topic
+    - Trigger outbox flush via internal API
+- **Verification**:
+    - Confirm outbox record is created after the event is ingested
+    - Message is consumed from the service instance ingress Kafka topic and captured in a SWatch event message
+    - Verify Cores measurement is NOT present (RHEL products only support Sockets metric)
+    - Verify Sockets measurement value is 1 (RHEL unmapped guest override)
+    - Verify Sockets measurement has product_tag="RHEL for x86"
+    - Verify isUnmappedGuest flag is true
+- **Expected Result**:
+    - Service successfully ingests both `created` and `updated` HBI events
+    - Exactly one SWatch event produced and published to service instance ingress topic
+    - Only Sockets measurement present (no Cores - RHEL products only support Sockets metric)
+    - Sockets value is 1 (RHEL unmapped guest override)
+    - Resulting SWatch event is consistent between `created` and `updated` besides for the event type
+
+**metrics-hbi-virtual-TC003 \- Virtual ARM host event**
+
+- **Description**: Verify that RHEL hosts with multiple RHEL product tags (RHEL for x86 AND RHEL for ARM) produce separate Sockets measurements for each product, each with its own product_tag. Demonstrates per-measurement product_tag for multi-product hosts. Sockets value is 2 (not overridden - not an unmapped guest).
+- **Setup**:
+    - Ensure `EMIT_EVENTS` feature flag is enabled
+    - Kafka topics for HBI events and service instance ingress are available
+    - Prepare virtual host with product IDs 69 (RHEL for x86) and 419 (RHEL for ARM)
+    - Set arch="arm", coresPerSocket=2, numberOfSockets=2
+    - Clear hypervisorUuid (not an unmapped guest)
+- **Action**:
+    - Two different test runs for event types `created` and `updated`: Produce `HbiHostCreateUpdateEvent` with event type to HBI event Kafka topic
+    - Trigger outbox flush via internal API
+- **Verification**:
+    - Confirm outbox record is created after the event is ingested
+    - Message is consumed from the service instance ingress Kafka topic and captured in a SWatch event message
+    - Verify Cores measurement is NOT present (RHEL products only support Sockets metric)
+    - Verify Sockets measurement value is 2 (virtual host - no modulo-2 rounding, not unmapped guest so no override to 1)
+    - Verify event contains TWO Sockets measurements: one with product_tag="RHEL for x86", one with product_tag="RHEL for ARM"
+    - Verify isUnmappedGuest flag is false
+- **Expected Result**:
+    - Service successfully ingests both `created` and `updated` HBI events
+    - Exactly one SWatch event produced and published to service instance ingress topic
+    - Only Sockets measurements present (no Cores - RHEL products only support Sockets metric)
+    - Two Sockets measurements with same value=2 but different product_tags (RHEL for x86 and RHEL for ARM)
+    - Sockets value is 2 (not overridden because not an unmapped guest)
+    - Resulting SWatch event is consistent between `created` and `updated` besides for the event type
+
+**metrics-hbi-virtual-TC004 \- Virtual cloud provider host event**
+
+- **Description**: Verify that the service ingests HBI Create/Update events for a virtual RHEL host with cloud provider set and produces the corresponding SWatch event. RHEL products only support Sockets metric (no Cores). Cloud provider override forces sockets=1 for all products.
+- **Setup**:
+    - Ensure `EMIT_EVENTS` feature flag is enabled
+    - Kafka topics for HBI events and service instance ingress are available
+    - Prepare virtual RHEL for x86 host with cloudProvider="aws"
+- **Action**:
+    - Two different test runs for event types `created` and `updated`: Produce `HbiHostCreateUpdateEvent` with event type to HBI event Kafka topic
+    - Trigger outbox flush via internal API
+- **Verification**:
+    - Confirm outbox record is created after the event is ingested
+    - Message is consumed from the service instance ingress Kafka topic and captured in a SWatch event message
+    - Verify Cores measurement is NOT present (RHEL products only support Sockets metric)
+    - Verify Sockets measurement value is 1 (cloud provider socket override)
+    - Verify Sockets measurement has product_tag="RHEL for x86"
+    - Verify cloudProvider field set to AWS and hardwareType set to CLOUD
+- **Expected Result**:
+    - Service successfully ingests both `created` and `updated` HBI events for the host
+    - Exactly one SWatch event is produced after being written to the outbox and published to the service instance ingress topic
+    - Only Sockets measurement present (no Cores - RHEL products only support Sockets metric)
+    - Sockets value is 1 (cloud provider override applies to all products)
+    - SWatch event contains correct identifiers, product tags, and measurements for the host
+    - Resulting SWatch event is consistent between `created` and `updated` besides for the event type
+
+**metrics-hbi-virtual-TC005 \- Virtual RHEL unmapped guest host event defaulting measurement values**
+
+- **Description**: Verify that RHEL unmapped guests with neither threadsPerCore nor numberOfCpus set use default threadsPerCore=2.0 for vCPU calculation. RHEL products only support Sockets metric (no Cores). RHEL unmapped guests have sockets overridden to 1.
+- **Setup**:
+  - Ensure `EMIT_EVENTS` feature flag is enabled
+  - Kafka topics for HBI events and service instance ingress are available
+  - Prepare virtual RHEL for x86 unmapped guest with coresPerSocket=2, numberOfSockets=2
+  - Do NOT set threadsPerCore or numberOfCpus (forces use of default threadsPerCore=2.0)
+- **Action**:
+  - Two different test runs for event types `created` and `updated`: Produce `HbiHostCreateUpdateEvent` with event type to HBI event Kafka topic
+  - Trigger outbox flush via internal API
+- **Verification**:
+  - Confirm outbox record is created after the event is ingested
+  - Message is consumed from the service instance ingress Kafka topic and captured in a SWatch event message
+  - Verify Cores measurement is NOT present (RHEL products only support Sockets metric)
+  - Verify Sockets measurement value is 1 (RHEL unmapped guest override)
+  - Verify Sockets measurement has product_tag="RHEL for x86"
+  - Verify isUnmappedGuest flag is true
+- **Expected Result**:
+  - Service successfully ingests both `created` and `updated` HBI events for the host
+  - Exactly one SWatch event is produced after being written to the outbox and published to the service instance ingress topic
+  - Only Sockets measurement present (no Cores - RHEL products only support Sockets metric)
+  - Sockets value is 1 (RHEL unmapped guest override from calculated 2)
+  - SWatch event contains correct identifiers, product tags, and measurements
+  - Resulting SWatch event is consistent between `created` and `updated` besides for the event type
+
+**metrics-hbi-virtual-TC006 \- Virtual RHEL host with odd sockets (no modulo-2 rounding)**
+
+- **Description**: Verify that virtual RHEL hosts with odd number of sockets do NOT apply modulo-2 rounding (compare with Physical TC002 where odd sockets ARE rounded). This explicitly proves that modulo-2 rounding is only applied to physical hosts. RHEL products only support Sockets metric (no Cores).
+- **Setup**:
+  - Ensure `EMIT_EVENTS` feature flag is enabled
+  - Kafka topics for HBI events and service instance ingress are available
+  - Prepare virtual RHEL for x86 host with numberOfSockets=3 (odd), coresPerSocket=2
+  - Clear hypervisorUuid (not a guest to avoid unmapped guest override logic)
+- **Action**:
+  - Two different test runs for event types `created` and `updated`: Produce `HbiHostCreateUpdateEvent` with event type to HBI event Kafka topic
+  - Trigger outbox flush via internal API
+- **Verification**:
+  - Confirm outbox record is created after the event is ingested
+  - Message is consumed from the service instance ingress Kafka topic and captured in a SWatch event message
+  - Verify Cores measurement is NOT present (RHEL products only support Sockets metric)
+  - Verify Sockets measurement value is 3.0 (NOT rounded to 4 - virtual hosts do not apply modulo-2 rounding)
+  - Verify Sockets measurement has product_tag="RHEL for x86"
+  - Verify isUnmappedGuest flag is false
+- **Expected Result**:
+  - Service successfully ingests both `created` and `updated` HBI events for the host
+  - Exactly one SWatch event is produced after being written to the outbox and published to the service instance ingress topic
+  - Only Sockets measurement present (no Cores - RHEL products only support Sockets metric)
+  - Sockets value is 3.0 (unchanged from input - proves modulo-2 rounding is NOT applied to virtual hosts)
+  - Compare with Physical TC002: same input (3 sockets) produces different output (4 sockets) due to modulo-2 rounding
+  - SWatch event contains correct identifiers, product tags, and measurements
+  - Resulting SWatch event is consistent between `created` and `updated` besides for the event type
+
+### Virtual OpenShift
+
+**Note**: OpenShift Container Platform product configuration defines RHEL for x86 as an included subscription. When both OpenShift (product ID 290) and RHEL for x86 (product ID 69) are present in an event, ProductNormalizer's pruning logic removes "RHEL for x86" from product_tags to avoid duplicate/redundant tags since the higher-level OpenShift product already includes RHEL.
+
+**metrics-hbi-virtual-openshift-TC001 \- Virtual OpenShift unmapped guest with both Cores and Sockets metrics**
+
+- **Description**: Verify that OpenShift Container Platform hosts produce measurements for BOTH Cores and Sockets metrics with per-measurement product_tags, unlike RHEL products which only support Sockets. Also verify that included subscription pruning correctly removes "RHEL for x86" from product_tags when OpenShift is present.
+- **Setup**:
+  - Ensure `EMIT_EVENTS` feature flag is enabled
+  - Kafka topics for HBI events and service instance ingress are available
+  - Prepare test host data with product ID 290 (OpenShift Container Platform) and product ID 69 (RHEL for x86)
+  - Configure as virtual unmapped guest with threadsPerCore set
+- **Action**:
+  - Two different test runs for event types `created` and `updated`: Produce `HbiHostCreateUpdateEvent` to HBI event Kafka topic
+  - Trigger outbox flush via internal API
+- **Verification**:
+  - Confirm outbox record is created after the event is ingested
+  - Message is consumed from the service instance ingress Kafka topic and captured in a SWatch event message
+  - Verify SWatch event contains TWO measurements: Cores and Sockets
+  - Verify BOTH measurements have product_tag="OpenShift Container Platform"
+  - Verify "RHEL for x86" is NOT in product_tags (pruned as included subscription)
+  - Verify socket count is NOT overridden to 1 (RHEL-specific rule does not apply)
+- **Expected Result**:
+  - Service successfully ingests both `created` and `updated` HBI events for the host
+  - Exactly one SWatch event is produced after being written to the outbox and published to the service instance ingress topic
+  - SWatch event contains both Cores and Sockets measurements
+  - Both measurements have product_tag="OpenShift Container Platform"
+  - Included subscription pruning removes "RHEL for x86" from final product_tags
+  - SWatch event contains correct identifiers, product tags, and measurements
+  - Resulting SWatch event is consistent between `created` and `updated` besides for the event type
+
+**metrics-hbi-virtual-openshift-TC002 \- Virtual OpenShift unmapped guest with calculated threadsPerCore**
+
+- **Description**: Verify that OpenShift hosts correctly calculate vCPU using calculated threadsPerCore from numberOfCpus (not defaulting to 2) and produce both Cores and Sockets measurements. Test uses values that produce different results if numberOfCpus is ignored vs used: coresPerSocket=4, sockets=2, numberOfCpus=8 → correct result is 8 cores; if service incorrectly defaults to threadsPerCore=2, result would be 4 cores (detectably wrong).
+- **Setup**:
+  - Ensure `EMIT_EVENTS` feature flag is enabled
+  - Kafka topics for HBI events and service instance ingress are available
+  - Prepare test host with product IDs 290 (OpenShift Container Platform) and 69 (RHEL for x86)
+  - Configure as virtual unmapped guest with coresPerSocket=4, numberOfSockets=2, numberOfCpus=8 (no explicit threadsPerCore)
+- **Action**:
+  - Two different test runs for event types `created` and `updated`: Produce `HbiHostCreateUpdateEvent` with event type to HBI event Kafka topic
+  - Trigger outbox flush via internal API
+- **Verification**:
+  - Confirm outbox record is created after the event is ingested
+  - Message is consumed from the service instance ingress Kafka topic and captured in a SWatch event message
+  - Verify threadsPerCore calculated as: numberOfCpus / (coresPerSocket × sockets) = 8 / (4 × 2) = 1
+  - Verify Cores calculated as: ceil((4 × 2) / 1) = ceil(8) = 8
+  - Verify Sockets measurement = 2
+  - Verify both measurements have product_tag="OpenShift Container Platform"
+- **Expected Result**:
+  - Service successfully ingests both `created` and `updated` HBI events for the host
+  - Exactly one SWatch event is produced after being written to the outbox and published to the service instance ingress topic
+  - Cores measurement = 8 (proves numberOfCpus was used to calculate threadsPerCore=1; if service defaulted to threadsPerCore=2, result would be 4)
+  - Sockets measurement = 2
+  - Both measurements have product_tag="OpenShift Container Platform"
+  - SWatch event contains correct identifiers, product tags, and measurements
+  - Resulting SWatch event is consistent between `created` and `updated` besides for the event type
+  - Demonstrates that numberOfCpus is actually used to calculate threadsPerCore, not defaulted
+
+**metrics-hbi-virtual-openshift-TC003 \- Virtual OpenShift cloud provider host**
+
+- **Description**: Verify that OpenShift cloud provider hosts apply cloud-specific socket override (sockets=1) while still producing both Cores and Sockets measurements.
+- **Setup**:
+  - Ensure `EMIT_EVENTS` feature flag is enabled
+  - Kafka topics for HBI events and service instance ingress are available
+  - Prepare test host with product IDs 290 (OpenShift Container Platform) and 69 (RHEL for x86)
+  - Configure as virtual cloud host with cloudProvider="aws"
+- **Action**:
+  - Two different test runs for event types `created` and `updated`: Produce `HbiHostCreateUpdateEvent` with event type to HBI event Kafka topic
+  - Trigger outbox flush via internal API
+- **Verification**:
+  - Confirm outbox record is created after the event is ingested
+  - Message is consumed from the service instance ingress Kafka topic and captured in a SWatch event message
+  - Verify Sockets measurement value is 1 (cloud provider override applies to all products)
+  - Verify Cores measurement calculated correctly
+  - Verify both measurements have product_tag="OpenShift Container Platform"
+  - Verify cloudProvider field set to AWS
+  - Verify hardwareType set to CLOUD
+- **Expected Result**:
+  - Service successfully ingests both `created` and `updated` HBI events for the host
+  - Exactly one SWatch event is produced after being written to the outbox and published to the service instance ingress topic
+  - Cloud provider socket override (sockets=1) applies to OpenShift
+  - Both Cores and Sockets measurements produced
+  - Both measurements have product_tag="OpenShift Container Platform"
+  - SWatch event contains correct identifiers, product tags, and measurements
+  - Resulting SWatch event is consistent between `created` and `updated` besides for the event type
+
+**metrics-hbi-virtual-openshift-TC004 \- Virtual OpenShift unmapped guest with default threadsPerCore**
+
+- **Description**: Verify that OpenShift unmapped guests correctly use default threadsPerCore=2.0 when neither threadsPerCore nor numberOfCpus is set, and that the RHEL-specific socket override does NOT apply (sockets remain calculated, not forced to 1).
+- **Setup**:
+  - Ensure `EMIT_EVENTS` feature flag is enabled
+  - Kafka topics for HBI events and service instance ingress are available
+  - Prepare test host with product IDs 290 (OpenShift Container Platform) and 69 (RHEL for x86)
+  - Configure as virtual unmapped guest with coresPerSocket=2, numberOfSockets=2
+  - Do NOT set threadsPerCore or numberOfCpus (forces use of default threadsPerCore=2.0)
+- **Action**:
+  - Two different test runs for event types `created` and `updated`: Produce `HbiHostCreateUpdateEvent` with event type to HBI event Kafka topic
+  - Trigger outbox flush via internal API
+- **Verification**:
+  - Confirm outbox record is created after the event is ingested
+  - Message is consumed from the service instance ingress Kafka topic and captured in a SWatch event message
+  - Verify Cores calculated as: ceil((coresPerSocket * sockets) / 2.0) = ceil((2 * 2) / 2.0) = 2
+  - Verify Sockets value is 2 (NOT overridden to 1 - RHEL-specific rule does not apply)
+  - Verify both measurements have product_tag="OpenShift Container Platform"
+  - Verify isUnmappedGuest flag is true
+- **Expected Result**:
+  - Service successfully ingests both `created` and `updated` HBI events for the host
+  - Exactly one SWatch event is produced after being written to the outbox and published to the service instance ingress topic
+  - Default threadsPerCore=2.0 used for vCPU calculation
+  - Cores measurement = 2 (using default threadsPerCore)
+  - Sockets measurement = 2 (NOT overridden to 1 - RHEL unmapped guest override does NOT apply to OpenShift)
+  - Both measurements have product_tag="OpenShift Container Platform"
+  - SWatch event contains correct identifiers, product tags, and measurements
+  - Resulting SWatch event is consistent between `created` and `updated` besides for the event type
+  - Sockets measurement = 2 (no RHEL unmapped guest override)
+  - Both measurements have OpenShift product_tag
+
+**metrics-hbi-virtual-openshift-TC005 \- Virtual OpenShift unmapped guest with high threadsPerCore**
+
+- **Description**: Verify that OpenShift unmapped guests correctly calculate vCPU measurements using the provided threadsPerCore value (not defaulting to 2), producing both Cores and Sockets measurements with OpenShift product_tags. Test uses values that produce different results if threadsPerCore is ignored vs used: coresPerSocket=3, sockets=2, threadsPerCore=4 → correct result is 2 cores; if service incorrectly defaults to threadsPerCore=2, result would be 3 cores (detectably wrong).
+- **Setup**:
+  - Ensure `EMIT_EVENTS` feature flag is enabled
+  - Kafka topics for HBI events and service instance ingress are available
+  - Prepare test host with product IDs 290 (OpenShift Container Platform) and 69 (RHEL for x86)
+  - Configure as virtual unmapped guest with coresPerSocket=3, numberOfSockets=2, threadsPerCore=4
+- **Action**:
+  - Two different test runs for event types `created` and `updated`: Produce `HbiHostCreateUpdateEvent` with event type to HBI event Kafka topic
+  - Trigger outbox flush via internal API
+- **Verification**:
+  - Confirm outbox record is created after the event is ingested
+  - Message is consumed from the service instance ingress Kafka topic and captured in a SWatch event message
+  - Verify Cores calculated as: ceil((coresPerSocket * sockets) / threadsPerCore) = ceil((3 * 2) / 4) = ceil(1.5) = 2
+  - Verify Sockets value is 2 (no RHEL-specific unmapped guest override for OpenShift)
+  - Verify both measurements have product_tag="OpenShift Container Platform"
+  - Verify isUnmappedGuest flag is true
+- **Expected Result**:
+  - Service successfully ingests both `created` and `updated` HBI events for the host
+  - Exactly one SWatch event is produced after being written to the outbox and published to the service instance ingress topic
+  - Cores measurement = 2 (proves threadsPerCore=4 was used; if service defaulted to threadsPerCore=2, result would be 3)
+  - Sockets measurement = 2 (no RHEL-specific unmapped guest override for OpenShift)
+  - Both measurements have product_tag="OpenShift Container Platform"
+  - SWatch event contains correct identifiers, product tags, and measurements
+  - Resulting SWatch event is consistent between `created` and `updated` besides for the event type
+  - Demonstrates that threadsPerCore is actually used in vCPU calculation, not defaulted
 
 ### Hypervisor
 
@@ -439,13 +748,13 @@ Test cases should be testable locally and in deployed environments.
 
 ### QPC
 
-**metrics-hbi-qpc-TC001 \- QPC-detected RHEL host event with non-matching arch**
+**metrics-hbi-qpc-TC001 \- QPC-detected RHEL host event**
 
-- **Description**: Verify that the service ingests HBI Create/Update events for a QPC-detected RHEL host with no products installed in the system profile and an architecture that does not resolve to a specific RHEL variant, and produces the corresponding SWatch event with the RHEL ungrouped product tag.
+- **Description**: Verify that the service ingests HBI Create/Update events for a QPC-detected RHEL host with x86_64 architecture and produces the corresponding SWatch event with the architecture-specific RHEL product tag. RHEL products only support Sockets metric (not Cores).
 - **Setup**:
   - Ensure `EMIT_EVENTS` feature flag is enabled
   - Kafka topics for HBI events and service instance ingress are available
-  - Prepare test host data representing a host with QPC facts namespace containing rh_products_installed: ["RHEL"], no RHSM facts namespace, no system profile installed products, and an architecture that does not map to a variant (e.g. null)
+  - Prepare test host data representing a host with QPC facts namespace containing rh_products_installed: ["RHEL"], no RHSM facts namespace, no system profile installed products, and system profile arch set to "x86_64"
 - **Action**:
   - Two different test runs for event types `created` and `updated`: Produce `HbiHostCreateUpdateEvent` with event type to HBI event Kafka topic
   - Trigger outbox flush via internal API
@@ -453,15 +762,17 @@ Test cases should be testable locally and in deployed environments.
   - Confirm outbox record is created after the event is ingested
   - Message is consumed from the service instance ingress Kafka topic and captured in a SWatch event message
   - Verify SWatch event message exists and matches the expected values derived from the HBI event
+  - Verify Sockets measurement is present with product_tag "RHEL for x86"
+  - Verify Cores measurement is NOT present (RHEL products only support Sockets metric)
 - **Expected Result**:
   - Service successfully ingests both `created` and `updated` HBI events for the host
   - Exactly one SWatch event is produced after being written to the outbox and published to the service instance ingress topic
-  - SWatch event contains both RHEL and RHEL Ungrouped product tags, correct identifiers, and measurements for the host
+  - SWatch event contains RHEL for x86 product tag, correct identifiers, and only Sockets measurement (Cores omitted per product configuration)
   - Resulting SWatch event is consistent between `created` and `updated` besides for the event type
 
 **metrics-hbi-qpc-TC002 \- QPC-detected RHEL host event with matching arch**
 
-- **Description**: Verify that the service ingests HBI Create/Update events for a QPC-detected RHEL host with an architecture that resolves to a specific RHEL variant, and produces the corresponding SWatch event with the correct RHEL product tag.
+- **Description**: Verify that the service ingests HBI Create/Update events for a QPC-detected RHEL host with an architecture that resolves to a specific RHEL variant, and produces the corresponding SWatch event with the correct RHEL product tag. RHEL products only support Sockets metric (not Cores).
 - **Setup**:
   - Ensure `EMIT_EVENTS` feature flag is enabled
   - Kafka topics for HBI events and service instance ingress are available
@@ -476,17 +787,59 @@ Test cases should be testable locally and in deployed environments.
   - Confirm outbox record is created after the event is ingested
   - Message is consumed from the service instance ingress Kafka topic and captured in a SWatch event message
   - Verify SWatch event message exists and matches the expected values derived from the HBI event
+  - Verify Sockets measurement is present with the architecture-specific product_tag (e.g., "RHEL for x86")
+  - Verify Cores measurement is NOT present (RHEL products only support Sockets metric)
 - **Expected Result**:
   - Service successfully ingests both `created` and `updated` HBI events for the QPC RHEL host
   - Exactly one SWatch event is produced after being written to the outbox and published to the service instance ingress topic
-  - SWatch event contains the expected architecture-specific product tag (resolved from the parameterized architecture) along with the "RHEL" tag
+  - SWatch event contains the expected architecture-specific product tag (resolved from the parameterized architecture), correct identifiers, and only Sockets measurement (Cores omitted per product configuration)
+  - Resulting SWatch event is consistent between `created` and `updated` besides for the event type
+
+**metrics-hbi-qpc-TC003 \- QPC-detected RHEL host with multiple product variants (no RHEL Ungrouped)**
+
+- **Description**: Verify that when a QPC-detected RHEL host has system profile product IDs that map to multiple RHEL variants, all real variants are preserved in measurements but the normalization artifact "RHEL Ungrouped" is NOT added. This validates that the removal of "RHEL Ungrouped" logic works correctly in QPC scenarios with variantCount > 1.
+- **Setup**:
+  - Ensure `EMIT_EVENTS` feature flag is enabled
+  - Kafka topics for HBI events and service instance ingress are available
+  - Prepare test host data representing a QPC-detected RHEL host with:
+    - QPC facts namespace containing rh_products_installed: ["RHEL"]
+    - System profile arch = "x86_64"
+    - System profile installed_products containing multiple RHEL product IDs: ["69", "71", "76"]
+      - 69 → "RHEL for x86"
+      - 71 → "RHEL Workstation"
+      - 76 → "RHEL Compute Node"
+  - All RHEL variants only support the Sockets metric (not Cores)
+- **Action**:
+  - Two different test runs for event types `created` and `updated`: Produce `HbiHostCreateUpdateEvent` with event type to HBI event Kafka topic
+  - Trigger outbox flush via internal API
+- **Verification**:
+  - Confirm outbox record is created after the event is ingested
+  - Message is consumed from the service instance ingress Kafka topic and captured in a SWatch event message
+  - Verify SWatch event message exists and matches the expected values derived from the HBI event
+  - Verify all 3 product IDs are present in productIds array: ["69", "71", "76"]
+  - Verify exactly 3 Sockets measurements exist, each with different product_tag:
+    - {metric_id: "Sockets", value: 8.0, product_tag: "RHEL for x86"}
+    - {metric_id: "Sockets", value: 8.0, product_tag: "RHEL Workstation"}
+    - {metric_id: "Sockets", value: 8.0, product_tag: "RHEL Compute Node"}
+  - Verify "RHEL Ungrouped" does NOT appear in any measurement's product_tag (key assertion)
+  - Verify "RHEL" marker does NOT appear in any measurement's product_tag (no metric support)
+  - Verify Cores measurement is NOT present (RHEL products only support Sockets metric)
+- **Expected Result**:
+  - Service successfully ingests both `created` and `updated` HBI events for the multi-variant QPC RHEL host
+  - Exactly one SWatch event is produced after being written to the outbox and published to the service instance ingress topic
+  - SWatch event contains:
+    - Event-level productIds: ["69", "71", "76"]
+    - Measurements array with exactly 3 Sockets entries, each with a different real variant product_tag
+    - NO measurements with product_tag="RHEL Ungrouped" (normalization artifact excluded)
+    - NO measurements with product_tag="RHEL" (marker has no metric support)
+  - This validates that all real RHEL variants are preserved while normalization artifacts are correctly excluded from measurements
   - Resulting SWatch event is consistent between `created` and `updated` besides for the event type
 
 ## Delete HBI Event Ingestion
 
 **metrics-hbi-delete-TC001 \- Delete physical RHEL host event**
 
-- **Description**: Verify that the service ingests HBI Delete event for a physical RHEL for x86 host and produces the corresponding SWatch event with correct measurements.
+- **Description**: Verify that the service ingests HBI Delete event for a physical RHEL for x86 host and produces the corresponding SWatch event with correct measurements. RHEL products only support Sockets metric (not Cores).
 - **Setup**:
     - Ensure `EMIT_EVENTS` feature flag is enabled
     - Kafka topics for HBI events and service instance ingress are available
@@ -499,14 +852,17 @@ Test cases should be testable locally and in deployed environments.
     - Confirm outbox record is created after the delete event is ingested
     - Message is consumed from the service instance ingress Kafka topic and captured in a SWatch event message
     - Verify SWatch event message exists and matches the expected values derived from the HBI delete event
+    - Verify Cores measurement is NOT present (RHEL products only support Sockets metric)
+    - Verify Sockets measurement has product_tag="RHEL for x86"
 - **Expected Result**:
     - Service successfully ingests `deleted` HBI event for physical RHEL host
     - Exactly one SWatch event is produced after being written to the outbox and published to the service instance ingress topic
     - SWatch event contains correct identifiers, product tags, and measurements for the physical host
+    - Only Sockets measurement present (no Cores measurement)
 
 **metrics-hbi-delete-TC002 \- Delete physical hypervisor host**
 
-- **Description**: Verify that the service ingests HBI Delete event for an existing physical RHEL hypervisor host and produces the corresponding SWatch events to delete the hypervisor instance and update its mapped guest to an unmapped state with correct measurements.
+- **Description**: Verify that the service ingests HBI Delete event for an existing physical RHEL hypervisor host and produces the corresponding SWatch events to delete the hypervisor instance and update its mapped guest to an unmapped state with correct measurements. RHEL products only support Sockets metric (not Cores).
 - **Setup**:
     - Ensure `EMIT_EVENTS` feature flag is enabled
     - Kafka topics for HBI events and service instance ingress are available
@@ -519,16 +875,20 @@ Test cases should be testable locally and in deployed environments.
     - Confirm outbox records are created after the delete event is ingested
     - Messages are consumed from the service instance ingress Kafka topic and captured in SWatch event messages
     - Verify SWatch event messages exist and match the expected values derived from the HBI delete event
+    - For both hypervisor and guest: Verify Cores measurement is NOT present (RHEL products only support Sockets metric)
+    - For both events: Verify Sockets measurement has product_tag="RHEL for x86"
+    - Verify guest becomes unmapped (sockets=1 for conservative estimate)
 - **Expected Result**:
     - Service successfully ingests `deleted` HBI event for physical RHEL hypervisor host
     - Exactly two SWatch events are produced after being written to the outbox and published to the service instance ingress topic
-        - First message with `INSTANCE_DELETED` type for the hypervisor
-        - Second message with `INSTANCE_UPDATED` type for the guest, which should now be unmapped
+        - First message with `INSTANCE_DELETED` type for the hypervisor (only Sockets measurement)
+        - Second message with `INSTANCE_UPDATED` type for the guest, which should now be unmapped (sockets=1)
     - SWatch events contain correct identifiers, product tags, and measurements for the hosts
+    - Only Sockets measurements present (no Cores measurements)
 
 **metrics-hbi-delete-TC003 \- Delete mapped virtual guest host**
 
-- **Description**: Verify that the service ingests HBI Delete event for an existing virtual mapped guest host and produces the corresponding SWatch events to delete the guest instance and update the previous hypervisor host so it is no longer treated as a hypervisor, with correct measurements.
+- **Description**: Verify that the service ingests HBI Delete event for an existing virtual mapped guest host and produces the corresponding SWatch events to delete the guest instance and update the previous hypervisor host so it is no longer treated as a hypervisor, with correct measurements. RHEL products only support Sockets metric (not Cores).
 - **Setup**:
     - Ensure `EMIT_EVENTS` feature flag is enabled
     - Kafka topics for HBI events and service instance ingress are available
@@ -541,12 +901,16 @@ Test cases should be testable locally and in deployed environments.
     - Confirm outbox records are created after the delete event is ingested
     - Messages are consumed from the service instance ingress Kafka topic and captured in SWatch event messages
     - Verify SWatch event messages exist and match the expected values derived from the HBI delete event
+    - For both guest and hypervisor: Verify Cores measurement is NOT present (RHEL products only support Sockets metric)
+    - For both events: Verify Sockets measurement has product_tag="RHEL for x86"
+    - Verify hypervisor transitions from isHypervisor=true to isHypervisor=false (last guest removed)
 - **Expected Result**:
     - Service successfully ingests `deleted` HBI event for virtual mapped guest host
     - Exactly two SWatch events are produced after being written to the outbox and published to the service instance ingress topic
-        - First message with `INSTANCE_DELETED` type for the guest
+        - First message with `INSTANCE_DELETED` type for the guest (sockets=3, only Sockets measurement)
         - Second message with `INSTANCE_UPDATED` type for the previous hypervisor, which should now not be a hypervisor
     - SWatch events contain correct identifiers, product tags, and measurements for the hosts
+    - Only Sockets measurements present (no Cores measurements)
 
 **metrics-hbi-delete-TC004 \- Delete event when guest host has not been seen**
 
@@ -621,7 +985,7 @@ Test cases should be testable locally and in deployed environments.
 
 **metrics-hbi-multiple-reporters-TC001 \- RHSM SLA/usage preferred over Satellite when both reporters are present and RHSM is within the sync threshold**
 
-- **Description**: Verify that when a host reports both RHSM and Satellite facts with a recent RHSM sync timestamp, the service uses RHSM SLA and Usage values over Satellite values while aggregating product tags from both sources, and produces the corresponding SWatch event with the correct prioritized facts.
+- **Description**: Verify that when a host reports both RHSM and Satellite facts with a recent RHSM sync timestamp, the service uses RHSM SLA and Usage values over Satellite values. Product IDs from both sources are retained, but product tags are subject to included subscription pruning (Satellite Server includes RHEL). RHEL/Satellite products only support Sockets metric (not Cores).
 - **Setup**:
   - Ensure `EMIT_EVENTS` feature flag is enabled
   - Kafka topics for HBI events and service instance ingress are available
@@ -633,16 +997,19 @@ Test cases should be testable locally and in deployed environments.
   - Confirm outbox record is created after the event is ingested
   - Message is consumed from the service instance ingress Kafka topic and captured in a SWatch event message 
   - Verify SWatch event message exists and matches the expected values derived from the HBI event
+  - Verify Cores measurement is NOT present (RHEL/Satellite products only support Sockets metric)
+  - Verify Sockets measurement has product_tag "Satellite Server"
 - **Expected Result**:
   - Service successfully ingests both created and updated HBI events for the dual-reporter host
   - Exactly one SWatch event is produced after being written to the outbox and published to the service instance ingress topic
   - SWatch event contains RHSM-sourced SLA ("Premium") and Usage ("Production"), not the Satellite values
-  - SWatch event contains correct product tags aggregated from both RHSM and system profile sources, and correct measurements
+  - SWatch event contains both product IDs (69, 250) but only "Satellite Server" product_tag (RHEL for x86 is pruned due to included subscription)
+  - SWatch event contains only Sockets measurement (Cores omitted per product configuration)
   - Resulting SWatch event is consistent between created and updated besides for the event type
 
 **metrics-hbi-multiple-reporters-TC002 \- Satellite SLA/usage used over RHSM when both reporters are present and RHSM sync is stale**
 
-- **Description**: Verify that when a host reports both RHSM and Satellite facts but the RHSM sync timestamp exceeds the staleness threshold, the service skips RHSM facts and falls back to Satellite SLA and Usage values, excludes RHSM-sourced product tags, and produces the corresponding SWatch event with the correct fallback facts.
+- **Description**: Verify that when a host reports both RHSM and Satellite facts but the RHSM sync timestamp exceeds the staleness threshold, the service skips RHSM facts and falls back to Satellite SLA and Usage values, excludes RHSM-sourced product tags, and produces the corresponding SWatch event with the correct fallback facts. Satellite products only support Sockets metric (not Cores).
 - **Setup**:
   - Ensure `EMIT_EVENTS` feature flag is enabled
   - Kafka topics for HBI events and service instance ingress are available
@@ -654,21 +1021,49 @@ Test cases should be testable locally and in deployed environments.
   - Confirm outbox record is created after the event is ingested
   - Message is consumed from the service instance ingress Kafka topic and captured in a SWatch event message
   - Verify SWatch event message exists and matches the expected values derived from the HBI event
+  - Verify Cores measurement is NOT present (Satellite products only support Sockets metric)
+  - Verify Sockets measurement has product_tag "Satellite Server"
 - **Expected Result**:
   - Service successfully ingests both created and updated HBI events for the dual-reporter host
   - Exactly one SWatch event is produced after being written to the outbox and published to the service instance ingress topic
   - SWatch event contains Satellite-sourced SLA ("Standard") and Usage ("Development/Test"), not the RHSM values
-  - SWatch event product tags do not include tags derived solely from RHSM product IDs (only tags from system profile installed products and Satellite role are present)
-  - SWatch event contains correct measurements
+  - SWatch event product tags do not include tags derived solely from RHSM product IDs (only "Satellite Server" from system profile installed product and Satellite role)
+  - SWatch event contains only Sockets measurement (Cores omitted per product configuration)
   - Resulting SWatch event is consistent between created and updated besides for the event type
+
+**metrics-hbi-multiple-reporters-TC002b \- Stale RHSM-only host excludes products from measurements**
+
+- **Description**: Verify that when a host has ONLY stale RHSM facts (no Satellite or other reporters), the stale RHSM products are excluded from BOTH top-level product data AND measurement product_tags. This test directly validates the skipRhsmFacts consistency fix - ensuring the same stale timestamp decision is used for both top-level normalization and measurement creation.
+- **Setup**:
+  - Ensure `EMIT_EVENTS` feature flag is enabled
+  - Kafka topics for HBI events and service instance ingress are available
+  - Prepare test host data representing a physical RHEL for x86 host with ONLY rhsm facts (no Satellite, no QPC)
+  - RHSM facts include product ID "69" (RHEL for x86), SLA "Premium", Usage "Production", and SYNC_TIMESTAMP is stale (older than the 24-hour threshold, e.g. 30 days ago)
+- **Action**:
+  - Two different test runs for event types created and updated: Produce HbiHostCreateUpdateEvent with event type to HBI event Kafka topic
+  - Trigger outbox flush via internal API
+- **Verification**:
+  - Confirm outbox record is created after the event is ingested
+  - Message is consumed from the service instance ingress Kafka topic and captured in a SWatch event message
+  - Verify product IDs list is empty (stale RHSM excluded)
+  - Verify measurements list is empty (no products means no measurements)
+  - **Critical**: This proves skipRhsmFacts decision from fact normalization is used consistently in measurement creation
+- **Expected Result**:
+  - Service successfully ingests both created and updated HBI events for the host
+  - Exactly one SWatch event is produced after being written to the outbox and published to the service instance ingress topic
+  - SWatch event has empty or null product IDs (stale RHSM products excluded)
+  - SWatch event has empty or null measurements (stale RHSM products do not appear in measurement product_tags)
+  - Resulting SWatch event is consistent between created and updated besides for the event type
+  - **This test fails WITHOUT the skipRhsmFacts consistency fix and passes WITH it**
 
 **metrics-hbi-multiple-reporters-TC003 \- Satellite fills missing RHSM SLA/Usage independently when both reporters are present**
 
-- **Description**: Verify that when a host reports both RHSM and Satellite facts and RHSM is within the sync threshold, the service resolves SLA and Usage independently: it prefers a valid RHSM value for each dimension and falls back to the Satellite value when the corresponding RHSM value is missing or unsupported.
+- **Description**: Verify that when a host reports both RHSM and Satellite facts and RHSM is within the sync threshold, the service resolves SLA and Usage independently: it prefers a valid RHSM value for each dimension and falls back to the Satellite value when the corresponding RHSM value is missing or unsupported. RHEL products only support Sockets metric (not Cores).
 - **Setup**:
   - Ensure `EMIT_EVENTS` feature flag is enabled
   - Kafka topics for HBI events and service instance ingress are available
   - Prepare test host data representing a physical RHEL for x86 host with both rhsm and satellite facts namespaces. Include RHSM RH_PROD product ID "69" and a recent SYNC_TIMESTAMP (within the 24-hour threshold). Set Satellite SLA to "Standard" and Satellite Usage to "Development/Test".
+  - **Important**: Omit Satellite product (250) and role to avoid pruning - only RHSM product "69" is present
   - Parameterize the RHSM SLA/Usage values and expected normalized values as follows:
     - RHSM SLA = absent or unsupported, RHSM Usage = "Production"; expected SLA = "Standard" and expected Usage = "Production"
     - RHSM SLA = "Premium", RHSM Usage = absent or unsupported; expected SLA = "Premium" and expected Usage = "Development/Test"
@@ -680,10 +1075,12 @@ Test cases should be testable locally and in deployed environments.
   - Confirm outbox record is created after the event is ingested
   - Message is consumed from the service instance ingress Kafka topic and captured in a SWatch event message
   - Verify SWatch event message exists and matches the expected values derived from the HBI event
+  - Verify Cores measurement is NOT present (RHEL products only support Sockets metric)
+  - Verify Sockets measurement has product_tag "RHEL for x86"
 - **Expected Result**:
   - Service successfully ingests both created and updated HBI events for the dual-reporter host
   - Exactly one SWatch event is produced after being written to the outbox and published to the service instance ingress topic
   - SWatch event contains the expected SLA and Usage for each parameterization: RHSM values are used independently when valid, and Satellite values fill only the missing or unsupported RHSM dimensions
-  - SWatch event contains the normalized RHSM product tag "RHEL for x86" derived from product ID "69" since RHSM is within the sync threshold
-  - SWatch event contains correct measurements
+  - SWatch event contains only "RHEL for x86" product_tag derived from product ID "69" (no Satellite product to prune it)
+  - SWatch event contains only Sockets measurement (Cores omitted per product configuration)
   - Resulting SWatch event is consistent between created and updated besides for the event type

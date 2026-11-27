@@ -42,7 +42,6 @@ import jakarta.inject.Inject;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -111,7 +110,7 @@ class CreateUpdateHostHandlerTest {
             NormalizedEventType.INSTANCE_CREATED,
             eventTimestamp,
             false,
-            swatchEventHelper.buildMeasurements(2.0, 2.0));
+            swatchEventHelper.buildRhelMeasurements(2.0, List.of("RHEL for x86")));
 
     List<Event> events = handler.handleEvent(hbiEvent);
     assertEquals(1, events.size());
@@ -136,7 +135,7 @@ class CreateUpdateHostHandlerTest {
             NormalizedEventType.INSTANCE_CREATED,
             eventTimestamp,
             true,
-            swatchEventHelper.buildMeasurements(2.0, 2.0));
+            swatchEventHelper.buildRhelMeasurements(2.0, List.of("RHEL for x86")));
 
     List<Event> events = handler.handleEvent(hbiEvent);
     assertEquals(1, events.size());
@@ -171,10 +170,9 @@ class CreateUpdateHostHandlerTest {
             false,
             hypervisorUuid,
             List.of("69"),
-            Set.of("RHEL for x86"),
             // Virtual unmapped RHEL account for a single socket (system profile sockets == 2
             // in test data).
-            swatchEventHelper.buildMeasurements(1.0, 1.0));
+            swatchEventHelper.buildRhelMeasurements(1.0, List.of("RHEL for x86")));
 
     List<Event> events = handler.handleEvent(guestCreatedEvent);
     assertEquals(1, events.size());
@@ -217,7 +215,7 @@ class CreateUpdateHostHandlerTest {
             NormalizedEventType.INSTANCE_CREATED,
             hypervisorEventTimestamp,
             true,
-            swatchEventHelper.buildMeasurements(2.0, 2.0));
+            swatchEventHelper.buildRhelMeasurements(2.0, List.of("RHEL for x86")));
 
     Event expectedMappedGuest1Event =
         swatchEventHelper.createExpectedEvent(
@@ -233,8 +231,7 @@ class CreateUpdateHostHandlerTest {
             false,
             hypervisorEvent.getHost().getSubscriptionManagerId(),
             List.of("69"),
-            Set.of("RHEL for x86"),
-            swatchEventHelper.buildMeasurements(1.0, 2.0));
+            swatchEventHelper.buildRhelMeasurements(2.0, List.of("RHEL for x86")));
 
     Event expectedMappedGuest2Event =
         swatchEventHelper.createExpectedEvent(
@@ -250,8 +247,7 @@ class CreateUpdateHostHandlerTest {
             false,
             hypervisorEvent.getHost().getSubscriptionManagerId(),
             List.of("69"),
-            Set.of("RHEL for x86"),
-            swatchEventHelper.buildMeasurements(1.0, 2.0));
+            swatchEventHelper.buildRhelMeasurements(2.0, List.of("RHEL for x86")));
 
     List<Event> events = handler.handleEvent(hypervisorEvent);
     assertEquals(3, events.size());
@@ -306,8 +302,7 @@ class CreateUpdateHostHandlerTest {
             false,
             hypervisorEvent.getHost().getSubscriptionManagerId(),
             List.of("69"),
-            Set.of("RHEL for x86"),
-            swatchEventHelper.buildMeasurements(1.0, 2.0));
+            swatchEventHelper.buildRhelMeasurements(2.0, List.of("RHEL for x86")));
 
     Event expectedHypervisorUpdateEvent =
         swatchEventHelper.buildPhysicalRhelEvent(
@@ -315,7 +310,7 @@ class CreateUpdateHostHandlerTest {
             NormalizedEventType.INSTANCE_UPDATED,
             expectedTimestamp,
             true,
-            swatchEventHelper.buildMeasurements(2.0, 2.0));
+            swatchEventHelper.buildRhelMeasurements(2.0, List.of("RHEL for x86")));
 
     List<Event> events = handler.handleEvent(guestEvent);
     assertEquals(2, events.size());

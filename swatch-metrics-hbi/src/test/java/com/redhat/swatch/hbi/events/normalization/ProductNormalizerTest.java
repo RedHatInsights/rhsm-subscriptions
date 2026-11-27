@@ -22,6 +22,7 @@ package com.redhat.swatch.hbi.events.normalization;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.hbi.events.normalization.facts.QpcFacts;
@@ -99,9 +100,8 @@ class ProductNormalizerTest {
             Optional.empty(),
             Optional.of(qpcFacts(rhIntalledProducts)),
             false);
-    assertEquals(2, productNormalizer.getProductTags().size());
-    assertThat(
-        productNormalizer.getProductTags(), Matchers.equalTo(Set.of("RHEL Ungrouped", "RHEL")));
+    assertEquals(1, productNormalizer.getProductTags().size());
+    assertThat(productNormalizer.getProductTags(), Matchers.equalTo(Set.of("RHEL")));
     assertTrue(productNormalizer.getProductIds().isEmpty());
   }
 
@@ -116,8 +116,7 @@ class ProductNormalizerTest {
             Optional.of(qpcFacts(rhInstalledProducts)),
             false);
 
-    assertThat(
-        productNormalizer.getProductTags(), Matchers.equalTo(Set.of("RHEL Ungrouped", "RHEL")));
+    assertThat(productNormalizer.getProductTags(), Matchers.equalTo(Set.of("RHEL")));
     assertTrue(productNormalizer.getProductIds().isEmpty());
   }
 
@@ -143,10 +142,9 @@ class ProductNormalizerTest {
             Optional.empty(),
             Optional.of(qpcFacts(rhIntalledProducts)),
             false);
-    assertEquals(3, productNormalizer.getProductTags().size());
+    assertEquals(2, productNormalizer.getProductTags().size());
     assertThat(
-        productNormalizer.getProductTags(),
-        Matchers.equalTo(Set.of("RHEL Ungrouped", "RHEL", expectedProduct)));
+        productNormalizer.getProductTags(), Matchers.equalTo(Set.of("RHEL", expectedProduct)));
     assertTrue(productNormalizer.getProductIds().isEmpty());
   }
 
@@ -236,10 +234,9 @@ class ProductNormalizerTest {
             Optional.empty(),
             Optional.of(qpcFacts(rhIntalledProducts)),
             false);
-    assertEquals(3, productNormalizer.getProductTags().size());
+    assertEquals(2, productNormalizer.getProductTags().size());
     assertThat(
-        productNormalizer.getProductTags(),
-        Matchers.equalTo(Set.of("RHEL Ungrouped", "RHEL", "RHEL for x86")));
+        productNormalizer.getProductTags(), Matchers.equalTo(Set.of("RHEL", "RHEL for x86")));
     assertEquals(1, productNormalizer.getProductIds().size());
     assertThat(productNormalizer.getProductIds(), Matchers.hasItems("69"));
   }
@@ -294,5 +291,183 @@ class ProductNormalizerTest {
 
   private QpcFacts qpcFacts(Set<String> products) {
     return new QpcFacts(products);
+  }
+
+  @Test
+  void testGetProductTagsForMetricRhelSockets() {
+    // RHEL only supports Sockets, not Cores
+    Set<String> productTags =
+        ProductNormalizer.getProductTagsForMetric(
+            "Sockets",
+            systemProfileFacts("x86_64", false, Set.of("69")),
+            Optional.of(rhsmFacts(Set.of("69"))),
+            Optional.empty(),
+            Optional.empty(),
+            false);
+
+    assertEquals(Set.of(RHEL_FOR_X86), productTags, "RHEL should support Sockets metric");
+  }
+
+  @Test
+  void testGetProductTagsForMetricRhelCores() {
+    // RHEL does NOT support Cores metric
+    Set<String> productTags =
+        ProductNormalizer.getProductTagsForMetric(
+            "Cores",
+            systemProfileFacts("x86_64", false, Set.of("69")),
+            Optional.of(rhsmFacts(Set.of("69"))),
+            Optional.empty(),
+            Optional.empty(),
+            false);
+
+    assertTrue(productTags.isEmpty(), "RHEL should NOT support Cores metric");
+  }
+
+  @Test
+  void testGetProductTagsForMetricSkipStaleRhsm() {
+    // When skipRhsmFacts=true, RHSM products should be excluded
+    Set<String> productTags =
+        ProductNormalizer.getProductTagsForMetric(
+            "Sockets",
+            systemProfileFacts("x86_64", false, Set.of()),
+            Optional.of(rhsmFacts(Set.of("69"))),
+            Optional.empty(),
+            Optional.empty(),
+            true); // skipRhsmFacts=true
+
+    assertTrue(
+        productTags.isEmpty(), "Stale RHSM facts should be excluded from product tags for metric");
+  }
+
+  @Test
+  void testGetProductTagsForMetricIncludeNonStaleRhsm() {
+    // When skipRhsmFacts=false, RHSM products should be included
+    Set<String> productTags =
+        ProductNormalizer.getProductTagsForMetric(
+            "Sockets",
+            systemProfileFacts("x86_64", false, Set.of()),
+            Optional.of(rhsmFacts(Set.of("69"))),
+            Optional.empty(),
+            Optional.empty(),
+            false); // skipRhsmFacts=false
+
+    assertEquals(
+        Set.of(RHEL_FOR_X86), productTags, "Non-stale RHSM facts should be included for metric");
+  }
+
+  @Test
+  void testGetProductTagsForMetricSatelliteSockets() {
+    // Satellite only supports Sockets
+    Set<String> productTags =
+        ProductNormalizer.getProductTagsForMetric(
+            "Sockets",
+            systemProfileFacts("x86_64", false, Set.of("250")),
+            Optional.empty(),
+            Optional.of(satelliteFacts("Red Hat Enterprise Linux Server")),
+            Optional.empty(),
+            false);
+
+    assertEquals(
+        Set.of("Satellite Server"), productTags, "Satellite should support Sockets metric");
+  }
+
+  @Test
+  void testGetProductTagsForMetricSatelliteCores() {
+    // Satellite does NOT support Cores
+    Set<String> productTags =
+        ProductNormalizer.getProductTagsForMetric(
+            "Cores",
+            systemProfileFacts("x86_64", false, Set.of("250")),
+            Optional.empty(),
+            Optional.of(satelliteFacts("Red Hat Enterprise Linux Server")),
+            Optional.empty(),
+            false);
+
+    assertTrue(productTags.isEmpty(), "Satellite should NOT support Cores metric");
+  }
+
+  @Test
+  void testGetProductTagsForMetricOpenShiftBothMetrics() {
+    // OpenShift supports both Cores and Sockets
+    Set<String> coresTags =
+        ProductNormalizer.getProductTagsForMetric(
+            "Cores",
+            systemProfileFacts("x86_64", false, Set.of("290")),
+            Optional.of(rhsmFacts(Set.of("290"))),
+            Optional.empty(),
+            Optional.empty(),
+            false);
+
+    Set<String> socketsTags =
+        ProductNormalizer.getProductTagsForMetric(
+            "Sockets",
+            systemProfileFacts("x86_64", false, Set.of("290")),
+            Optional.of(rhsmFacts(Set.of("290"))),
+            Optional.empty(),
+            Optional.empty(),
+            false);
+
+    assertEquals(
+        Set.of("OpenShift Container Platform"), coresTags, "OpenShift should support Cores metric");
+    assertEquals(
+        Set.of("OpenShift Container Platform"),
+        socketsTags,
+        "OpenShift should support Sockets metric");
+  }
+
+  @Test
+  void testGetProductTagsForMetricIncludedSubscriptionPruning() {
+    // When both Satellite and RHEL present, RHEL should be pruned (included subscription)
+    Set<String> productTags =
+        ProductNormalizer.getProductTagsForMetric(
+            "Sockets",
+            systemProfileFacts("x86_64", false, Set.of("250")),
+            Optional.of(rhsmFacts(Set.of("69"))),
+            Optional.of(satelliteFacts("Red Hat Enterprise Linux Server")),
+            Optional.empty(),
+            false);
+
+    assertEquals(
+        Set.of("Satellite Server"),
+        productTags,
+        "RHEL should be pruned when Satellite present (included subscription)");
+  }
+
+  @Test
+  void testMultipleRhelVariantsDoNotAddRhelUngrouped() {
+    // Test with multiple RHEL role-based variants: variantCount > 1
+    // Product IDs: 71 (Workstation), 76 (Compute Node), 69 (Server)
+    // Expected: All variants kept, but "RHEL Ungrouped" NOT added
+    Set<String> productIds = Set.of("69", "71", "76");
+    ProductNormalizer productNormalizer =
+        new ProductNormalizer(
+            systemProfileFacts("x86_64", false, productIds),
+            Optional.of(rhsmFacts(productIds)),
+            Optional.empty(),
+            Optional.empty(),
+            false);
+
+    Set<String> productTags = productNormalizer.getProductTags();
+
+    // Verify all three variants are present
+    assertTrue(
+        productTags.contains("RHEL for x86"), "RHEL for x86 should be present (from product 69)");
+    assertTrue(
+        productTags.contains("RHEL Workstation"),
+        "RHEL Workstation should be present (from product 71)");
+    assertTrue(
+        productTags.contains("RHEL Compute Node"),
+        "RHEL Compute Node should be present (from product 76)");
+
+    // Verify "RHEL Ungrouped" is NOT added (this is the key assertion)
+    assertFalse(
+        productTags.contains("RHEL Ungrouped"),
+        "RHEL Ungrouped should NOT be added even with multiple variants (variantCount=2)");
+
+    // Expected tags: 3 real variants (no "RHEL Ungrouped")
+    assertEquals(
+        Set.of("RHEL for x86", "RHEL Workstation", "RHEL Compute Node"),
+        productTags,
+        "Should have exactly 3 real product variants, no RHEL Ungrouped marker");
   }
 }

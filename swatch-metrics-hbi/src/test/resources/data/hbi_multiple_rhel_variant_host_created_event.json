@@ -1,0 +1,76 @@
+{
+  "type": "created",
+  "host": {
+    "id": "rhel-variants-host-001",
+    "display_name": "rhel-ha-workstation-prod-01",
+    "ansible_host": null,
+    "account": null,
+    "org_id": "1122334",
+    "insights_id": "insights-rhel-variants-001",
+    "subscription_manager_id": "subman-rhel-variants-001",
+    "satellite_id": null,
+    "fqdn": "rhel-ha-workstation-prod-01.example.com",
+    "ip_addresses": null,
+    "mac_addresses": null,
+    "facts": [
+      {
+        "namespace": "rhsm",
+        "facts": {
+          "orgId": "1122334",
+          "RH_PROD": [
+            "69",
+            "71",
+            "76",
+            "83"
+          ],
+          "IS_VIRTUAL": false,
+          "ARCHITECTURE": "x86_64",
+          "SYNC_TIMESTAMP": "2026-11-12T15:30:00.000000Z",
+          "SYSPURPOSE_SLA": "Self-Support",
+          "SYSPURPOSE_USAGE": "Production"
+        }
+      }
+    ],
+    "provider_id": null,
+    "provider_type": null,
+    "created": "2026-11-12T15:00:00.000000Z",
+    "updated": "2026-11-12T15:30:00.000000Z",
+    "stale_timestamp": "2026-11-26T02:30:00.000000Z",
+    "stale_warning_timestamp": "2026-12-03T02:30:00.000000Z",
+    "culled_timestamp": "2026-12-10T02:30:00.000000Z",
+    "reporter": "rhsm-conduit",
+    "tags": [],
+    "system_profile": {
+      "arch": "x86_64",
+      "owner_id": "subman-rhel-variants-001",
+      "conversions": {
+        "activity": false
+      },
+      "is_marketplace": false,
+      "cores_per_socket": 16,
+      "number_of_sockets": 24,
+      "infrastructure_type": "physical",
+      "system_memory_bytes": 268435456000,
+      "kernel_modules": ["virtio_blk", "ext4"],
+      "running_processes": ["systemd", "crond"],
+      "network_interfaces": [{"name": "eth0", "mtu": 1500}]
+    },
+    "per_reporter_staleness": {
+      "rhsm-conduit": {
+        "last_check_in": "2026-11-12T15:30:00.000000Z",
+        "stale_timestamp": "2026-11-26T02:30:00.000000Z",
+        "check_in_succeeded": true,
+        "stale_warning_timestamp": "2026-12-03T02:30:00.000000Z",
+        "culled_timestamp": "2026-12-10T02:30:00.000000Z"
+      }
+    },
+    "groups": []
+  },
+  "timestamp": "2026-11-12T15:30:00.000000Z",
+  "platform_metadata": {
+    "request_id": "rhel-variants-test-001"
+  },
+  "metadata": {
+    "request_id": "rhel-variants-test-001"
+  }
+}
