@@ -21,5 +21,6 @@
 package domain;
 
 public enum RemittanceErrorCode {
-  SUBSCRIPTION_NOT_FOUND;
+  SUBSCRIPTION_NOT_FOUND,
+  MARKETPLACE_RATE_LIMIT;
 }

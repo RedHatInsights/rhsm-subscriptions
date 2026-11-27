@@ -145,6 +145,61 @@ public class BillableUsageStatusComponentTest extends BaseBillableUsageComponent
     thenErrorCodeIs(remittance, RemittanceErrorCode.SUBSCRIPTION_NOT_FOUND.name());
   }
 
+  @Test
+  @TestPlanName("billable-usage-status-TC005")
+  void shouldNotUpdateSucceededRemittanceWhenFailedStatusArrives() {
+    // Given: a remittance has succeeded
+    BillableUsage billableUsage = givenPendingRemittanceExists();
+    OffsetDateTime billedOn = OffsetDateTime.now(ZoneOffset.UTC);
+    whenStatusUpdateIsSent(
+        BillableUsage.Status.SUCCEEDED,
+        null,
+        billedOn,
+        List.of(billableUsage.getUuid().toString()),
+        null);
+    thenRemittanceStatusIs(billableUsage, RemittanceStatus.SUCCEEDED);
+
+    // When: a later FAILED status is sent
+    whenStatusUpdateIsSent(
+        BillableUsage.Status.FAILED,
+        BillableUsage.ErrorCode.MARKETPLACE_RATE_LIMIT,
+        null,
+        List.of(billableUsage.getUuid().toString()),
+        null);
+
+    // Then: the remittance remains SUCCEEDED and its success details are preserved
+    var remittance = thenRemittanceStatusIs(billableUsage, RemittanceStatus.SUCCEEDED);
+    thenBilledOnIsNear(remittance, billedOn);
+    assertNull(remittance.getErrorCode(), "Failed status update should not set an error code");
+  }
+
+  @Test
+  @TestPlanName("billable-usage-status-TC006")
+  void shouldNotUpdateFailedRemittanceWhenSucceededStatusArrives() {
+    // Given: a remittance has failed
+    BillableUsage billableUsage = givenPendingRemittanceExists();
+    whenStatusUpdateIsSent(
+        BillableUsage.Status.FAILED,
+        BillableUsage.ErrorCode.MARKETPLACE_RATE_LIMIT,
+        null,
+        List.of(billableUsage.getUuid().toString()),
+        null);
+    thenRemittanceStatusIs(billableUsage, RemittanceStatus.FAILED);
+
+    // When: a later SUCCEEDED status is sent
+    whenStatusUpdateIsSent(
+        BillableUsage.Status.SUCCEEDED,
+        null,
+        OffsetDateTime.now(ZoneOffset.UTC),
+        List.of(billableUsage.getUuid().toString()),
+        null);
+
+    // Then: the remittance remains FAILED and its failure details are preserved
+    var remittance = thenRemittanceStatusIs(billableUsage, RemittanceStatus.FAILED);
+    thenErrorCodeIs(remittance, RemittanceErrorCode.MARKETPLACE_RATE_LIMIT.name());
+    assertNull(remittance.getBilledOn(), "Succeeded status update should not set billedOn");
+  }
+
   private BillableUsage givenPendingRemittanceExists() {
     givenNoContractCoverageForProduct(ROSA);
     whenRosaTallyIsSent(VALUE);

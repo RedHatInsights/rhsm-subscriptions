@@ -795,6 +795,36 @@ These scenarios verify that contract coverage applies independently to managed a
 - **Expected Result:**  
   - Failed marketplace feedback updates remittance lifecycle fields
 
+**billable-usage-status-TC005 - Preserve SUCCEEDED remittance when FAILED status arrives**
+
+- **Description:** Verify a later FAILED status does not change a remittance that has already succeeded.  
+- **Setup:**  
+  - Create a pending remittance (no contract coverage)  
+  - Update the remittance to `SUCCEEDED` with a billedOn timestamp  
+- **Action:**  
+  - Publish a later status aggregate for the same remittance with `status=FAILED` and `errorCode=MARKETPLACE_RATE_LIMIT`  
+- **Verification:**  
+  - Remittance status remains `SUCCEEDED`  
+  - The original `billedOn` timestamp remains set  
+  - `errorCode` remains null  
+- **Expected Result:**  
+  - A finalized successful remittance is not changed by later failure feedback
+
+**billable-usage-status-TC006 - Preserve FAILED remittance when SUCCEEDED status arrives**
+
+- **Description:** Verify a later SUCCEEDED status does not change a remittance that has already failed.  
+- **Setup:**  
+  - Create a pending remittance (no contract coverage)  
+  - Update the remittance to `FAILED` with `errorCode=MARKETPLACE_RATE_LIMIT`  
+- **Action:**  
+  - Publish a later status aggregate for the same remittance with `status=SUCCEEDED` and billedOn  
+- **Verification:**  
+  - Remittance status remains `FAILED`  
+  - `errorCode` remains `MARKETPLACE_RATE_LIMIT`  
+  - `billedOn` remains null  
+- **Expected Result:**  
+  - A finalized failed remittance is not changed by later success feedback
+
 ---
 
 ## Negative and Resilience
