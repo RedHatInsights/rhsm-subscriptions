@@ -117,7 +117,6 @@ public abstract class InventoryService {
 
     // canonical facts.
     host.setOrgId(facts.getOrgId());
-    host.setDisplayName(facts.getDisplayName());
     host.setFqdn(facts.getFqdn());
     host.setSubscriptionManagerId(facts.getSubscriptionManagerId());
     host.setBiosUuid(facts.getBiosUuid());

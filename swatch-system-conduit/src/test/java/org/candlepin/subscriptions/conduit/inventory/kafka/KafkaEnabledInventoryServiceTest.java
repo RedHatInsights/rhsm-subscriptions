@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.conduit.inventory.kafka;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.eq;
@@ -33,6 +34,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
@@ -51,6 +54,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -78,6 +83,10 @@ class KafkaEnabledInventoryServiceTest {
   @Autowired
   @Qualifier("kafkaRetryTemplate")
   private RetryTemplate retryTemplate;
+
+  @Autowired
+  @Qualifier("hbiObjectMapper")
+  private ObjectMapper mapper;
 
   @Mock KafkaTemplate<String, CreateUpdateHostMessage> producer;
 
@@ -151,6 +160,32 @@ class KafkaEnabledInventoryServiceTest {
     assertEquals(expectedFacts.getProviderId(), message.getData().getProviderId());
     assertEquals(expectedFacts.getProviderType(), message.getData().getProviderType());
     assertEquals(expectedFacts.getOpenshiftClusterId(), message.getData().getOpenshiftClusterId());
+  }
+
+  @ParameterizedTest
+  @NullAndEmptySource
+  @ValueSource(
+      strings = {
+        " ",
+        "custom display name",
+        "host.example.com",
+        "550e8400-e29b-41d4-a716-446655440000"
+      })
+  void ensureHostPayloadNeverIncludesDisplayName(String displayName) {
+    ConduitFacts facts = new ConduitFacts();
+    facts.setOrgId(ORG_ID);
+    facts.setDisplayName(displayName);
+
+    InventoryServiceProperties props = new InventoryServiceProperties();
+    props.setKafkaHostIngressTopic("placeholder");
+    KafkaEnabledInventoryService service =
+        new KafkaEnabledInventoryService(props, producer, meterRegistry, retryTemplate);
+
+    service.sendHostUpdate(List.of(facts));
+
+    JsonNode data = mapper.valueToTree(messageCaptor.getValue()).path("data");
+    assertEquals(ORG_ID, data.path("org_id").asText());
+    assertFalse(data.has("display_name"), "Host inventory payload must omit display_name");
   }
 
   @Test

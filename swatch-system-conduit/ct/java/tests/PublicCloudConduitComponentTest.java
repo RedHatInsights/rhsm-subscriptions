@@ -28,6 +28,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import api.MessageValidators;
 import api.RhsmApiStubs;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.redhat.swatch.component.tests.api.TestPlanName;
 import com.redhat.swatch.system.conduit.test.model.inventory.HbiFactSet;
 import com.redhat.swatch.system.conduit.test.model.inventory.HbiHost;
 import com.redhat.swatch.system.conduit.test.model.inventory.HbiSystemProfile;
@@ -42,7 +44,6 @@ public class PublicCloudConduitComponentTest extends BaseConduitComponentTest {
 
   // Expected values used in the stubbed RHSM consumer and asserted on the HbiHost response
   private static final String EXPECTED_CONSUMER_ID = "test-consumer-1";
-  private static final String EXPECTED_DISPLAY_NAME = "test-display-name";
   private static final String EXPECTED_UUID = "550e8400-e29b-41d4-a716-446655440000";
   private static final String EXPECTED_FQDN = "host1.openshift.test.com";
   private static final String EXPECTED_BIOS_UUID = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
@@ -59,6 +60,7 @@ public class PublicCloudConduitComponentTest extends BaseConduitComponentTest {
   private static final String EXPECTED_REPORTER = "rhsm-conduit";
 
   @Test
+  @TestPlanName("system-conduit-sync-TC001")
   void shouldEmitAddHostWhenConduitSyncsRhsmConsumer() {
     // Given: RHSM API stubbed with a consumer
     givenRhsmConsumerWithFullData();
@@ -66,12 +68,13 @@ public class PublicCloudConduitComponentTest extends BaseConduitComponentTest {
     // When: Conduit syncs for the test org
     service.syncConduitByOrgId(orgId);
 
-    // Then: Inventory host ingress receives add_host and all HbiHost fields match RHSM consumer
+    // Then: Inventory host ingress receives add_host with the expected host fields
     CreateUpdateHostMessage message = thenAddHostMessageReceived();
     verifyAddHostMessage(message);
   }
 
   @Test
+  @TestPlanName("system-conduit-marketplace-TC001")
   void shouldSetIsMarketplaceWhenAwsBillingCodeIndicatesPayg() {
     // Given: RHSM API stubbed with AWS billing code set to indicate PAYG
     String billingCode = "bp-6fa54006";
@@ -89,6 +92,7 @@ public class PublicCloudConduitComponentTest extends BaseConduitComponentTest {
   }
 
   @Test
+  @TestPlanName("system-conduit-marketplace-TC002")
   void shouldNotSetIsMarketplaceWhenAwsBillingCodeIndicatesByos() {
     // Given: RHSM API stubbed with AWS billing code set to indicate BYOS
     String billingCode = "bp-63a5400a";
@@ -105,11 +109,37 @@ public class PublicCloudConduitComponentTest extends BaseConduitComponentTest {
         message.getData().getSystemProfile().getIsMarketplace(), "Is marketplace should be false");
   }
 
+  @Test
+  @TestPlanName("system-conduit-display-name-TC002")
+  void shouldOmitDisplayNameWhenRhsmConsumerHasName() {
+    Map<String, Object> consumer = buildDefaultConsumer();
+    consumer.put("name", "custom display name");
+    ((Map<String, Object>) consumer.get("facts")).remove("openshift.cluster_uuid");
+    wiremock.forRhsmApi().stubConsumersForOrg(orgId, List.of(consumer));
+
+    service.syncConduitByOrgId(orgId);
+
+    thenHostIdentityWithoutDisplayName(thenAddHostJsonDataReceived());
+  }
+
+  @Test
+  @TestPlanName("system-conduit-display-name-TC003")
+  void shouldOmitDisplayNameWhenRhsmConsumerHasOpenShiftClusterUuid() {
+    Map<String, Object> consumer = buildDefaultConsumer();
+    consumer.put("name", "custom display name");
+    wiremock.forRhsmApi().stubConsumersForOrg(orgId, List.of(consumer));
+
+    service.syncConduitByOrgId(orgId);
+
+    JsonNode data = thenAddHostJsonDataReceived();
+    thenHostIdentityWithoutDisplayName(data);
+    assertEquals(EXPECTED_OPENSHIFT_CLUSTER_UUID, data.path("openshift_cluster_id").asText());
+  }
+
   private Map<String, Object> buildDefaultConsumer() {
     return RhsmApiStubs.buildFullConsumer(
         orgId,
         EXPECTED_CONSUMER_ID,
-        EXPECTED_DISPLAY_NAME,
         EXPECTED_UUID,
         EXPECTED_FQDN,
         EXPECTED_BIOS_UUID,
@@ -145,6 +175,23 @@ public class PublicCloudConduitComponentTest extends BaseConduitComponentTest {
     return message;
   }
 
+  private JsonNode thenAddHostJsonDataReceived() {
+    JsonNode message =
+        kafkaBridge.waitForKafkaMessage(
+            INVENTORY_HOST_INGRESS, MessageValidators.addHostJsonMessageMatchesOrgId(orgId));
+    assertNotNull(message, "Expected one add_host message");
+    JsonNode data = message.path("data");
+    assertTrue(data.isObject(), "Message data must be a host JSON object");
+    return data;
+  }
+
+  private void thenHostIdentityWithoutDisplayName(JsonNode data) {
+    assertEquals(orgId, data.path("org_id").asText());
+    assertEquals(EXPECTED_UUID, data.path("subscription_manager_id").asText());
+    assertEquals(EXPECTED_FQDN, data.path("fqdn").asText());
+    assertFalse(data.has("display_name"), "Host inventory payload must omit display_name");
+  }
+
   private void verifyAddHostMessage(CreateUpdateHostMessage message) {
     assertEquals(
         "add_host",
@@ -160,10 +207,6 @@ public class PublicCloudConduitComponentTest extends BaseConduitComponentTest {
 
   private void verifyHbiHostIdentityFields(HbiHost data) {
     assertEquals(orgId, data.getOrgId(), "HbiHost orgId should match stubbed consumer");
-    assertEquals(
-        EXPECTED_OPENSHIFT_CLUSTER_UUID,
-        data.getDisplayName(),
-        "Display name should match openshift.cluster_uuid fact");
     assertEquals(EXPECTED_FQDN, data.getFqdn(), "FQDN should match network.fqdn fact");
     assertEquals(
         EXPECTED_UUID,

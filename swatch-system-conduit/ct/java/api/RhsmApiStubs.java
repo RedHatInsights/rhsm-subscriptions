@@ -128,7 +128,6 @@ public class RhsmApiStubs {
   public static Map<String, Object> buildFullConsumer(
       String orgId,
       String consumerId,
-      String name,
       String uuid,
       String fqdn,
       String biosUuid,
@@ -146,7 +145,6 @@ public class RhsmApiStubs {
     consumer.put("type", "system");
     consumer.put("id", consumerId);
     consumer.put("uuid", uuid);
-    consumer.put("name", name != null ? name : consumerId);
     consumer.put("orgId", orgId);
     consumer.put("lastCheckin", "2024-01-01T12:00:00Z");
     consumer.put("sysPurposeRole", "");
