@@ -20,14 +20,14 @@
  */
 package org.candlepin.subscriptions.security;
 
+import com.redhat.swatch.clients.rbac.RbacApiException;
+import com.redhat.swatch.clients.rbac.RbacService;
 import com.redhat.swatch.kessel.KesselAuthorizationClient;
 import io.getunleash.Unleash;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import org.candlepin.subscriptions.rbac.RbacApiException;
 import org.candlepin.subscriptions.rbac.RbacProperties;
-import org.candlepin.subscriptions.rbac.RbacService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;

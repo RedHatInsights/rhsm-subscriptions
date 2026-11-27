@@ -53,7 +53,7 @@
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>com.redhat.swatch.clients.spring</groupId>
+        <groupId>com.redhat.swatch.clients</groupId>
         <artifactId>rbac-client</artifactId>
         <version>${project.version}</version>
       </dependency>

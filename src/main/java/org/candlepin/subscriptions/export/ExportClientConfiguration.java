@@ -25,7 +25,7 @@ import com.redhat.swatch.clients.TokenProvider;
 import com.redhat.swatch.clients.export.SwatchExportApi;
 import com.redhat.swatch.export.api.ExportDelegate;
 import com.redhat.swatch.export.api.ExportDelegateImpl;
-import java.io.IOException;
+import org.candlepin.subscriptions.http.ResourcePath;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
 import org.springframework.boot.context.TypeExcludeFilter;
@@ -34,7 +34,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.FilterType;
-import org.springframework.core.io.Resource;
 
 /**
  * Configuration that should be imported for any component that needs to be able to use Subscription
@@ -69,15 +68,16 @@ public class ExportClientConfiguration {
   @Bean(name = EXPORT_API_CLIENT)
   ClientConfig exportServiceConfig(
       @Qualifier(EXPORT_API_QUALIFIER) ExportConnectionProperties properties) {
-    return new ClientConfig(
-        "export-service",
-        properties.getPsk(),
-        properties.getUri(),
-        properties.getAuthenticated(),
-        resourcePath(properties.getTruststore()),
-        properties.getTruststorePassword(),
-        properties.getTruststoreType(),
-        properties.getReadTimeout());
+    return ClientConfig.builder()
+        .name("export-service")
+        .psk(properties.getPsk())
+        .uri(properties.getUri())
+        .authenticated(properties.getAuthenticated())
+        .trustStorePath(ResourcePath.from(properties.getTruststore()))
+        .trustStorePassword(properties.getTruststorePassword())
+        .trustStoreType(properties.getTruststoreType())
+        .readTimeout(properties.getReadTimeout())
+        .build();
   }
 
   /**
@@ -92,21 +92,6 @@ public class ExportClientConfiguration {
   public ExportApiClientFactory exportClientApiFactory(
       @Qualifier(EXPORT_API_CLIENT) ClientConfig clientConfig, TokenProvider tokenProvider) {
     return new ExportApiClientFactory(clientConfig, tokenProvider);
-  }
-
-  private static String resourcePath(Resource resource) {
-    if (resource == null || !resource.exists()) {
-      return null;
-    }
-    try {
-      return resource.getURL().toString();
-    } catch (IOException e) {
-      try {
-        return resource.getFile().getAbsolutePath();
-      } catch (IOException nested) {
-        return null;
-      }
-    }
   }
 
   @Bean

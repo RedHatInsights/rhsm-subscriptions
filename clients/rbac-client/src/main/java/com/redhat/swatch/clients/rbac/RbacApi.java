@@ -18,16 +18,15 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.rbac;
+package com.redhat.swatch.clients.rbac;
 
+import com.redhat.swatch.clients.rbac.api.model.Access;
 import java.util.List;
-import org.candlepin.subscriptions.rbac.model.Access;
 
-/** Defines wrapper functions around all RBAC API calls that we want to make. */
 public interface RbacApi {
 
   List<Access> getCurrentUserAccess(String applicationName) throws RbacApiException;
 
-  List<Access> getCurrentIdentityAccess(String rbacAppName, String identity)
+  List<Access> getCurrentIdentityAccess(String applicationName, String identity)
       throws RbacApiException;
 }

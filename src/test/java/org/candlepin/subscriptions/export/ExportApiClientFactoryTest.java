@@ -32,8 +32,12 @@ import org.junit.jupiter.api.Test;
 class ExportApiClientFactoryTest {
 
   private static final ClientConfig CONFIG =
-      new ClientConfig(
-          "export-service", "psk", "https://export.example", true, null, null, null, null);
+      ClientConfig.builder()
+          .name("export-service")
+          .psk("psk")
+          .uri("https://export.example")
+          .authenticated(true)
+          .build();
 
   @Test
   void getObjectReturnsExportApi() {

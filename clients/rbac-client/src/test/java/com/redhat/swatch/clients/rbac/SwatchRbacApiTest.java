@@ -20,10 +20,24 @@
  */
 package com.redhat.swatch.clients.rbac;
 
-/** Thrown when an error occurs making an RBAC API call. */
-public class RbacApiException extends Exception {
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
-  public RbacApiException(String message, Throwable t) {
-    super(message, t);
+import com.redhat.swatch.clients.ClientConfig;
+import com.redhat.swatch.clients.ClientInfo;
+import org.junit.jupiter.api.Test;
+
+class SwatchRbacApiTest {
+
+  private static final ClientConfig CONFIG =
+      ClientConfig.builder().name("rbac-service").uri("https://rbac.example/api/rbac/v1").build();
+
+  @Test
+  void exposesClientInfo() {
+    SwatchRbacApi client = new SwatchRbacApi(CONFIG);
+
+    assertInstanceOf(ClientInfo.class, client);
+    assertEquals("rbac-service", client.name());
+    assertEquals("https://rbac.example/api/rbac/v1", client.describe().get("uri"));
   }
 }

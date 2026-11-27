@@ -25,10 +25,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.redhat.swatch.clients.rbac.api.model.Access;
-import com.redhat.swatch.clients.rbac.api.model.AccessPagination;
-import com.redhat.swatch.clients.rbac.api.resources.AccessApi;
-import com.redhat.swatch.clients.rbac.api.resources.ApiException;
+import com.redhat.swatch.clients.rbac.RbacApiException;
+import com.redhat.swatch.clients.rbac.RbacService;
 import io.getunleash.Unleash;
 import io.quarkus.security.AuthenticationFailedException;
 import io.quarkus.security.identity.AuthenticationRequestContext;
@@ -50,7 +48,7 @@ class RbacRolesAugmentorTest {
   RbacRolesAugmentor augmentor;
   RhIdentityPrincipalFactory identityFactory;
 
-  @Mock AccessApi rbacApi;
+  @Mock RbacService rbacService;
   @Mock Unleash unleash;
 
   AuthenticationRequestContext context = Uni.createFrom()::item;
@@ -60,7 +58,7 @@ class RbacRolesAugmentorTest {
     augmentor = new RbacRolesAugmentor();
     augmentor.rbacEnabled = true;
     augmentor.unleash = unleash;
-    augmentor.accessApi = rbacApi;
+    augmentor.rbacService = rbacService;
 
     identityFactory = new RhIdentityPrincipalFactory();
     identityFactory.mapper = new ObjectMapper();
@@ -75,10 +73,8 @@ class RbacRolesAugmentorTest {
   }
 
   @Test
-  void customerRoleGrantedToCustomerHavingAdminRbacRole() throws ApiException {
-    when(rbacApi.getPrincipalAccess(any(), any(), any(), any(), any()))
-        .thenReturn(
-            new AccessPagination().data(List.of(new Access().permission("subscriptions:*:*"))));
+  void customerRoleGrantedToCustomerHavingAdminRbacRole() throws RbacApiException {
+    when(rbacService.getPermissions(any(), any())).thenReturn(List.of("subscriptions:*:*"));
     var subscriber =
         augmentor
             .augment(
@@ -90,11 +86,9 @@ class RbacRolesAugmentorTest {
   }
 
   @Test
-  void customerRoleGrantedToCustomerHavingReaderRbacRole() throws ApiException {
-    when(rbacApi.getPrincipalAccess(any(), any(), any(), any(), any()))
-        .thenReturn(
-            new AccessPagination()
-                .data(List.of(new Access().permission("subscriptions:reports:read"))));
+  void customerRoleGrantedToCustomerHavingReaderRbacRole() throws RbacApiException {
+    when(rbacService.getPermissions(any(), any()))
+        .thenReturn(List.of("subscriptions:reports:read"));
     var subscriber =
         augmentor
             .augment(
@@ -106,9 +100,8 @@ class RbacRolesAugmentorTest {
   }
 
   @Test
-  void customerRoleNotGrantedToCustomerNoRbacRole() throws ApiException {
-    when(rbacApi.getPrincipalAccess(any(), any(), any(), any(), any()))
-        .thenReturn(new AccessPagination().data(List.of()));
+  void customerRoleNotGrantedToCustomerNoRbacRole() throws RbacApiException {
+    when(rbacService.getPermissions(any(), any())).thenReturn(List.of());
     var subscriber =
         augmentor
             .augment(
@@ -120,9 +113,9 @@ class RbacRolesAugmentorTest {
   }
 
   @Test
-  void customerRoleNotGrantedWhenRbacCallFails() throws ApiException {
-    when(rbacApi.getPrincipalAccess(any(), any(), any(), any(), any()))
-        .thenThrow(new ApiException());
+  void customerRoleNotGrantedWhenRbacCallFails() throws RbacApiException {
+    when(rbacService.getPermissions(any(), any()))
+        .thenThrow(new RbacApiException("RBAC unavailable", null));
     var subscriber =
         augmentor
             .augment(
@@ -143,7 +136,7 @@ class RbacRolesAugmentorTest {
             .map(SecurityIdentity::getRoles)
             .subscribe()
             .withSubscriber(UniAssertSubscriber.create());
-    verifyNoInteractions(rbacApi);
+    verifyNoInteractions(rbacService);
     subscriber.assertCompleted().assertItem(Set.of("test", "service", "support", "customer"));
   }
 }

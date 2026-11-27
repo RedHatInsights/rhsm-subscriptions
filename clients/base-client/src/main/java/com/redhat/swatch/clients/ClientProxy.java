@@ -21,7 +21,9 @@
 package com.redhat.swatch.clients;
 
 import jakarta.ws.rs.client.Client;
+import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -93,17 +95,29 @@ public class ClientProxy<CLIENT> {
       httpClientBuilder =
           httpClientBuilder.readTimeout(readTimeout.toMillis(), TimeUnit.MILLISECONDS);
     }
+
+    if (httpClientBuilder instanceof ResteasyClientBuilder resteasyClientBuilder) {
+      Integer maxConnections = config.getMaxConnections();
+      if (maxConnections != null && maxConnections > 0) {
+        httpClientBuilder = resteasyClientBuilder.connectionPoolSize(maxConnections);
+      }
+
+      Duration connectionTtl = config.getConnectionTtl();
+      if (connectionTtl != null && !connectionTtl.isZero() && !connectionTtl.isNegative()) {
+        httpClientBuilder =
+            resteasyClientBuilder.connectionTTL(connectionTtl.toMillis(), TimeUnit.MILLISECONDS);
+      }
+    }
+
     KeyStore trustStore = loadTrustStore(config);
     if (trustStore != null) {
       try {
-        TrustManagerFactory trustManagerFactory =
-            TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-        trustManagerFactory.init(trustStore);
+        var trustManagers = loadTrustManagers(trustStore);
         SSLContext sslContext = SSLContext.getInstance("TLS");
-        sslContext.init(null, trustManagerFactory.getTrustManagers(), null);
+        sslContext.init(null, trustManagers, null);
         httpClientBuilder = httpClientBuilder.sslContext(sslContext);
       } catch (Exception e) {
-        throw new IllegalStateException("Failed to build RESTEasy client for truststore", e);
+        throw new IllegalStateException("Failed to build RESTEasy client SSL context", e);
       }
     }
 
@@ -115,14 +129,13 @@ public class ClientProxy<CLIENT> {
     if (path == null || path.isBlank()) {
       return null;
     }
-    String type =
-        config.getTrustStoreType() == null || config.getTrustStoreType().isBlank()
-            ? KeyStore.getDefaultType()
-            : config.getTrustStoreType();
+
+    char[] password = config.getTrustStorePassword();
+    String type = config.getTrustStoreType();
+    String resolvedType = type == null || type.isBlank() ? KeyStore.getDefaultType() : type;
     try {
-      KeyStore keyStore = KeyStore.getInstance(type);
-      try (InputStream input = Files.newInputStream(toPath(path))) {
-        char[] password = config.getTrustStorePassword();
+      KeyStore keyStore = KeyStore.getInstance(resolvedType);
+      try (InputStream input = openInputStream(path)) {
         keyStore.load(input, password == null || password.length == 0 ? null : password);
       }
       return keyStore;
@@ -131,11 +144,32 @@ public class ClientProxy<CLIENT> {
     }
   }
 
-  private static Path toPath(String path) {
-    if (path.startsWith("file:")) {
-      return Path.of(URI.create(path));
+  private static javax.net.ssl.TrustManager[] loadTrustManagers(KeyStore trustStore)
+      throws Exception {
+    if (trustStore == null) {
+      return null;
     }
-    return Path.of(path);
+    TrustManagerFactory trustManagerFactory =
+        TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+    trustManagerFactory.init(trustStore);
+    return trustManagerFactory.getTrustManagers();
+  }
+
+  private static InputStream openInputStream(String path) throws IOException {
+    if (path.startsWith("file:")) {
+      return Files.newInputStream(Path.of(URI.create(path)));
+    }
+    try {
+      URI uri = URI.create(path);
+      if (uri.isAbsolute()) {
+        return uri.toURL().openStream();
+      }
+    } catch (IllegalArgumentException | MalformedURLException e) {
+      // Fall through to a regular filesystem path.
+      log.debug("Failed to open URL {}. Trying regular filesystem path.", path, e);
+    }
+
+    return Files.newInputStream(Path.of(path));
   }
 
   /** Operation against the configured client. */

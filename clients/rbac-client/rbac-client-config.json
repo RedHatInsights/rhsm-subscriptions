@@ -1,7 +1,7 @@
 {
-  "modelPackage": "org.candlepin.subscriptions.rbac.model",
-  "apiPackage": "org.candlepin.subscriptions.rbac.resources",
-  "invokerPackage": "org.candlepin.subscriptions.rbac",
-  "groupId": "org.candlepin",
+  "modelPackage": "com.redhat.swatch.clients.rbac.api.model",
+  "apiPackage": "com.redhat.swatch.clients.rbac.api.resources",
+  "invokerPackage": "com.redhat.swatch.clients.rbac.api.client",
+  "groupId": "com.redhat.swatch.clients",
   "artifactId": "rbac-client"
 }

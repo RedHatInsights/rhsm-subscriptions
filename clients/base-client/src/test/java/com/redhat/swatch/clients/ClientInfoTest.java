@@ -31,15 +31,15 @@ class ClientInfoTest {
   @Test
   void describeOmitsSecretsAndExposesUriAndAuthenticated() {
     ClientConfig config =
-        new ClientConfig(
-            "export-service",
-            "psk",
-            "https://user:secret@export.example",
-            true,
-            "/tmp/trust.p12",
-            "password".toCharArray(),
-            "PKCS12",
-            null);
+        ClientConfig.builder()
+            .name("export-service")
+            .psk("psk")
+            .uri("https://user:secret@export.example")
+            .authenticated(true)
+            .trustStorePath("/tmp/trust.p12")
+            .trustStorePassword("password".toCharArray())
+            .trustStoreType("PKCS12")
+            .build();
     ClientInfo client =
         new ClientInfo() {
           @Override

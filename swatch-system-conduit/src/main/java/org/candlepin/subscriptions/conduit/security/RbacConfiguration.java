@@ -20,30 +20,21 @@
  */
 package org.candlepin.subscriptions.conduit.security;
 
-import org.candlepin.subscriptions.rbac.RbacApiFactory;
-import org.candlepin.subscriptions.rbac.RbacProperties;
-import org.candlepin.subscriptions.rbac.RbacService;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import com.redhat.swatch.clients.rbac.RbacApi;
+import com.redhat.swatch.clients.rbac.RbacService;
+import org.candlepin.subscriptions.rbac.RbacApiClientConfiguration;
+import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 
 /** Configuration for consoledot RBAC service client */
 @Configuration
+@Import(RbacApiClientConfiguration.class)
 public class RbacConfiguration {
 
   @Bean
-  public RbacService rbacService() {
-    return new RbacService();
-  }
-
-  @Bean
-  @ConfigurationProperties(prefix = "rhsm-subscriptions.rbac-service")
-  public RbacProperties rbacServiceProperties() {
-    return new RbacProperties();
-  }
-
-  @Bean
-  public RbacApiFactory rbacApiFactory(RbacProperties props) {
-    return new RbacApiFactory(props);
+  public RbacService rbacService(RbacApi rbacApi) {
+    return new RbacService(rbacApi, ResourceUtils::getCurrentIdentityHeader);
   }
 }
