@@ -38,6 +38,7 @@ import domain.ContractStub;
 import domain.Product;
 import domain.RemittanceStatus;
 import java.time.OffsetDateTime;
+import java.time.YearMonth;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -513,6 +514,57 @@ public class ContractAdjustmentComponentTest extends BaseBillableUsageComponentT
     whenUsageIsTallied(ROSA, INSTANCE_HOURS, 80.0, 80.0, oct9);
     thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, 0.0);
     thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, 80.0, "license-a");
+  }
+
+  @Test
+  @TestPlanName("billable-usage-contract-adjustment-TC015")
+  void shouldPreserveMonthlyCoveredUsageWhenOneOfTwoContractsExpires() {
+    OffsetDateTime start =
+        YearMonth.now(ZoneOffset.UTC)
+            .minusMonths(1)
+            .atDay(1)
+            .atStartOfDay()
+            .atOffset(ZoneOffset.UTC);
+    OffsetDateTime licenseAEnd = start.plusDays(2);
+    OffsetDateTime licenseBEnd = start.plusDays(4);
+
+    // Both contracts remain in the stub response; validity is evaluated at each snapshot date.
+    givenRosaInstanceHoursContracts(
+        List.of(
+            new ContractStub(
+                start,
+                licenseBEnd,
+                Map.of(ROSA.getMetric(INSTANCE_HOURS).getAwsDimension(), 30.0),
+                "license-b"),
+            new ContractStub(
+                start,
+                licenseAEnd,
+                Map.of(ROSA.getMetric(INSTANCE_HOURS).getAwsDimension(), 40.0),
+                "license-a")));
+
+    // Both contracts are active; the earlier-ending license-a fills first.
+    double firstTotal = 55.0;
+    whenUsageIsTallied(ROSA, INSTANCE_HOURS, firstTotal, firstTotal, licenseAEnd.minusDays(1));
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, firstTotal);
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, 40.0, "license-a");
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, 15.0, "license-b");
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, 0.0);
+
+    // At license-a's exclusive end, its booked coverage still counts; license-b has 15 left.
+    double secondTotal = 70.0;
+    whenUsageIsTallied(ROSA, INSTANCE_HOURS, secondTotal - firstTotal, secondTotal, licenseAEnd);
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, secondTotal);
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, 40.0, "license-a");
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, 30.0, "license-b");
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, 0.0);
+
+    // License-b is at capacity; only the new usage is remitted, on license-b.
+    double thirdTotal = 85.0;
+    whenUsageIsTallied(
+        ROSA, INSTANCE_HOURS, thirdTotal - secondTotal, thirdTotal, licenseAEnd.plusDays(1));
+    thenAccountRemittedUsageEquals(ROSA, INSTANCE_HOURS, thirdTotal - secondTotal, "license-b");
+    thenAccountRemittedUsageSumEquals(ROSA, INSTANCE_HOURS, thirdTotal - secondTotal);
+    thenAccountCoveredUsageEquals(ROSA, INSTANCE_HOURS, secondTotal);
   }
 
   private Map<String, Double> equalCoverageForAllRosaMetrics(double contractBillableUnits) {
