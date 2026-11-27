@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+  <!--
+    SWATCH-2418: drop the subscription ID columns from the subscriptions tables.
+
+    subscription.subscription_number is now the identity of the subscription tables
+    (see 202610061200_replace_subscription_id_by_number.xml), and nothing reads
+    subscription_id anymore, so the columns can go away.
+
+    In PostgreSQL dropping a column is a metadata-only operation (existing rows are not
+    rewritten), so this stays fast even for the ~10.9M row subscription table.
+  -->
+
+  <changeSet id="202611251200-01" author="tlencion">
+    <preConditions onFail="MARK_RAN">
+      <indexExists tableName="subscription" indexName="subscription_sku_subs_id_start_date_idx"/>
+    </preConditions>
+    <comment>Drop the index on subscription(sku, subscription_id, start_date)</comment>
+    <dropIndex tableName="subscription" indexName="subscription_sku_subs_id_start_date_idx"/>
+    <rollback>
+      <createIndex tableName="subscription" indexName="subscription_sku_subs_id_start_date_idx">
+        <column name="sku"/>
+        <column name="subscription_id"/>
+        <column name="start_date" descending="true"/>
+      </createIndex>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202611251200-02" author="tlencion">
+    <preConditions onFail="MARK_RAN">
+      <columnExists tableName="subscription_measurements" columnName="subscription_id"/>
+    </preConditions>
+    <comment>Drop subscription_measurements.subscription_id</comment>
+    <dropColumn tableName="subscription_measurements" columnName="subscription_id"/>
+    <rollback>
+      <addColumn tableName="subscription_measurements">
+        <column name="subscription_id" type="VARCHAR(255)"/>
+      </addColumn>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202611251200-03" author="tlencion">
+    <preConditions onFail="MARK_RAN">
+      <columnExists tableName="subscription" columnName="subscription_id"/>
+    </preConditions>
+    <comment>Drop subscription.subscription_id</comment>
+    <dropColumn tableName="subscription" columnName="subscription_id"/>
+    <rollback>
+      <addColumn tableName="subscription">
+        <column name="subscription_id" type="VARCHAR(255)"/>
+      </addColumn>
+    </rollback>
+  </changeSet>
+</databaseChangeLog>
