@@ -48,6 +48,7 @@ import io.smallrye.reactive.messaging.annotations.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.ProcessingException;
 import jakarta.ws.rs.core.Response;
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -76,6 +77,25 @@ import software.amazon.awssdk.services.marketplacemetering.model.UsageRecordResu
 public class AwsBillableUsageAggregateConsumer {
   protected static final String METERED_TOTAL_METRIC = "swatch_producer_metered_total";
 
+  /**
+   * Counts remittance attempts (exactly one per aggregate processed, whatever the outcome) so that
+   * zero-quantity attempts - which do not change {@link #METERED_TOTAL_METRIC} - can still be
+   * observed.
+   */
+  protected static final String REMITTANCE_ATTEMPTS_TOTAL_METRIC =
+      "swatch_producer_aws_remittance_attempts_total";
+
+  protected static final String QUANTITY_TAG = "quantity";
+  protected static final String ZERO_QUANTITY = "zero";
+  protected static final String NON_ZERO_QUANTITY = "non_zero";
+
+  /**
+   * Counts status messages that could not be published, so a missing terminal status can be alerted
+   * on and reconciled.
+   */
+  protected static final String STATUS_PUBLISH_FAILURES_METRIC =
+      "swatch_producer_status_publish_failures_total";
+
   private final Counter acceptedCounter;
   private final Counter rejectedCounter;
   private final Counter ignoreCounter;
@@ -86,6 +106,8 @@ public class AwsBillableUsageAggregateConsumer {
   private final BillableUsageStatusProducer billableUsageStatusProducer;
   private final FeatureFlags featureFlags;
   private final MeterProvider<Counter> meteredTotalCounter;
+  private final MeterProvider<Counter> remittanceAttemptsCounter;
+  private final MeterProvider<Counter> statusPublishFailureCounter;
 
   public AwsBillableUsageAggregateConsumer(
       MeterRegistry meterRegistry,
@@ -99,6 +121,10 @@ public class AwsBillableUsageAggregateConsumer {
     rejectedCounter = meterRegistry.counter("swatch_aws_marketplace_batch_rejected_total");
     ignoreCounter = meterRegistry.counter("swatch_aws_marketplace_batch_ignored_total");
     this.meteredTotalCounter = Counter.builder(METERED_TOTAL_METRIC).withRegistry(meterRegistry);
+    this.remittanceAttemptsCounter =
+        Counter.builder(REMITTANCE_ATTEMPTS_TOTAL_METRIC).withRegistry(meterRegistry);
+    this.statusPublishFailureCounter =
+        Counter.builder(STATUS_PUBLISH_FAILURES_METRIC).withRegistry(meterRegistry);
     this.contractsApi = contractsApi;
     this.awsMarketplaceMeteringClientFactory = awsMarketplaceMeteringClientFactory;
     this.isDryRun = isDryRun;
@@ -180,7 +206,6 @@ public class AwsBillableUsageAggregateConsumer {
 
     try {
       transformAndSend(context, billableUsageAggregate, metric.get());
-      emitSuccessfulStatusOnUsage(billableUsageAggregate);
     } catch (UsageTimestampOutOfBoundsException e) {
       emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.REDUNDANT);
       BillableUsageAggregateLogger.warn(
@@ -193,6 +218,7 @@ public class AwsBillableUsageAggregateConsumer {
           context.getProductCode(),
           context.getSubscriptionStartDate());
       ignoreCounter.increment();
+      return;
     } catch (AwsUsageNotAcceptedException e) {
       emitErrorStatusOnUsage(
           billableUsageAggregate, errorCodeForAwsUsageResult(e.getResultStatus()));
@@ -204,6 +230,7 @@ public class AwsBillableUsageAggregateConsumer {
           context.getCustomerId(),
           context.getProductCode(),
           e.getResultStatus());
+      return;
     } catch (AwsThrottlingException e) {
       emitErrorStatusOnUsage(
           billableUsageAggregate, BillableUsage.ErrorCode.MARKETPLACE_RATE_LIMIT);
@@ -215,6 +242,7 @@ public class AwsBillableUsageAggregateConsumer {
           context.getCustomerId(),
           context.getProductCode(),
           e);
+      return;
     } catch (Exception e) {
       emitErrorStatusOnUsage(billableUsageAggregate, BillableUsage.ErrorCode.UNKNOWN);
       BillableUsageAggregateLogger.error(
@@ -225,7 +253,12 @@ public class AwsBillableUsageAggregateConsumer {
           context.getCustomerId(),
           context.getProductCode(),
           e);
+      return;
     }
+
+    // Reported outside the AWS outcome classification above: a failure to emit the status message
+    // is not an AWS remittance outcome, so it must not be recorded as a second (failed) attempt.
+    emitSuccessfulStatusOnUsage(billableUsageAggregate);
   }
 
   @RetryWithExponentialBackoff(
@@ -429,16 +462,51 @@ public class AwsBillableUsageAggregateConsumer {
     usage.setStatus(BillableUsage.Status.SUCCEEDED);
     usage.setErrorCode(null);
     usage.setBilledOn(OffsetDateTime.now());
-    incrementMeteredTotal(usage);
-    billableUsageStatusProducer.emitStatus(usage);
+    recordRemittanceMetrics(usage);
+    publishStatus(usage);
   }
 
   private void emitErrorStatusOnUsage(
       BillableUsageAggregate usage, BillableUsage.ErrorCode errorCode) {
     usage.setStatus(BillableUsage.Status.FAILED);
     usage.setErrorCode(errorCode);
-    incrementMeteredTotal(usage);
-    billableUsageStatusProducer.emitStatus(usage);
+    recordRemittanceMetrics(usage);
+    publishStatus(usage);
+  }
+
+  /**
+   * Publishes the terminal status of the aggregate to the status topic, which is the only channel
+   * that finalizes the aggregate's remittances in swatch-billable-usage.
+   *
+   * <p>The status is published exactly once and its publication is never allowed to change the
+   * outcome of the metering: a failure is not turned into another status, so usage that AWS
+   * accepted is never reported as failed (a failed status would also wrongly fail its remittances),
+   * and it is not retried, because the incoming channel uses {@code failure-strategy=ignore}: the
+   * exception is logged by the channel, the message is not redelivered, and the already metered
+   * usage is not submitted to AWS again (AWS would answer {@code DUPLICATE_RECORD}).
+   *
+   * <p>A failure is therefore recorded so that the aggregate can be reconciled: the remittances
+   * stay PENDING in swatch-billable-usage, which is the durable record of the missing terminal
+   * status (and can be queried and reset through the internal remittance API), the {@value
+   * #STATUS_PUBLISH_FAILURES_METRIC} counter is incremented so the failure can be alerted on, and
+   * the failure is logged with the aggregate identifiers needed for that reconciliation
+   * (aggregateId, key, window timestamp and remittance UUIDs).
+   */
+  private void publishStatus(BillableUsageAggregate usage) {
+    try {
+      billableUsageStatusProducer.emitStatus(usage);
+    } catch (Exception e) {
+      statusPublishFailureCounter
+          .withTags("status", ofNullable(usage.getStatus()).map(Object::toString).orElse(""))
+          .increment();
+      BillableUsageAggregateLogger.error(
+          log,
+          usage,
+          "Unable to publish status '{}' to the status topic; the aggregate remittances stay pending and must be reconciled",
+          usage.getStatus(),
+          e);
+      throw e;
+    }
   }
 
   private static BillableUsage.ErrorCode errorCodeForAwsUsageResult(
@@ -452,19 +520,50 @@ public class AwsBillableUsageAggregateConsumer {
     return BillableUsage.ErrorCode.UNKNOWN;
   }
 
-  private void incrementMeteredTotal(BillableUsageAggregate usage) {
+  /**
+   * Records the AWS remittance outcome for the given aggregate. Must be called exactly once per
+   * aggregate, before the status message is emitted: a failure to emit the status message is not an
+   * AWS outcome and must not be recorded as a separate attempt.
+   */
+  private void recordRemittanceMetrics(BillableUsageAggregate usage) {
     BillableUsageAggregateKey aggregateKey = usage.getAggregateKey();
-    double value =
-        usage.getTotalValue().doubleValue()
-            / getBillingFactor(aggregateKey.getProductId(), aggregateKey.getMetricId());
+    String product = aggregateKey.getProductId();
+    String metricId = MetricId.fromString(aggregateKey.getMetricId()).getValue();
+    String billingProvider = ofNullable(aggregateKey.getBillingProvider()).orElse("");
+    String status = ofNullable(usage.getStatus()).map(Object::toString).orElse("");
+    String errorCode = ofNullable(usage.getErrorCode()).map(Object::toString).orElse("");
+
+    double value = usage.getTotalValue().doubleValue() / getBillingFactor(product, metricId);
     meteredTotalCounter
         .withTags(
-            "product", aggregateKey.getProductId(),
-            "metric_id", MetricId.fromString(aggregateKey.getMetricId()).getValue(),
-            "billing_provider", ofNullable(aggregateKey.getBillingProvider()).orElse(""),
-            "status", ofNullable(usage.getStatus()).map(Object::toString).orElse(""),
-            "error_code", ofNullable(usage.getErrorCode()).map(Object::toString).orElse(""))
+            "product", product,
+            "metric_id", metricId,
+            "billing_provider", billingProvider,
+            "status", status,
+            "error_code", errorCode)
         .increment(value);
+
+    // Unlike metered_total, this counter is incremented for zero-quantity remittances too, so the
+    // (majority) zero-to-remit cases can be observed without inflating the metered amounts.
+    remittanceAttemptsCounter
+        .withTags(
+            "product",
+            product,
+            "metric_id",
+            metricId,
+            "billing_provider",
+            billingProvider,
+            "status",
+            status,
+            "error_code",
+            errorCode,
+            QUANTITY_TAG,
+            isZeroQuantity(usage) ? ZERO_QUANTITY : NON_ZERO_QUANTITY)
+        .increment();
+  }
+
+  private static boolean isZeroQuantity(BillableUsageAggregate usage) {
+    return BigDecimal.ZERO.compareTo(usage.getTotalValue()) == 0;
   }
 
   /**

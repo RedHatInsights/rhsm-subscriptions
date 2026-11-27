@@ -20,6 +20,8 @@
  */
 package com.redhat.swatch.aws.service;
 
+import static com.redhat.swatch.aws.configuration.Channels.BILLABLE_USAGE_HOURLY_AGGREGATE;
+import static com.redhat.swatch.aws.test.resources.InMemoryMessageBrokerKafkaResource.IN_MEMORY_CONNECTOR;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -28,8 +30,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -40,6 +45,7 @@ import com.redhat.swatch.aws.exception.DefaultApiException;
 import com.redhat.swatch.aws.exception.SubscriptionCanNotBeDeterminedException;
 import com.redhat.swatch.aws.exception.SubscriptionMissingBillingAccountIdException;
 import com.redhat.swatch.aws.exception.SubscriptionRecentlyTerminatedException;
+import com.redhat.swatch.aws.test.resources.InMemoryMessageBrokerKafkaResource;
 import com.redhat.swatch.clients.contracts.api.model.AwsUsageContext;
 import com.redhat.swatch.clients.contracts.api.model.Error;
 import com.redhat.swatch.clients.contracts.api.resources.ApiException;
@@ -51,7 +57,10 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.quarkus.test.InjectMock;
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
+import io.smallrye.reactive.messaging.memory.InMemoryConnector;
+import io.smallrye.reactive.messaging.memory.InMemorySource;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.core.Response;
 import java.math.BigDecimal;
@@ -66,10 +75,12 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import org.awaitility.Awaitility;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -88,6 +99,7 @@ import software.amazon.awssdk.services.marketplacemetering.model.UsageRecordResu
 import software.amazon.awssdk.services.marketplacemetering.model.UsageRecordResultStatus;
 
 @QuarkusTest
+@QuarkusTestResource(InMemoryMessageBrokerKafkaResource.class)
 class AwsBillableUsageAggregateConsumerTest {
   private static final String PRODUCT_ID = "rosa";
 
@@ -144,6 +156,13 @@ class AwsBillableUsageAggregateConsumerTest {
 
   @Inject AwsBillableUsageAggregateConsumer consumer;
 
+  @Inject
+  @Connector(IN_MEMORY_CONNECTOR)
+  InMemoryConnector connector;
+
+  InMemorySource<BillableUsageAggregate> aggregateSource;
+  Counter statusPublishFailures;
+
   @ConfigProperty(name = "AWS_MARKETPLACE_USAGE_WINDOW")
   Duration maxAgeDuration;
 
@@ -184,6 +203,13 @@ class AwsBillableUsageAggregateConsumerTest {
 
     meteringClient = mock(MarketplaceMeteringClient.class);
     when(featureFlags.useLicense()).thenReturn(false);
+
+    aggregateSource = connector.source(BILLABLE_USAGE_HOURLY_AGGREGATE);
+    statusPublishFailures =
+        meterRegistry.counter(
+            AwsBillableUsageAggregateConsumer.STATUS_PUBLISH_FAILURES_METRIC,
+            "status",
+            BillableUsage.Status.SUCCEEDED.toString());
   }
 
   @Test
@@ -727,6 +753,166 @@ class AwsBillableUsageAggregateConsumerTest {
             argThat(usage ->
                 BillableUsage.Status.FAILED.equals(usage.getStatus())
                     && errorCode.equals(usage.getErrorCode())));
+  }
+
+  static Stream<Arguments> customerNotSubscribedQuantityBuckets() {
+    return Stream.of(
+        Arguments.of(0.0, AwsBillableUsageAggregateConsumer.ZERO_QUANTITY),
+        Arguments.of(42.0, AwsBillableUsageAggregateConsumer.NON_ZERO_QUANTITY));
+  }
+
+  @ParameterizedTest
+  @MethodSource("customerNotSubscribedQuantityBuckets")
+  void shouldCountCustomerNotSubscribedRemittanceAttemptsByQuantity(
+      double totalValue, String expectedQuantity) throws ApiException {
+    var aggregate =
+        createAggregate(
+            PRODUCT_ID,
+            MetricIdUtils.getInstanceHours().toUpperCaseFormatted(),
+            OffsetDateTime.now(Clock.systemUTC()),
+            totalValue);
+    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any(), isNull()))
+        .thenReturn(MOCK_AWS_USAGE_CONTEXT);
+    when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
+    when(meteringClient.batchMeterUsage(any(BatchMeterUsageRequest.class)))
+        .thenReturn(
+            BatchMeterUsageResponse.builder()
+                .results(
+                    UsageRecordResult.builder()
+                        .usageRecord(UsageRecord.builder().build())
+                        .status(UsageRecordResultStatus.CUSTOMER_NOT_SUBSCRIBED)
+                        .build())
+                .build());
+    Counter attemptsCounter =
+        meterRegistry.counter(
+            AwsBillableUsageAggregateConsumer.REMITTANCE_ATTEMPTS_TOTAL_METRIC,
+            "product",
+            PRODUCT_ID,
+            "metric_id",
+            MetricIdUtils.getInstanceHours().getValue(),
+            "billing_provider",
+            BillableUsage.BillingProvider.AWS.toString(),
+            "status",
+            BillableUsage.Status.FAILED.toString(),
+            "error_code",
+            BillableUsage.ErrorCode.MARKETPLACE_CUSTOMER_NOT_SUBSCRIBED.toString(),
+            AwsBillableUsageAggregateConsumer.QUANTITY_TAG,
+            expectedQuantity);
+    double priorAttempts = attemptsCounter.count();
+
+    consumer.process(aggregate);
+
+    assertEquals(priorAttempts + 1, attemptsCounter.count());
+  }
+
+  @Test
+  void shouldRecordOnlyTheAwsOutcomeWhenStatusEmitFails() throws ApiException {
+    var aggregate =
+        createAggregate(
+            PRODUCT_ID,
+            MetricIdUtils.getInstanceHours().toUpperCaseFormatted(),
+            OffsetDateTime.now(Clock.systemUTC()),
+            42.0);
+    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any(), isNull()))
+        .thenReturn(MOCK_AWS_USAGE_CONTEXT);
+    when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
+    when(meteringClient.batchMeterUsage(any(BatchMeterUsageRequest.class)))
+        .thenReturn(BATCH_METER_USAGE_SUCCESS_RESPONSE);
+    doThrow(new IllegalStateException("status topic unavailable"))
+        .when(billableUsageStatusProducer)
+        .emitStatus(any());
+
+    Counter succeededAttempts = remittanceAttemptsCounter(BillableUsage.Status.SUCCEEDED, "");
+    Counter failedAttempts =
+        remittanceAttemptsCounter(
+            BillableUsage.Status.FAILED, BillableUsage.ErrorCode.UNKNOWN.toString());
+    double priorSucceededAttempts = succeededAttempts.count();
+    double priorFailedAttempts = failedAttempts.count();
+    double priorSuccessMetered = successCounter.count();
+    double priorFailedMetered = failedCounter.count();
+    double priorStatusPublishFailures = statusPublishFailures.count();
+
+    // A failed status send must surface so the message is not silently acknowledged as successful,
+    // but it must not be reclassified as an AWS remittance failure either.
+    assertThrows(IllegalStateException.class, () -> consumer.process(aggregate));
+
+    assertEquals(priorSucceededAttempts + 1, succeededAttempts.count());
+    assertEquals(priorFailedAttempts, failedAttempts.count());
+    assertEquals(priorSuccessMetered + 42.0, successCounter.count());
+    assertEquals(priorFailedMetered, failedCounter.count());
+    assertEquals(priorStatusPublishFailures + 1, statusPublishFailures.count());
+  }
+
+  /**
+   * Sends the aggregates through the incoming channel instead of calling {@code process} directly,
+   * so the chosen behavior of the consumer is verified at the messaging channel level.
+   */
+  @Test
+  void shouldKeepConsumingWhenSuccessStatusCannotBePublished() throws ApiException {
+    when(contractsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any(), isNull()))
+        .thenReturn(MOCK_AWS_USAGE_CONTEXT);
+    when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
+    when(meteringClient.batchMeterUsage(any(BatchMeterUsageRequest.class)))
+        .thenReturn(BATCH_METER_USAGE_SUCCESS_RESPONSE);
+    // the status topic is unavailable for the first aggregate, then available again
+    doThrow(new IllegalStateException("status topic unavailable"))
+        .doNothing()
+        .when(billableUsageStatusProducer)
+        .emitStatus(any());
+    var priorStatusPublishFailures = statusPublishFailures.count();
+    var priorSuccess = successCounter.count();
+
+    aggregateSource.send(
+        createAggregate(
+            "rosa",
+            MetricIdUtils.getInstanceHours().toUpperCaseFormatted(),
+            OffsetDateTime.now(Clock.systemUTC()),
+            42.0));
+
+    // the failure is recorded for reconciliation: it is counted and logged, the remittances stay
+    // pending, and the already metered usage is not submitted to AWS again
+    Awaitility.await()
+        .untilAsserted(() ->
+            assertEquals(priorStatusPublishFailures + 1, statusPublishFailures.count(), 0.001));
+    verify(meteringClient, times(1)).batchMeterUsage(any(BatchMeterUsageRequest.class));
+
+    // the channel keeps consuming: the next aggregate is metered and its status is published
+    aggregateSource.send(
+        createAggregate(
+            "rosa",
+            MetricIdUtils.getInstanceHours().toUpperCaseFormatted(),
+            OffsetDateTime.now(Clock.systemUTC()),
+            42.0));
+    Awaitility.await()
+        .untilAsserted(() ->
+            verify(meteringClient, times(2)).batchMeterUsage(any(BatchMeterUsageRequest.class)));
+
+    // the accepted usage is only ever reported as successful, never as a (false) failure
+    verify(billableUsageStatusProducer, times(2))
+        .emitStatus(
+            argThat(usage ->
+                BillableUsage.Status.SUCCEEDED.equals(usage.getStatus())
+                    && usage.getErrorCode() == null));
+    verify(billableUsageStatusProducer, never())
+        .emitStatus(argThat(usage -> BillableUsage.Status.FAILED.equals(usage.getStatus())));
+    assertEquals(priorSuccess + 84.0, successCounter.count(), 0.001);
+  }
+
+  private Counter remittanceAttemptsCounter(BillableUsage.Status status, String errorCode) {
+    return meterRegistry.counter(
+        AwsBillableUsageAggregateConsumer.REMITTANCE_ATTEMPTS_TOTAL_METRIC,
+        "product",
+        PRODUCT_ID,
+        "metric_id",
+        MetricIdUtils.getInstanceHours().getValue(),
+        "billing_provider",
+        BillableUsage.BillingProvider.AWS.toString(),
+        "status",
+        status.toString(),
+        "error_code",
+        errorCode,
+        AwsBillableUsageAggregateConsumer.QUANTITY_TAG,
+        AwsBillableUsageAggregateConsumer.NON_ZERO_QUANTITY);
   }
 
   static Stream<Arguments> usageWindowTestArgs() {

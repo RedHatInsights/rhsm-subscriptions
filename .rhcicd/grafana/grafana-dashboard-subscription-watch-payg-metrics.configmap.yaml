@@ -997,8 +997,8 @@ data:
               "gridPos": {
                 "h": 8,
                 "w": 12,
-                "x": 12,
-                "y": 90
+                "x": 0,
+                "y": 34
               },
               "id": 79,
               "interval": "$interval",
@@ -1032,6 +1032,142 @@ data:
                 }
               ],
               "title": "Remitted Failed with Marketplace Rate Limit",
+              "type": "timeseries"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "description": "AWS returns CUSTOMER_NOT_SUBSCRIBED for usage that SWATCH still considers billable, most often while a subscription is ending or being renewed. The majority of these failures are zero-quantity (0 to remit) remittances and have no billing impact: AWS rejects even Quantity=0 records when the marketplace entitlement is not active. Counts come from swatch_producer_aws_remittance_attempts_total, because zero-quantity attempts do not change swatch_producer_metered_total.",
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 0,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green"
+                      }
+                    ]
+                  }
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byRegexp",
+                      "options": "^zero quantity \\(0 to remit\\)"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "mode": "fixed",
+                          "fixedColor": "#73BF69"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "matcher": {
+                      "id": "byRegexp",
+                      "options": "^non-zero quantity"
+                    },
+                    "properties": [
+                      {
+                        "id": "color",
+                        "value": {
+                          "mode": "fixed",
+                          "fixedColor": "#F2495C"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 26
+              },
+              "id": 91,
+              "interval": "$interval",
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "mode": "single",
+                  "sort": "none"
+                }
+              },
+              "pluginVersion": "10.4.1",
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "${datasource}"
+                  },
+                  "editorMode": "code",
+                  "expr": "sum(increase(swatch_producer_aws_remittance_attempts_total{product=\"$product\", billing_provider=\"$billing_provider\", status=\"failed\", error_code=\"marketplace_customer_not_subscribed\", quantity=\"zero\"}[$interval])) by (metric_id)",
+                  "instant": false,
+                  "legendFormat": "zero quantity (0 to remit) - {{metric_id}}",
+                  "range": true,
+                  "refId": "A"
+                },
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "${datasource}"
+                  },
+                  "editorMode": "code",
+                  "expr": "sum(increase(swatch_producer_aws_remittance_attempts_total{product=\"$product\", billing_provider=\"$billing_provider\", status=\"failed\", error_code=\"marketplace_customer_not_subscribed\", quantity=\"non_zero\"}[$interval])) by (metric_id)",
+                  "instant": false,
+                  "legendFormat": "non-zero quantity - {{metric_id}}",
+                  "range": true,
+                  "refId": "B"
+                }
+              ],
+              "title": "Remitted Failed with Customer Not Subscribed",
               "type": "timeseries"
             }
           ],
