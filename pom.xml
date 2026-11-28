@@ -46,7 +46,7 @@
     <splunk-otel-javaagent.version>2.34.0</splunk-otel-javaagent.version>
     <rest-assured.version>6.3.0</rest-assured.version>
     <kessel-sdk.version>1.12.0</kessel-sdk.version>
-    <grpc.version>1.85.1</grpc.version>
+    <grpc.version>1.86.0</grpc.version>
     <oauth2-oidc-sdk.version>11.39</oauth2-oidc-sdk.version>
 
     <!-- Plugins -->
